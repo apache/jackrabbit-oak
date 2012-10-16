@@ -35,7 +35,6 @@ import org.apache.jackrabbit.oak.plugins.name.NameValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.DefaultTypeEditor;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypeValidatorProvider;
-import org.apache.jackrabbit.oak.security.privilege.PrivilegeValidatorProvider;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
 import org.apache.jackrabbit.oak.spi.commit.CompositeValidatorProvider;
@@ -215,8 +214,7 @@ public class Main {
                     new NameValidatorProvider(),
                     new NamespaceValidatorProvider(),
                     new TypeValidatorProvider(),
-                    new ConflictValidatorProvider(),
-                    new PrivilegeValidatorProvider());
+                    new ConflictValidatorProvider());
         }
 
     }

@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.jcr;
 
 import java.io.IOException;
 import java.util.concurrent.ScheduledExecutorService;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.ItemExistsException;
@@ -45,12 +44,12 @@ import org.apache.jackrabbit.oak.api.SessionQueryEngine;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.jcr.security.privilege.PrivilegeManagerImpl;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.plugins.observation.ObservationManagerImpl;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeManagerImpl;
 import org.apache.jackrabbit.oak.value.ValueFactoryImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -75,7 +74,9 @@ public class SessionDelegate {
     private final IdentifierManager idManager;
 
     private ObservationManagerImpl observationManager;
-    private PrivilegeManagerImpl privilegeManager;
+    private PrincipalManager principalManager;
+    private UserManager userManager;
+    private PrivilegeManager privilegeManager;
     private boolean isAlive = true;
     private int sessionOpCount;
 
@@ -237,8 +238,9 @@ public class SessionDelegate {
         } else {
             root.refresh();
         }
-        if (privilegeManager != null) {
-            privilegeManager.refresh();
+        // TODO: improve
+        if (privilegeManager != null && privilegeManager instanceof PrivilegeManagerImpl) {
+            ((PrivilegeManagerImpl) privilegeManager).refresh();
         }
     }
 
@@ -477,26 +479,36 @@ public class SessionDelegate {
 
     @Nonnull
     PrincipalManager getPrincipalManager() throws RepositoryException {
-        if (securityProvider != null) {
-            return securityProvider.getPrincipalConfiguration().getPrincipalManager(session, root, getNamePathMapper());
-        } else {
-            throw new UnsupportedRepositoryOperationException("Principal management not supported.");
+        if (principalManager == null) {
+            if (securityProvider != null) {
+                principalManager = securityProvider.getPrincipalConfiguration().getPrincipalManager(session, root, getNamePathMapper());
+            } else {
+                throw new UnsupportedRepositoryOperationException("Principal management not supported.");
+            }
         }
+        return principalManager;
     }
 
     @Nonnull
     UserManager getUserManager() throws UnsupportedRepositoryOperationException {
-        if (securityProvider != null) {
-            return securityProvider.getUserConfiguration().getUserManager(session, root, getNamePathMapper());
-        } else {
-            throw new UnsupportedRepositoryOperationException("User management not supported.");
+        if (userManager == null) {
+            if (securityProvider != null) {
+                userManager = securityProvider.getUserConfiguration().getUserManager(session, root, getNamePathMapper());
+            } else {
+                throw new UnsupportedRepositoryOperationException("User management not supported.");
+            }
         }
+        return userManager;
     }
 
     @Nonnull
-    PrivilegeManager getPrivilegeManager() {
+    PrivilegeManager getPrivilegeManager() throws UnsupportedRepositoryOperationException {
         if (privilegeManager == null) {
-            privilegeManager = new PrivilegeManagerImpl(this);
+            if (securityProvider != null) {
+                privilegeManager = securityProvider.getPrivilegeConfiguration().getPrivilegeManager(contentSession, root, getNamePathMapper());
+            } else {
+                throw new UnsupportedRepositoryOperationException("Privilege management not supported.");
+            }
         }
         return privilegeManager;
     }

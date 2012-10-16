@@ -21,6 +21,8 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 
+import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
+
 /**
  * PrivilegeProvider... TODO
  */

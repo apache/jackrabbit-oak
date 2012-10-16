@@ -24,7 +24,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceConstants;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
-import org.apache.jackrabbit.oak.security.privilege.PrivilegeConstants;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.security.authorization.CompiledPermissions;
 import org.apache.jackrabbit.oak.spi.security.authorization.Permissions;
@@ -213,13 +213,16 @@ class PermissionValidator implements Validator {
     }
 
     private static boolean isNamespaceDefinition(String path) {
+        // TODO: depends on pluggable module
         return Text.isDescendant(NamespaceConstants.NAMESPACES_PATH, path);
     }
     private static boolean isNodeTypeDefinition(String path) {
+        // TODO: depends on pluggable module
         return Text.isDescendant(NodeTypeConstants.NODE_TYPES_PATH, path);
     }
 
     private static boolean isPrivilegeDefinition(String path) {
+        // TODO: depends on pluggable module
         return Text.isDescendant(PrivilegeConstants.PRIVILEGES_PATH, path);
     }
 }

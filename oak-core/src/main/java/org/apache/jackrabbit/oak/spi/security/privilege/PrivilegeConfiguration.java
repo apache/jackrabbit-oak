@@ -14,29 +14,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.security.privilege;
+package org.apache.jackrabbit.oak.spi.security.privilege;
 
+import java.util.Set;
 import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.oak.core.ReadOnlyTree;
-import org.apache.jackrabbit.oak.spi.commit.SubtreeValidator;
-import org.apache.jackrabbit.oak.spi.commit.Validator;
+import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
+import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
-
-import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
-import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.REP_PRIVILEGES;
 
 /**
- * {@code PrivilegeValidatorProvider} to construct a {@code Validator} instance
- * to make sure modifications to the /jcr:system/rep:privileges tree are compliant
- * with constraints applied for custom privileges.
+ * PrivilegeConfiguration... TODO
  */
-class PrivilegeValidatorProvider implements ValidatorProvider {
+public interface PrivilegeConfiguration {
 
     @Nonnull
-    @Override
-    public Validator getRootValidator(NodeState before, NodeState after) {
-        return new SubtreeValidator(new PrivilegeValidator(new ReadOnlyTree(before)), JCR_SYSTEM, REP_PRIVILEGES);
-    }
+    PrivilegeProvider getPrivilegeProvider(ContentSession contentSession, Root root);
+
+    @Nonnull
+    PrivilegeManager getPrivilegeManager(ContentSession contentSession, Root root, NamePathMapper namePathMapper);
+
+    @Nonnull
+    Set<ValidatorProvider> getValidatorProviders();
 }
