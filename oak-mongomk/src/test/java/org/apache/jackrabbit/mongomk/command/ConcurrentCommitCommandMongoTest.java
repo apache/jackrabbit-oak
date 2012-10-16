@@ -35,7 +35,6 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.junit.Assert;
 import org.junit.Test;
 
-@SuppressWarnings("javadoc")
 public class ConcurrentCommitCommandMongoTest extends BaseMongoTest {
 
     @Test

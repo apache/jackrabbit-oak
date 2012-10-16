@@ -19,11 +19,21 @@ package org.apache.jackrabbit.mongomk.impl.instruction;
 import org.apache.jackrabbit.mongomk.api.instruction.InstructionVisitor;
 import org.apache.jackrabbit.mongomk.api.instruction.Instruction.MoveNodeInstruction;
 
+/**
+ * Implementation of {@code MoveNodeInstruction}
+ */
 public class MoveNodeInstructionImpl implements MoveNodeInstruction {
     private final String destPath;
     private final String path;
     private final String sourcePath;
 
+    /**
+     * Constructs a new {@code CopyNodeInstructionImpl}.
+     *
+     * @param path The path.
+     * @param sourcePath The source path.
+     * @param destPath The destination path.
+     */
     public MoveNodeInstructionImpl(String path, String sourcePath, String destPath) {
         this.path = path;
         this.sourcePath = sourcePath;

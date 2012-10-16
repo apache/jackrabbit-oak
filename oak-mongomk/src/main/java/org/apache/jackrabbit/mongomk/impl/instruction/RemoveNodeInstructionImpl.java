@@ -20,9 +20,8 @@ import org.apache.jackrabbit.mongomk.api.instruction.InstructionVisitor;
 import org.apache.jackrabbit.mongomk.api.instruction.Instruction.RemoveNodeInstruction;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 
-
 /**
- * Implementation of {@link RemoveNodeInstruction}.
+ * Implementation of {@code RemoveNodeInstruction}.
  */
 public class RemoveNodeInstructionImpl implements RemoveNodeInstruction {
 
@@ -46,14 +45,5 @@ public class RemoveNodeInstructionImpl implements RemoveNodeInstruction {
     @Override
     public String getPath() {
         return path;
-    }
-
-    @Override
-    public String toString() {
-        StringBuilder builder = new StringBuilder();
-        builder.append("RemoveNodeInstructionImpl [path=");
-        builder.append(path);
-        builder.append("]");
-        return builder.toString();
     }
 }

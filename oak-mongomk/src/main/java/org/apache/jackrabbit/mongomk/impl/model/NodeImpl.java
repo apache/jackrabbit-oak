@@ -154,8 +154,6 @@ public class NodeImpl implements Node {
             if (newChild == null) {
                 handler.childNodeDeleted(new ChildNodeEntry(childName, null));
             } else {
-                // FIXME - Not so sure if this comparison is correct.
-                //if (child.getRevisionId() != newChild.getRevisionId()) {
                 if (!child.equals(newChild)) {
                     handler.childNodeChanged(new ChildNodeEntry(childName, null),
                             null /*newId*/);
@@ -176,10 +174,10 @@ public class NodeImpl implements Node {
     public int hashCode() {
         final int prime = 31;
         int result = 1;
-        result = (prime * result) + ((this.childEntries == null) ? 0 : this.childEntries.hashCode());
-        result = (prime * result) + ((this.path == null) ? 0 : this.path.hashCode());
-        result = (prime * result) + ((this.properties == null) ? 0 : this.properties.hashCode());
-        result = (prime * result) + ((this.revisionId == null) ? 0 : this.revisionId.hashCode());
+        result = (prime * result) + ((childEntries == null) ? 0 : childEntries.hashCode());
+        result = (prime * result) + ((path == null) ? 0 : path.hashCode());
+        result = (prime * result) + ((properties == null) ? 0 : properties.hashCode());
+        result = (prime * result) + ((revisionId == null) ? 0 : revisionId.hashCode());
         return result;
     }
 
@@ -191,36 +189,36 @@ public class NodeImpl implements Node {
         if (obj == null) {
             return false;
         }
-        if (this.getClass() != obj.getClass()) {
+        if (getClass() != obj.getClass()) {
             return false;
         }
         NodeImpl other = (NodeImpl) obj;
-        if (this.childEntries == null) {
+        if (childEntries == null) {
             if (other.childEntries != null) {
                 return false;
             }
-        } else if (!this.childEntries.equals(other.childEntries)) {
+        } else if (!childEntries.equals(other.childEntries)) {
             return false;
         }
-        if (this.path == null) {
+        if (path == null) {
             if (other.path != null) {
                 return false;
             }
-        } else if (!this.path.equals(other.path)) {
+        } else if (!path.equals(other.path)) {
             return false;
         }
-        if (this.properties == null) {
+        if (properties == null) {
             if (other.properties != null) {
                 return false;
             }
-        } else if (!this.properties.equals(other.properties)) {
+        } else if (!properties.equals(other.properties)) {
             return false;
         }
-        if (this.revisionId == null) {
+        if (revisionId == null) {
             if (other.revisionId != null) {
                 return false;
             }
-        } else if (!this.revisionId.equals(other.revisionId)) {
+        } else if (!revisionId.equals(other.revisionId)) {
             return false;
         }
         return true;
@@ -231,20 +229,20 @@ public class NodeImpl implements Node {
         StringBuilder builder = new StringBuilder();
         builder.append("NodeImpl ");
         builder.append("path=");
-        builder.append(this.path);
+        builder.append(path);
 
-        if (this.revisionId != null) {
+        if (revisionId != null) {
             builder.append(", revisionId=");
-            builder.append(this.revisionId);
+            builder.append(revisionId);
         }
 
-        if (!this.childEntries.isEmpty()) {
+        if (!childEntries.isEmpty()) {
             builder.append(", children=[");
             Set<String> childNames = childEntries.keySet();
             int childCount = childNames.size();
             int i = 0;
             for (String childName : childEntries.keySet()) {
-                if (i < childCount - 1) {
+                if (i++ < childCount - 1) {
                     builder.append(childName + ", ");
                 } else {
                     builder.append(childName);
@@ -253,9 +251,9 @@ public class NodeImpl implements Node {
             builder.append("]");
         }
 
-        if (!this.properties.isEmpty()) {
+        if (!properties.isEmpty()) {
             builder.append(", properties=");
-            builder.append(this.properties);
+            builder.append(properties);
         }
 
         return builder.toString();

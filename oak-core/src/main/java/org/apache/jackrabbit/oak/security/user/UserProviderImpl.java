@@ -206,10 +206,10 @@ class UserProviderImpl extends AuthorizableBaseProvider implements UserProvider 
         // can be omitted as principals names are stored in user defined
         // index as well.
         try {
-            StringBuilder stmt = new StringBuilder();
-            stmt.append("SELECT * FROM [").append(UserConstants.NT_REP_AUTHORIZABLE).append(']');
-            stmt.append("WHERE [").append(UserConstants.REP_PRINCIPAL_NAME).append("] = $principalName");
-
+//            StringBuilder stmt = new StringBuilder();
+//            stmt.append("SELECT * FROM [").append(UserConstants.NT_REP_AUTHORIZABLE).append(']');
+//            stmt.append("WHERE [").append(UserConstants.REP_PRINCIPAL_NAME).append("] = $principalName");
+            String stmt = "SELECT * FROM [nt:base] WHERE ([jcr:primaryType] = \"rep:Group\" OR [jcr:primaryType] = \"rep:User\") AND [rep:principalName] = $principalName";
             Result result = root.getQueryEngine().executeQuery(stmt.toString(),
                     Query.JCR_SQL2, 1, 0,
                     Collections.singletonMap("principalName", PropertyValues.newString(principal.getName())),

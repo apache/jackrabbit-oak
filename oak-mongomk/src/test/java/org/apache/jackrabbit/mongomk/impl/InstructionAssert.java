@@ -25,7 +25,6 @@ import org.apache.jackrabbit.mongomk.api.instruction.Instruction.MoveNodeInstruc
 import org.apache.jackrabbit.mongomk.api.instruction.Instruction.RemoveNodeInstruction;
 import org.apache.jackrabbit.mongomk.api.instruction.Instruction.SetPropertyInstruction;
 
-@SuppressWarnings("javadoc")
 public class InstructionAssert {
 
     public static void assertAddNodeInstruction(AddNodeInstruction instruction, String path) {

@@ -110,9 +110,6 @@ public class MongoNodeState extends AbstractNodeState {
             @Override
             public NodeState getNode() {
                 try {
-                    // FIXME - check
-                    //StoredNode child = provider.getNode(entry.getId());
-                    //return new StoredNodeAsState(child, provider);
                     return new MongoNodeState(entry);
                 } catch (Exception e) {
                     throw new RuntimeException("Unexpected error", e);

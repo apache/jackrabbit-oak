@@ -85,9 +85,11 @@ public class NodeMongo extends BasicDBObject {
         return nodeImpl;
     }
 
-    /**
-     * These properties are persisted to MongoDB.
-     */
+    //--------------------------------------------------------------------------
+    //
+    // These properties are persisted to MongoDB
+    //
+    //--------------------------------------------------------------------------
 
     public void setBaseRevisionId(long baseRevisionId) {
         put(KEY_BASE_REVISION_ID, baseRevisionId);
@@ -144,9 +146,11 @@ public class NodeMongo extends BasicDBObject {
         put(KEY_REVISION_ID, revisionId);
     }
 
-    /**
-     * These properties are used to keep track of changes but not persisted to MongoDB.
-     */
+    //--------------------------------------------------------------------------
+    //
+    // These properties are used to keep track of changes but not persisted
+    //
+    //--------------------------------------------------------------------------
 
     public void addChild(String childName) {
         if (addedChildren == null) {
@@ -192,9 +196,11 @@ public class NodeMongo extends BasicDBObject {
         return removedProps;
     }
 
-    /**
-     * Other methods
-     */
+    //--------------------------------------------------------------------------
+    //
+    // Other methods
+    //
+    //--------------------------------------------------------------------------
 
     public boolean childExists(String childName) {
         List<String> children = getChildren();

@@ -59,26 +59,21 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
 
     @Override
     public void visit(AddNodeInstruction instruction) {
-        String path = instruction.getPath();
-        getStagedNode(path);
+        String nodePath = instruction.getPath();
+        if (!PathUtils.isAbsolute(nodePath)) {
+            throw new RuntimeException("Absolute path expected: " + nodePath);
+        }
+        getStagedNode(nodePath);
 
-        String nodeName = PathUtils.getName(path);
-        if (nodeName.isEmpty()) {
+        String nodeName = PathUtils.getName(nodePath);
+        if (nodeName.isEmpty()) { // This happens in initial commit.
             return;
         }
 
-        String parentNodePath = PathUtils.getParentPath(path);
-        NodeMongo parent = null;
-        if (!PathUtils.denotesRoot(parentNodePath)) {
-            parent = getStoredNode(parentNodePath);
-            if (parent == null) {
-                throw new RuntimeException("No such parent: " + PathUtils.getName(parentNodePath));
-            }
-            if (parent.childExists(nodeName)) {
-                throw new RuntimeException("There's already a child node with name '" + nodeName + "'");
-            }
-        } else {
-            parent = getStagedNode(parentNodePath);
+        String parentNodePath = PathUtils.getParentPath(nodePath);
+        NodeMongo parent = getStoredNode(parentNodePath);
+        if (parent.childExists(nodeName)) {
+            throw new RuntimeException("There's already a child node with name '" + nodeName + "'");
         }
         parent.addChild(nodeName);
     }
@@ -223,6 +218,10 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
 
         // Add to destParent
         NodeMongo destParentNode = getStoredNode(destParentPath);
+        if (destParentNode == null) {
+            throw new RuntimeException("Dest parent node does not exist at path: "
+                    + destParentPath);
+        }
         if (destParentNode.childExists(destNodeName)) {
             throw new RuntimeException("Node already exists at move destination path: " + destPath);
         }
@@ -272,31 +271,32 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
 
     private NodeMongo getStoredNode(String path) {
         NodeMongo node = pathNodeMap.get(path);
-        if (node == null) {
-            // FIXME This is not efficient but needed for all MicroKernelIT
-            // tests to pass. Fix it later.
-            NodeExistsCommandMongo existCommand = new NodeExistsCommandMongo(mongoConnection,
-                    path, headRevisionId);
-            existCommand.setBranchId(branchId);
-            boolean exists = false;
-            try {
-                exists = existCommand.execute();
-            } catch (Exception ignore) {}
+        if (node != null) {
+            return node;
+        }
 
-            if (!exists) {
-                return null;
-            }
+        // First need to check that the path is indeed valid.
+        NodeExistsCommandMongo existCommand = new NodeExistsCommandMongo(mongoConnection,
+                path, headRevisionId);
+        existCommand.setBranchId(branchId);
+        boolean exists = false;
+        try {
+            exists = existCommand.execute();
+        } catch (Exception ignore) {}
 
-            FetchNodesQuery query = new FetchNodesQuery(mongoConnection,
-                    path, headRevisionId);
-            query.setBranchId(branchId);
-            query.setFetchDescendants(false);
-            List<NodeMongo> nodes = query.execute();
-            if (!nodes.isEmpty()) {
-                node = nodes.get(0);
-                node.removeField("_id");
-                pathNodeMap.put(path, node);
-            }
+        if (!exists) {
+            return null;
+        }
+
+        FetchNodesQuery query = new FetchNodesQuery(mongoConnection,
+                path, headRevisionId);
+        query.setBranchId(branchId);
+        query.setFetchDescendants(false);
+        List<NodeMongo> nodes = query.execute();
+        if (!nodes.isEmpty()) {
+            node = nodes.get(0);
+            node.removeField("_id");
+            pathNodeMap.put(path, node);
         }
         return node;
     }

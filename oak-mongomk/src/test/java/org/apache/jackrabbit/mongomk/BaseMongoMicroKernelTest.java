@@ -76,6 +76,13 @@ public class BaseMongoMicroKernelTest extends BaseMongoTest {
         assertEquals(expected, val);
     }
 
+    protected void assertPropertyValue(JSONObject obj, String relPath, Long expected)
+            throws AssertionError {
+        Object val = resolveValue(obj, relPath);
+        assertNotNull("not found: " + relPath, val);
+        assertEquals(expected, val);
+    }
+
     private Object resolveValue(JSONObject obj, String relPath) {
         String names[] = relPath.split("/");
         Object val = obj;
