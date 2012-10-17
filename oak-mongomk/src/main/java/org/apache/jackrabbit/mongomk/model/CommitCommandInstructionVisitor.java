@@ -148,98 +148,69 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
         String destParentPath = PathUtils.getParentPath(destPath);
         String destNodeName = PathUtils.getName(destPath);
 
-        NodeMongo srcParent = pathNodeMap.get(srcParentPath);
-        if (srcParent == null) {
-            // The subtree to be copied has not been modified
-            boolean entryExists = getStoredNode(srcParentPath).childExists(srcNodeName);
-            if (!entryExists) {
-                throw new NotFoundException(srcPath);
-            }
-            NodeMongo destParent = getStoredNode(destParentPath);
-            if (destParent.childExists(destNodeName)) {
-                throw new RuntimeException("Node already exists at copy destination path: " + destPath);
-            }
 
-            // First, copy the existing nodes.
-            List<NodeMongo> nodesToCopy = new FetchNodesQuery(mongoConnection,
-                    srcPath, headRevisionId).execute();
-            for (NodeMongo nodeMongo : nodesToCopy) {
-                String oldPath = nodeMongo.getPath();
-                String oldPathRel = PathUtils.relativize(srcPath, oldPath);
-                String newPath = PathUtils.concat(destPath, oldPathRel);
-
-                nodeMongo.setPath(newPath);
-                nodeMongo.removeField("_id");
-                pathNodeMap.put(newPath, nodeMongo);
-            }
-
-            // Then, copy any staged changes.
-            NodeMongo srcNode = getStagedNode(srcPath);
-            NodeMongo destNode = getStagedNode(destPath);
-
-            // Added nodes
-            List<String> addedChildren = srcNode.getAddedChildren();
-            if (addedChildren != null && !addedChildren.isEmpty()) {
-                for (String child : addedChildren) {
-                    getStagedNode(PathUtils.concat(destPath, child));
-                    destNode.addChild(child);
-                }
-            }
-
-            // Removed nodes
-            List<String> removedChildren = srcNode.getRemovedChildren();
-            if (removedChildren != null && !removedChildren.isEmpty()) {
-                for (String child : removedChildren) {
-                    destNode.removeChild(child);
-                }
-            }
-
-            // Added properties
-            Map<String, Object> addedProps = srcNode.getAddedProps();
-            if (addedProps != null && !addedProps.isEmpty()) {
-                for (Entry<String, Object> entry : addedProps.entrySet()) {
-                    destNode.addProperty(entry.getKey(), entry.getValue());
-                }
-            }
-
-            // Removed properties
-            Map<String, Object> removedProps = srcNode.getRemovedProps();
-            if (removedProps != null && !removedProps.isEmpty()) {
-                for (String key : removedProps.keySet()) {
-                    destNode.removeProp(key);
-                }
-            }
-
-            // Finally, add to destParent.
-            pathNodeMap.put(destPath, destNode);
-            destParent.addChild(destNodeName);
-
-            return;
-        }
-
-        boolean srcEntryExists = srcParent.childExists(srcNodeName);
-        if (!srcEntryExists) {
+        NodeMongo srcParent = getStoredNode(srcParentPath);
+        if (!srcParent.childExists(srcNodeName)) {
             throw new NotFoundException(srcPath);
         }
-
-        // FIXME - The rest is not totally correct.
-        NodeMongo destParent = getStagedNode(destParentPath);
-        NodeMongo srcNode = getStagedNode(srcPath);
-
-        if (srcNode != null) {
-            // Copy the modified subtree
-            NodeMongo destNode = NodeMongo.createClone(srcNode);
-            destNode.setPath(destPath);
-            pathNodeMap.put(destPath,  destNode);
-            destParent.addChild(destNodeName);
-            //destParent.add(destNodeName, srcNode.copy());
-        } else {
-            NodeMongo destNode = NodeMongo.createClone(srcNode);
-            destNode.setPath(destPath);
-            pathNodeMap.put(destPath,  destNode);
-            destParent.addChild(destNodeName);
-            //destParent.add(new ChildNodeEntry(destNodeName, srcEntry.getId()));
+        NodeMongo destParent = getStoredNode(destParentPath);
+        if (destParent.childExists(destNodeName)) {
+            throw new RuntimeException("Node already exists at copy destination path: " + destPath);
         }
+
+        // First, copy the existing nodes.
+        List<NodeMongo> nodesToCopy = new FetchNodesQuery(mongoConnection,
+                srcPath, headRevisionId).execute();
+        for (NodeMongo nodeMongo : nodesToCopy) {
+            String oldPath = nodeMongo.getPath();
+            String oldPathRel = PathUtils.relativize(srcPath, oldPath);
+            String newPath = PathUtils.concat(destPath, oldPathRel);
+
+            nodeMongo.setPath(newPath);
+            nodeMongo.removeField("_id");
+            pathNodeMap.put(newPath, nodeMongo);
+        }
+
+        // Then, copy any staged changes.
+        NodeMongo srcNode = getStagedNode(srcPath);
+        NodeMongo destNode = getStagedNode(destPath);
+
+        // Added nodes
+        List<String> addedChildren = srcNode.getAddedChildren();
+        if (addedChildren != null && !addedChildren.isEmpty()) {
+            for (String child : addedChildren) {
+                getStagedNode(PathUtils.concat(destPath, child));
+                destNode.addChild(child);
+            }
+        }
+
+        // Removed nodes
+        List<String> removedChildren = srcNode.getRemovedChildren();
+        if (removedChildren != null && !removedChildren.isEmpty()) {
+            for (String child : removedChildren) {
+                destNode.removeChild(child);
+            }
+        }
+
+        // Added properties
+        Map<String, Object> addedProps = srcNode.getAddedProps();
+        if (addedProps != null && !addedProps.isEmpty()) {
+            for (Entry<String, Object> entry : addedProps.entrySet()) {
+                destNode.addProperty(entry.getKey(), entry.getValue());
+            }
+        }
+
+        // Removed properties
+        Map<String, Object> removedProps = srcNode.getRemovedProps();
+        if (removedProps != null && !removedProps.isEmpty()) {
+            for (String key : removedProps.keySet()) {
+                destNode.removeProp(key);
+            }
+        }
+
+        // Finally, add to destParent.
+        pathNodeMap.put(destPath, destNode);
+        destParent.addChild(destNodeName);
     }
 
     @Override
