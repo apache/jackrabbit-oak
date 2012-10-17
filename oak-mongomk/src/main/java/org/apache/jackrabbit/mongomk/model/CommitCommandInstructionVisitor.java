@@ -80,13 +80,11 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
     @Override
     public void visit(AddNodeInstruction instruction) {
         String nodePath = instruction.getPath();
-        if (!PathUtils.isAbsolute(nodePath)) {
-            throw new RuntimeException("Absolute path expected: " + nodePath);
-        }
-        getStagedNode(nodePath);
+        checkAbsolutePath(nodePath);
 
         String nodeName = PathUtils.getName(nodePath);
         if (nodeName.isEmpty()) { // This happens in initial commit.
+            getStagedNode(nodePath);
             return;
         }
 
@@ -96,6 +94,7 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
             throw new RuntimeException("There's already a child node with name '" + nodeName + "'");
         }
         parent.addChild(nodeName);
+        getStagedNode(nodePath);
     }
 
     @Override
@@ -120,9 +119,7 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
     @Override
     public void visit(RemoveNodeInstruction instruction) {
         String nodePath = instruction.getPath();
-        if (!PathUtils.isAbsolute(nodePath)) {
-            throw new RuntimeException("Absolute path expected: " + nodePath);
-        }
+        checkAbsolutePath(nodePath);
 
         String parentPath = PathUtils.getParentPath(nodePath);
         String nodeName = PathUtils.getName(nodePath);
@@ -137,7 +134,13 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
     @Override
     public void visit(CopyNodeInstruction instruction) {
         String srcPath = instruction.getSourcePath();
+        checkAbsolutePath(srcPath);
+
         String destPath = instruction.getDestPath();
+        if (!PathUtils.isAbsolute(destPath)) {
+            destPath = PathUtils.concat(instruction.getPath(), destPath);
+            checkAbsolutePath(destPath);
+        }
 
         String srcParentPath = PathUtils.getParentPath(srcPath);
         String srcNodeName = PathUtils.getName(srcPath);
@@ -274,6 +277,12 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
         destParentNode.addChild(destNodeName);
 
         // [Mete] Siblings?
+    }
+
+    private void checkAbsolutePath(String srcPath) {
+        if (!PathUtils.isAbsolute(srcPath)) {
+            throw new RuntimeException("Absolute path expected: " + srcPath);
+        }
     }
 
     // FIXME - I think we need a way to distinguish between Staged
