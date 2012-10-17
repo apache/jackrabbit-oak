@@ -33,7 +33,6 @@ import javax.jcr.nodetype.PropertyDefinition;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
-import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.iterator.RangeIteratorAdapter;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
@@ -44,8 +43,6 @@ import org.apache.jackrabbit.oak.spi.security.user.UserProvider;
 import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.apache.jackrabbit.oak.api.Type.STRING;
 
 /**
  * AuthorizableImpl...
@@ -339,22 +336,6 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
     }
 
     /**
-     * @return The principal name of this authorizable.
-     * @throws RepositoryException If no principal name can be retrieved.
-     */
-    @Nonnull
-    String getPrincipalName() throws RepositoryException {
-        Tree tree = getTree();
-        if (tree.hasProperty(REP_PRINCIPAL_NAME)) {
-            return tree.getProperty(REP_PRINCIPAL_NAME).getValue(STRING);
-        } else {
-            String msg = "Authorizable without principal name " + getID();
-            log.warn(msg);
-            throw new RepositoryException(msg);
-        }
-    }
-
-    /**
      * Returns {@code true} if this authorizable represents the 'everyone' group.
      *
      * @return {@code true} if this authorizable represents the group everyone
@@ -362,7 +343,7 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
      * @throws RepositoryException If an error occurs.
      */
     boolean isEveryone() throws RepositoryException {
-        return isGroup() && EveryonePrincipal.NAME.equals(getPrincipalName());
+        return isGroup() && EveryonePrincipal.NAME.equals(getUserProvider().getPrincipalName(getTree()));
     }
 
     /**
