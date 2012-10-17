@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.security.user;
 import java.security.Principal;
 import java.util.Iterator;
 import javax.annotation.CheckForNull;
-import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.UnsupportedRepositoryOperationException;
@@ -356,8 +355,8 @@ public class UserManagerImpl implements UserManager {
         }
     }
 
-    private void setPrincipal(Tree userTree, Principal principal) {
-        getUserProvider().setProtectedProperty(userTree, UserConstants.REP_PRINCIPAL_NAME, principal.getName(), PropertyType.STRING);
+    private void setPrincipal(Tree userTree, Principal principal) throws RepositoryException {
+        getUserProvider().setPrincipalName(userTree, principal.getName());
     }
 
     private void checkIsLive() throws RepositoryException {

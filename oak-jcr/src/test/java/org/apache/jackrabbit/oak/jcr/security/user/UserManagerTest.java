@@ -221,6 +221,9 @@ public class UserManagerTest extends AbstractUserTest {
 
     }
 
+    /**
+     * @since oak
+     */
     @Test
     public void testCreateUserWithoutPassword() throws Exception {
         try {
