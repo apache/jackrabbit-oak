@@ -153,7 +153,7 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
             // The subtree to be copied has not been modified
             boolean entryExists = getStoredNode(srcParentPath).childExists(srcNodeName);
             if (!entryExists) {
-                throw new RuntimeException("Not found: " + srcPath);
+                throw new NotFoundException(srcPath);
             }
             NodeMongo destParent = getStoredNode(destParentPath);
             if (destParent.childExists(destNodeName)) {
@@ -219,7 +219,7 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
 
         boolean srcEntryExists = srcParent.childExists(srcNodeName);
         if (!srcEntryExists) {
-            throw new RuntimeException(srcPath);
+            throw new NotFoundException(srcPath);
         }
 
         // FIXME - The rest is not totally correct.
@@ -240,23 +240,6 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
             destParent.addChild(destNodeName);
             //destParent.add(new ChildNodeEntry(destNodeName, srcEntry.getId()));
         }
-
-        // [Mete] Old code from Philipp.
-        // retrieve all nodes beyond and add them as new children to the dest location
-//        List<NodeMongo> childNodesToCopy = new FetchNodesByPathAndDepthQuery(mongoConnection, srcPath,
-//                revisionId, -1).execute();
-//        for (NodeMongo nodeMongo : childNodesToCopy) {
-//            String oldPath = nodeMongo.getPath();
-//            String oldPathRel = PathUtils.relativize(srcPath, oldPath);
-//            String newPath = PathUtils.concat(destPath, oldPathRel);
-//
-//            nodeMongo.setPath(newPath);
-//            nodeMongo.removeField("_id");
-//            pathNodeMap.put(newPath, nodeMongo);
-//        }
-
-        // tricky part now: In case we already know about any changes to these existing nodes we need to merge
-        // those now.
     }
 
     @Override
@@ -355,7 +338,7 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
         } catch (Exception ignore) {}
 
         if (!exists) {
-            throw new RuntimeException("Node not found at path: " + path);
+            throw new NotFoundException(path);
         }
 
         FetchNodesQuery query = new FetchNodesQuery(mongoConnection,

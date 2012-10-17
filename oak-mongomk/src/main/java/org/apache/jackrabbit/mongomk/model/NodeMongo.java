@@ -205,7 +205,7 @@ public class NodeMongo extends BasicDBObject {
     public boolean childExists(String childName) {
         List<String> children = getChildren();
         if (children != null && !children.isEmpty()) {
-            if (children.contains(childName)) {
+            if (children.contains(childName) && !childExistsInRemovedChildren(childName)) {
                 return true;
             }
         }
@@ -215,6 +215,11 @@ public class NodeMongo extends BasicDBObject {
     private boolean childExistsInAddedChildren(String childName) {
         return addedChildren != null && !addedChildren.isEmpty()?
                 addedChildren.contains(childName) : false;
+    }
+
+    private boolean childExistsInRemovedChildren(String childName) {
+        return removedChildren != null && !removedChildren.isEmpty()?
+                removedChildren.contains(childName) : false;
     }
 
     @Override

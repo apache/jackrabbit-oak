@@ -47,6 +47,17 @@ public class MongoMKCommitCopyTest extends BaseMongoMicroKernelTest {
         mk.commit("/", "+\"a\":{}", null, null);
 
         mk.commit("/", "+\"a/b\":{}\n" +
+                        "*\"a/b\":\"c/b\"", null, null);
+
+        assertTrue(mk.nodeExists("/a/b", null));
+        assertTrue(mk.nodeExists("/c/b", null));
+    }
+
+    @Test
+    public void addNodeAndCopyParent() {
+        mk.commit("/", "+\"a\":{}", null, null);
+
+        mk.commit("/", "+\"a/b\":{}\n" +
                         "*\"a\":\"c\"", null, null);
 
         assertTrue(mk.nodeExists("/a/b", null));
@@ -57,12 +68,25 @@ public class MongoMKCommitCopyTest extends BaseMongoMicroKernelTest {
     public void removeNodeAndCopy() {
         mk.commit("/", "+\"a\":{ \"b\" : {} }", null, null);
 
+        try {
+            mk.commit("/", "-\"a/b\"\n" +
+                    "*\"a/b\":\"c\"", null, null);
+            fail("Expected expected");
+        } catch (Exception expected) {}
+    }
+
+    @Test
+    public void removeNodeAndCopyParent() {
+        mk.commit("/", "+\"a\":{ \"b\" : {} }", null, null);
+
         mk.commit("/", "-\"a/b\"\n" +
                         "*\"a\":\"c\"", null, null);
 
         assertFalse(mk.nodeExists("/a/b", null));
         assertFalse(mk.nodeExists("/c/b", null));
     }
+
+    // FIXME - Add tests where property added/removed and the parent node is also modified.
 
     @Test
     public void addPropertyAndCopy() {
@@ -129,6 +153,4 @@ public class MongoMKCommitCopyTest extends BaseMongoMicroKernelTest {
             fail("Exception expected");
         } catch (Exception expected) {}
     }
-
-    // FIXME - Test for when src tree has been modified.
 }
