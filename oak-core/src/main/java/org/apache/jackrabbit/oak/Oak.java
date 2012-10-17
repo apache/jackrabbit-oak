@@ -29,6 +29,7 @@ import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
 import org.apache.jackrabbit.oak.spi.commit.CompositeValidatorProvider;
+import org.apache.jackrabbit.oak.spi.commit.ConflictHandler;
 import org.apache.jackrabbit.oak.spi.commit.ValidatingHook;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
@@ -61,6 +62,8 @@ public class Oak {
     private final List<ValidatorProvider> validatorProviders = Lists.newArrayList();
 
     private SecurityProvider securityProvider;
+
+    private ConflictHandler conflictHandler;
 
     public Oak(MicroKernel kernel) {
         this.kernel = kernel;
@@ -156,11 +159,24 @@ public class Oak {
         return this;
     }
 
+    /**
+     * Associates the given conflict handler with the repository to be created.
+     *
+     * @param conflictHandler conflict handler
+     * @return this builder
+     */
+    @Nonnull
+    public Oak with(@Nonnull ConflictHandler conflictHandler) {
+        this.conflictHandler = conflictHandler;
+        return this;
+    }
+
     public ContentRepository createContentRepository() {
         return new ContentRepositoryImpl(
                 kernel,
                 CompositeQueryIndexProvider.compose(queryIndexProviders),
                 createCommitHook(),
+                conflictHandler,
                 securityProvider);
     }
 
