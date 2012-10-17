@@ -20,16 +20,16 @@ package org.apache.jackrabbit.oak;
 
 import java.util.Set;
 
+import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.plugins.commit.AnnotatingConflictHandler;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictValidator;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.junit.Test;
-
-import com.google.common.collect.Sets;
 
 import static org.junit.Assert.assertEquals;
 
@@ -40,8 +40,11 @@ public class TreeTest extends AbstractOakTest {
 
     @Override
     protected ContentRepository createRepository() {
-        return new Oak().with(new OpenSecurityProvider()).with(
-                new ConflictValidator()).createContentRepository();
+        return new Oak()
+                .with(new OpenSecurityProvider())
+                .with(new ConflictValidator())
+                .with(new AnnotatingConflictHandler())
+                .createContentRepository();
     }
     @Test
     public void orderBefore() throws Exception {

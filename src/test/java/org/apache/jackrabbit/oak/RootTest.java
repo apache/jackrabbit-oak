@@ -22,6 +22,7 @@ import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.plugins.commit.AnnotatingConflictHandler;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictValidator;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.junit.Ignore;
@@ -34,8 +35,11 @@ public class RootTest extends AbstractOakTest {
 
     @Override
     protected ContentRepository createRepository() {
-        return new Oak().with(new OpenSecurityProvider()).with(
-                new ConflictValidator()).createContentRepository();
+        return new Oak()
+                .with(new OpenSecurityProvider())
+                .with(new ConflictValidator())
+                .with(new AnnotatingConflictHandler())
+                .createContentRepository();
     }
 
     @Test

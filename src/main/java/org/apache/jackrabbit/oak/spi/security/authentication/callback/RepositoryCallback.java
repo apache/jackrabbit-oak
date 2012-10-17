@@ -57,7 +57,7 @@ public class RepositoryCallback implements Callback {
             try {
                 // FIXME: need a direct and fast way to create Root from the node store without having to call login
                 SecurityProvider sp = new OpenSecurityProvider();
-                return new ContentRepositoryImpl(nodeStore, null, sp).login(null, workspaceName).getLatestRoot();
+                return new ContentRepositoryImpl(nodeStore, null, null, sp).login(null, workspaceName).getLatestRoot();
             } catch (LoginException e) {
                 log.warn("Internal error ", e.getMessage());
             } catch (NoSuchWorkspaceException e) {
