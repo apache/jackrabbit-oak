@@ -80,11 +80,6 @@ public class SecurityProviderImpl implements SecurityProvider {
             loginConfig = new OakConfiguration();
             Configuration.setConfiguration(loginConfig);
         }
-        if (loginConfig.getAppConfigurationEntry(appName) == null) {
-            log.warn("Failed to retrieve login configuration for {}: using default configuration.", appName);
-            loginConfig = new OakConfiguration();
-            Configuration.setConfiguration(loginConfig);
-        }
         return new LoginContextProviderImpl(appName, loginConfig, nodeStore, this);
     }
 
