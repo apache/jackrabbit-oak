@@ -42,7 +42,7 @@ public class OpenSecurityProvider implements SecurityProvider {
 
     @Nonnull
     @Override
-    public TokenProvider getTokenProvider(Root root, org.apache.jackrabbit.oak.spi.security.ConfigurationParameters options) {
+    public TokenProvider getTokenProvider(Root root) {
         throw new UnsupportedOperationException();
     }
 

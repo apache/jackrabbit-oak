@@ -34,7 +34,7 @@ import org.junit.Test;
 /**
  * PrivilegeManagerTest...
  */
-public class PrivilegeManagerImplTest extends AbstractPrivilegeTest {
+public class PrivilegeManagerTest extends AbstractPrivilegeTest {
 
     private PrivilegeManager privilegeManager;
 
@@ -50,6 +50,7 @@ public class PrivilegeManagerImplTest extends AbstractPrivilegeTest {
         super.tearDown();
     }
 
+    @Test
     public void testGetRegisteredPrivileges() throws RepositoryException {
         Privilege[] registered = privilegeManager.getRegisteredPrivileges();
         Set<Privilege> set = new HashSet<Privilege>();
@@ -62,7 +63,8 @@ public class PrivilegeManagerImplTest extends AbstractPrivilegeTest {
         }
         assertTrue(set.isEmpty());
     }
-    
+
+    @Test
     public void testGetPrivilege() throws RepositoryException {
         for (String privName : NON_AGGR_PRIVILEGES) {
             Privilege p = privilegeManager.getPrivilege(privName);
@@ -75,6 +77,7 @@ public class PrivilegeManagerImplTest extends AbstractPrivilegeTest {
         }
     }
 
+    @Test
     public void testJcrAll() throws RepositoryException {
         Privilege all = privilegeManager.getPrivilege(Privilege.JCR_ALL);
         assertPrivilege(all, JCR_ALL, true, false);

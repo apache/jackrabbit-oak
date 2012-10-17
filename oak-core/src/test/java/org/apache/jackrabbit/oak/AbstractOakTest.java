@@ -71,7 +71,7 @@ public abstract class AbstractOakTest {
         return getContentRepository().login(getAdminCredentials(), null);
     }
 
-    private Credentials getAdminCredentials() {
+    protected Credentials getAdminCredentials() {
         // TODO retrieve from config
         return new SimpleCredentials("admin", "admin".toCharArray());
     }
