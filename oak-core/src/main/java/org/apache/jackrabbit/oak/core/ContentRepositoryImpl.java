@@ -25,7 +25,6 @@ import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
-import org.apache.jackrabbit.oak.plugins.commit.AnnotatingConflictHandler;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
 import org.apache.jackrabbit.oak.spi.commit.ConflictHandler;
@@ -51,11 +50,10 @@ public class ContentRepositoryImpl implements ContentRepository {
     // TODO: retrieve default wsp-name from configuration
     private static final String DEFAULT_WORKSPACE_NAME = "default";
 
-    private static final ConflictHandler DEFAULT_CONFLICT = new AnnotatingConflictHandler();
-
     private final SecurityProvider securityProvider;
     private final QueryIndexProvider indexProvider;
     private final NodeStore nodeStore;
+    private final ConflictHandler conflictHandler;
 
     /**
      * Creates an content repository instance based on the given, already
@@ -70,8 +68,9 @@ public class ContentRepositoryImpl implements ContentRepository {
     public ContentRepositoryImpl(MicroKernel microKernel,
                                  QueryIndexProvider indexProvider,
                                  CommitHook commitHook,
+                                 ConflictHandler conflictHandler,
                                  SecurityProvider securityProvider) {
-        this(createNodeStore(microKernel, commitHook), indexProvider, securityProvider);
+        this(createNodeStore(microKernel, commitHook), conflictHandler, indexProvider, securityProvider);
     }
 
     /**
@@ -84,9 +83,11 @@ public class ContentRepositoryImpl implements ContentRepository {
      * default implementations should be used.
      */
     public ContentRepositoryImpl(NodeStore nodeStore,
+                                 ConflictHandler conflictHandler,
                                  QueryIndexProvider indexProvider,
                                  SecurityProvider securityProvider) {
         this.nodeStore = nodeStore;
+        this.conflictHandler = conflictHandler;
         this.indexProvider = indexProvider != null ? indexProvider : new CompositeQueryIndexProvider();
         this.securityProvider = securityProvider;
     }
@@ -110,7 +111,7 @@ public class ContentRepositoryImpl implements ContentRepository {
 
         AccessControlProvider acProvider = securityProvider.getAccessControlProvider();
         return new ContentSessionImpl(loginContext, acProvider, workspaceName,
-                nodeStore, DEFAULT_CONFLICT, indexProvider);
+                nodeStore, conflictHandler, indexProvider);
     }
 
     //--------------------------------------------------------------------------
