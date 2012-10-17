@@ -20,12 +20,15 @@ import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.Oak;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.lifecycle.DefaultMicroKernelTracker;
 import org.apache.jackrabbit.oak.spi.lifecycle.MicroKernelTracker;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 
 /**
  * {@code InitialContent} implements a {@link MicroKernelTracker} and
@@ -37,48 +40,77 @@ public class InitialContent extends DefaultMicroKernelTracker {
 
     @Override
     public void available(MicroKernel mk) {
-        NodeStore nodeStore = new Oak(mk).createNodeStore();
-        // FIXME: depends on name mangling
-        NodeState root = nodeStore.getRoot();
-        if (root.hasChildNode("jcr:system")) {
-            mk.commit("/", "^\"jcr:primaryType\":\"nam:rep:root\" ", null, null);
-        } else {
-            mk.commit("/", "^\"jcr:primaryType\":\"nam:rep:root\"" +
-                    "+\"jcr:system\":{" +
-                    "\"jcr:primaryType\"    :\"nam:rep:system\"," +
-                    "\"jcr:versionStorage\" :{\"jcr:primaryType\":\"nam:rep:versionStorage\"}," +
-                    "\"jcr:nodeTypes\"      :{\"jcr:primaryType\":\"nam:rep:nodeTypes\"}," +
-                    "\"jcr:activities\"     :{\"jcr:primaryType\":\"nam:rep:Activities\"}," +
-                    "\"rep:privileges\"     :{\"jcr:primaryType\":\"nam:rep:Privileges\"}}" +
-                    "+\"rep:security\":{" +
-                    "\"jcr:primaryType\":\"nam:rep:AuthorizableFolder\"," +
-                    "\"rep:authorizables\":{" +
-                        "\"jcr:primaryType\":\"nam:rep:AuthorizableFolder\"," +
-                        "\"rep:users\":{" +
-                            "\"jcr:primaryType\":\"nam:rep:AuthorizableFolder\"," +
-                            "\"a\":{" +
-                                "\"jcr:primaryType\":\"nam:rep:AuthorizableFolder\"," +
-                                "\"ad\":{" +
-                                    "\"jcr:primaryType\":\"nam:rep:AuthorizableFolder\"," +
-                                    "\"admin\":{" +
-                                        "\"jcr:primaryType\":\"nam:rep:User\"," +
-                                        "\"jcr:uuid\":\"21232f29-7a57-35a7-8389-4a0e4a801fc3\"," +
-                                        "\"rep:principalName\":\"admin\"," +
-                                        "\"rep:authorizableId\":\"admin\"," +
-                                        "\"rep:password\":\"{SHA-256}9e515755e95513ce-1000-0696716f8baf8890a35eda1b9f2d5a4e727d1c7e1c062f03180dcc2a20f61f3b\"}}," +
-                                "\"an\":{ " +
-                                    "\"jcr:primaryType\":\"nam:rep:AuthorizableFolder\"," +
-                                    "\"anonymous\":{" +
-                                        "\"jcr:primaryType\":\"nam:rep:User\"," +
-                                        "\"jcr:uuid\":\"294de355-7d9d-30b3-92d8-a1e6aab028cf\"," +
-                                        "\"rep:principalName\":\"anonymous\"," +
-                                        "\"rep:authorizableId\":\"anonymous\"}}" +
-                    "}}}}", null, null);
+        NodeStore store = new Oak(mk).createNodeStore();
+        NodeStoreBranch branch = store.branch();
+
+        NodeBuilder root = branch.getRoot().builder();
+        root.setProperty("jcr:primaryType", "rep:root", Type.NAME);
+
+        if (!root.hasChildNode("jcr:system")) {
+            NodeBuilder system = root.child("jcr:system");
+            system.setProperty("jcr:primaryType", "rep:system", Type.NAME);
+
+            system.child("jcr:versionStorage")
+                .setProperty("jcr:primaryType", "rep:versionStorage", Type.NAME);
+            system.child("jcr:nodeTypes")
+                .setProperty("jcr:primaryType", "rep:nodeTypes", Type.NAME);
+            system.child("jcr:activities")
+                .setProperty("jcr:primaryType", "rep:Activities", Type.NAME);
+            system.child("rep:privileges")
+                .setProperty("jcr:primaryType", "rep:Privileges", Type.NAME);
+
+            NodeBuilder security = root.child("rep:security");
+            security.setProperty(
+                    "jcr:primaryType", "rep:AuthorizableFolder", Type.NAME);
+
+            NodeBuilder authorizables = security.child("rep:authorizables");
+            authorizables.setProperty(
+                    "jcr:primaryType", "rep:AuthorizableFolder", Type.NAME);
+
+            NodeBuilder users = authorizables.child("rep:users");
+            users.setProperty(
+                    "jcr:primaryType", "rep:AuthorizableFolder", Type.NAME);
+
+            NodeBuilder a = users.child("a");
+            a.setProperty("jcr:primaryType", "rep:AuthorizableFolder", Type.NAME);
+
+            a.child("ad")
+                .setProperty("jcr:primaryType", "rep:AuthorizableFolder", Type.NAME)
+                .child("admin")
+                .setProperty("jcr:primaryType", "rep:User", Type.NAME)
+                .setProperty("jcr:uuid", "21232f29-7a57-35a7-8389-4a0e4a801fc3")
+                .setProperty("rep:principalName", "admin")
+                .setProperty("rep:authorizableId", "admin")
+                .setProperty("rep:password", "{SHA-256}9e515755e95513ce-1000-0696716f8baf8890a35eda1b9f2d5a4e727d1c7e1c062f03180dcc2a20f61f3b");
+
+            a.child("an")
+                .setProperty("jcr:primaryType", "rep:AuthorizableFolder", Type.NAME)
+                .child("anonymous")
+                .setProperty("jcr:primaryType", "rep:User", Type.NAME)
+                .setProperty("jcr:uuid", "294de355-7d9d-30b3-92d8-a1e6aab028cf")
+                .setProperty("rep:principalName", "anonymous")
+                .setProperty("rep:authorizableId", "anonymous");
         }
+
         if (!root.hasChildNode("oak:index")) {
+            NodeBuilder index = root.child("oak:index");
+            index.child("jcr:uuid")
+                .setProperty("jcr:pimaryType", "oak:queryIndexDefinition", Type.NAME)
+                .setProperty("unique", true);
             // FIXME: user-mgt related unique properties (rep:authorizableId, rep:principalName) are implementation detail and not generic for repo
             // FIXME: rep:principalName only needs to be unique if defined with user/group nodes -> add defining nt-info to uniqueness constraint otherwise ac-editing will fail.
-            mk.commit("/", "+\"oak:index\":{\"jcr:uuid\":{\"jcr:primaryType\":\"nam:oak:queryIndexDefinition\",\"unique\":true},\"rep:authorizableId\":{\"jcr:primaryType\":\"nam:oak:queryIndexDefinition\",\"unique\":true},\"rep:principalName\":{\"jcr:primaryType\":\"nam:oak:queryIndexDefinition\",\"unique\":true}}", null, null);
+            index.child("rep:authorizableId")
+                .setProperty("jcr:pimaryType", "oak:queryIndexDefinition", Type.NAME)
+                .setProperty("unique", true);
+            index.child("rep:principalName")
+                .setProperty("jcr:pimaryType", "oak:queryIndexDefinition", Type.NAME)
+                .setProperty("unique", true);
+        }
+        try {
+            branch.setRoot(root.getNodeState());
+            branch.merge();
+        } catch (CommitFailedException e) {
+            throw new RuntimeException(e); // TODO: shouldn't need the wrapper
         }
 
         BuiltInNodeTypes.register(createRoot(mk));
