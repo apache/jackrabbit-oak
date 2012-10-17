@@ -55,6 +55,9 @@ public class SecurityProviderImpl implements SecurityProvider {
     public static final String PARAM_APP_NAME = "org.apache.jackrabbit.oak.auth.appName";
     private static final String DEFAULT_APP_NAME = "jackrabbit.oak";
 
+    public static final String PARAM_USER_OPTIONS = "org.apache.jackrabbit.oak.user.options";
+    public static final String PARAM_TOKEN_OPTIONS = "org.apache.jackrabbit.oak.token.options";
+
     private final ConfigurationParameters configuration;
 
     public SecurityProviderImpl() {
@@ -87,7 +90,8 @@ public class SecurityProviderImpl implements SecurityProvider {
 
     @Nonnull
     @Override
-    public TokenProvider getTokenProvider(Root root, ConfigurationParameters options) {
+    public TokenProvider getTokenProvider(Root root) {
+        ConfigurationParameters options = configuration.getConfigValue(PARAM_TOKEN_OPTIONS, new ConfigurationParameters());
         return new TokenProviderImpl(root, options, getUserConfiguration());
     }
 
@@ -106,7 +110,8 @@ public class SecurityProviderImpl implements SecurityProvider {
     @Nonnull
     @Override
     public UserConfiguration getUserConfiguration() {
-        return new UserConfigurationImpl();
+        ConfigurationParameters options = configuration.getConfigValue(PARAM_USER_OPTIONS, new ConfigurationParameters());
+        return new UserConfigurationImpl(options);
     }
 
     @Nonnull

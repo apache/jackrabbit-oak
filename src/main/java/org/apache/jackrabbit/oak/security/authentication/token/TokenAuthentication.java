@@ -54,6 +54,8 @@ class TokenAuthentication implements Authentication {
             TokenCredentials tc = (TokenCredentials) credentials;
             if (!validateCredentials(tc)) {
                 throw new LoginException("Invalid token credentials.");
+            } else {
+                return true;
             }
         }
         // no tokenProvider or other credentials implementation -> not handled here.

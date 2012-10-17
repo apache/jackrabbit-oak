@@ -27,7 +27,6 @@ import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.Map;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.Credentials;
@@ -43,17 +42,17 @@ import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenInfo;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
-import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtility;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserProvider;
+import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtility;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.apache.jackrabbit.util.ISO8601;
 import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.oak.api.Type.*;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
 
 /**
  * Default implementation of the {@code TokenProvider} interface with the
@@ -82,7 +81,7 @@ public class TokenProviderImpl implements TokenProvider {
      * Constant for the token attribute passed with simple credentials to
      * trigger the generation of a new token.
      */
-    private static final String TOKEN_ATTRIBUTE = ".token";
+    public static final String TOKEN_ATTRIBUTE = ".token";
 
     private static final String TOKEN_ATTRIBUTE_EXPIRY = TOKEN_ATTRIBUTE + ".exp";
     private static final String TOKEN_ATTRIBUTE_KEY = TOKEN_ATTRIBUTE + ".key";
@@ -124,55 +123,69 @@ public class TokenProviderImpl implements TokenProvider {
     @Override
     public TokenInfo createToken(Credentials credentials) {
         SimpleCredentials sc = extractSimpleCredentials(credentials);
+        TokenInfo tokenInfo = null;
         if (sc != null) {
-            String userId = sc.getUserID();
-            try {
-                Tree userTree = userProvider.getAuthorizable(userId, AuthorizableType.USER);
-                if (userTree != null) {
-                    NodeUtil userNode = new NodeUtil(userTree);
-                    NodeUtil tokenParent = userNode.getChild(TOKENS_NODE_NAME);
-                    if (tokenParent == null) {
-                        tokenParent = userNode.addChild(TOKENS_NODE_NAME, TOKENS_NT_NAME);
-                    }
+            String[] attrNames = sc.getAttributeNames();
+            Map<String, String> attributes = new HashMap<String, String>(attrNames.length);
+            for (String attrName : sc.getAttributeNames()) {
+                attributes.put(attrName, sc.getAttribute(attrName).toString());
+            }
+            tokenInfo = createToken(sc.getUserID(), attributes);
+            if (tokenInfo != null) {
+                // also set the new token to the simple credentials.
+                sc.setAttribute(TOKEN_ATTRIBUTE, tokenInfo.getToken());
+            }
+        }
 
-                    long creationTime = new Date().getTime();
-                    Calendar creation = GregorianCalendar.getInstance();
-                    creation.setTimeInMillis(creationTime);
-                    String tokenName = Text.replace(ISO8601.format(creation), ":", ".");
+        return tokenInfo;
+    }
 
-                    NodeUtil tokenNode = tokenParent.addChild(tokenName, TOKENS_NT_NAME);
-
-                    String key = generateKey(8);
-                    String token = new StringBuilder(tokenNode.getTree().getPath()).append(DELIM).append(key).toString();
-
-                    String tokenHash = PasswordUtility.buildPasswordHash(key);
-                    tokenNode.setString(TOKEN_ATTRIBUTE_KEY, tokenHash);
-                    final long expirationTime = creationTime + tokenExpiration;
-                    tokenNode.setDate(TOKEN_ATTRIBUTE_EXPIRY, expirationTime);
-
-                    Map<String, String> attributes;
-                    for (String name : sc.getAttributeNames()) {
-                        if (!TOKEN_ATTRIBUTE.equals(name)) {
-                            String attr = sc.getAttribute(name).toString();
-                            tokenNode.setString(name, attr);
-                        }
-                    }
-                    root.commit();
-
-                    // also set the new token to the simple credentials.
-                    sc.setAttribute(TOKEN_ATTRIBUTE, token);
-                    return new TokenInfoImpl(tokenNode, token, userId);
-                } else {
-                    log.debug("Cannot create login token: No corresponding node for User " + userId + '.');
+    @Override
+    public TokenInfo createToken(String userId, Map<String, ?> attributes) {
+        try {
+            Tree userTree = userProvider.getAuthorizable(userId, AuthorizableType.USER);
+            if (userTree != null) {
+                NodeUtil userNode = new NodeUtil(userTree);
+                NodeUtil tokenParent = userNode.getChild(TOKENS_NODE_NAME);
+                if (tokenParent == null) {
+                    tokenParent = userNode.addChild(TOKENS_NODE_NAME, TOKENS_NT_NAME);
                 }
 
-            } catch (NoSuchAlgorithmException e) {
-                log.debug("Failed to create login token ", e.getMessage());
-            } catch (UnsupportedEncodingException e) {
-                log.debug("Failed to create login token ", e.getMessage());
-            } catch (CommitFailedException e) {
-                log.debug("Failed to create login token ", e.getMessage());
+                long creationTime = new Date().getTime();
+                Calendar creation = GregorianCalendar.getInstance();
+                creation.setTimeInMillis(creationTime);
+                String tokenName = Text.replace(ISO8601.format(creation), ":", ".");
+
+                NodeUtil tokenNode = tokenParent.addChild(tokenName, TOKENS_NT_NAME);
+
+                String key = generateKey(8);
+                String token = new StringBuilder(tokenNode.getTree().getPath()).append(DELIM).append(key).toString();
+
+                String tokenHash = PasswordUtility.buildPasswordHash(token);
+                tokenNode.setString(TOKEN_ATTRIBUTE_KEY, tokenHash);
+                final long expirationTime = creationTime + tokenExpiration;
+                tokenNode.setDate(TOKEN_ATTRIBUTE_EXPIRY, expirationTime);
+
+                for (String name : attributes.keySet()) {
+                    if (!TOKEN_ATTRIBUTE.equals(name)) {
+                        String attr = attributes.get(name).toString();
+                        tokenNode.setString(name, attr);
+                    }
+                }
+                root.commit();
+
+
+                return new TokenInfoImpl(tokenNode, token, userId);
+            } else {
+                log.debug("Cannot create login token: No corresponding node for User " + userId + '.');
             }
+
+        } catch (NoSuchAlgorithmException e) {
+            log.debug("Failed to create login token ", e.getMessage());
+        } catch (UnsupportedEncodingException e) {
+            log.debug("Failed to create login token ", e.getMessage());
+        } catch (CommitFailedException e) {
+            log.debug("Failed to create login token ", e.getMessage());
         }
 
         return null;
@@ -212,7 +225,7 @@ public class TokenProviderImpl implements TokenProvider {
         Tree tokenTree = getTokenTree(tokenInfo);
         if (tokenTree != null) {
             NodeUtil tokenNode = new NodeUtil(tokenTree);
-            long expTime = tokenNode.getLong(TOKEN_ATTRIBUTE_EXPIRY, 0);
+            long expTime = getExpirationTime(tokenNode, 0);
             if (expTime - loginTime <= tokenExpiration/2) {
                 long expirationTime = loginTime + tokenExpiration;
                 try {
@@ -230,6 +243,15 @@ public class TokenProviderImpl implements TokenProvider {
 
 
     //--------------------------------------------------------------------------
+    // TODO: that should be done by the property state or some utility
+    private static long getExpirationTime(NodeUtil tokenNode, long defaultValue) {
+        String date = tokenNode.getString(TOKEN_ATTRIBUTE_EXPIRY, null);
+        if (date == null) {
+            return defaultValue;
+        } else {
+            return ISO8601.parse(date).getTimeInMillis();
+        }
+    }
 
     @CheckForNull
     private static SimpleCredentials extractSimpleCredentials(Credentials credentials) {
@@ -293,7 +315,9 @@ public class TokenProviderImpl implements TokenProvider {
     }
 
     //--------------------------------------------------------------------------
-
+    /**
+     * TokenInfo
+     */
     private static class TokenInfoImpl implements TokenInfo {
 
         private final String token;
@@ -312,7 +336,7 @@ public class TokenProviderImpl implements TokenProvider {
             this.tokenPath = tokenNode.getTree().getPath();
             this.userId = userId;
 
-            expirationTime = tokenNode.getLong(TOKEN_ATTRIBUTE_EXPIRY, Long.MIN_VALUE);
+            expirationTime = getExpirationTime(tokenNode, Long.MIN_VALUE);
             key = tokenNode.getString(TOKEN_ATTRIBUTE_KEY, null);
 
             mandatoryAttributes = new HashMap<String, String>();
@@ -320,6 +344,9 @@ public class TokenProviderImpl implements TokenProvider {
             for (PropertyState propertyState : tokenNode.getTree().getProperties()) {
                 String name = propertyState.getName();
                 String value = propertyState.getValue(STRING);
+                if (TOKEN_ATTRIBUTE_KEY.equals(name) || TOKEN_ATTRIBUTE_EXPIRY.equals(name)) {
+                    continue;
+                }
                 if (isMandatoryAttribute(name)) {
                     mandatoryAttributes.put(name, value);
                 } else if (isInfoAttribute(name)) {

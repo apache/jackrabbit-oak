@@ -115,11 +115,15 @@ public final class GuestLoginModule implements LoginModule {
 
     @Override
     public boolean commit() {
-        if (guestCredentials != null && !subject.isReadOnly()) {
-            subject.getPublicCredentials().add(guestCredentials);
-            subject.getPrincipals().add(EveryonePrincipal.getInstance());
+        if (authenticationSucceeded()) {
+            if (!subject.isReadOnly()) {
+                subject.getPublicCredentials().add(guestCredentials);
+                subject.getPrincipals().add(EveryonePrincipal.getInstance());
+            }
+            return true;
+        } else {
+            return false;
         }
-        return true;
     }
 
     @Override
@@ -130,7 +134,10 @@ public final class GuestLoginModule implements LoginModule {
 
     @Override
     public boolean logout() {
-        // nothing to do.
-        return true;
+        return authenticationSucceeded();
+    }
+
+    private boolean authenticationSucceeded() {
+        return guestCredentials != null;
     }
 }
