@@ -160,13 +160,24 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
                 throw new RuntimeException("Node already exists at copy destination path: " + destPath);
             }
 
-            // FIXME - This needs to create child nodes correctly. It doesn't currently.
+            // First, copy the existing nodes.
+            List<NodeMongo> nodesToCopy = new FetchNodesQuery(mongoConnection,
+                    srcPath, headRevisionId).execute();
+            for (NodeMongo nodeMongo : nodesToCopy) {
+                String oldPath = nodeMongo.getPath();
+                String oldPathRel = PathUtils.relativize(srcPath, oldPath);
+                String newPath = PathUtils.concat(destPath, oldPathRel);
 
-            // Copy src node to destPath.
-            NodeMongo srcNode = getStoredNode(srcPath, false);
-            NodeMongo destNode = NodeMongo.createClone(srcNode);
-            destNode.setPath(destPath);
-            // FIXME - This needs to do proper merge instead of just add.
+                nodeMongo.setPath(newPath);
+                nodeMongo.removeField("_id");
+                pathNodeMap.put(newPath, nodeMongo);
+            }
+
+            // Then, copy any staged (added/remove nodes/properties) changes.
+            NodeMongo srcNode = getStagedNode(srcPath);
+            NodeMongo destNode = getStagedNode(destPath);
+
+            // Added nodes
             List<String> addedChildren = srcNode.getAddedChildren();
             if (addedChildren != null && !addedChildren.isEmpty()) {
                 for (String child : addedChildren) {
@@ -174,9 +185,11 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
                     destNode.addChild(child);
                 }
             }
+
+            // FIXME - removed nodes, added and removed properties?
             pathNodeMap.put(destPath, destNode);
 
-            // Add to destParent.
+            // Finally, add to destParent.
             destParent.addChild(destNodeName);
 
             return;

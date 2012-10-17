@@ -42,6 +42,17 @@ public class MongoMKCommitCopyTest extends BaseMongoMicroKernelTest {
     }
 
     @Test
+    public void addNodeAndCopy() {
+        mk.commit("/", "+\"a\":{}", null, null);
+
+        mk.commit("/", "+\"a/b\":{}\n" +
+                        "*\"a\":\"c\"", null, null);
+
+        assertTrue(mk.nodeExists("/a/b", null));
+        assertTrue(mk.nodeExists("/c/b", null));
+    }
+
+    @Test
     public void copySingleNodeWithProperties() throws Exception {
         mk.commit("/", "+\"a\" : { \"key1\" : \"value1\" }", null, null);
 
