@@ -21,6 +21,7 @@ import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
 import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
+import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -44,7 +45,7 @@ public class QueryTest extends AbstractQueryTest {
         QueryIndexProvider qip = new CompositeQueryIndexProvider(pi);
         CompositeHook hook = new CompositeHook(pi);
         createDefaultKernelTracker().available(mk);
-        return new Oak(mk).with(qip).with(hook).with(getSecurityProvider()).createContentRepository();
+        return new Oak(mk).with(qip).with(hook).with(new OpenSecurityProvider()).createContentRepository();
     }
 
     @Test
