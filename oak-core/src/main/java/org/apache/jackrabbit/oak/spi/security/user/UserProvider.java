@@ -108,6 +108,11 @@ public interface UserProvider {
      */
     void setPassword(Tree userTree, String password, boolean forceHash) throws RepositoryException;
 
+    @CheckForNull
+    String getPrincipalName(Tree authorizableTree) throws RepositoryException;
+
+    void setPrincipalName(Tree authorizableTree, String principalName) throws RepositoryException;
+
     @Nonnull
     Impersonation getImpersonation(Tree userTree, PrincipalProvider principalProvider);
 
@@ -117,9 +122,4 @@ public interface UserProvider {
     String getDisableReason(Tree userTree);
 
     void disable(Tree userTree, String reason) throws RepositoryException;
-
-    void setProtectedProperty(Tree authorizableTree, String propertyName, String value, int propertyType);
-
-    void setProtectedProperty(Tree v, String propertyName, String[] values, int propertyType);
-
 }

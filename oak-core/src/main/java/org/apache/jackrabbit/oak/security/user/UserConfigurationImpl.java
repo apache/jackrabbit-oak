@@ -31,16 +31,11 @@ import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserProvider;
 
 /**
- * UserContextImpl... TODO
+ * UserConfigurationImpl... TODO
  */
 public class UserConfigurationImpl implements UserConfiguration {
 
     private final ConfigurationParameters config;
-
-    // TODO add proper configuration
-    public UserConfigurationImpl() {
-        this(new ConfigurationParameters());
-    }
 
     public UserConfigurationImpl(ConfigurationParameters config) {
         this.config = config;

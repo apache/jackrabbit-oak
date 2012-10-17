@@ -20,7 +20,6 @@ import java.security.Principal;
 import java.security.acl.Group;
 import java.util.HashSet;
 import java.util.Set;
-import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.security.auth.Subject;
 
@@ -189,11 +188,11 @@ class ImpersonationImpl implements Impersonation, UserConstants {
     }
 
     private void updateImpersonatorNames(Tree userTree, Set<String> principalNames) {
-        String[] pNames = principalNames.toArray(new String[principalNames.size()]);
-        if (pNames.length == 0) {
-            pNames = null;
+        if (principalNames == null || principalNames.isEmpty()) {
+            userTree.removeProperty(REP_IMPERSONATORS);
+        } else {
+            userTree.setProperty(REP_IMPERSONATORS, principalNames, Type.STRINGS);
         }
-        userProvider.setProtectedProperty(userTree, REP_IMPERSONATORS, pNames, PropertyType.STRING);
     }
 
     private Tree getUserTree() throws RepositoryException {

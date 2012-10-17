@@ -22,7 +22,6 @@ import java.security.Principal;
 import java.text.ParseException;
 import java.util.Collections;
 import java.util.Iterator;
-import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.query.Query;
@@ -35,7 +34,6 @@ import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
@@ -280,7 +278,29 @@ class UserProviderImpl extends AuthorizableBaseProvider implements UserProvider 
         } else {
             pwHash = password;
         }
-        setProtectedProperty(userTree, UserConstants.REP_PASSWORD, pwHash, PropertyType.STRING);
+        setProtectedProperty(userTree, UserConstants.REP_PASSWORD, pwHash);
+    }
+
+    @Override
+    public String getPrincipalName(Tree authorizableTree) throws RepositoryException {
+        checkNotNull(authorizableTree);
+
+        String principalName;
+        if (authorizableTree.hasProperty(REP_PRINCIPAL_NAME)) {
+            return authorizableTree.getProperty(REP_PRINCIPAL_NAME).getValue(STRING);
+        } else {
+            String msg = "Authorizable without principal name " + getAuthorizableId(authorizableTree);
+            log.warn(msg);
+            throw new RepositoryException(msg);
+        }
+    }
+
+    @Override
+    public void setPrincipalName(Tree authorizableTree, String principalName) throws RepositoryException {
+        checkNotNull(authorizableTree);
+        checkNotNull(principalName);
+
+        setProtectedProperty(authorizableTree, UserConstants.REP_PRINCIPAL_NAME, principalName);
     }
 
     @Override
@@ -318,33 +338,10 @@ class UserProviderImpl extends AuthorizableBaseProvider implements UserProvider 
         if (reason == null) {
             if (isDisabled(userTree)) {
                 // enable the user again.
-                setProtectedProperty(userTree, REP_DISABLED, (String) null, PropertyType.STRING);
+                setProtectedProperty(userTree, REP_DISABLED, null);
             } // else: not disabled -> nothing to
         } else {
-            setProtectedProperty(userTree, REP_DISABLED, reason, PropertyType.STRING);
-        }
-    }
-
-    @Override
-    public void setProtectedProperty(Tree authorizableTree, String propertyName, String value, int propertyType) {
-        checkNotNull(authorizableTree);
-
-        if (value == null) {
-            authorizableTree.removeProperty(propertyName);
-        } else {
-            authorizableTree.setProperty(PropertyStates.createProperty(propertyName, value, propertyType));
-        }
-    }
-
-    @Override
-    public void setProtectedProperty(Tree authorizableTree, String propertyName, String[] values, int propertyType) {
-        checkNotNull(authorizableTree);
-
-        if (values == null) {
-            authorizableTree.removeProperty(propertyName);
-        } else {
-            NodeUtil node = new NodeUtil(authorizableTree);
-            node.setValues(propertyName, values, propertyType);
+            setProtectedProperty(userTree, REP_DISABLED, reason);
         }
     }
 
@@ -447,5 +444,13 @@ class UserProviderImpl extends AuthorizableBaseProvider implements UserProvider 
             }
         }
         return sb.toString();
+    }
+
+    private void setProtectedProperty(Tree authorizableTree, String propertyName, String value) {
+        if (value == null) {
+            authorizableTree.removeProperty(propertyName);
+        } else {
+            authorizableTree.setProperty(propertyName, value);
+        }
     }
 }
