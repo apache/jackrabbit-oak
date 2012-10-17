@@ -155,13 +155,15 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
             if (!entryExists) {
                 throw new RuntimeException("Not found: " + srcPath);
             }
-            NodeMongo destParent = getStagedNode(destParentPath);
+            NodeMongo destParent = getStoredNode(destParentPath);
             if (destParent.childExists(destNodeName)) {
                 throw new RuntimeException("Node already exists at copy destination path: " + destPath);
             }
 
+            // FIXME - This needs to create child nodes correctly. It doesn't currently.
+
             // Copy src node to destPath.
-            NodeMongo srcNode = getStoredNode(srcPath);
+            NodeMongo srcNode = getStoredNode(srcPath, false);
             NodeMongo destNode = NodeMongo.createClone(srcNode);
             destNode.setPath(destPath);
             // FIXME - This needs to do proper merge instead of just add.
@@ -299,6 +301,10 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
     }
 
     private NodeMongo getStoredNode(String path) {
+        return getStoredNode(path, true);
+    }
+
+    private NodeMongo getStoredNode(String path, boolean putToNodeMap) {
         NodeMongo node = pathNodeMap.get(path);
         if (node != null) {
             return node;
@@ -325,7 +331,9 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
         if (!nodes.isEmpty()) {
             node = nodes.get(0);
             node.removeField("_id");
-            pathNodeMap.put(path, node);
+            if (putToNodeMap) {
+                pathNodeMap.put(path, node);
+            }
         }
         return node;
     }
