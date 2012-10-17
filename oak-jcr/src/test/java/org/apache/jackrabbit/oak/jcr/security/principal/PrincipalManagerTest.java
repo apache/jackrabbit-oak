@@ -85,6 +85,9 @@ public class PrincipalManagerTest extends AbstractJCRTest {
         assertTrue(isGroup(principal));
     }
 
+    /**
+     * @since oak
+     */
     @Test
     public void testGetEveryoneByName() {
         assertTrue(principalMgr.hasPrincipal(EveryonePrincipal.NAME));
