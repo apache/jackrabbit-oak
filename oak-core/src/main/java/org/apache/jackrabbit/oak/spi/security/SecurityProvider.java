@@ -36,7 +36,7 @@ public interface SecurityProvider {
     LoginContextProvider getLoginContextProvider(NodeStore nodeStore);
 
     @Nonnull
-    TokenProvider getTokenProvider(Root root, ConfigurationParameters options);
+    TokenProvider getTokenProvider(Root root);
 
     @Nonnull
     AccessControlProvider getAccessControlProvider();

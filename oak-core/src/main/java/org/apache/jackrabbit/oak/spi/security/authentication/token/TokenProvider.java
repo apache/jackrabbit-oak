@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.token;
 
+import java.util.Map;
 import javax.annotation.CheckForNull;
 import javax.jcr.Credentials;
 
@@ -38,6 +39,9 @@ public interface TokenProvider {
 
     @CheckForNull
     TokenInfo createToken(Credentials credentials);
+
+    @CheckForNull
+    TokenInfo createToken(String userId, Map<String,?> attributes);
 
     @CheckForNull
     TokenInfo getTokenInfo(String token);

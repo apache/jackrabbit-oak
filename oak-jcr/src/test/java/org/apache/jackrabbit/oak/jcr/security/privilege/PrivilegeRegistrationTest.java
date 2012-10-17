@@ -47,7 +47,7 @@ import org.junit.Test;
  *
  * TODO: more tests for cyclic aggregation
  */
-public class CustomPrivilegeTest extends AbstractPrivilegeTest {
+public class PrivilegeRegistrationTest extends AbstractPrivilegeTest {
 
     private Repository repository;
     private Session session;
@@ -306,6 +306,9 @@ public class CustomPrivilegeTest extends AbstractPrivilegeTest {
         }
     }
 
+    /**
+     * @since oak
+     */
     @Test
     public void testRegisterCustomPrivilegesVisibleInContent() throws RepositoryException {
         Workspace workspace = session.getWorkspace();
@@ -329,6 +332,9 @@ public class CustomPrivilegeTest extends AbstractPrivilegeTest {
         }
     }
 
+    /**
+     * @since oak
+     */
     @Test
     public void testCustomPrivilegeVisibleToNewSession() throws RepositoryException {
         boolean isAbstract = false;
@@ -347,6 +353,9 @@ public class CustomPrivilegeTest extends AbstractPrivilegeTest {
         }
     }
 
+    /**
+     * @since oak
+     */
     @Test
     public void testCustomPrivilegeVisibleAfterRefresh() throws RepositoryException {
         Session s2 = getAdminSession();
@@ -375,6 +384,9 @@ public class CustomPrivilegeTest extends AbstractPrivilegeTest {
         }
     }
 
+    /**
+     * @since oak
+     */
     @Test
     public void testRegisterPrivilegeWithPendingChanges() throws RepositoryException {
         try {
