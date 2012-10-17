@@ -1,6 +1,7 @@
 package org.apache.jackrabbit.mongomk.impl;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -50,6 +51,43 @@ public class MongoMKCommitCopyTest extends BaseMongoMicroKernelTest {
 
         assertTrue(mk.nodeExists("/a/b", null));
         assertTrue(mk.nodeExists("/c/b", null));
+    }
+
+    @Test
+    public void removeNodeAndCopy() {
+        mk.commit("/", "+\"a\":{ \"b\" : {} }", null, null);
+
+        mk.commit("/", "-\"a/b\"\n" +
+                        "*\"a\":\"c\"", null, null);
+
+        assertFalse(mk.nodeExists("/a/b", null));
+        assertFalse(mk.nodeExists("/c/b", null));
+    }
+
+    @Test
+    public void addPropertyAndCopy() {
+        mk.commit("/", "+\"a\":{}", null, null);
+
+        mk.commit("/", "+\"a/key1\": \"value1\"\n" +
+                        "*\"a\":\"c\"", null, null);
+
+        String nodes = mk.getNodes("/", null, -1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        JSONObject obj = parseJSONObject(nodes);
+        assertPropertyValue(obj, "a/key1", "value1");
+        assertPropertyValue(obj, "c/key1", "value1");
+    }
+
+    @Test
+    public void removePropertyAndCopy() {
+        mk.commit("/", "+\"a\":{ \"key1\" : \"value1\"}", null, null);
+
+        mk.commit("/", "^\"a/key1\" : null\n" +
+                        "*\"a\":\"c\"", null, null);
+
+        String nodes = mk.getNodes("/", null, -1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        JSONObject obj = parseJSONObject(nodes);
+        assertPropertyNotExists(obj, "a/key1");
+        assertPropertyNotExists(obj, "c/key1");
     }
 
     @Test

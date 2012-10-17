@@ -173,7 +173,7 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
                 pathNodeMap.put(newPath, nodeMongo);
             }
 
-            // Then, copy any staged (added/remove nodes/properties) changes.
+            // Then, copy any staged changes.
             NodeMongo srcNode = getStagedNode(srcPath);
             NodeMongo destNode = getStagedNode(destPath);
 
@@ -186,10 +186,32 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
                 }
             }
 
-            // FIXME - removed nodes, added and removed properties?
-            pathNodeMap.put(destPath, destNode);
+            // Removed nodes
+            List<String> removedChildren = srcNode.getRemovedChildren();
+            if (removedChildren != null && !removedChildren.isEmpty()) {
+                for (String child : removedChildren) {
+                    destNode.removeChild(child);
+                }
+            }
+
+            // Added properties
+            Map<String, Object> addedProps = srcNode.getAddedProps();
+            if (addedProps != null && !addedProps.isEmpty()) {
+                for (Entry<String, Object> entry : addedProps.entrySet()) {
+                    destNode.addProperty(entry.getKey(), entry.getValue());
+                }
+            }
+
+            // Removed properties
+            Map<String, Object> removedProps = srcNode.getRemovedProps();
+            if (removedProps != null && !removedProps.isEmpty()) {
+                for (String key : removedProps.keySet()) {
+                    destNode.removeProp(key);
+                }
+            }
 
             // Finally, add to destParent.
+            pathNodeMap.put(destPath, destNode);
             destParent.addChild(destNodeName);
 
             return;
