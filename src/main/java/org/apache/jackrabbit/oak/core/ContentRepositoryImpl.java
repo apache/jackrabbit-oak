@@ -25,15 +25,15 @@ import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
-import org.apache.jackrabbit.oak.plugins.commit.AnnotatingConflictHandlerProvider;
+import org.apache.jackrabbit.oak.plugins.commit.AnnotatingConflictHandler;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
-import org.apache.jackrabbit.oak.spi.commit.ConflictHandlerProvider;
+import org.apache.jackrabbit.oak.spi.commit.ConflictHandler;
 import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
-import org.apache.jackrabbit.oak.spi.security.authentication.LoginContextProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginContext;
+import org.apache.jackrabbit.oak.spi.security.authentication.LoginContextProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
@@ -51,8 +51,7 @@ public class ContentRepositoryImpl implements ContentRepository {
     // TODO: retrieve default wsp-name from configuration
     private static final String DEFAULT_WORKSPACE_NAME = "default";
 
-    private static final ConflictHandlerProvider DEFAULT_CONFLICT_HANDLER_PROVIDER =
-            new AnnotatingConflictHandlerProvider();
+    private static final ConflictHandler DEFAULT_CONFLICT = new AnnotatingConflictHandler();
 
     private final SecurityProvider securityProvider;
     private final QueryIndexProvider indexProvider;
@@ -111,7 +110,7 @@ public class ContentRepositoryImpl implements ContentRepository {
 
         AccessControlProvider acProvider = securityProvider.getAccessControlProvider();
         return new ContentSessionImpl(loginContext, acProvider, workspaceName,
-                nodeStore, DEFAULT_CONFLICT_HANDLER_PROVIDER, indexProvider);
+                nodeStore, DEFAULT_CONFLICT, indexProvider);
     }
 
     //--------------------------------------------------------------------------
