@@ -95,15 +95,15 @@ public class InitialContent extends DefaultMicroKernelTracker {
         if (!root.hasChildNode("oak:index")) {
             NodeBuilder index = root.child("oak:index");
             index.child("jcr:uuid")
-                .setProperty("jcr:pimaryType", "oak:queryIndexDefinition", Type.NAME)
+                .setProperty("jcr:primaryType", "oak:queryIndexDefinition", Type.NAME)
                 .setProperty("unique", true);
             // FIXME: user-mgt related unique properties (rep:authorizableId, rep:principalName) are implementation detail and not generic for repo
             // FIXME: rep:principalName only needs to be unique if defined with user/group nodes -> add defining nt-info to uniqueness constraint otherwise ac-editing will fail.
             index.child("rep:authorizableId")
-                .setProperty("jcr:pimaryType", "oak:queryIndexDefinition", Type.NAME)
+                .setProperty("jcr:primaryType", "oak:queryIndexDefinition", Type.NAME)
                 .setProperty("unique", true);
             index.child("rep:principalName")
-                .setProperty("jcr:pimaryType", "oak:queryIndexDefinition", Type.NAME)
+                .setProperty("jcr:primaryType", "oak:queryIndexDefinition", Type.NAME)
                 .setProperty("unique", true);
         }
         try {
