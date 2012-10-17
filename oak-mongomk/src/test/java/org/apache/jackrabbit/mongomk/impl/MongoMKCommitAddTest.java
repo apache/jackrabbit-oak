@@ -1,6 +1,7 @@
 package org.apache.jackrabbit.mongomk.impl;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import org.apache.jackrabbit.mongomk.BaseMongoMicroKernelTest;
@@ -24,6 +25,26 @@ public class MongoMKCommitAddTest extends BaseMongoMicroKernelTest {
         String nodes = mk.getNodes("/", null, -1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
         JSONObject obj = parseJSONObject(nodes);
         assertPropertyValue(obj, "a/:childNodeCount", 0L);
+    }
+
+    @Test
+    public void addNodeWithChildren() throws Exception {
+        mk.commit("/", "+\"a\" : { \"b\": {}, \"c\": {}, \"d\" : {} }", null, null);
+
+        assertTrue(mk.nodeExists("/a",null));
+        assertTrue(mk.nodeExists("/a/b",null));
+        assertTrue(mk.nodeExists("/a/c",null));
+        assertTrue(mk.nodeExists("/a/d",null));
+    }
+
+    @Test
+    public void addNodeWithNestedChildren() throws Exception {
+        mk.commit("/", "+\"a\" : { \"b\": { \"c\" : { \"d\" : {} } } }", null, null);
+
+        assertTrue(mk.nodeExists("/a",null));
+        assertTrue(mk.nodeExists("/a/b",null));
+        assertTrue(mk.nodeExists("/a/b/c",null));
+        assertTrue(mk.nodeExists("/a/b/c/d",null));
     }
 
     @Test
@@ -65,6 +86,7 @@ public class MongoMKCommitAddTest extends BaseMongoMicroKernelTest {
     }
 
     /**
+     * FIXME
      * This test works even in MicroKernelImpl but we should consider whether
      * throwing a MicroKernelException is a better alternative.
      */

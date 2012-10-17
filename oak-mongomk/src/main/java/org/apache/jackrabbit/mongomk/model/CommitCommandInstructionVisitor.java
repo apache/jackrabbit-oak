@@ -93,8 +93,8 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
         if (parent.childExists(nodeName)) {
             throw new RuntimeException("There's already a child node with name '" + nodeName + "'");
         }
-        parent.addChild(nodeName);
         getStagedNode(nodePath);
+        parent.addChild(nodeName);
     }
 
     @Override
@@ -148,7 +148,6 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
         String destParentPath = PathUtils.getParentPath(destPath);
         String destNodeName = PathUtils.getName(destPath);
 
-
         NodeMongo srcParent = getStoredNode(srcParentPath);
         if (!srcParent.childExists(srcNodeName)) {
             throw new NotFoundException(srcPath);
@@ -174,6 +173,8 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
         // Then, copy any staged changes.
         NodeMongo srcNode = getStagedNode(srcPath);
         NodeMongo destNode = getStagedNode(destPath);
+
+        // FIXME - These should handle children of children recursively.
 
         // Added nodes
         List<String> addedChildren = srcNode.getAddedChildren();
@@ -213,6 +214,7 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
         destParent.addChild(destNodeName);
     }
 
+    // FIXME - Double check this functionality.
     @Override
     public void visit(MoveNodeInstruction instruction) {
         String srcPath = instruction.getSourcePath();
@@ -276,9 +278,6 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
         }
     }
 
-    // FIXME - I think we need a way to distinguish between Staged
-    // and Stored nodes. For example, what if a node is retrieved as Staged
-    // but later it needs to be retrieved as Stored?
     private NodeMongo getStagedNode(String path) {
         NodeMongo node = pathNodeMap.get(path);
         if (node == null) {
@@ -290,10 +289,6 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
     }
 
     private NodeMongo getStoredNode(String path) {
-        return getStoredNode(path, true);
-    }
-
-    private NodeMongo getStoredNode(String path, boolean putToNodeMap) {
         NodeMongo node = pathNodeMap.get(path);
         if (node != null) {
             return node;
@@ -312,6 +307,7 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
             throw new NotFoundException(path);
         }
 
+        // Fetch the node without its descendants.
         FetchNodesQuery query = new FetchNodesQuery(mongoConnection,
                 path, headRevisionId);
         query.setBranchId(branchId);
@@ -320,9 +316,7 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
         if (!nodes.isEmpty()) {
             node = nodes.get(0);
             node.removeField("_id");
-            if (putToNodeMap) {
-                pathNodeMap.put(path, node);
-            }
+            pathNodeMap.put(path, node);
         }
         return node;
     }

@@ -16,7 +16,7 @@ import org.junit.Test;
 public class MongoMKCommitCopyTest extends BaseMongoMicroKernelTest {
 
     @Test
-    public void copySingleNode() throws Exception {
+    public void copyNode() throws Exception {
         mk.commit("/", "+\"a\" : {}", null, null);
 
         long childCount = mk.getChildNodeCount("/", null);
@@ -29,7 +29,7 @@ public class MongoMKCommitCopyTest extends BaseMongoMicroKernelTest {
     }
 
     @Test
-    public void copySingleNodeWithChildren() throws Exception {
+    public void copyNodeWithChild() throws Exception {
         mk.commit("/", "+\"a\" : { \"b\" : {} }", null, null);
 
         assertTrue(mk.nodeExists("/a", null));
@@ -43,7 +43,44 @@ public class MongoMKCommitCopyTest extends BaseMongoMicroKernelTest {
     }
 
     @Test
-    public void copySingleNodeWithProperties() throws Exception {
+    public void copyNodeWithChildren() throws Exception {
+        mk.commit("/", "+\"a\" : { \"b\" : {},  \"c\" : {}, \"d\" : {}}", null, null);
+
+        assertTrue(mk.nodeExists("/a", null));
+        assertTrue(mk.nodeExists("/a/b", null));
+        assertTrue(mk.nodeExists("/a/c", null));
+        assertTrue(mk.nodeExists("/a/d", null));
+
+        mk.commit("/", "*\"a\" : \"e\"", null, null);
+        assertTrue(mk.nodeExists("/e", null));
+        assertTrue(mk.nodeExists("/e/b", null));
+        assertTrue(mk.nodeExists("/e/c", null));
+        assertTrue(mk.nodeExists("/e/d", null));
+    }
+
+    @Test
+    public void copyNodeWithNestedChildren() throws Exception {
+        mk.commit("/", "+\"a\" : { \"b\" : { \"c\" : { \"d\" : {} } } }", null, null);
+
+        assertTrue(mk.nodeExists("/a", null));
+        assertTrue(mk.nodeExists("/a/b", null));
+        assertTrue(mk.nodeExists("/a/b/c", null));
+        assertTrue(mk.nodeExists("/a/b/c/d", null));
+
+        mk.commit("/", "*\"a\" : \"e\"", null, null);
+        assertTrue(mk.nodeExists("/e", null));
+        assertTrue(mk.nodeExists("/e/b", null));
+        assertTrue(mk.nodeExists("/e/b/c", null));
+        assertTrue(mk.nodeExists("/e/b/c/d", null));
+
+        mk.commit("/", "*\"e/b\" : \"f\"", null, null);
+        assertTrue(mk.nodeExists("/f", null));
+        assertTrue(mk.nodeExists("/f/c", null));
+        assertTrue(mk.nodeExists("/f/c/d", null));
+    }
+
+    @Test
+    public void copyNodeWithProperties() throws Exception {
         mk.commit("/", "+\"a\" : { \"key1\" : \"value1\" }", null, null);
 
         assertTrue(mk.nodeExists("/a", null));
@@ -91,6 +128,31 @@ public class MongoMKCommitCopyTest extends BaseMongoMicroKernelTest {
 
         assertTrue(mk.nodeExists("/a/b", null));
         assertTrue(mk.nodeExists("/c", null));
+    }
+
+    @Test
+    public void addNodeWithChildrenAndCopy() {
+        mk.commit("/", "+\"a\":{}", null, null);
+
+        mk.commit("/", "+\"a/b\":{ \"c\" : {}, \"d\" : {} }\n" +
+                        "*\"a/b\":\"e\"", null, null);
+
+        assertTrue(mk.nodeExists("/a/b/c", null));
+        assertTrue(mk.nodeExists("/a/b/d", null));
+        assertTrue(mk.nodeExists("/e/c", null));
+        assertTrue(mk.nodeExists("/e/d", null));
+    }
+
+    @Test
+    public void addNodeWithNestedChildrenAndCopy() {
+        mk.commit("/", "+\"a\":{}", null, null);
+
+        mk.commit("/", "+\"a/b\":{ \"c\" : { \"d\" : {} } }\n" +
+                        "*\"a/b\":\"e\"", null, null);
+
+        assertTrue(mk.nodeExists("/a/b/c/d", null));
+        assertTrue(mk.nodeExists("/e/c", null));
+        assertTrue(mk.nodeExists("/e/c/d", null));
     }
 
     @Test
