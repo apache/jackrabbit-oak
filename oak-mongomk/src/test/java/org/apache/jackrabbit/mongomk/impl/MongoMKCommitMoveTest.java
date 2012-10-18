@@ -243,53 +243,65 @@ public class MongoMKCommitMoveTest extends BaseMongoMicroKernelTest {
         assertPropertyValue(obj, "c/b/key1", "value1");
     }
 
-//    @Test
-//    public void addPropertyAndCopyAndModifyParent() {
-//        mk.commit("/", "+\"a\":{}", null, null);
-//        mk.commit("/", "+\"b\" : {}\n"
-//                     + "+\"a/key1\": \"value1\"\n"
-//                     + "*\"a\":\"c\"", null, null);
-//
-//        String nodes = mk.getNodes("/", null, -1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
-//        JSONObject obj = parseJSONObject(nodes);
-//        assertPropertyValue(obj, "a/key1", "value1");
-//        assertPropertyValue(obj, "c/key1", "value1");
-//    }
-//
-//    @Test
-//    public void removePropertyAndCopy() {
-//        mk.commit("/", "+\"a\":{ \"b\" : { \"key1\" : \"value1\" } }", null, null);
-//        mk.commit("/", "^\"a/b/key1\": null\n" +
-//                        "*\"a\":\"c\"", null, null);
-//
-//        String nodes = mk.getNodes("/", null, -1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
-//        JSONObject obj = parseJSONObject(nodes);
-//        assertPropertyNotExists(obj, "a/b/key1");
-//        assertPropertyNotExists(obj, "c/b/key1");
-//    }
-//
-//    @Test
-//    public void removeNestedPropertyAndCopy() {
-//        mk.commit("/", "+\"a\":{ \"key1\" : \"value1\"}", null, null);
-//        mk.commit("/", "^\"a/key1\" : null\n" +
-//                        "*\"a\":\"c\"", null, null);
-//
-//        String nodes = mk.getNodes("/", null, -1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
-//        JSONObject obj = parseJSONObject(nodes);
-//        assertPropertyNotExists(obj, "a/key1");
-//        assertPropertyNotExists(obj, "c/key1");
-//    }
-//
-//    @Test
-//    public void removePropertyAndCopyAndModifyParent() {
-//        mk.commit("/", "+\"a\":{ \"key1\" : \"value1\"}", null, null);
-//        mk.commit("/", "+\"b\" : {}\n"
-//                     + "^\"a/key1\" : null\n"
-//                     + "*\"a\":\"c\"", null, null);
-//
-//        String nodes = mk.getNodes("/", null, -1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
-//        JSONObject obj = parseJSONObject(nodes);
-//        assertPropertyNotExists(obj, "a/key1");
-//        assertPropertyNotExists(obj, "c/key1");
-//    }
+    @Test
+    public void modifyParentAddPropertyAndMove() {
+        mk.commit("/", "+\"a\":{}", null, null);
+        mk.commit("/", "+\"b\" : {}\n"
+                     + "+\"a/key1\": \"value1\"\n"
+                     + ">\"a\":\"c\"", null, null);
+
+        assertFalse(mk.nodeExists("/a", null));
+        assertTrue(mk.nodeExists("/b", null));
+        assertTrue(mk.nodeExists("/c", null));
+
+        String nodes = mk.getNodes("/", null, -1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        JSONObject obj = parseJSONObject(nodes);
+        assertPropertyValue(obj, "c/key1", "value1");
+    }
+
+    @Test
+    public void removePropertyAndMove() {
+        mk.commit("/", "+\"a\":{ \"b\" : { \"key1\" : \"value1\" } }", null, null);
+        mk.commit("/", "^\"a/b/key1\": null\n"
+                     + ">\"a\":\"c\"", null, null);
+
+        assertFalse(mk.nodeExists("/a", null));
+        assertFalse(mk.nodeExists("/a/b", null));
+        assertTrue(mk.nodeExists("/c", null));
+        assertTrue(mk.nodeExists("/c/b", null));
+
+        String nodes = mk.getNodes("/", null, -1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        JSONObject obj = parseJSONObject(nodes);
+        assertPropertyNotExists(obj, "c/b/key1");
+    }
+
+    @Test
+    public void removeNestedPropertyAndMove() {
+        mk.commit("/", "+\"a\":{ \"key1\" : \"value1\"}", null, null);
+        mk.commit("/", "^\"a/key1\" : null\n"
+                     + ">\"a\":\"c\"", null, null);
+
+        assertFalse(mk.nodeExists("/a", null));
+        assertTrue(mk.nodeExists("/c", null));
+
+        String nodes = mk.getNodes("/", null, -1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        JSONObject obj = parseJSONObject(nodes);
+        assertPropertyNotExists(obj, "c/key1");
+    }
+
+    @Test
+    public void modifyParentRemovePropertyAndMove() {
+        mk.commit("/", "+\"a\":{ \"key1\" : \"value1\"}", null, null);
+        mk.commit("/", "+\"b\" : {}\n"
+                     + "^\"a/key1\" : null\n"
+                     + ">\"a\":\"c\"", null, null);
+
+        assertFalse(mk.nodeExists("/a", null));
+        assertTrue(mk.nodeExists("/b", null));
+        assertTrue(mk.nodeExists("/c", null));
+
+        String nodes = mk.getNodes("/", null, -1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        JSONObject obj = parseJSONObject(nodes);
+        assertPropertyNotExists(obj, "c/key1");
+    }
 }

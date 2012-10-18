@@ -179,64 +179,6 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
         destParent.addChild(destNodeName);
     }
 
-    // FIXME - This is the old functionality, remove it once the new one is working.
-//    @Override
-//    public void visit(MoveNodeInstruction instruction) {
-//        String srcPath = instruction.getSourcePath();
-//        String destPath = instruction.getDestPath();
-//
-//        if (PathUtils.isAncestor(srcPath, destPath)) {
-//            throw new RuntimeException("Target path cannot be descendant of source path: "
-//                    + destPath);
-//        }
-//
-//        String srcParentPath = PathUtils.getParentPath(srcPath);
-//        String srcNodeName = PathUtils.getName(srcPath);
-//
-//        String destParentPath = PathUtils.getParentPath(destPath);
-//        String destNodeName = PathUtils.getName(destPath);
-//
-//        // Add the old node with the new path.
-//        NodeMongo destNode = pathNodeMap.get(destPath);
-//        if (destNode == null) {
-//            NodeMongo srcNode = getStoredNode(srcPath);
-//            destNode = srcNode;
-//            destNode.setPath(destPath);
-//            pathNodeMap.remove(srcPath);
-//            pathNodeMap.put(destPath, destNode);
-//        }
-//
-//        // [Mete] Check that this works in all cases.
-//        // Remove all the pending old node child changes.
-//        Map<String, NodeMongo> pendingChanges = new HashMap<String, NodeMongo>();
-//        for (Iterator<Entry<String, NodeMongo>> iterator = pathNodeMap.entrySet().iterator(); iterator.hasNext();) {
-//            Entry<String, NodeMongo> entry = iterator.next();
-//            String path = entry.getKey();
-//            NodeMongo node = entry.getValue();
-//            if (path.startsWith(srcPath)) {
-//                iterator.remove();
-//                String newPath = destPath + path.substring(srcPath.length());
-//                node.setPath(newPath);
-//                pendingChanges.put(newPath, node);
-//            }
-//        }
-//        pathNodeMap.putAll(pendingChanges);
-//
-//
-//        // Remove from srcParent - [Mete] What if there is no such child?
-//        NodeMongo scrParentNode = getStoredNode(srcParentPath);
-//        scrParentNode.removeChild(srcNodeName);
-//
-//        // Add to destParent
-//        NodeMongo destParentNode = getStoredNode(destParentPath);
-//        if (destParentNode.childExists(destNodeName)) {
-//            throw new RuntimeException("Node already exists at move destination path: " + destPath);
-//        }
-//        destParentNode.addChild(destNodeName);
-//
-//        // [Mete] Siblings?
-//    }
-
     @Override
     public void visit(MoveNodeInstruction instruction) {
         String srcPath = instruction.getSourcePath();
@@ -284,12 +226,6 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
         getStagedNode(destPath);
         destParent.addChild(destNodeName);
         srcParent.removeChild(srcNodeName);
-
-//        if (srcParentPath.equals(destParentPath)) {
-//            rename(srcParent, srcNodeName, destNodeName);
-//        } else {
-//            move(srcParent, srcNodeName, destPath);
-//        }
     }
 
     private void checkAbsolutePath(String srcPath) {
@@ -408,44 +344,5 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
         for (Entry<String, Object> entry : addedProps.entrySet()) {
             destNode.addProperty(entry.getKey(), entry.getValue());
         }
-    }
-
-    // FIXME - This is from Oak. Remove them if they are not needed.
-    private void rename(NodeMongo srcParent, String oldName, String newName) {
-        //StagedNode child = stagedChildNodes.remove(oldName);
-        srcParent.removeChild(oldName);
-//        if (child != null) {
-//            stagedChildNodes.put(newName, child);
-//        }
-        String newChildPath = PathUtils.concat(srcParent.getPath(), newName);
-        getStagedNode(newChildPath);
-        srcParent.addChild(newName);
-    }
-
-    private void move(NodeMongo srcParent, String name, String destPath) {
-        //ChildNodeEntry srcEntry = getChildNodeEntry(name);
-        //assert srcEntry != null;
-        assert srcParent.childExists(name);
-
-        String destParentPath = PathUtils.getParentPath(destPath);
-        String destName = PathUtils.getName(destPath);
-
-        //StagedNode destParent = getStagedNode(destParentPath, true);
-        NodeMongo destParent = getStoredNode(destParentPath);
-
-        //StagedNode target = stagedChildNodes.get(name);
-        String targetPath = PathUtils.concat(srcParent.getPath(), name);
-        NodeMongo target = getStagedNode(targetPath);
-
-        //remove(name);
-        srcParent.removeChild(name);
-        //destParent.add(new ChildNodeEntry(destName, srcEntry.getId()));
-        getStagedNode(destPath);
-        destParent.addChild(destName);
-
-//        if (target != null) {
-//            // move staged child node
-//            destParent.add(destName, target);
-//        }
     }
 }

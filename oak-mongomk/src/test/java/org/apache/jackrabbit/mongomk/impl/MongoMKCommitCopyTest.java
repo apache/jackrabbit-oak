@@ -208,7 +208,7 @@ public class MongoMKCommitCopyTest extends BaseMongoMicroKernelTest {
     }
 
     @Test
-    public void addPropertyAndCopyAndModifyParent() {
+    public void modifyParentAddPropertyAndCopy() {
         mk.commit("/", "+\"a\":{}", null, null);
         mk.commit("/", "+\"b\" : {}\n"
                      + "+\"a/key1\": \"value1\"\n"
@@ -245,7 +245,7 @@ public class MongoMKCommitCopyTest extends BaseMongoMicroKernelTest {
     }
 
     @Test
-    public void removePropertyAndCopyAndModifyParent() {
+    public void modifyParentRemovePropertyAndCopy() {
         mk.commit("/", "+\"a\":{ \"key1\" : \"value1\"}", null, null);
         mk.commit("/", "+\"b\" : {}\n"
                      + "^\"a/key1\" : null\n"
