@@ -31,6 +31,7 @@ import org.apache.jackrabbit.oak.plugins.commit.ConflictValidator;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.junit.Test;
 
+import static org.apache.jackrabbit.oak.OakAssert.assertSequence;
 import static org.junit.Assert.assertEquals;
 
 /**
@@ -59,23 +60,23 @@ public class TreeTest extends AbstractOakTest {
             t = r.getTree("/");
             t.getChild("node1").orderBefore("node2");
             t.getChild("node3").orderBefore(null);
-            checkSequence(t.getChildren(), "node1", "node2", "node3");
+            assertSequence(t.getChildren(), "node1", "node2", "node3");
             r.commit();
             // check again after commit
             t = r.getTree("/");
-            checkSequence(t.getChildren(), "node1", "node2", "node3");
+            assertSequence(t.getChildren(), "node1", "node2", "node3");
 
             t.getChild("node3").orderBefore("node2");
-            checkSequence(t.getChildren(), "node1", "node3", "node2");
+            assertSequence(t.getChildren(), "node1", "node3", "node2");
             r.commit();
             t = r.getTree("/");
-            checkSequence(t.getChildren(), "node1", "node3", "node2");
+            assertSequence(t.getChildren(), "node1", "node3", "node2");
 
             t.getChild("node1").orderBefore(null);
-            checkSequence(t.getChildren(), "node3", "node2", "node1");
+            assertSequence(t.getChildren(), "node3", "node2", "node1");
             r.commit();
             t = r.getTree("/");
-            checkSequence(t.getChildren(), "node3", "node2", "node1");
+            assertSequence(t.getChildren(), "node3", "node2", "node1");
 
             // TODO :childOrder property invisible?
             //assertEquals("must not have any properties", 0, t.getPropertyCount());
@@ -114,7 +115,8 @@ public class TreeTest extends AbstractOakTest {
 
                 r1 = s1.getLatestRoot();
                 t1 = r1.getTree("/");
-                checkSequence(t1.getChildren(), "node1", "node2", "node3", "node4");
+                assertSequence(
+                        t1.getChildren(), "node1", "node2", "node3", "node4");
             } finally {
                 s2.close();
             }

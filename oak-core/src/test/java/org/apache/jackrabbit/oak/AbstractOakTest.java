@@ -29,7 +29,6 @@ import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.plugins.nodetype.InitialContent;
 import org.apache.jackrabbit.oak.security.OakConfiguration;
@@ -37,10 +36,6 @@ import org.apache.jackrabbit.oak.spi.lifecycle.CompositeMicroKernelTracker;
 import org.apache.jackrabbit.oak.spi.lifecycle.MicroKernelTracker;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.junit.Before;
-
-import com.google.common.collect.Lists;
-
-import static org.junit.Assert.assertEquals;
 
 /**
  * AbstractOakTest is the base class for oak test execution.
@@ -87,12 +82,4 @@ public abstract class AbstractOakTest {
         return new CompositeMicroKernelTracker(hooks);
     }
 
-    protected void checkSequence(Iterable<Tree> trees, String... names) {
-        List<String> expected = Lists.newArrayList(names);
-        List<String> actual = Lists.newArrayList();
-        for (Tree t : trees) {
-            actual.add(t.getName());
-        }
-        assertEquals(expected.toString(), actual.toString());
-    }
 }
