@@ -266,15 +266,6 @@ public class UserTest extends AbstractUserTest {
         }
     }
 
-    public void testUserGetCredentials() throws RepositoryException, NotExecutableException {
-        try {
-            Credentials creds = user.getCredentials();
-            fail("getCredentials is not yet implemented");
-        } catch (UnsupportedRepositoryOperationException e) {
-            // expected
-        }
-    }
-
     public void testLoginWithGetCredentials() throws RepositoryException, NotExecutableException {
         try {
             Credentials creds = user.getCredentials();

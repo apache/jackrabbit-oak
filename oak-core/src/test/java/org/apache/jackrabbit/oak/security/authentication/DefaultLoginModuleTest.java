@@ -23,25 +23,28 @@ import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.login.Configuration;
 import javax.security.auth.login.LoginException;
 
+import org.apache.jackrabbit.api.security.user.Authorizable;
+import org.apache.jackrabbit.api.security.user.User;
+import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.AbstractOakTest;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
-import org.apache.jackrabbit.oak.spi.security.user.UserProvider;
+import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtility;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
 /**
@@ -105,12 +108,13 @@ public class DefaultLoginModuleTest extends AbstractOakTest {
     public void testAnonymousLogin() throws Exception {
         String anonymousID = UserUtility.getAnonymousId(securityProvider.getUserConfiguration().getConfigurationParameters());
 
-        UserProvider up = securityProvider.getUserConfiguration().getUserProvider(admin.getLatestRoot());
+        Root root = admin.getLatestRoot();
+        UserManager userMgr = securityProvider.getUserConfiguration().getUserManager(root, NamePathMapper.DEFAULT);
 
         // verify initial user-content looks like expected
-        Tree anonymous = up.getAuthorizable(anonymousID);
+        Authorizable anonymous = userMgr.getAuthorizable(anonymousID);
         assertNotNull(anonymous);
-        assertNull(up.getPasswordHash(anonymous));
+        assertFalse(root.getTree(anonymous.getPath()).hasProperty(UserConstants.REP_PASSWORD));
 
         ContentSession cs = null;
         try {
@@ -130,24 +134,25 @@ public class DefaultLoginModuleTest extends AbstractOakTest {
         String anonymousID = UserUtility.getAnonymousId(securityProvider.getUserConfiguration().getConfigurationParameters());
 
         Root root = admin.getLatestRoot();
-        UserProvider up = securityProvider.getUserConfiguration().getUserProvider(root);
+        UserManager userManager = securityProvider.getUserConfiguration().getUserManager(root, NamePathMapper.DEFAULT);
 
         ContentSession cs = null;
+        User user = null;
         try {
-            Tree userTree = up.createUser("test", null);
-            up.setPassword(userTree, "pw", true);
-            up.setPrincipalName(userTree, "test");
+            user = userManager.createUser("test", "pw");
             root.commit();
 
             cs = getContentRepository().login(new SimpleCredentials("test", "pw".toCharArray()), null);
             AuthInfo authInfo = cs.getAuthInfo();
             assertEquals("test", authInfo.getUserID());
         } finally {
+            if (user != null) {
+                user.remove();
+                root.commit();
+            }
             if (cs != null) {
                 cs.close();
             }
-            up.getAuthorizable("test").remove();
-            root.commit();
         }
     }
 

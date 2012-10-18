@@ -26,9 +26,8 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
-import org.apache.jackrabbit.oak.spi.security.user.MembershipProvider;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
-import org.apache.jackrabbit.oak.spi.security.user.UserProvider;
 
 /**
  * UserConfigurationImpl... TODO
@@ -36,9 +35,11 @@ import org.apache.jackrabbit.oak.spi.security.user.UserProvider;
 public class UserConfigurationImpl implements UserConfiguration {
 
     private final ConfigurationParameters config;
+    private final SecurityProvider securityProvider;
 
-    public UserConfigurationImpl(ConfigurationParameters config) {
+    public UserConfigurationImpl(ConfigurationParameters config, SecurityProvider securityProvider) {
         this.config = config;
+        this.securityProvider = securityProvider;
     }
 
     @Nonnull
@@ -48,25 +49,18 @@ public class UserConfigurationImpl implements UserConfiguration {
     }
 
     @Override
-    public UserProvider getUserProvider(Root root) {
-        return new UserProviderImpl(root, config);
-    }
-
-    @Override
-    public MembershipProvider getMembershipProvider(Root root) {
-        return new MembershipProviderImpl(root, config);
-    }
-
-    @Override
     public List<ValidatorProvider> getValidatorProviders() {
         ValidatorProvider vp = new UserValidatorProvider(getConfigurationParameters());
         return Collections.singletonList(vp);
     }
 
     @Override
-    public UserManager getUserManager(Session session, Root root, NamePathMapper namePathMapper) {
-        UserProvider up = getUserProvider(root);
-        MembershipProvider mp = getMembershipProvider(root);
-        return new UserManagerImpl(session, namePathMapper, up, mp, config);
+    public UserManager getUserManager(Root root, NamePathMapper namePathMapper, Session session) {
+        return new UserManagerImpl(session, root, namePathMapper, securityProvider);
+    }
+
+    @Override
+    public UserManager getUserManager(Root root, NamePathMapper namePathMapper) {
+        return new UserManagerImpl(null, root, namePathMapper, securityProvider);
     }
 }

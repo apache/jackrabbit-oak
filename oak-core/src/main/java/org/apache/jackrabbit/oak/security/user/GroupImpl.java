@@ -31,8 +31,8 @@ import org.apache.jackrabbit.commons.iterator.RangeIteratorAdapter;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.TreeBasedPrincipal;
-import org.apache.jackrabbit.oak.spi.security.user.MembershipProvider;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
+import org.apache.jackrabbit.oak.spi.security.user.util.UserUtility;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,7 +52,7 @@ class GroupImpl extends AuthorizableImpl implements Group {
 
     @Override
     void checkValidTree(Tree tree) throws RepositoryException {
-        if (tree == null || !getUserProvider().isAuthorizableType(tree, AuthorizableType.GROUP)) {
+        if (tree == null || !UserUtility.isType(tree, AuthorizableType.GROUP)) {
             throw new IllegalArgumentException("Invalid group node: node type rep:Group expected.");
         }
     }
@@ -72,7 +72,7 @@ class GroupImpl extends AuthorizableImpl implements Group {
     @Override
     public Principal getPrincipal() throws RepositoryException {
         Tree groupTree = getTree();
-        return new GroupPrincipal(getUserProvider().getPrincipalName(groupTree), groupTree);
+        return new GroupPrincipal(getPrincipalName(groupTree), groupTree);
     }
 
     //--------------------------------------------------------------< Group >---
