@@ -172,7 +172,6 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
         // Then, copy any staged changes.
         NodeMongo srcNode = getStoredNode(srcPath);
         NodeMongo destNode = getStagedNode(destPath);
-
         copyStagedChanges(srcNode, destNode);
 
         // Finally, add to destParent.
@@ -275,6 +274,11 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
             nodeMongo.removeField("_id");
             pathNodeMap.put(newPath, nodeMongo);
         }
+
+        // Then, copy any staged changes.
+        NodeMongo srcNode = getStoredNode(srcPath);
+        NodeMongo destNode = getStagedNode(destPath);
+        copyStagedChanges(srcNode, destNode);
 
         // Finally, add to destParent and remove from srcParent.
         getStagedNode(destPath);

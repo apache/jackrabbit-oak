@@ -141,8 +141,6 @@ public class MongoMKCommitCopyTest extends BaseMongoMicroKernelTest {
         assertTrue(mk.nodeExists("/e/b/c/d", null));
     }
 
-
-
     @Test
     public void addNodeAndCopyParent() {
         mk.commit("/", "+\"a\":{}", null, null);
