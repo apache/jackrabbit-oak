@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.lifecycle;
 
-import org.apache.jackrabbit.mk.api.MicroKernel;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 /**
  * {@code DefaultMicroKernelTracker} is a default implementation of all methods
@@ -31,6 +31,6 @@ import org.apache.jackrabbit.mk.api.MicroKernel;
 public class DefaultMicroKernelTracker implements MicroKernelTracker {
 
     @Override
-    public void available(MicroKernel mk) {
+    public void available(NodeStore store) {
     }
 }

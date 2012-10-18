@@ -34,9 +34,11 @@ import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.plugins.commit.DefaultConflictHandler;
 import org.apache.jackrabbit.oak.query.SessionQueryEngineImpl;
 import org.apache.jackrabbit.oak.spi.commit.ConflictHandler;
+import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.CompiledPermissions;
+import org.apache.jackrabbit.oak.spi.security.authorization.OpenAccessControlProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
@@ -123,6 +125,14 @@ public class RootImpl implements Root {
         this.subject = checkNotNull(subject);
         this.accProvider = checkNotNull(accProvider);
         this.indexProvider = indexProvider;
+        refresh();
+    }
+
+    public RootImpl(NodeStore store) {
+        this.store = checkNotNull(store);
+        this.subject = new Subject();
+        this.accProvider = new OpenAccessControlProvider();
+        this.indexProvider = new CompositeQueryIndexProvider();
         refresh();
     }
 

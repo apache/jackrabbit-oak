@@ -24,6 +24,7 @@ import java.util.Collection;
 import java.util.List;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 /**
  * <code>CompositeMicroKernelTracker</code> consists of multiple micro kernel
@@ -42,9 +43,9 @@ public class CompositeMicroKernelTracker implements MicroKernelTracker {
     }
 
     @Override
-    public void available(MicroKernel mk) {
+    public void available(NodeStore store) {
         for (MicroKernelTracker tracker : trackers) {
-            tracker.available(mk);
+            tracker.available(store);
         }
     }
 }

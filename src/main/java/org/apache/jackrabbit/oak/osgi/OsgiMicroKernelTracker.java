@@ -18,8 +18,8 @@
  */
 package org.apache.jackrabbit.oak.osgi;
 
-import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.spi.lifecycle.MicroKernelTracker;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.osgi.framework.ServiceReference;
 
 /**
@@ -34,18 +34,18 @@ public class OsgiMicroKernelTracker
     /**
      * The reference to the micro kernel once available.
      */
-    private volatile MicroKernel mk;
+    private volatile NodeStore store;
 
     public OsgiMicroKernelTracker() {
         super(MicroKernelTracker.class);
     }
 
     @Override
-    public void available(MicroKernel mk) {
-        this.mk = mk;
-        if (mk != null) {
+    public void available(NodeStore store) {
+        this.store = store;
+        if (store != null) {
             for (MicroKernelTracker mki : getServices()) {
-                mki.available(mk);
+                mki.available(store);
             }
         }
     }
@@ -54,9 +54,9 @@ public class OsgiMicroKernelTracker
     public Object addingService(ServiceReference reference) {
         MicroKernelTracker mki =
                 (MicroKernelTracker) super.addingService(reference);
-        MicroKernel microKernel = mk;
-        if (microKernel != null) {
-            mki.available(mk);
+        NodeStore store = this.store;
+        if (store != null) {
+            mki.available(store);
         }
         return mki;
     }
