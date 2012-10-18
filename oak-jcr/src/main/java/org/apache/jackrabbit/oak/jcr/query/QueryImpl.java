@@ -34,7 +34,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.NodeImpl;
 import org.apache.jackrabbit.oak.jcr.SessionDelegate;
-import org.apache.jackrabbit.oak.value.ValueFactoryImpl;
+import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 
 /**
  * The implementation of the corresponding JCR interface.

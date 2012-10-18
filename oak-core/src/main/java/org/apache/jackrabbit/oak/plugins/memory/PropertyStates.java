@@ -35,7 +35,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.kernel.KernelBlob;
 import org.apache.jackrabbit.oak.kernel.TypeCodes;
-import org.apache.jackrabbit.oak.value.Conversions;
+import org.apache.jackrabbit.oak.plugins.value.Conversions;
 
 import static org.apache.jackrabbit.oak.api.Type.DATE;
 import static org.apache.jackrabbit.oak.api.Type.DATES;
