@@ -16,42 +16,62 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype;
 
-import java.util.HashMap;
 import java.util.Map;
 
 import javax.jcr.nodetype.NodeTypeTemplate;
 
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.cnd.DefinitionBuilderFactory;
-import org.apache.jackrabbit.oak.namepath.NameMapper;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.namepath.NameMapperImpl;
+import org.apache.jackrabbit.oak.plugins.name.NamespaceConstants;
+import org.apache.jackrabbit.oak.plugins.name.Namespaces;
 
 class DefBuilderFactory extends
         DefinitionBuilderFactory<NodeTypeTemplate, Map<String, String>> {
 
-    private final NameMapper mapper;
-    private Map<String, String> namespaces = new HashMap<String, String>();
+    private final Tree root;
 
-    public DefBuilderFactory(NameMapper mapper) {
-        this.mapper = mapper;
+    public DefBuilderFactory(Tree root) {
+        this.root = root;
     }
 
     @Override
     public NodeTypeTemplateImpl newNodeTypeDefinitionBuilder() {
-        return new NodeTypeTemplateImpl(mapper);
+        return new NodeTypeTemplateImpl(new NameMapperImpl(root));
     }
 
     @Override
     public Map<String, String> getNamespaceMapping() {
-        return namespaces;
+        return Namespaces.getNamespaceMap(root);
     }
 
     @Override
     public void setNamespaceMapping(Map<String, String> namespaces) {
-        this.namespaces = namespaces;
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public void setNamespace(String prefix, String uri) {
-        namespaces.put(prefix, uri);
+        if (Namespaces.getNamespaceMap(root).containsValue(uri)) {
+            return; // namespace already exists
+        }
+
+        Tree namespaces = getOrCreate(
+                JcrConstants.JCR_SYSTEM, NamespaceConstants.REP_NAMESPACES);
+        namespaces.setProperty(prefix, uri);
+    }
+
+    private Tree getOrCreate(String... path) {
+        Tree tree = root;
+        for (String name : path) {
+            Tree child = tree.getChild(name);
+            if (child == null) {
+                child = tree.addChild(name);
+            }
+            tree = child;
+        }
+        return tree;
     }
 
 }
