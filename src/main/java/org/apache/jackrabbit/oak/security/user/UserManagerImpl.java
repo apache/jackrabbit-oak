@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.security.user;
 import java.security.Principal;
 import java.util.Iterator;
 import javax.annotation.CheckForNull;
+import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.UnsupportedRepositoryOperationException;
@@ -239,7 +240,7 @@ public class UserManagerImpl implements UserManager {
      */
     void onCreate(User user, String password) throws RepositoryException {
         for (AuthorizableAction action : getAuthorizableActions()) {
-            action.onCreate(user, password, getSession());
+            action.onCreate(user, password, session);
         }
     }
 
@@ -253,7 +254,7 @@ public class UserManagerImpl implements UserManager {
      */
     void onCreate(Group group) throws RepositoryException {
         for (AuthorizableAction action : getAuthorizableActions()) {
-            action.onCreate(group, getSession());
+            action.onCreate(group, session);
         }
     }
 
@@ -267,7 +268,7 @@ public class UserManagerImpl implements UserManager {
      */
     void onRemove(Authorizable authorizable) throws RepositoryException {
         for (AuthorizableAction action : getAuthorizableActions()) {
-            action.onRemove(authorizable, getSession());
+            action.onRemove(authorizable, session);
         }
     }
 
@@ -282,7 +283,7 @@ public class UserManagerImpl implements UserManager {
      */
     void onPasswordChange(User user, String password) throws RepositoryException {
         for (AuthorizableAction action : getAuthorizableActions()) {
-            action.onPasswordChange(user, password, getSession());
+            action.onPasswordChange(user, password, session);
         }
     }
 
@@ -292,8 +293,9 @@ public class UserManagerImpl implements UserManager {
 
     //--------------------------------------------------------------------------
 
-    Session getSession() {
-        return session;
+    Node getAuthorizableNode(String oakPath) throws RepositoryException {
+        String jcrPath = getNamePathMapper().getJcrPath(oakPath);
+        return session.getNode(jcrPath);
     }
 
     NamePathMapper getNamePathMapper() {

@@ -24,9 +24,10 @@ import javax.jcr.UnsupportedRepositoryOperationException;
 import org.apache.jackrabbit.api.security.user.Impersonation;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.security.principal.AdminPrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.principal.TreeBasedPrincipal;
-import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtility;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
+import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtility;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,8 +41,11 @@ class UserImpl extends AuthorizableImpl implements User {
      */
     private static final Logger log = LoggerFactory.getLogger(UserImpl.class);
 
+    private final boolean isAdmin;
+
     UserImpl(String id, Tree tree, UserManagerImpl userManager) throws RepositoryException {
         super(id, tree, userManager);
+        isAdmin = userManager.getUserProvider().isAdminUser(tree);
     }
 
     void checkValidTree(Tree tree) throws RepositoryException {
@@ -66,7 +70,11 @@ class UserImpl extends AuthorizableImpl implements User {
     public Principal getPrincipal() throws RepositoryException {
         Tree userTree = getTree();
         String principalName = getUserProvider().getPrincipalName(userTree);
-        return new TreeBasedPrincipal(principalName, userTree, getUserManager().getNamePathMapper());
+        if (isAdmin()) {
+            return new AdminPrincipalImpl(principalName, userTree, getUserManager().getNamePathMapper());
+        } else {
+            return new TreeBasedPrincipal(principalName, userTree, getUserManager().getNamePathMapper());
+        }
     }
 
     //---------------------------------------------------------------< User >---
@@ -75,7 +83,7 @@ class UserImpl extends AuthorizableImpl implements User {
      */
     @Override
     public boolean isAdmin() {
-        return getUserProvider().isAdminUser(getTree());
+        return isAdmin;
     }
 
     /**

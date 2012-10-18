@@ -285,19 +285,6 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
     }
 
     //--------------------------------------------------------------------------
-    /**
-     * @return The node associated with this authorizable instance.
-     * @throws javax.jcr.RepositoryException
-     */
-    @Nonnull
-    Node getNode() throws RepositoryException {
-        if (node == null) {
-            String jcrPath = userManager.getNamePathMapper().getJcrPath(getTree().getPath());
-            node = userManager.getSession().getNode(jcrPath);
-        }
-        return node;
-    }
-
     @Nonnull
     Tree getTree() {
         Tree tree = getUserProvider().getAuthorizable(id);
@@ -344,6 +331,18 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
      */
     boolean isEveryone() throws RepositoryException {
         return isGroup() && EveryonePrincipal.NAME.equals(getUserProvider().getPrincipalName(getTree()));
+    }
+
+    /**
+     * @return The node associated with this authorizable instance.
+     * @throws javax.jcr.RepositoryException
+     */
+    @Nonnull
+    private Node getNode() throws RepositoryException {
+        if (node == null) {
+            node = userManager.getAuthorizableNode(getTree().getPath());
+        }
+        return node;
     }
 
     /**
