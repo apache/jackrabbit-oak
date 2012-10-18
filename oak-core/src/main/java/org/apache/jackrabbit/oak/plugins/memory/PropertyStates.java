@@ -164,15 +164,15 @@ public final class PropertyStates {
             case PropertyType.STRING:
                 return new StringPropertyState(name, value);
             case PropertyType.BINARY:
-                return new BinaryPropertyState(name, new StringBasedBlob(value));
+                return new BinaryPropertyState(name, EmptyPropertyState.getBinary(value));
             case PropertyType.LONG:
-                return new LongPropertyState(name, SinglePropertyState.getLong(value));
+                return new LongPropertyState(name, EmptyPropertyState.getLong(value));
             case PropertyType.DOUBLE:
-                return new DoublePropertyState(name, StringPropertyState.getDouble(value));
+                return new DoublePropertyState(name, EmptyPropertyState.getDouble(value));
             case PropertyType.BOOLEAN:
-                return new BooleanPropertyState(name, StringPropertyState.getBoolean(value));
+                return new BooleanPropertyState(name, EmptyPropertyState.getBoolean(value));
             case PropertyType.DECIMAL:
-                return new DecimalPropertyState(name, StringPropertyState.getDecimal(value));
+                return new DecimalPropertyState(name, EmptyPropertyState.getDecimal(value));
             default:
                 return new GenericPropertyState(name, value, Type.fromTag(type, false));
         }
@@ -619,7 +619,7 @@ public final class PropertyStates {
             if (reader.matches(JsopReader.NUMBER)) {
                 String number = reader.getToken();
                 type = PropertyType.LONG;
-                values.add(StringPropertyState.getLong(number));
+                values.add(EmptyPropertyState.getLong(number));
             } else if (reader.matches(JsopReader.TRUE)) {
                 type = PropertyType.BOOLEAN;
                 values.add(true);
@@ -634,9 +634,9 @@ public final class PropertyStates {
                     if (type == PropertyType.BINARY) {
                         values.add(new KernelBlob(value, kernel));
                     } else if(type == PropertyType.DOUBLE) {
-                        values.add(StringPropertyState.getDouble(value));
+                        values.add(EmptyPropertyState.getDouble(value));
                     } else if(type == PropertyType.DECIMAL) {
-                        values.add(StringPropertyState.getDecimal(value));
+                        values.add(EmptyPropertyState.getDecimal(value));
                     } else {
                         values.add(value);
                     }

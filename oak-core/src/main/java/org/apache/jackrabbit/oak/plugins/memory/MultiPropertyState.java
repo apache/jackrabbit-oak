@@ -68,7 +68,7 @@ abstract class MultiPropertyState<T> extends EmptyPropertyState {
         return Iterables.transform(getStrings(), new Function<String, Blob>() {
             @Override
             public Blob apply(String value) {
-                return new StringBasedBlob(value);
+                return EmptyPropertyState.getBinary(value);
             }
         });
     }
@@ -80,7 +80,7 @@ abstract class MultiPropertyState<T> extends EmptyPropertyState {
         return Iterables.transform(getStrings(), new Function<String, Long>() {
             @Override
             public Long apply(String value) {
-                return Long.parseLong(value);
+                return EmptyPropertyState.getLong(value);
             }
         });
     }
@@ -92,7 +92,7 @@ abstract class MultiPropertyState<T> extends EmptyPropertyState {
         return Iterables.transform(getStrings(), new Function<String, Double>() {
             @Override
             public Double apply(String value) {
-                return Double.parseDouble(value);
+                return EmptyPropertyState.getDouble(value);
             }
         });
     }
@@ -104,7 +104,7 @@ abstract class MultiPropertyState<T> extends EmptyPropertyState {
         return Iterables.transform(getStrings(), new Function<String, Boolean>() {
             @Override
             public Boolean apply(String value) {
-                return StringPropertyState.getBoolean(value);
+                return EmptyPropertyState.getBoolean(value);
             }
         });
     }
@@ -116,7 +116,7 @@ abstract class MultiPropertyState<T> extends EmptyPropertyState {
         return Iterables.transform(getStrings(), new Function<String, BigDecimal>() {
             @Override
             public BigDecimal apply(String value) {
-                return new BigDecimal(value);
+                return EmptyPropertyState.getDecimal(value);
             }
         });
     }
@@ -126,7 +126,7 @@ abstract class MultiPropertyState<T> extends EmptyPropertyState {
      * @return  The value at the given {@code index} as {@link Blob}
      */
     protected Blob getBlob(int index) {
-        return new StringBasedBlob(getString(index));
+        return EmptyPropertyState.getBinary(getString(index));
     }
 
     /**
@@ -134,7 +134,7 @@ abstract class MultiPropertyState<T> extends EmptyPropertyState {
      * @return  The value at the given {@code index} as {@code long}
      */
     protected long getLong(int index) {
-        return Long.parseLong(getString(index));
+        return EmptyPropertyState.getLong(getString(index));
     }
 
     /**
@@ -142,7 +142,7 @@ abstract class MultiPropertyState<T> extends EmptyPropertyState {
      * @return  The value at the given {@code index} as {@code double}
      */
     protected double getDouble(int index) {
-        return Double.parseDouble(getString(index));
+        return EmptyPropertyState.getDouble(getString(index));
     }
 
     /**
@@ -150,7 +150,7 @@ abstract class MultiPropertyState<T> extends EmptyPropertyState {
      * @return  The value at the given {@code index} as {@code boolean}
      */
     protected boolean getBoolean(int index) {
-        return StringPropertyState.getBoolean(getString(index));
+        return EmptyPropertyState.getBoolean(getString(index));
     }
 
     /**
@@ -158,7 +158,7 @@ abstract class MultiPropertyState<T> extends EmptyPropertyState {
      * @return  The value at the given {@code index} as {@code BigDecimal}
      */
     protected BigDecimal getDecimal(int index) {
-        return new BigDecimal(getString(index));
+        return EmptyPropertyState.getDecimal(getString(index));
     }
 
     /**
