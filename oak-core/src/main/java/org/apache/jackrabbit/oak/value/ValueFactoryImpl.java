@@ -40,8 +40,8 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
+import org.apache.jackrabbit.oak.plugins.memory.EmptyPropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
-import org.apache.jackrabbit.oak.plugins.memory.StringPropertyState;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.util.ISO8601;
 import org.slf4j.Logger;
@@ -193,9 +193,9 @@ public class ValueFactoryImpl implements ValueFactory {
                     pv = PropertyStates.binaryProperty("", value.getBytes("UTF-8"));
                     break;
                 case PropertyType.LONG:
-                    return createValue(StringPropertyState.getLong(value));
+                    return createValue(EmptyPropertyState.getLong(value));
                 case PropertyType.DOUBLE:
-                    return createValue(StringPropertyState.getDouble(value));
+                    return createValue(EmptyPropertyState.getDouble(value));
                 case PropertyType.DATE:
                     if (ISO8601.parse(value) == null) {
                         throw new ValueFormatException("Invalid date " + value);
@@ -203,7 +203,7 @@ public class ValueFactoryImpl implements ValueFactory {
                     pv = PropertyStates.dateProperty("", value);
                     break;
                 case PropertyType.BOOLEAN:
-                    return createValue(StringPropertyState.getBoolean(value));
+                    return createValue(EmptyPropertyState.getBoolean(value));
                 case PropertyType.NAME:
                     String oakName = namePathMapper.getOakName(value);
                     if (oakName == null) {
@@ -240,7 +240,7 @@ public class ValueFactoryImpl implements ValueFactory {
                     pv = PropertyStates.uriProperty("", value);
                     break;
                 case PropertyType.DECIMAL:
-                    return createValue(StringPropertyState.getDecimal(value));
+                    return createValue(EmptyPropertyState.getDecimal(value));
                 default:
                     throw new ValueFormatException("Invalid type: " + type);
             }

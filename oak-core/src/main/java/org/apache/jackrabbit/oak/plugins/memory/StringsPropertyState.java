@@ -20,8 +20,6 @@ package org.apache.jackrabbit.oak.plugins.memory;
 
 import java.util.List;
 
-import com.google.common.base.Function;
-import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.Type;
 
 public class StringsPropertyState extends MultiPropertyState<String> {
@@ -37,21 +35,6 @@ public class StringsPropertyState extends MultiPropertyState<String> {
     @Override
     protected String getString(int index) {
         return values.get(index);
-    }
-
-    @Override
-    protected Iterable<Boolean> getBooleans() {
-        return Iterables.transform(values, new Function<String, Boolean>() {
-            @Override
-            public Boolean apply(String value) {
-                return Boolean.parseBoolean(value);
-            }
-        });
-    }
-
-    @Override
-    protected boolean getBoolean(int index) {
-        return Boolean.parseBoolean(getString(index));
     }
 
     @Override
