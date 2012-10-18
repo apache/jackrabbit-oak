@@ -78,7 +78,7 @@ public class DiffBuilder {
             public void propertyAdded(PropertyState after) {
                 String p = PathUtils.concat(getCurrentPath(), after.getName());
                 if (p.startsWith(pathFilter)) {
-                    buff.tag('+').
+                    buff.tag('^').
                             key(p).
                             encodedValue(after.getEncodedValue()).
                             newline();
@@ -173,7 +173,7 @@ public class DiffBuilder {
                 public void propertyAdded(PropertyState after) {
                     String p = PathUtils.concat(getCurrentPath(), after.getName());
                     if (p.startsWith(pathFilter)) {
-                        buff.tag('+').
+                        buff.tag('^').
                                 key(p).
                                 encodedValue(after.getEncodedValue()).
                                 newline();
