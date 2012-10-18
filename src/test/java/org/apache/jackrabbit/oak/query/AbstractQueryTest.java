@@ -43,8 +43,8 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
-import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
+import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -115,7 +115,7 @@ public abstract class AbstractQueryTest extends AbstractOakTest implements
     }
 
     protected SecurityProvider getSecurityProvider() {
-        return new SecurityProviderImpl();
+        return new OpenSecurityProvider();
     }
 
     @Test
