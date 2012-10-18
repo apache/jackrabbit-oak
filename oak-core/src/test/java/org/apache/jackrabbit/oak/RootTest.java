@@ -18,6 +18,8 @@
  */
 package org.apache.jackrabbit.oak;
 
+import static org.apache.jackrabbit.oak.OakAssert.assertSequence;
+
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
@@ -57,8 +59,7 @@ public class RootTest extends AbstractOakTest {
 
             r.copy("/node3", "/c/node3");
             c = r.getTree("/").getChild("c");
-            checkSequence(c.getChildren(), "node1", "node2", "node3");
-
+            assertSequence(c.getChildren(), "node1", "node2", "node3");
         } finally {
             s.close();
         }
@@ -79,8 +80,7 @@ public class RootTest extends AbstractOakTest {
 
             r.move("/node3", "/c/node3");
             c = r.getTree("/").getChild("c");
-            checkSequence(c.getChildren(), "node1", "node2", "node3");
-
+            assertSequence(c.getChildren(), "node1", "node2", "node3");
         } finally {
             s.close();
         }
