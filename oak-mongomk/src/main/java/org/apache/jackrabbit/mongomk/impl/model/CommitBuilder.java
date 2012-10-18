@@ -16,12 +16,6 @@
  */
 package org.apache.jackrabbit.mongomk.impl.model;
 
-import org.apache.jackrabbit.mongomk.api.instruction.Instruction.AddNodeInstruction;
-import org.apache.jackrabbit.mongomk.api.instruction.Instruction.AddPropertyInstruction;
-import org.apache.jackrabbit.mongomk.api.instruction.Instruction.CopyNodeInstruction;
-import org.apache.jackrabbit.mongomk.api.instruction.Instruction.MoveNodeInstruction;
-import org.apache.jackrabbit.mongomk.api.instruction.Instruction.RemoveNodeInstruction;
-import org.apache.jackrabbit.mongomk.api.instruction.Instruction.SetPropertyInstruction;
 import org.apache.jackrabbit.mongomk.api.model.Commit;
 import org.apache.jackrabbit.mongomk.impl.instruction.AddNodeInstructionImpl;
 import org.apache.jackrabbit.mongomk.impl.instruction.AddPropertyInstructionImpl;
@@ -87,38 +81,32 @@ public class CommitBuilder {
 
         @Override
         public void nodeAdded(String parentPath, String name) {
-            AddNodeInstruction instruction = new AddNodeInstructionImpl(parentPath, name);
-            commit.addInstruction(instruction);
+            commit.addInstruction(new AddNodeInstructionImpl(parentPath, name));
         }
 
         @Override
         public void nodeCopied(String rootPath, String oldPath, String newPath) {
-            CopyNodeInstruction instruction = new CopyNodeInstructionImpl(rootPath, oldPath, newPath);
-            commit.addInstruction(instruction);
+            commit.addInstruction(new CopyNodeInstructionImpl(rootPath, oldPath, newPath));
         }
 
         @Override
         public void nodeMoved(String rootPath, String oldPath, String newPath) {
-            MoveNodeInstruction instruction = new MoveNodeInstructionImpl(rootPath, oldPath, newPath);
-            commit.addInstruction(instruction);
+            commit.addInstruction(new MoveNodeInstructionImpl(rootPath, oldPath, newPath));
         }
 
         @Override
         public void nodeRemoved(String parentPath, String name) {
-            RemoveNodeInstruction instruction = new RemoveNodeInstructionImpl(parentPath, name);
-            commit.addInstruction(instruction);
+            commit.addInstruction(new RemoveNodeInstructionImpl(parentPath, name));
         }
 
         @Override
         public void propertyAdded(String path, String key, Object value) {
-            AddPropertyInstruction instruction = new AddPropertyInstructionImpl(path, key, value);
-            commit.addInstruction(instruction);
+            commit.addInstruction(new AddPropertyInstructionImpl(path, key, value));
         }
 
         @Override
         public void propertySet(String path, String key, Object value) {
-            SetPropertyInstruction instruction = new SetPropertyInstructionImpl(path, key, value);
-            commit.addInstruction(instruction);
+            commit.addInstruction(new SetPropertyInstructionImpl(path, key, value));
         }
     }
 }

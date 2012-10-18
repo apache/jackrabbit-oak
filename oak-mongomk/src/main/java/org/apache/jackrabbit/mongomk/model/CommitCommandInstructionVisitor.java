@@ -34,6 +34,10 @@ import org.apache.jackrabbit.mongomk.impl.MongoConnection;
 import org.apache.jackrabbit.mongomk.query.FetchNodesQuery;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 
+/**
+ * This class reads in the instructions generated from JSON, applies basic checks
+ * and creates a node map for {@code CommitCommandMongo} to work on later.
+ */
 public class CommitCommandInstructionVisitor implements InstructionVisitor {
 
     private final long headRevisionId;
@@ -42,6 +46,12 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
 
     private String branchId;
 
+    /**
+     * Creates {@code CommitCommandInstructionVisitor}
+     *
+     * @param mongoConnection Mongo connection.
+     * @param headRevisionId Head revision.
+     */
     public CommitCommandInstructionVisitor(MongoConnection mongoConnection,
             long headRevisionId) {
         this.mongoConnection = mongoConnection;
@@ -49,10 +59,20 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
         pathNodeMap = new HashMap<String, NodeMongo>();
     }
 
+    /**
+     * Sets the branch id associated with the commit. It can be null.
+     *
+     * @param branchId Branch id or null.
+     */
     public void setBranchId(String branchId) {
         this.branchId = branchId;
     }
 
+    /**
+     * Returns the generated node map after visit methods are called.
+     *
+     * @return Node map.
+     */
     public Map<String, NodeMongo> getPathNodeMap() {
         return pathNodeMap;
     }
@@ -60,13 +80,11 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
     @Override
     public void visit(AddNodeInstruction instruction) {
         String nodePath = instruction.getPath();
-        if (!PathUtils.isAbsolute(nodePath)) {
-            throw new RuntimeException("Absolute path expected: " + nodePath);
-        }
-        getStagedNode(nodePath);
+        checkAbsolutePath(nodePath);
 
         String nodeName = PathUtils.getName(nodePath);
         if (nodeName.isEmpty()) { // This happens in initial commit.
+            getStagedNode(nodePath);
             return;
         }
 
@@ -75,19 +93,54 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
         if (parent.childExists(nodeName)) {
             throw new RuntimeException("There's already a child node with name '" + nodeName + "'");
         }
+        getStagedNode(nodePath);
         parent.addChild(nodeName);
     }
 
     @Override
     public void visit(AddPropertyInstruction instruction) {
-        NodeMongo node = getStagedNode(instruction.getPath());
+        String nodePath = instruction.getPath();
+        NodeMongo node = getStoredNode(nodePath);
         node.addProperty(instruction.getKey(), instruction.getValue());
+    }
+
+    @Override
+    public void visit(SetPropertyInstruction instruction) {
+        String key = instruction.getKey();
+        Object value = instruction.getValue();
+        NodeMongo node = getStoredNode(instruction.getPath());
+        if (value == null) {
+            node.removeProp(key);
+        } else {
+            node.addProperty(key, value);
+        }
+    }
+
+    @Override
+    public void visit(RemoveNodeInstruction instruction) {
+        String nodePath = instruction.getPath();
+        checkAbsolutePath(nodePath);
+
+        String parentPath = PathUtils.getParentPath(nodePath);
+        String nodeName = PathUtils.getName(nodePath);
+        NodeMongo parent = getStoredNode(parentPath);
+        if (!parent.childExists(nodeName)) {
+            throw new RuntimeException("Node " + nodeName
+                    + " does not exists at parent path: " + parentPath);
+        }
+        parent.removeChild(PathUtils.getName(nodePath));
     }
 
     @Override
     public void visit(CopyNodeInstruction instruction) {
         String srcPath = instruction.getSourcePath();
+        checkAbsolutePath(srcPath);
+
         String destPath = instruction.getDestPath();
+        if (!PathUtils.isAbsolute(destPath)) {
+            destPath = PathUtils.concat(instruction.getPath(), destPath);
+            checkAbsolutePath(destPath);
+        }
 
         String srcParentPath = PathUtils.getParentPath(srcPath);
         String srcNodeName = PathUtils.getName(srcPath);
@@ -95,80 +148,40 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
         String destParentPath = PathUtils.getParentPath(destPath);
         String destNodeName = PathUtils.getName(destPath);
 
-        NodeMongo srcParent = pathNodeMap.get(srcParentPath);
-        if (srcParent == null) {
-            // The subtree to be copied has not been modified
-            boolean entryExists = getStoredNode(srcParentPath).childExists(srcNodeName);
-            if (!entryExists) {
-                throw new RuntimeException("Not found: " + srcPath);
-            }
-            NodeMongo destParent = getStagedNode(destParentPath);
-            if (destParent.childExists(destNodeName)) {
-                throw new RuntimeException("Node already exists at copy destination path: " + destPath);
-            }
-
-            // Copy src node to destPath.
-            NodeMongo srcNode = getStoredNode(srcPath);
-            NodeMongo destNode = NodeMongo.createClone(srcNode);
-            destNode.setPath(destPath);
-            // FIXME - This needs to do proper merge instead of just add.
-            List<String> addedChildren = srcNode.getAddedChildren();
-            if (addedChildren != null && !addedChildren.isEmpty()) {
-                for (String child : addedChildren) {
-                    getStagedNode(PathUtils.concat(destPath, child));
-                    destNode.addChild(child);
-                }
-            }
-            pathNodeMap.put(destPath, destNode);
-
-            // Add to destParent.
-            destParent.addChild(destNodeName);
-
-            return;
+        NodeMongo srcParent = getStoredNode(srcParentPath);
+        if (!srcParent.childExists(srcNodeName)) {
+            throw new NotFoundException(srcPath);
+        }
+        NodeMongo destParent = getStoredNode(destParentPath);
+        if (destParent.childExists(destNodeName)) {
+            throw new RuntimeException("Node already exists at copy destination path: " + destPath);
         }
 
-        boolean srcEntryExists = srcParent.childExists(srcNodeName);
-        if (!srcEntryExists) {
-            throw new RuntimeException(srcPath);
+        // First, copy the existing nodes.
+        List<NodeMongo> nodesToCopy = new FetchNodesQuery(mongoConnection,
+                srcPath, headRevisionId).execute();
+        for (NodeMongo nodeMongo : nodesToCopy) {
+            String oldPath = nodeMongo.getPath();
+            String oldPathRel = PathUtils.relativize(srcPath, oldPath);
+            String newPath = PathUtils.concat(destPath, oldPathRel);
+
+            nodeMongo.setPath(newPath);
+            nodeMongo.removeField("_id");
+            pathNodeMap.put(newPath, nodeMongo);
         }
 
-        // FIXME - The rest is not totally correct.
-        NodeMongo destParent = getStagedNode(destParentPath);
-        NodeMongo srcNode = getStagedNode(srcPath);
+        // Then, copy any staged changes.
+        NodeMongo srcNode = getStoredNode(srcPath);
+        NodeMongo destNode = getStagedNode(destPath);
 
-        if (srcNode != null) {
-            // Copy the modified subtree
-            NodeMongo destNode = NodeMongo.createClone(srcNode);
-            destNode.setPath(destPath);
-            pathNodeMap.put(destPath,  destNode);
-            destParent.addChild(destNodeName);
-            //destParent.add(destNodeName, srcNode.copy());
-        } else {
-            NodeMongo destNode = NodeMongo.createClone(srcNode);
-            destNode.setPath(destPath);
-            pathNodeMap.put(destPath,  destNode);
-            destParent.addChild(destNodeName);
-            //destParent.add(new ChildNodeEntry(destNodeName, srcEntry.getId()));
-        }
+        copyStagedChanges(srcNode, destNode);
 
-        // [Mete] Old code from Philipp.
-        // retrieve all nodes beyond and add them as new children to the dest location
-//        List<NodeMongo> childNodesToCopy = new FetchNodesByPathAndDepthQuery(mongoConnection, srcPath,
-//                revisionId, -1).execute();
-//        for (NodeMongo nodeMongo : childNodesToCopy) {
-//            String oldPath = nodeMongo.getPath();
-//            String oldPathRel = PathUtils.relativize(srcPath, oldPath);
-//            String newPath = PathUtils.concat(destPath, oldPathRel);
-//
-//            nodeMongo.setPath(newPath);
-//            nodeMongo.removeField("_id");
-//            pathNodeMap.put(newPath, nodeMongo);
-//        }
-
-        // tricky part now: In case we already know about any changes to these existing nodes we need to merge
-        // those now.
+        // Finally, add to destParent.
+        pathNodeMap.put(destPath, destNode);
+        destParent.addChild(destNodeName);
     }
 
+    // FIXME - Double check this functionality.
     @Override
     public void visit(MoveNodeInstruction instruction) {
         String srcPath = instruction.getSourcePath();
@@ -218,10 +231,6 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
 
         // Add to destParent
         NodeMongo destParentNode = getStoredNode(destParentPath);
-        if (destParentNode == null) {
-            throw new RuntimeException("Dest parent node does not exist at path: "
-                    + destParentPath);
-        }
         if (destParentNode.childExists(destNodeName)) {
             throw new RuntimeException("Node already exists at move destination path: " + destPath);
         }
@@ -230,35 +239,12 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
         // [Mete] Siblings?
     }
 
-    @Override
-    public void visit(RemoveNodeInstruction instruction) {
-        String path = instruction.getPath();
-        String parentPath = PathUtils.getParentPath(path);
-        NodeMongo parentNode = getStoredNode(parentPath);
-        String childName = PathUtils.getName(path);
-        if (!parentNode.childExists(childName)) {
-            throw new RuntimeException("Node " + childName
-                    + " does not exists at parent path: " + parentPath);
-        }
-        parentNode.removeChild(PathUtils.getName(path));
-    }
-
-    @Override
-    public void visit(SetPropertyInstruction instruction) {
-        String path = instruction.getPath();
-        String key = instruction.getKey();
-        Object value = instruction.getValue();
-        NodeMongo node = getStagedNode(path);
-        if (value == null) {
-            node.removeProp(key);
-        } else {
-            node.addProperty(key, value);
+    private void checkAbsolutePath(String srcPath) {
+        if (!PathUtils.isAbsolute(srcPath)) {
+            throw new RuntimeException("Absolute path expected: " + srcPath);
         }
     }
 
-    // FIXME - I think we need a way to distinguish between Staged
-    // and Stored nodes. For example, what if a node is retrieved as Staged
-    // but later it needs to be retrieved as Stored?
     private NodeMongo getStagedNode(String path) {
         NodeMongo node = pathNodeMap.get(path);
         if (node == null) {
@@ -285,9 +271,10 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
         } catch (Exception ignore) {}
 
         if (!exists) {
-            return null;
+            throw new NotFoundException(path);
         }
 
+        // Fetch the node without its descendants.
         FetchNodesQuery query = new FetchNodesQuery(mongoConnection,
                 path, headRevisionId);
         query.setBranchId(branchId);
@@ -299,5 +286,74 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
             pathNodeMap.put(path, node);
         }
         return node;
+    }
+
+    private void copyStagedChanges(NodeMongo srcNode, NodeMongo destNode) {
+
+        // Copy staged changes at the top level.
+        copyAddedNodes(srcNode, destNode);
+        copyRemovedNodes(srcNode, destNode);
+        copyAddedProperties(srcNode, destNode);
+        copyRemovedProperties(srcNode, destNode);
+
+        // Recursively add staged changes of the descendants.
+        List<String> srcChildren = srcNode.getChildren();
+        if (srcChildren == null || srcChildren.isEmpty()) {
+            return;
+        }
+
+        for (String childName : srcChildren) {
+            String oldChildPath = PathUtils.concat(srcNode.getPath(), childName);
+            NodeMongo oldChild = getStoredNode(oldChildPath);
+
+            String newChildPath = PathUtils.concat(destNode.getPath(), childName);
+            NodeMongo newChild = getStagedNode(newChildPath);
+            copyStagedChanges(oldChild, newChild);
+        }
+    }
+
+    private void copyRemovedProperties(NodeMongo srcNode, NodeMongo destNode) {
+        Map<String, Object> removedProps = srcNode.getRemovedProps();
+        if (removedProps == null || removedProps.isEmpty()) {
+            return;
+        }
+
+        for (String key : removedProps.keySet()) {
+            destNode.removeProp(key);
+        }
+    }
+
+    private void copyAddedNodes(NodeMongo srcNode, NodeMongo destNode) {
+        List<String> addedChildren = srcNode.getAddedChildren();
+        if (addedChildren == null || addedChildren.isEmpty()) {
+            return;
+        }
+
+        for (String childName : addedChildren) {
+            getStagedNode(PathUtils.concat(destNode.getPath(), childName));
+            destNode.addChild(childName);
+        }
+    }
+
+    private void copyRemovedNodes(NodeMongo srcNode, NodeMongo destNode) {
+        List<String> removedChildren = srcNode.getRemovedChildren();
+        if (removedChildren == null || removedChildren.isEmpty()) {
+            return;
+        }
+
+        for (String child : removedChildren) {
+            destNode.removeChild(child);
+        }
+    }
+
+    private void copyAddedProperties(NodeMongo srcNode, NodeMongo destNode) {
+        Map<String, Object> addedProps = srcNode.getAddedProps();
+        if (addedProps == null || addedProps.isEmpty()) {
+            return;
+        }
+
+        for (Entry<String, Object> entry : addedProps.entrySet()) {
+            destNode.addProperty(entry.getKey(), entry.getValue());
+        }
     }
 }

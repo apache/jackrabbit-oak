@@ -28,7 +28,6 @@ import org.apache.jackrabbit.mongomk.impl.model.NodeImpl;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 
 import com.mongodb.BasicDBObject;
-import com.mongodb.DBObject;
 
 /**
  * The {@code MongoDB} representation of a node.
@@ -48,12 +47,6 @@ public class NodeMongo extends BasicDBObject {
     private Map<String, Object> addedProps;
     private List<String> removedChildren;
     private Map<String, Object> removedProps;
-
-    public static NodeMongo createClone(NodeMongo node) {
-        NodeMongo nodeMongo = new NodeMongo();
-        nodeMongo.putAll((DBObject)node);
-        return nodeMongo;
-    }
 
     public static List<Node> toNode(Collection<NodeMongo> nodeMongos) {
         List<Node> nodes = new ArrayList<Node>(nodeMongos.size());
@@ -205,7 +198,7 @@ public class NodeMongo extends BasicDBObject {
     public boolean childExists(String childName) {
         List<String> children = getChildren();
         if (children != null && !children.isEmpty()) {
-            if (children.contains(childName)) {
+            if (children.contains(childName) && !childExistsInRemovedChildren(childName)) {
                 return true;
             }
         }
@@ -215,6 +208,11 @@ public class NodeMongo extends BasicDBObject {
     private boolean childExistsInAddedChildren(String childName) {
         return addedChildren != null && !addedChildren.isEmpty()?
                 addedChildren.contains(childName) : false;
+    }
+
+    private boolean childExistsInRemovedChildren(String childName) {
+        return removedChildren != null && !removedChildren.isEmpty()?
+                removedChildren.contains(childName) : false;
     }
 
     @Override
