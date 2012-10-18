@@ -24,14 +24,15 @@ import javax.jcr.SimpleCredentials;
 import javax.security.auth.Subject;
 import javax.security.auth.login.LoginException;
 
+import org.apache.jackrabbit.api.security.user.Authorizable;
+import org.apache.jackrabbit.api.security.user.User;
+import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.AuthInfo;
-import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.security.user.CredentialsImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.Authentication;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
-import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtility;
-import org.apache.jackrabbit.oak.spi.security.user.UserProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,7 +45,7 @@ import org.slf4j.LoggerFactory;
  *
  * <ul>
  *     <li>{@link SimpleCredentials}: Authentication succeeds if userID and
- *     password match the information exposed by the {@link UserProvider}.</li>
+ *     password match the information exposed by the {@link UserManager}.</li>
  *     <li>{@link ImpersonationCredentials}: Authentication succeeds if the
  *     subject to be authenticated is allowed to impersonate the user identified
  *     by the userID.</li>
@@ -61,41 +62,52 @@ class UserAuthentication implements Authentication {
     private static final Logger log = LoggerFactory.getLogger(UserAuthentication.class);
 
     private final String userId;
-    private final UserProvider userProvider;
+    private final UserManager userManager;
     private final PrincipalProvider principalProvider;
 
-    UserAuthentication(String userId, UserProvider userProvider, PrincipalProvider principalProvider) {
+    UserAuthentication(String userId, UserManager userManager, PrincipalProvider principalProvider) {
         this.userId = userId;
-        this.userProvider = userProvider;
+        this.userManager = userManager;
         this.principalProvider = principalProvider;
     }
 
     @Override
     public boolean authenticate(Credentials credentials) throws LoginException {
-        if (userId == null || userProvider == null) {
+        if (userId == null || userManager == null) {
             return false;
         }
 
-        Tree userTree = userProvider.getAuthorizable(userId, AuthorizableType.USER);
-        if (userTree == null) {
-            throw new LoginException("Unknown user " + userId);
-        }
-        if (userProvider.isDisabled(userTree)) {
-            throw new LoginException("User with ID " + userId + " has been disabled.");
-        }
-
         boolean success;
-        if (credentials instanceof SimpleCredentials) {
-            SimpleCredentials creds = (SimpleCredentials) credentials;
-            success = PasswordUtility.isSame(userProvider.getPasswordHash(userTree), creds.getPassword());
-            checkSuccess(success, "UserId/Password mismatch.");
-        } else if (credentials instanceof ImpersonationCredentials) {
-            AuthInfo info = ((ImpersonationCredentials) credentials).getImpersonatorInfo();
-            success = impersonate(info, userTree);
-            checkSuccess(success, "Impersonation not allowed.");
-        } else {
-            // guest login is allowed if an anonymous user exists in the content (see get user above)
-            success = (credentials instanceof GuestCredentials);
+        try {
+            Authorizable authorizable = userManager.getAuthorizable(userId);
+            if (authorizable == null || authorizable.isGroup()) {
+                throw new LoginException("Unknown user " + userId);
+            }
+
+            User user = (User) authorizable;
+            if (user.isDisabled()) {
+                throw new LoginException("User with ID " + userId + " has been disabled: "+ user.getDisabledReason());
+            }
+
+            if (credentials instanceof SimpleCredentials) {
+                SimpleCredentials creds = (SimpleCredentials) credentials;
+                Credentials userCreds = user.getCredentials();
+                if (userCreds instanceof CredentialsImpl) {
+                    success = PasswordUtility.isSame(((CredentialsImpl) userCreds).getPasswordHash(), creds.getPassword());
+                } else {
+                    success = false;
+                }
+                checkSuccess(success, "UserId/Password mismatch.");
+            } else if (credentials instanceof ImpersonationCredentials) {
+                AuthInfo info = ((ImpersonationCredentials) credentials).getImpersonatorInfo();
+                success = impersonate(info, user);
+                checkSuccess(success, "Impersonation not allowed.");
+            } else {
+                // guest login is allowed if an anonymous user exists in the content (see get user above)
+                success = (credentials instanceof GuestCredentials);
+            }
+        } catch (RepositoryException e) {
+            throw new LoginException(e.getMessage());
         }
         return success;
     }
@@ -107,10 +119,10 @@ class UserAuthentication implements Authentication {
         }
     }
 
-    private boolean impersonate(AuthInfo info, Tree userTree) {
+    private boolean impersonate(AuthInfo info, User user) {
         Subject subject = new Subject(true, info.getPrincipals(), Collections.emptySet(), Collections.emptySet());
         try {
-            return userProvider.getImpersonation(userTree, principalProvider).allows(subject);
+            return user.getImpersonation().allows(subject);
         } catch (RepositoryException e) {
             log.debug("Error while validating impersonation", e.getMessage());
         }

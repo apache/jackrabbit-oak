@@ -18,36 +18,36 @@ package org.apache.jackrabbit.oak.spi.security.authentication.callback;
 
 import javax.security.auth.callback.Callback;
 
-import org.apache.jackrabbit.oak.spi.security.user.UserProvider;
+import org.apache.jackrabbit.api.security.user.UserManager;
 
 /**
- * Callback implementation used to pass a {@link UserProvider} to the
+ * Callback implementation used to pass a {@link UserManager} to the
  * login module.
  */
-public class UserProviderCallback implements Callback {
+public class UserManagerCallback implements Callback {
 
-    private UserProvider userProvider;
+    private UserManager userManager;
 
     /**
      * Returns the user provider as set using
-     * {@link #setUserProvider(org.apache.jackrabbit.oak.spi.security.user.UserProvider)}
+     * {@link #setUserManager(org.apache.jackrabbit.api.security.user.UserManager)}
      * or {@code null}.
      *
-     * @return an instance of {@code UserProvider} or {@code null} if no
+     * @return an instance of {@code UserManager} or {@code null} if no
      * provider has been set before.
      */
-    public UserProvider getUserProvider() {
-        return userProvider;
+    public UserManager getUserManager() {
+        return userManager;
     }
 
     /**
-     * Sets the {@code UserProvider} that is being used during the
+     * Sets the {@code UserManager} that is being used during the
      * authentication process.
      *
-     * @param userProvider The user provider to use during the
+     * @param userManager The user provider to use during the
      * authentication process.
      */
-    public void setUserProvider(UserProvider userProvider) {
-        this.userProvider = userProvider;
+    public void setUserManager(UserManager userManager) {
+        this.userManager = userManager;
     }
 }

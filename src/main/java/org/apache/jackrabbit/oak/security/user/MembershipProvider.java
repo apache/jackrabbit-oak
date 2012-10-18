@@ -20,6 +20,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.PropertyType;
 
@@ -35,7 +36,6 @@ import org.apache.jackrabbit.oak.plugins.memory.MemoryPropertyBuilder;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
-import org.apache.jackrabbit.oak.spi.security.user.MembershipProvider;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtility;
 import org.apache.jackrabbit.oak.spi.state.PropertyBuilder;
 import org.apache.jackrabbit.oak.util.NodeUtil;
@@ -80,13 +80,13 @@ import static org.apache.jackrabbit.oak.api.Type.WEAKREFERENCE;
  * parameter is modified later on, existing membership information is not
  * modified or converted to the new structure.
  */
-public class MembershipProviderImpl extends AuthorizableBaseProvider implements MembershipProvider {
+class MembershipProvider extends AuthorizableBaseProvider {
 
-    private static final Logger log = LoggerFactory.getLogger(MembershipProviderImpl.class);
+    private static final Logger log = LoggerFactory.getLogger(MembershipProvider.class);
 
     private final int splitSize;
 
-    MembershipProviderImpl(Root root, ConfigurationParameters config) {
+    MembershipProvider(Root root, ConfigurationParameters config) {
         super(root, config);
 
         int splitValue = config.getConfigValue(PARAM_GROUP_MEMBERSHIP_SPLIT_SIZE, 0);
@@ -97,14 +97,8 @@ public class MembershipProviderImpl extends AuthorizableBaseProvider implements 
         this.splitSize = splitValue;
     }
 
-    //--------------------------------------------------< MembershipProvider>---
-    @Override
-    public Iterator<String> getMembership(String authorizableId, boolean includeInherited) {
-        return getMembership(getByID(authorizableId, AuthorizableType.AUTHORIZABLE), includeInherited);
-    }
-
-    @Override
-    public Iterator<String> getMembership(Tree authorizableTree, boolean includeInherited) {
+    @Nonnull
+    Iterator<String> getMembership(Tree authorizableTree, boolean includeInherited) {
         Set<String> groupPaths = new HashSet<String>();
         Set<String> refPaths = identifierManager.getReferences(true, authorizableTree, null, NT_REP_GROUP, NT_REP_MEMBERS);
         for (String propPath : refPaths) {
@@ -124,18 +118,8 @@ public class MembershipProviderImpl extends AuthorizableBaseProvider implements 
         }
     }
 
-    @Override
-    public Iterator<String> getMembers(String groupId, AuthorizableType authorizableType, boolean includeInherited) {
-        Tree groupTree = getByID(groupId, AuthorizableType.GROUP);
-        if (groupTree == null) {
-            return Iterators.emptyIterator();
-        } else {
-            return getMembers(groupTree, authorizableType, includeInherited);
-        }
-    }
-
-    @Override
-    public Iterator<String> getMembers(Tree groupTree, AuthorizableType authorizableType, boolean includeInherited) {
+    @Nonnull
+    Iterator<String> getMembers(Tree groupTree, AuthorizableType authorizableType, boolean includeInherited) {
         Iterable memberPaths = Collections.emptySet();
         if (useMemberNode(groupTree)) {
             Tree membersTree = groupTree.getChild(REP_MEMBERS);
@@ -163,8 +147,7 @@ public class MembershipProviderImpl extends AuthorizableBaseProvider implements 
         }
     }
 
-    @Override
-    public boolean isMember(Tree groupTree, Tree authorizableTree, boolean includeInherited) {
+    boolean isMember(Tree groupTree, Tree authorizableTree, boolean includeInherited) {
         if (includeInherited) {
             Iterator<String> groupPaths = getMembership(authorizableTree, true);
             String path = groupTree.getPath();
@@ -198,8 +181,7 @@ public class MembershipProviderImpl extends AuthorizableBaseProvider implements 
         return false;
     }
 
-    @Override
-    public boolean addMember(Tree groupTree, Tree newMemberTree) {
+    boolean addMember(Tree groupTree, Tree newMemberTree) {
         if (useMemberNode(groupTree)) {
             NodeUtil groupNode = new NodeUtil(groupTree);
             NodeUtil membersNode = groupNode.getOrAddChild(REP_MEMBERS, NT_REP_MEMBERS);
@@ -221,8 +203,7 @@ public class MembershipProviderImpl extends AuthorizableBaseProvider implements 
         return true;
     }
 
-    @Override
-    public boolean removeMember(Tree groupTree, Tree memberTree) {
+    boolean removeMember(Tree groupTree, Tree memberTree) {
         if (useMemberNode(groupTree)) {
             Tree membersTree = groupTree.getChild(REP_MEMBERS);
             if (membersTree != null) {
@@ -291,7 +272,7 @@ public class MembershipProviderImpl extends AuthorizableBaseProvider implements 
 
             private Iterator<String> inherited(String authorizablePath) {
                 Tree group = getByPath(authorizablePath);
-                if (UserUtility.isAuthorizableTree(group, AuthorizableType.GROUP)) {
+                if (UserUtility.isType(group, AuthorizableType.GROUP)) {
                     return getMembers(group, authorizableType, true);
                 } else {
                     return Iterators.emptyIterator();
@@ -321,7 +302,7 @@ public class MembershipProviderImpl extends AuthorizableBaseProvider implements 
 
             private Iterator<String> inherited(String authorizablePath) {
                 Tree group = getByPath(authorizablePath);
-                if (UserUtility.isAuthorizableTree(group, AuthorizableType.GROUP)) {
+                if (UserUtility.isType(group, AuthorizableType.GROUP)) {
                     return getMembership(group, true);
                 } else {
                     return Iterators.emptyIterator();

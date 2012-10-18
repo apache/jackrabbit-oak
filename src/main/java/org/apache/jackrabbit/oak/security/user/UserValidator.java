@@ -67,7 +67,7 @@ class UserValidator extends DefaultValidator implements UserConstants {
             fail(msg);
         }
 
-        if (UserUtility.isAuthorizableTree(parentBefore.getTree(), AuthorizableType.USER)
+        if (UserUtility.isType(parentBefore.getTree(), AuthorizableType.USER)
                 && REP_PASSWORD.equals(name)
                 && PasswordUtility.isPlainTextPassword(after.getValue(Type.STRING))) {
             String msg = "Password may not be plain text.";
@@ -146,7 +146,7 @@ class UserValidator extends DefaultValidator implements UserConstants {
     // FIXME: copied from UserProvider#isAdminUser
     private boolean isAdminUser(NodeUtil userNode) {
         String id = (userNode.getString(REP_AUTHORIZABLE_ID, Text.unescapeIllegalJcrChars(userNode.getName())));
-        return UserUtility.isAuthorizableTree(userNode.getTree(), AuthorizableType.USER) &&
+        return UserUtility.isType(userNode.getTree(), AuthorizableType.USER) &&
                UserUtility.getAdminId(provider.getConfig()).equals(id);
     }
 

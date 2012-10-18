@@ -16,18 +16,17 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import java.io.UnsupportedEncodingException;
-import java.security.NoSuchAlgorithmException;
 import java.security.Principal;
 import java.text.ParseException;
 import java.util.Collections;
 import java.util.Iterator;
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.query.Query;
 
 import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.api.security.user.Impersonation;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
@@ -36,12 +35,9 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
-import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.TreeBasedPrincipal;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
-import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtility;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
-import org.apache.jackrabbit.oak.spi.security.user.UserProvider;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtility;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.apache.jackrabbit.util.Text;
@@ -145,12 +141,12 @@ import static org.apache.jackrabbit.oak.api.Type.STRING;
  *
  * TODO
  */
-class UserProviderImpl extends AuthorizableBaseProvider implements UserProvider {
+class UserProvider extends AuthorizableBaseProvider {
 
     /**
      * logger instance
      */
-    private static final Logger log = LoggerFactory.getLogger(UserProviderImpl.class);
+    private static final Logger log = LoggerFactory.getLogger(UserProvider.class);
 
     private static final String DELIMITER = "/";
 
@@ -159,7 +155,7 @@ class UserProviderImpl extends AuthorizableBaseProvider implements UserProvider 
     private final String groupPath;
     private final String userPath;
 
-    UserProviderImpl(Root root, ConfigurationParameters config) {
+    UserProvider(Root root, ConfigurationParameters config) {
         super(root, config);
 
         defaultDepth = config.getConfigValue(PARAM_DEFAULT_DEPTH, DEFAULT_DEPTH);
@@ -169,32 +165,27 @@ class UserProviderImpl extends AuthorizableBaseProvider implements UserProvider 
     }
 
     //-------------------------------------------------------< UserProvider >---
-    @Override
+    @Nonnull
     public Tree createUser(String userID, String intermediateJcrPath) throws RepositoryException {
         return createAuthorizableNode(userID, false, intermediateJcrPath);
     }
 
-    @Override
+    @Nonnull
     public Tree createGroup(String groupID, String intermediateJcrPath) throws RepositoryException {
         return createAuthorizableNode(groupID, true, intermediateJcrPath);
     }
 
-    @Override
+    @CheckForNull
     public Tree getAuthorizable(String authorizableId) {
         return getByID(authorizableId, AuthorizableType.AUTHORIZABLE);
     }
 
-    @Override
-    public Tree getAuthorizable(String authorizableId, AuthorizableType authorizableType) {
-        return getByID(authorizableId, authorizableType);
-    }
-
-    @Override()
+    @CheckForNull
     public Tree getAuthorizableByPath(String authorizableOakPath) {
         return getByPath(authorizableOakPath);
     }
 
-    @Override
+    @CheckForNull
     public Tree getAuthorizableByPrincipal(Principal principal) {
         if (principal instanceof TreeBasedPrincipal) {
             return root.getTree(((TreeBasedPrincipal) principal).getOakPath());
@@ -225,10 +216,10 @@ class UserProviderImpl extends AuthorizableBaseProvider implements UserProvider 
         return null;
     }
 
-    @Override
+    @CheckForNull
     public String getAuthorizableId(Tree authorizableTree) {
         checkNotNull(authorizableTree);
-        if (UserUtility.isAuthorizableTree(authorizableTree, AuthorizableType.AUTHORIZABLE)) {
+        if (UserUtility.isType(authorizableTree, AuthorizableType.AUTHORIZABLE)) {
             PropertyState idProp = authorizableTree.getProperty(UserConstants.REP_AUTHORIZABLE_ID);
             if (idProp != null) {
                 return idProp.getValue(STRING);
@@ -239,110 +230,35 @@ class UserProviderImpl extends AuthorizableBaseProvider implements UserProvider 
         return null;
     }
 
-    @Override
+    /**
+     * Find the authorizable trees matching the following search parameters within
+     * the sub-tree defined by an authorizable tree:
+     *
+     * @param propertyRelPaths An array of property names or relative paths
+     * pointing to properties within the tree defined by a given authorizable node.
+     * @param value The property value to look for.
+     * @param ntNames An array of node type names to restrict the search within
+     * the authorizable tree to a subset of nodes that match any of the node
+     * type names; {@code null} indicates that no filtering by node type is
+     * desired. Specifying a node type name that defines an authorizable node
+     * )e.g. {@link UserConstants#NT_REP_USER rep:User} will limit the search to
+     * properties defined with the authorizable node itself instead of searching
+     * the complete sub-tree.
+     * @param exact A boolean flag indicating if the value must match exactly or not.s
+     * @param maxSize The maximal number of search results to look for.
+     * @param authorizableType Filter the search results to only return authorizable
+     * trees of a given type. Passing {@link AuthorizableType#AUTHORIZABLE} indicates that
+     * no filtering for a specific authorizable type is desired. However, properties
+     * might still be search in the complete sub-tree of authorizables depending
+     * on the other query parameters.
+     * @return An iterator of authorizable trees that match the specified
+     * search parameters and filters or an empty iterator if no result can be
+     * found.
+     */
+    @Nonnull
     public Iterator<Tree> findAuthorizables(String[] propertyRelPaths, String value, String[] ntNames, boolean exact, long maxSize, AuthorizableType authorizableType) {
         // TODO
         throw new UnsupportedOperationException("not yet implemented");
-    }
-
-    @Override
-    public boolean isAuthorizableType(Tree authorizableTree, AuthorizableType authorizableType) {
-        return UserUtility.isAuthorizableTree(authorizableTree, authorizableType);
-    }
-
-    @Override
-    public boolean isAdminUser(Tree userTree) {
-        checkNotNull(userTree);
-        return isAuthorizableType(userTree, AuthorizableType.USER) && UserUtility.getAdminId(config).equals(getAuthorizableId(userTree));
-    }
-
-    @Override
-    public String getPasswordHash(Tree userTree) {
-        checkNotNull(userTree);
-
-        NodeUtil n = new NodeUtil(userTree);
-        return n.getString(UserConstants.REP_PASSWORD, null);
-    }
-
-    @Override
-    public void setPassword(Tree userTree, String password, boolean forceHash) throws RepositoryException {
-        String pwHash;
-        if (forceHash || PasswordUtility.isPlainTextPassword(password)) {
-            try {
-                pwHash = PasswordUtility.buildPasswordHash(password, config);
-            } catch (NoSuchAlgorithmException e) {
-                throw new RepositoryException(e);
-            } catch (UnsupportedEncodingException e) {
-                throw new RepositoryException(e);
-            }
-        } else {
-            pwHash = password;
-        }
-        setProtectedProperty(userTree, UserConstants.REP_PASSWORD, pwHash);
-    }
-
-    @Override
-    public String getPrincipalName(Tree authorizableTree) throws RepositoryException {
-        checkNotNull(authorizableTree);
-
-        String principalName;
-        if (authorizableTree.hasProperty(REP_PRINCIPAL_NAME)) {
-            return authorizableTree.getProperty(REP_PRINCIPAL_NAME).getValue(STRING);
-        } else {
-            String msg = "Authorizable without principal name " + getAuthorizableId(authorizableTree);
-            log.warn(msg);
-            throw new RepositoryException(msg);
-        }
-    }
-
-    @Override
-    public void setPrincipalName(Tree authorizableTree, String principalName) throws RepositoryException {
-        checkNotNull(authorizableTree);
-        checkNotNull(principalName);
-
-        setProtectedProperty(authorizableTree, UserConstants.REP_PRINCIPAL_NAME, principalName);
-    }
-
-    @Override
-    public Impersonation getImpersonation(Tree userTree, PrincipalProvider principalProvider) {
-        // FIXME: for login the impersonation could be based on the tree directly -> improve
-        return new ImpersonationImpl(getAuthorizableId(userTree), this, principalProvider);
-    }
-
-    @Override
-    public boolean isDisabled(Tree userTree) {
-        checkNotNull(userTree);
-
-        return userTree.hasProperty(REP_DISABLED);
-    }
-
-    @Override
-    public String getDisableReason(Tree userTree) {
-        checkNotNull(userTree);
-
-        PropertyState disabled = userTree.getProperty(REP_DISABLED);
-        if (disabled != null) {
-            return disabled.getValue(STRING);
-        } else {
-            return null;
-        }
-    }
-
-    @Override
-    public void disable(Tree userTree, String reason) throws RepositoryException {
-        checkNotNull(userTree);
-
-        if (isAdminUser(userTree)) {
-            throw new RepositoryException("The administrator user cannot be disabled.");
-        }
-        if (reason == null) {
-            if (isDisabled(userTree)) {
-                // enable the user again.
-                setProtectedProperty(userTree, REP_DISABLED, null);
-            } // else: not disabled -> nothing to
-        } else {
-            setProtectedProperty(userTree, REP_DISABLED, reason);
-        }
     }
 
     //------------------------------------------------------------< private >---
@@ -444,13 +360,5 @@ class UserProviderImpl extends AuthorizableBaseProvider implements UserProvider 
             }
         }
         return sb.toString();
-    }
-
-    private void setProtectedProperty(Tree authorizableTree, String propertyName, String value) {
-        if (value == null) {
-            authorizableTree.removeProperty(propertyName);
-        } else {
-            authorizableTree.setProperty(propertyName, value);
-        }
     }
 }

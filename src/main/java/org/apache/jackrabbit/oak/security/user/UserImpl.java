@@ -17,19 +17,25 @@
 package org.apache.jackrabbit.oak.security.user;
 
 import java.security.Principal;
+import javax.annotation.CheckForNull;
 import javax.jcr.Credentials;
 import javax.jcr.RepositoryException;
-import javax.jcr.UnsupportedRepositoryOperationException;
 
 import org.apache.jackrabbit.api.security.user.Impersonation;
 import org.apache.jackrabbit.api.security.user.User;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.security.principal.AdminPrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.principal.TreeBasedPrincipal;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
+import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtility;
+import org.apache.jackrabbit.oak.spi.security.user.util.UserUtility;
+import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static org.apache.jackrabbit.oak.api.Type.STRING;
 
 /**
  * UserImpl...
@@ -45,11 +51,12 @@ class UserImpl extends AuthorizableImpl implements User {
 
     UserImpl(String id, Tree tree, UserManagerImpl userManager) throws RepositoryException {
         super(id, tree, userManager);
-        isAdmin = userManager.getUserProvider().isAdminUser(tree);
+
+        isAdmin = UserUtility.getAdminId(userManager.getConfig()).equals(id);
     }
 
     void checkValidTree(Tree tree) throws RepositoryException {
-        if (tree == null || !getUserProvider().isAuthorizableType(tree, AuthorizableType.USER)) {
+        if (tree == null || !UserUtility.isType(tree, AuthorizableType.USER)) {
             throw new IllegalArgumentException("Invalid user node: node type rep:User expected.");
         }
     }
@@ -69,7 +76,7 @@ class UserImpl extends AuthorizableImpl implements User {
     @Override
     public Principal getPrincipal() throws RepositoryException {
         Tree userTree = getTree();
-        String principalName = getUserProvider().getPrincipalName(userTree);
+        String principalName = getPrincipalName(userTree);
         if (isAdmin()) {
             return new AdminPrincipalImpl(principalName, userTree, getUserManager().getNamePathMapper());
         } else {
@@ -92,8 +99,8 @@ class UserImpl extends AuthorizableImpl implements User {
      * @see org.apache.jackrabbit.api.security.user.User#getCredentials()
      */
     @Override
-    public Credentials getCredentials() throws RepositoryException {
-        throw new UnsupportedRepositoryOperationException("Not implemented.");
+    public Credentials getCredentials() {
+        return new CredentialsImpl(getID(), getPasswordHash());
     }
 
     /**
@@ -101,7 +108,7 @@ class UserImpl extends AuthorizableImpl implements User {
      */
     @Override
     public Impersonation getImpersonation() throws RepositoryException {
-        return getUserProvider().getImpersonation(getTree(), getUserManager().getPrincipalProvider());
+        return new ImpersonationImpl(this);
     }
 
     /**
@@ -114,7 +121,7 @@ class UserImpl extends AuthorizableImpl implements User {
         }
         UserManagerImpl userManager = getUserManager();
         userManager.onPasswordChange(this, password);
-        getUserProvider().setPassword(getTree(), password, true);
+        userManager.setPassword(getTree(), password, true);
     }
 
     /**
@@ -123,7 +130,7 @@ class UserImpl extends AuthorizableImpl implements User {
     @Override
     public void changePassword(String password, String oldPassword) throws RepositoryException {
         // make sure the old password matches.
-        String pwHash = getUserProvider().getPasswordHash(getTree());
+        String pwHash = getPasswordHash();
         if (!PasswordUtility.isSame(pwHash, oldPassword)) {
             throw new RepositoryException("Failed to change password: Old password does not match.");
         }
@@ -135,7 +142,18 @@ class UserImpl extends AuthorizableImpl implements User {
      */
     @Override
     public void disable(String reason) throws RepositoryException {
-        getUserProvider().disable(getTree(), reason);
+        if (isAdmin) {
+            throw new RepositoryException("The administrator user cannot be disabled.");
+        }
+        Tree tree = getTree();
+        if (reason == null) {
+            if (tree.hasProperty(REP_DISABLED)) {
+                // enable the user again.
+                tree.removeProperty(REP_DISABLED);
+            } // else: not disabled -> nothing to
+        } else {
+            tree.setProperty(REP_DISABLED, reason);
+        }
     }
 
     /**
@@ -143,7 +161,7 @@ class UserImpl extends AuthorizableImpl implements User {
      */
     @Override
     public boolean isDisabled() throws RepositoryException {
-        return getUserProvider().isDisabled(getTree());
+        return getTree().hasProperty(REP_DISABLED);
     }
 
     /**
@@ -151,6 +169,18 @@ class UserImpl extends AuthorizableImpl implements User {
      */
     @Override
     public String getDisabledReason() throws RepositoryException {
-        return getUserProvider().getDisableReason(getTree());
+        PropertyState disabled = getTree().getProperty(REP_DISABLED);
+        if (disabled != null) {
+            return disabled.getValue(STRING);
+        } else {
+            return null;
+        }
+    }
+
+    //--------------------------------------------------------------------------
+    @CheckForNull
+    private String getPasswordHash() {
+        NodeUtil n = new NodeUtil(getTree());
+        return n.getString(UserConstants.REP_PASSWORD, null);
     }
 }

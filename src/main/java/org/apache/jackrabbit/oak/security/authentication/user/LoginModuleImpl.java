@@ -116,7 +116,7 @@ public final class LoginModuleImpl extends AbstractLoginModule {
             return false;
         }
 
-        Authentication authentication = new UserAuthentication(userId, getUserProvider(), getPrincipalProvider());
+        Authentication authentication = new UserAuthentication(userId, getUserManager(), getPrincipalProvider());
         boolean success = authentication.authenticate(credentials);
         if (success) {
             principals = getPrincipals(userId);
