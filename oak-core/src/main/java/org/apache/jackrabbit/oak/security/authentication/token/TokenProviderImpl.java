@@ -30,22 +30,25 @@ import java.util.Map;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.Credentials;
+import javax.jcr.RepositoryException;
 import javax.jcr.SimpleCredentials;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
+import org.apache.jackrabbit.api.security.user.Authorizable;
+import org.apache.jackrabbit.api.security.user.User;
+import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenInfo;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
-import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
-import org.apache.jackrabbit.oak.spi.security.user.UserProvider;
 import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtility;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.apache.jackrabbit.util.ISO8601;
@@ -96,7 +99,7 @@ public class TokenProviderImpl implements TokenProvider {
     private static final char DELIM = '_';
 
     private final Root root;
-    private final UserProvider userProvider;
+    private final UserManager userManager;
     private final IdentifierManager identifierManager;
     private final long tokenExpiration;
 
@@ -107,7 +110,7 @@ public class TokenProviderImpl implements TokenProvider {
     public TokenProviderImpl(Root root, long tokenExpiration, UserConfiguration userConfiguration) {
         this.root = root;
         this.tokenExpiration = tokenExpiration;
-        this.userProvider = userConfiguration.getUserProvider(root);
+        this.userManager = userConfiguration.getUserManager(root, NamePathMapper.DEFAULT);
         this.identifierManager = new IdentifierManager(root);
     }
 
@@ -146,9 +149,9 @@ public class TokenProviderImpl implements TokenProvider {
     @Override
     public TokenInfo createToken(String userId, Map<String, ?> attributes) {
         try {
-            Tree userTree = userProvider.getAuthorizable(userId, AuthorizableType.USER);
-            if (userTree != null) {
-                NodeUtil userNode = new NodeUtil(userTree);
+            Authorizable user = userManager.getAuthorizable(userId);
+            if (user != null && !user.isGroup()) {
+                NodeUtil userNode = new NodeUtil(root.getTree(user.getPath()));
                 NodeUtil tokenParent = userNode.getChild(TOKENS_NODE_NAME);
                 if (tokenParent == null) {
                     tokenParent = userNode.addChild(TOKENS_NODE_NAME, TOKENS_NT_NAME);
@@ -189,6 +192,8 @@ public class TokenProviderImpl implements TokenProvider {
         } catch (UnsupportedEncodingException e) {
             log.debug("Failed to create login token ", e.getMessage());
         } catch (CommitFailedException e) {
+            log.debug("Failed to create login token ", e.getMessage());
+        } catch (RepositoryException e) {
             log.debug("Failed to create login token ", e.getMessage());
         }
 
@@ -298,23 +303,18 @@ public class TokenProviderImpl implements TokenProvider {
     }
 
     @CheckForNull
-    private Tree getUserTree(Tree tokenTree) {
-        if (tokenTree != null) {
-            return tokenTree.getParent().getParent();
-        } else {
-            return null;
-        }
-    }
-
-    @CheckForNull
     private String getUserId(Tree tokenTree) {
         if (tokenTree != null) {
-            Tree userTree = tokenTree.getParent().getParent();
-            if (userTree != null && !userProvider.isDisabled(userTree)) {
-                return userProvider.getAuthorizableId(userTree);
+            try {
+                String userPath = Text.getRelativeParent(tokenTree.getPath(), 2);
+                Authorizable authorizable = userManager.getAuthorizableByPath(userPath);
+                if (authorizable != null && !authorizable.isGroup() && !((User) authorizable).isDisabled()) {
+                    return authorizable.getID();
+                }
+            } catch (RepositoryException e) {
+                log.debug("Cannot determine userID from token: ", e.getMessage());
             }
         }
-
         return null;
     }
 

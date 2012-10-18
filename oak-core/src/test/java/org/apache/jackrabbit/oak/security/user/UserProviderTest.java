@@ -32,20 +32,14 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexHook;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
-import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
-import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtility;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
-import org.apache.jackrabbit.oak.spi.security.user.UserProvider;
-import org.apache.jackrabbit.oak.spi.security.user.util.UserUtility;
 import org.apache.jackrabbit.util.Text;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertNotNull;
-import static junit.framework.Assert.assertNull;
 import static junit.framework.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -56,7 +50,7 @@ import static org.junit.Assert.fail;
  * TODO: add tests for setProtectedProperty (might still be refactored...)
  * TODO: add tests for findAuthorizables once implementation is ready
  */
-public class UserProviderImplTest extends AbstractOakTest {
+public class UserProviderTest extends AbstractOakTest {
 
     private ContentSession contentSession;
     private Root root;
@@ -88,7 +82,6 @@ public class UserProviderImplTest extends AbstractOakTest {
         cleanupPaths.add(defaultGroupPath);
         cleanupPaths.add(customUserPath);
         cleanupPaths.add(customGroupPath);
-
     }
 
     @After
@@ -107,13 +100,13 @@ public class UserProviderImplTest extends AbstractOakTest {
     }
 
     private UserProvider createUserProvider() {
-        return new UserProviderImpl(root, defaultConfig);
+        return new UserProvider(root, defaultConfig);
     }
 
     private UserProvider createUserProvider(int defaultDepth) {
         Map<String, Object> options = new HashMap<String, Object>(customOptions);
         options.put(UserConstants.PARAM_DEFAULT_DEPTH, defaultDepth);
-        return new UserProviderImpl(root, new ConfigurationParameters(options));
+        return new UserProvider(root, new ConfigurationParameters(options));
     }
 
     @Test
@@ -282,33 +275,6 @@ public class UserProviderImplTest extends AbstractOakTest {
     }
 
     @Test
-    public void testGetAuthorizableWithType() throws Exception {
-        UserProvider up = createUserProvider();
-
-        String userID = "thabit";
-        Tree user = up.createUser(userID, null);
-        root.commit();
-
-        Tree a = up.getAuthorizable(userID, AuthorizableType.USER);
-        assertNotNull(a);
-        assertEquals(user.getPath(), a.getPath());
-
-        assertNotNull(up.getAuthorizable(userID, AuthorizableType.AUTHORIZABLE));
-        assertNull(up.getAuthorizable(userID, AuthorizableType.GROUP));
-
-        String groupID = "hr";
-        Tree group = up.createGroup(groupID, null);
-        root.commit();
-
-        Tree g = up.getAuthorizable(groupID, AuthorizableType.GROUP);
-        assertNotNull(a);
-        assertEquals(user.getPath(), a.getPath());
-
-        assertNotNull(up.getAuthorizable(groupID, AuthorizableType.AUTHORIZABLE));
-        assertNull(up.getAuthorizable(groupID, AuthorizableType.USER));
-    }
-
-    @Test
     public void testGetAuthorizableByPath() throws Exception {
         UserProvider up = createUserProvider();
 
@@ -321,26 +287,6 @@ public class UserProviderImplTest extends AbstractOakTest {
         a = up.getAuthorizableByPath(group.getPath());
         assertNotNull(a);
         assertEquals(group, a);
-    }
-
-    @Test
-    public void testIsAdminUser() throws Exception {
-        UserProvider userProvider = createUserProvider();
-
-        String adminId = UserUtility.getAdminId(defaultConfig);
-        Tree adminTree = userProvider.getAuthorizable(adminId, AuthorizableType.USER);
-        if (adminTree == null) {
-            adminTree = userProvider.createUser(adminId, null);
-        }
-        assertTrue(userProvider.isAdminUser(adminTree));
-
-        List<Tree> others = new ArrayList<Tree>();
-        others.add(userProvider.createUser("laura", null));
-        others.add(userProvider.createGroup("administrators", null));
-
-        for (Tree other : others) {
-            assertFalse(userProvider.isAdminUser(other));
-        }
     }
 
     @Test
@@ -371,64 +317,6 @@ public class UserProviderImplTest extends AbstractOakTest {
         if (up.getAuthorizable("bb") != null) {
             fail("Removing the top authorizable folder must remove all users contained.");
             u2.remove();
-        }
-    }
-
-    @Test
-    public void testGetPasswordHash() throws Exception {
-        UserProvider up = createUserProvider();
-        Tree user = up.createUser("a", null);
-
-        assertNull(up.getPasswordHash(user));
-    }
-
-    @Test
-    public void testSetPassword() throws Exception {
-        UserProvider up = createUserProvider();
-        Tree user = up.createUser("a", null);
-
-        List<String> pwds = new ArrayList<String>();
-        pwds.add("pw");
-        pwds.add("");
-        pwds.add("{sha1}pw");
-
-        for (String pw : pwds) {
-            up.setPassword(user, pw, true);
-            String pwHash = up.getPasswordHash(user);
-            assertNotNull(pwHash);
-            assertTrue(PasswordUtility.isSame(pwHash, pw));
-        }
-
-        for (String pw : pwds) {
-            up.setPassword(user, pw, false);
-            String pwHash = up.getPasswordHash(user);
-            assertNotNull(pwHash);
-            if (!pw.startsWith("{")) {
-                assertTrue(PasswordUtility.isSame(pwHash, pw));
-            } else {
-                assertFalse(PasswordUtility.isSame(pwHash, pw));
-                assertEquals(pw, pwHash);
-            }
-        }
-    }
-
-    @Test
-    public void setPasswordNull() throws Exception {
-        UserProvider up = createUserProvider();
-        Tree user = up.createUser("a", null);
-
-        try {
-            up.setPassword(user, null, true);
-            fail("setting null password should fail");
-        } catch (IllegalArgumentException e) {
-            // expected
-        }
-
-        try {
-            up.setPassword(user, null, false);
-            fail("setting null password should fail");
-        } catch (IllegalArgumentException e) {
-            // expected
         }
     }
 }

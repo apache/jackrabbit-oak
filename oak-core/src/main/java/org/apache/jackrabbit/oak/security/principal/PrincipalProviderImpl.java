@@ -19,34 +19,29 @@ package org.apache.jackrabbit.oak.security.principal;
 import java.security.Principal;
 import java.security.acl.Group;
 import java.util.Collections;
-import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
-import javax.annotation.Nonnull;
+import javax.jcr.RepositoryException;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Iterators;
-import org.apache.jackrabbit.api.security.principal.PrincipalManager;
+import org.apache.jackrabbit.api.security.user.Authorizable;
+import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.namepath.PathMapper;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
-import org.apache.jackrabbit.oak.spi.security.principal.TreeBasedPrincipal;
-import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
-import org.apache.jackrabbit.oak.spi.security.user.MembershipProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
-import org.apache.jackrabbit.oak.spi.security.user.UserProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * The {@code PrincipalProviderImpl} is a principal provider implementation
  * that operates on principal information read from user information exposed by
- * the configured {@link UserProvider} and {@link MembershipProvider}.
+ * the configured {@link UserManager}.
  */
 public class PrincipalProviderImpl implements PrincipalProvider {
 
@@ -55,186 +50,114 @@ public class PrincipalProviderImpl implements PrincipalProvider {
      */
     private static final Logger log = LoggerFactory.getLogger(PrincipalProviderImpl.class);
 
-    private final UserProvider userProvider;
-    private final MembershipProvider membershipProvider;
-    private final PathMapper pathMapper;
+    private final UserManager userManager;
 
     public PrincipalProviderImpl(Root root,
                                  UserConfiguration userConfiguration,
-                                 PathMapper pathMapper) {
-        this.userProvider = userConfiguration.getUserProvider(root);
-        this.membershipProvider = userConfiguration.getMembershipProvider(root);
-        this.pathMapper = pathMapper;
+                                 NamePathMapper namePathMapper) {
+        this.userManager = userConfiguration.getUserManager(root, namePathMapper);
     }
 
     //--------------------------------------------------< PrincipalProvider >---
     @Override
     public Principal getPrincipal(final String principalName) {
-        Tree tree = userProvider.getAuthorizableByPrincipal(new Principal() {
+        Authorizable authorizable = getAuthorizable(new Principal() {
             @Override
             public String getName() {
                 return principalName;
             }
         });
-
-        if (tree != null) {
-            return (isGroup(tree)) ? new TreeBasedGroup(tree) : new TreeBasedPrincipal(tree, pathMapper);
-        } else {
-            return (EveryonePrincipal.NAME.equals(principalName)) ? EveryonePrincipal.getInstance() : null;
+        if (authorizable != null) {
+            try {
+                return authorizable.getPrincipal();
+            } catch (RepositoryException e) {
+                log.debug(e.getMessage());
+            }
         }
+
+        // no such principal or error while accessing principal from user/group
+        return (EveryonePrincipal.NAME.equals(principalName)) ? EveryonePrincipal.getInstance() : null;
     }
 
     @Override
     public Set<Group> getGroupMembership(Principal principal) {
-        Tree authTree = userProvider.getAuthorizableByPrincipal(principal);
-        if (authTree == null) {
+        Authorizable authorizable = getAuthorizable(principal);
+        if (authorizable == null) {
             return Collections.emptySet();
         } else {
-            return getGroupMembership(authTree);
+            return getGroupMembership(authorizable);
         }
     }
 
     @Override
     public Set<? extends Principal> getPrincipals(String userID) {
-        Set<Principal> principals;
-        Tree userTree = userProvider.getAuthorizable(userID, AuthorizableType.USER);
-        if (userTree != null) {
-            principals = new HashSet<Principal>();
-            Principal userPrincipal;
-            if (userProvider.isAdminUser(userTree)) {
-                userPrincipal = new AdminPrincipalImpl(userTree, pathMapper);
-            } else {
-                userPrincipal = new TreeBasedPrincipal(userTree, pathMapper);
+        Set<Principal> principals = new HashSet<Principal>();
+        try {
+            Authorizable authorizable = userManager.getAuthorizable(userID);
+            if (authorizable != null && !authorizable.isGroup()) {
+                principals.add(authorizable.getPrincipal());
+                principals.addAll(getGroupMembership(authorizable));
             }
-            principals.add(userPrincipal);
-            principals.addAll(getGroupMembership(userPrincipal));
-
-        } else {
-            principals = Collections.emptySet();
+        } catch (RepositoryException e) {
+            log.debug(e.getMessage());
         }
         return principals;
     }
 
     @Override
     public Iterator<? extends Principal> findPrincipals(String nameHint, int searchType) {
-        String[] propNames = new String[] {UserConstants.REP_PRINCIPAL_NAME};
-        String ntName;
-        switch (searchType) {
-            case PrincipalManager.SEARCH_TYPE_GROUP:
-                ntName = UserConstants.NT_REP_GROUP;
-                break;
-            case PrincipalManager.SEARCH_TYPE_NOT_GROUP:
-                ntName = UserConstants.NT_REP_USER;
-                break;
-            default:
-                ntName = UserConstants.NT_REP_AUTHORIZABLE;
-        }
-
-        Iterator<Tree> authorizables = userProvider.findAuthorizables(propNames,
-                nameHint, new String[] {ntName}, false, Long.MAX_VALUE,
-                AuthorizableType.AUTHORIZABLE);
-
+        try {
+        Iterator<Authorizable> authorizables = userManager.findAuthorizables(UserConstants.REP_PRINCIPAL_NAME, nameHint, UserManager.SEARCH_TYPE_AUTHORIZABLE);
         return Iterators.transform(
                 Iterators.filter(authorizables, Predicates.<Object>notNull()),
                 new AuthorizableToPrincipal());
+        } catch (RepositoryException e) {
+            log.debug(e.getMessage());
+            return Iterators.emptyIterator();
+        }
     }
 
     //------------------------------------------------------------< private >---
-
-    private Set<Group> getGroupMembership(Tree authorizableTree) {
-        Iterator<String> groupPaths = membershipProvider.getMembership(authorizableTree, true);
-        Set<Group> groups = new HashSet<Group>();
-        groups.add(EveryonePrincipal.getInstance());
-
-        while (groupPaths.hasNext()) {
-            String path = groupPaths.next();
-            Tree groupTree = userProvider.getAuthorizableByPath(path);
-            if (groupTree != null) {
-                groups.add(new TreeBasedGroup(groupTree));
-            }
+    private Authorizable getAuthorizable(Principal principal) {
+        try {
+            return userManager.getAuthorizable(principal);
+        } catch (RepositoryException e) {
+            log.debug("Error while retrieving principal: ", e.getMessage());
+            return null;
         }
-        return groups;
     }
 
-    private boolean isGroup(Tree authorizableTree) {
-        return userProvider.isAuthorizableType(authorizableTree, AuthorizableType.GROUP);
+    private Set<Group> getGroupMembership(Authorizable authorizable) {
+        Set<java.security.acl.Group> groupPrincipals = new HashSet<Group>();
+        groupPrincipals.add(EveryonePrincipal.getInstance());
+        try {
+            Iterator<org.apache.jackrabbit.api.security.user.Group> groups = authorizable.memberOf();
+            while (groups.hasNext()) {
+                Principal grPrincipal = groups.next().getPrincipal();
+                if (grPrincipal instanceof Group) {
+                    groupPrincipals.add((Group) grPrincipal);
+                }
+            }
+        } catch (RepositoryException e) {
+            log.debug(e.getMessage());
+        }
+        return groupPrincipals;
     }
 
     //--------------------------------------------------------------------------
-    /**
-     * Tree-based principal implementation that marks the principal as group.
-     */
-    private final class TreeBasedGroup extends TreeBasedPrincipal implements Group {
-
-        private TreeBasedGroup(Tree groupTree) {
-            super(groupTree, pathMapper);
-        }
-
-        @Nonnull
-        private Tree getTree(String oakPath) {
-            Tree tree = userProvider.getAuthorizableByPath(oakPath);
-            if (tree == null) {
-                throw new IllegalStateException("Path " + oakPath + " cannot be resolved to an existing authorizable.");
-            }
-            return tree;
-        }
-
-        @Override
-        public boolean addMember(Principal principal) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public boolean removeMember(Principal principal) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public boolean isMember(Principal principal) {
-            Tree groupTree = getTree(getOakPath());
-            return membershipProvider.isMember(groupTree, userProvider.getAuthorizableByPrincipal(principal), true);
-        }
-
-        @Override
-        public Enumeration<? extends Principal> members() {
-            Tree groupTree = getTree(getOakPath());
-            Iterator<String> declaredMemberPaths = membershipProvider.getMembers(groupTree, AuthorizableType.AUTHORIZABLE, false);
-            Iterator<? extends Principal> members = Iterators.transform(
-                    Iterators.filter(declaredMemberPaths, Predicates.<Object>notNull()),
-                    new PathToPrincipal());
-            return Iterators.asEnumeration(Iterators.filter(members, Predicates.notNull()));
-        }
-    }
 
     /**
      * Function to covert an authorizable tree to a principal.
      */
-    private final class AuthorizableToPrincipal implements Function<Tree, TreeBasedPrincipal> {
+    private final class AuthorizableToPrincipal implements Function<Authorizable, Principal> {
         @Override
-        public TreeBasedPrincipal apply(Tree tree) {
-            if (userProvider.isAuthorizableType(tree, AuthorizableType.GROUP)) {
-                return new TreeBasedGroup(tree);
-            } else {
-                return new TreeBasedPrincipal(tree, pathMapper);
+        public Principal apply(Authorizable authorizable) {
+            try {
+                return authorizable.getPrincipal();
+            } catch (RepositoryException e) {
+                log.debug(e.getMessage());
+                return null;
             }
-        }
-    }
-
-    /**
-     * Function to convert a oak-path to a principal.
-     */
-    private final class PathToPrincipal implements Function<String, Principal> {
-        @Override
-        public Principal apply(String oakPath) {
-            Tree tree = userProvider.getAuthorizableByPath(oakPath);
-            if (tree != null) {
-                if (isGroup(tree)) {
-                    return new TreeBasedGroup(tree);
-                } else {
-                    return new TreeBasedPrincipal(tree, pathMapper);
-                }
-            }
-            return null;
         }
     }
 }

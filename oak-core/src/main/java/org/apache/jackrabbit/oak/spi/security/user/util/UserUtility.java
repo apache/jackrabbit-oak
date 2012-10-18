@@ -42,10 +42,10 @@ public final class UserUtility implements UserConstants{
     }
 
     public static boolean isAuthorizableTree(Tree authorizableTree) {
-        return isAuthorizableTree(authorizableTree, AuthorizableType.AUTHORIZABLE);
+        return isType(authorizableTree, AuthorizableType.AUTHORIZABLE);
     }
 
-    public static boolean isAuthorizableTree(Tree authorizableTree, AuthorizableType type) {
+    public static boolean isType(Tree authorizableTree, AuthorizableType type) {
         // FIXME: check for node type according to the specified type constraint
         if (authorizableTree != null && authorizableTree.hasProperty(JcrConstants.JCR_PRIMARYTYPE)) {
             String ntName = authorizableTree.getProperty(JcrConstants.JCR_PRIMARYTYPE).getValue(STRING);

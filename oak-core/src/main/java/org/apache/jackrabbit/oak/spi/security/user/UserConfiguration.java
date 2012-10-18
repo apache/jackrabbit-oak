@@ -35,14 +35,11 @@ public interface UserConfiguration {
     ConfigurationParameters getConfigurationParameters();
 
     @Nonnull
-    UserProvider getUserProvider(Root root);
-
-    @Nonnull
-    MembershipProvider getMembershipProvider(Root root);
-
-    @Nonnull
     List<ValidatorProvider> getValidatorProviders();
 
     @Nonnull
-    UserManager getUserManager(Session session, Root root, NamePathMapper namePathMapper);
+    UserManager getUserManager(Root root, NamePathMapper namePathMapper, Session session);
+
+    @Nonnull
+    UserManager getUserManager(Root root, NamePathMapper namePathMapper);
 }

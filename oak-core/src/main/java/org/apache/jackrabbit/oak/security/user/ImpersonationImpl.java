@@ -24,16 +24,16 @@ import javax.jcr.RepositoryException;
 import javax.security.auth.Subject;
 
 import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
+import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Impersonation;
+import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalIteratorAdapter;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
-import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
-import org.apache.jackrabbit.oak.spi.security.user.UserProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,14 +49,12 @@ class ImpersonationImpl implements Impersonation, UserConstants {
      */
     private static final Logger log = LoggerFactory.getLogger(ImpersonationImpl.class);
 
-    private final String userId;
-    private final UserProvider userProvider;
+    private final UserImpl user;
     private final PrincipalProvider principalProvider;
 
-    ImpersonationImpl(String userId, UserProvider userProvider, PrincipalProvider principalProvider) {
-        this.userId = userId;
-        this.userProvider = userProvider;
-        this.principalProvider = principalProvider;
+    ImpersonationImpl(UserImpl user) throws RepositoryException {
+        this.user = user;
+        this.principalProvider = user.getUserManager().getPrincipalProvider();
     }
 
     //------------------------------------------------------< Impersonation >---
@@ -105,7 +103,7 @@ class ImpersonationImpl implements Impersonation, UserConstants {
         }
 
         // make sure user does not impersonate himself
-        Tree userTree = getUserTree();
+        Tree userTree = user.getTree();
         PropertyState prop = userTree.getProperty(REP_PRINCIPAL_NAME);
         if (prop != null && prop.getValue(Type.STRING).equals(principalName)) {
             log.warn("Cannot grant impersonation to oneself.");
@@ -134,7 +132,7 @@ class ImpersonationImpl implements Impersonation, UserConstants {
     public boolean revokeImpersonation(Principal principal) throws RepositoryException {
         String pName = principal.getName();
 
-        Tree userTree = getUserTree();
+        Tree userTree = user.getTree();
         Set<String> impersonators = getImpersonatorNames(userTree);
         if (impersonators.remove(pName)) {
             updateImpersonatorNames(userTree, impersonators);
@@ -173,7 +171,7 @@ class ImpersonationImpl implements Impersonation, UserConstants {
 
     //------------------------------------------------------------< private >---
     private Set<String> getImpersonatorNames() throws RepositoryException {
-        return getImpersonatorNames(getUserTree());
+        return getImpersonatorNames(user.getTree());
     }
 
     private Set<String> getImpersonatorNames(Tree userTree) {
@@ -195,22 +193,19 @@ class ImpersonationImpl implements Impersonation, UserConstants {
         }
     }
 
-    private Tree getUserTree() throws RepositoryException {
-        Tree userTree = userProvider.getAuthorizable(userId, AuthorizableType.USER);
-        if (userTree == null) {
-            throw new RepositoryException("UserId " + userId + " cannot be resolved to user.");
-        }
-        return userTree;
-    }
-
     private boolean isAdmin(Principal principal) {
         if (principal instanceof AdminPrincipal) {
             return true;
         } else if (principal instanceof Group) {
             return false;
         } else {
-            Tree authorizableTree = userProvider.getAuthorizableByPrincipal(principal);
-            return authorizableTree != null && userProvider.isAdminUser(authorizableTree);
+            try {
+                Authorizable authorizable = user.getUserManager().getAuthorizable(principal);
+                return authorizable != null && !authorizable.isGroup() && ((User) authorizable).isAdmin();
+            } catch (RepositoryException e) {
+                log.debug(e.getMessage());
+                return false;
+            }
         }
     }
 }

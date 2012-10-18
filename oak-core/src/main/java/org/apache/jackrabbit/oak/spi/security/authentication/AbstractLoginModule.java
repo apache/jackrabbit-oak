@@ -31,6 +31,7 @@ import javax.security.auth.callback.UnsupportedCallbackException;
 import javax.security.auth.login.LoginException;
 import javax.security.auth.spi.LoginModule;
 
+import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
@@ -39,9 +40,8 @@ import org.apache.jackrabbit.oak.spi.security.authentication.callback.Credential
 import org.apache.jackrabbit.oak.spi.security.authentication.callback.PrincipalProviderCallback;
 import org.apache.jackrabbit.oak.spi.security.authentication.callback.RepositoryCallback;
 import org.apache.jackrabbit.oak.spi.security.authentication.callback.SecurityProviderCallback;
-import org.apache.jackrabbit.oak.spi.security.authentication.callback.UserProviderCallback;
+import org.apache.jackrabbit.oak.spi.security.authentication.callback.UserManagerCallback;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
-import org.apache.jackrabbit.oak.spi.security.user.UserProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -115,8 +115,8 @@ import org.slf4j.LoggerFactory;
  *     authenticate the subject as well as to write back information during
  *     {@link #commit()}.</li>
  *
- *     <li>{@link #getUserProvider()}: Returns an instance of the configured
- *     {@link UserProvider} or {@code null}.</li>
+ *     <li>{@link #getUserManager()}: Returns an instance of the configured
+ *     {@link UserManager} or {@code null}.</li>
  *
  *     <li>{@link #getPrincipalProvider()}: Returns an instance of the configured
  *     principal provider or {@code null}.</li>
@@ -317,19 +317,19 @@ public abstract class AbstractLoginModule implements LoginModule {
     }
 
     @CheckForNull
-    protected UserProvider getUserProvider() {
-        UserProvider userProvider = null;
+    protected UserManager getUserManager() {
+        UserManager userManager = null;
         SecurityProvider sp = getSecurityProvider();
         Root root = getRoot();
         if (root != null && sp != null) {
-            userProvider = sp.getUserConfiguration().getUserProvider(root);
+            userManager = sp.getUserConfiguration().getUserManager(root, NamePathMapper.DEFAULT);
         }
 
-        if (userProvider == null && callbackHandler != null) {
+        if (userManager == null && callbackHandler != null) {
             try {
-                UserProviderCallback userCallBack = new UserProviderCallback();
+                UserManagerCallback userCallBack = new UserManagerCallback();
                 callbackHandler.handle(new Callback[] {userCallBack});
-                userProvider = userCallBack.getUserProvider();
+                userManager = userCallBack.getUserManager();
             } catch (IOException e) {
                 log.debug(e.getMessage());
             } catch (UnsupportedCallbackException e) {
@@ -337,7 +337,7 @@ public abstract class AbstractLoginModule implements LoginModule {
             }
         }
 
-        return userProvider;
+        return userManager;
     }
 
     @CheckForNull

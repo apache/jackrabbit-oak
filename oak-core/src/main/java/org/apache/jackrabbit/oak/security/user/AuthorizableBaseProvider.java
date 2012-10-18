@@ -41,7 +41,7 @@ abstract class AuthorizableBaseProvider implements UserConstants {
 
     Tree getByID(String authorizableId, AuthorizableType authorizableType) {
         Tree tree = identifierManager.getTree(getContentID(authorizableId));
-        if (UserUtility.isAuthorizableTree(tree, authorizableType)) {
+        if (UserUtility.isType(tree, authorizableType)) {
             return tree;
         } else {
             return null;
@@ -50,7 +50,7 @@ abstract class AuthorizableBaseProvider implements UserConstants {
 
     Tree getByPath(String authorizableOakPath) {
         Tree tree = root.getTree(authorizableOakPath);
-        if (UserUtility.isAuthorizableTree(tree, AuthorizableType.AUTHORIZABLE)) {
+        if (UserUtility.isType(tree, AuthorizableType.AUTHORIZABLE)) {
             return tree;
         } else {
             return null;

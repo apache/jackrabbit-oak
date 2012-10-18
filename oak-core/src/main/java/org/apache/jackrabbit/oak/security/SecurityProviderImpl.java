@@ -101,7 +101,7 @@ public class SecurityProviderImpl implements SecurityProvider {
     @Override
     public UserConfiguration getUserConfiguration() {
         ConfigurationParameters options = configuration.getConfigValue(PARAM_USER_OPTIONS, new ConfigurationParameters());
-        return new UserConfigurationImpl(options);
+        return new UserConfigurationImpl(options, this);
     }
 
     @Nonnull
