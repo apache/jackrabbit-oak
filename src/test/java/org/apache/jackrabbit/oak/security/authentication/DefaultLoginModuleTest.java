@@ -64,7 +64,9 @@ public class DefaultLoginModuleTest extends AbstractOakTest {
     @After
     public void after() throws Exception {
         Configuration.setConfiguration(null);
-        admin.close();
+        if (admin != null) {
+            admin.close();
+        }
     }
 
     @Override

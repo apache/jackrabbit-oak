@@ -32,6 +32,8 @@ public class ConfigurationParameters {
      */
     private static final Logger log = LoggerFactory.getLogger(ConfigurationParameters.class);
 
+    public static final ConfigurationParameters EMPTY = new ConfigurationParameters();
+
     private final Map<String, Object> options;
 
     public ConfigurationParameters() {
