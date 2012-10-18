@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.spi.lifecycle;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 /**
  * This interface is mainly used in an OSGi environment where various components
@@ -32,5 +33,6 @@ public interface MicroKernelTracker {
      * tracker become available in the system.
      * @param mk the {@link MicroKernel} instance.
      */
-    public void available(MicroKernel mk);
+    public void available(NodeStore store);
+
 }

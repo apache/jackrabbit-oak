@@ -42,6 +42,7 @@
                 org.apache.jackrabbit.oak,
                 org.apache.jackrabbit.oak.api,
                 org.apache.jackrabbit.oak.core,
+                org.apache.jackrabbit.oak.kernel,
                 org.apache.jackrabbit.oak.util,
                 org.apache.jackrabbit.oak.namepath,
                 org.apache.jackrabbit.oak.plugins.value,

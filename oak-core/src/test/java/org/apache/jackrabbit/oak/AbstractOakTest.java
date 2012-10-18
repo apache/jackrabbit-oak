@@ -30,6 +30,7 @@ import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.plugins.nodetype.InitialContent;
 import org.apache.jackrabbit.oak.security.OakConfiguration;
 import org.apache.jackrabbit.oak.spi.lifecycle.CompositeMicroKernelTracker;
@@ -57,7 +58,7 @@ public abstract class AbstractOakTest {
 
     protected MicroKernel createMicroKernelWithInitialContent() {
         MicroKernel mk = new MicroKernelImpl();
-        new InitialContent().available(mk);
+        new InitialContent().available(new KernelNodeStore(mk));
         return mk;
     }
 

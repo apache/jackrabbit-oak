@@ -18,14 +18,11 @@ package org.apache.jackrabbit.oak.plugins.nodetype;
 
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Service;
-import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.core.RootImpl;
 import org.apache.jackrabbit.oak.spi.lifecycle.DefaultMicroKernelTracker;
 import org.apache.jackrabbit.oak.spi.lifecycle.MicroKernelTracker;
-import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
@@ -39,8 +36,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 public class InitialContent extends DefaultMicroKernelTracker {
 
     @Override
-    public void available(MicroKernel mk) {
-        NodeStore store = new Oak(mk).createNodeStore();
+    public void available(NodeStore store) {
         NodeStoreBranch branch = store.branch();
 
         NodeBuilder root = branch.getRoot().builder();
@@ -113,16 +109,7 @@ public class InitialContent extends DefaultMicroKernelTracker {
             throw new RuntimeException(e); // TODO: shouldn't need the wrapper
         }
 
-        BuiltInNodeTypes.register(createRoot(mk));
+        BuiltInNodeTypes.register(new RootImpl(store));
     }
 
-    private Root createRoot(MicroKernel mk) {
-        Oak oak = new Oak(mk);
-        oak.with(new OpenSecurityProvider()); // TODO: this shouldn't be needed
-        try {
-            return oak.createContentRepository().login(null, null).getLatestRoot();
-        } catch (Exception e) {
-            throw new IllegalStateException("Unable to create a Root", e);
-        }
-    }
 }

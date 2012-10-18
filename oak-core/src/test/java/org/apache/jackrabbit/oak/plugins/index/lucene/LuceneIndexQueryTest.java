@@ -21,6 +21,7 @@ import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
@@ -49,7 +50,7 @@ public class LuceneIndexQueryTest extends AbstractQueryTest implements
                 new LuceneReindexHook(TEST_INDEX_HOME), new LuceneHook(
                         TEST_INDEX_HOME));
         MicroKernel mk = new MicroKernelImpl();
-        createDefaultKernelTracker().available(mk);
+        createDefaultKernelTracker().available(new KernelNodeStore(mk));
         return new Oak(mk).with(qip).with(ch).with(getSecurityProvider()).createContentRepository();
     }
 

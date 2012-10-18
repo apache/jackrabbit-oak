@@ -30,6 +30,7 @@ import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.plugins.commit.AnnotatingConflictHandler;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexHook;
@@ -206,7 +207,7 @@ public class RepositoryImpl implements Repository {
     }
 
     private static MicroKernel setupInitialContent(MicroKernel mk) {
-        new InitialContent().available(mk);
+        new InitialContent().available(new KernelNodeStore(mk));
         return mk;
     }
 }
