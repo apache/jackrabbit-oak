@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.plugins.memory;
 
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.value.Conversions;
 
 import static org.apache.jackrabbit.oak.api.Type.*;
 
@@ -32,7 +33,7 @@ public class BooleanPropertyState extends SinglePropertyState {
 
     @Override
     protected String getString() {
-        return Boolean.toString(value);
+        return Conversions.convert(value).toString();
     }
 
     @Override

@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.memory;
 import java.math.BigDecimal;
 
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.value.Conversions;
 
 import static org.apache.jackrabbit.oak.api.Type.*;
 
@@ -37,17 +38,17 @@ public class DecimalPropertyState extends SinglePropertyState {
 
     @Override
     public double getDouble() {
-        return value.doubleValue();
+        return Conversions.convert(value).toDouble();
     }
 
     @Override
     public long getLong() {
-        return value.longValue();
+        return Conversions.convert(value).toLong();
     }
 
     @Override
     public String getString() {
-        return value.toString();
+        return Conversions.convert(value).toString();
     }
 
     @Override
