@@ -14,16 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.spi.security.principal;
+package org.apache.jackrabbit.oak.security.principal;
 
-import java.security.Principal;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.namepath.PathMapper;
+import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
+import org.apache.jackrabbit.oak.spi.security.principal.TreeBasedPrincipal;
 
 /**
- * Principal used to mark an administrator. The aim of this principal
- * is to simplify the check whether a given set of principals is supplied with
- * special (admin) access permissions. It may be used as the single or as
- * additional non-group principal.
+ * AdminPrincipalImpl... TODO
  */
-public interface AdminPrincipal extends Principal {
+public class AdminPrincipalImpl extends TreeBasedPrincipal implements AdminPrincipal {
 
+    public AdminPrincipalImpl(Tree tree, PathMapper pathMapper) {
+        super(tree, pathMapper);
+    }
+
+    public AdminPrincipalImpl(String principalName, Tree tree, PathMapper pathMapper) {
+        super(principalName, tree, pathMapper);
+    }
 }

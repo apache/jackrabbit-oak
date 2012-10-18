@@ -29,14 +29,15 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.PathMapper;
-import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.TreeBasedPrincipal;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.MembershipProvider;
+import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.UserProvider;
 import org.slf4j.Logger;
@@ -58,11 +59,11 @@ public class PrincipalProviderImpl implements PrincipalProvider {
     private final MembershipProvider membershipProvider;
     private final PathMapper pathMapper;
 
-    public PrincipalProviderImpl(UserProvider userProvider,
-                                 MembershipProvider membershipProvider,
+    public PrincipalProviderImpl(Root root,
+                                 UserConfiguration userConfiguration,
                                  PathMapper pathMapper) {
-        this.userProvider = userProvider;
-        this.membershipProvider = membershipProvider;
+        this.userProvider = userConfiguration.getUserProvider(root);
+        this.membershipProvider = userConfiguration.getMembershipProvider(root);
         this.pathMapper = pathMapper;
     }
 
@@ -99,12 +100,15 @@ public class PrincipalProviderImpl implements PrincipalProvider {
         Tree userTree = userProvider.getAuthorizable(userID, AuthorizableType.USER);
         if (userTree != null) {
             principals = new HashSet<Principal>();
-            Principal userPrincipal = new TreeBasedPrincipal(userTree, pathMapper);
+            Principal userPrincipal;
+            if (userProvider.isAdminUser(userTree)) {
+                userPrincipal = new AdminPrincipalImpl(userTree, pathMapper);
+            } else {
+                userPrincipal = new TreeBasedPrincipal(userTree, pathMapper);
+            }
             principals.add(userPrincipal);
             principals.addAll(getGroupMembership(userPrincipal));
-            if (userProvider.isAdminUser(userTree)) {
-                principals.add(AdminPrincipal.INSTANCE);
-            }
+
         } else {
             principals = Collections.emptySet();
         }

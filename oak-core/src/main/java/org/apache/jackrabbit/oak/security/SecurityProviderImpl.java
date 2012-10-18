@@ -38,9 +38,7 @@ import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlProvide
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
-import org.apache.jackrabbit.oak.spi.security.user.MembershipProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
-import org.apache.jackrabbit.oak.spi.security.user.UserProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -120,10 +118,7 @@ public class SecurityProviderImpl implements SecurityProvider {
             @Nonnull
             @Override
             public PrincipalProvider getPrincipalProvider(Root root, NamePathMapper namePathMapper) {
-                UserConfiguration userConfiguration = getUserConfiguration();
-                UserProvider userProvider = userConfiguration.getUserProvider(root);
-                MembershipProvider msProvider = userConfiguration.getMembershipProvider(root);
-                return new PrincipalProviderImpl(userProvider, msProvider, namePathMapper);
+                return new PrincipalProviderImpl(root, getUserConfiguration(), namePathMapper);
             }
         };
     }

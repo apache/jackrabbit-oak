@@ -204,7 +204,7 @@ class ImpersonationImpl implements Impersonation, UserConstants {
     }
 
     private boolean isAdmin(Principal principal) {
-        if (principal == AdminPrincipal.INSTANCE) {
+        if (principal instanceof AdminPrincipal) {
             return true;
         } else if (principal instanceof Group) {
             return false;
