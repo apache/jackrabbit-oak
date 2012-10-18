@@ -1,6 +1,5 @@
 package org.apache.jackrabbit.mongomk.impl;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -18,20 +17,16 @@ public class MongoMKCommitCopyTest extends BaseMongoMicroKernelTest {
     @Test
     public void copyNode() throws Exception {
         mk.commit("/", "+\"a\" : {}", null, null);
-
-        long childCount = mk.getChildNodeCount("/", null);
-        assertEquals(1, childCount);
+        assertTrue(mk.nodeExists("/a", null));
 
         mk.commit("/", "*\"a\" : \"b\"", null, null);
-
-        childCount = mk.getChildNodeCount("/", null);
-        assertEquals(2, childCount);
+        assertTrue(mk.nodeExists("/a", null));
+        assertTrue(mk.nodeExists("/b", null));
     }
 
     @Test
     public void copyNodeWithChild() throws Exception {
         mk.commit("/", "+\"a\" : { \"b\" : {} }", null, null);
-
         assertTrue(mk.nodeExists("/a", null));
         assertTrue(mk.nodeExists("/a/b", null));
 
@@ -45,7 +40,6 @@ public class MongoMKCommitCopyTest extends BaseMongoMicroKernelTest {
     @Test
     public void copyNodeWithChildren() throws Exception {
         mk.commit("/", "+\"a\" : { \"b\" : {},  \"c\" : {}, \"d\" : {}}", null, null);
-
         assertTrue(mk.nodeExists("/a", null));
         assertTrue(mk.nodeExists("/a/b", null));
         assertTrue(mk.nodeExists("/a/c", null));
@@ -61,7 +55,6 @@ public class MongoMKCommitCopyTest extends BaseMongoMicroKernelTest {
     @Test
     public void copyNodeWithNestedChildren() throws Exception {
         mk.commit("/", "+\"a\" : { \"b\" : { \"c\" : { \"d\" : {} } } }", null, null);
-
         assertTrue(mk.nodeExists("/a", null));
         assertTrue(mk.nodeExists("/a/b", null));
         assertTrue(mk.nodeExists("/a/b/c", null));
@@ -82,7 +75,6 @@ public class MongoMKCommitCopyTest extends BaseMongoMicroKernelTest {
     @Test
     public void copyNodeWithProperties() throws Exception {
         mk.commit("/", "+\"a\" : { \"key1\" : \"value1\" }", null, null);
-
         assertTrue(mk.nodeExists("/a", null));
         String nodes = mk.getNodes("/", null, -1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
         JSONObject obj = parseJSONObject(nodes);
@@ -98,9 +90,7 @@ public class MongoMKCommitCopyTest extends BaseMongoMicroKernelTest {
     @Test
     public void copyFromNonExistentNode() throws Exception {
         mk.commit("/", "+\"a\" : {}", null, null);
-
-        long childCount = mk.getChildNodeCount("/", null);
-        assertEquals(1, childCount);
+        assertTrue(mk.nodeExists("/a", null));
 
         try {
             mk.commit("/", "*\"b\" : \"c\"", null, null);
@@ -122,7 +112,6 @@ public class MongoMKCommitCopyTest extends BaseMongoMicroKernelTest {
     @Test
     public void addNodeAndCopy() {
         mk.commit("/", "+\"a\":{}", null, null);
-
         mk.commit("/", "+\"a/b\":{}\n" +
                         "*\"a/b\":\"c\"", null, null);
 
@@ -133,7 +122,6 @@ public class MongoMKCommitCopyTest extends BaseMongoMicroKernelTest {
     @Test
     public void addNodeWithChildrenAndCopy() {
         mk.commit("/", "+\"a\":{}", null, null);
-
         mk.commit("/", "+\"a/b\":{ \"c\" : {}, \"d\" : {} }\n" +
                         "*\"a/b\":\"e\"", null, null);
 
@@ -146,7 +134,6 @@ public class MongoMKCommitCopyTest extends BaseMongoMicroKernelTest {
     @Test
     public void addNodeWithNestedChildrenAndCopy() {
         mk.commit("/", "+\"a\":{ \"b\" : { \"c\" : { } } }", null, null);
-
         mk.commit("/", "+\"a/b/c/d\":{}\n"
                      + "*\"a\":\"e\"", null, null);
 
@@ -159,7 +146,6 @@ public class MongoMKCommitCopyTest extends BaseMongoMicroKernelTest {
     @Test
     public void addNodeAndCopyParent() {
         mk.commit("/", "+\"a\":{}", null, null);
-
         mk.commit("/", "+\"a/b\":{}\n" +
                         "*\"a\":\"c\"", null, null);
 
@@ -181,7 +167,6 @@ public class MongoMKCommitCopyTest extends BaseMongoMicroKernelTest {
     @Test
     public void removeNodeWithNestedChildrenAndCopy() {
         mk.commit("/", "+\"a\":{ \"b\" : { \"c\" : { \"d\" : {} } } }", null, null);
-
         mk.commit("/", "-\"a/b/c/d\"\n"
                      + "*\"a\" : \"e\"", null, null);
 
@@ -193,7 +178,6 @@ public class MongoMKCommitCopyTest extends BaseMongoMicroKernelTest {
     @Test
     public void removeNodeAndCopyParent() {
         mk.commit("/", "+\"a\":{ \"b\" : {} }", null, null);
-
         mk.commit("/", "-\"a/b\"\n" +
                         "*\"a\":\"c\"", null, null);
 
@@ -204,7 +188,6 @@ public class MongoMKCommitCopyTest extends BaseMongoMicroKernelTest {
     @Test
     public void addPropertyAndCopy() {
         mk.commit("/", "+\"a\":{}", null, null);
-
         mk.commit("/", "+\"a/key1\": \"value1\"\n" +
                         "*\"a\":\"c\"", null, null);
 
@@ -217,7 +200,6 @@ public class MongoMKCommitCopyTest extends BaseMongoMicroKernelTest {
     @Test
     public void addNestedPropertyAndCopy() {
         mk.commit("/", "+\"a\":{ \"b\" : {} }", null, null);
-
         mk.commit("/", "+\"a/b/key1\": \"value1\"\n" +
                         "*\"a\":\"c\"", null, null);
 
@@ -230,7 +212,6 @@ public class MongoMKCommitCopyTest extends BaseMongoMicroKernelTest {
     @Test
     public void addPropertyAndCopyAndModifyParent() {
         mk.commit("/", "+\"a\":{}", null, null);
-
         mk.commit("/", "+\"b\" : {}\n"
                      + "+\"a/key1\": \"value1\"\n"
                      + "*\"a\":\"c\"", null, null);
@@ -244,7 +225,6 @@ public class MongoMKCommitCopyTest extends BaseMongoMicroKernelTest {
     @Test
     public void removePropertyAndCopy() {
         mk.commit("/", "+\"a\":{ \"b\" : { \"key1\" : \"value1\" } }", null, null);
-
         mk.commit("/", "^\"a/b/key1\": null\n" +
                         "*\"a\":\"c\"", null, null);
 
@@ -257,7 +237,6 @@ public class MongoMKCommitCopyTest extends BaseMongoMicroKernelTest {
     @Test
     public void removeNestedPropertyAndCopy() {
         mk.commit("/", "+\"a\":{ \"key1\" : \"value1\"}", null, null);
-
         mk.commit("/", "^\"a/key1\" : null\n" +
                         "*\"a\":\"c\"", null, null);
 
@@ -270,7 +249,6 @@ public class MongoMKCommitCopyTest extends BaseMongoMicroKernelTest {
     @Test
     public void removePropertyAndCopyAndModifyParent() {
         mk.commit("/", "+\"a\":{ \"key1\" : \"value1\"}", null, null);
-
         mk.commit("/", "+\"b\" : {}\n"
                      + "^\"a/key1\" : null\n"
                      + "*\"a\":\"c\"", null, null);
