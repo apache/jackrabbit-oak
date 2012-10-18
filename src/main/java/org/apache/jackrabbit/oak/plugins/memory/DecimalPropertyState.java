@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.plugins.memory;
 import java.math.BigDecimal;
 
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.value.Conversions;
+import org.apache.jackrabbit.oak.plugins.value.Conversions;
 
 import static org.apache.jackrabbit.oak.api.Type.*;
 
