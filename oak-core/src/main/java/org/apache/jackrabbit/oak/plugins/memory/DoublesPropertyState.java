@@ -24,6 +24,7 @@ import java.util.List;
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.value.Conversions;
 
 import static org.apache.jackrabbit.oak.api.Type.DOUBLES;
 
@@ -37,14 +38,14 @@ public class DoublesPropertyState extends MultiPropertyState<Double> {
         return Iterables.transform(values, new Function<Double, BigDecimal>() {
             @Override
             public BigDecimal apply(Double value) {
-                return new BigDecimal(value);
+                return Conversions.convert(value).toDecimal();
             }
         });
     }
 
     @Override
     protected BigDecimal getDecimal(int index) {
-        return new BigDecimal(values.get(index));
+        return Conversions.convert(values.get(index)).toDecimal();
     }
 
     @Override
@@ -62,14 +63,14 @@ public class DoublesPropertyState extends MultiPropertyState<Double> {
         return Iterables.transform(values, new Function<Double, Long>() {
             @Override
             public Long apply(Double value) {
-                return value.longValue();
+                return Conversions.convert(value).toLong();
             }
         });
     }
 
     @Override
     protected long getLong(int index) {
-        return values.get(index).longValue();
+        return Conversions.convert(values.get(index)).toLong();
     }
 
     @Override
@@ -77,14 +78,14 @@ public class DoublesPropertyState extends MultiPropertyState<Double> {
         return Iterables.transform(values, new Function<Double, String>() {
             @Override
             public String apply(Double value) {
-                return String.valueOf(value);
+                return Conversions.convert(value).toString();
             }
         });
     }
 
     @Override
     protected String getString(int index) {
-        return String.valueOf(values.get(index));
+        return Conversions.convert(values.get(index)).toString();
     }
 
     @Override

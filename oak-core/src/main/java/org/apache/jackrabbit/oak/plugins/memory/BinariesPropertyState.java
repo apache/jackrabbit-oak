@@ -22,6 +22,7 @@ import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.value.Conversions;
 
 import static org.apache.jackrabbit.oak.api.Type.BINARIES;
 
@@ -36,14 +37,14 @@ public class BinariesPropertyState extends MultiPropertyState<Blob> {
         return Iterables.transform(values, new Function<Blob, String>() {
             @Override
             public String apply(Blob value) {
-                return "<binary>";
+                return Conversions.convert(value).toString();
             }
         });
     }
 
     @Override
     protected String getString(int index) {
-        return "<binary>";
+        return Conversions.convert(values.get(index)).toString();
     }
 
     @Override

@@ -25,6 +25,7 @@ import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.value.Conversions;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Collections.singleton;
@@ -53,35 +54,35 @@ abstract class SinglePropertyState extends EmptyPropertyState {
      * {@link #getString()}.
      */
     protected Blob getBlob() {
-        return getBinary(getString());
+        return Conversions.convert(getString()).toBinary();
     }
 
     /**
      * @return  {@code getLong(getString())}
      */
     protected long getLong() {
-        return getLong(getString());
+        return Conversions.convert(getString()).toLong();
     }
 
     /**
      * @return  {@code getDouble(getString())}
      */
     protected double getDouble() {
-        return getDouble(getString());
+        return Conversions.convert(getString()).toDouble();
     }
 
     /**
      * @return  {@code StringPropertyState.getBoolean(getString())}
      */
     protected boolean getBoolean() {
-        return getBoolean(getString());
+        return Conversions.convert(getString()).toBoolean();
     }
 
     /**
      * @return  {@code getDecimal(getString())}
      */
     protected BigDecimal getDecimal() {
-        return getDecimal(getString());
+        return Conversions.convert(getString()).toDecimal();
     }
 
     /**
