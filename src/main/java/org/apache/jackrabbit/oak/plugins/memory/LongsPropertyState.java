@@ -24,6 +24,7 @@ import java.util.List;
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.value.Conversions;
 
 import static org.apache.jackrabbit.oak.api.Type.LONGS;
 
@@ -38,14 +39,14 @@ public class LongsPropertyState extends MultiPropertyState<Long> {
         return Iterables.transform(values, new Function<Long, BigDecimal>() {
             @Override
             public BigDecimal apply(Long value) {
-                return new BigDecimal(value);
+                return Conversions.convert(value).toDecimal();
             }
         });
     }
 
     @Override
     protected BigDecimal getDecimal(int index) {
-        return new BigDecimal(values.get(index));
+        return Conversions.convert(values.get(index)).toDecimal();
     }
 
     @Override
@@ -53,14 +54,14 @@ public class LongsPropertyState extends MultiPropertyState<Long> {
         return Iterables.transform(values, new Function<Long, Double>() {
             @Override
             public Double apply(Long value) {
-                return value.doubleValue();
+                return Conversions.convert(value).toDouble();
             }
         });
     }
 
     @Override
     protected double getDouble(int index) {
-        return values.get(index);
+        return Conversions.convert(values.get(index)).toDouble();
     }
 
     @Override
@@ -78,14 +79,14 @@ public class LongsPropertyState extends MultiPropertyState<Long> {
         return Iterables.transform(values, new Function<Long, String>() {
             @Override
             public String apply(Long value) {
-                return String.valueOf(value);
+                return Conversions.convert(value).toString();
             }
         });
     }
 
     @Override
     protected String getString(int index) {
-        return String.valueOf(values.get(index));
+        return Conversions.convert(values.get(index)).toString();
     }
 
     @Override

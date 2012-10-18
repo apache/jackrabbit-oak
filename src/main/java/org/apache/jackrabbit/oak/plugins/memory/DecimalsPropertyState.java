@@ -22,6 +22,7 @@ import java.util.List;
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.value.Conversions;
 
 import static org.apache.jackrabbit.oak.api.Type.DECIMALS;
 
@@ -46,14 +47,14 @@ public class DecimalsPropertyState extends MultiPropertyState<BigDecimal> {
         return Iterables.transform(values, new Function<BigDecimal, Double>() {
             @Override
             public Double apply(BigDecimal value) {
-                return value.doubleValue();
+                return Conversions.convert(value).toDouble();
             }
         });
     }
 
     @Override
     protected double getDouble(int index) {
-        return values.get(index).doubleValue();
+        return Conversions.convert(values.get(index)).toDouble();
     }
 
     @Override
@@ -61,14 +62,14 @@ public class DecimalsPropertyState extends MultiPropertyState<BigDecimal> {
         return Iterables.transform(values, new Function<BigDecimal, Long>() {
             @Override
             public Long apply(BigDecimal value) {
-                return value.longValue();
+                return Conversions.convert(value).toLong();
             }
         });
     }
 
     @Override
     protected long getLong(int index) {
-        return values.get(index).longValue();
+        return Conversions.convert(values.get(index)).toLong();
     }
 
     @Override
@@ -76,14 +77,14 @@ public class DecimalsPropertyState extends MultiPropertyState<BigDecimal> {
         return Iterables.transform(values, new Function<BigDecimal, String>() {
             @Override
             public String apply(BigDecimal value) {
-                return value.toString();
+                return Conversions.convert(value).toString();
             }
         });
     }
 
     @Override
     protected String getString(int index) {
-        return values.get(index).toString();
+        return Conversions.convert(values.get(index)).toString();
     }
 
     @Override

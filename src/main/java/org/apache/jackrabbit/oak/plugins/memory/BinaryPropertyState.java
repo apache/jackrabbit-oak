@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.memory;
 
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.value.Conversions;
 
 public class BinaryPropertyState extends SinglePropertyState {
     private final Blob value;
@@ -29,8 +30,7 @@ public class BinaryPropertyState extends SinglePropertyState {
 
     @Override
     public String getString() {
-        // TODO find a better way to represent string values with Blobs
-        return value.toString();
+        return Conversions.convert(value).toString();
     }
 
     @Override

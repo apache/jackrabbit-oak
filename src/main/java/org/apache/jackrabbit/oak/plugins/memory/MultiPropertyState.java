@@ -28,6 +28,7 @@ import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.value.Conversions;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -68,7 +69,7 @@ abstract class MultiPropertyState<T> extends EmptyPropertyState {
         return Iterables.transform(getStrings(), new Function<String, Blob>() {
             @Override
             public Blob apply(String value) {
-                return EmptyPropertyState.getBinary(value);
+                return Conversions.convert(value).toBinary();
             }
         });
     }
@@ -80,7 +81,7 @@ abstract class MultiPropertyState<T> extends EmptyPropertyState {
         return Iterables.transform(getStrings(), new Function<String, Long>() {
             @Override
             public Long apply(String value) {
-                return EmptyPropertyState.getLong(value);
+                return Conversions.convert(value).toLong();
             }
         });
     }
@@ -92,7 +93,7 @@ abstract class MultiPropertyState<T> extends EmptyPropertyState {
         return Iterables.transform(getStrings(), new Function<String, Double>() {
             @Override
             public Double apply(String value) {
-                return EmptyPropertyState.getDouble(value);
+                return Conversions.convert(value).toDouble();
             }
         });
     }
@@ -104,7 +105,7 @@ abstract class MultiPropertyState<T> extends EmptyPropertyState {
         return Iterables.transform(getStrings(), new Function<String, Boolean>() {
             @Override
             public Boolean apply(String value) {
-                return EmptyPropertyState.getBoolean(value);
+                return Conversions.convert(value).toBoolean();
             }
         });
     }
@@ -116,7 +117,7 @@ abstract class MultiPropertyState<T> extends EmptyPropertyState {
         return Iterables.transform(getStrings(), new Function<String, BigDecimal>() {
             @Override
             public BigDecimal apply(String value) {
-                return EmptyPropertyState.getDecimal(value);
+                return Conversions.convert(value).toDecimal();
             }
         });
     }
@@ -126,7 +127,7 @@ abstract class MultiPropertyState<T> extends EmptyPropertyState {
      * @return  The value at the given {@code index} as {@link Blob}
      */
     protected Blob getBlob(int index) {
-        return EmptyPropertyState.getBinary(getString(index));
+        return Conversions.convert(getString(index)).toBinary();
     }
 
     /**
@@ -134,7 +135,7 @@ abstract class MultiPropertyState<T> extends EmptyPropertyState {
      * @return  The value at the given {@code index} as {@code long}
      */
     protected long getLong(int index) {
-        return EmptyPropertyState.getLong(getString(index));
+        return Conversions.convert(getString(index)).toLong();
     }
 
     /**
@@ -142,7 +143,7 @@ abstract class MultiPropertyState<T> extends EmptyPropertyState {
      * @return  The value at the given {@code index} as {@code double}
      */
     protected double getDouble(int index) {
-        return EmptyPropertyState.getDouble(getString(index));
+        return Conversions.convert(getString(index)).toDouble();
     }
 
     /**
@@ -150,7 +151,7 @@ abstract class MultiPropertyState<T> extends EmptyPropertyState {
      * @return  The value at the given {@code index} as {@code boolean}
      */
     protected boolean getBoolean(int index) {
-        return EmptyPropertyState.getBoolean(getString(index));
+        return Conversions.convert(getString(index)).toBoolean();
     }
 
     /**
@@ -158,7 +159,7 @@ abstract class MultiPropertyState<T> extends EmptyPropertyState {
      * @return  The value at the given {@code index} as {@code BigDecimal}
      */
     protected BigDecimal getDecimal(int index) {
-        return EmptyPropertyState.getDecimal(getString(index));
+        return Conversions.convert(getString(index)).toDecimal();
     }
 
     /**

@@ -18,14 +18,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
-import java.math.BigDecimal;
 import java.util.Collections;
 
 import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
 
 import com.google.common.collect.Iterables;
-import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 
@@ -48,66 +46,6 @@ public abstract class EmptyPropertyState implements PropertyState {
      */
     protected EmptyPropertyState(String name) {
         this.name = name;
-    }
-
-    /**
-     * Utility method defining the conversion from {@code String}
-     * to a binary value
-     *
-     * @param value  The string to convert to a binary
-     * @return  The binary value parsed from {@code value}
-     */
-    public static Blob getBinary(String value) {
-        return new StringBasedBlob(value);
-    }
-
-    /**
-     * Utility method defining the conversion from {@code String}
-     * to {@code long}.
-     * @param value  The string to convert to a long
-     * @return  The long value parsed from {@code value}
-     * @throws NumberFormatException  if the string does not contain a
-     * parseable long.
-     */
-    public static long getLong(String value) {
-        return Long.parseLong(value);
-    }
-
-    /**
-     * Utility method defining the conversion from {@code String}
-     * to {@code double}.
-     *
-     * @param value  The string to convert to a double
-     * @return  The double value parsed from {@code value}
-     * @throws NumberFormatException  if the string does not contain a
-     * parseable double.
-     */
-    public static double getDouble(String value) {
-        return Double.parseDouble(value);
-    }
-
-    /**
-     * Utility method defining the conversion from {@code String}
-     * to {@code boolean}.
-     *
-     *
-     * @param value  The string to convert to a boolean
-     * @return  The boolean value parsed from {@code value}
-     */
-    public static boolean getBoolean(String value) {
-        return Boolean.parseBoolean(value);
-    }
-
-    /**
-     * Utility method defining the conversion from {@code String}
-     * to {@code BigDecimal}.
-     * @param value  The string to convert to a BigDecimal
-     * @return  The BigDecimal value parsed from {@code value}
-     * @throws NumberFormatException  if the string does not contain a
-     * parseable BigDecimal.
-     */
-    public static BigDecimal getDecimal(String value) {
-        return new BigDecimal(value);
     }
 
     @Nonnull

@@ -21,6 +21,7 @@ import java.util.List;
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.value.Conversions;
 
 import static org.apache.jackrabbit.oak.api.Type.BOOLEANS;
 
@@ -34,14 +35,14 @@ public class BooleansPropertyState extends MultiPropertyState<Boolean> {
         return Iterables.transform(values, new Function<Boolean, String>() {
             @Override
             public String apply(Boolean value) {
-                return Boolean.toString(value);
+                return Conversions.convert(value).toString();
             }
         });
     }
 
     @Override
     protected String getString(int index) {
-        return Boolean.toString(values.get(index));
+        return Conversions.convert(values.get(index)).toString();
     }
 
     @Override
