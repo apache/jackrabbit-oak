@@ -215,6 +215,19 @@ public class MongoMKCommitCopyTest extends BaseMongoMicroKernelTest {
     }
 
     @Test
+    public void addNestedPropertyAndCopy() {
+        mk.commit("/", "+\"a\":{ \"b\" : {} }", null, null);
+
+        mk.commit("/", "+\"a/b/key1\": \"value1\"\n" +
+                        "*\"a\":\"c\"", null, null);
+
+        String nodes = mk.getNodes("/", null, -1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        JSONObject obj = parseJSONObject(nodes);
+        assertPropertyValue(obj, "a/b/key1", "value1");
+        assertPropertyValue(obj, "c/b/key1", "value1");
+    }
+
+    @Test
     public void addPropertyAndCopyAndModifyParent() {
         mk.commit("/", "+\"a\":{}", null, null);
 
@@ -230,6 +243,19 @@ public class MongoMKCommitCopyTest extends BaseMongoMicroKernelTest {
 
     @Test
     public void removePropertyAndCopy() {
+        mk.commit("/", "+\"a\":{ \"b\" : { \"key1\" : \"value1\" } }", null, null);
+
+        mk.commit("/", "^\"a/b/key1\": null\n" +
+                        "*\"a\":\"c\"", null, null);
+
+        String nodes = mk.getNodes("/", null, -1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        JSONObject obj = parseJSONObject(nodes);
+        assertPropertyNotExists(obj, "a/b/key1");
+        assertPropertyNotExists(obj, "c/b/key1");
+    }
+
+    @Test
+    public void removeNestedPropertyAndCopy() {
         mk.commit("/", "+\"a\":{ \"key1\" : \"value1\"}", null, null);
 
         mk.commit("/", "^\"a/key1\" : null\n" +

@@ -176,79 +176,9 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
 
         copyStagedChanges(srcNode, destNode);
 
-        // FIXME - These should handle children of children recursively.
-
-        // Added properties
-        Map<String, Object> addedProps = srcNode.getAddedProps();
-        if (addedProps != null && !addedProps.isEmpty()) {
-            for (Entry<String, Object> entry : addedProps.entrySet()) {
-                destNode.addProperty(entry.getKey(), entry.getValue());
-            }
-        }
-
-        // Removed properties
-        Map<String, Object> removedProps = srcNode.getRemovedProps();
-        if (removedProps != null && !removedProps.isEmpty()) {
-            for (String key : removedProps.keySet()) {
-                destNode.removeProp(key);
-            }
-        }
-
         // Finally, add to destParent.
         pathNodeMap.put(destPath, destNode);
         destParent.addChild(destNodeName);
-    }
-
-    private void copyStagedChanges(NodeMongo srcNode, NodeMongo destNode) {
-        copyAddedNodes(srcNode, destNode);
-        copyRemovedNodes(srcNode, destNode);
-    }
-
-    private void copyAddedNodes(NodeMongo srcNode, NodeMongo destNode) {
-        List<String> addedChildren = srcNode.getAddedChildren();
-        if (addedChildren != null && !addedChildren.isEmpty()) {
-            for (String childName : addedChildren) {
-                getStagedNode(PathUtils.concat(destNode.getPath(), childName));
-                destNode.addChild(childName);
-            }
-        }
-
-        List<String> srcChildren = srcNode.getChildren();
-        if (srcChildren == null || srcChildren.isEmpty()) {
-            return;
-        }
-
-        for (String childName : srcChildren) {
-            String oldChildPath = PathUtils.concat(srcNode.getPath(), childName);
-            NodeMongo oldChild = getStoredNode(oldChildPath);
-
-            String newChildPath = PathUtils.concat(destNode.getPath(), childName);
-            NodeMongo newChild = getStagedNode(newChildPath);
-            copyAddedNodes(oldChild, newChild);
-        }
-    }
-
-    private void copyRemovedNodes(NodeMongo srcNode, NodeMongo destNode) {
-        List<String> removedChildren = srcNode.getRemovedChildren();
-        if (removedChildren != null && !removedChildren.isEmpty()) {
-            for (String child : removedChildren) {
-                destNode.removeChild(child);
-            }
-        }
-
-        List<String> srcChildren = srcNode.getChildren();
-        if (srcChildren == null || srcChildren.isEmpty()) {
-            return;
-        }
-
-        for (String childName : srcChildren) {
-            String oldChildPath = PathUtils.concat(srcNode.getPath(), childName);
-            NodeMongo oldChild = getStoredNode(oldChildPath);
-
-            String newChildPath = PathUtils.concat(destNode.getPath(), childName);
-            NodeMongo newChild = getStagedNode(newChildPath);
-            copyRemovedNodes(oldChild, newChild);
-        }
     }
 
     // FIXME - Double check this functionality.
@@ -356,5 +286,74 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
             pathNodeMap.put(path, node);
         }
         return node;
+    }
+
+    private void copyStagedChanges(NodeMongo srcNode, NodeMongo destNode) {
+
+        // Copy staged changes at the top level.
+        copyAddedNodes(srcNode, destNode);
+        copyRemovedNodes(srcNode, destNode);
+        copyAddedProperties(srcNode, destNode);
+        copyRemovedProperties(srcNode, destNode);
+
+        // Recursively add staged changes of the descendants.
+        List<String> srcChildren = srcNode.getChildren();
+        if (srcChildren == null || srcChildren.isEmpty()) {
+            return;
+        }
+
+        for (String childName : srcChildren) {
+            String oldChildPath = PathUtils.concat(srcNode.getPath(), childName);
+            NodeMongo oldChild = getStoredNode(oldChildPath);
+
+            String newChildPath = PathUtils.concat(destNode.getPath(), childName);
+            NodeMongo newChild = getStagedNode(newChildPath);
+            copyStagedChanges(oldChild, newChild);
+        }
+    }
+
+    private void copyRemovedProperties(NodeMongo srcNode, NodeMongo destNode) {
+        Map<String, Object> removedProps = srcNode.getRemovedProps();
+        if (removedProps == null || removedProps.isEmpty()) {
+            return;
+        }
+
+        for (String key : removedProps.keySet()) {
+            destNode.removeProp(key);
+        }
+    }
+
+    private void copyAddedNodes(NodeMongo srcNode, NodeMongo destNode) {
+        List<String> addedChildren = srcNode.getAddedChildren();
+        if (addedChildren == null || addedChildren.isEmpty()) {
+            return;
+        }
+
+        for (String childName : addedChildren) {
+            getStagedNode(PathUtils.concat(destNode.getPath(), childName));
+            destNode.addChild(childName);
+        }
+    }
+
+    private void copyRemovedNodes(NodeMongo srcNode, NodeMongo destNode) {
+        List<String> removedChildren = srcNode.getRemovedChildren();
+        if (removedChildren == null || removedChildren.isEmpty()) {
+            return;
+        }
+
+        for (String child : removedChildren) {
+            destNode.removeChild(child);
+        }
+    }
+
+    private void copyAddedProperties(NodeMongo srcNode, NodeMongo destNode) {
+        Map<String, Object> addedProps = srcNode.getAddedProps();
+        if (addedProps == null || addedProps.isEmpty()) {
+            return;
+        }
+
+        for (Entry<String, Object> entry : addedProps.entrySet()) {
+            destNode.addProperty(entry.getKey(), entry.getValue());
+        }
     }
 }
