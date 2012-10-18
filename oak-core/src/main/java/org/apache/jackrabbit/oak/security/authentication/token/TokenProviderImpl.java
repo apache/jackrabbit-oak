@@ -38,6 +38,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenInfo;
@@ -96,6 +97,7 @@ public class TokenProviderImpl implements TokenProvider {
 
     private final Root root;
     private final UserProvider userProvider;
+    private final IdentifierManager identifierManager;
     private final long tokenExpiration;
 
     public TokenProviderImpl(Root root, ConfigurationParameters options, UserConfiguration userConfiguration) {
@@ -106,6 +108,7 @@ public class TokenProviderImpl implements TokenProvider {
         this.root = root;
         this.tokenExpiration = tokenExpiration;
         this.userProvider = userConfiguration.getUserProvider(root);
+        this.identifierManager = new IdentifierManager(root);
     }
 
     //------------------------------------------------------< TokenProvider >---
@@ -159,10 +162,11 @@ public class TokenProviderImpl implements TokenProvider {
                 NodeUtil tokenNode = tokenParent.addChild(tokenName, TOKENS_NT_NAME);
 
                 String key = generateKey(8);
-                String token = new StringBuilder(tokenNode.getTree().getPath()).append(DELIM).append(key).toString();
+                String nodeId = identifierManager.getIdentifier(tokenNode.getTree());
+                String token = new StringBuilder(nodeId).append(DELIM).append(key).toString();
 
-                String tokenHash = PasswordUtility.buildPasswordHash(token);
-                tokenNode.setString(TOKEN_ATTRIBUTE_KEY, tokenHash);
+                String keyHash = PasswordUtility.buildPasswordHash(key);
+                tokenNode.setString(TOKEN_ATTRIBUTE_KEY, keyHash);
                 final long expirationTime = creationTime + tokenExpiration;
                 tokenNode.setDate(TOKEN_ATTRIBUTE_EXPIRY, expirationTime);
 
@@ -375,7 +379,12 @@ public class TokenProviderImpl implements TokenProvider {
 
         @Override
         public boolean matches(TokenCredentials tokenCredentials) {
-            if (key == null || !PasswordUtility.isSame(key, tokenCredentials.getToken())) {
+            String token = tokenCredentials.getToken();
+            int pos = token.lastIndexOf(DELIM);
+            if (pos > -1) {
+                token = token.substring(pos + 1);
+            }
+            if (key == null || !PasswordUtility.isSame(key, token)) {
                 return false;
             }
 
