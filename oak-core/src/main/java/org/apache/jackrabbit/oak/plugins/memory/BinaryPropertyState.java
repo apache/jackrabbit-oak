@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.plugins.memory;
 
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.value.Conversions;
+import org.apache.jackrabbit.oak.plugins.value.Conversions;
 
 public class BinaryPropertyState extends SinglePropertyState {
     private final Blob value;

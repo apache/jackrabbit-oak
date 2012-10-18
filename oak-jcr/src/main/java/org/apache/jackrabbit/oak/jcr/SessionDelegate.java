@@ -50,7 +50,7 @@ import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.plugins.observation.ObservationManagerImpl;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeManagerImpl;
-import org.apache.jackrabbit.oak.value.ValueFactoryImpl;
+import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

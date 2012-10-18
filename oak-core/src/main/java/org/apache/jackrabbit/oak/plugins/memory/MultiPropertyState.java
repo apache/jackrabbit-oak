@@ -28,7 +28,7 @@ import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.value.Conversions;
+import org.apache.jackrabbit.oak.plugins.value.Conversions;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
