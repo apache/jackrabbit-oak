@@ -34,7 +34,6 @@ import org.apache.jackrabbit.oak.plugins.nodetype.InitialContent;
 import org.apache.jackrabbit.oak.security.OakConfiguration;
 import org.apache.jackrabbit.oak.spi.lifecycle.CompositeMicroKernelTracker;
 import org.apache.jackrabbit.oak.spi.lifecycle.MicroKernelTracker;
-import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.junit.Before;
 
 /**
@@ -58,10 +57,6 @@ public abstract class AbstractOakTest {
     }
 
     protected abstract ContentRepository createRepository();
-
-    protected static ContentRepository createEmptyRepository() {
-        return new Oak().with(new OpenSecurityProvider()).createContentRepository();
-    }
 
     protected ContentRepository getContentRepository() {
         return contentRepository;

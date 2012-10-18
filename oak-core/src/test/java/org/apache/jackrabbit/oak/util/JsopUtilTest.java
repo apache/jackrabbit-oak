@@ -16,40 +16,23 @@
  */
 package org.apache.jackrabbit.oak.util;
 
-import org.apache.jackrabbit.oak.AbstractOakTest;
-import org.apache.jackrabbit.oak.api.ContentRepository;
-import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.query.JsopUtil;
-import org.junit.Before;
-import org.junit.Test;
-
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertTrue;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 
-public class JsopUtilTest extends AbstractOakTest {
+import org.apache.jackrabbit.oak.Oak;
+import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.query.JsopUtil;
+import org.junit.Test;
 
-    protected ContentSession session;
-    protected Root root;
-
-    @Override
-    @Before
-    public void before() throws Exception {
-        super.before();
-        session = createAdminSession();
-        root = session.getLatestRoot();
-    }
-
-    @Override
-    protected ContentRepository createRepository() {
-        return createEmptyRepository();
-    }
+public class JsopUtilTest {
 
     @Test
     public void test() throws Exception {
+        Root root = new Oak().createRoot();
+
         Tree t = root.getTree("/");
         assertFalse(t.hasChild("test"));
 

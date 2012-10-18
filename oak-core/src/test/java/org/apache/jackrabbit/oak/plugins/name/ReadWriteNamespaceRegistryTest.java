@@ -18,8 +18,7 @@ package org.apache.jackrabbit.oak.plugins.name;
 
 import javax.jcr.NamespaceRegistry;
 
-import org.apache.jackrabbit.oak.AbstractOakTest;
-import org.apache.jackrabbit.oak.api.ContentRepository;
+import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -27,16 +26,11 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 
-public class ReadWriteNamespaceRegistryTest extends AbstractOakTest {
-
-    @Override
-    protected ContentRepository createRepository() {
-        return createEmptyRepository();
-    }
+public class ReadWriteNamespaceRegistryTest{
 
     @Test
     public void testMappings() throws Exception {
-        final ContentSession session = createAdminSession();
+        final ContentSession session = new Oak().createContentSession();
         NamespaceRegistry r = new ReadWriteNamespaceRegistry() {
             @Override
             protected Tree getReadTree() {
