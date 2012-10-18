@@ -171,27 +171,12 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
         }
 
         // Then, copy any staged changes.
-        NodeMongo srcNode = getStagedNode(srcPath);
+        NodeMongo srcNode = getStoredNode(srcPath);
         NodeMongo destNode = getStagedNode(destPath);
 
+        copyStagedChanges(srcNode, destNode);
+
         // FIXME - These should handle children of children recursively.
-
-        // Added nodes
-        List<String> addedChildren = srcNode.getAddedChildren();
-        if (addedChildren != null && !addedChildren.isEmpty()) {
-            for (String child : addedChildren) {
-                getStagedNode(PathUtils.concat(destPath, child));
-                destNode.addChild(child);
-            }
-        }
-
-        // Removed nodes
-        List<String> removedChildren = srcNode.getRemovedChildren();
-        if (removedChildren != null && !removedChildren.isEmpty()) {
-            for (String child : removedChildren) {
-                destNode.removeChild(child);
-            }
-        }
 
         // Added properties
         Map<String, Object> addedProps = srcNode.getAddedProps();
@@ -212,6 +197,58 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
         // Finally, add to destParent.
         pathNodeMap.put(destPath, destNode);
         destParent.addChild(destNodeName);
+    }
+
+    private void copyStagedChanges(NodeMongo srcNode, NodeMongo destNode) {
+        copyAddedNodes(srcNode, destNode);
+        copyRemovedNodes(srcNode, destNode);
+    }
+
+    private void copyAddedNodes(NodeMongo srcNode, NodeMongo destNode) {
+        List<String> addedChildren = srcNode.getAddedChildren();
+        if (addedChildren != null && !addedChildren.isEmpty()) {
+            for (String childName : addedChildren) {
+                getStagedNode(PathUtils.concat(destNode.getPath(), childName));
+                destNode.addChild(childName);
+            }
+        }
+
+        List<String> srcChildren = srcNode.getChildren();
+        if (srcChildren == null || srcChildren.isEmpty()) {
+            return;
+        }
+
+        for (String childName : srcChildren) {
+            String oldChildPath = PathUtils.concat(srcNode.getPath(), childName);
+            NodeMongo oldChild = getStoredNode(oldChildPath);
+
+            String newChildPath = PathUtils.concat(destNode.getPath(), childName);
+            NodeMongo newChild = getStagedNode(newChildPath);
+            copyAddedNodes(oldChild, newChild);
+        }
+    }
+
+    private void copyRemovedNodes(NodeMongo srcNode, NodeMongo destNode) {
+        List<String> removedChildren = srcNode.getRemovedChildren();
+        if (removedChildren != null && !removedChildren.isEmpty()) {
+            for (String child : removedChildren) {
+                destNode.removeChild(child);
+            }
+        }
+
+        List<String> srcChildren = srcNode.getChildren();
+        if (srcChildren == null || srcChildren.isEmpty()) {
+            return;
+        }
+
+        for (String childName : srcChildren) {
+            String oldChildPath = PathUtils.concat(srcNode.getPath(), childName);
+            NodeMongo oldChild = getStoredNode(oldChildPath);
+
+            String newChildPath = PathUtils.concat(destNode.getPath(), childName);
+            NodeMongo newChild = getStagedNode(newChildPath);
+            copyRemovedNodes(oldChild, newChild);
+        }
     }
 
     // FIXME - Double check this functionality.
