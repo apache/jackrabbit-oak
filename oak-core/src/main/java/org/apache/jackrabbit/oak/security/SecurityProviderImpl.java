@@ -16,17 +16,14 @@
  */
 package org.apache.jackrabbit.oak.security;
 
-import java.util.Collections;
 import javax.annotation.Nonnull;
 import javax.jcr.Session;
-import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.login.Configuration;
 
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.security.authentication.LoginContextProviderImpl;
-import org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl;
 import org.apache.jackrabbit.oak.security.authentication.token.TokenProviderImpl;
 import org.apache.jackrabbit.oak.security.authorization.AccessControlProviderImpl;
 import org.apache.jackrabbit.oak.security.principal.PrincipalManagerImpl;
@@ -77,7 +74,7 @@ public class SecurityProviderImpl implements SecurityProvider {
             loginConfig = Configuration.getConfiguration();
         } catch (SecurityException e) {
             log.warn("Failed to retrieve login configuration: using default.", e);
-            loginConfig = new OakConfiguration();
+            loginConfig = new OakConfiguration(configuration); // TODO: define configuration structure
             Configuration.setConfiguration(loginConfig);
         }
         return new LoginContextProviderImpl(appName, loginConfig, nodeStore, this);
@@ -129,18 +126,5 @@ public class SecurityProviderImpl implements SecurityProvider {
                 return new PrincipalProviderImpl(userProvider, msProvider, namePathMapper);
             }
         };
-    }
-
-    //--------------------------------------------------------------------------
-    private class OakConfiguration extends Configuration {
-
-        @Override
-        public AppConfigurationEntry[] getAppConfigurationEntry(String s) {
-            AppConfigurationEntry entry = new AppConfigurationEntry(
-                    LoginModuleImpl.class.getName(),
-                    AppConfigurationEntry.LoginModuleControlFlag.REQUIRED,
-                    Collections.<String, Object>emptyMap());
-            return new AppConfigurationEntry[] {entry};
-        }
     }
 }
