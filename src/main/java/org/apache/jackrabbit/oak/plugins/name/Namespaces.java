@@ -30,7 +30,7 @@ import static org.apache.jackrabbit.oak.api.Type.STRING;
 /**
  * Internal static utility class for managing the persisted namespace registry.
  */
-class Namespaces implements NamespaceConstants {
+public class Namespaces implements NamespaceConstants {
 
     private Namespaces() {
     }
