@@ -23,13 +23,7 @@ import org.junit.Test;
 /**
  * TokenProviderImplTest...
  */
-public class TokenProviderImplTest extends AbstractSecurityTest {
-
-    @Override
-    protected ContentRepository createRepository() {
-        // TODO
-        return null;
-    }
+public class TokenProviderImplTest {
 
     @Test
     public void testDoCreateToken() throws Exception {

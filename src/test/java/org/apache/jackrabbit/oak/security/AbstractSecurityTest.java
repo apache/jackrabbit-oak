@@ -22,8 +22,11 @@ import javax.jcr.SimpleCredentials;
 import javax.security.auth.login.Configuration;
 import javax.security.auth.login.LoginException;
 
+import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.plugins.nodetype.InitialContent;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.junit.Before;
 
 /**
@@ -31,16 +34,21 @@ import org.junit.Before;
  */
 public abstract class AbstractSecurityTest {
 
+    protected final SecurityProvider securityProvider =
+            new SecurityProviderImpl();
+
     private ContentRepository contentRepository;
 
     @Before
     public void before() throws Exception {
-        contentRepository = createRepository();
+        contentRepository = new Oak()
+                .with(new InitialContent())
+                .with(securityProvider)
+                .createContentRepository();
+
         // TODO: OAK-17. workaround for missing test configuration
         Configuration.setConfiguration(new OakConfiguration());
     }
-
-    protected abstract ContentRepository createRepository();
 
     protected ContentSession login(Credentials credentials)
             throws LoginException, NoSuchWorkspaceException {

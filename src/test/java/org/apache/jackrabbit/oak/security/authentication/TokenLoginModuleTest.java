@@ -24,16 +24,11 @@ import javax.security.auth.login.Configuration;
 import javax.security.auth.login.LoginException;
 
 import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
-import org.apache.jackrabbit.oak.Oak;
-import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.plugins.nodetype.InitialContent;
 import org.apache.jackrabbit.oak.security.AbstractSecurityTest;
-import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.security.authentication.token.TokenLoginModule;
 import org.apache.jackrabbit.oak.security.authentication.token.TokenProviderImpl;
-import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenInfo;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
 import org.junit.After;
@@ -48,7 +43,6 @@ import static org.junit.Assert.fail;
  */
 public class TokenLoginModuleTest extends AbstractSecurityTest {
 
-    SecurityProvider securityProvider = new SecurityProviderImpl();
     ContentSession admin;
 
     @Before
@@ -63,14 +57,6 @@ public class TokenLoginModuleTest extends AbstractSecurityTest {
     public void after() throws Exception {
         Configuration.setConfiguration(null);
         admin.close();
-    }
-
-    @Override
-    protected ContentRepository createRepository() {
-        return new Oak()
-            .with(new InitialContent())
-            .with(securityProvider)
-            .createContentRepository();
     }
 
     @Test
