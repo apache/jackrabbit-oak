@@ -26,6 +26,12 @@ import javax.jcr.Credentials;
 public interface TokenProvider {
 
     /**
+     * Constant for the token attribute passed with valid simple credentials to
+     * trigger the generation of a new token.
+     */
+    public static final String TOKEN_ATTRIBUTE = ".token";
+
+    /**
      * Optional configuration parameter to set the token expiration time in ms.
      */
     String PARAM_TOKEN_EXPIRATION = "tokenExpiration";

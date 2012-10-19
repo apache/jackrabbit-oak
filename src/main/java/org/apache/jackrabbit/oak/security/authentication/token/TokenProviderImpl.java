@@ -81,12 +81,6 @@ public class TokenProviderImpl implements TokenProvider {
      */
     private static final Logger log = LoggerFactory.getLogger(TokenProviderImpl.class);
 
-    /**
-     * Constant for the token attribute passed with simple credentials to
-     * trigger the generation of a new token.
-     */
-    public static final String TOKEN_ATTRIBUTE = ".token";
-
     private static final String TOKEN_ATTRIBUTE_EXPIRY = TOKEN_ATTRIBUTE + ".exp";
     private static final String TOKEN_ATTRIBUTE_KEY = TOKEN_ATTRIBUTE + ".key";
     private static final String TOKENS_NODE_NAME = ".tokens";

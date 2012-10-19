@@ -115,8 +115,6 @@ public class DefaultLoginModuleTest extends AbstractSecurityTest {
 
     @Test
     public void testUserLogin() throws Exception {
-        String anonymousID = UserUtility.getAnonymousId(securityProvider.getUserConfiguration().getConfigurationParameters());
-
         Root root = admin.getLatestRoot();
         UserManager userManager = securityProvider.getUserConfiguration().getUserManager(root, NamePathMapper.DEFAULT);
 
