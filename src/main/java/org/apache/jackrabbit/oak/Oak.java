@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.List;
 import javax.annotation.Nonnull;
 import javax.jcr.NoSuchWorkspaceException;
@@ -28,8 +30,8 @@ import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
+import org.apache.jackrabbit.oak.core.OrderedChildrenEditor;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
-import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
 import org.apache.jackrabbit.oak.spi.commit.CompositeValidatorProvider;
@@ -37,12 +39,12 @@ import org.apache.jackrabbit.oak.spi.commit.ConflictHandler;
 import org.apache.jackrabbit.oak.spi.commit.ValidatingHook;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
+import org.apache.jackrabbit.oak.spi.lifecycle.MicroKernelTracker;
 import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,6 +62,8 @@ public class Oak {
 
     private final MicroKernel kernel;
 
+    private final List<MicroKernelTracker> initializers = Lists.newArrayList();
+
     private final List<QueryIndexProvider> queryIndexProviders = Lists.newArrayList();
 
     private final List<CommitHook> commitHooks = Lists.newArrayList();
@@ -76,6 +80,12 @@ public class Oak {
 
     public Oak() {
         this(new MicroKernelImpl());
+    }
+
+    @Nonnull
+    public Oak with(@Nonnull MicroKernelTracker initializer) {
+       initializers.add(checkNotNull(initializer));
+       return this;
     }
 
     /**
@@ -177,11 +187,15 @@ public class Oak {
     }
 
     public ContentRepository createContentRepository() {
+        KernelNodeStore store = new KernelNodeStore(kernel);
+        for (MicroKernelTracker initializer : initializers) {
+            initializer.available(store);
+        }
+        store.setHook(createCommitHook());
         return new ContentRepositoryImpl(
-                kernel,
-                CompositeQueryIndexProvider.compose(queryIndexProviders),
-                createCommitHook(),
+                store,
                 conflictHandler,
+                CompositeQueryIndexProvider.compose(queryIndexProviders),
                 securityProvider);
     }
 
@@ -235,25 +249,8 @@ public class Oak {
 
     private CommitHook createCommitHook() {
         withValidatorHook();
+        commitHooks.add(new OrderedChildrenEditor()); // FIXME don't hardcode
         return CompositeHook.compose(commitHooks);
     }
 
-    /**
-     * Creates a {@link NodeStore} based on the previously set micro kernel,
-     * hooks and validators.
-     * <p/>
-     * This method will return an in memory node store without hooks nor
-     * validators if no {@link MicroKernel} was set.
-     *
-     * @return a {@link NodeStore}.
-     */
-    public NodeStore createNodeStore() {
-        if (kernel != null) {
-            KernelNodeStore nodeStore = new KernelNodeStore(kernel);
-            nodeStore.setHook(createCommitHook());
-            return nodeStore;
-        } else {
-            return new MemoryNodeStore();
-        }
-    }
 }

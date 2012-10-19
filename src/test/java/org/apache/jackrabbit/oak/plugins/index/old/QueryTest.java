@@ -17,10 +17,11 @@ import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.mk.index.IndexWrapper;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
-import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneHook;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneReindexHook;
+import org.apache.jackrabbit.oak.plugins.nodetype.InitialContent;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
-import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
-import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
+import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -32,20 +33,19 @@ public class QueryTest extends AbstractQueryTest {
 
     @Override
     protected ContentRepository createRepository() {
-
         // the property and prefix index currently require the index wrapper
         IndexWrapper mk = new IndexWrapper(new MicroKernelImpl(),
                 TEST_INDEX_HOME + INDEX_DEFINITIONS_NAME + "/indexes");
-        Indexer indexer = mk.getIndexer();
 
-        // MicroKernel mk = new MicroKernelImpl();
-        // Indexer indexer = new Indexer(mk);
+        PropertyIndexer indexer = new PropertyIndexer(mk.getIndexer());
 
-        PropertyIndexer pi = new PropertyIndexer(indexer);
-        QueryIndexProvider qip = new CompositeQueryIndexProvider(pi);
-        CompositeHook hook = new CompositeHook(pi);
-        createDefaultKernelTracker().available(new KernelNodeStore(mk));
-        return new Oak(mk).with(qip).with(hook).with(getSecurityProvider()).createContentRepository();
+        return new Oak(mk)
+            .with(new InitialContent())
+            .with((QueryIndexProvider) indexer)
+            .with((CommitHook) indexer)
+            .with(new LuceneReindexHook(TEST_INDEX_HOME))
+            .with(new LuceneHook(TEST_INDEX_HOME))
+            .createContentRepository();
     }
 
     @Test

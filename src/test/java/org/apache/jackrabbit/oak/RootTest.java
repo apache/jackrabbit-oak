@@ -26,28 +26,35 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.commit.AnnotatingConflictHandler;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictValidator;
-import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
 /**
  * Contains tests related to {@link Root}
  */
-public class RootTest extends AbstractOakTest {
+public class RootTest {
 
-    @Override
-    protected ContentRepository createRepository() {
-        return new Oak()
-                .with(new OpenSecurityProvider())
-                .with(new ConflictValidator())
-                .with(new AnnotatingConflictHandler())
-                .createContentRepository();
+    private ContentRepository repository;
+
+    @Before
+    public void setUp() {
+        repository = new Oak()
+            .with(new ConflictValidator())
+            .with(new AnnotatingConflictHandler())
+            .createContentRepository();
+    }
+
+    @After
+    public void tearDown() {
+        repository = null;
     }
 
     @Test
     @Ignore("OAK-169")
     public void copyOrderableNodes() throws Exception {
-        ContentSession s = createAdminSession();
+        ContentSession s = repository.login(null, null);
         try {
             Root r = s.getLatestRoot();
             Tree t = r.getTree("/");
@@ -68,7 +75,7 @@ public class RootTest extends AbstractOakTest {
     @Test
     @Ignore("OAK-169")
     public void moveOrderableNodes() throws Exception {
-        ContentSession s = createAdminSession();
+        ContentSession s = repository.login(null, null);
         try {
             Root r = s.getLatestRoot();
             Tree t = r.getTree("/");

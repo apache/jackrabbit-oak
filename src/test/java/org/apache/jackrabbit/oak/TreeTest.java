@@ -28,7 +28,8 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.commit.AnnotatingConflictHandler;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictValidator;
-import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.OakAssert.assertSequence;
@@ -37,19 +38,26 @@ import static org.junit.Assert.assertEquals;
 /**
  * Contains tests related to {@link Tree}
  */
-public class TreeTest extends AbstractOakTest {
+public class TreeTest {
 
-    @Override
-    protected ContentRepository createRepository() {
-        return new Oak()
-                .with(new OpenSecurityProvider())
-                .with(new ConflictValidator())
-                .with(new AnnotatingConflictHandler())
-                .createContentRepository();
+    private ContentRepository repository;
+
+    @Before
+    public void setUp() {
+        repository = new Oak()
+            .with(new ConflictValidator())
+            .with(new AnnotatingConflictHandler())
+            .createContentRepository();
     }
+
+    @After
+    public void tearDown() {
+        repository = null;
+    }
+
     @Test
     public void orderBefore() throws Exception {
-        ContentSession s = createAdminSession();
+        ContentSession s = repository.login(null, null);
         try {
             Root r = s.getLatestRoot();
             Tree t = r.getTree("/");
@@ -87,7 +95,7 @@ public class TreeTest extends AbstractOakTest {
 
     @Test
     public void concurrentAddChildOrderable() throws Exception {
-        ContentSession s1 = createAdminSession();
+        ContentSession s1 = repository.login(null, null);
         try {
             Root r1 = s1.getLatestRoot();
             Tree t1 = r1.getTree("/");
@@ -95,7 +103,7 @@ public class TreeTest extends AbstractOakTest {
             t1.addChild("node2");
             t1.addChild("node3");
             r1.commit();
-            ContentSession s2 = createAdminSession();
+            ContentSession s2 = repository.login(null, null);
             try {
                 Root r2 = s2.getLatestRoot();
                 Tree t2 = r2.getTree("/");
@@ -128,7 +136,7 @@ public class TreeTest extends AbstractOakTest {
 
     @Test
     public void concurrentAddChild() throws Exception {
-        ContentSession s1 = createAdminSession();
+        ContentSession s1 = repository.login(null, null);
         try {
             Root r1 = s1.getLatestRoot();
             Tree t1 = r1.getTree("/");
@@ -136,7 +144,7 @@ public class TreeTest extends AbstractOakTest {
             t1.addChild("node2");
             t1.addChild("node3");
             r1.commit();
-            ContentSession s2 = createAdminSession();
+            ContentSession s2 = repository.login(null, null);
             try {
                 Root r2 = s2.getLatestRoot();
                 Tree t2 = r2.getTree("/");
