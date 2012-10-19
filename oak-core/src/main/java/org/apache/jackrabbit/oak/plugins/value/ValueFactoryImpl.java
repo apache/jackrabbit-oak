@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.plugins.value;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -115,7 +114,7 @@ public class ValueFactoryImpl implements ValueFactory {
     @Override
     public Value createValue(InputStream value) {
         try {
-            return createValueImpl(value);
+            return createBinaryValue(value);
         } catch (IOException e) {
             return new ErrorValue(e, PropertyType.BINARY);
         }
@@ -124,14 +123,12 @@ public class ValueFactoryImpl implements ValueFactory {
     @Override
     public Value createValue(Binary value) {
         try {
-            ValueImpl binaryValue = null;
             if (value instanceof BinaryImpl) {
-                binaryValue = ((BinaryImpl) value).getBinaryValue();
+                // No need to create the value again if we have it already underlying the binary
+                return ((BinaryImpl) value).getBinaryValue();
+            } else {
+                return createBinaryValue(value.getStream());
             }
-            // No need to create the value again if we have it already underlying the binary
-            return binaryValue == null
-                ? createValueImpl(value.getStream())
-                : binaryValue;
         } catch (RepositoryException e) {
             return new ErrorValue(e, PropertyType.BINARY);
         } catch (IOException e) {
@@ -151,8 +148,7 @@ public class ValueFactoryImpl implements ValueFactory {
 
     @Override
     public Value createValue(Calendar value) {
-        String dateStr = ISO8601.format(value);
-        return new ValueImpl(PropertyStates.dateProperty("", dateStr), namePathMapper);
+        return new ValueImpl(PropertyStates.dateProperty("", value), namePathMapper);
     }
 
     @Override
@@ -180,7 +176,7 @@ public class ValueFactoryImpl implements ValueFactory {
     @Override
     public Value createValue(String value, int type) throws ValueFormatException {
         if (value == null) {
-            throw new ValueFormatException();
+            throw new ValueFormatException("null");
         }
 
         try {
@@ -189,7 +185,7 @@ public class ValueFactoryImpl implements ValueFactory {
                 case PropertyType.STRING:
                     return createValue(value);
                 case PropertyType.BINARY:
-                    pv = PropertyStates.binaryProperty("", value.getBytes("UTF-8"));
+                    pv = PropertyStates.binaryProperty("", value);
                     break;
                 case PropertyType.LONG:
                     return createValue(Conversions.convert(value).toLong());
@@ -245,10 +241,6 @@ public class ValueFactoryImpl implements ValueFactory {
             }
 
             return new ValueImpl(pv, namePathMapper);
-        } catch (UnsupportedEncodingException e) {
-            throw new ValueFormatException("Encoding UTF-8 not supported (this should not happen!)", e);
-        } catch (IOException e) {
-            throw new ValueFormatException(e);
         } catch (NumberFormatException e) {
             throw new ValueFormatException("Invalid value " + value + " for type " + PropertyType.nameFromValue(type), e);
         } catch (URISyntaxException e) {
@@ -259,14 +251,14 @@ public class ValueFactoryImpl implements ValueFactory {
     @Override
     public Binary createBinary(InputStream stream) throws RepositoryException {
         try {
-            return new BinaryImpl(createValueImpl(stream));
+            return new BinaryImpl(createBinaryValue(stream));
         }
         catch (IOException e) {
             throw new RepositoryException(e);
         }
     }
 
-    private ValueImpl createValueImpl(InputStream value) throws IOException {
+    private ValueImpl createBinaryValue(InputStream value) throws IOException {
         Blob blob = contentSession.createBlob(value);
         return new ValueImpl(PropertyStates.binaryProperty("", blob), namePathMapper);
     }

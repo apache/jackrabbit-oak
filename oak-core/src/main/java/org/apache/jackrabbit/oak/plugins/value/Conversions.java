@@ -24,6 +24,7 @@ import java.math.BigDecimal;
 import java.util.Calendar;
 import java.util.TimeZone;
 
+import com.google.common.base.Charsets;
 import com.google.common.io.ByteStreams;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.memory.StringBasedBlob;
@@ -152,7 +153,7 @@ public final class Conversions {
                 try {
                     InputStream in = value.getNewStream();
                     try {
-                        return new String(ByteStreams.toByteArray(in), "UTF-8");
+                        return new String(ByteStreams.toByteArray(in), Charsets.UTF_8);
                     }
                     finally {
                         in.close();

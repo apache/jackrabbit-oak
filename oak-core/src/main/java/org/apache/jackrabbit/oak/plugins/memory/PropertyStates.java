@@ -317,6 +317,16 @@ public final class PropertyStates {
     }
 
     /**
+     * Create a {@code PropertyState} from an array of bytes.
+     * @param name  The name of the property state
+     * @param value  The value of the property state
+     * @return  The new property state of type {@link Type#BINARY}
+     */
+    public static PropertyState binaryProperty(String name, String value) {
+        return new BinaryPropertyState(name, new StringBasedBlob(value));
+    }
+
+    /**
      * Create a {@code PropertyState} from a {@link Blob}.
      * @param name  The name of the property state
      * @param value  The value of the property state
