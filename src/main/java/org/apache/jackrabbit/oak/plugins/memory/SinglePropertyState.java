@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.plugins.memory;
 
 import java.math.BigDecimal;
-import java.util.Calendar;
 
 import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
@@ -76,8 +75,7 @@ abstract class SinglePropertyState extends EmptyPropertyState {
      * @return  date value converted by {@code Conversions.convert(String)}
      */
     protected String getDate() {
-        Calendar calendar = Conversions.convert(getString()).toDate();
-        return Conversions.convert(calendar).toString();
+        return Conversions.convert(getString()).toDate();
     }
 
     /**

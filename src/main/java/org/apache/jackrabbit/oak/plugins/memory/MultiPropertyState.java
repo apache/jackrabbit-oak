@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.plugins.memory;
 
 import java.math.BigDecimal;
-import java.util.Calendar;
 import java.util.List;
 
 import javax.annotation.Nonnull;
@@ -27,6 +26,7 @@ import javax.jcr.PropertyType;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.value.Conversions;
@@ -45,9 +45,9 @@ abstract class MultiPropertyState<T> extends EmptyPropertyState {
      * @param name  The name of the property state.
      * @param values  The values of the property state.
      */
-    protected MultiPropertyState(String name, List<T> values) {
+    protected MultiPropertyState(String name, Iterable<T> values) {
         super(name);
-        this.values = values;
+        this.values = Lists.newArrayList(values);
     }
 
     /**
@@ -106,8 +106,7 @@ abstract class MultiPropertyState<T> extends EmptyPropertyState {
         return Iterables.transform(getStrings(), new Function<String, String>() {
             @Override
             public String apply(String value) {
-                Calendar calendar = Conversions.convert(value).toDate();
-                return Conversions.convert(calendar).toString();
+                return Conversions.convert(value).toDate();
             }
         });
     }
@@ -165,8 +164,7 @@ abstract class MultiPropertyState<T> extends EmptyPropertyState {
      * @return  The value at the given {@code index} as {@code date}
      */
     protected String getDate(int index) {
-        Calendar calendar = Conversions.convert(getString(index)).toDate();
-        return Conversions.convert(calendar).toString();
+        return Conversions.convert(getString(index)).toDate();
     }
 
     /**
@@ -237,7 +235,7 @@ abstract class MultiPropertyState<T> extends EmptyPropertyState {
             case PropertyType.REFERENCE: return (T) getString(index);
             case PropertyType.WEAKREFERENCE: return (T) getString(index);
             case PropertyType.URI: return (T) getString(index);
-            case PropertyType.DECIMAL: return (T) getString(index);
+            case PropertyType.DECIMAL: return (T) getDecimal(index);
             default: throw new IllegalArgumentException("Invalid type:" + type);
         }
     }

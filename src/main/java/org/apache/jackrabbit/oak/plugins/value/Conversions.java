@@ -86,14 +86,23 @@ public final class Conversions {
         /**
          * Convert to date. This default implementation is based on {@code ISO8601.parse(String)}.
          * @return  date representation of the converted value
-         * @throws IllegalStateException  if the string cannot be parsed into a date
+         * @throws IllegalArgumentException  if the string cannot be parsed into a date
          */
-        public Calendar toDate() {
+        public Calendar toCalendar() {
             Calendar date = ISO8601.parse(toString());
             if (date == null) {
-                throw new IllegalStateException("Not a date string: " + toString());
+                throw new IllegalArgumentException("Not a date string: " + toString());
             }
             return date;
+        }
+
+        /**
+         * Convert to date. This default implementation is based on {@code ISO8601.parse(String)}.
+         * @return  date representation of the converted value
+         * @throws IllegalArgumentException  if the string cannot be parsed into a date
+         */
+        public String toDate() {
+            return convert(toCalendar()).toString();
         }
 
         /**
@@ -187,7 +196,7 @@ public final class Conversions {
             }
 
             @Override
-            public Calendar toDate() {
+            public Calendar toCalendar() {
                 Calendar date = Calendar.getInstance(TimeZone.getTimeZone("GMT+00:00"));
                 date.setTimeInMillis(value);
                 return date;
@@ -228,7 +237,7 @@ public final class Conversions {
             }
 
             @Override
-            public Calendar toDate() {
+            public Calendar toCalendar() {
                 Calendar date = Calendar.getInstance(TimeZone.getTimeZone("GMT+00:00"));
                 date.setTimeInMillis(toLong());
                 return date;
@@ -266,7 +275,7 @@ public final class Conversions {
             }
 
             @Override
-            public Calendar toDate() {
+            public Calendar toCalendar() {
                 return value;
             }
 
@@ -323,7 +332,7 @@ public final class Conversions {
             }
 
             @Override
-            public Calendar toDate() {
+            public Calendar toCalendar() {
                 Calendar date = Calendar.getInstance(TimeZone.getTimeZone("GMT+00:00"));
                 date.setTimeInMillis(toLong());
                 return date;
