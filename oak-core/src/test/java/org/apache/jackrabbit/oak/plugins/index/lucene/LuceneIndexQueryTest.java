@@ -16,42 +16,33 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
+import org.apache.jackrabbit.oak.plugins.nodetype.InitialContent;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
-import org.apache.jackrabbit.oak.spi.commit.CommitHook;
-import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
-import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
-import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 
 /**
  * Tests the query engine using the default index implementation: the
  * {@link LuceneIndexProvider}
  */
-public class LuceneIndexQueryTest extends AbstractQueryTest implements
-        LuceneIndexConstants {
+public class LuceneIndexQueryTest extends AbstractQueryTest {
 
     @Override
     protected void createTestIndexNode() throws Exception {
         Tree index = root.getTree("/");
-        createTestIndexNode(index, TYPE_LUCENE);
+        createTestIndexNode(index, LuceneIndexConstants.TYPE_LUCENE);
         root.commit();
     }
 
     @Override
     protected ContentRepository createRepository() {
-        QueryIndexProvider qip = new CompositeQueryIndexProvider(
-                new LuceneIndexProvider(TEST_INDEX_HOME));
-        CommitHook ch = new CompositeHook(
-                new LuceneReindexHook(TEST_INDEX_HOME), new LuceneHook(
-                        TEST_INDEX_HOME));
-        MicroKernel mk = new MicroKernelImpl();
-        createDefaultKernelTracker().available(new KernelNodeStore(mk));
-        return new Oak(mk).with(qip).with(ch).with(getSecurityProvider()).createContentRepository();
+        return new Oak()
+            .with(new InitialContent())
+            .with(new LuceneIndexProvider(TEST_INDEX_HOME))
+            .with(new LuceneReindexHook(TEST_INDEX_HOME))
+            .with(new LuceneHook(TEST_INDEX_HOME))
+            .createContentRepository();
     }
 
 }
