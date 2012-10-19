@@ -248,7 +248,7 @@ public final class Conversions {
      * @param value  The date to convert
      * @return  A converter for {@code value}
      */
-    public static Converter converter(final Calendar value) {
+    public static Converter convert(final Calendar value) {
         return new Converter() {
             @Override
             public String toString() {
