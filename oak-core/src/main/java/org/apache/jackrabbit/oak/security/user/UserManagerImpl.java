@@ -21,6 +21,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.Principal;
 import java.util.Iterator;
 import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -35,8 +36,6 @@ import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.security.user.query.XPathQueryBuilder;
-import org.apache.jackrabbit.oak.security.user.query.XPathQueryEvaluator;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
@@ -69,6 +68,8 @@ public class UserManagerImpl implements UserManager {
     private final ConfigurationParameters config;
     private final AuthorizableAction[] authorizableActions;
 
+    private UserQueryManager queryManager;
+
     public UserManagerImpl(Session session, Root root, NamePathMapper namePathMapper,
                            SecurityProvider securityProvider) {
         this.session = session;
@@ -84,32 +85,23 @@ public class UserManagerImpl implements UserManager {
     }
 
     //--------------------------------------------------------< UserManager >---
-    /**
-     * @see UserManager#getAuthorizable(String)
-     */
     @Override
     public Authorizable getAuthorizable(String id) throws RepositoryException {
         checkIsLive();
         Authorizable authorizable = null;
-        Tree tree = getUserProvider().getAuthorizable(id);
+        Tree tree = userProvider.getAuthorizable(id);
         if (tree != null) {
             authorizable = getAuthorizable(id, tree);
         }
         return authorizable;
     }
 
-    /**
-     * @see UserManager#getAuthorizable(Principal)
-     */
     @Override
     public Authorizable getAuthorizable(Principal principal) throws RepositoryException {
         checkIsLive();
-        return getAuthorizable(getUserProvider().getAuthorizableByPrincipal(principal));
+        return getAuthorizable(userProvider.getAuthorizableByPrincipal(principal));
     }
 
-    /**
-     * @see UserManager#getAuthorizableByPath(String)
-     */
     @Override
     public Authorizable getAuthorizableByPath(String path) throws RepositoryException {
         checkIsLive();
@@ -117,7 +109,7 @@ public class UserManagerImpl implements UserManager {
         if (oakPath == null) {
             throw new RepositoryException("Invalid path " + path);
         }
-        return getAuthorizable(getUserProvider().getAuthorizableByPath(oakPath));
+        return getAuthorizable(userProvider.getAuthorizableByPath(oakPath));
     }
 
     @Override
@@ -128,24 +120,13 @@ public class UserManagerImpl implements UserManager {
     @Override
     public Iterator<Authorizable> findAuthorizables(String relPath, String value, int searchType) throws RepositoryException {
         checkIsLive();
-        String[] oakPaths =  new String[] {namePathMapper.getOakPath(relPath)};
-        AuthorizableType authorizableType = getAuthorizableType(searchType);
-        Iterator<Tree> result = userProvider.findAuthorizables(oakPaths, value, null, true, Long.MAX_VALUE, authorizableType);
-
-        return AuthorizableIterator.create(result, this);
+        return getQueryManager().findAuthorizables(relPath, value, AuthorizableType.getType(searchType));
     }
 
     @Override
     public Iterator<Authorizable> findAuthorizables(Query query) throws RepositoryException {
         checkIsLive();
-        if (session != null) {
-            XPathQueryBuilder builder = new XPathQueryBuilder();
-            query.build(builder);
-            return new XPathQueryEvaluator(builder, this, session.getWorkspace().getQueryManager(), namePathMapper).eval();
-        } else {
-            // TODO: implement
-            throw new UnsupportedOperationException("not implemented");
-        }
+        return getQueryManager().find(query);
     }
 
     @Override
@@ -211,7 +192,7 @@ public class UserManagerImpl implements UserManager {
         if (intermediatePath != null) {
             intermediatePath = namePathMapper.getOakPath(intermediatePath);
         }
-        Tree groupTree = getUserProvider().createGroup(groupID, intermediatePath);
+        Tree groupTree = userProvider.createGroup(groupID, intermediatePath);
         setPrincipal(groupTree, principal);
 
         Group group = new GroupImpl(groupID, groupTree, this);
@@ -256,9 +237,12 @@ public class UserManagerImpl implements UserManager {
      * @throws RepositoryException If an exception occurs.
      */
     void onCreate(User user, String password) throws RepositoryException {
-        // TODO
         for (AuthorizableAction action : authorizableActions) {
-            action.onCreate(user, password, session);
+            if (session != null) {
+                action.onCreate(user, password, session);
+            } else {
+                action.onCreate(user, password, root);
+            }
         }
     }
 
@@ -271,9 +255,12 @@ public class UserManagerImpl implements UserManager {
      * @throws RepositoryException If an exception occurs.
      */
     void onCreate(Group group) throws RepositoryException {
-        // TODO
         for (AuthorizableAction action : authorizableActions) {
-            action.onCreate(group, session);
+            if (session != null) {
+                action.onCreate(group, session);
+            } else {
+                action.onCreate(group, root);
+            }
         }
     }
 
@@ -286,9 +273,12 @@ public class UserManagerImpl implements UserManager {
      * @throws RepositoryException If an exception occurs.
      */
     void onRemove(Authorizable authorizable) throws RepositoryException {
-        // TODO
         for (AuthorizableAction action : authorizableActions) {
-            action.onRemove(authorizable, session);
+            if (session != null) {
+                action.onRemove(authorizable, session);
+            } else {
+                action.onRemove(authorizable, root);
+            }
         }
     }
 
@@ -302,9 +292,12 @@ public class UserManagerImpl implements UserManager {
      * @throws RepositoryException If an exception occurs.
      */
     void onPasswordChange(User user, String password) throws RepositoryException {
-        // TODO
         for (AuthorizableAction action : authorizableActions) {
-            action.onPasswordChange(user, password, session);
+            if (session != null) {
+                action.onPasswordChange(user, password, session);
+            } else {
+                action.onPasswordChange(user, password, root);
+            }
         }
     }
 
@@ -323,32 +316,13 @@ public class UserManagerImpl implements UserManager {
         return session.getNode(jcrPath);
     }
 
-    AuthorizableProperties getAuthorizableProperties(String id) throws RepositoryException {
-        if (session != null) {
-            return new JcrAuthorizableProperties(getAuthorizableNode(id), namePathMapper);
-        } else {
-            return new OakAuthorizableProperties(userProvider, id, namePathMapper);
+    @CheckForNull
+    Tree getAuthorizableTree(String id) {
+        Tree tree = userProvider.getAuthorizable(id);
+        if (tree == null) {
+            throw new IllegalStateException("Authorizable not associated with an existing tree");
         }
-    }
-
-    NamePathMapper getNamePathMapper() {
-        return namePathMapper;
-    }
-
-    UserProvider getUserProvider() {
-        return userProvider;
-    }
-
-    MembershipProvider getMembershipProvider() {
-        return membershipProvider;
-    }
-
-    PrincipalProvider getPrincipalProvider() throws RepositoryException {
-        return securityProvider.getPrincipalConfiguration().getPrincipalProvider(root, namePathMapper);
-    }
-
-    ConfigurationParameters getConfig() {
-        return config;
+        return tree;
     }
 
     @CheckForNull
@@ -357,6 +331,35 @@ public class UserManagerImpl implements UserManager {
             return null;
         }
         return getAuthorizable(userProvider.getAuthorizableId(tree), tree);
+    }
+
+    @Nonnull
+    AuthorizableProperties getAuthorizableProperties(String id) throws RepositoryException {
+        if (session != null) {
+            return new JcrAuthorizableProperties(getAuthorizableNode(id), namePathMapper);
+        } else {
+            return new OakAuthorizableProperties(userProvider, id, namePathMapper);
+        }
+    }
+
+    @Nonnull
+    NamePathMapper getNamePathMapper() {
+        return namePathMapper;
+    }
+
+    @Nonnull
+    MembershipProvider getMembershipProvider() {
+        return membershipProvider;
+    }
+
+    @Nonnull
+    PrincipalProvider getPrincipalProvider() throws RepositoryException {
+        return securityProvider.getPrincipalConfiguration().getPrincipalProvider(root, namePathMapper);
+    }
+
+    @Nonnull
+    ConfigurationParameters getConfig() {
+        return config;
     }
 
     @CheckForNull
@@ -390,6 +393,11 @@ public class UserManagerImpl implements UserManager {
         }
     }
 
+    private void setPrincipal(Tree authorizableTree, Principal principal) {
+        checkNotNull(principal);
+        authorizableTree.setProperty(UserConstants.REP_PRINCIPAL_NAME, principal.getName());
+    }
+
     void setPassword(Tree userTree, String password, boolean forceHash) throws RepositoryException {
         String pwHash;
         if (forceHash || PasswordUtility.isPlainTextPassword(password)) {
@@ -406,27 +414,16 @@ public class UserManagerImpl implements UserManager {
         userTree.setProperty(UserConstants.REP_PASSWORD, pwHash);
     }
 
-    private void setPrincipal(Tree authorizableTree, Principal principal) {
-        checkNotNull(principal);
-        authorizableTree.setProperty(UserConstants.REP_PRINCIPAL_NAME, principal.getName());
-    }
-
     private void checkIsLive() throws RepositoryException {
         if (session != null && !session.isLive()) {
             throw new RepositoryException("UserManager has been closed.");
         }
     }
 
-    private static AuthorizableType getAuthorizableType(int searchType) {
-        switch (searchType) {
-            case UserManager.SEARCH_TYPE_USER:
-                return AuthorizableType.USER;
-            case UserManager.SEARCH_TYPE_GROUP:
-                return AuthorizableType.GROUP;
-            case UserManager.SEARCH_TYPE_AUTHORIZABLE:
-                return AuthorizableType.AUTHORIZABLE;
-            default:
-                throw new IllegalArgumentException("Invalid search type " + searchType);
+    private UserQueryManager getQueryManager() throws RepositoryException {
+        if (queryManager == null) {
+            queryManager = new UserQueryManager(this, session, root);
         }
+        return queryManager;
     }
 }

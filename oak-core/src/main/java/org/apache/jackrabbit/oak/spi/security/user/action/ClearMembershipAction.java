@@ -22,6 +22,7 @@ import javax.jcr.Session;
 
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
+import org.apache.jackrabbit.oak.api.Root;
 
 /**
  * Authorizable action attempting to clear all group membership before removing
@@ -37,6 +38,16 @@ public class ClearMembershipAction extends AbstractAuthorizableAction {
      */
     @Override
     public void onRemove(Authorizable authorizable, Session session) throws RepositoryException {
+        clearMembership(authorizable);
+    }
+
+    @Override
+    public void onRemove(Authorizable authorizable, Root root) throws RepositoryException {
+        clearMembership(authorizable);
+    }
+
+    //--------------------------------------------------------------------------
+    private static void clearMembership(Authorizable authorizable) throws RepositoryException {
         Iterator<Group> membership = authorizable.declaredMemberOf();
         while (membership.hasNext()) {
             membership.next().removeMember(authorizable);
