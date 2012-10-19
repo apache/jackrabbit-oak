@@ -24,11 +24,12 @@ import javax.security.auth.login.Configuration;
 import javax.security.auth.login.LoginException;
 
 import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
-import org.apache.jackrabbit.oak.AbstractOakTest;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.plugins.nodetype.InitialContent;
+import org.apache.jackrabbit.oak.security.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.security.authentication.token.TokenLoginModule;
 import org.apache.jackrabbit.oak.security.authentication.token.TokenProviderImpl;
@@ -45,7 +46,7 @@ import static org.junit.Assert.fail;
 /**
  * LoginTest...
  */
-public class TokenLoginModuleTest extends AbstractOakTest {
+public class TokenLoginModuleTest extends AbstractSecurityTest {
 
     SecurityProvider securityProvider = new SecurityProviderImpl();
     ContentSession admin;
@@ -54,7 +55,7 @@ public class TokenLoginModuleTest extends AbstractOakTest {
     public void before() throws Exception {
         super.before();
 
-        admin = createAdminSession();
+        admin = login(getAdminCredentials());
         Configuration.setConfiguration(new TokenConfiguration());
     }
 
@@ -66,14 +67,17 @@ public class TokenLoginModuleTest extends AbstractOakTest {
 
     @Override
     protected ContentRepository createRepository() {
-        return new Oak(createMicroKernelWithInitialContent()).with(securityProvider).createContentRepository();
+        return new Oak()
+            .with(new InitialContent())
+            .with(securityProvider)
+            .createContentRepository();
     }
 
     @Test
     public void testNullLogin() throws Exception {
         ContentSession cs = null;
         try {
-            cs = getContentRepository().login(null, null);
+            cs = login(null);
             fail("Null login should fail");
         } catch (LoginException e) {
             // success
@@ -88,7 +92,7 @@ public class TokenLoginModuleTest extends AbstractOakTest {
     public void testGuestLogin() throws Exception {
         ContentSession cs = null;
         try {
-            cs = getContentRepository().login(new GuestCredentials(), null);
+            cs = login(new GuestCredentials());
             fail("GuestCredentials login should fail");
         } catch (LoginException e) {
             // success
@@ -106,7 +110,7 @@ public class TokenLoginModuleTest extends AbstractOakTest {
             SimpleCredentials sc = new SimpleCredentials("test", new char[0]);
             sc.setAttribute(TokenProviderImpl.TOKEN_ATTRIBUTE, "");
 
-            cs = getContentRepository().login(sc, null);
+            cs = login(sc);
             fail("Unsupported credentials login should fail");
         } catch (LoginException e) {
             // success
@@ -121,7 +125,7 @@ public class TokenLoginModuleTest extends AbstractOakTest {
     public void testInvalidTokenCredentials() throws Exception {
         ContentSession cs = null;
         try {
-            cs = getContentRepository().login(new TokenCredentials("invalid"), null);
+            cs = login(new TokenCredentials("invalid"));
             fail("Invalid token credentials login should fail");
         } catch (LoginException e) {
             // success
@@ -140,7 +144,7 @@ public class TokenLoginModuleTest extends AbstractOakTest {
         SimpleCredentials sc = (SimpleCredentials) getAdminCredentials();
         TokenInfo info = tp.createToken(sc.getUserID(), Collections.<String, Object>emptyMap());
 
-        ContentSession cs = getContentRepository().login(new TokenCredentials(info.getToken()), null);
+        ContentSession cs = login(new TokenCredentials(info.getToken()));
         try {
             assertEquals(sc.getUserID(), cs.getAuthInfo().getUserID());
         } finally {

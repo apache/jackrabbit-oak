@@ -26,13 +26,14 @@ import javax.security.auth.login.LoginException;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
-import org.apache.jackrabbit.oak.AbstractOakTest;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.nodetype.InitialContent;
+import org.apache.jackrabbit.oak.security.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
@@ -50,7 +51,7 @@ import static org.junit.Assert.fail;
 /**
  * LoginTest...
  */
-public class DefaultLoginModuleTest extends AbstractOakTest {
+public class DefaultLoginModuleTest extends AbstractSecurityTest {
 
     SecurityProvider securityProvider = new SecurityProviderImpl();
 
@@ -60,7 +61,7 @@ public class DefaultLoginModuleTest extends AbstractOakTest {
     public void before() throws Exception {
         super.before();
 
-        admin = createAdminSession();
+        admin = login(getAdminCredentials());
         Configuration.setConfiguration(new DefaultConfiguration());
     }
 
@@ -74,14 +75,17 @@ public class DefaultLoginModuleTest extends AbstractOakTest {
 
     @Override
     protected ContentRepository createRepository() {
-        return new Oak(createMicroKernelWithInitialContent()).with(securityProvider).createContentRepository();
+        return new Oak()
+            .with(new InitialContent())
+            .with(securityProvider)
+            .createContentRepository();
     }
 
     @Test
     public void testNullLogin() throws Exception {
         ContentSession cs = null;
         try {
-            cs = getContentRepository().login(null, null);
+            cs = login(null);
             fail("Null login should fail");
         } catch (LoginException e) {
             // success
@@ -94,7 +98,7 @@ public class DefaultLoginModuleTest extends AbstractOakTest {
 
     @Test
     public void testGuestLogin() throws Exception {
-        ContentSession cs = getContentRepository().login(new GuestCredentials(), null);
+        ContentSession cs = login(new GuestCredentials());
         try {
             AuthInfo authInfo = cs.getAuthInfo();
             String anonymousID = UserUtility.getAnonymousId(securityProvider.getUserConfiguration().getConfigurationParameters());
@@ -118,7 +122,7 @@ public class DefaultLoginModuleTest extends AbstractOakTest {
 
         ContentSession cs = null;
         try {
-            cs = getContentRepository().login(new SimpleCredentials(anonymousID, new char[0]), null);
+            cs = login(new SimpleCredentials(anonymousID, new char[0]));
             fail("Login with anonymousID should fail since the initial setup doesn't provide a password.");
         } catch (LoginException e) {
             // success
@@ -142,7 +146,7 @@ public class DefaultLoginModuleTest extends AbstractOakTest {
             user = userManager.createUser("test", "pw");
             root.commit();
 
-            cs = getContentRepository().login(new SimpleCredentials("test", "pw".toCharArray()), null);
+            cs = login(new SimpleCredentials("test", "pw".toCharArray()));
             AuthInfo authInfo = cs.getAuthInfo();
             assertEquals("test", authInfo.getUserID());
         } finally {

@@ -20,9 +20,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.jackrabbit.api.security.user.User;
-import org.apache.jackrabbit.oak.AbstractOakTest;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.security.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtility;
 import org.junit.Test;
 
@@ -36,7 +36,7 @@ import static org.junit.Assert.fail;
 /**
  * UserManagerImplTest...
  */
-public class UserManagerImplTest extends AbstractOakTest {
+public class UserManagerImplTest extends AbstractSecurityTest {
 
      @Override
     protected ContentRepository createRepository() {

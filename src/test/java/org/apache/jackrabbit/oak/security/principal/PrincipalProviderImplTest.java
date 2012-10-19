@@ -19,13 +19,14 @@ package org.apache.jackrabbit.oak.security.principal;
 import java.security.Principal;
 import java.util.Set;
 
-import org.apache.jackrabbit.oak.AbstractOakTest;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexHook;
+import org.apache.jackrabbit.oak.plugins.nodetype.InitialContent;
+import org.apache.jackrabbit.oak.security.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
@@ -40,7 +41,7 @@ import static org.junit.Assert.assertTrue;
 /**
  * PrincipalProviderImplTest...
  */
-public class PrincipalProviderImplTest extends AbstractOakTest {
+public class PrincipalProviderImplTest extends AbstractSecurityTest {
 
     private SecurityProvider securityProvider = new SecurityProviderImpl();
     private ContentSession admin;
@@ -50,14 +51,18 @@ public class PrincipalProviderImplTest extends AbstractOakTest {
     public void before() throws Exception {
         super.before();
 
-        admin = createAdminSession();
+        admin = login(getAdminCredentials());
         Root root = admin.getLatestRoot();
         principalProvider = new PrincipalProviderImpl(root, securityProvider.getUserConfiguration(), NamePathMapper.DEFAULT);
     }
 
     @Override
     protected ContentRepository createRepository() {
-        return new Oak(createMicroKernelWithInitialContent()).with(new PropertyIndexHook()).with(securityProvider).createContentRepository();
+        return new Oak()
+            .with(new InitialContent())
+            .with(new PropertyIndexHook())
+            .with(securityProvider)
+            .createContentRepository();
     }
 
     @Test

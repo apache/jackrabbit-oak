@@ -21,11 +21,12 @@ import javax.jcr.GuestCredentials;
 import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.login.Configuration;
 
-import org.apache.jackrabbit.oak.AbstractOakTest;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.plugins.nodetype.InitialContent;
+import org.apache.jackrabbit.oak.security.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
@@ -40,7 +41,7 @@ import static org.junit.Assert.assertEquals;
 /**
  * LoginTest...
  */
-public class GuestDefaultLoginModuleTest extends AbstractOakTest {
+public class GuestDefaultLoginModuleTest extends AbstractSecurityTest {
 
     SecurityProvider securityProvider = new SecurityProviderImpl();
 
@@ -57,12 +58,15 @@ public class GuestDefaultLoginModuleTest extends AbstractOakTest {
 
     @Override
     protected ContentRepository createRepository() {
-        return new Oak(createMicroKernelWithInitialContent()).with(securityProvider).createContentRepository();
+        return new Oak()
+            .with(new InitialContent())
+            .with(securityProvider)
+            .createContentRepository();
     }
 
     @Test
     public void testNullLogin() throws Exception {
-        ContentSession cs = getContentRepository().login(null, null);
+        ContentSession cs = login(null);
         try {
             AuthInfo authInfo = cs.getAuthInfo();
             String anonymousID = UserUtility.getAnonymousId(securityProvider.getUserConfiguration().getConfigurationParameters());
@@ -74,7 +78,7 @@ public class GuestDefaultLoginModuleTest extends AbstractOakTest {
 
     @Test
     public void testGuestLogin() throws Exception {
-        ContentSession cs = getContentRepository().login(new GuestCredentials(), null);
+        ContentSession cs = login(new GuestCredentials());
         try {
             AuthInfo authInfo = cs.getAuthInfo();
             String anonymousID = UserUtility.getAnonymousId(securityProvider.getUserConfiguration().getConfigurationParameters());
