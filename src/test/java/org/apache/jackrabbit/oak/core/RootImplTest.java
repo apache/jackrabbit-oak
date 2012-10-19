@@ -21,11 +21,14 @@ package org.apache.jackrabbit.oak.core;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.jackrabbit.mk.api.MicroKernel;
+import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -34,18 +37,36 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-public class RootImplTest extends AbstractCoreTest {
+public class RootImplTest {
 
-    @Override
-    protected NodeState createInitialState(MicroKernel microKernel) {
-        String jsop = "^\"a\":1 ^\"b\":2 ^\"c\":3 +\"x\":{\"xx\":{},\"xa\":\"value\"} +\"y\":{} +\"z\":{}";
-        microKernel.commit("/", jsop, microKernel.getHeadRevision(), "test data");
-        return store.getRoot();
+    private ContentSession session;
+
+    @Before
+    public void setUp() throws CommitFailedException {
+        session = new Oak().createContentSession();
+
+        // Add test content
+        Root root = session.getLatestRoot();
+        Tree tree = root.getTree("/");
+        tree.setProperty("a", 1);
+        tree.setProperty("b", 2);
+        tree.setProperty("c", 3);
+        Tree x = tree.addChild("x");
+        x.addChild("xx");
+        x.setProperty("xa", "value");
+        tree.addChild("y");
+        tree.addChild("z");
+        root.commit();
+    }
+
+    @After
+    public void tearDown() {
+        session = null;
     }
 
     @Test
     public void getTree() {
-        RootImpl root = createRootImpl(null);
+        Root root = session.getLatestRoot();
 
         List<String> validPaths = new ArrayList<String>();
         validPaths.add("/");
@@ -71,7 +92,7 @@ public class RootImplTest extends AbstractCoreTest {
 
     @Test
     public void move() throws CommitFailedException {
-        RootImpl root = createRootImpl(null);
+        Root root = session.getLatestRoot();
         Tree tree = root.getTree("/");
 
         Tree y = tree.getChild("y");
@@ -91,7 +112,7 @@ public class RootImplTest extends AbstractCoreTest {
 
     @Test
     public void move2() {
-        RootImpl root = createRootImpl(null);
+        Root root = session.getLatestRoot();
         Tree r = root.getTree("/");
         Tree x = r.getChild("x");
         Tree y = r.getChild("y");
@@ -103,12 +124,12 @@ public class RootImplTest extends AbstractCoreTest {
         assertEquals("y", x.getParent().getName());
     }
 
-    @Test
     /**
      * Regression test for OAK-208
      */
+    @Test
     public void removeMoved() throws CommitFailedException {
-        RootImpl root = createRootImpl(null);
+        Root root = session.getLatestRoot();
         Tree r = root.getTree("/");
         r.addChild("a");
         r.addChild("b");
@@ -128,7 +149,7 @@ public class RootImplTest extends AbstractCoreTest {
 
     @Test
     public void rename() throws CommitFailedException {
-        RootImpl root = createRootImpl(null);
+        Root root = session.getLatestRoot();
         Tree tree = root.getTree("/");
 
         assertTrue(tree.hasChild("x"));
@@ -145,7 +166,7 @@ public class RootImplTest extends AbstractCoreTest {
 
     @Test
     public void copy() throws CommitFailedException {
-        RootImpl root = createRootImpl(null);
+        Root root = session.getLatestRoot();
         Tree tree = root.getTree("/");
 
         Tree y = tree.getChild("y");
@@ -165,7 +186,7 @@ public class RootImplTest extends AbstractCoreTest {
 
     @Test
     public void deepCopy() throws CommitFailedException {
-        RootImpl root = createRootImpl(null);
+        Root root = session.getLatestRoot();
         Tree tree = root.getTree("/");
 
         Tree y = tree.getChild("y");
@@ -190,8 +211,8 @@ public class RootImplTest extends AbstractCoreTest {
 
     @Test
     public void rebase() throws CommitFailedException {
-        RootImpl root1 = createRootImpl(null);
-        RootImpl root2 = createRootImpl(null);
+        Root root1 = session.getLatestRoot();
+        Root root2 = session.getLatestRoot();
 
         checkEqual(root1.getTree("/"), root2.getTree("/"));
 

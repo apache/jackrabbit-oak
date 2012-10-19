@@ -18,28 +18,45 @@
  */
 package org.apache.jackrabbit.oak.kernel;
 
-import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.oak.core.AbstractCoreTest;
+import org.apache.jackrabbit.mk.core.MicroKernelImpl;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertNotNull;
 import static junit.framework.Assert.assertNull;
 
-public class LargeKernelNodeStateTest extends AbstractCoreTest {
+public class LargeKernelNodeStateTest {
+
     private static final int N = KernelNodeState.MAX_CHILD_NODE_NAMES;
 
-    @Override
-    protected NodeState createInitialState(MicroKernel microKernel) {
-        StringBuilder jsop = new StringBuilder("+\"test\":{\"a\":1");
+    private NodeState state;
+
+    @Before
+    public void setUp() throws CommitFailedException {
+        NodeStore store = new KernelNodeStore(new MicroKernelImpl());
+        NodeStoreBranch branch = store.branch();
+
+        NodeBuilder builder = branch.getRoot().builder();
+        builder.setProperty("a", 1);
         for (int i = 0; i <= N; i++) {
-            jsop.append(",\"x").append(i).append("\":{}");
+            builder.child("x" + i);
         }
-        jsop.append('}');
-        microKernel.commit("/", jsop.toString(), null, "test data");
-        return store.getRoot().getChildNode("test");
+        branch.setRoot(builder.getNodeState());
+
+        state = branch.merge();
+    }
+
+    @After
+    public void tearDown() {
+        state = null;
     }
 
     @Test
