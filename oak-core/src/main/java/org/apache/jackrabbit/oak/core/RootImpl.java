@@ -140,9 +140,14 @@ public class RootImpl implements Root {
         return conflictHandler;
     }
 
+    protected void checkLive() {
+
+    }
+
     //---------------------------------------------------------------< Root >---
     @Override
     public boolean move(String sourcePath, String destPath) {
+        checkLive();
         TreeImpl source = rootTree.getTree(sourcePath);
         if (source == null) {
             return false;
@@ -164,23 +169,27 @@ public class RootImpl implements Root {
 
     @Override
     public boolean copy(String sourcePath, String destPath) {
+        checkLive();
         purgePendingChanges();
         return branch.copy(sourcePath, destPath);
     }
 
     @Override
     public TreeImpl getTree(String path) {
+        checkLive();
         return rootTree.getTree(path);
     }
 
     @Override
     public TreeLocation getLocation(String path) {
+        checkLive();
         checkArgument(path.startsWith("/"));
         return rootTree.getLocation().getChild(path.substring(1));
     }
 
     @Override
     public void rebase() {
+        checkLive();
         if (!store.getRoot().equals(rootTree.getBaseState())) {
             purgePendingChanges();
             NodeState base = getBaseState();
@@ -192,12 +201,14 @@ public class RootImpl implements Root {
 
     @Override
     public final void refresh() {
+        checkLive();
         branch = store.branch();
         rootTree = TreeImpl.createRoot(this);
     }
 
     @Override
     public void commit() throws CommitFailedException {
+        checkLive();
         rebase();
         purgePendingChanges();
         CommitFailedException exception = Subject.doAs(
@@ -236,11 +247,13 @@ public class RootImpl implements Root {
 
     @Override
     public boolean hasPendingChanges() {
+        checkLive();
         return !getBaseState().equals(rootTree.getNodeState());
     }
 
     @Nonnull
     public ChangeExtractor getChangeExtractor() {
+        checkLive();
         return new ChangeExtractor() {
             private NodeState baseLine = store.getRoot();
 
@@ -255,6 +268,7 @@ public class RootImpl implements Root {
 
     @Override
     public SessionQueryEngine getQueryEngine() {
+        checkLive();
         return new SessionQueryEngineImpl(store, indexProvider);
     }
 
