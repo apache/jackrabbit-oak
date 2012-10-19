@@ -100,7 +100,7 @@ public class NodeStoreMongo implements NodeStore {
         }
 
         if ("/".equals(path)) {
-            CommitMongo toCommit = new FetchCommitQuery(mongoConnection, toRevisionId).execute();
+            CommitMongo toCommit = getCommit(toRevisionId);
             if (toCommit.getBaseRevId() == fromRevisionId) {
                 // Specified range spans a single commit:
                 // use diff stored in commit instead of building it dynamically
@@ -132,9 +132,7 @@ public class NodeStoreMongo implements NodeStore {
 
     @Override
     public String merge(String branchRevisionId, String message) throws Exception {
-        FetchCommitQuery query = new FetchCommitQuery(mongoConnection,
-                MongoUtil.toMongoRepresentation(branchRevisionId));
-        CommitMongo commit = query.execute();
+        CommitMongo commit = getCommit(MongoUtil.toMongoRepresentation(branchRevisionId));
         String branchId = commit.getBranchId();
         if (branchId == null) {
             throw new Exception("Can only merge a private branch commit");
@@ -172,9 +170,7 @@ public class NodeStoreMongo implements NodeStore {
     public boolean nodeExists(String path, String revisionId) throws Exception {
         String branchId = null;
         if (revisionId != null) {
-            FetchCommitQuery query = new FetchCommitQuery(mongoConnection,
-                    MongoUtil.toMongoRepresentation(revisionId));
-            CommitMongo baseCommit = query.execute();
+            CommitMongo baseCommit = getCommit(MongoUtil.toMongoRepresentation(revisionId));
             branchId = baseCommit.getBranchId();
         }
 
@@ -194,11 +190,9 @@ public class NodeStoreMongo implements NodeStore {
         long toRevision = toRevisionId == null? getHeadRevision(true)
                 : MongoUtil.toMongoRepresentation(toRevisionId);
 
-        FetchCommitsQuery query = new FetchCommitsQuery(mongoConnection, fromRevision,
-                toRevision);
-        List<CommitMongo> commits = query.execute();
+        List<CommitMongo> commits = getCommits(fromRevision, toRevision);
 
-        CommitMongo toCommit = getCommit(commits, toRevision);
+        CommitMongo toCommit = extractCommit(commits, toRevision);
         if (toCommit.getBranchId() != null) {
             throw new MicroKernelException("Branch revisions are not supported: " + toRevisionId);
         }
@@ -207,7 +201,7 @@ public class NodeStoreMongo implements NodeStore {
         if (toRevision == fromRevision) {
             fromCommit = toCommit;
         } else {
-            fromCommit = getCommit(commits, fromRevision);
+            fromCommit = extractCommit(commits, fromRevision);
             if (fromCommit == null || (fromCommit.getTimestamp() > toCommit.getTimestamp())) {
                 // negative range, return empty journal
                 return "[]";
@@ -315,7 +309,7 @@ public class NodeStoreMongo implements NodeStore {
         }
     }
 
-    private CommitMongo getCommit(List<CommitMongo> commits, Long revisionId) {
+    private CommitMongo extractCommit(List<CommitMongo> commits, long revisionId) {
         for (CommitMongo commit : commits) {
             if (commit.getRevisionId() == revisionId) {
                 return commit;
@@ -324,6 +318,16 @@ public class NodeStoreMongo implements NodeStore {
         return null;
     }
 
+    private CommitMongo getCommit(long revisionId) throws Exception {
+        FetchCommitQuery query = new FetchCommitQuery(mongoConnection, revisionId);
+        return query.execute();
+    }
+
+    private List<CommitMongo> getCommits(long fromRevisionId, long toRevisionId) throws Exception {
+        FetchCommitsQuery query = new FetchCommitsQuery(mongoConnection, fromRevisionId,
+                toRevisionId);
+        return query.execute();
+    }
     private long getHeadRevision(boolean includeBranchCommits) throws Exception {
         FetchHeadRevisionIdQuery query = new FetchHeadRevisionIdQuery(mongoConnection);
         query.includeBranchCommits(includeBranchCommits);
