@@ -73,4 +73,51 @@ public class PropertyIndexTest {
         // assertTrue(withoutIndex > withIndex);
     }
 
+    @Test
+    public void testCustomConfigPropertyLookup() throws Exception {
+        NodeState root = MemoryNodeState.EMPTY_NODE;
+
+        // Add index definition
+        NodeBuilder builder = root.builder();
+        builder.child("oak:index").child("fooIndex").setProperty("pnames", Arrays.asList("foo", "extrafoo"), Type.STRINGS);
+        NodeState before = builder.getNodeState();
+
+        // Add some content and process it through the property index hook
+        builder = before.builder();
+        builder.child("a").setProperty("foo", "abc").setProperty("extrafoo", "pqr");
+        builder.child("b").setProperty("foo", Arrays.asList("abc", "def"), Type.STRINGS);
+        // plus lots of dummy content to highlight the benefit of indexing
+        for (int i = 0; i < MANY; i++) {
+            builder.child("n" + i).setProperty("foo", "xyz");
+        }
+        NodeState after = builder.getNodeState();
+
+        // First check lookups without an index
+        PropertyIndexLookup lookup = new PropertyIndexLookup(after);
+        long withoutIndex = System.nanoTime();
+        assertEquals(ImmutableSet.of("a", "b"), lookup.find("foo", "abc"));
+        assertEquals(ImmutableSet.of("b"), lookup.find("foo", "def"));
+        assertEquals(ImmutableSet.of(), lookup.find("foo", "ghi"));
+        assertEquals(MANY, lookup.find("foo", "xyz").size());
+        assertEquals(ImmutableSet.of("a"), lookup.find("extrafoo", "pqr"));
+        assertEquals(ImmutableSet.of(), lookup.find("pqr", "foo"));
+        withoutIndex = System.nanoTime() - withoutIndex;
+
+        // ... then see how adding an index affects the code
+        lookup = new PropertyIndexLookup(
+                new PropertyIndexHook().processCommit(before, after));
+        long withIndex = System.nanoTime();
+        assertEquals(ImmutableSet.of("a", "b"), lookup.find("foo", "abc"));
+        assertEquals(ImmutableSet.of("b"), lookup.find("foo", "def"));
+        assertEquals(ImmutableSet.of(), lookup.find("foo", "ghi"));
+        assertEquals(MANY, lookup.find("foo", "xyz").size());
+        assertEquals(ImmutableSet.of("a"), lookup.find("extrafoo", "pqr"));
+        assertEquals(ImmutableSet.of(), lookup.find("pqr", "foo"));
+        withIndex = System.nanoTime() - withIndex;
+
+        // System.out.println("Index performance ratio: " + withoutIndex/withIndex);
+        // assertTrue(withoutIndex > withIndex);
+    }
+
+
 }
