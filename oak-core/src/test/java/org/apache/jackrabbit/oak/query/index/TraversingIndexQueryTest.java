@@ -13,11 +13,9 @@
  */
 package org.apache.jackrabbit.oak.query.index;
 
-import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
-import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
+import org.apache.jackrabbit.oak.plugins.nodetype.InitialContent;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 
 /**
@@ -28,9 +26,9 @@ public class TraversingIndexQueryTest extends AbstractQueryTest {
 
     @Override
     protected ContentRepository createRepository() {
-        MicroKernel mk = new MicroKernelImpl();
-        createDefaultKernelTracker().available(new KernelNodeStore(mk));
-        return new Oak(mk).with(getSecurityProvider()).createContentRepository();
+        return new Oak()
+            .with(new InitialContent())
+            .createContentRepository();
     }
 
 }

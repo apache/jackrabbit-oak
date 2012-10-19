@@ -32,7 +32,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.oak.AbstractOakTest;
+import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Result;
@@ -57,8 +57,7 @@ import static org.junit.Assert.fail;
 /**
  * AbstractQueryTest...
  */
-public abstract class AbstractQueryTest extends AbstractOakTest implements
-        IndexConstants {
+public abstract class AbstractQueryTest implements IndexConstants {
 
     protected static final String TEST_INDEX_NAME = "test-index";
     protected static final String TEST_INDEX_HOME = DEFAULT_INDEX_HOME;
@@ -68,15 +67,15 @@ public abstract class AbstractQueryTest extends AbstractOakTest implements
     protected ContentSession session;
     protected Root root;
 
-    @Override
     @Before
     public void before() throws Exception {
-        super.before();
-        session = createAdminSession();
+        session = createRepository().login(null, null);
         root = session.getLatestRoot();
         qe = root.getQueryEngine();
         createTestIndexNode();
     }
+
+    protected abstract ContentRepository createRepository();
 
     /**
      * Override this method to add your default index definition
