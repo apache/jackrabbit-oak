@@ -18,16 +18,23 @@ package org.apache.jackrabbit.oak.security.user;
 
 import java.util.Iterator;
 import javax.annotation.Nonnull;
+import javax.jcr.Node;
+import javax.jcr.NodeIterator;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.query.QueryManager;
 
+import com.google.common.base.Function;
+import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Query;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.security.user.query.XPathQueryBuilder;
 import org.apache.jackrabbit.oak.security.user.query.XPathQueryEvaluator;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
+import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
+import org.apache.jackrabbit.util.ISO9075;
+import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,11 +52,24 @@ class UserQueryManager {
     private final Root root;
     private final QueryManager queryManager;
 
+    private final String userRoot;
+    private final String groupRoot;
+    private final String authorizableRoot;
+
     // TODO: replace usage of jcr-query-manager by oak query manager and drop session from constructor.
     UserQueryManager(UserManagerImpl userManager, Session session, Root root) throws RepositoryException {
         this.userManager = userManager;
         this.root = root;
         this.queryManager = (session != null) ? session.getWorkspace().getQueryManager() : null;
+
+        this.userRoot = userManager.getConfig().getConfigValue(UserConstants.PARAM_USER_PATH, UserConstants.DEFAULT_USER_PATH);
+        this.groupRoot = userManager.getConfig().getConfigValue(UserConstants.PARAM_GROUP_PATH, UserConstants.DEFAULT_GROUP_PATH);;
+
+        String parent = userRoot;
+        while (!Text.isDescendant(parent, groupRoot)) {
+            parent = Text.getRelativeParent(parent, 1);
+        }
+        authorizableRoot = parent;
     }
 
     Iterator<Authorizable> find(Query query) throws RepositoryException {
@@ -65,28 +85,22 @@ class UserQueryManager {
     }
 
     @Nonnull
-    Iterator<Authorizable> findAuthorizables(String relativePath, String value, AuthorizableType authorizableType) {
-        String[] oakPaths =  new String[] {userManager.getNamePathMapper().getOakPath(relativePath)};
-        return findAuthorizables(oakPaths, value, null, true, Long.MAX_VALUE, authorizableType);
+    Iterator<Authorizable> findAuthorizables(String relativePath, String value,
+                                             AuthorizableType authorizableType)
+            throws RepositoryException {
+        String oakPath =  userManager.getNamePathMapper().getOakPath(relativePath);
+        return findAuthorizables(oakPath, value, true, authorizableType);
     }
 
     /**
      * Find the authorizable trees matching the following search parameters within
      * the sub-tree defined by an authorizable tree:
      *
-     * @param propertyRelPaths An array of property names or relative paths
-     * pointing to properties within the tree defined by a given authorizable node.
+     * @param relPath A relative path (or a name) pointing to properties within
+     * the tree defined by a given authorizable node.
      * @param value The property value to look for.
-     * @param ntNames An array of node type names to restrict the search within
-     * the authorizable tree to a subset of nodes that match any of the node
-     * type names; {@code null} indicates that no filtering by node type is
-     * desired. Specifying a node type name that defines an authorizable node
-     * )e.g. {@link org.apache.jackrabbit.oak.spi.security.user.UserConstants#NT_REP_USER rep:User} will limit the search to
-     * properties defined with the authorizable node itself instead of searching
-     * the complete sub-tree.
      * @param exact A boolean flag indicating if the value must match exactly or not.s
-     * @param maxSize The maximal number of search results to look for.
-     * @param authorizableType Filter the search results to only return authorizable
+     * @param type Filter the search results to only return authorizable
      * trees of a given type. Passing {@link org.apache.jackrabbit.oak.spi.security.user.AuthorizableType#AUTHORIZABLE} indicates that
      * no filtering for a specific authorizable type is desired. However, properties
      * might still be search in the complete sub-tree of authorizables depending
@@ -96,11 +110,120 @@ class UserQueryManager {
      * found.
      */
     @Nonnull
-    Iterator<Authorizable> findAuthorizables(String[] propertyRelPaths, String value, String[] ntNames, boolean exact, long maxSize, AuthorizableType authorizableType) {
-        // TODO
-        throw new UnsupportedOperationException("not yet implemented");
+    Iterator<Authorizable> findAuthorizables(String relPath, String value,
+                                             boolean exact, AuthorizableType type)
+            throws RepositoryException {
+        // TODO replace usage of jcr query manager by oak-query api.
+        String statement = buildXPathStatement(relPath, value, exact, type);
+        if (queryManager != null) {
+            NodeIterator results = queryManager.createQuery(statement, javax.jcr.query.Query.XPATH).execute().getNodes();
+            return Iterators.transform(results, new NodeToAuthorizable());
+        } else {
+            throw new UnsupportedOperationException("not yet implemented");
+        }
+    }
 
-        //return AuthorizableIterator.create(result, this);
+    private String buildXPathStatement(String relPath, String value, boolean exact, AuthorizableType type) {
+        StringBuilder stmt = new StringBuilder();
+        String searchRoot = getSearchRoot(type);
+        if (!"/".equals(searchRoot)) {
+            stmt.append(searchRoot);
+        }
 
+        String path;
+        String propName;
+        String ntName;
+        if (relPath.indexOf('/') == -1) {
+            // search for properties somewhere below an authorizable node
+            path = null;
+            propName = relPath;
+            ntName = null;
+        } else {
+            // FIXME: proper normalization of the relative path
+            path = (relPath.startsWith("./") ? null : Text.getRelativeParent(relPath, 1));
+            propName = Text.getName(relPath);
+            ntName = getNodeTypeName(type);
+        }
+
+        stmt.append("//");
+        if (path != null) {
+            stmt.append(path);
+        } else {
+            if (ntName != null) {
+                stmt.append("element(*,");
+                stmt.append(ntName);
+            } else {
+                stmt.append("element(*");
+            }
+            stmt.append(')');
+        }
+
+        if (value != null) {
+            stmt.append('[');
+            stmt.append((exact) ? "@" : "jcr:like(@");
+            stmt.append(ISO9075.encode(propName));
+            if (exact) {
+                stmt.append("='");
+                stmt.append(value.replaceAll("'", "''"));
+                stmt.append('\'');
+            } else {
+                stmt.append(",'%");
+                stmt.append(escapeForQuery(value));
+                stmt.append("%')");
+            }
+            stmt.append(']');
+        }
+        return stmt.toString();
+    }
+
+    /**
+     * @param type
+     * @return The path of search root for the specified authorizable type.
+     */
+    private String getSearchRoot(AuthorizableType type) {
+        if (type == AuthorizableType.USER) {
+            return userRoot;
+        } else if (type == AuthorizableType.GROUP) {
+            return groupRoot;
+        } else {
+            return authorizableRoot;
+        }
+    }
+
+    private static String escapeForQuery(String value) {
+        StringBuilder ret = new StringBuilder();
+        for (int i = 0; i < value.length(); i++) {
+            char c = value.charAt(i);
+            if (c == '\\') {
+                ret.append("\\\\");
+            } else if (c == '\'') {
+                ret.append("''");
+            } else {
+                ret.append(c);
+            }
+        }
+        return ret.toString();
+    }
+
+    private static String getNodeTypeName(AuthorizableType type) {
+        if (type == AuthorizableType.USER) {
+            return UserConstants.NT_REP_USER;
+        } else if (type == AuthorizableType.GROUP) {
+            return UserConstants.NT_REP_GROUP;
+        } else {
+            return UserConstants.NT_REP_AUTHORIZABLE;
+        }
+    }
+
+    private class NodeToAuthorizable implements Function<Node, Authorizable> {
+        @Override
+        public Authorizable apply(Node node) {
+            try {
+                return userManager.getAuthorizable(node.getPath());
+            } catch (RepositoryException e) {
+                log.debug("Failed to access authorizable " + node);
+                return null;
+            }
+        }
     }
 }

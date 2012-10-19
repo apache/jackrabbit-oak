@@ -48,6 +48,7 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
     private static final Logger log = LoggerFactory.getLogger(AuthorizableImpl.class);
 
     private final String id;
+    private final String principalName;
     private final UserManagerImpl userManager;
 
     private Node node;
@@ -55,10 +56,16 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
     private int hashCode;
 
     AuthorizableImpl(String id, Tree tree, UserManagerImpl userManager) throws RepositoryException {
-        this.id = id;
-        this.userManager = userManager;
-
         checkValidTree(tree);
+        this.id = id;
+        if (tree.hasProperty(REP_PRINCIPAL_NAME)) {
+            principalName = tree.getProperty(REP_PRINCIPAL_NAME).getValue(STRING);
+        } else {
+            String msg = "Authorizable without principal name " + id;
+            log.warn(msg);
+            throw new RepositoryException(msg);
+        }
+        this.userManager = userManager;
     }
 
     abstract void checkValidTree(Tree tree) throws RepositoryException;
@@ -185,14 +192,8 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
     }
 
     @Nonnull
-    String getPrincipalName(Tree thisTree) throws RepositoryException {
-        if (thisTree.hasProperty(REP_PRINCIPAL_NAME)) {
-            return thisTree.getProperty(REP_PRINCIPAL_NAME).getValue(STRING);
-        } else {
-            String msg = "Authorizable without principal name " + id;
-            log.warn(msg);
-            throw new RepositoryException(msg);
-        }
+    String getPrincipalName() throws RepositoryException {
+        return principalName;
     }
 
     @CheckForNull
@@ -224,7 +225,7 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
      * @throws RepositoryException If an error occurs.
      */
     boolean isEveryone() throws RepositoryException {
-        return isGroup() && EveryonePrincipal.NAME.equals(getPrincipalName(getTree()));
+        return isGroup() && EveryonePrincipal.NAME.equals(getPrincipalName());
     }
 
     /**

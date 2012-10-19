@@ -252,13 +252,11 @@
       org.apache.jackrabbit.test.api.observation.LockingTest#testAddLockToNode
       org.apache.jackrabbit.test.api.observation.LockingTest#testRemoveLockFromNode
       org.apache.jackrabbit.oak.jcr.security.user.EveryoneGroupTest#testMembers                    <!-- findAuthorizables not yet implemented -->
-      org.apache.jackrabbit.oak.jcr.security.user.UserQueryTest                                    <!-- findAuthorizables not yet implemented -->
-      org.apache.jackrabbit.oak.jcr.security.user.UserManagerTest#testFindAuthorizableByAddedProperty <!-- findAuthorizables not yet implemented -->
-      org.apache.jackrabbit.oak.jcr.security.user.UserManagerTest#testFindAuthorizableByRelativePath <!-- findAuthorizables not yet implemented -->
+      org.apache.jackrabbit.oak.jcr.security.user.UserManagerTest#testFindAuthorizableByAddedProperty    <!-- OAK-343 -->
+      org.apache.jackrabbit.oak.jcr.security.user.UserManagerTest#testFindAuthorizableByRelativePath     <!-- OAK-343 -->
       org.apache.jackrabbit.oak.jcr.security.user.UserManagerTest#testFindUser                     <!-- findAuthorizables not yet implemented -->
       org.apache.jackrabbit.oak.jcr.security.user.UserManagerTest#testFindGroup                    <!-- findAuthorizables not yet implemented -->
-      org.apache.jackrabbit.oak.jcr.security.user.UserManagerTest#testFindAllUsers                 <!-- findAuthorizables not yet implemented -->
-      org.apache.jackrabbit.oak.jcr.security.user.UserManagerTest#testFindAllGroups                <!-- findAuthorizables not yet implemented -->
+      org.apache.jackrabbit.oak.jcr.security.user.UserQueryTest                                          <!-- OAK-343 -->
       org.apache.jackrabbit.oak.jcr.security.user.UserManagerTest#testGetNewAuthorizable                 <!-- OAK-343 -->
       org.apache.jackrabbit.oak.jcr.security.user.UserManagerTest#testCreateGroupWithExistingPrincipal2  <!-- OAK-343 -->
       org.apache.jackrabbit.oak.jcr.security.user.UserManagerTest#testCreateGroupWithExistingPrincipal3  <!-- OAK-343 -->
