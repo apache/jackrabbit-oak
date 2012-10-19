@@ -42,14 +42,15 @@ import org.apache.jackrabbit.oak.api.SessionQueryEngine;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
-import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
-import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DEFAULT_INDEX_HOME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -57,7 +58,7 @@ import static org.junit.Assert.fail;
 /**
  * AbstractQueryTest...
  */
-public abstract class AbstractQueryTest implements IndexConstants {
+public abstract class AbstractQueryTest {
 
     protected static final String TEST_INDEX_NAME = "test-index";
     protected static final String TEST_INDEX_HOME = DEFAULT_INDEX_HOME;
@@ -111,10 +112,6 @@ public abstract class AbstractQueryTest implements IndexConstants {
             Map<String, PropertyValue> sv) throws ParseException {
         return qe.executeQuery(statement, language, Long.MAX_VALUE, 0, sv,
                 session.getLatestRoot(), null);
-    }
-
-    protected SecurityProvider getSecurityProvider() {
-        return new OpenSecurityProvider();
     }
 
     @Test
