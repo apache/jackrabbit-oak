@@ -31,13 +31,12 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
  */
 public class RepositoryCallback implements Callback {
 
+    // TODO: base on a system-ContentSession that was passed to this
+    // TODO: callback handler in order have the appropriate set of indexes,
+    // TODO: valiators, commit-hooks etc...
+
     private NodeStore nodeStore;
     private String workspaceName;
-
-    @CheckForNull
-    public NodeStore getNodeStore() {
-        return nodeStore;
-    }
 
     public String getWorkspaceName() {
         return workspaceName;

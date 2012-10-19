@@ -24,6 +24,7 @@ import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlContext
 import org.apache.jackrabbit.oak.spi.security.authorization.AllPermissions;
 import org.apache.jackrabbit.oak.spi.security.authorization.CompiledPermissions;
 import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
+import org.apache.jackrabbit.oak.spi.security.principal.SystemPrincipal;
 
 /**
  * PermissionProviderImpl... TODO
@@ -41,7 +42,7 @@ class AccessControlContextImpl implements AccessControlContext {
     @Override
     public CompiledPermissions getPermissions() {
         Set<Principal> principals = subject.getPrincipals();
-        if (isAdmin(principals)) {
+        if (principals.contains(SystemPrincipal.INSTANCE) || isAdmin(principals)) {
             return AllPermissions.getInstance();
         } else {
             // TODO: replace with permissions based on ac evaluation

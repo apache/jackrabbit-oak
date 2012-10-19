@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.core;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import javax.annotation.Nonnull;
 import javax.security.auth.Subject;
@@ -38,6 +39,7 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.CompiledPermissions;
 import org.apache.jackrabbit.oak.spi.security.authorization.OpenAccessControlProvider;
+import org.apache.jackrabbit.oak.spi.security.principal.SystemPrincipal;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
@@ -126,18 +128,15 @@ public class RootImpl implements Root {
 
     public RootImpl(NodeStore store) {
         this.store = checkNotNull(store);
-        this.subject = new Subject();
+        // TODO review again (see also comment in RepositoryCallback)
+        this.subject = new Subject(true, Collections.singleton(SystemPrincipal.INSTANCE), Collections.<Object>emptySet(), Collections.<Object>emptySet());
         this.accProvider = new OpenAccessControlProvider();
         this.indexProvider = new CompositeQueryIndexProvider();
         refresh();
     }
 
-    public void setConflictHandler(ConflictHandler conflictHandler) {
+    void setConflictHandler(ConflictHandler conflictHandler) {
         this.conflictHandler = conflictHandler;
-    }
-
-    public ConflictHandler getConflictHandler() {
-        return conflictHandler;
     }
 
     protected void checkLive() {

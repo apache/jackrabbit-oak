@@ -16,16 +16,17 @@
  */
 package org.apache.jackrabbit.oak.spi.security.principal;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.security.Principal;
 import java.util.Enumeration;
+
+import org.apache.jackrabbit.api.security.principal.JackrabbitPrincipal;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Built-in principal group that has every other principal as member.
  */
-public class EveryonePrincipal implements java.security.acl.Group {
+public class EveryonePrincipal implements JackrabbitPrincipal, java.security.acl.Group {
 
     /**
      * logger instance
