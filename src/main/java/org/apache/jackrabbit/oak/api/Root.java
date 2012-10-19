@@ -26,6 +26,10 @@ import javax.annotation.Nonnull;
  * <p>
  * The data returned by this class filtered for the access rights that are set
  * in the {@link ContentSession} that created this object.
+ * <p>
+ * All root instances created by a content session become invalid after the
+ * content session is closed. Any method called on an invalid root instance
+ * will throw an {@code InvalidStateException}.
  */
 public interface Root {
 
