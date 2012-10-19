@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.property;
 
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -27,6 +29,24 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import com.google.common.collect.Sets;
 
+/**
+ * Is responsible for querying the property index content.
+ * 
+ * <p>
+ * This class can be used directly on a subtree where there is an index defined
+ * by supplying a {@link NodeState} root.
+ * </p>
+ * 
+ * <pre>
+ * <code>
+ * {
+ *     NodeState state = ... // get a node state
+ *     PropertyIndexLookup lookup = new PropertyIndexLookup(state);
+ *     Set<String> hits = lookup.find("foo", "xyz");
+ * }
+ * </code>
+ * </pre>
+ */
 public class PropertyIndexLookup {
 
     private final NodeState root;
@@ -43,7 +63,7 @@ public class PropertyIndexLookup {
      * @param path lookup path
      */
     public boolean isIndexed(String name, String path) {
-        NodeState state = root.getChildNode("oak:index");
+        NodeState state = root.getChildNode(INDEX_DEFINITIONS_NAME);
         if (state != null) {
             state = state.getChildNode(name);
             if (state != null) {
@@ -72,7 +92,7 @@ public class PropertyIndexLookup {
         Set<String> paths = Sets.newHashSet();
 
         PropertyState property = null;
-        NodeState state = root.getChildNode("oak:index");
+        NodeState state = root.getChildNode(INDEX_DEFINITIONS_NAME);
         if (state != null) {
             state = state.getChildNode(name);
             if (state != null) {

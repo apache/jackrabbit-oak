@@ -33,6 +33,10 @@ import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 
+/**
+ * Takes care of applying the updates to the index content.
+ * 
+ */
 class PropertyIndexUpdate {
 
     private final String path;

@@ -38,6 +38,39 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import com.google.common.base.Charsets;
 import com.google.common.collect.Sets;
 
+/**
+ * Provides a QueryIndex that does lookups against a property index
+ * 
+ * <p>
+ * How to define a property index on a subtree you have to add an
+ * <code>oak:index<code> node. Under it follows the index definition node that must be of type <code>oak:queryIndexDefinition</code>
+ * and contain the
+ * <code>pnames<code> property that indicates what property will be stored in the index.
+ * </p>
+ * 
+ * <p>
+ * <code>pnames<code> can be a list of properties, and it is optional.in case it is missing, the node name will be used as a property name reference value
+ * </p>
+ * 
+ * <p>
+ * Optionally you can specify the uniqueness constraint on a property index by
+ * setting the <code>unique</code> flag to true.
+ * </p>
+ * 
+ * <pre>
+ * <code>
+ * {
+ *     NodeBuilder index = root.child("oak:index");
+ *     index.child("uuid")
+ *         .setProperty("jcr:primaryType", "oak:queryIndexDefinition", Type.NAME)
+ *         .setProperty("pnames", "jcr:uuid")
+ *         .setProperty("unique", true);
+ * }
+ * </code>
+ * </pre>
+ * 
+ * @see PropertyIndexLookup
+ */
 public class PropertyIndex implements QueryIndex {
 
     private static final int MAX_STRING_LENGTH = 100; // TODO: configurable

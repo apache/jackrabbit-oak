@@ -28,6 +28,14 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import com.google.common.collect.Maps;
 
+/**
+ * {@link CommitHook} implementation that is responsible for keeping the
+ * {@link PropertyIndex} up to date
+ * 
+ * @see PropertyIndex
+ * @see PropertyIndexLookup
+ * 
+ */
 public class PropertyIndexHook implements CommitHook {
 
     @Override @Nonnull
