@@ -66,8 +66,7 @@ class GroupImpl extends AuthorizableImpl implements Group {
 
     @Override
     public Principal getPrincipal() throws RepositoryException {
-        Tree groupTree = getTree();
-        return new GroupPrincipal(getPrincipalName(groupTree), groupTree);
+        return new GroupPrincipal(getPrincipalName(), getTree());
     }
 
     //--------------------------------------------------------------< Group >---
