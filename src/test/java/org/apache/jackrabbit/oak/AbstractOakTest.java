@@ -16,9 +16,6 @@
  */
 package org.apache.jackrabbit.oak;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import javax.jcr.Credentials;
 import javax.jcr.NoSuchWorkspaceException;
 import javax.jcr.SimpleCredentials;
@@ -69,12 +66,6 @@ public abstract class AbstractOakTest {
     protected Credentials getAdminCredentials() {
         // TODO retrieve from config
         return new SimpleCredentials("admin", "admin".toCharArray());
-    }
-
-    protected static MicroKernelTracker createDefaultKernelTracker() {
-        List<MicroKernelTracker> hooks = new ArrayList<MicroKernelTracker>();
-        hooks.add(new InitialContent());
-        return new CompositeMicroKernelTracker(hooks);
     }
 
 }
