@@ -25,6 +25,7 @@ import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
+import org.apache.jackrabbit.oak.core.OrderedChildrenEditor;
 import org.apache.jackrabbit.oak.http.OakServlet;
 import org.apache.jackrabbit.oak.jcr.RepositoryImpl;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
@@ -206,7 +207,8 @@ public class Main {
                     new ValidatingHook(createDefaultValidatorProvider()),
                     new PropertyIndexHook(),
                     new LuceneReindexHook(DEFAULT_INDEX_HOME),
-                    new LuceneHook(DEFAULT_INDEX_HOME));
+                    new LuceneHook(DEFAULT_INDEX_HOME),
+                    new OrderedChildrenEditor());
         }
 
         private static ValidatorProvider createDefaultValidatorProvider() {
