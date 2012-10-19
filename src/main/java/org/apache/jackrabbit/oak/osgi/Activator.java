@@ -44,7 +44,7 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer {
 
     private final OsgiValidatorProvider validatorProvider = new OsgiValidatorProvider();
 
-    private final OsgiMicroKernelTracker kernelTracker = new OsgiMicroKernelTracker();
+    private final OsgiRepositoryInitializer kernelTracker = new OsgiRepositoryInitializer();
 
     private final Map<ServiceReference, ServiceRegistration> services =
             new HashMap<ServiceReference, ServiceRegistration>();
@@ -80,7 +80,7 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer {
         Object service = context.getService(reference);
         if (service instanceof MicroKernel) {
             MicroKernel kernel = (MicroKernel) service;
-            kernelTracker.available(new KernelNodeStore(kernel));
+            kernelTracker.initialize(new KernelNodeStore(kernel));
             Oak oak = new Oak(kernel)
                     .with(new CompositeHook(
                         // TODO: DefaultTypeEditor is JCR specific and does not belong here

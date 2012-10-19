@@ -21,22 +21,21 @@ import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.core.RootImpl;
-import org.apache.jackrabbit.oak.spi.lifecycle.DefaultMicroKernelTracker;
-import org.apache.jackrabbit.oak.spi.lifecycle.MicroKernelTracker;
+import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 
 /**
- * {@code InitialContent} implements a {@link MicroKernelTracker} and
+ * {@code InitialContent} implements a {@link RepositoryInitializer} and
  * registers built-in node types when the micro kernel becomes available.
  */
 @Component
-@Service(MicroKernelTracker.class)
-public class InitialContent extends DefaultMicroKernelTracker {
+@Service(RepositoryInitializer.class)
+public class InitialContent implements RepositoryInitializer {
 
     @Override
-    public void available(NodeStore store) {
+    public void initialize(NodeStore store) {
         NodeStoreBranch branch = store.branch();
 
         NodeBuilder root = branch.getRoot().builder();

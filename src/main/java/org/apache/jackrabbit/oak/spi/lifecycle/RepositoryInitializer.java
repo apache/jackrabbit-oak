@@ -18,34 +18,24 @@
  */
 package org.apache.jackrabbit.oak.spi.lifecycle;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-
-import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 /**
- * <code>CompositeMicroKernelTracker</code> consists of multiple micro kernel
- * trackers and calls them all on {@link #available(MicroKernel)}.
+ * Initializer of repository content. A component that needs to add specific
+ * content to a new repository can implement this interface. Then when a
+ * repository becomes available, all the configured initializers are invoked
+ * in sequence.
  */
-public class CompositeMicroKernelTracker implements MicroKernelTracker {
+public interface RepositoryInitializer {
 
-    private final List<MicroKernelTracker> trackers = new ArrayList<MicroKernelTracker>();
+    /**
+     * Initializes repository content. This method is called as soon as a
+     * repository becomes available. Note that the repository may already
+     * have been initialized, so the implementation of this method should
+     * check for that before blindly adding new content.
+     *
+     * @param store node store of the repository
+     */
+    public void initialize(NodeStore store);
 
-    public CompositeMicroKernelTracker(Collection<MicroKernelTracker> trackers) {
-        this.trackers.addAll(trackers);
-    }
-
-    public CompositeMicroKernelTracker(MicroKernelTracker... trackers) {
-        this.trackers.addAll(Arrays.asList(trackers));
-    }
-
-    @Override
-    public void available(NodeStore store) {
-        for (MicroKernelTracker tracker : trackers) {
-            tracker.available(store);
-        }
-    }
 }

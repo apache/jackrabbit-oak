@@ -18,45 +18,45 @@
  */
 package org.apache.jackrabbit.oak.osgi;
 
-import org.apache.jackrabbit.oak.spi.lifecycle.MicroKernelTracker;
+import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.osgi.framework.ServiceReference;
 
 /**
  * Implements a service tracker that keeps track of all
- * {@link MicroKernelTracker}s in the system and calls the available
+ * {@link RepositoryInitializer}s in the system and calls the available
  * method once the micro kernel is available.
  */
-public class OsgiMicroKernelTracker
-        extends AbstractServiceTracker<MicroKernelTracker>
-        implements MicroKernelTracker {
+public class OsgiRepositoryInitializer
+        extends AbstractServiceTracker<RepositoryInitializer>
+        implements RepositoryInitializer {
 
     /**
      * The reference to the micro kernel once available.
      */
     private volatile NodeStore store;
 
-    public OsgiMicroKernelTracker() {
-        super(MicroKernelTracker.class);
+    public OsgiRepositoryInitializer() {
+        super(RepositoryInitializer.class);
     }
 
     @Override
-    public void available(NodeStore store) {
+    public void initialize(NodeStore store) {
         this.store = store;
         if (store != null) {
-            for (MicroKernelTracker mki : getServices()) {
-                mki.available(store);
+            for (RepositoryInitializer mki : getServices()) {
+                mki.initialize(store);
             }
         }
     }
 
     @Override
     public Object addingService(ServiceReference reference) {
-        MicroKernelTracker mki =
-                (MicroKernelTracker) super.addingService(reference);
+        RepositoryInitializer mki =
+                (RepositoryInitializer) super.addingService(reference);
         NodeStore store = this.store;
         if (store != null) {
-            mki.available(store);
+            mki.initialize(store);
         }
         return mki;
     }
