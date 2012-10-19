@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.mongomk.model;
 
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -173,7 +172,6 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
         // Then, copy any staged changes.
         NodeMongo srcNode = getStoredNode(srcPath);
         NodeMongo destNode = getStagedNode(destPath);
-
         copyStagedChanges(srcNode, destNode);
 
         // Finally, add to destParent.
@@ -181,12 +179,10 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
         destParent.addChild(destNodeName);
     }
 
-    // FIXME - Double check this functionality.
     @Override
     public void visit(MoveNodeInstruction instruction) {
         String srcPath = instruction.getSourcePath();
         String destPath = instruction.getDestPath();
-
         if (PathUtils.isAncestor(srcPath, destPath)) {
             throw new RuntimeException("Target path cannot be descendant of source path: "
                     + destPath);
@@ -198,45 +194,38 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
         String destParentPath = PathUtils.getParentPath(destPath);
         String destNodeName = PathUtils.getName(destPath);
 
-        // Add the old node with the new path.
-        NodeMongo destNode = pathNodeMap.get(destPath);
-        if (destNode == null) {
-            NodeMongo srcNode = getStoredNode(srcPath);
-            destNode = srcNode;
-            destNode.setPath(destPath);
-            pathNodeMap.remove(srcPath);
-            pathNodeMap.put(destPath, destNode);
+        NodeMongo srcParent = getStoredNode(srcParentPath);
+        if (!srcParent.childExists(srcNodeName)) {
+            throw new NotFoundException(srcPath);
         }
 
-        // [Mete] Check that this works in all cases.
-        // Remove all the pending old node child changes.
-        Map<String, NodeMongo> pendingChanges = new HashMap<String, NodeMongo>();
-        for (Iterator<Entry<String, NodeMongo>> iterator = pathNodeMap.entrySet().iterator(); iterator.hasNext();) {
-            Entry<String, NodeMongo> entry = iterator.next();
-            String path = entry.getKey();
-            NodeMongo node = entry.getValue();
-            if (path.startsWith(srcPath)) {
-                iterator.remove();
-                String newPath = destPath + path.substring(srcPath.length());
-                node.setPath(newPath);
-                pendingChanges.put(newPath, node);
-            }
-        }
-        pathNodeMap.putAll(pendingChanges);
-
-
-        // Remove from srcParent - [Mete] What if there is no such child?
-        NodeMongo scrParentNode = getStoredNode(srcParentPath);
-        scrParentNode.removeChild(srcNodeName);
-
-        // Add to destParent
-        NodeMongo destParentNode = getStoredNode(destParentPath);
-        if (destParentNode.childExists(destNodeName)) {
+        NodeMongo destParent = getStoredNode(destParentPath);
+        if (destParent.childExists(destNodeName)) {
             throw new RuntimeException("Node already exists at move destination path: " + destPath);
         }
-        destParentNode.addChild(destNodeName);
 
-        // [Mete] Siblings?
+        // First, copy the existing nodes.
+        List<NodeMongo> nodesToCopy = new FetchNodesQuery(mongoConnection,
+                srcPath, headRevisionId).execute();
+        for (NodeMongo nodeMongo : nodesToCopy) {
+            String oldPath = nodeMongo.getPath();
+            String oldPathRel = PathUtils.relativize(srcPath, oldPath);
+            String newPath = PathUtils.concat(destPath, oldPathRel);
+
+            nodeMongo.setPath(newPath);
+            nodeMongo.removeField("_id");
+            pathNodeMap.put(newPath, nodeMongo);
+        }
+
+        // Then, copy any staged changes.
+        NodeMongo srcNode = getStoredNode(srcPath);
+        NodeMongo destNode = getStagedNode(destPath);
+        copyStagedChanges(srcNode, destNode);
+
+        // Finally, add to destParent and remove from srcParent.
+        getStagedNode(destPath);
+        destParent.addChild(destNodeName);
+        srcParent.removeChild(srcNodeName);
     }
 
     private void checkAbsolutePath(String srcPath) {
