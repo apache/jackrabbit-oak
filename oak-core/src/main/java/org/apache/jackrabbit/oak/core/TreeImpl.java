@@ -99,16 +99,19 @@ public class TreeImpl implements Tree, PurgeListener {
 
     @Override
     public String getName() {
+        root.checkLive();
         return name;
     }
 
     @Override
     public boolean isRoot() {
+        root.checkLive();
         return parent == null;
     }
 
     @Override
     public String getPath() {
+        root.checkLive();
         if (isRoot()) {
             // shortcut
             return "/";
@@ -121,6 +124,7 @@ public class TreeImpl implements Tree, PurgeListener {
 
     @Override
     public Tree getParent() {
+        root.checkLive();
         if (parent != null && canRead(parent)) {
             return parent;
         } else {
@@ -130,6 +134,7 @@ public class TreeImpl implements Tree, PurgeListener {
 
     @Override
     public PropertyState getProperty(String name) {
+        root.checkLive();
         PropertyState property = internalGetProperty(name);
         if (canRead(property)) {
             return property;
@@ -141,6 +146,7 @@ public class TreeImpl implements Tree, PurgeListener {
     @Override
     public Status getPropertyStatus(String name) {
         // TODO: see OAK-212
+        root.checkLive();
         Status nodeStatus = getStatus();
         if (nodeStatus == Status.NEW) {
             return (hasProperty(name)) ? Status.NEW : null;
@@ -170,16 +176,19 @@ public class TreeImpl implements Tree, PurgeListener {
 
     @Override
     public boolean hasProperty(String name) {
+        root.checkLive();
         return getProperty(name) != null;
     }
 
     @Override
     public long getPropertyCount() {
+        root.checkLive();
         return Iterables.size(getProperties());
     }
 
     @Override
     public Iterable<? extends PropertyState> getProperties() {
+        root.checkLive();
         return Iterables.filter(getNodeBuilder().getProperties(),
                 new Predicate<PropertyState>() {
                     @Override
@@ -191,6 +200,7 @@ public class TreeImpl implements Tree, PurgeListener {
 
     @Override
     public TreeImpl getChild(String name) {
+        root.checkLive();
         TreeImpl child = internalGetChild(name);
         if (child != null && canRead(child)) {
             return child;
@@ -201,6 +211,7 @@ public class TreeImpl implements Tree, PurgeListener {
 
     @Override
     public Status getStatus() {
+        root.checkLive();
         if (isRemoved()) {
             return Status.REMOVED;
         }
@@ -223,17 +234,20 @@ public class TreeImpl implements Tree, PurgeListener {
 
     @Override
     public boolean hasChild(String name) {
+        root.checkLive();
         return getChild(name) != null;
     }
 
     @Override
     public long getChildrenCount() {
         // TODO: make sure cnt respects access control
+        root.checkLive();
         return getNodeBuilder().getChildNodeCount();
     }
 
     @Override
     public Iterable<Tree> getChildren() {
+        root.checkLive();
         Iterable<String> childNames;
         if (hasOrderableChildren()) {
             childNames = getOrderedChildNames();
@@ -263,6 +277,7 @@ public class TreeImpl implements Tree, PurgeListener {
 
     @Override
     public Tree addChild(String name) {
+        root.checkLive();
         if (!hasChild(name)) {
             getNodeBuilder().child(name);
             if (hasOrderableChildren()) {
@@ -281,6 +296,7 @@ public class TreeImpl implements Tree, PurgeListener {
 
     @Override
     public boolean remove() {
+        root.checkLive();
         if (isRemoved()) {
             throw new IllegalStateException("Cannot remove removed tree");
         }
@@ -306,6 +322,7 @@ public class TreeImpl implements Tree, PurgeListener {
 
     @Override
     public boolean orderBefore(final String name) {
+        root.checkLive();
         if (isRoot()) {
             // root does not have siblings
             return false;
@@ -352,6 +369,7 @@ public class TreeImpl implements Tree, PurgeListener {
 
     @Override
     public void setProperty(PropertyState property) {
+        root.checkLive();
         NodeBuilder builder = getNodeBuilder();
         builder.setProperty(property);
         root.purge();
@@ -359,6 +377,7 @@ public class TreeImpl implements Tree, PurgeListener {
 
     @Override
     public <T> void setProperty(String name, T value) {
+        root.checkLive();
         NodeBuilder builder = getNodeBuilder();
         builder.setProperty(name, value);
         root.purge();
@@ -366,6 +385,7 @@ public class TreeImpl implements Tree, PurgeListener {
 
     @Override
     public <T> void setProperty(String name, T value, Type<T> type) {
+        root.checkLive();
         NodeBuilder builder = getNodeBuilder();
         builder.setProperty(name, value, type);
         root.purge();
@@ -373,6 +393,7 @@ public class TreeImpl implements Tree, PurgeListener {
 
     @Override
     public void removeProperty(String name) {
+        root.checkLive();
         NodeBuilder builder = getNodeBuilder();
         builder.removeProperty(name);
         root.purge();
@@ -380,6 +401,7 @@ public class TreeImpl implements Tree, PurgeListener {
 
     @Override
     public TreeLocation getLocation() {
+        root.checkLive();
         return new NodeLocation(this);
     }
 
@@ -502,8 +524,8 @@ public class TreeImpl implements Tree, PurgeListener {
     }
 
     /**
-     * @return <code>true</code> if this tree has orderable children;
-     *         <code>false</code> otherwise.
+     * @return {@code true} if this tree has orderable children;
+     *         {@code false} otherwise.
      */
     private boolean hasOrderableChildren() {
         return internalGetProperty(OAK_CHILD_ORDER) != null;
@@ -521,7 +543,7 @@ public class TreeImpl implements Tree, PurgeListener {
             @Override
             public Iterator<String> iterator() {
                 return new Iterator<String>() {
-                    PropertyState childOrder = internalGetProperty(OAK_CHILD_ORDER);
+                    final PropertyState childOrder = internalGetProperty(OAK_CHILD_ORDER);
                     int index = 0;
 
                     @Override
