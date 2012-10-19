@@ -56,6 +56,7 @@
                 org.apache.jackrabbit.oak.plugins.observation,
                 org.apache.jackrabbit.oak.spi.query,
                 org.apache.jackrabbit.oak.spi.commit,
+                org.apache.jackrabbit.oak.spi.lifecycle,
                 org.apache.jackrabbit.oak.spi.state,
                 org.apache.jackrabbit.oak.spi.security,
                 org.apache.jackrabbit.oak.spi.security.authentication,
