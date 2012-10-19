@@ -22,11 +22,9 @@ import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.List;
-
 import javax.annotation.Nonnull;
 import javax.security.auth.Subject;
 
-import org.apache.jackrabbit.oak.spi.observation.ChangeExtractor;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.SessionQueryEngine;
@@ -34,6 +32,7 @@ import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.plugins.commit.DefaultConflictHandler;
 import org.apache.jackrabbit.oak.query.SessionQueryEngineImpl;
 import org.apache.jackrabbit.oak.spi.commit.ConflictHandler;
+import org.apache.jackrabbit.oak.spi.observation.ChangeExtractor;
 import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlProvider;
@@ -44,8 +43,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -53,7 +50,6 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 
 public class RootImpl implements Root {
-    static final Logger log = LoggerFactory.getLogger(RootImpl.class);
 
     /**
      * Number of {@link #purge()} calls for which changes are kept in memory.
