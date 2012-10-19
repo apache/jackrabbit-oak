@@ -115,9 +115,9 @@ public class CommitCommandMongoTest extends BaseMongoTest {
         long rev1 = scenario1.create();
 
         Commit commit = CommitBuilder.build("/",
-                "+\"a/key1\" : \"value1\""
-                + "+\"a/b/key2\" : \"value2\""
-                + "+\"a/c/key3\" : \"value3\"", null);
+                "^\"a/key1\" : \"value1\""
+                + "^\"a/b/key2\" : \"value2\""
+                + "^\"a/c/key3\" : \"value3\"", null);
         CommitCommandMongo command = new CommitCommandMongo(mongoConnection, commit);
         long rev2 = command.execute();
 
@@ -201,9 +201,9 @@ public class CommitCommandMongoTest extends BaseMongoTest {
         long rev1 = command.execute();
 
         commit = CommitBuilder.build("/",
-                "+\"a/key1\" : \"value1\""
-                + "+\"a/key2\" : \"value2\""
-                + "+\"a/key3\" : \"value3\"", null);
+                "^\"a/key1\" : \"value1\""
+                + "^\"a/key2\" : \"value2\""
+                + "^\"a/key3\" : \"value3\"", null);
         command = new CommitCommandMongo(mongoConnection, commit);
         long rev2 = command.execute();
 

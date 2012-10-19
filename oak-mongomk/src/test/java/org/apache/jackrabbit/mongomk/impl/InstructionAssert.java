@@ -19,7 +19,6 @@ package org.apache.jackrabbit.mongomk.impl;
 import static junit.framework.Assert.assertEquals;
 
 import org.apache.jackrabbit.mongomk.api.instruction.Instruction.AddNodeInstruction;
-import org.apache.jackrabbit.mongomk.api.instruction.Instruction.AddPropertyInstruction;
 import org.apache.jackrabbit.mongomk.api.instruction.Instruction.CopyNodeInstruction;
 import org.apache.jackrabbit.mongomk.api.instruction.Instruction.MoveNodeInstruction;
 import org.apache.jackrabbit.mongomk.api.instruction.Instruction.RemoveNodeInstruction;
@@ -29,13 +28,6 @@ public class InstructionAssert {
 
     public static void assertAddNodeInstruction(AddNodeInstruction instruction, String path) {
         assertEquals(path, instruction.getPath());
-    }
-
-    public static void assertAddPropertyInstruction(AddPropertyInstruction instruction, String path, String key,
-            Object value) {
-        assertEquals(path, instruction.getPath());
-        assertEquals(key, instruction.getKey());
-        assertEquals(value, instruction.getValue());
     }
 
     public static void assertCopyNodeInstruction(CopyNodeInstruction instruction, String path, String sourcePath,

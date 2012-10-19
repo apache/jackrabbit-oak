@@ -106,12 +106,12 @@ public class MongoMKDiffTest extends BaseMongoMicroKernelTest {
     // FIXME - changePath test?
 
     @Test
-    public void addProperty() {
+    public void setProperty() {
         String rev0 = mk.commit("/", "+\"level1\":{}", null, null);
         assertTrue(mk.nodeExists("/level1", null));
 
         // Add property.
-        String rev1 = mk.commit("/", "+\"level1/prop1\": \"value1\"", null, null);
+        String rev1 = mk.commit("/", "^\"level1/prop1\": \"value1\"", null, null);
         JSONObject obj = parseJSONObject(mk.getNodes("/level1", null, 1, 0, -1, null));
         assertPropertyExists(obj, "prop1");
 

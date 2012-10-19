@@ -184,9 +184,9 @@ public class MongoMKCommitCopyTest extends BaseMongoMicroKernelTest {
     }
 
     @Test
-    public void addPropertyAndCopy() {
+    public void setPropertyAndCopy() {
         mk.commit("/", "+\"a\":{}", null, null);
-        mk.commit("/", "+\"a/key1\": \"value1\"\n" +
+        mk.commit("/", "^\"a/key1\": \"value1\"\n" +
                         "*\"a\":\"c\"", null, null);
 
         String nodes = mk.getNodes("/", null, -1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
@@ -196,9 +196,9 @@ public class MongoMKCommitCopyTest extends BaseMongoMicroKernelTest {
     }
 
     @Test
-    public void addNestedPropertyAndCopy() {
+    public void setNestedPropertyAndCopy() {
         mk.commit("/", "+\"a\":{ \"b\" : {} }", null, null);
-        mk.commit("/", "+\"a/b/key1\": \"value1\"\n" +
+        mk.commit("/", "^\"a/b/key1\": \"value1\"\n" +
                         "*\"a\":\"c\"", null, null);
 
         String nodes = mk.getNodes("/", null, -1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
@@ -211,7 +211,7 @@ public class MongoMKCommitCopyTest extends BaseMongoMicroKernelTest {
     public void modifyParentAddPropertyAndCopy() {
         mk.commit("/", "+\"a\":{}", null, null);
         mk.commit("/", "+\"b\" : {}\n"
-                     + "+\"a/key1\": \"value1\"\n"
+                     + "^\"a/key1\": \"value1\"\n"
                      + "*\"a\":\"c\"", null, null);
 
         String nodes = mk.getNodes("/", null, -1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);

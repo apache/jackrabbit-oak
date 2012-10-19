@@ -87,7 +87,7 @@ public class GetNodesCommandMongoTest extends BaseMongoTest {
         command.setDepth(2);
         actual = command.execute();
         expected = NodeBuilder.build(
-                String.format("{ \"/#%1$s\" : { \"a#%2$s\" : { \"int\" : 1 , \"double\" : 0.123 , \"b#%2$s\" : { \"string\" : \"foo\" , \"e\" : {} } , \"c#%1$s\" : { \"bool\" : true }, \"d#%2$s\" : { \"null\" : null } } } }",
+                String.format("{ \"/#%1$s\" : { \"a#%2$s\" : { \"int\" : 1 , \"double\" : 0.123 , \"b#%2$s\" : { \"string\" : \"foo\" , \"e\" : {} } , \"c#%1$s\" : { \"bool\" : true }, \"d#%2$s\" : { \"int\" : 2 } } } }",
                         firstRevisionId, secondRevisionId));
         NodeAssert.assertDeepEquals(expected, actual);
 
@@ -103,7 +103,7 @@ public class GetNodesCommandMongoTest extends BaseMongoTest {
         actual = command.execute();
         expected = NodeBuilder
                 .build(String
-                        .format("{ \"/#%1$s\" : { \"a#%2$s\" : { \"int\" : 1 , \"double\" : 0.123 , \"b#%2$s\" : { \"string\" : \"foo\" , \"e#%2$s\" : { \"array\" : [ 123, null, 123.456, \"for:bar\", true ] } } , \"c#%1$s\" : { \"bool\" : true }, \"d#%2$s\" : { \"null\" : null } } } }",
+                        .format("{ \"/#%1$s\" : { \"a#%2$s\" : { \"int\" : 1 , \"double\" : 0.123 , \"b#%2$s\" : { \"string\" : \"foo\" , \"e#%2$s\" : { \"array\" : [ 123, null, 123.456, \"for:bar\", true ] } } , \"c#%1$s\" : { \"bool\" : true }, \"d#%2$s\" : { \"int\" : 2 } } } }",
                                 firstRevisionId, secondRevisionId));
         NodeAssert.assertDeepEquals(expected, actual);
     }
@@ -125,7 +125,7 @@ public class GetNodesCommandMongoTest extends BaseMongoTest {
         command = new GetNodesCommandMongo(mongoConnection, "/", secondRevisionId);
         actual = command.execute();
         expected = NodeBuilder.build(
-                String.format("{ \"/#%1$s\" : { \"a#%2$s\" : { \"int\" : 1 , \"double\" : 0.123 , \"b#%2$s\" : { \"string\" : \"foo\" , \"e#%2$s\" : { \"array\" : [ 123, null, 123.456, \"for:bar\", true ] } } , \"c#%1$s\" : { \"bool\" : true }, \"d#%2$s\" : { \"null\" : null } } } }",
+                String.format("{ \"/#%1$s\" : { \"a#%2$s\" : { \"int\" : 1 , \"double\" : 0.123 , \"b#%2$s\" : { \"string\" : \"foo\" , \"e#%2$s\" : { \"array\" : [ 123, null, 123.456, \"for:bar\", true ] } } , \"c#%1$s\" : { \"bool\" : true }, \"d#%2$s\" : { \"int\" : 2 } } } }",
                         firstRevisionId, secondRevisionId));
         NodeAssert.assertDeepEquals(expected, actual);
     }

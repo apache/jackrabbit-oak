@@ -56,26 +56,6 @@ public interface Instruction {
     }
 
     /**
-     * The add property operation => "+" STRING ":" (ATOM | ARRAY)
-     */
-    public interface AddPropertyInstruction extends Instruction {
-
-        /**
-         * Returns the key of the property to add.
-         *
-         * @return The key.
-         */
-        String getKey();
-
-        /**
-         * Returns the value of the property to add.
-         *
-         * @return The value.
-         */
-        Object getValue();
-    }
-
-    /**
      * The copy node operation => "*" STRING ":" STRING
      */
     public interface CopyNodeInstruction extends Instruction {

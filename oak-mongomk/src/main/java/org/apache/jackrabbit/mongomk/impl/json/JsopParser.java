@@ -119,22 +119,24 @@ public class JsopParser {
                         tokenizer.setPos(pos);
                         tokenizer.read();
                         parseOpAdded(path);
-                    } else { // Property.
+                    }
+                    else { // Property.
                         String valueAsString = tokenizer.readRawValue().trim();
                         Object value = JsonUtil.toJsonValue(valueAsString);
-                        defaultHandler.propertyAdded(path, propName, value);
+                        defaultHandler.propertySet(path, propName, value);
                     }
                 } while (tokenizer.matches(','));
 
                 tokenizer.read('}'); // explicitly close the bracket
             }
-        } else { // Property.
-            String parentPath = PathUtils.denotesRoot(path) ? "" : PathUtils.getParentPath(path);
-            String propName = PathUtils.denotesRoot(path) ? "/" : PathUtils.getName(path);
-            String valueAsString = tokenizer.readRawValue().trim();
-            Object value = JsonUtil.toJsonValue(valueAsString);
-            defaultHandler.propertyAdded(parentPath, propName, value);
         }
+//        else { // Property.
+//            String parentPath = PathUtils.denotesRoot(path) ? "" : PathUtils.getParentPath(path);
+//            String propName = PathUtils.denotesRoot(path) ? "/" : PathUtils.getName(path);
+//            String valueAsString = tokenizer.readRawValue().trim();
+//            Object value = JsonUtil.toJsonValue(valueAsString);
+//            defaultHandler.propertySet(parentPath, propName, value);
+//        }
     }
 
     private void parseOpCopied() throws Exception {

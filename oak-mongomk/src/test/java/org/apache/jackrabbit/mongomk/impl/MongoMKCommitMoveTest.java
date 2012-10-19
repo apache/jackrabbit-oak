@@ -214,9 +214,9 @@ public class MongoMKCommitMoveTest extends BaseMongoMicroKernelTest {
     }
 
     @Test
-    public void addPropertyAndMove() {
+    public void setPropertyAndMove() {
         mk.commit("/", "+\"a\":{}", null, null);
-        mk.commit("/", "+\"a/key1\": \"value1\"\n" +
+        mk.commit("/", "^\"a/key1\": \"value1\"\n" +
                         ">\"a\":\"c\"", null, null);
 
         assertFalse(mk.nodeExists("/a", null));
@@ -228,9 +228,9 @@ public class MongoMKCommitMoveTest extends BaseMongoMicroKernelTest {
     }
 
     @Test
-    public void addNestedPropertyAndMove() {
+    public void setNestedPropertyAndMove() {
         mk.commit("/", "+\"a\":{ \"b\" : {} }", null, null);
-        mk.commit("/", "+\"a/b/key1\": \"value1\"\n" +
+        mk.commit("/", "^\"a/b/key1\": \"value1\"\n" +
                         ">\"a\":\"c\"", null, null);
 
         assertFalse(mk.nodeExists("/a", null));
@@ -247,7 +247,7 @@ public class MongoMKCommitMoveTest extends BaseMongoMicroKernelTest {
     public void modifyParentAddPropertyAndMove() {
         mk.commit("/", "+\"a\":{}", null, null);
         mk.commit("/", "+\"b\" : {}\n"
-                     + "+\"a/key1\": \"value1\"\n"
+                     + "^\"a/key1\": \"value1\"\n"
                      + ">\"a\":\"c\"", null, null);
 
         assertFalse(mk.nodeExists("/a", null));

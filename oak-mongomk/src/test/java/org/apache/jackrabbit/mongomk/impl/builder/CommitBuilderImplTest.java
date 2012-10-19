@@ -26,7 +26,6 @@ import junit.framework.Assert;
 
 import org.apache.jackrabbit.mongomk.api.instruction.Instruction;
 import org.apache.jackrabbit.mongomk.api.instruction.Instruction.AddNodeInstruction;
-import org.apache.jackrabbit.mongomk.api.instruction.Instruction.AddPropertyInstruction;
 import org.apache.jackrabbit.mongomk.api.instruction.Instruction.CopyNodeInstruction;
 import org.apache.jackrabbit.mongomk.api.instruction.Instruction.MoveNodeInstruction;
 import org.apache.jackrabbit.mongomk.api.instruction.Instruction.RemoveNodeInstruction;
@@ -53,12 +52,12 @@ public class CommitBuilderImplTest {
         List<Instruction> instructions = commit.getInstructions();
         Assert.assertEquals(6, instructions.size());
         InstructionAssert.assertAddNodeInstruction((AddNodeInstruction) instructions.get(0), "/a");
-        InstructionAssert.assertAddPropertyInstruction((AddPropertyInstruction) instructions.get(1), "/a", "int", 1);
+        InstructionAssert.assertSetPropertyInstruction((SetPropertyInstruction) instructions.get(1), "/a", "int", 1);
         InstructionAssert.assertAddNodeInstruction((AddNodeInstruction) instructions.get(2), "/a/b");
-        InstructionAssert.assertAddPropertyInstruction((AddPropertyInstruction) instructions.get(3), "/a/b", "string",
+        InstructionAssert.assertSetPropertyInstruction((SetPropertyInstruction) instructions.get(3), "/a/b", "string",
                 "foo");
         InstructionAssert.assertAddNodeInstruction((AddNodeInstruction) instructions.get(4), "/a/c");
-        InstructionAssert.assertAddPropertyInstruction((AddPropertyInstruction) instructions.get(5), "/a/c", "bool",
+        InstructionAssert.assertSetPropertyInstruction((SetPropertyInstruction) instructions.get(5), "/a/c", "bool",
                 true);
     }
 
