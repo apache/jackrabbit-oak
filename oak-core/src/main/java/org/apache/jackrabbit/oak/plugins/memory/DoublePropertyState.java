@@ -19,11 +19,12 @@
 package org.apache.jackrabbit.oak.plugins.memory;
 
 import java.math.BigDecimal;
+import java.util.Calendar;
 
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.value.Conversions;
 
-import static org.apache.jackrabbit.oak.api.Type.*;
+import static org.apache.jackrabbit.oak.api.Type.DOUBLE;
 
 public class DoublePropertyState extends SinglePropertyState {
     private final double value;
@@ -46,6 +47,12 @@ public class DoublePropertyState extends SinglePropertyState {
     @Override
     public long getLong() {
         return Conversions.convert(value).toLong();
+    }
+
+    @Override
+    protected String getDate() {
+        Calendar calendar = Conversions.convert(value).toDate();
+        return Conversions.convert(calendar).toString();
     }
 
     @Override

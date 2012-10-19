@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.memory;
 
 import java.math.BigDecimal;
+import java.util.Calendar;
 
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.value.Conversions;
@@ -44,6 +45,12 @@ public class DecimalPropertyState extends SinglePropertyState {
     @Override
     public long getLong() {
         return Conversions.convert(value).toLong();
+    }
+
+    @Override
+    protected String getDate() {
+        Calendar calendar = Conversions.convert(value).toDate();
+        return Conversions.convert(calendar).toString();
     }
 
     @Override
