@@ -21,14 +21,18 @@ package org.apache.jackrabbit.oak.plugins.value;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.util.Calendar;
+import java.util.TimeZone;
 
 import com.google.common.io.ByteStreams;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.plugins.memory.StringBasedBlob;
+import org.apache.jackrabbit.util.ISO8601;
 
 /**
  * Utility class defining the conversion that take place between {@link org.apache.jackrabbit.oak.api.PropertyState}s
- * of different types.
+ * of different types. All conversions defined in this class are compatible with the conversions specified
+ * in JSR-283 $3.6.4. However, some conversion in this class might not be defined in JSR-283.
  * <p>
  * Example:
  * <pre>
@@ -77,6 +81,19 @@ public final class Conversions {
          */
         public double toDouble() {
             return Double.parseDouble(toString());
+        }
+
+        /**
+         * Convert to date. This default implementation is based on {@code ISO8601.parse(String)}.
+         * @return  date representation of the converted value
+         * @throws IllegalStateException  if the string cannot be parsed into a date
+         */
+        public Calendar toDate() {
+            Calendar date = ISO8601.parse(toString());
+            if (date == null) {
+                throw new IllegalStateException("Not a date string: " + toString());
+            }
+            return date;
         }
 
         /**
@@ -147,7 +164,8 @@ public final class Conversions {
     /**
      * Create a converter for a long. {@code String.valueOf(long)} is used for the conversion to {@code String}.
      * The conversions to {@code double} and {@code long} return the {@code value} itself.
-     * The conversion to decimal uses {@code new BigDecimal(long)}.
+     * The conversion to decimal uses {@code new BigDecimal.valueOf(long)}.
+     * The conversion to date interprets the value as number of milliseconds since {@code 1970-01-01T00:00:00.000Z}.
      * @param value  The long to convert
      * @return  A converter for {@code value}
      */
@@ -169,8 +187,15 @@ public final class Conversions {
             }
 
             @Override
+            public Calendar toDate() {
+                Calendar date = Calendar.getInstance(TimeZone.getTimeZone("GMT+00:00"));
+                date.setTimeInMillis(toLong());
+                return date;
+            }
+
+            @Override
             public BigDecimal toDecimal() {
-                return new BigDecimal(value);
+                return BigDecimal.valueOf(value);
             }
         };
     }
@@ -179,7 +204,9 @@ public final class Conversions {
      * Create a converter for a double. {@code String.valueOf(double)} is used for the conversion to {@code String}.
      * The conversions to {@code double} and {@code long} return the {@code value} itself where in the former case
      * the value is casted to {@code long}.
-     * The conversion to decimal uses {@code new BigDecimal(double)}.
+     * The conversion to decimal uses {@code BigDecimal.valueOf(double)}.
+     * The conversion to date interprets {@code toLong()} as number of milliseconds since
+     * {@code 1970-01-01T00:00:00.000Z}.
      * @param value  The double to convert
      * @return  A converter for {@code value}
      */
@@ -201,8 +228,51 @@ public final class Conversions {
             }
 
             @Override
+            public Calendar toDate() {
+                Calendar date = Calendar.getInstance(TimeZone.getTimeZone("GMT+00:00"));
+                date.setTimeInMillis(toLong());
+                return date;
+            }
+
+            @Override
             public BigDecimal toDecimal() {
-                return new BigDecimal(value);
+                return BigDecimal.valueOf(value);
+            }
+        };
+    }
+
+    /**
+     * Create a converter for a date. {@code ISO8601.format(Calendar)} is used for the conversion to {@code String}.
+     * The conversions to {@code double}, {@code long} and {@code BigDecimal} return the number of milliseconds
+     * since  {@code 1970-01-01T00:00:00.000Z}.
+     * @param value  The date to convert
+     * @return  A converter for {@code value}
+     */
+    public static Converter converter(final Calendar value) {
+        return new Converter() {
+            @Override
+            public String toString() {
+                return ISO8601.format(value);
+            }
+
+            @Override
+            public long toLong() {
+                return value.getTimeInMillis();
+            }
+
+            @Override
+            public double toDouble() {
+                return value.getTimeInMillis();
+            }
+
+            @Override
+            public Calendar toDate() {
+                return value;
+            }
+
+            @Override
+            public BigDecimal toDecimal() {
+                return new BigDecimal(value.getTimeInMillis());
             }
         };
     }
@@ -230,6 +300,8 @@ public final class Conversions {
      * Create a converter for a decimal. {@code BigDecimal.toString()} is used for the conversion to {@code String}.
      * {@code BigDecimal.longValue()} and {@code BigDecimal.doubleValue()} is used for the conversions to
      * {@code long} and {@code double}, respectively.
+     * The conversion to date interprets {@code toLong()} as number of milliseconds since
+     * {@code 1970-01-01T00:00:00.000Z}.
      * @param value  The decimal to convert
      * @return  A converter for {@code value}
      */
@@ -248,6 +320,13 @@ public final class Conversions {
             @Override
             public double toDouble() {
                 return value.doubleValue();
+            }
+
+            @Override
+            public Calendar toDate() {
+                Calendar date = Calendar.getInstance(TimeZone.getTimeZone("GMT+00:00"));
+                date.setTimeInMillis(toLong());
+                return date;
             }
 
             @Override
