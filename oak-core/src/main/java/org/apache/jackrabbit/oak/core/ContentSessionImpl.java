@@ -61,6 +61,7 @@ class ContentSessionImpl implements ContentSession {
         this.indexProvider = indexProvider;
     }
 
+    //-----------------------------------------------------< ContentSession >---
     @Nonnull
     @Override
     public AuthInfo getAuthInfo() {
@@ -70,6 +71,11 @@ class ContentSessionImpl implements ContentSession {
         } else {
             return infoSet.iterator().next();
         }
+    }
+
+    @Override
+    public String getWorkspaceName() {
+        return workspaceName;
     }
 
     @Nonnull
@@ -87,6 +93,7 @@ class ContentSessionImpl implements ContentSession {
         return store.createBlob(inputStream);
     }
 
+    //-----------------------------------------------------------< Closable >---
     @Override
     public synchronized void close() throws IOException {
         try {
@@ -94,11 +101,6 @@ class ContentSessionImpl implements ContentSession {
         } catch (LoginException e) {
             log.error("Error during logout.", e);
         }
-    }
-
-    @Override
-    public String getWorkspaceName() {
-        return workspaceName;
     }
 
 }
