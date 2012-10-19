@@ -16,18 +16,29 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.property;
 
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
+
 import java.util.List;
 import java.util.Map;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 
+/**
+ * {@link NodeStateDiff} implementation that extracts changes for the
+ * {@link PropertyIndexHook} to be applied on the {@link PropertyIndex}
+ * 
+ * @see PropertyIndexHook
+ * 
+ */
 class PropertyIndexDiff implements NodeStateDiff {
 
     private final PropertyIndexDiff parent;
@@ -50,16 +61,21 @@ class PropertyIndexDiff implements NodeStateDiff {
         this.path = path;
         this.updates = updates;
 
-        if (node != null && node.hasChildNode("oak:index")) {
-            NodeBuilder index = node.child("oak:index");
+        if (node != null && node.hasChildNode(INDEX_DEFINITIONS_NAME)) {
+            NodeBuilder index = node.child(INDEX_DEFINITIONS_NAME);
             for (String indexName : index.getChildNodeNames()) {
-                List<PropertyIndexUpdate> list = updates.get(indexName);
-                if (list == null) {
-                    list = Lists.newArrayList();
-                    updates.put(indexName, list);
+                NodeBuilder indexChild = index.child(indexName);
+                PropertyState ps = indexChild.getProperty("pnames");
+                Iterable<String> propertyNames = ps != null ? ps
+                        .getValue(Type.STRINGS) : ImmutableList.of(indexName);
+                for (String pname : propertyNames) {
+                    List<PropertyIndexUpdate> list = this.updates.get(pname);
+                    if (list == null) {
+                        list = Lists.newArrayList();
+                        this.updates.put(pname, list);
+                    }
+                    list.add(new PropertyIndexUpdate(getPath(), indexChild));
                 }
-                list.add(new PropertyIndexUpdate(
-                        getPath(), index.child(indexName)));
             }
         }
     }
@@ -84,12 +100,7 @@ class PropertyIndexDiff implements NodeStateDiff {
 
     private String getPath() {
         if (path == null) { // => parent != null
-            String parentPath = parent.getPath();
-            if ("/".equals(parentPath)) {
-                path = parentPath + name;
-            } else {
-                path = parentPath + "/" + name;
-            }
+            path = concat(parent.getPath(), name);
         }
         return path;
     }
@@ -136,8 +147,7 @@ class PropertyIndexDiff implements NodeStateDiff {
     public void childNodeChanged(
             String name, NodeState before, NodeState after) {
         if (!NodeStateUtils.isHidden(name)) {
-            PropertyIndexDiff child = new PropertyIndexDiff(this, name);
-            after.compareAgainstBaseState(before, child);
+            after.compareAgainstBaseState(before, new PropertyIndexDiff(this, name));
         }
     }
 
