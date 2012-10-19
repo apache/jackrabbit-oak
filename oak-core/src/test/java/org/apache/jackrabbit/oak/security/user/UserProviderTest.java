@@ -16,21 +16,16 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.ContentRepository;
-import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexHook;
 import org.apache.jackrabbit.oak.plugins.nodetype.InitialContent;
-import org.apache.jackrabbit.oak.security.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.util.Text;
@@ -50,9 +45,8 @@ import static org.junit.Assert.fail;
  * TODO: add tests for setProtectedProperty (might still be refactored...)
  * TODO: add tests for findAuthorizables once implementation is ready
  */
-public class UserProviderTest extends AbstractSecurityTest {
+public class UserProviderTest {
 
-    private ContentSession contentSession;
     private Root root;
 
     private ConfigurationParameters defaultConfig;
@@ -63,12 +57,12 @@ public class UserProviderTest extends AbstractSecurityTest {
     private String customUserPath = "/home/users";
     private String customGroupPath = "/home/groups";
 
-    private List<String> cleanupPaths = new ArrayList<String>();
-
     @Before
     public void setUp() throws Exception {
-        contentSession = login(getAdminCredentials());
-        root = contentSession.getLatestRoot();
+        root = new Oak()
+                .with(new InitialContent())
+                .with(new PropertyIndexHook())
+                .createRoot();
 
         defaultConfig = new ConfigurationParameters();
         defaultUserPath = defaultConfig.getConfigValue(UserConstants.PARAM_USER_PATH, UserConstants.DEFAULT_USER_PATH);
@@ -77,29 +71,11 @@ public class UserProviderTest extends AbstractSecurityTest {
         customOptions = new HashMap<String, Object>();
         customOptions.put(UserConstants.PARAM_GROUP_PATH, customGroupPath);
         customOptions.put(UserConstants.PARAM_USER_PATH, customUserPath);
-
-        cleanupPaths.add(defaultUserPath);
-        cleanupPaths.add(defaultGroupPath);
-        cleanupPaths.add(customUserPath);
-        cleanupPaths.add(customGroupPath);
     }
 
     @After
-    public void tearDown() throws Exception {
-        for (String path : cleanupPaths) {
-            Tree t = root.getTree(path);
-            if (t != null) {
-                t.remove();
-            }
-        }
-    }
-
-    @Override
-    protected ContentRepository createRepository() {
-        return new Oak()
-            .with(new InitialContent())
-            .with(new PropertyIndexHook())
-            .createContentRepository();
+    public void tearDown() {
+        root = null;
     }
 
     private UserProvider createUserProvider() {

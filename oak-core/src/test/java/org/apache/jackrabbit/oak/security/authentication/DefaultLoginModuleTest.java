@@ -26,17 +26,12 @@ import javax.security.auth.login.LoginException;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
-import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.AuthInfo;
-import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.plugins.nodetype.InitialContent;
 import org.apache.jackrabbit.oak.security.AbstractSecurityTest;
-import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl;
-import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtility;
 import org.junit.After;
@@ -52,8 +47,6 @@ import static org.junit.Assert.fail;
  * LoginTest...
  */
 public class DefaultLoginModuleTest extends AbstractSecurityTest {
-
-    SecurityProvider securityProvider = new SecurityProviderImpl();
 
     ContentSession admin;
 
@@ -71,14 +64,6 @@ public class DefaultLoginModuleTest extends AbstractSecurityTest {
         if (admin != null) {
             admin.close();
         }
-    }
-
-    @Override
-    protected ContentRepository createRepository() {
-        return new Oak()
-            .with(new InitialContent())
-            .with(securityProvider)
-            .createContentRepository();
     }
 
     @Test
