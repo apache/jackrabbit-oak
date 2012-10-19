@@ -65,7 +65,7 @@ class UserImpl extends AuthorizableImpl implements User {
     @Override
     public Principal getPrincipal() throws RepositoryException {
         Tree userTree = getTree();
-        String principalName = getPrincipalName(userTree);
+        String principalName = getPrincipalName();
         if (isAdmin()) {
             return new AdminPrincipalImpl(principalName, userTree, getUserManager().getNamePathMapper());
         } else {
