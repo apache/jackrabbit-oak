@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.plugins.memory;
 
 import java.math.BigDecimal;
+import java.util.Calendar;
 import java.util.List;
 
 import javax.annotation.Nonnull;
@@ -37,8 +38,6 @@ import org.apache.jackrabbit.oak.kernel.KernelBlob;
 import org.apache.jackrabbit.oak.kernel.TypeCodes;
 import org.apache.jackrabbit.oak.plugins.value.Conversions;
 
-import static org.apache.jackrabbit.oak.api.Type.DATE;
-import static org.apache.jackrabbit.oak.api.Type.DATES;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.PATH;
@@ -78,6 +77,8 @@ public final class PropertyStates {
                 return longProperty(name, value.getLong());
             case PropertyType.DOUBLE:
                 return doubleProperty(name, value.getDouble());
+            case PropertyType.DATE:
+                return dateProperty(name, value.getLong());
             case PropertyType.BOOLEAN:
                 return booleanProperty(name, value.getBoolean());
             case PropertyType.DECIMAL:
@@ -131,6 +132,12 @@ public final class PropertyStates {
                     doubles.add(value.getDouble());
                 }
                 return doubleProperty(name, doubles);
+            case PropertyType.DATE:
+                List<Long> dates = Lists.newArrayList();
+                for (Value value : values) {
+                    dates.add(value.getLong());
+                }
+                return datePropertyFromLong(name, dates);
             case PropertyType.BOOLEAN:
                 List<Boolean> booleans = Lists.newArrayList();
                 for (Value value : values) {
@@ -163,17 +170,19 @@ public final class PropertyStates {
     public static PropertyState createProperty(String name, String value, int type) {
         switch (type) {
             case PropertyType.STRING:
-                return new StringPropertyState(name, value);
+                return stringProperty(name, value);
             case PropertyType.BINARY:
-                return new BinaryPropertyState(name, Conversions.convert(value).toBinary());
+                return binaryProperty(name, Conversions.convert(value).toBinary());
             case PropertyType.LONG:
-                return new LongPropertyState(name, Conversions.convert(value).toLong());
+                return longProperty(name, Conversions.convert(value).toLong());
             case PropertyType.DOUBLE:
-                return new DoublePropertyState(name, Conversions.convert(value).toDouble());
+                return doubleProperty(name, Conversions.convert(value).toDouble());
+            case PropertyType.DATE:
+                return dateProperty(name, value);
             case PropertyType.BOOLEAN:
-                return new BooleanPropertyState(name, Conversions.convert(value).toBoolean());
+                return booleanProperty(name, Conversions.convert(value).toBoolean());
             case PropertyType.DECIMAL:
-                return new DecimalPropertyState(name, Conversions.convert(value).toDecimal());
+                return decimalProperty(name, Conversions.convert(value).toDecimal());
             default:
                 return new GenericPropertyState(name, value, Type.fromTag(type, false));
         }
@@ -334,7 +343,7 @@ public final class PropertyStates {
      * @return  The new property state of type {@link Type#LONG}
      */
     public static PropertyState longProperty(String name, long value) {
-        return new LongPropertyState(name, value);
+        return LongPropertyState.createLongProperty(name, value);
     }
 
     /**
@@ -355,7 +364,29 @@ public final class PropertyStates {
      * @return  The new property state of type {@link Type#DATE}
      */
     public static PropertyState dateProperty(String name, String value) {
-        return new GenericPropertyState(name, value, DATE);
+        return LongPropertyState.createDateProperty(name, value);
+    }
+
+    /**
+     * Create a {@code PropertyState} from a date. No validation is performed
+     * on the string passed for {@code value}.
+     * @param name  The name of the property state
+     * @param value  The value of the property state
+     * @return  The new property state of type {@link Type#DATE}
+     */
+    public static PropertyState dateProperty(String name, long value) {
+        return LongPropertyState.createDateProperty(name, value);
+    }
+
+    /**
+     * Create a {@code PropertyState} from a date. No validation is performed
+     * on the string passed for {@code value}.
+     * @param name  The name of the property state
+     * @param value  The value of the property state
+     * @return  The new property state of type {@link Type#DATE}
+     */
+    public static PropertyState dateProperty(String name, Calendar value) {
+        return LongPropertyState.createDateProperty(name, value);
     }
 
     /**
@@ -440,7 +471,7 @@ public final class PropertyStates {
      * @return  The new property state of type {@link Type#STRINGS}
      */
     public static PropertyState stringProperty(String name, Iterable<String> values) {
-        return new StringsPropertyState(name, Lists.newArrayList(values));
+        return new StringsPropertyState(name, values);
     }
 
     /**
@@ -450,7 +481,7 @@ public final class PropertyStates {
      * @return  The new property state of type {@link Type#BINARIES}
      */
     public static PropertyState binaryPropertyFromBlob(String name, Iterable<Blob> values) {
-        return new BinariesPropertyState(name, Lists.newArrayList(values));
+        return new BinariesPropertyState(name, values);
     }
 
     /**
@@ -474,7 +505,7 @@ public final class PropertyStates {
      * @return  The new property state of type {@link Type#LONGS}
      */
     public static PropertyState longProperty(String name, Iterable<Long> values) {
-        return new LongsPropertyState(name, Lists.newArrayList(values));
+        return LongsPropertyState.createLongsProperty(name, values);
     }
 
     /**
@@ -484,7 +515,7 @@ public final class PropertyStates {
      * @return  The new property state of type {@link Type#DOUBLES}
      */
     public static PropertyState doubleProperty(String name, Iterable<Double> values) {
-        return new DoublesPropertyState(name, Lists.newArrayList(values));
+        return new DoublesPropertyState(name, values);
     }
 
     /**
@@ -495,7 +526,29 @@ public final class PropertyStates {
      * @return  The new property state of type {@link Type#DATES}
      */
     public static PropertyState dateProperty(String name, Iterable<String> values) {
-        return new GenericsPropertyState(name, Lists.newArrayList(values), DATES);
+        return LongsPropertyState.createDatesProperty(name, values);
+    }
+
+    /**
+     * Create a multi valued {@code PropertyState} from a list of dates.
+     * No validation is performed on the strings passed for {@code values}.
+     * @param name  The name of the property state
+     * @param values  The values of the property state
+     * @return  The new property state of type {@link Type#DATES}
+     */
+    public static PropertyState datePropertyFromLong(String name, Iterable<Long> values) {
+        return LongsPropertyState.createDatesPropertyFromLong(name, values);
+    }
+
+    /**
+     * Create a multi valued {@code PropertyState} from a list of dates.
+     * No validation is performed on the strings passed for {@code values}.
+     * @param name  The name of the property state
+     * @param values  The values of the property state
+     * @return  The new property state of type {@link Type#DATES}
+     */
+    public static PropertyState datePropertyFromCalendar(String name, Iterable<Calendar> values) {
+        return LongsPropertyState.createDatesPropertyFromCalendar(name, values);
     }
 
     /**
@@ -505,7 +558,7 @@ public final class PropertyStates {
      * @return  The new property state of type {@link Type#BOOLEANS}
      */
     public static PropertyState booleanProperty(String name, Iterable<Boolean> values) {
-        return new BooleansPropertyState(name, Lists.newArrayList(values));
+        return new BooleansPropertyState(name, values);
     }
 
     /**
@@ -516,7 +569,7 @@ public final class PropertyStates {
      * @return  The new property state of type {@link Type#NAMES}
      */
     public static PropertyState nameProperty(String name, Iterable<String> values) {
-        return new GenericsPropertyState(name, Lists.newArrayList(values), NAMES);
+        return new GenericsPropertyState(name, values, NAMES);
     }
 
     /**
@@ -527,7 +580,7 @@ public final class PropertyStates {
      * @return  The new property state of type {@link Type#PATHS}
      */
     public static PropertyState pathProperty(String name, Iterable<String> values) {
-        return new GenericsPropertyState(name, Lists.newArrayList(values), PATHS);
+        return new GenericsPropertyState(name, values, PATHS);
     }
 
     /**
@@ -538,7 +591,7 @@ public final class PropertyStates {
      * @return  The new property state of type {@link Type#REFERENCES}
      */
     public static PropertyState referenceProperty(String name, Iterable<String> values) {
-        return new GenericsPropertyState(name, Lists.newArrayList(values), REFERENCES);
+        return new GenericsPropertyState(name, values, REFERENCES);
     }
 
     /**
@@ -549,7 +602,7 @@ public final class PropertyStates {
      * @return  The new property state of type {@link Type#WEAKREFERENCES}
      */
     public static PropertyState weakreferenceProperty(String name, Iterable<String> values) {
-        return new GenericsPropertyState(name, Lists.newArrayList(values), WEAKREFERENCES);
+        return new GenericsPropertyState(name, values, WEAKREFERENCES);
     }
 
     /**
@@ -560,7 +613,7 @@ public final class PropertyStates {
      * @return  The new property state of type {@link Type#URIS}
      */
     public static PropertyState uriProperty(String name, Iterable<String> values) {
-        return new GenericsPropertyState(name, Lists.newArrayList(values), URIS);
+        return new GenericsPropertyState(name, values, URIS);
     }
 
     /**
@@ -570,7 +623,7 @@ public final class PropertyStates {
      * @return  The new property state of type {@link Type#DECIMALS}
      */
     public static PropertyState decimalProperty(String name, Iterable<BigDecimal> values) {
-        return new DecimalsPropertyState(name, Lists.newArrayList(values));
+        return new DecimalsPropertyState(name, values);
     }
 
     /**

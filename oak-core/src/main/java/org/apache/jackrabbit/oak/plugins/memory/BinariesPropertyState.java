@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
-import java.util.List;
-
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.Blob;
@@ -28,7 +26,7 @@ import static org.apache.jackrabbit.oak.api.Type.BINARIES;
 
 public class BinariesPropertyState extends MultiPropertyState<Blob> {
 
-    protected BinariesPropertyState(String name, List<Blob> values) {
+    protected BinariesPropertyState(String name, Iterable<Blob> values) {
         super(name, values);
     }
 
