@@ -27,6 +27,7 @@ import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.plugins.nodetype.InitialContent;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.junit.After;
 import org.junit.Before;
 
 /**
@@ -39,6 +40,8 @@ public abstract class AbstractSecurityTest {
 
     private ContentRepository contentRepository;
 
+    protected ContentSession admin;
+
     @Before
     public void before() throws Exception {
         contentRepository = new Oak()
@@ -48,6 +51,19 @@ public abstract class AbstractSecurityTest {
 
         // TODO: OAK-17. workaround for missing test configuration
         Configuration.setConfiguration(new OakConfiguration());
+        admin = login(getAdminCredentials());
+
+        Configuration.setConfiguration(getConfiguration());
+    }
+
+    @After
+    public void after() throws Exception {
+        admin.close();
+        Configuration.setConfiguration(null);
+    }
+
+    protected Configuration getConfiguration() {
+        return new OakConfiguration();
     }
 
     protected ContentSession login(Credentials credentials)
