@@ -30,7 +30,6 @@ import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
-import org.apache.jackrabbit.oak.core.OrderedChildrenEditor;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
@@ -68,7 +67,7 @@ public class Oak {
 
     private final List<CommitHook> commitHooks = Lists.newArrayList();
 
-    private final List<ValidatorProvider> validatorProviders = Lists.newArrayList();
+    private List<ValidatorProvider> validatorProviders = Lists.newArrayList();
 
     private SecurityProvider securityProvider = new OpenSecurityProvider();
 
@@ -126,7 +125,7 @@ public class Oak {
         if (!validatorProviders.isEmpty()) {
             commitHooks.add(new ValidatingHook(
                     CompositeValidatorProvider.compose(validatorProviders)));
-            //validatorProviders.clear(); FIXME
+            validatorProviders = Lists.newArrayList();
         }
     }
 
@@ -163,7 +162,6 @@ public class Oak {
     @Nonnull
     public Oak with(@Nonnull SecurityProvider securityProvider) {
         this.securityProvider = securityProvider;
-
         try {
             validatorProviders.addAll(securityProvider.getAccessControlProvider().getValidatorProviders());
             validatorProviders.addAll(securityProvider.getUserConfiguration().getValidatorProviders());
@@ -191,7 +189,10 @@ public class Oak {
         for (MicroKernelTracker initializer : initializers) {
             initializer.available(store);
         }
-        store.setHook(createCommitHook());
+
+        withValidatorHook();
+        store.setHook(CompositeHook.compose(commitHooks));
+
         return new ContentRepositoryImpl(
                 store,
                 conflictHandler,
@@ -245,12 +246,6 @@ public class Oak {
      */
     public Root createRoot() {
         return createContentSession().getLatestRoot();
-    }
-
-    private CommitHook createCommitHook() {
-        withValidatorHook();
-        commitHooks.add(new OrderedChildrenEditor()); // FIXME don't hardcode
-        return CompositeHook.compose(commitHooks);
     }
 
 }

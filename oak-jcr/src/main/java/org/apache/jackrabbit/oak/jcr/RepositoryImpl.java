@@ -30,6 +30,7 @@ import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.core.OrderedChildrenEditor;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.plugins.commit.AnnotatingConflictHandler;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
@@ -67,7 +68,8 @@ public class RepositoryImpl implements Repository {
     private static final CompositeHook DEFAULT_COMMIT_HOOK =
             new CompositeHook(
                     new ValidatingHook(DEFAULT_VALIDATOR),
-                    new PropertyIndexHook());
+                    new PropertyIndexHook(),
+                    new OrderedChildrenEditor());
 
     private static final ConflictHandler DEFAULT_CONFLICT_HANDLER = new AnnotatingConflictHandler();
 
