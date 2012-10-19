@@ -21,15 +21,10 @@ import javax.jcr.GuestCredentials;
 import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.login.Configuration;
 
-import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.AuthInfo;
-import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.plugins.nodetype.InitialContent;
 import org.apache.jackrabbit.oak.security.AbstractSecurityTest;
-import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl;
-import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.GuestLoginModule;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtility;
 import org.junit.After;
@@ -43,8 +38,6 @@ import static org.junit.Assert.assertEquals;
  */
 public class GuestDefaultLoginModuleTest extends AbstractSecurityTest {
 
-    SecurityProvider securityProvider = new SecurityProviderImpl();
-
     @Before
     public void before() throws Exception {
         super.before();
@@ -54,14 +47,6 @@ public class GuestDefaultLoginModuleTest extends AbstractSecurityTest {
     @After
     public void after() throws Exception {
         Configuration.setConfiguration(null);
-    }
-
-    @Override
-    protected ContentRepository createRepository() {
-        return new Oak()
-            .with(new InitialContent())
-            .with(securityProvider)
-            .createContentRepository();
     }
 
     @Test
