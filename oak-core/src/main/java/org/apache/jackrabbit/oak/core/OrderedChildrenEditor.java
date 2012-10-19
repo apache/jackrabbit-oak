@@ -16,23 +16,20 @@
  */
 package org.apache.jackrabbit.oak.core;
 
-import java.util.Set;
-
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryPropertyBuilder;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
-
-import com.google.common.collect.Sets;
+import org.apache.jackrabbit.oak.spi.state.PropertyBuilder;
 
 import static org.apache.jackrabbit.oak.core.TreeImpl.OAK_CHILD_ORDER;
 
@@ -96,27 +93,20 @@ public class OrderedChildrenEditor implements CommitHook {
         private void updateChildOrder() {
             PropertyState childOrder = builder.getProperty(OAK_CHILD_ORDER);
             if (childOrder != null) {
-                Set<String> children = Sets.newLinkedHashSet();
-                for (int i = 0; i < childOrder.count(); i++) {
-                    String name = childOrder.getValue(Type.STRING, i);
-                    // ignore hidden
-                    if (NodeStateUtils.isHidden(name)) {
-                        continue;
-                    }
-                    if (builder.hasChildNode(name)) {
-                        children.add(name);
+                PropertyBuilder<String> children = MemoryPropertyBuilder.create(Type.STRING, childOrder);
+                // Remove removed
+                for (String name : children.getValues()) {
+                    if (NodeStateUtils.isHidden(name) || !builder.hasChildNode(name)) {
+                        children.removeValue(name);
                     }
                 }
-                // make sure we have all
+                // Add added
                 for (String name : builder.getChildNodeNames()) {
-                    // ignore hidden
-                    if (NodeStateUtils.isHidden(name)) {
-                        continue;
+                    if (!NodeStateUtils.isHidden(name) && !children.hasValue(name)) {
+                        children.addValue(name);
                     }
-                    // will only add it if not yet present in set
-                    children.add(name);
                 }
-                builder.setProperty(PropertyStates.stringProperty(OAK_CHILD_ORDER, children));
+                builder.setProperty(children.getPropertyState(true));
             }
         }
     }
