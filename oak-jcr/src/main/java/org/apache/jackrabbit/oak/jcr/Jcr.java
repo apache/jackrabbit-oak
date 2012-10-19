@@ -45,7 +45,7 @@ import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.ConflictHandler;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
-import org.apache.jackrabbit.oak.spi.lifecycle.MicroKernelTracker;
+import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 
@@ -91,7 +91,7 @@ public class Jcr {
     }
 
     @Nonnull
-    public Jcr with(@Nonnull MicroKernelTracker initializer) {
+    public Jcr with(@Nonnull RepositoryInitializer initializer) {
        oak.with(checkNotNull(initializer));
        return this;
     }

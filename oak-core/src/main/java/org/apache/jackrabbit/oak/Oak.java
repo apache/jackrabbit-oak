@@ -38,7 +38,7 @@ import org.apache.jackrabbit.oak.spi.commit.ConflictHandler;
 import org.apache.jackrabbit.oak.spi.commit.ValidatingHook;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
-import org.apache.jackrabbit.oak.spi.lifecycle.MicroKernelTracker;
+import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
@@ -61,7 +61,7 @@ public class Oak {
 
     private final MicroKernel kernel;
 
-    private final List<MicroKernelTracker> initializers = Lists.newArrayList();
+    private final List<RepositoryInitializer> initializers = Lists.newArrayList();
 
     private final List<QueryIndexProvider> queryIndexProviders = Lists.newArrayList();
 
@@ -82,7 +82,7 @@ public class Oak {
     }
 
     @Nonnull
-    public Oak with(@Nonnull MicroKernelTracker initializer) {
+    public Oak with(@Nonnull RepositoryInitializer initializer) {
        initializers.add(checkNotNull(initializer));
        return this;
     }
@@ -186,8 +186,8 @@ public class Oak {
 
     public ContentRepository createContentRepository() {
         KernelNodeStore store = new KernelNodeStore(kernel);
-        for (MicroKernelTracker initializer : initializers) {
-            initializer.available(store);
+        for (RepositoryInitializer initializer : initializers) {
+            initializer.initialize(store);
         }
 
         withValidatorHook();
