@@ -16,7 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
+import java.math.BigDecimal;
+import java.util.Calendar;
+
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.value.Conversions;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -37,6 +41,50 @@ public class GenericPropertyState extends SinglePropertyState {
     @Override
     protected String getString() {
         return value;
+    }
+
+    @Override
+    protected long getLong() {
+        if (type == Type.DATE) {
+            Calendar calendar = Conversions.convert(value).toDate();
+            return Conversions.convert(calendar).toLong();
+        }
+        else {
+            return super.getLong();
+        }
+    }
+
+    @Override
+    protected double getDouble() {
+        if (type == Type.DATE) {
+            Calendar calendar = Conversions.convert(value).toDate();
+            return Conversions.convert(calendar).toDouble();
+        }
+        else {
+            return super.getDouble();
+        }
+    }
+
+    @Override
+    protected String getDate() {
+        if (type == Type.DATE) {
+            Calendar calendar = Conversions.convert(value).toDate();
+            return Conversions.convert(calendar).toString();
+        }
+        else {
+            return super.getDate();
+        }
+    }
+
+    @Override
+    protected BigDecimal getDecimal() {
+        if (type == Type.DATE) {
+            Calendar calendar = Conversions.convert(value).toDate();
+            return Conversions.convert(calendar).toDecimal();
+        }
+        else {
+            return super.getDecimal();
+        }
     }
 
     @Override

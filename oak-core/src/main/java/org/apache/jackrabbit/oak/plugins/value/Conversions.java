@@ -189,7 +189,7 @@ public final class Conversions {
             @Override
             public Calendar toDate() {
                 Calendar date = Calendar.getInstance(TimeZone.getTimeZone("GMT+00:00"));
-                date.setTimeInMillis(toLong());
+                date.setTimeInMillis(value);
                 return date;
             }
 
