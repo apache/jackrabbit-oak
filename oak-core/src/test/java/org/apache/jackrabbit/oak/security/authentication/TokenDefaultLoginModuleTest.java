@@ -45,7 +45,21 @@ public class TokenDefaultLoginModuleTest extends AbstractSecurityTest {
 
     @Override
     protected Configuration getConfiguration() {
-        return new TokenDefaultConfiguration();
+        return new Configuration() {
+            @Override
+            public AppConfigurationEntry[] getAppConfigurationEntry(String s) {
+                AppConfigurationEntry tokenEntry = new AppConfigurationEntry(
+                        TokenLoginModule.class.getName(),
+                        AppConfigurationEntry.LoginModuleControlFlag.SUFFICIENT,
+                        Collections.<String, Object>emptyMap());
+
+                AppConfigurationEntry defaultEntry = new AppConfigurationEntry(
+                        LoginModuleImpl.class.getName(),
+                        AppConfigurationEntry.LoginModuleControlFlag.REQUIRED,
+                        Collections.<String, Object>emptyMap());
+                return new AppConfigurationEntry[] {tokenEntry, defaultEntry};
+            }
+        };
     }
 
     @Test
@@ -184,22 +198,6 @@ public class TokenDefaultLoginModuleTest extends AbstractSecurityTest {
             assertEquals(sc.getUserID(), cs.getAuthInfo().getUserID());
         } finally {
             cs.close();
-        }
-    }
-
-    private class TokenDefaultConfiguration extends Configuration {
-
-        @Override
-        public AppConfigurationEntry[] getAppConfigurationEntry(String s) {
-            AppConfigurationEntry tokenEntry = new AppConfigurationEntry(
-                    TokenLoginModule.class.getName(),
-                    AppConfigurationEntry.LoginModuleControlFlag.SUFFICIENT,
-                    Collections.<String, Object>emptyMap());
-            AppConfigurationEntry defaultEntry = new AppConfigurationEntry(
-                    LoginModuleImpl.class.getName(),
-                    AppConfigurationEntry.LoginModuleControlFlag.REQUIRED,
-                    Collections.<String, Object>emptyMap());
-            return new AppConfigurationEntry[] {tokenEntry, defaultEntry};
         }
     }
 }

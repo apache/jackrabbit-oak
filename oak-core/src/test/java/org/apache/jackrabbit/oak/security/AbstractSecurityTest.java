@@ -35,12 +35,9 @@ import org.junit.Before;
  */
 public abstract class AbstractSecurityTest {
 
-    protected final SecurityProvider securityProvider =
-            new SecurityProviderImpl();
-
     private ContentRepository contentRepository;
-
     protected ContentSession admin;
+    protected final SecurityProvider securityProvider = new SecurityProviderImpl();
 
     @Before
     public void before() throws Exception {
