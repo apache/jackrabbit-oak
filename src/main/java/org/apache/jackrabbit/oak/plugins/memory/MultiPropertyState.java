@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.plugins.memory;
 
 import java.math.BigDecimal;
+import java.util.Calendar;
 import java.util.List;
 
 import javax.annotation.Nonnull;
@@ -99,6 +100,19 @@ abstract class MultiPropertyState<T> extends EmptyPropertyState {
     }
 
     /**
+     * @return  The values of this property state as {@code Dates}s
+     */
+    protected Iterable<String> getDates() {
+        return Iterables.transform(getStrings(), new Function<String, String>() {
+            @Override
+            public String apply(String value) {
+                Calendar calendar = Conversions.convert(value).toDate();
+                return Conversions.convert(calendar).toString();
+            }
+        });
+    }
+
+    /**
      * @return  The values of this property state as {@code Booleans}s
      */
     protected Iterable<Boolean> getBooleans() {
@@ -148,6 +162,15 @@ abstract class MultiPropertyState<T> extends EmptyPropertyState {
 
     /**
      * @param index
+     * @return  The value at the given {@code index} as {@code date}
+     */
+    protected String getDate(int index) {
+        Calendar calendar = Conversions.convert(getString(index)).toDate();
+        return Conversions.convert(calendar).toString();
+    }
+
+    /**
+     * @param index
      * @return  The value at the given {@code index} as {@code boolean}
      */
     protected boolean getBoolean(int index) {
@@ -176,7 +199,7 @@ abstract class MultiPropertyState<T> extends EmptyPropertyState {
             case PropertyType.BINARY: return (T) getBlobs();
             case PropertyType.LONG: return (T) getLongs();
             case PropertyType.DOUBLE: return (T) getDoubles();
-            case PropertyType.DATE: return (T) getStrings();
+            case PropertyType.DATE: return (T) getDates();
             case PropertyType.BOOLEAN: return (T) getBooleans();
             case PropertyType.NAME: return (T) getStrings();
             case PropertyType.PATH: return (T) getStrings();
@@ -207,7 +230,7 @@ abstract class MultiPropertyState<T> extends EmptyPropertyState {
             case PropertyType.BINARY: return (T) getBlob(index);
             case PropertyType.LONG: return (T) (Long) getLong(index);
             case PropertyType.DOUBLE: return (T) (Double) getDouble(index);
-            case PropertyType.DATE: return (T) getString(index);
+            case PropertyType.DATE: return (T) getDate(index);
             case PropertyType.BOOLEAN: return (T) (Boolean) getBoolean(index);
             case PropertyType.NAME: return (T) getString(index);
             case PropertyType.PATH: return (T) getString(index);

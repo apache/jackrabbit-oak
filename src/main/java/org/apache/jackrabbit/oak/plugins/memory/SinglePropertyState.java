@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.plugins.memory;
 
 import java.math.BigDecimal;
+import java.util.Calendar;
 
 import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
@@ -58,28 +59,36 @@ abstract class SinglePropertyState extends EmptyPropertyState {
     }
 
     /**
-     * @return  {@code getLong(getString())}
+     * @return  long value converted by {@code Conversions.convert(String)}
      */
     protected long getLong() {
         return Conversions.convert(getString()).toLong();
     }
 
     /**
-     * @return  {@code getDouble(getString())}
+     * @return  double value converted by {@code Conversions.convert(String)}
      */
     protected double getDouble() {
         return Conversions.convert(getString()).toDouble();
     }
 
     /**
-     * @return  {@code StringPropertyState.getBoolean(getString())}
+     * @return  date value converted by {@code Conversions.convert(String)}
+     */
+    protected String getDate() {
+        Calendar calendar = Conversions.convert(getString()).toDate();
+        return Conversions.convert(calendar).toString();
+    }
+
+    /**
+     * @return  boolean value converted by {@code Conversions.convert(String)}
      */
     protected boolean getBoolean() {
         return Conversions.convert(getString()).toBoolean();
     }
 
     /**
-     * @return  {@code getDecimal(getString())}
+     * @return  decimal value converted by {@code Conversions.convert(String)}
      */
     protected BigDecimal getDecimal() {
         return Conversions.convert(getString()).toDecimal();
@@ -107,7 +116,7 @@ abstract class SinglePropertyState extends EmptyPropertyState {
                 case PropertyType.BINARY: return (T) singleton(getBlob());
                 case PropertyType.LONG: return (T) singleton(getLong());
                 case PropertyType.DOUBLE: return (T) singleton(getDouble());
-                case PropertyType.DATE: return (T) singleton(getString());
+                case PropertyType.DATE: return (T) singleton(getDate());
                 case PropertyType.BOOLEAN: return (T) singleton(getBoolean());
                 case PropertyType.NAME: return (T) singleton(getString());
                 case PropertyType.PATH: return (T) singleton(getString());
@@ -124,7 +133,7 @@ abstract class SinglePropertyState extends EmptyPropertyState {
                 case PropertyType.BINARY: return (T) getBlob();
                 case PropertyType.LONG: return (T) (Long) getLong();
                 case PropertyType.DOUBLE: return (T) (Double) getDouble();
-                case PropertyType.DATE: return (T) getString();
+                case PropertyType.DATE: return (T) getDate();
                 case PropertyType.BOOLEAN: return (T) (Boolean) getBoolean();
                 case PropertyType.NAME: return (T) getString();
                 case PropertyType.PATH: return (T) getString();
