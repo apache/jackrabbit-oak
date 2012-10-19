@@ -26,21 +26,21 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.RootImpl.PurgeListener;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryPropertyBuilder;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
-
-import com.google.common.base.Function;
-import com.google.common.base.Predicate;
-import com.google.common.cache.CacheBuilder;
-import com.google.common.collect.Iterables;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -266,11 +266,10 @@ public class TreeImpl implements Tree, PurgeListener {
         if (!hasChild(name)) {
             getNodeBuilder().child(name);
             if (hasOrderableChildren()) {
-                getNodeBuilder().setProperty(PropertyStates.stringProperty(
-                        OAK_CHILD_ORDER,
-                        Iterables.concat(
-                                getOrderedChildNames(),
-                                Collections.singleton(name))));
+                getNodeBuilder().setProperty(
+                        MemoryPropertyBuilder.create(Type.STRING, internalGetProperty(OAK_CHILD_ORDER))
+                                .addValue(name)
+                                .getPropertyState(true));
             }
             root.purge();
         }
@@ -292,14 +291,11 @@ public class TreeImpl implements Tree, PurgeListener {
             parent.children.remove(name);
             removed = true;
             if (parent.hasOrderableChildren()) {
-                builder.setProperty(PropertyStates.stringProperty(
-                        OAK_CHILD_ORDER,
-                        Iterables.filter(parent.getOrderedChildNames(), new Predicate<String>() {
-                            @Override
-                            public boolean apply(@Nullable String input) {
-                                return !name.equals(input);
-                            }
-                        })));
+                builder.setProperty(
+                        MemoryPropertyBuilder.create(Type.STRING, parent.internalGetProperty(OAK_CHILD_ORDER))
+                                .removeValue(name)
+                                .getPropertyState(true)
+                );
             }
             root.purge();
             return true;
