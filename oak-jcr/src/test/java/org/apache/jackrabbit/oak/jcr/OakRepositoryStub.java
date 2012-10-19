@@ -29,7 +29,6 @@ import javax.security.auth.login.Configuration;
 
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.security.OakConfiguration;
-import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.test.NotExecutableException;
 import org.apache.jackrabbit.test.RepositoryStub;
 
@@ -50,10 +49,9 @@ public class OakRepositoryStub extends RepositoryStub {
         Configuration.setConfiguration(new OakConfiguration());
 
         String dir = "target/mk-tck-" + System.currentTimeMillis();
-        repository = new RepositoryImpl(
-                new MicroKernelImpl(dir),
-                Executors.newScheduledThreadPool(1),
-                new SecurityProviderImpl());
+        repository = new Jcr(new MicroKernelImpl(dir))
+            .with(Executors.newScheduledThreadPool(1))
+            .createRepository();
 
         Session session = repository.login(superuser);
         try {

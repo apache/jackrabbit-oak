@@ -25,11 +25,7 @@ import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.login.Configuration;
 
-import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.security.OakConfiguration;
-import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
-import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.junit.After;
 import org.junit.Before;
 
@@ -71,10 +67,7 @@ public abstract class AbstractRepositoryTest {
 
     protected Repository getRepository() throws RepositoryException {
         if (repository == null) {
-            MicroKernel mk = new MicroKernelImpl();
-            ScheduledExecutorService executorService = getExecutor();
-            SecurityProvider securityProvider = new SecurityProviderImpl();
-            repository  = new RepositoryImpl(mk, executorService, securityProvider);
+            repository  = new Jcr().with(getExecutor()).createRepository();
         }
         return repository;
     }

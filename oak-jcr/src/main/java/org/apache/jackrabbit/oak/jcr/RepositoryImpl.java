@@ -26,24 +26,8 @@ import javax.jcr.Value;
 import javax.security.auth.login.LoginException;
 
 import org.apache.jackrabbit.commons.SimpleValueFactory;
-import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.core.OrderedChildrenEditor;
-import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
-import org.apache.jackrabbit.oak.plugins.commit.AnnotatingConflictHandler;
-import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
-import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexHook;
-import org.apache.jackrabbit.oak.plugins.name.NameValidatorProvider;
-import org.apache.jackrabbit.oak.plugins.name.NamespaceValidatorProvider;
-import org.apache.jackrabbit.oak.plugins.nodetype.InitialContent;
-import org.apache.jackrabbit.oak.plugins.nodetype.TypeValidatorProvider;
-import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
-import org.apache.jackrabbit.oak.spi.commit.CompositeValidatorProvider;
-import org.apache.jackrabbit.oak.spi.commit.ConflictHandler;
-import org.apache.jackrabbit.oak.spi.commit.ValidatingHook;
-import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -58,37 +42,12 @@ public class RepositoryImpl implements Repository {
      */
     private static final Logger log = LoggerFactory.getLogger(RepositoryImpl.class);
 
-    private static final ValidatorProvider DEFAULT_VALIDATOR =
-            new CompositeValidatorProvider(
-                    new NameValidatorProvider(),
-                    new NamespaceValidatorProvider(),
-                    new TypeValidatorProvider(),
-                    new ConflictValidatorProvider());
-
-    private static final CompositeHook DEFAULT_COMMIT_HOOK =
-            new CompositeHook(
-                    new ValidatingHook(DEFAULT_VALIDATOR),
-                    new PropertyIndexHook(),
-                    new OrderedChildrenEditor());
-
-    private static final ConflictHandler DEFAULT_CONFLICT_HANDLER = new AnnotatingConflictHandler();
-
     private final Descriptors descriptors = new Descriptors(new SimpleValueFactory());
     private final ContentRepository contentRepository;
 
     private final ScheduledExecutorService executor;
 
     private final SecurityProvider securityProvider;
-
-    public RepositoryImpl(MicroKernel kernel, ScheduledExecutorService executor,
-                          SecurityProvider securityProvider) {
-        this(new Oak(setupInitialContent(kernel))
-                .with(DEFAULT_COMMIT_HOOK)
-                .with(DEFAULT_CONFLICT_HANDLER)
-                .with(securityProvider)
-                .createContentRepository(),
-                executor, securityProvider);
-    }
 
     public RepositoryImpl(
             ContentRepository contentRepository,
@@ -208,8 +167,4 @@ public class RepositoryImpl implements Repository {
         return login(null, workspace);
     }
 
-    private static MicroKernel setupInitialContent(MicroKernel mk) {
-        new InitialContent().available(new KernelNodeStore(mk));
-        return mk;
-    }
 }
