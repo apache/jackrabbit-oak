@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak;
+package org.apache.jackrabbit.oak.security;
 
 import javax.jcr.Credentials;
 import javax.jcr.NoSuchWorkspaceException;
@@ -22,21 +22,15 @@ import javax.jcr.SimpleCredentials;
 import javax.security.auth.login.Configuration;
 import javax.security.auth.login.LoginException;
 
-import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
-import org.apache.jackrabbit.oak.plugins.nodetype.InitialContent;
 import org.apache.jackrabbit.oak.security.OakConfiguration;
-import org.apache.jackrabbit.oak.spi.lifecycle.CompositeMicroKernelTracker;
-import org.apache.jackrabbit.oak.spi.lifecycle.MicroKernelTracker;
 import org.junit.Before;
 
 /**
  * AbstractOakTest is the base class for oak test execution.
  */
-public abstract class AbstractOakTest {
+public abstract class AbstractSecurityTest {
 
     private ContentRepository contentRepository;
 
@@ -47,20 +41,11 @@ public abstract class AbstractOakTest {
         Configuration.setConfiguration(new OakConfiguration());
     }
 
-    protected MicroKernel createMicroKernelWithInitialContent() {
-        MicroKernel mk = new MicroKernelImpl();
-        new InitialContent().available(new KernelNodeStore(mk));
-        return mk;
-    }
-
     protected abstract ContentRepository createRepository();
 
-    protected ContentRepository getContentRepository() {
-        return contentRepository;
-    }
-
-    protected ContentSession createAdminSession() throws LoginException, NoSuchWorkspaceException {
-        return getContentRepository().login(getAdminCredentials(), null);
+    protected ContentSession login(Credentials credentials)
+            throws LoginException, NoSuchWorkspaceException {
+        return contentRepository.login(credentials, null);
     }
 
     protected Credentials getAdminCredentials() {

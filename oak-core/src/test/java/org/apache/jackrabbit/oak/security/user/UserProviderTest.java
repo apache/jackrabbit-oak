@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.Map;
 import javax.jcr.RepositoryException;
 
-import org.apache.jackrabbit.oak.AbstractOakTest;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentRepository;
@@ -30,8 +29,9 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexHook;
+import org.apache.jackrabbit.oak.plugins.nodetype.InitialContent;
+import org.apache.jackrabbit.oak.security.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
-import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.util.Text;
 import org.junit.After;
@@ -50,7 +50,7 @@ import static org.junit.Assert.fail;
  * TODO: add tests for setProtectedProperty (might still be refactored...)
  * TODO: add tests for findAuthorizables once implementation is ready
  */
-public class UserProviderTest extends AbstractOakTest {
+public class UserProviderTest extends AbstractSecurityTest {
 
     private ContentSession contentSession;
     private Root root;
@@ -67,7 +67,7 @@ public class UserProviderTest extends AbstractOakTest {
 
     @Before
     public void setUp() throws Exception {
-        contentSession = createAdminSession();
+        contentSession = login(getAdminCredentials());
         root = contentSession.getLatestRoot();
 
         defaultConfig = new ConfigurationParameters();
@@ -96,7 +96,10 @@ public class UserProviderTest extends AbstractOakTest {
 
     @Override
     protected ContentRepository createRepository() {
-        return new Oak(createMicroKernelWithInitialContent()).with(new PropertyIndexHook()).with(new OpenSecurityProvider()).createContentRepository();
+        return new Oak()
+            .with(new InitialContent())
+            .with(new PropertyIndexHook())
+            .createContentRepository();
     }
 
     private UserProvider createUserProvider() {

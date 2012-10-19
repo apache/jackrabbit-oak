@@ -16,14 +16,14 @@
  */
 package org.apache.jackrabbit.oak.security.authentication.token;
 
-import org.apache.jackrabbit.oak.AbstractOakTest;
 import org.apache.jackrabbit.oak.api.ContentRepository;
+import org.apache.jackrabbit.oak.security.AbstractSecurityTest;
 import org.junit.Test;
 
 /**
  * TokenProviderImplTest...
  */
-public class TokenProviderImplTest extends AbstractOakTest {
+public class TokenProviderImplTest extends AbstractSecurityTest {
 
     @Override
     protected ContentRepository createRepository() {
