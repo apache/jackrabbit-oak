@@ -20,7 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.jackrabbit.api.security.user.User;
-import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
@@ -29,8 +29,6 @@ import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.security.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtility;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 
 import static junit.framework.Assert.assertEquals;
@@ -45,25 +43,14 @@ import static org.junit.Assert.fail;
  */
 public class UserManagerImplTest extends AbstractSecurityTest {
 
-    ContentSession admin;
-    Root root;
-    UserManagerImpl userMgr;
-
-    @Before
-    public void before() throws Exception {
-        super.before();
-        admin = login(getAdminCredentials());
-        root = admin.getLatestRoot();
-        userMgr = (UserManagerImpl) new UserConfigurationImpl(ConfigurationParameters.EMPTY, securityProvider).getUserManager(root, NamePathMapper.DEFAULT);
-    }
-
-    @After
-    public void after() throws Exception {
-        admin.close();
-    }
+    private final UserConfigurationImpl uc = new UserConfigurationImpl(
+            ConfigurationParameters.EMPTY, securityProvider);
 
     @Test
     public void testSetPassword() throws Exception {
+        Root root = admin.getLatestRoot();
+        UserManagerImpl userMgr = (UserManagerImpl) uc.getUserManager(root, NamePathMapper.DEFAULT);
+
         User user = userMgr.createUser("a", "pw");
         root.commit();
 
@@ -95,6 +82,9 @@ public class UserManagerImplTest extends AbstractSecurityTest {
 
     @Test
     public void setPasswordNull() throws Exception {
+        Root root = admin.getLatestRoot();
+        UserManagerImpl userMgr = (UserManagerImpl) uc.getUserManager(root, NamePathMapper.DEFAULT);
+
         User user = userMgr.createUser("a", null);
         root.commit();
 
@@ -116,6 +106,9 @@ public class UserManagerImplTest extends AbstractSecurityTest {
 
     @Test
     public void testGetPasswordHash() throws Exception {
+        Root root = admin.getLatestRoot();
+        UserManager userMgr = uc.getUserManager(root, NamePathMapper.DEFAULT);
+
         User user = userMgr.createUser("a", null);
         root.commit();
 

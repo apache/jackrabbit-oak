@@ -31,8 +31,6 @@ import org.apache.jackrabbit.oak.security.authentication.token.TokenLoginModule;
 import org.apache.jackrabbit.oak.security.authentication.token.TokenProviderImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenInfo;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -43,20 +41,9 @@ import static org.junit.Assert.fail;
  */
 public class TokenLoginModuleTest extends AbstractSecurityTest {
 
-    ContentSession admin;
-
-    @Before
-    public void before() throws Exception {
-        super.before();
-
-        admin = login(getAdminCredentials());
-        Configuration.setConfiguration(new TokenConfiguration());
-    }
-
-    @After
-    public void after() throws Exception {
-        Configuration.setConfiguration(null);
-        admin.close();
+    @Override
+    protected Configuration getConfiguration() {
+        return new TokenConfiguration();
     }
 
     @Test
