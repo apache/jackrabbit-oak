@@ -17,17 +17,11 @@
 package org.apache.jackrabbit.oak.spi.security.authentication.callback;
 
 import javax.annotation.CheckForNull;
-import javax.jcr.NoSuchWorkspaceException;
 import javax.security.auth.callback.Callback;
-import javax.security.auth.login.LoginException;
 
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
-import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
-import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.apache.jackrabbit.oak.core.RootImpl;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Callback implementation used to access the repository. It allows to set and
@@ -36,8 +30,6 @@ import org.slf4j.LoggerFactory;
  * the given node store and workspace name.
  */
 public class RepositoryCallback implements Callback {
-
-    private static final Logger log = LoggerFactory.getLogger(RepositoryCallback.class);
 
     private NodeStore nodeStore;
     private String workspaceName;
@@ -54,15 +46,7 @@ public class RepositoryCallback implements Callback {
     @CheckForNull
     public Root getRoot() {
         if (nodeStore != null) {
-            try {
-                // FIXME: need a direct and fast way to create Root from the node store without having to call login
-                SecurityProvider sp = new OpenSecurityProvider();
-                return new ContentRepositoryImpl(nodeStore, null, null, sp).login(null, workspaceName).getLatestRoot();
-            } catch (LoginException e) {
-                log.warn("Internal error ", e.getMessage());
-            } catch (NoSuchWorkspaceException e) {
-                log.warn("Internal error ", e.getMessage());
-            }
+            return new RootImpl(nodeStore);
         }
         return null;
     }
