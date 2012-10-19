@@ -22,6 +22,7 @@ import javax.jcr.Session;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
+import org.apache.jackrabbit.oak.api.Root;
 
 /**
  * Abstract implementation of the {@code AuthorizableAction} interface that
@@ -35,6 +36,7 @@ public abstract class AbstractAuthorizableAction implements AuthorizableAction {
      *
      * @see AuthorizableAction#onCreate(org.apache.jackrabbit.api.security.user.Group, javax.jcr.Session)
      */
+    @Override
     public void onCreate(Group group, Session session) throws RepositoryException {
         // nothing to do
 
@@ -43,9 +45,30 @@ public abstract class AbstractAuthorizableAction implements AuthorizableAction {
     /**
      * Doesn't perform any action.
      *
+     * @see AuthorizableAction#onCreate(org.apache.jackrabbit.api.security.user.Group, Root)
+     */
+    @Override
+    public void onCreate(Group group, Root root) throws RepositoryException {
+        // nothing to do
+    }
+
+    /**
+     * Doesn't perform any action.
+     *
      * @see AuthorizableAction#onCreate(org.apache.jackrabbit.api.security.user.User, String, javax.jcr.Session)
      */
+    @Override
     public void onCreate(User user, String password, Session session) throws RepositoryException {
+        // nothing to do
+    }
+
+    /**
+     * Doesn't perform any action.
+     *
+     * @see AuthorizableAction#onCreate(org.apache.jackrabbit.api.security.user.User, String, Root)
+     */
+    @Override
+    public void onCreate(User user, String password, Root root) throws RepositoryException {
         // nothing to do
     }
 
@@ -54,7 +77,18 @@ public abstract class AbstractAuthorizableAction implements AuthorizableAction {
      *
      * @see AuthorizableAction#onRemove(org.apache.jackrabbit.api.security.user.Authorizable, javax.jcr.Session)
      */
+    @Override
     public void onRemove(Authorizable authorizable, Session session) throws RepositoryException {
+        // nothing to do
+    }
+
+    /**
+     * Doesn't perform any action.
+     *
+     * @see AuthorizableAction#onRemove(org.apache.jackrabbit.api.security.user.Authorizable, Root)
+     */
+    @Override
+    public void onRemove(Authorizable authorizable, Root root) throws RepositoryException {
         // nothing to do
     }
 
@@ -63,7 +97,18 @@ public abstract class AbstractAuthorizableAction implements AuthorizableAction {
      *
      * @see AuthorizableAction#onPasswordChange(org.apache.jackrabbit.api.security.user.User, String, javax.jcr.Session)
      */
+    @Override
     public void onPasswordChange(User user, String newPassword, Session session) throws RepositoryException {
+        // nothing to do
+    }
+
+    /**
+     * Doesn't perform any action.
+     *
+     * @see AuthorizableAction#onPasswordChange(org.apache.jackrabbit.api.security.user.User, String, Root)
+     */
+    @Override
+    public void onPasswordChange(User user, String newPassword, Root root) throws RepositoryException {
         // nothing to do
     }
 }

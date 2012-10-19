@@ -23,6 +23,7 @@ import javax.jcr.Session;
 import javax.jcr.nodetype.ConstraintViolationException;
 
 import org.apache.jackrabbit.api.security.user.User;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtility;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,7 +61,17 @@ public class PasswordValidationAction extends AbstractAuthorizableAction {
     }
 
     @Override
+    public void onCreate(User user, String password, Root root) throws RepositoryException {
+        validatePassword(password);
+    }
+
+    @Override
     public void onPasswordChange(User user, String newPassword, Session session) throws RepositoryException {
+        validatePassword(newPassword);
+    }
+
+    @Override
+    public void onPasswordChange(User user, String newPassword, Root root) throws RepositoryException {
         validatePassword(newPassword);
     }
 

@@ -44,6 +44,8 @@ import org.slf4j.LoggerFactory;
 /**
  * This evaluator for {@link org.apache.jackrabbit.api.security.user.Query}s use XPath
  * and some minimal client side filtering.
+ *
+ * FIXME: replace usage of jcr-query manager by oak-api SessionQueryEngine.
  */
 public class XPathQueryEvaluator implements ConditionVisitor {
     static final Logger log = LoggerFactory.getLogger(XPathQueryEvaluator.class);

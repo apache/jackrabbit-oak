@@ -23,7 +23,7 @@ import javax.jcr.Value;
 /**
  * AuthorizableProperty... TODO
  */
-public interface AuthorizableProperties {
+interface AuthorizableProperties {
 
     Iterator<String> getNames(String relPath) throws RepositoryException;
 
