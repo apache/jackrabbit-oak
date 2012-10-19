@@ -20,9 +20,10 @@ package org.apache.jackrabbit.oak.plugins.memory;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
 
 import javax.annotation.Nonnull;
+
+import com.google.common.base.Charsets;
 
 /**
  * This {@code Blob} implementations is based on a string.
@@ -46,12 +47,7 @@ public class StringBasedBlob extends AbstractBlob {
     @Nonnull
     @Override
     public InputStream getNewStream() {
-        try {
-            return new ByteArrayInputStream(value.getBytes("UTF-8"));
-        }
-        catch (UnsupportedEncodingException e) {
-            throw new IllegalStateException("UTF-8 is not supported", e);
-        }
+        return new ByteArrayInputStream(value.getBytes(Charsets.UTF_8));
     }
 
     /**
@@ -60,11 +56,6 @@ public class StringBasedBlob extends AbstractBlob {
      */
     @Override
     public long length() {
-        try {
-            return value.getBytes("UTF-8").length;
-        }
-        catch (UnsupportedEncodingException e) {
-            throw new IllegalStateException("UTF-8 is not supported", e);
-        }
+        return value.getBytes(Charsets.UTF_8).length;
     }
 }

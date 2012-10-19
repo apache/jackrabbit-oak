@@ -16,10 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.value;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
 
 import javax.jcr.Binary;
 import javax.jcr.PropertyType;
@@ -41,21 +39,10 @@ class BinaryImpl implements Binary {
     }
 
     //-------------------------------------------------------------< Binary >---
+
     @Override
     public InputStream getStream() throws RepositoryException {
-        switch (value.getType()) {
-            case PropertyType.NAME:
-            case PropertyType.PATH:
-                // need to respect namespace remapping
-                try {
-                    final String strValue = value.getString();
-                    return new ByteArrayInputStream(strValue.getBytes("utf-8"));
-                } catch (UnsupportedEncodingException e) {
-                    throw new RepositoryException(e.getMessage());
-                }
-            default:
-                return value.getNewStream();
-        }
+        return value.getNewStream();
     }
 
     @Override

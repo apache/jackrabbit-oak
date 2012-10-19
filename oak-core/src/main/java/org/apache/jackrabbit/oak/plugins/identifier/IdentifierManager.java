@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.identifier;
 
-import java.io.UnsupportedEncodingException;
 import java.text.ParseException;
 import java.util.Collections;
 import java.util.Map;
@@ -28,6 +27,7 @@ import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
 import javax.jcr.query.Query;
 
+import com.google.common.base.Charsets;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
@@ -70,12 +70,8 @@ public class IdentifierManager {
 
     @Nonnull
     public static String generateUUID(String hint) {
-        try {
-            UUID uuid = UUID.nameUUIDFromBytes(hint.getBytes("UTF-8"));
-            return uuid.toString();
-        } catch (UnsupportedEncodingException e) {
-            throw new RuntimeException("Unexpected error while creating uuid", e);
-        }
+        UUID uuid = UUID.nameUUIDFromBytes(hint.getBytes(Charsets.UTF_8));
+        return uuid.toString();
     }
 
     public static boolean isValidUUID(String uuid) {
