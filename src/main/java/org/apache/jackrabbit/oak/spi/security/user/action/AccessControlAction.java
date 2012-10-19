@@ -31,6 +31,7 @@ import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -118,6 +119,16 @@ public class AccessControlAction extends AbstractAuthorizableAction {
         setAC(user, session);
     }
 
+    @Override
+    public void onCreate(Group group, Root root) throws RepositoryException {
+        setAC(group, root);
+    }
+
+    @Override
+    public void onCreate(User user, String password, Root root) throws RepositoryException {
+        setAC(user, root);
+    }
+
     //------------------------------------------------------< Configuration >---
     /**
      * Sets the privileges a new group will be granted on the group's home directory.
@@ -178,6 +189,11 @@ public class AccessControlAction extends AbstractAuthorizableAction {
                 acMgr.setPolicy(path, acl);
             }
         }
+    }
+
+    private void setAC(Authorizable authorizable, Root root) throws RepositoryException {
+        // TODO: add implementation
+        log.error("Not yet implemented");
     }
 
     /**

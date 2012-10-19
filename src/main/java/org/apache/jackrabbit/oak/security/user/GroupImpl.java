@@ -50,6 +50,7 @@ class GroupImpl extends AuthorizableImpl implements Group {
         super(id, tree, userManager);
     }
 
+    //---------------------------------------------------< AuthorizableImpl >---
     @Override
     void checkValidTree(Tree tree) throws RepositoryException {
         if (tree == null || !UserUtility.isType(tree, AuthorizableType.GROUP)) {
@@ -58,17 +59,11 @@ class GroupImpl extends AuthorizableImpl implements Group {
     }
 
     //-------------------------------------------------------< Authorizable >---
-    /**
-     * @see org.apache.jackrabbit.api.security.user.Authorizable#isGroup()
-     */
     @Override
     public boolean isGroup() {
         return true;
     }
 
-    /**
-     * @see org.apache.jackrabbit.api.security.user.Authorizable#getPrincipal()
-     */
     @Override
     public Principal getPrincipal() throws RepositoryException {
         Tree groupTree = getTree();
@@ -76,41 +71,26 @@ class GroupImpl extends AuthorizableImpl implements Group {
     }
 
     //--------------------------------------------------------------< Group >---
-    /**
-     * @see org.apache.jackrabbit.api.security.user.Group#getDeclaredMembers()
-     */
     @Override
     public Iterator<Authorizable> getDeclaredMembers() throws RepositoryException {
         return getMembers(false);
     }
 
-    /**
-     * @see org.apache.jackrabbit.api.security.user.Group#getMembers()
-     */
     @Override
     public Iterator<Authorizable> getMembers() throws RepositoryException {
         return getMembers(true);
     }
 
-    /**
-     * @see org.apache.jackrabbit.api.security.user.Group#isDeclaredMember(org.apache.jackrabbit.api.security.user.Authorizable)
-     */
     @Override
     public boolean isDeclaredMember(Authorizable authorizable) throws RepositoryException {
         return isMember(authorizable, false);
     }
 
-    /**
-     * @see org.apache.jackrabbit.api.security.user.Group#isMember(org.apache.jackrabbit.api.security.user.Authorizable)
-     */
     @Override
     public boolean isMember(Authorizable authorizable) throws RepositoryException {
         return isMember(authorizable, true);
     }
 
-    /**
-     * @see org.apache.jackrabbit.api.security.user.Group#addMember(org.apache.jackrabbit.api.security.user.Authorizable)
-     */
     @Override
     public boolean addMember(Authorizable authorizable) throws RepositoryException {
         if (!isValidAuthorizableImpl(authorizable)) {
@@ -144,9 +124,6 @@ class GroupImpl extends AuthorizableImpl implements Group {
         return getMembershipProvider().addMember(getTree(), authorizableImpl.getTree());
     }
 
-    /**
-     * @see org.apache.jackrabbit.api.security.user.Group#removeMember(org.apache.jackrabbit.api.security.user.Authorizable)
-     */
     @Override
     public boolean removeMember(Authorizable authorizable) throws RepositoryException {
         if (!isValidAuthorizableImpl(authorizable)) {
