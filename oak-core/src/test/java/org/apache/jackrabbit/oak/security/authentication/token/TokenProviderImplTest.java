@@ -16,18 +16,56 @@
  */
 package org.apache.jackrabbit.oak.security.authentication.token;
 
-import org.apache.jackrabbit.oak.api.ContentRepository;
+import javax.jcr.GuestCredentials;
+import javax.jcr.SimpleCredentials;
+
+import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
 import org.apache.jackrabbit.oak.security.AbstractSecurityTest;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
+import org.junit.Before;
 import org.junit.Test;
+
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 /**
  * TokenProviderImplTest...
  */
-public class TokenProviderImplTest {
+public class TokenProviderImplTest extends AbstractSecurityTest {
+
+    private TokenProviderImpl tokenProvider;
+
+    @Before
+    public void before() throws Exception {
+        super.before();
+
+        tokenProvider = new TokenProviderImpl(admin.getLatestRoot(),
+                ConfigurationParameters.EMPTY,
+                securityProvider.getUserConfiguration());
+    }
+
 
     @Test
     public void testDoCreateToken() throws Exception {
-        // TODO
+        assertFalse(tokenProvider.doCreateToken(new GuestCredentials()));
+        assertFalse(tokenProvider.doCreateToken(new TokenCredentials("token")));
+        assertFalse(tokenProvider.doCreateToken(getAdminCredentials()));
+
+        SimpleCredentials sc = new SimpleCredentials("uid", "pw".toCharArray());
+        assertFalse(tokenProvider.doCreateToken(sc));
+
+        sc.setAttribute("any_attribute", "value");
+        assertFalse(tokenProvider.doCreateToken(sc));
+
+        sc.setAttribute(TokenProvider.TOKEN_ATTRIBUTE + "_key", "value");
+        assertFalse(tokenProvider.doCreateToken(sc));
+
+        sc.setAttribute(TokenProvider.TOKEN_ATTRIBUTE, "existing");
+        assertFalse(tokenProvider.doCreateToken(sc));
+
+        sc.setAttribute(TokenProvider.TOKEN_ATTRIBUTE, "");
+        assertTrue(tokenProvider.doCreateToken(sc));
     }
 
     @Test
