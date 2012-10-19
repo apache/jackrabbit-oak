@@ -18,12 +18,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
-import java.util.List;
-
 import org.apache.jackrabbit.oak.api.Type;
 
 public class StringsPropertyState extends MultiPropertyState<String> {
-    protected StringsPropertyState(String name, List<String> values) {
+    protected StringsPropertyState(String name, Iterable<String> values) {
         super(name, values);
     }
 

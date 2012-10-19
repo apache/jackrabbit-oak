@@ -19,8 +19,6 @@
 package org.apache.jackrabbit.oak.plugins.memory;
 
 import java.math.BigDecimal;
-import java.util.Calendar;
-import java.util.List;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
@@ -30,7 +28,7 @@ import org.apache.jackrabbit.oak.plugins.value.Conversions;
 import static org.apache.jackrabbit.oak.api.Type.DOUBLES;
 
 public class DoublesPropertyState extends MultiPropertyState<Double> {
-    protected DoublesPropertyState(String name, List<Double>values) {
+    protected DoublesPropertyState(String name, Iterable<Double>values) {
         super(name, values);
     }
 
@@ -59,8 +57,7 @@ public class DoublesPropertyState extends MultiPropertyState<Double> {
         return Iterables.transform(values, new Function<Double, String>() {
             @Override
             public String apply(Double value) {
-                Calendar calendar = Conversions.convert(value).toDate();
-                return Conversions.convert(calendar).toString();
+                return Conversions.convert(value).toDate();
             }
         });
     }
@@ -71,9 +68,7 @@ public class DoublesPropertyState extends MultiPropertyState<Double> {
 
     @Override
     protected String getDate(int index) {
-        Calendar calendar = Conversions.convert(values.get(index)).toDate();
-        return Conversions.convert(calendar).toString();
-    }
+        return Conversions.convert(values.get(index)).toDate();    }
 
     @Override
     protected Iterable<Long> getLongs() {

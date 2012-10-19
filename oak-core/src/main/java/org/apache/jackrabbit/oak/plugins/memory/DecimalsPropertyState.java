@@ -17,8 +17,6 @@
 package org.apache.jackrabbit.oak.plugins.memory;
 
 import java.math.BigDecimal;
-import java.util.Calendar;
-import java.util.List;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
@@ -29,7 +27,7 @@ import static org.apache.jackrabbit.oak.api.Type.DECIMALS;
 
 public class DecimalsPropertyState extends MultiPropertyState<BigDecimal> {
 
-    protected DecimalsPropertyState(String name, List<BigDecimal> values) {
+    protected DecimalsPropertyState(String name, Iterable<BigDecimal> values) {
         super(name, values);
     }
 
@@ -58,8 +56,7 @@ public class DecimalsPropertyState extends MultiPropertyState<BigDecimal> {
         return Iterables.transform(values, new Function<BigDecimal, String>() {
             @Override
             public String apply(BigDecimal value) {
-                Calendar calendar = Conversions.convert(value).toDate();
-                return Conversions.convert(calendar).toString();
+                return Conversions.convert(value).toDate();
             }
         });
     }
@@ -71,8 +68,7 @@ public class DecimalsPropertyState extends MultiPropertyState<BigDecimal> {
 
     @Override
     protected String getDate(int index) {
-        Calendar calendar = Conversions.convert(values.get(index)).toDate();
-        return Conversions.convert(calendar).toString();
+        return Conversions.convert(values.get(index)).toDate();
     }
 
     @Override

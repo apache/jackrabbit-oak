@@ -159,13 +159,14 @@ public class MemoryPropertyBuilder<T> implements PropertyBuilder<T> {
                     return PropertyStates.longProperty(name, (Iterable<Long>) values);
                 case PropertyType.DOUBLE:
                     return PropertyStates.doubleProperty(name, (Iterable<Double>) values);
+                case PropertyType.DATE:
+                    return LongsPropertyState.createDatesProperty(name, (Iterable<String>) values);
                 case PropertyType.BOOLEAN:
                     return PropertyStates.booleanProperty(name, (Iterable<Boolean>) values);
                 case PropertyType.DECIMAL:
                     return PropertyStates.decimalProperty(name, (Iterable<BigDecimal>) values);
                 default:
-                    return new GenericsPropertyState(name, (List<String>) Lists.newArrayList(values),
-                            Type.fromTag(type.tag(), true));
+                    return new GenericsPropertyState(name, (Iterable<String>) values, Type.fromTag(type.tag(), true));
             }
         }
         else {
@@ -179,6 +180,8 @@ public class MemoryPropertyBuilder<T> implements PropertyBuilder<T> {
                     return PropertyStates.longProperty(name, (Long) value);
                 case PropertyType.DOUBLE:
                     return PropertyStates.doubleProperty(name, (Double) value);
+                case PropertyType.DATE:
+                    return PropertyStates.dateProperty(name, (String) value);
                 case PropertyType.BOOLEAN:
                     return PropertyStates.booleanProperty(name, (Boolean) value);
                 case PropertyType.DECIMAL:

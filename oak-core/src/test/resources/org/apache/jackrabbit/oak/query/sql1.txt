@@ -27,7 +27,7 @@
 
 sql1 select prop1 from nt:unstructured where prop1 is not null order by prop1 asc
 
-sql1 select * from nt:base where jcr:path like '/testroot/%' and birth > timestamp '1976-01-01t00:00:00.000+01:00'
+sql1 select * from nt:base where jcr:path like '/testroot/%' and birth > timestamp '1976-01-01T00:00:00.000+01:00'
 
 sql1 select * from nt:base where jcr:path like '/testroot/%' and value like 'foo\_bar' escape '\'
 

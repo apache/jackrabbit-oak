@@ -24,15 +24,40 @@ import java.util.List;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.value.Conversions;
 
-import static org.apache.jackrabbit.oak.api.Type.LONGS;
-
 public class LongsPropertyState extends MultiPropertyState<Long> {
+    private final Type<?> type;
 
-    protected LongsPropertyState(String name, List<Long> values) {
+    private LongsPropertyState(String name, Iterable<Long> values, Type<?> type) {
         super(name, values);
+        this.type = type;
+    }
+
+    public static LongsPropertyState createLongsProperty(String name, Iterable<Long> values) {
+        return new LongsPropertyState(name, Lists.newArrayList(values), Type.LONGS);
+    }
+
+    public static LongsPropertyState createDatesPropertyFromLong(String name, Iterable<Long> values) {
+        return new LongsPropertyState(name, Lists.newArrayList(values), Type.DATES);
+    }
+
+    public static LongsPropertyState createDatesPropertyFromCalendar(String name, Iterable<Calendar> values) {
+        List<Long> dates = Lists.newArrayList();
+        for (Calendar v : values) {
+            dates.add(Conversions.convert(v).toLong());
+        }
+        return new LongsPropertyState(name, dates, Type.DATES);
+    }
+
+    public static LongsPropertyState createDatesProperty(String name, Iterable<String> values) {
+        List<Calendar> dates = Lists.newArrayList();
+        for (String v : values) {
+            dates.add(Conversions.convert(v).toCalendar());
+        }
+        return createDatesPropertyFromCalendar(name, dates);
     }
 
     @Override
@@ -65,8 +90,7 @@ public class LongsPropertyState extends MultiPropertyState<Long> {
         return Iterables.transform(values, new Function<Long, String>() {
             @Override
             public String apply(Long value) {
-                Calendar calendar = Conversions.convert(value).toDate();
-                return Conversions.convert(calendar).toString();
+                return Conversions.convert(value).toDate();
             }
         });
     }
@@ -78,8 +102,7 @@ public class LongsPropertyState extends MultiPropertyState<Long> {
 
     @Override
     protected String getDate(int index) {
-        Calendar calendar = Conversions.convert(values.get(index)).toDate();
-        return Conversions.convert(calendar).toString();
+        return Conversions.convert(values.get(index)).toDate();
     }
 
     @Override
@@ -94,21 +117,33 @@ public class LongsPropertyState extends MultiPropertyState<Long> {
 
     @Override
     protected Iterable<String> getStrings() {
-        return Iterables.transform(values, new Function<Long, String>() {
-            @Override
-            public String apply(Long value) {
-                return Conversions.convert(value).toString();
-            }
-        });
+        if (type == Type.DATES) {
+            return Iterables.transform(values, new Function<Long, String>() {
+                @Override
+                public String apply(Long value) {
+                    return Conversions.convert(value).toDate();
+                }
+            });
+        }
+        else {
+            return Iterables.transform(values, new Function<Long, String>() {
+                @Override
+                public String apply(Long value) {
+                    return Conversions.convert(value).toString();
+                }
+            });
+        }
     }
 
     @Override
     protected String getString(int index) {
-        return Conversions.convert(values.get(index)).toString();
+        return (type == Type.DATES)
+            ? getDate(index)
+            : Conversions.convert(values.get(index)).toString();
     }
 
     @Override
     public Type<?> getType() {
-        return LONGS;
+        return type;
     }
 }

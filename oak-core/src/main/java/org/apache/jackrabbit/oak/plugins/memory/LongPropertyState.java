@@ -24,14 +24,30 @@ import java.util.Calendar;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.value.Conversions;
 
-import static org.apache.jackrabbit.oak.api.Type.LONG;
-
 public class LongPropertyState extends SinglePropertyState {
     private final long value;
+    private final Type<?> type;
 
-    protected LongPropertyState(String name, long value) {
+    private LongPropertyState(String name, long value, Type<?> type) {
         super(name);
         this.value = value;
+        this.type = type;
+    }
+
+    public static LongPropertyState createLongProperty(String name, long value) {
+        return new LongPropertyState(name, value, Type.LONG);
+    }
+
+    public static LongPropertyState createDateProperty(String name, long value) {
+        return new LongPropertyState(name, value, Type.DATE);
+    }
+
+    public static LongPropertyState createDateProperty(String name, Calendar value) {
+        return new LongPropertyState(name, Conversions.convert(value).toLong(), Type.DATE);
+    }
+
+    public static LongPropertyState createDateProperty(String name, String value) {
+        return createDateProperty(name, Conversions.convert(value).toCalendar());
     }
 
     @Override
@@ -51,17 +67,18 @@ public class LongPropertyState extends SinglePropertyState {
 
     @Override
     protected String getDate() {
-        Calendar calendar = Conversions.convert(value).toDate();
-        return Conversions.convert(calendar).toString();
+        return Conversions.convert(value).toDate();
     }
 
     @Override
     public String getString() {
-        return Conversions.convert(value).toString();
+        return type == Type.LONG
+            ? Conversions.convert(value).toString()
+            : getDate();
     }
 
     @Override
     public Type<?> getType() {
-        return LONG;
+        return type;
     }
 }

@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.plugins.memory;
 
 import java.math.BigDecimal;
-import java.util.Calendar;
 
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.value.Conversions;
@@ -51,8 +50,7 @@ public class DoublePropertyState extends SinglePropertyState {
 
     @Override
     protected String getDate() {
-        Calendar calendar = Conversions.convert(value).toDate();
-        return Conversions.convert(calendar).toString();
+        return Conversions.convert(value).toDate();
     }
 
     @Override
