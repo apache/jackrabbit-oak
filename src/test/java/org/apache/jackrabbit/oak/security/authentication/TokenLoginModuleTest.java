@@ -42,7 +42,17 @@ public class TokenLoginModuleTest extends AbstractSecurityTest {
 
     @Override
     protected Configuration getConfiguration() {
-        return new TokenConfiguration();
+        return new Configuration() {
+            @Override
+            public AppConfigurationEntry[] getAppConfigurationEntry(String s) {
+                AppConfigurationEntry defaultEntry = new AppConfigurationEntry(
+                        TokenLoginModule.class.getName(),
+                        AppConfigurationEntry.LoginModuleControlFlag.REQUIRED,
+                        Collections.<String, Object>emptyMap());
+
+                return new AppConfigurationEntry[] {defaultEntry};
+            }
+        };
     }
 
     @Test
@@ -139,18 +149,5 @@ public class TokenLoginModuleTest extends AbstractSecurityTest {
             cs.close();
         }
 
-    }
-
-    private class TokenConfiguration extends Configuration {
-
-        @Override
-        public AppConfigurationEntry[] getAppConfigurationEntry(String s) {
-            AppConfigurationEntry defaultEntry = new AppConfigurationEntry(
-                    TokenLoginModule.class.getName(),
-                    AppConfigurationEntry.LoginModuleControlFlag.REQUIRED,
-                    Collections.<String, Object>emptyMap());
-
-            return new AppConfigurationEntry[] {defaultEntry};
-        }
     }
 }
