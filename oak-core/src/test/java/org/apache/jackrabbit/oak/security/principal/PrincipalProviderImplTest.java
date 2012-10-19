@@ -19,13 +19,11 @@ package org.apache.jackrabbit.oak.security.principal;
 import java.security.Principal;
 import java.util.Set;
 
-import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.security.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
-import org.junit.Before;
 import org.junit.Test;
 
 import static org.junit.Assert.assertFalse;
@@ -37,20 +35,12 @@ import static org.junit.Assert.assertTrue;
  */
 public class PrincipalProviderImplTest extends AbstractSecurityTest {
 
-    private ContentSession admin;
-    private PrincipalProviderImpl principalProvider;
-
-    @Before
-    public void before() throws Exception {
-        super.before();
-
-        admin = login(getAdminCredentials());
-        Root root = admin.getLatestRoot();
-        principalProvider = new PrincipalProviderImpl(root, securityProvider.getUserConfiguration(), NamePathMapper.DEFAULT);
-    }
-
     @Test
     public void testGetPrincipals() throws Exception {
+        Root root = admin.getLatestRoot();
+        PrincipalProviderImpl principalProvider =
+                new PrincipalProviderImpl(root, securityProvider.getUserConfiguration(), NamePathMapper.DEFAULT);
+
         String adminId = admin.getAuthInfo().getUserID();
         Set<? extends Principal> principals = principalProvider.getPrincipals(adminId);
 

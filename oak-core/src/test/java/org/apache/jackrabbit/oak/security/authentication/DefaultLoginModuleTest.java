@@ -34,8 +34,6 @@ import org.apache.jackrabbit.oak.security.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtility;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -48,22 +46,19 @@ import static org.junit.Assert.fail;
  */
 public class DefaultLoginModuleTest extends AbstractSecurityTest {
 
-    ContentSession admin;
+    @Override
+    protected Configuration getConfiguration() {
+        return new Configuration() {
+            @Override
+            public AppConfigurationEntry[] getAppConfigurationEntry(String s) {
+                AppConfigurationEntry defaultEntry = new AppConfigurationEntry(
+                        LoginModuleImpl.class.getName(),
+                        AppConfigurationEntry.LoginModuleControlFlag.REQUIRED,
+                        Collections.<String, Object>emptyMap());
 
-    @Before
-    public void before() throws Exception {
-        super.before();
-
-        admin = login(getAdminCredentials());
-        Configuration.setConfiguration(new DefaultConfiguration());
-    }
-
-    @After
-    public void after() throws Exception {
-        Configuration.setConfiguration(null);
-        if (admin != null) {
-            admin.close();
-        }
+                return new AppConfigurationEntry[] {defaultEntry};
+            }
+        };
     }
 
     @Test
@@ -145,16 +140,4 @@ public class DefaultLoginModuleTest extends AbstractSecurityTest {
         }
     }
 
-    private class DefaultConfiguration extends Configuration {
-
-        @Override
-        public AppConfigurationEntry[] getAppConfigurationEntry(String s) {
-            AppConfigurationEntry defaultEntry = new AppConfigurationEntry(
-                    LoginModuleImpl.class.getName(),
-                    AppConfigurationEntry.LoginModuleControlFlag.REQUIRED,
-                    Collections.<String, Object>emptyMap());
-
-            return new AppConfigurationEntry[] {defaultEntry};
-        }
-    }
 }
