@@ -24,7 +24,6 @@ import javax.security.auth.login.LoginException;
 
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.security.OakConfiguration;
 import org.junit.Before;
 
 /**
