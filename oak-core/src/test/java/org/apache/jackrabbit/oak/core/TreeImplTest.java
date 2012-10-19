@@ -21,13 +21,16 @@ import java.util.HashSet;
 import java.util.Set;
 
 import com.google.common.collect.Sets;
-import org.apache.jackrabbit.mk.api.MicroKernel;
+import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.api.Type.LONG;
@@ -41,19 +44,36 @@ import static org.junit.Assert.assertTrue;
 /**
  * TreeImplTest...
  */
-public class TreeImplTest extends AbstractCoreTest {
+public class TreeImplTest {
 
-    @Override
-    protected NodeState createInitialState(MicroKernel microKernel) {
-        String jsop = "^\"a\":1 ^\"b\":2 ^\"c\":3 +\"x\":{} +\"y\":{} +\"z\":{}";
-        microKernel.commit("/", jsop, microKernel.getHeadRevision(), "test data");
-        return store.getRoot();
+    private Root root;
+
+    @Before
+    public void setUp() throws CommitFailedException {
+        ContentSession session = new Oak().createContentSession();
+
+        // Add test content
+        root = session.getLatestRoot();
+        Tree tree = root.getTree("/");
+        tree.setProperty("a", 1);
+        tree.setProperty("b", 2);
+        tree.setProperty("c", 3);
+        tree.addChild("x");
+        tree.addChild("y");
+        tree.addChild("z");
+        root.commit();
+
+        // Acquire a fresh new root to avoid problems from lingering state
+        root = session.getLatestRoot();
     }
 
+    @After
+    public void tearDown() {
+        root = null;
+    }
 
     @Test
     public void getChild() {
-        RootImpl root = createRootImpl(null);
         Tree tree = root.getTree("/");
 
         Tree child = tree.getChild("any");
@@ -65,7 +85,6 @@ public class TreeImplTest extends AbstractCoreTest {
 
     @Test
     public void getProperty() {
-        RootImpl root = createRootImpl("test");
         Tree tree = root.getTree("/");
 
         PropertyState propertyState = tree.getProperty("any");
@@ -80,7 +99,6 @@ public class TreeImplTest extends AbstractCoreTest {
 
     @Test
     public void getChildren() {
-        RootImpl root = createRootImpl("test");
         Tree tree = root.getTree("/");
 
         Iterable<Tree> children = tree.getChildren();
@@ -98,7 +116,6 @@ public class TreeImplTest extends AbstractCoreTest {
 
     @Test
     public void getProperties() {
-        RootImpl root = createRootImpl(null);
         Tree tree = root.getTree("/");
 
         Set<PropertyState> expectedProperties = Sets.newHashSet(
@@ -117,7 +134,6 @@ public class TreeImplTest extends AbstractCoreTest {
 
     @Test
     public void addChild() throws CommitFailedException {
-        RootImpl root = createRootImpl(null);
         Tree tree = root.getTree("/");
 
         assertFalse(tree.hasChild("new"));
@@ -137,7 +153,6 @@ public class TreeImplTest extends AbstractCoreTest {
 
     @Test
     public void addExistingChild() throws CommitFailedException {
-        RootImpl root = createRootImpl(null);
         Tree tree = root.getTree("/");
 
         assertFalse(tree.hasChild("new"));
@@ -154,7 +169,6 @@ public class TreeImplTest extends AbstractCoreTest {
 
     @Test
     public void removeChild() throws CommitFailedException {
-        RootImpl root = createRootImpl(null);
         Tree tree = root.getTree("/");
 
         assertTrue(tree.hasChild("x"));
@@ -169,7 +183,6 @@ public class TreeImplTest extends AbstractCoreTest {
 
     @Test
     public void setProperty() throws CommitFailedException {
-        RootImpl root = createRootImpl(null);
         Tree tree = root.getTree("/");
 
         assertFalse(tree.hasProperty("new"));
@@ -190,7 +203,6 @@ public class TreeImplTest extends AbstractCoreTest {
 
     @Test
     public void removeProperty() throws CommitFailedException {
-        RootImpl root = createRootImpl(null);
         Tree tree = root.getTree("/");
 
         assertTrue(tree.hasProperty("a"));
@@ -205,7 +217,6 @@ public class TreeImplTest extends AbstractCoreTest {
 
     @Test
     public void getChildrenCount() {
-        RootImpl root = createRootImpl(null);
         Tree tree = root.getTree("/");
 
         assertEquals(3, tree.getChildrenCount());
@@ -222,7 +233,6 @@ public class TreeImplTest extends AbstractCoreTest {
 
     @Test
     public void getPropertyCount() {
-        RootImpl root = createRootImpl(null);
         Tree tree = root.getTree("/");
 
         assertEquals(3, tree.getPropertyCount());
@@ -242,7 +252,6 @@ public class TreeImplTest extends AbstractCoreTest {
 
     @Test
     public void addAndRemoveProperty() throws CommitFailedException {
-        RootImpl root = createRootImpl(null);
         Tree tree = root.getTree("/");
 
         tree.setProperty("P0", "V1");
@@ -258,7 +267,6 @@ public class TreeImplTest extends AbstractCoreTest {
 
     @Test
     public void nodeStatus() throws CommitFailedException {
-        RootImpl root = createRootImpl(null);
         Tree tree = root.getTree("/");
 
         tree.addChild("new");
@@ -291,7 +299,6 @@ public class TreeImplTest extends AbstractCoreTest {
 
     @Test
     public void propertyStatus() throws CommitFailedException {
-        RootImpl root = createRootImpl(null);
         Tree tree = root.getTree("/");
 
         tree.setProperty("new", "value1");
@@ -321,7 +328,6 @@ public class TreeImplTest extends AbstractCoreTest {
 
     @Test
     public void noTransitiveModifiedStatus() throws CommitFailedException {
-        RootImpl root = createRootImpl(null);
         Tree tree = root.getTree("/");
         tree.addChild("one").addChild("two");
         root.commit();
@@ -334,7 +340,6 @@ public class TreeImplTest extends AbstractCoreTest {
 
     @Test
     public void largeChildList() throws CommitFailedException {
-        RootImpl root = createRootImpl(null);
         Tree tree = root.getTree("/");
 
         Set<String> added = new HashSet<String>();
