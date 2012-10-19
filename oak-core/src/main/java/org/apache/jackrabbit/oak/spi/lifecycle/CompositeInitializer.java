@@ -18,21 +18,32 @@
  */
 package org.apache.jackrabbit.oak.spi.lifecycle;
 
-import org.apache.jackrabbit.mk.api.MicroKernel;
+import java.util.Arrays;
+import java.util.Collection;
+
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 /**
- * This interface is mainly used in an OSGi environment where various components
- * of Oak are started by container and one would like to plug in some code that
- * is executed when the micro kernel becomes available in the system.
+ * Composite repository initializer that delegates the
+ * {@link #initialize(NodeStore)} call in sequence to all the
+ * component initializers.
  */
-public interface MicroKernelTracker {
+public class CompositeInitializer implements RepositoryInitializer {
 
-    /**
-     * This method is called when both the {@link MicroKernel} service and this
-     * tracker become available in the system.
-     * @param mk the {@link MicroKernel} instance.
-     */
-    public void available(NodeStore store);
+    private final Collection<RepositoryInitializer> initializers;
 
+    public CompositeInitializer(Collection<RepositoryInitializer> trackers) {
+        this.initializers = trackers;
+    }
+
+    public CompositeInitializer(RepositoryInitializer... initializers) {
+        this.initializers = Arrays.asList(initializers);
+    }
+
+    @Override
+    public void initialize(NodeStore store) {
+        for (RepositoryInitializer tracker : initializers) {
+            tracker.initialize(store);
+        }
+    }
 }
