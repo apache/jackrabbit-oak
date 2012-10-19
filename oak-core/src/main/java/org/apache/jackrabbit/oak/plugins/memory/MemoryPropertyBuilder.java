@@ -147,7 +147,7 @@ public class MemoryPropertyBuilder<T> implements PropertyBuilder<T> {
     public PropertyState getPropertyState(boolean asArray) {
         checkState(name != null, "Property has no name");
         if (values.isEmpty()) {
-            return PropertyStates.emptyProperty(name, type);
+            return PropertyStates.emptyProperty(name, Type.fromTag(type.tag(), true));
         }
         else if (isArray() || asArray) {
             switch (type.tag()) {
