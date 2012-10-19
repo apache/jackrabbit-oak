@@ -28,21 +28,24 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.security.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.security.authentication.token.TokenLoginModule;
+import org.apache.jackrabbit.oak.security.authentication.token.TokenProviderImpl;
+import org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenInfo;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 
 /**
- * LoginTest...
+ * TokenDefaultLoginModuleTest...
  */
-public class TokenLoginModuleTest extends AbstractSecurityTest {
+public class TokenDefaultLoginModuleTest extends AbstractSecurityTest {
 
     @Override
     protected Configuration getConfiguration() {
-        return new TokenConfiguration();
+        return new TokenDefaultConfiguration();
     }
 
     @Test
@@ -65,7 +68,38 @@ public class TokenLoginModuleTest extends AbstractSecurityTest {
         ContentSession cs = null;
         try {
             cs = login(new GuestCredentials());
-            fail("GuestCredentials login should fail");
+        } finally {
+            if (cs != null) {
+                cs.close();
+            }
+        }
+    }
+
+    @Test
+    public void testInvalidSimpleCredentials() throws Exception {
+        ContentSession cs = null;
+        try {
+            SimpleCredentials sc = new SimpleCredentials("test", new char[0]);
+            cs = login(sc);
+            fail("Invalid simple credentials login should fail");
+        } catch (LoginException e) {
+            // success
+        } finally {
+            if (cs != null) {
+                cs.close();
+            }
+        }
+    }
+
+    @Test
+    public void testInvalidSimpleCredentialsWithAttribute() throws Exception {
+        ContentSession cs = null;
+        try {
+            SimpleCredentials sc = new SimpleCredentials("test", new char[0]);
+            sc.setAttribute(TokenProviderImpl.TOKEN_ATTRIBUTE, "");
+
+            cs = login(sc);
+            fail("Invalid simple credentials login should fail");
         } catch (LoginException e) {
             // success
         } finally {
@@ -79,11 +113,7 @@ public class TokenLoginModuleTest extends AbstractSecurityTest {
     public void testSimpleCredentials() throws Exception {
         ContentSession cs = null;
         try {
-            SimpleCredentials sc = new SimpleCredentials("admin", "admin".toCharArray());
-            cs = login(sc);
-            fail("Unsupported credentials login should fail");
-        } catch (LoginException e) {
-            // success
+            cs = login(getAdminCredentials());
         } finally {
             if (cs != null) {
                 cs.close();
@@ -95,13 +125,30 @@ public class TokenLoginModuleTest extends AbstractSecurityTest {
     public void testSimpleCredentialsWithAttribute() throws Exception {
         ContentSession cs = null;
         try {
-            SimpleCredentials sc = new SimpleCredentials("test", new char[0]);
-            sc.setAttribute(TokenProvider.TOKEN_ATTRIBUTE, "");
-
+            SimpleCredentials sc = (SimpleCredentials) getAdminCredentials();
+            sc.setAttribute(TokenProviderImpl.TOKEN_ATTRIBUTE, "");
             cs = login(sc);
-            fail("Unsupported credentials login should fail");
-        } catch (LoginException e) {
-            // success
+        } finally {
+            if (cs != null) {
+                cs.close();
+            }
+        }
+    }
+
+    @Test
+    public void testTokenCreationAndLogin() throws Exception {
+        ContentSession cs = null;
+        try {
+            SimpleCredentials sc = (SimpleCredentials) getAdminCredentials();
+            sc.setAttribute(TokenProvider.TOKEN_ATTRIBUTE, "");
+            cs = login(sc);
+
+            Object token = sc.getAttribute(TokenProvider.TOKEN_ATTRIBUTE).toString();
+            assertNotNull(token);
+            TokenCredentials tc = new TokenCredentials(token.toString());
+
+            cs.close();
+            cs = login(tc);
         } finally {
             if (cs != null) {
                 cs.close();
@@ -138,19 +185,21 @@ public class TokenLoginModuleTest extends AbstractSecurityTest {
         } finally {
             cs.close();
         }
-
     }
 
-    private class TokenConfiguration extends Configuration {
+    private class TokenDefaultConfiguration extends Configuration {
 
         @Override
         public AppConfigurationEntry[] getAppConfigurationEntry(String s) {
-            AppConfigurationEntry defaultEntry = new AppConfigurationEntry(
+            AppConfigurationEntry tokenEntry = new AppConfigurationEntry(
                     TokenLoginModule.class.getName(),
+                    AppConfigurationEntry.LoginModuleControlFlag.SUFFICIENT,
+                    Collections.<String, Object>emptyMap());
+            AppConfigurationEntry defaultEntry = new AppConfigurationEntry(
+                    LoginModuleImpl.class.getName(),
                     AppConfigurationEntry.LoginModuleControlFlag.REQUIRED,
                     Collections.<String, Object>emptyMap());
-
-            return new AppConfigurationEntry[] {defaultEntry};
+            return new AppConfigurationEntry[] {tokenEntry, defaultEntry};
         }
     }
 }

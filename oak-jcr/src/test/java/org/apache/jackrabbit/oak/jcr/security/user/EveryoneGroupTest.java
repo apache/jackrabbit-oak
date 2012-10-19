@@ -65,11 +65,13 @@ public class EveryoneGroupTest extends AbstractUserTest {
 
     @Test
     public void testGroupPrincipal() throws Exception {
-        Principal everonePrincipal = everyone.getPrincipal();
-        assertTrue(everonePrincipal instanceof java.security.acl.Group);
+        Principal everyonePrincipal = everyone.getPrincipal();
+        assertTrue(everyonePrincipal instanceof java.security.acl.Group);
+        assertTrue(everyonePrincipal.equals(EveryonePrincipal.getInstance()));
+        assertTrue(EveryonePrincipal.getInstance().equals(everyonePrincipal));
 
-        java.security.acl.Group gr = (java.security.acl.Group) everonePrincipal;
-        assertFalse(gr.isMember(everonePrincipal));
+        java.security.acl.Group gr = (java.security.acl.Group) everyonePrincipal;
+        assertFalse(gr.isMember(everyonePrincipal));
         assertTrue(gr.isMember(getTestUser(superuser).getPrincipal()));
         assertTrue(gr.isMember(new Principal() {
             public String getName() {
