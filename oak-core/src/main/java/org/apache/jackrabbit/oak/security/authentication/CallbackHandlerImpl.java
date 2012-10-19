@@ -27,12 +27,9 @@ import javax.security.auth.callback.UnsupportedCallbackException;
 
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.callback.CredentialsCallback;
-import org.apache.jackrabbit.oak.spi.security.authentication.callback.PrincipalProviderCallback;
 import org.apache.jackrabbit.oak.spi.security.authentication.callback.RepositoryCallback;
 import org.apache.jackrabbit.oak.spi.security.authentication.callback.SecurityProviderCallback;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Default implementation of the {@link CallbackHandler} interface. It currently
@@ -42,15 +39,11 @@ import org.slf4j.LoggerFactory;
  *     <li>{@link CredentialsCallback}</li>
  *     <li>{@link NameCallback}</li>
  *     <li>{@link PasswordCallback}</li>
- *     <li>{@link PrincipalProviderCallback}</li>
+ *     <li>{@link SecurityProviderCallback}</li>
+ *     <li>{@link RepositoryCallback}</li>
  * </ul>
  */
 public class CallbackHandlerImpl implements CallbackHandler {
-
-    /**
-     * logger instance
-     */
-    private static final Logger log = LoggerFactory.getLogger(CallbackHandlerImpl.class);
 
     private final Credentials credentials;
     private final String workspaceName;

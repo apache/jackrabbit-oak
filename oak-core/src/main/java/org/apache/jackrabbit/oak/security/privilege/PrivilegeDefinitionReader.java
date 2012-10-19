@@ -45,9 +45,9 @@ import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
-import static org.apache.jackrabbit.oak.security.privilege.PrivilegeConstants.PRIVILEGES_PATH;
-import static org.apache.jackrabbit.oak.security.privilege.PrivilegeConstants.REP_AGGREGATES;
-import static org.apache.jackrabbit.oak.security.privilege.PrivilegeConstants.REP_IS_ABSTRACT;
+import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.PRIVILEGES_PATH;
+import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.REP_AGGREGATES;
+import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.REP_IS_ABSTRACT;
 
 
 /**
@@ -98,7 +98,7 @@ class PrivilegeDefinitionReader {
      * @throws IOException
      */
     static PrivilegeDefinition[] readCustomDefinitons(InputStream customPrivileges,
-                                                                 NamespaceRegistry nsRegistry) throws RepositoryException, IOException {
+                                                      NamespaceRegistry nsRegistry) throws RepositoryException, IOException {
         Map<String, PrivilegeDefinition> definitions = new LinkedHashMap<String, PrivilegeDefinition>();
         InputSource src = new InputSource(customPrivileges);
         for (PrivilegeDefinition def : PrivilegeXmlHandler.readDefinitions(src, nsRegistry)) {

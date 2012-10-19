@@ -41,11 +41,21 @@ class AccessControlContextImpl implements AccessControlContext {
     @Override
     public CompiledPermissions getPermissions() {
         Set<Principal> principals = subject.getPrincipals();
-        if (principals.contains(AdminPrincipal.INSTANCE)) {
+        if (isAdmin(principals)) {
             return AllPermissions.getInstance();
         } else {
             // TODO: replace with permissions based on ac evaluation
             return new CompiledPermissionImpl(principals);
         }
+    }
+
+    //--------------------------------------------------------------------------
+    private static boolean isAdmin(Set<Principal> principals) {
+        for (Principal principal : principals) {
+            if (principal instanceof AdminPrincipal) {
+                return true;
+            }
+        }
+        return false;
     }
 }

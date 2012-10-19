@@ -37,7 +37,7 @@ import org.apache.jackrabbit.oak.core.ReadOnlyTree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.value.ValueFactoryImpl;
+import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

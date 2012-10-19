@@ -35,18 +35,6 @@ public class PrincipalManagerImpl implements PrincipalManager {
         this.principalProvider = principalProvider;
     }
 
-    /**
-     * Returns the underlying principal provider implementation. Note, that
-     * in contrast to Jackrabbit 2.x the principal provider is associated with
-     * the editing session. Thus exposing the lower level interface will not
-     * expose information that wasn't accessible by other means.
-     *
-     * @return the principal provider.
-     */
-    public PrincipalProvider getPrincipalProvider() {
-        return principalProvider;
-    }
-
     //---------------------------------------------------< PrincipalManager >---
     @Override
     public boolean hasPrincipal(String principalName) {

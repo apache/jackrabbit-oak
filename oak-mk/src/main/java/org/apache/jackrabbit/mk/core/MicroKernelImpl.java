@@ -393,29 +393,14 @@ public class MicroKernelImpl implements MicroKernel {
                         pos = t.getLastPos();
                         String subPath = t.readString();
                         t.read(':');
-                        if (t.matches('{')) {
-                            String nodePath = PathUtils.concat(path, subPath);
-                            if (!PathUtils.isAbsolute(nodePath)) {
-                                throw new Exception("absolute path expected: " + nodePath + ", pos: " + pos);
-                            }
-                            String parentPath = PathUtils.getParentPath(nodePath);
-                            String nodeName = PathUtils.getName(nodePath);
-                            cb.addNode(parentPath, nodeName, JsonObject.create(t));
-                        } else {
-                            String value;
-                            if (t.matches(JsopReader.NULL)) {
-                                value = null;
-                            } else {
-                                value = t.readRawValue().trim();
-                            }
-                            String targetPath = PathUtils.concat(path, subPath);
-                            if (!PathUtils.isAbsolute(targetPath)) {
-                                throw new Exception("absolute path expected: " + targetPath + ", pos: " + pos);
-                            }
-                            String parentPath = PathUtils.getParentPath(targetPath);
-                            String propName = PathUtils.getName(targetPath);
-                            cb.setProperty(parentPath, propName, value);
+                        t.read('{');
+                        String nodePath = PathUtils.concat(path, subPath);
+                        if (!PathUtils.isAbsolute(nodePath)) {
+                            throw new Exception("absolute path expected: " + nodePath + ", pos: " + pos);
                         }
+                        String parentPath = PathUtils.getParentPath(nodePath);
+                        String nodeName = PathUtils.getName(nodePath);
+                        cb.addNode(parentPath, nodeName, JsonObject.create(t));
                         break;
                     }
                     case '-': {

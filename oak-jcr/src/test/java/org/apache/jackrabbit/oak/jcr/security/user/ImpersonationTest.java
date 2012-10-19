@@ -102,7 +102,12 @@ public class ImpersonationTest extends AbstractUserTest {
 
     public void testAdminPrincipalAsImpersonator() throws RepositoryException, NotExecutableException {
 
-        Principal adminPrincipal = AdminPrincipal.INSTANCE;
+        Principal adminPrincipal = new AdminPrincipal() {
+            @Override
+            public String getName() {
+                return "some-admin-name";
+            }
+        };
 
         // admin cannot be add/remove to set of impersonators of 'u' but is
         // always allowed to impersonate that user.

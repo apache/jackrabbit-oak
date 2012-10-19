@@ -34,7 +34,7 @@ import org.apache.jackrabbit.api.security.user.User;
  * <li>{@link #onPasswordChange(org.apache.jackrabbit.api.security.user.User, String, javax.jcr.Session) User password modification}.</li>
  * </ul>
  *
- * @see org.apache.jackrabbit.oak.spi.security.user.UserConfig
+ * @see org.apache.jackrabbit.oak.spi.security.ConfigurationParameters
  */
 public interface AuthorizableAction {
 

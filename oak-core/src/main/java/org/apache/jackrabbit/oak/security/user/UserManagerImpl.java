@@ -16,36 +16,41 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
+import java.io.UnsupportedEncodingException;
+import java.security.NoSuchAlgorithmException;
 import java.security.Principal;
 import java.util.Iterator;
 import javax.annotation.CheckForNull;
-import javax.jcr.PropertyType;
+import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.UnsupportedRepositoryOperationException;
 
-import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.AuthorizableExistsException;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.Query;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.security.principal.PrincipalManagerImpl;
 import org.apache.jackrabbit.oak.security.user.query.XPathQueryBuilder;
 import org.apache.jackrabbit.oak.security.user.query.XPathQueryEvaluator;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
-import org.apache.jackrabbit.oak.spi.security.user.MembershipProvider;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
-import org.apache.jackrabbit.oak.spi.security.user.UserConfig;
+import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
-import org.apache.jackrabbit.oak.spi.security.user.UserProvider;
 import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableAction;
+import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtility;
+import org.apache.jackrabbit.oak.spi.security.user.util.UserUtility;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * UserManagerImpl...
@@ -55,20 +60,27 @@ public class UserManagerImpl implements UserManager {
     private static final Logger log = LoggerFactory.getLogger(UserManagerImpl.class);
 
     private final Session session;
+    private final Root root;
     private final NamePathMapper namePathMapper;
+    private final SecurityProvider securityProvider;
 
     private final UserProvider userProvider;
     private final MembershipProvider membershipProvider;
-    private final UserConfig config;
+    private final ConfigurationParameters config;
+    private final AuthorizableAction[] authorizableActions;
 
-    public UserManagerImpl(Session session, NamePathMapper namePathMapper,
-                           UserProvider userProvider, MembershipProvider membershipProvider,
-                           UserConfig config) {
+    public UserManagerImpl(Session session, Root root, NamePathMapper namePathMapper,
+                           SecurityProvider securityProvider) {
         this.session = session;
+        this.root = root;
         this.namePathMapper = namePathMapper;
-        this.userProvider = userProvider;
-        this.membershipProvider = membershipProvider;
-        this.config = config;
+        this.securityProvider = securityProvider;
+
+        UserConfiguration uc = securityProvider.getUserConfiguration();
+        this.config = uc.getConfigurationParameters();
+        this.userProvider = new UserProvider(root, config);
+        this.membershipProvider = new MembershipProvider(root, config);
+        this.authorizableActions = config.getConfigValue(UserConstants.PARAM_AUTHORIZABLE_ACTIONS, new AuthorizableAction[0]);
     }
 
     //--------------------------------------------------------< UserManager >---
@@ -126,9 +138,14 @@ public class UserManagerImpl implements UserManager {
     @Override
     public Iterator<Authorizable> findAuthorizables(Query query) throws RepositoryException {
         checkIsLive();
-        XPathQueryBuilder builder = new XPathQueryBuilder();
-        query.build(builder);
-        return new XPathQueryEvaluator(builder, this, session.getWorkspace().getQueryManager(), namePathMapper).eval();
+        if (session != null) {
+            XPathQueryBuilder builder = new XPathQueryBuilder();
+            query.build(builder);
+            return new XPathQueryEvaluator(builder, this, session.getWorkspace().getQueryManager(), namePathMapper).eval();
+        } else {
+            // TODO: implement
+            throw new UnsupportedOperationException("not implemented");
+        }
     }
 
     @Override
@@ -153,7 +170,9 @@ public class UserManagerImpl implements UserManager {
         }
         Tree userTree = userProvider.createUser(userID, intermediatePath);
         setPrincipal(userTree, principal);
-        userProvider.setPassword(userTree, password, true);
+        if (password != null) {
+            setPassword(userTree, password, true);
+        }
 
         User user = new UserImpl(userID, userTree, this);
         onCreate(user, password);
@@ -237,8 +256,9 @@ public class UserManagerImpl implements UserManager {
      * @throws RepositoryException If an exception occurs.
      */
     void onCreate(User user, String password) throws RepositoryException {
-        for (AuthorizableAction action : getAuthorizableActions()) {
-            action.onCreate(user, password, getSession());
+        // TODO
+        for (AuthorizableAction action : authorizableActions) {
+            action.onCreate(user, password, session);
         }
     }
 
@@ -251,8 +271,9 @@ public class UserManagerImpl implements UserManager {
      * @throws RepositoryException If an exception occurs.
      */
     void onCreate(Group group) throws RepositoryException {
-        for (AuthorizableAction action : getAuthorizableActions()) {
-            action.onCreate(group, getSession());
+        // TODO
+        for (AuthorizableAction action : authorizableActions) {
+            action.onCreate(group, session);
         }
     }
 
@@ -265,8 +286,9 @@ public class UserManagerImpl implements UserManager {
      * @throws RepositoryException If an exception occurs.
      */
     void onRemove(Authorizable authorizable) throws RepositoryException {
-        for (AuthorizableAction action : getAuthorizableActions()) {
-            action.onRemove(authorizable, getSession());
+        // TODO
+        for (AuthorizableAction action : authorizableActions) {
+            action.onRemove(authorizable, session);
         }
     }
 
@@ -280,19 +302,33 @@ public class UserManagerImpl implements UserManager {
      * @throws RepositoryException If an exception occurs.
      */
     void onPasswordChange(User user, String password) throws RepositoryException {
-        for (AuthorizableAction action : getAuthorizableActions()) {
-            action.onPasswordChange(user, password, getSession());
+        // TODO
+        for (AuthorizableAction action : authorizableActions) {
+            action.onPasswordChange(user, password, session);
         }
     }
 
-    private AuthorizableAction[] getAuthorizableActions() {
-        return config.getAuthorizableActions();
+    //--------------------------------------------------------------------------
+    @CheckForNull
+    Node getAuthorizableNode(String id) throws RepositoryException {
+        if (session == null) {
+            return null;
+        }
+
+        Tree tree = userProvider.getAuthorizable(id);
+        if (tree == null) {
+            throw new RepositoryException("Authorizable not associated with an existing tree");
+        }
+        String jcrPath = getNamePathMapper().getJcrPath(tree.getPath());
+        return session.getNode(jcrPath);
     }
 
-    //--------------------------------------------------------------------------
-
-    Session getSession() {
-        return session;
+    AuthorizableProperties getAuthorizableProperties(String id) throws RepositoryException {
+        if (session != null) {
+            return new JcrAuthorizableProperties(getAuthorizableNode(id), namePathMapper);
+        } else {
+            return new OakAuthorizableProperties(userProvider, id, namePathMapper);
+        }
     }
 
     NamePathMapper getNamePathMapper() {
@@ -308,11 +344,11 @@ public class UserManagerImpl implements UserManager {
     }
 
     PrincipalProvider getPrincipalProvider() throws RepositoryException {
-        if (!(session instanceof JackrabbitSession)) {
-            throw new UnsupportedRepositoryOperationException("Principal management not supported");
-        }
-        JackrabbitSession js = (JackrabbitSession) session;
-        return ((PrincipalManagerImpl) js.getPrincipalManager()).getPrincipalProvider();
+        return securityProvider.getPrincipalConfiguration().getPrincipalProvider(root, namePathMapper);
+    }
+
+    ConfigurationParameters getConfig() {
+        return config;
     }
 
     @CheckForNull
@@ -328,9 +364,9 @@ public class UserManagerImpl implements UserManager {
         if (id == null || tree == null) {
             return null;
         }
-        if (userProvider.isAuthorizableType(tree, AuthorizableType.USER)) {
+        if (UserUtility.isType(tree, AuthorizableType.USER)) {
             return new UserImpl(userProvider.getAuthorizableId(tree), tree, this);
-        } else if (userProvider.isAuthorizableType(tree, AuthorizableType.GROUP)) {
+        } else if (UserUtility.isType(tree, AuthorizableType.GROUP)) {
             return new GroupImpl(userProvider.getAuthorizableId(tree), tree, this);
         } else {
             throw new RepositoryException("Not a user or group tree " + tree.getPath() + '.');
@@ -354,12 +390,29 @@ public class UserManagerImpl implements UserManager {
         }
     }
 
-    private void setPrincipal(Tree userTree, Principal principal) {
-        getUserProvider().setProtectedProperty(userTree, UserConstants.REP_PRINCIPAL_NAME, principal.getName(), PropertyType.STRING);
+    void setPassword(Tree userTree, String password, boolean forceHash) throws RepositoryException {
+        String pwHash;
+        if (forceHash || PasswordUtility.isPlainTextPassword(password)) {
+            try {
+                pwHash = PasswordUtility.buildPasswordHash(password, config);
+            } catch (NoSuchAlgorithmException e) {
+                throw new RepositoryException(e);
+            } catch (UnsupportedEncodingException e) {
+                throw new RepositoryException(e);
+            }
+        } else {
+            pwHash = password;
+        }
+        userTree.setProperty(UserConstants.REP_PASSWORD, pwHash);
+    }
+
+    private void setPrincipal(Tree authorizableTree, Principal principal) {
+        checkNotNull(principal);
+        authorizableTree.setProperty(UserConstants.REP_PRINCIPAL_NAME, principal.getName());
     }
 
     private void checkIsLive() throws RepositoryException {
-        if (!session.isLive()) {
+        if (session != null && !session.isLive()) {
             throw new RepositoryException("UserManager has been closed.");
         }
     }

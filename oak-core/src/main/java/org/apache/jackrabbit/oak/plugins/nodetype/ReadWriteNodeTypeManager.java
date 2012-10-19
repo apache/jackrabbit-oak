@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.nodetype;
 
 import java.io.Reader;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -139,16 +140,19 @@ public abstract class ReadWriteNodeTypeManager extends ReadOnlyNodeTypeManager {
      * @throws RepositoryException  if registering the node types fails
      */
     public void registerNodeTypes(Reader cnd) throws ParseException, RepositoryException {
+        Root root = getWriteRoot();
+
         CompactNodeTypeDefReader<NodeTypeTemplate, Map<String, String>> reader =
                 new CompactNodeTypeDefReader<NodeTypeTemplate, Map<String, String>>(
-                        cnd, null, new DefBuilderFactory(getNameMapper()));
+                        cnd, null, new DefBuilderFactory(root.getTree("/")));
+
         Map<String, NodeTypeTemplate> templates = Maps.newHashMap();
         for (NodeTypeTemplate template : reader.getNodeTypeDefinitions()) {
             templates.put(template.getName(), template);
         }
+
         for (NodeTypeTemplate template : templates.values()) {
-            if (!template.isMixin()
-                    && !NT_BASE.equals(template.getName())) {
+            if (!template.isMixin() && !NT_BASE.equals(template.getName())) {
                 String[] supertypes =
                         template.getDeclaredSupertypeNames();
                 if (supertypes.length == 0) {
@@ -175,7 +179,14 @@ public abstract class ReadWriteNodeTypeManager extends ReadOnlyNodeTypeManager {
                 }
             }
         }
-        registerNodeTypes(templates.values().toArray(new NodeTypeTemplate[templates.size()]), true);
+
+        try {
+            internalRegister(root, templates.values(), true);
+            root.commit();
+            refresh();
+        } catch (CommitFailedException e) {
+            throw new RepositoryException(e);
+        }
     }
 
     //----------------------------------------------------< NodeTypeManager >---
@@ -200,18 +211,26 @@ public abstract class ReadWriteNodeTypeManager extends ReadOnlyNodeTypeManager {
             throws RepositoryException {
         // TODO handle inter-type dependencies (OAK-66)
         Root root = getWriteRoot();
-        Tree types = getOrCreateNodeTypes(root);
         try {
-            List<NodeType> list = Lists.newArrayList();
-            for (NodeTypeDefinition ntd : ntds) {
-                list.add(internalRegister(types, ntd, allowUpdate));
-            }
+            List<NodeType> list = internalRegister(
+                    root, Arrays.asList(ntds), allowUpdate);
             root.commit();
             refresh();
             return new NodeTypeIteratorAdapter(list);
         } catch (CommitFailedException e) {
             throw new RepositoryException(e);
         }
+    }
+
+    private List<NodeType> internalRegister(
+            Root root, Iterable<? extends NodeTypeDefinition> ntds,
+            boolean allowUpdate) throws RepositoryException {
+        Tree types = getOrCreateNodeTypes(root);
+        List<NodeType> list = Lists.newArrayList();
+        for (NodeTypeDefinition ntd : ntds) {
+            list.add(internalRegister(types, ntd, allowUpdate));
+        }
+        return list;
     }
 
     private NodeType internalRegister(

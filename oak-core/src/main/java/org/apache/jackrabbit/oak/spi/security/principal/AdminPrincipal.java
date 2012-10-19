@@ -24,23 +24,6 @@ import java.security.Principal;
  * special (admin) access permissions. It may be used as the single or as
  * additional non-group principal.
  */
-public final class AdminPrincipal implements Principal {
+public interface AdminPrincipal extends Principal {
 
-    public static final String NAME = "administrator";
-
-    public static final Principal INSTANCE = new AdminPrincipal();
-
-    private AdminPrincipal() { }
-
-    //----------------------------------------------------------< Principal >---
-    @Override
-    public String getName() {
-        return NAME;
-    }
-
-    //-------------------------------------------------------------< Object >---
-    @Override
-    public String toString() {
-        return NAME + " principal";
-    }
 }
