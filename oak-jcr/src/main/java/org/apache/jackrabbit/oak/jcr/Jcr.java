@@ -31,8 +31,10 @@ import org.apache.jackrabbit.oak.core.OrderedChildrenEditor;
 import org.apache.jackrabbit.oak.plugins.commit.AnnotatingConflictHandler;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneHook;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneReindexHook;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexHook;
+import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexProvider;
 import org.apache.jackrabbit.oak.plugins.name.NameValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.DefaultTypeEditor;
@@ -75,6 +77,9 @@ public class Jcr {
         with(new LuceneHook(DEFAULT_INDEX_HOME));
         with(new OrderedChildrenEditor());
         with(new AnnotatingConflictHandler());
+
+        with(new PropertyIndexProvider());
+        with(new LuceneIndexProvider(DEFAULT_INDEX_HOME));
     }
 
     public Jcr() {
