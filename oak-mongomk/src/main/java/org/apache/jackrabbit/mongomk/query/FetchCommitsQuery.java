@@ -21,6 +21,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.jackrabbit.mongomk.impl.MongoConnection;
 import org.apache.jackrabbit.mongomk.model.CommitMongo;
@@ -42,20 +43,29 @@ public class FetchCommitsQuery extends AbstractQuery<List<CommitMongo>> {
     private static final int LIMITLESS = 0;
     private static final Logger LOG = LoggerFactory.getLogger(FetchCommitsQuery.class);
 
-    private long fromRevisionId = 0L;
-    private long toRevisionId = Long.MAX_VALUE;
+    private long fromRevisionId = -1;
+    private long toRevisionId = -1;
     private int maxEntries = LIMITLESS;
     private boolean includeBranchCommits = true;
 
     /**
-     * Constructs a new {@link FetchCommitsQuery} with 0 fromRevisionId.
+     * Constructs a new {@link FetchCommitsQuery}
+     *
+     * @param mongoConnection Mongo connection.
+     * @param toRevisionId To revision id.
+     */
+    public FetchCommitsQuery(MongoConnection mongoConnection) {
+        this(mongoConnection, -1L, -1L);
+    }
+
+    /**
+     * Constructs a new {@link FetchCommitsQuery}
      *
      * @param mongoConnection Mongo connection.
      * @param toRevisionId To revision id.
      */
     public FetchCommitsQuery(MongoConnection mongoConnection, long toRevisionId) {
-        super(mongoConnection);
-        this.toRevisionId = toRevisionId;
+        this(mongoConnection, -1L, toRevisionId);
     }
 
     /**
@@ -98,8 +108,10 @@ public class FetchCommitsQuery extends AbstractQuery<List<CommitMongo>> {
 
     private DBCursor fetchListOfValidCommits() {
         DBCollection commitCollection = mongoConnection.getCommitCollection();
-        QueryBuilder queryBuilder = QueryBuilder.start(CommitMongo.KEY_FAILED).notEquals(Boolean.TRUE)
-                .and(CommitMongo.KEY_REVISION_ID).lessThanEquals(toRevisionId);
+        QueryBuilder queryBuilder = QueryBuilder.start(CommitMongo.KEY_FAILED).notEquals(Boolean.TRUE);
+        if (toRevisionId > -1) {
+            queryBuilder = queryBuilder.and(CommitMongo.KEY_REVISION_ID).lessThanEquals(toRevisionId);
+        }
 
         if (!includeBranchCommits) {
             queryBuilder = queryBuilder.and(new BasicDBObject(NodeMongo.KEY_BRANCH_ID,
@@ -114,30 +126,29 @@ public class FetchCommitsQuery extends AbstractQuery<List<CommitMongo>> {
     }
 
     private List<CommitMongo> convertToCommits(DBCursor dbCursor) {
-        Map<Long, CommitMongo> revisions = new HashMap<Long, CommitMongo>();
+        Map<Long, CommitMongo> commits = new HashMap<Long, CommitMongo>();
         while (dbCursor.hasNext()) {
             CommitMongo commitMongo = (CommitMongo) dbCursor.next();
-            revisions.put(commitMongo.getRevisionId(), commitMongo);
+            commits.put(commitMongo.getRevisionId(), commitMongo);
         }
 
         List<CommitMongo> validCommits = new LinkedList<CommitMongo>();
-        if (revisions.isEmpty()) {
+        if (commits.isEmpty()) {
             return validCommits;
         }
 
-        Long currentRevision = toRevisionId;
-        if (!revisions.containsKey(currentRevision)) {
-            currentRevision = Collections.max(revisions.keySet());
-        }
+        Set<Long> revisions = commits.keySet();
+        long currentRevision = (toRevisionId != -1 && revisions.contains(toRevisionId)) ?
+                toRevisionId : Collections.max(revisions);
 
         while (true) {
-            CommitMongo commitMongo = revisions.get(currentRevision);
+            CommitMongo commitMongo = commits.get(currentRevision);
             if (commitMongo == null) {
                 break;
             }
             validCommits.add(commitMongo);
-            Long baseRevision = commitMongo.getBaseRevId();
-            if ((currentRevision == 0L) || (baseRevision == null || baseRevision < fromRevisionId)) {
+            long baseRevision = commitMongo.getBaseRevId();
+            if (currentRevision == 0L || baseRevision < fromRevisionId) {
                 break;
             }
             currentRevision = baseRevision;

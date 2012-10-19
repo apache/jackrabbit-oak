@@ -246,7 +246,7 @@ public class NodeStoreMongo implements NodeStore {
 
       maxEntries = maxEntries < 0 ? Integer.MAX_VALUE : maxEntries;
 
-      FetchCommitsQuery query = new FetchCommitsQuery(mongoConnection, Long.MAX_VALUE);
+      FetchCommitsQuery query = new FetchCommitsQuery(mongoConnection);
       query.setMaxEntries(maxEntries);
       query.includeBranchCommits(false);
 
