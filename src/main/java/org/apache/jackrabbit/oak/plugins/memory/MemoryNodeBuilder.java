@@ -76,16 +76,28 @@ public class MemoryNodeBuilder implements NodeBuilder {
             ImmutableMap.<String, NodeState>of());
 
     /**
-     * Parent state builder reference, or {@code null} once this builder
-     * has been connected.
+     * Parent builder, or {@code null} for a root builder.
      */
-    private MemoryNodeBuilder parent;
+    private final MemoryNodeBuilder parent;
 
     /**
-     * Name of this child node within the parent builder, or {@code null}
-     * once this builder has been connected.
+     * Name of this child node within the parent builder,
+     * or {@code null} for a root builder.
      */
-    private String name;
+    private final String name;
+
+    /**
+     * Root builder, or {@code this} for the root itself.
+     */
+    private final MemoryNodeBuilder root;
+
+    /**
+     * Internal revision counter that is incremented in the root builder
+     * whenever anything changes in the tree below. Each builder instance
+     * has its own copy of the revision counter, for quickly checking whether
+     * any state changes are needed.
+     */
+    private long revision;
 
     /**
      * The read state of this builder. Originally the immutable base state
@@ -111,6 +123,10 @@ public class MemoryNodeBuilder implements NodeBuilder {
             MemoryNodeBuilder parent, String name, NodeState base) {
         this.parent = checkNotNull(parent);
         this.name = checkNotNull(name);
+
+        this.root = parent.root;
+        this.revision = parent.revision;
+
         this.readState = checkNotNull(base);
         this.writeState = null;
     }
@@ -123,51 +139,60 @@ public class MemoryNodeBuilder implements NodeBuilder {
     public MemoryNodeBuilder(NodeState base) {
         this.parent = null;
         this.name = null;
+
+        this.root = this;
+        this.revision = 0;
+
         MutableNodeState mstate = new MutableNodeState(checkNotNull(base));
         this.readState = mstate;
         this.writeState = mstate;
     }
 
     private NodeState read() {
-        if (writeState == null) {
+        if (revision != root.revision) {
+            assert(parent != null); // root never gets here
             parent.read();
             MutableNodeState pstate = parent.writeState;
             if (pstate != null) {
                 MutableNodeState mstate = pstate.nodes.get(name);
-                if (mstate == null && pstate.nodes.containsKey(name)) {
-                    throw new IllegalStateException(
-                            "This builder refers to a node that has"
-                            + " been removed from its parent.");
-                }
-                if (mstate != null) {
-                    parent = null;
-                    name = null;
+                if (mstate == null) {
+                    if (pstate.nodes.containsKey(name)) {
+                        throw new IllegalStateException(
+                                "This node has been removed.");
+                    }
+                } else if (mstate != writeState) {
                     readState = mstate;
                     writeState = mstate;
                 }
             }
+            revision = root.revision;
         }
         return readState;
     }
 
     private MutableNodeState write() {
-        if (writeState == null) {
-            MutableNodeState pstate = parent.write();
+        return write(root.revision + 1);
+    }
+
+    private MutableNodeState write(long newRevision) {
+        if (writeState == null || revision != root.revision) {
+            assert(parent != null); // root never gets here
+            MutableNodeState pstate = parent.write(newRevision);
             MutableNodeState mstate = pstate.nodes.get(name);
             if (mstate == null) {
                 if (pstate.nodes.containsKey(name)) {
                     throw new IllegalStateException(
-                            "This builder refers to a node that has"
-                            + " been removed from its parent.");
+                            "This node has been removed.");
                 }
                 mstate = new MutableNodeState(readState);
                 pstate.nodes.put(name, mstate);
             }
-            parent = null;
-            name = null;
-            readState = mstate;
-            writeState = mstate;
+            if (mstate != writeState) {
+                readState = mstate;
+                writeState = mstate;
+            }
         }
+        revision = newRevision;
         return writeState;
     }
 
