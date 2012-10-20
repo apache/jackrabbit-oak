@@ -60,10 +60,10 @@ public class MemoryNodeBuilderTest {
         NodeBuilder childB = root.child("x");
 
         childB.setProperty("test", "foo");
+
         childA.setProperty("test", "bar");
-        assertEquals(
-                "bar",
-                childB.getProperty("test").getValue(STRING));
+        assertEquals("bar", childA.getProperty("test").getValue(STRING));
+        assertEquals("bar", childB.getProperty("test").getValue(STRING));
     }
 
     @Test
@@ -73,8 +73,14 @@ public class MemoryNodeBuilderTest {
         NodeBuilder childB = root.child("x");
 
         childB.setProperty("test", "foo");
+
         childA.removeProperty("test");
+        assertNull(childA.getProperty("test"));
         assertNull(childB.getProperty("test"));
+
+        childA.setProperty("test", "bar");
+        assertEquals("bar", childA.getProperty("test").getValue(STRING));
+        assertEquals("bar", childB.getProperty("test").getValue(STRING));
     }
 
     @Test
@@ -84,18 +90,28 @@ public class MemoryNodeBuilderTest {
         NodeBuilder childB = root.child("x");
 
         assertFalse(childA.hasChildNode("test"));
+        assertFalse(childB.hasChildNode("test"));
+
         childB.child("test");
         assertTrue(childA.hasChildNode("test"));
+        assertTrue(childB.hasChildNode("test"));
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void testConnectOnRemoveNode() {
         NodeBuilder root = new MemoryNodeBuilder(BASE);
         NodeBuilder child = root.child("x");
 
         root.removeNode("x");
-        child.getChildNodeCount(); // should throw ISE
-        fail();
+        try {
+            child.getChildNodeCount();
+            fail();
+        } catch (IllegalStateException e) {
+            // expected
+        }
+
+        root.child("x");
+        assertEquals(0, child.getChildNodeCount()); // reconnect!
     }
 
 }
