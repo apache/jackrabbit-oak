@@ -508,6 +508,18 @@ public class MemoryNodeBuilder implements NodeBuilder {
         }
 
         @Override
+        public NodeState getChildNode(String name) {
+            MutableNodeState node = nodes.get(name);
+            if (node != null) {
+                return node;
+            } else if (nodes.containsKey(name)) {
+                return null;
+            }
+
+            return base.getChildNode(name);
+        }
+
+        @Override
         public Iterable<String> getChildNodeNames() {
             if (nodes.isEmpty()) {
                 return base.getChildNodeNames(); // shortcut
