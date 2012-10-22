@@ -19,20 +19,17 @@
 package org.apache.jackrabbit.oak.plugins.memory;
 
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.value.Conversions;
+import org.apache.jackrabbit.oak.plugins.value.Conversions.Converter;
 
 public class StringsPropertyState extends MultiPropertyState<String> {
-    protected StringsPropertyState(String name, Iterable<String> values) {
+    public StringsPropertyState(String name, Iterable<String> values) {
         super(name, values);
     }
 
     @Override
-    protected Iterable<String> getStrings() {
-        return values;
-    }
-
-    @Override
-    protected String getString(int index) {
-        return values.get(index);
+    public Converter getConverter(String value) {
+        return Conversions.convert(value);
     }
 
     @Override

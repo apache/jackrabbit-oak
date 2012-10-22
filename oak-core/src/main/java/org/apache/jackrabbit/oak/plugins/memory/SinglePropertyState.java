@@ -18,14 +18,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
-import java.math.BigDecimal;
-
 import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
 
-import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.value.Conversions;
+import org.apache.jackrabbit.oak.plugins.value.Conversions.Converter;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Collections.singleton;
@@ -33,7 +30,7 @@ import static java.util.Collections.singleton;
 /**
  * Abstract base class for single valued {@code PropertyState} implementations.
  */
-abstract class SinglePropertyState extends EmptyPropertyState {
+abstract class SinglePropertyState<T> extends EmptyPropertyState {
 
     /**
      * Create a new property state with the given {@code name}
@@ -41,55 +38,6 @@ abstract class SinglePropertyState extends EmptyPropertyState {
      */
     protected SinglePropertyState(String name) {
         super(name);
-    }
-
-    /**
-     * String representation of the value of the property state.
-     * @return
-     */
-    protected abstract String getString();
-
-    /**
-     * @return  A {@link StringBasedBlob} instance created by calling
-     * {@link #getString()}.
-     */
-    protected Blob getBlob() {
-        return Conversions.convert(getString()).toBinary();
-    }
-
-    /**
-     * @return  long value converted by {@code Conversions.convert(String)}
-     */
-    protected long getLong() {
-        return Conversions.convert(getString()).toLong();
-    }
-
-    /**
-     * @return  double value converted by {@code Conversions.convert(String)}
-     */
-    protected double getDouble() {
-        return Conversions.convert(getString()).toDouble();
-    }
-
-    /**
-     * @return  date value converted by {@code Conversions.convert(String)}
-     */
-    protected String getDate() {
-        return Conversions.convert(getString()).toDate();
-    }
-
-    /**
-     * @return  boolean value converted by {@code Conversions.convert(String)}
-     */
-    protected boolean getBoolean() {
-        return Conversions.convert(getString()).toBoolean();
-    }
-
-    /**
-     * @return  decimal value converted by {@code Conversions.convert(String)}
-     */
-    protected BigDecimal getDecimal() {
-        return Conversions.convert(getString()).toDecimal();
     }
 
     /**
@@ -101,45 +49,58 @@ abstract class SinglePropertyState extends EmptyPropertyState {
     }
 
     /**
+     * Create a converter for converting the value of this property to other types.
+     * @return  A converter for the value of this property
+     */
+    public abstract Converter getConverter();
+
+    @SuppressWarnings("unchecked")
+    private <S> S  convertTo(Type<S> type) {
+        switch (type.tag()) {
+            case PropertyType.STRING: return (S) getConverter().toString();
+            case PropertyType.BINARY: return (S) getConverter().toBinary();
+            case PropertyType.LONG: return (S) (Long) getConverter().toLong();
+            case PropertyType.DOUBLE: return (S) (Double) getConverter().toDouble();
+            case PropertyType.DATE: return (S) getConverter().toDate();
+            case PropertyType.BOOLEAN: return (S) (Boolean) getConverter().toBoolean();
+            case PropertyType.NAME: return (S) getConverter().toString();
+            case PropertyType.PATH: return (S) getConverter().toString();
+            case PropertyType.REFERENCE: return (S) getConverter().toString();
+            case PropertyType.WEAKREFERENCE: return (S) getConverter().toString();
+            case PropertyType.URI: return (S) getConverter().toString();
+            case PropertyType.DECIMAL: return (S) getConverter().toDecimal();
+            default: throw new IllegalArgumentException("Unknown type:" + type);
+        }
+    }
+
+    /**
+     * The value of this property
+     * @return  Value of this property
+     */
+    public abstract T getValue();
+
+    /**
      * @throws IllegalArgumentException if {@code type} is not one of the
      * values defined in {@link Type}.
      */
     @SuppressWarnings("unchecked")
     @Nonnull
     @Override
-    public <T> T getValue(Type<T> type) {
+    public <S> S getValue(Type<S> type) {
         if (type.isArray()) {
-            switch (type.tag()) {
-                case PropertyType.STRING: return (T) singleton(getString());
-                case PropertyType.BINARY: return (T) singleton(getBlob());
-                case PropertyType.LONG: return (T) singleton(getLong());
-                case PropertyType.DOUBLE: return (T) singleton(getDouble());
-                case PropertyType.DATE: return (T) singleton(getDate());
-                case PropertyType.BOOLEAN: return (T) singleton(getBoolean());
-                case PropertyType.NAME: return (T) singleton(getString());
-                case PropertyType.PATH: return (T) singleton(getString());
-                case PropertyType.REFERENCE: return (T) singleton(getString());
-                case PropertyType.WEAKREFERENCE: return (T) singleton(getString());
-                case PropertyType.URI: return (T) singleton(getString());
-                case PropertyType.DECIMAL: return (T) singleton(getDecimal());
-                default: throw new IllegalArgumentException("Invalid primitive type:" + type);
+            if (getType() == type.getBaseType()) {
+                return (S) singleton(getValue());
+            }
+            else {
+                return (S) singleton(convertTo(type.getBaseType()));
             }
         }
         else {
-            switch (type.tag()) {
-                case PropertyType.STRING: return (T) getString();
-                case PropertyType.BINARY: return (T) getBlob();
-                case PropertyType.LONG: return (T) (Long) getLong();
-                case PropertyType.DOUBLE: return (T) (Double) getDouble();
-                case PropertyType.DATE: return (T) getDate();
-                case PropertyType.BOOLEAN: return (T) (Boolean) getBoolean();
-                case PropertyType.NAME: return (T) getString();
-                case PropertyType.PATH: return (T) getString();
-                case PropertyType.REFERENCE: return (T) getString();
-                case PropertyType.WEAKREFERENCE: return (T) getString();
-                case PropertyType.URI: return (T) getString();
-                case PropertyType.DECIMAL: return (T) getDecimal();
-                default: throw new IllegalArgumentException("Invalid array type:" + type);
+            if (getType() == type) {
+                return (S) getValue();
+            }
+            else {
+                return convertTo(type);
             }
         }
     }
@@ -150,7 +111,7 @@ abstract class SinglePropertyState extends EmptyPropertyState {
      */
     @Nonnull
     @Override
-    public <T> T getValue(Type<T> type, int index) {
+    public <S> S getValue(Type<S> type, int index) {
         checkArgument(!type.isArray(), "Type must not be an array type");
         if (index != 0) {
             throw new IndexOutOfBoundsException(String.valueOf(index));
@@ -163,7 +124,7 @@ abstract class SinglePropertyState extends EmptyPropertyState {
      */
     @Override
     public long size() {
-        return getString().length();
+        return convertTo(Type.STRING).length();
     }
 
     /**

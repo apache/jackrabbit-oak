@@ -19,20 +19,27 @@
 package org.apache.jackrabbit.oak.plugins.memory;
 
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.value.Conversions;
+import org.apache.jackrabbit.oak.plugins.value.Conversions.Converter;
 
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 
-public class StringPropertyState extends SinglePropertyState {
+public class StringPropertyState extends SinglePropertyState<String> {
     private final String value;
 
-    protected StringPropertyState(String name, String value) {
+    public StringPropertyState(String name, String value) {
         super(name);
         this.value = value;
     }
 
     @Override
-    protected String getString() {
+    public String getValue() {
         return value;
+    }
+
+    @Override
+    public Converter getConverter() {
+        return Conversions.convert(value);
     }
 
     @Override

@@ -19,6 +19,8 @@
 package org.apache.jackrabbit.oak.plugins.memory;
 
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.value.Conversions;
+import org.apache.jackrabbit.oak.plugins.value.Conversions.Converter;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -28,20 +30,15 @@ public class GenericsPropertyState extends MultiPropertyState<String> {
     /**
      * @throws IllegalArgumentException if {@code type.isArray()} is {@code false}
      */
-    protected GenericsPropertyState(String name, Iterable<String> values, Type<?> type) {
+    public GenericsPropertyState(String name, Iterable<String> values, Type<?> type) {
         super(name, values);
         checkArgument(type.isArray());
         this.type = type;
     }
 
     @Override
-    protected Iterable<String> getStrings() {
-        return values;
-    }
-
-    @Override
-    protected String getString(int index) {
-        return values.get(index);
+    public Converter getConverter(String value) {
+        return Conversions.convert(value);
     }
 
     @Override

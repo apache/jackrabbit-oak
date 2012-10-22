@@ -20,25 +20,26 @@ package org.apache.jackrabbit.oak.plugins.memory;
 
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.value.Conversions;
+import org.apache.jackrabbit.oak.plugins.value.Conversions.Converter;
 
 import static org.apache.jackrabbit.oak.api.Type.*;
 
-public class BooleanPropertyState extends SinglePropertyState {
+public class BooleanPropertyState extends SinglePropertyState<Boolean> {
     private final boolean value;
 
-    protected BooleanPropertyState(String name, boolean value) {
+    public BooleanPropertyState(String name, boolean value) {
         super(name);
         this.value = value;
     }
 
     @Override
-    protected String getString() {
-        return Conversions.convert(value).toString();
+    public Boolean getValue() {
+        return value;
     }
 
     @Override
-    protected boolean getBoolean() {
-        return value;
+    public Converter getConverter() {
+        return Conversions.convert(value);
     }
 
     @Override

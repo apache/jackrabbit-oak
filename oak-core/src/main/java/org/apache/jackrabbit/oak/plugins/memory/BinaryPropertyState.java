@@ -19,23 +19,24 @@ package org.apache.jackrabbit.oak.plugins.memory;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.value.Conversions;
+import org.apache.jackrabbit.oak.plugins.value.Conversions.Converter;
 
-public class BinaryPropertyState extends SinglePropertyState {
+public class BinaryPropertyState extends SinglePropertyState<Blob> {
     private final Blob value;
 
-    protected BinaryPropertyState(String name, Blob value) {
+    public BinaryPropertyState(String name, Blob value) {
         super(name);
         this.value = value;
     }
 
     @Override
-    public String getString() {
-        return Conversions.convert(value).toString();
+    public Blob getValue() {
+        return value;
     }
 
     @Override
-    protected Blob getBlob() {
-        return value;
+    public Converter getConverter() {
+        return Conversions.convert(value);
     }
 
     @Override
