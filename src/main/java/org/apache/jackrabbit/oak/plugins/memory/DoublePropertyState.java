@@ -18,44 +18,28 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
-import java.math.BigDecimal;
-
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.value.Conversions;
+import org.apache.jackrabbit.oak.plugins.value.Conversions.Converter;
 
 import static org.apache.jackrabbit.oak.api.Type.DOUBLE;
 
-public class DoublePropertyState extends SinglePropertyState {
+public class DoublePropertyState extends SinglePropertyState<Double> {
     private final double value;
 
-    protected DoublePropertyState(String name, double value) {
+    public DoublePropertyState(String name, double value) {
         super(name);
         this.value = value;
     }
 
     @Override
-    public BigDecimal getDecimal() {
-        return Conversions.convert(value).toDecimal();
-    }
-
-    @Override
-    public double getDouble() {
+    public Double getValue() {
         return value;
     }
 
     @Override
-    public long getLong() {
-        return Conversions.convert(value).toLong();
-    }
-
-    @Override
-    protected String getDate() {
-        return Conversions.convert(value).toDate();
-    }
-
-    @Override
-    public String getString() {
-        return Conversions.convert(value).toString();
+    public Converter getConverter() {
+        return Conversions.convert(value);
     }
 
     @Override

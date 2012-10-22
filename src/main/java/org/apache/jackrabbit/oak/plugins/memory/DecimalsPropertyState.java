@@ -18,87 +18,20 @@ package org.apache.jackrabbit.oak.plugins.memory;
 
 import java.math.BigDecimal;
 
-import com.google.common.base.Function;
-import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.value.Conversions;
+import org.apache.jackrabbit.oak.plugins.value.Conversions.Converter;
 
 import static org.apache.jackrabbit.oak.api.Type.DECIMALS;
 
 public class DecimalsPropertyState extends MultiPropertyState<BigDecimal> {
-
-    protected DecimalsPropertyState(String name, Iterable<BigDecimal> values) {
+    public DecimalsPropertyState(String name, Iterable<BigDecimal> values) {
         super(name, values);
     }
 
     @Override
-    protected Iterable<BigDecimal> getDecimals() {
-        return values;
-    }
-
-    @Override
-    protected BigDecimal getDecimal(int index) {
-        return values.get(index);
-    }
-
-    @Override
-    protected Iterable<Double> getDoubles() {
-        return Iterables.transform(values, new Function<BigDecimal, Double>() {
-            @Override
-            public Double apply(BigDecimal value) {
-                return Conversions.convert(value).toDouble();
-            }
-        });
-    }
-
-    @Override
-    protected Iterable<String> getDates() {
-        return Iterables.transform(values, new Function<BigDecimal, String>() {
-            @Override
-            public String apply(BigDecimal value) {
-                return Conversions.convert(value).toDate();
-            }
-        });
-    }
-
-    @Override
-    protected double getDouble(int index) {
-        return Conversions.convert(values.get(index)).toDouble();
-    }
-
-    @Override
-    protected String getDate(int index) {
-        return Conversions.convert(values.get(index)).toDate();
-    }
-
-    @Override
-    protected Iterable<Long> getLongs() {
-        return Iterables.transform(values, new Function<BigDecimal, Long>() {
-            @Override
-            public Long apply(BigDecimal value) {
-                return Conversions.convert(value).toLong();
-            }
-        });
-    }
-
-    @Override
-    protected long getLong(int index) {
-        return Conversions.convert(values.get(index)).toLong();
-    }
-
-    @Override
-    protected Iterable<String> getStrings() {
-        return Iterables.transform(values, new Function<BigDecimal, String>() {
-            @Override
-            public String apply(BigDecimal value) {
-                return Conversions.convert(value).toString();
-            }
-        });
-    }
-
-    @Override
-    protected String getString(int index) {
-        return Conversions.convert(values.get(index)).toString();
+    public Converter getConverter(BigDecimal value) {
+        return Conversions.convert(value);
     }
 
     @Override

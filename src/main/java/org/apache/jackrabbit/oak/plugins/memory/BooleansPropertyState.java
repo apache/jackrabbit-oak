@@ -16,41 +16,20 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
-import com.google.common.base.Function;
-import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.value.Conversions;
+import org.apache.jackrabbit.oak.plugins.value.Conversions.Converter;
 
 import static org.apache.jackrabbit.oak.api.Type.BOOLEANS;
 
 public class BooleansPropertyState extends MultiPropertyState<Boolean> {
-    protected BooleansPropertyState(String name, Iterable<Boolean> values) {
+    public BooleansPropertyState(String name, Iterable<Boolean> values) {
         super(name, values);
     }
 
     @Override
-    protected Iterable<String> getStrings() {
-        return Iterables.transform(values, new Function<Boolean, String>() {
-            @Override
-            public String apply(Boolean value) {
-                return Conversions.convert(value).toString();
-            }
-        });
-    }
-
-    @Override
-    protected String getString(int index) {
-        return Conversions.convert(values.get(index)).toString();
-    }
-
-    @Override
-    protected Iterable<Boolean> getBooleans() {
-        return values;
-    }
-
-    @Override
-    protected boolean getBoolean(int index) {
-        return values.get(index);
+    public Converter getConverter(Boolean value) {
+        return Conversions.convert(value);
     }
 
     @Override

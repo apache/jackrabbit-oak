@@ -18,15 +18,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
-import java.math.BigDecimal;
 import java.util.Calendar;
 import java.util.List;
 
-import com.google.common.base.Function;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.value.Conversions;
+import org.apache.jackrabbit.oak.plugins.value.Conversions.Converter;
 
 public class LongsPropertyState extends MultiPropertyState<Long> {
     private final Type<?> type;
@@ -36,14 +34,32 @@ public class LongsPropertyState extends MultiPropertyState<Long> {
         this.type = type;
     }
 
+    /**
+     * Create a multi valued {@code PropertyState} from a list of longs.
+     * @param name  The name of the property state
+     * @param values  The values of the property state
+     * @return  The new property state of type {@link Type#LONGS}
+     */
     public static LongsPropertyState createLongsProperty(String name, Iterable<Long> values) {
         return new LongsPropertyState(name, Lists.newArrayList(values), Type.LONGS);
     }
 
+    /**
+     * Create a multi valued {@code PropertyState} of dates from a list of longs.
+     * @param name  The name of the property state
+     * @param values  The values of the property state
+     * @return  The new property state of type {@link Type#DATES}
+     */
     public static LongsPropertyState createDatesPropertyFromLong(String name, Iterable<Long> values) {
         return new LongsPropertyState(name, Lists.newArrayList(values), Type.DATES);
     }
 
+    /**
+     * Create a multi valued {@code PropertyState} of dates.
+     * @param name  The name of the property state
+     * @param values  The values of the property state
+     * @return  The new property state of type {@link Type#DATES}
+     */
     public static LongsPropertyState createDatesPropertyFromCalendar(String name, Iterable<Calendar> values) {
         List<Long> dates = Lists.newArrayList();
         for (Calendar v : values) {
@@ -52,94 +68,29 @@ public class LongsPropertyState extends MultiPropertyState<Long> {
         return new LongsPropertyState(name, dates, Type.DATES);
     }
 
+    /**
+     * Create a multi valued {@code PropertyState} of dates from a list of strings.
+     * @param name  The name of the property state
+     * @param values  The values of the property state
+     * @return  The new property state of type {@link Type#DATES}
+     * @throws IllegalArgumentException if one of the {@code values} is not a parseable to a date.
+     */
     public static LongsPropertyState createDatesProperty(String name, Iterable<String> values) {
-        List<Calendar> dates = Lists.newArrayList();
+        List<Long> dates = Lists.newArrayList();
         for (String v : values) {
-            dates.add(Conversions.convert(v).toCalendar());
+            dates.add(Conversions.convert(Conversions.convert(v).toCalendar()).toLong());
         }
-        return createDatesPropertyFromCalendar(name, dates);
+        return new LongsPropertyState(name, dates, Type.DATES);
     }
 
     @Override
-    protected Iterable<BigDecimal> getDecimals() {
-        return Iterables.transform(values, new Function<Long, BigDecimal>() {
-            @Override
-            public BigDecimal apply(Long value) {
-                return Conversions.convert(value).toDecimal();
-            }
-        });
-    }
-
-    @Override
-    protected BigDecimal getDecimal(int index) {
-        return Conversions.convert(values.get(index)).toDecimal();
-    }
-
-    @Override
-    protected Iterable<Double> getDoubles() {
-        return Iterables.transform(values, new Function<Long, Double>() {
-            @Override
-            public Double apply(Long value) {
-                return Conversions.convert(value).toDouble();
-            }
-        });
-    }
-
-    @Override
-    protected Iterable<String> getDates() {
-        return Iterables.transform(values, new Function<Long, String>() {
-            @Override
-            public String apply(Long value) {
-                return Conversions.convert(value).toDate();
-            }
-        });
-    }
-
-    @Override
-    protected double getDouble(int index) {
-        return Conversions.convert(values.get(index)).toDouble();
-    }
-
-    @Override
-    protected String getDate(int index) {
-        return Conversions.convert(values.get(index)).toDate();
-    }
-
-    @Override
-    protected Iterable<Long> getLongs() {
-        return values;
-    }
-
-    @Override
-    protected long getLong(int index) {
-        return values.get(index);
-    }
-
-    @Override
-    protected Iterable<String> getStrings() {
+    public Converter getConverter(Long value) {
         if (type == Type.DATES) {
-            return Iterables.transform(values, new Function<Long, String>() {
-                @Override
-                public String apply(Long value) {
-                    return Conversions.convert(value).toDate();
-                }
-            });
+            return Conversions.convert(Conversions.convert(value).toCalendar());
         }
         else {
-            return Iterables.transform(values, new Function<Long, String>() {
-                @Override
-                public String apply(Long value) {
-                    return Conversions.convert(value).toString();
-                }
-            });
+            return Conversions.convert(value);
         }
-    }
-
-    @Override
-    protected String getString(int index) {
-        return (type == Type.DATES)
-            ? getDate(index)
-            : Conversions.convert(values.get(index)).toString();
     }
 
     @Override

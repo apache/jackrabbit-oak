@@ -20,40 +20,26 @@ import java.math.BigDecimal;
 
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.value.Conversions;
+import org.apache.jackrabbit.oak.plugins.value.Conversions.Converter;
 
 import static org.apache.jackrabbit.oak.api.Type.DECIMAL;
 
-public class DecimalPropertyState extends SinglePropertyState {
+public class DecimalPropertyState extends SinglePropertyState<BigDecimal> {
     private final BigDecimal value;
 
-    protected DecimalPropertyState(String name, BigDecimal value) {
+    public DecimalPropertyState(String name, BigDecimal value) {
         super(name);
         this.value = value;
     }
 
     @Override
-    public BigDecimal getDecimal() {
+    public BigDecimal getValue() {
         return value;
     }
 
     @Override
-    public double getDouble() {
-        return Conversions.convert(value).toDouble();
-    }
-
-    @Override
-    public long getLong() {
-        return Conversions.convert(value).toLong();
-    }
-
-    @Override
-    protected String getDate() {
-        return Conversions.convert(value).toDate();
-    }
-
-    @Override
-    public String getString() {
-        return Conversions.convert(value).toString();
+    public Converter getConverter() {
+        return Conversions.convert(value);
     }
 
     @Override

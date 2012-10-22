@@ -29,7 +29,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.value.Conversions;
+import org.apache.jackrabbit.oak.plugins.value.Conversions.Converter;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -51,136 +51,101 @@ abstract class MultiPropertyState<T> extends EmptyPropertyState {
     }
 
     /**
-     * @return  {@code Iterable} of the string representations of the values
-     * of the property state.
+     * Create a converter for converting a value to other types.
+     * @param  value  The value to convert
+     * @return  A converter for the value of this property
      */
-    protected abstract Iterable<String> getStrings();
+    public abstract Converter getConverter(T value);
 
-    /**
-     * @param index
-     * @return  String representation of the value at {@code index }of the
-     * property state.
-     */
-    protected abstract String getString(int index);
-
-    /**
-     * @return  The values of this property state as {@link Blob}s
-     */
-    protected Iterable<Blob> getBlobs() {
-        return Iterables.transform(getStrings(), new Function<String, Blob>() {
-            @Override
-            public Blob apply(String value) {
-                return Conversions.convert(value).toBinary();
-            }
-        });
-    }
-
-    /**
-     * @return  The values of this property state as {@code Long}s
-     */
-    protected Iterable<Long> getLongs() {
-        return Iterables.transform(getStrings(), new Function<String, Long>() {
-            @Override
-            public Long apply(String value) {
-                return Conversions.convert(value).toLong();
-            }
-        });
-    }
-
-    /**
-     * @return  The values of this property state as {@code Double}s
-     */
-    protected Iterable<Double> getDoubles() {
-        return Iterables.transform(getStrings(), new Function<String, Double>() {
-            @Override
-            public Double apply(String value) {
-                return Conversions.convert(value).toDouble();
-            }
-        });
-    }
-
-    /**
-     * @return  The values of this property state as {@code Dates}s
-     */
-    protected Iterable<String> getDates() {
-        return Iterables.transform(getStrings(), new Function<String, String>() {
-            @Override
-            public String apply(String value) {
-                return Conversions.convert(value).toDate();
-            }
-        });
-    }
-
-    /**
-     * @return  The values of this property state as {@code Booleans}s
-     */
-    protected Iterable<Boolean> getBooleans() {
-        return Iterables.transform(getStrings(), new Function<String, Boolean>() {
-            @Override
-            public Boolean apply(String value) {
-                return Conversions.convert(value).toBoolean();
-            }
-        });
-    }
-
-    /**
-     * @return  The values of this property state as {@code BigDecimal}s
-     */
-    protected Iterable<BigDecimal> getDecimals() {
-        return Iterables.transform(getStrings(), new Function<String, BigDecimal>() {
-            @Override
-            public BigDecimal apply(String value) {
-                return Conversions.convert(value).toDecimal();
-            }
-        });
-    }
-
-    /**
-     * @param index
-     * @return  The value at the given {@code index} as {@link Blob}
-     */
-    protected Blob getBlob(int index) {
-        return Conversions.convert(getString(index)).toBinary();
-    }
-
-    /**
-     * @param index
-     * @return  The value at the given {@code index} as {@code long}
-     */
-    protected long getLong(int index) {
-        return Conversions.convert(getString(index)).toLong();
-    }
-
-    /**
-     * @param index
-     * @return  The value at the given {@code index} as {@code double}
-     */
-    protected double getDouble(int index) {
-        return Conversions.convert(getString(index)).toDouble();
-    }
-
-    /**
-     * @param index
-     * @return  The value at the given {@code index} as {@code date}
-     */
-    protected String getDate(int index) {
-        return Conversions.convert(getString(index)).toDate();
-    }
-
-    /**
-     * @param index
-     * @return  The value at the given {@code index} as {@code boolean}
-     */
-    protected boolean getBoolean(int index) {
-        return Conversions.convert(getString(index)).toBoolean();
-    }
-
-    /**
-     * @param index
-     * @return  The value at the given {@code index} as {@code BigDecimal}
-     */
-    protected BigDecimal getDecimal(int index) {
-        return Conversions.convert(getString(index)).toDecimal();
+    @SuppressWarnings("unchecked")
+    private <S> S  convertTo(Type<S> type) {
+        switch (type.tag()) {
+            case PropertyType.STRING:
+                return (S) Iterables.transform(values, new Function<T, String>() {
+                    @Override
+                    public String apply(T value) {
+                        return getConverter(value).toString();
+                    }
+                });
+            case PropertyType.BINARY:
+                return (S) Iterables.transform(values, new Function<T, Blob>() {
+                    @Override
+                    public Blob apply(T value) {
+                        return getConverter(value).toBinary();
+                    }
+                });
+            case PropertyType.LONG:
+                return (S) Iterables.transform(values, new Function<T, Long>() {
+                    @Override
+                    public Long apply(T value) {
+                        return getConverter(value).toLong();
+                    }
+                });
+            case PropertyType.DOUBLE:
+                return (S) Iterables.transform(values, new Function<T, Double>() {
+                    @Override
+                    public Double apply(T value) {
+                        return getConverter(value).toDouble();
+                    }
+                });
+            case PropertyType.DATE:
+                return (S) Iterables.transform(values, new Function<T, String>() {
+                    @Override
+                    public String apply(T value) {
+                        return getConverter(value).toDate();
+                    }
+                });
+            case PropertyType.BOOLEAN:
+                return (S) Iterables.transform(values, new Function<T, Boolean>() {
+                    @Override
+                    public Boolean apply(T value) {
+                        return getConverter(value).toBoolean();
+                    }
+                });
+            case PropertyType.NAME:
+                return (S) Iterables.transform(values, new Function<T, String>() {
+                    @Override
+                    public String apply(T value) {
+                        return getConverter(value).toString();
+                    }
+                });
+            case PropertyType.PATH:
+                return (S) Iterables.transform(values, new Function<T, String>() {
+                    @Override
+                    public String apply(T value) {
+                        return getConverter(value).toString();
+                    }
+                });
+            case PropertyType.REFERENCE:
+                return (S) Iterables.transform(values, new Function<T, String>() {
+                    @Override
+                    public String apply(T value) {
+                        return getConverter(value).toString();
+                    }
+                });
+            case PropertyType.WEAKREFERENCE:
+                return (S) Iterables.transform(values, new Function<T, String>() {
+                    @Override
+                    public String apply(T value) {
+                        return getConverter(value).toString();
+                    }
+                });
+            case PropertyType.URI:
+                return (S) Iterables.transform(values, new Function<T, String>() {
+                    @Override
+                    public String apply(T value) {
+                        return getConverter(value).toString();
+                    }
+                });
+            case PropertyType.DECIMAL:
+                return (S) Iterables.transform(values, new Function<T, BigDecimal>() {
+                    @Override
+                    public BigDecimal apply(T value) {
+                        return getConverter(value).toDecimal();
+                    }
+                });
+            default: throw new IllegalArgumentException("Unknown type:" + type);
+        }
     }
 
     /**
@@ -190,22 +155,32 @@ abstract class MultiPropertyState<T> extends EmptyPropertyState {
     @SuppressWarnings("unchecked")
     @Nonnull
     @Override
-    public <T> T getValue(Type<T> type) {
+    public <S> S getValue(Type<S> type) {
         checkArgument(type.isArray(), "Type must not be an array type");
+        if (getType() == type) {
+            return (S) values;
+        }
+        else {
+            return convertTo(type);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private <S> S  convertTo(Type<S> type, int index) {
         switch (type.tag()) {
-            case PropertyType.STRING: return (T) getStrings();
-            case PropertyType.BINARY: return (T) getBlobs();
-            case PropertyType.LONG: return (T) getLongs();
-            case PropertyType.DOUBLE: return (T) getDoubles();
-            case PropertyType.DATE: return (T) getDates();
-            case PropertyType.BOOLEAN: return (T) getBooleans();
-            case PropertyType.NAME: return (T) getStrings();
-            case PropertyType.PATH: return (T) getStrings();
-            case PropertyType.REFERENCE: return (T) getStrings();
-            case PropertyType.WEAKREFERENCE: return (T) getStrings();
-            case PropertyType.URI: return (T) getStrings();
-            case PropertyType.DECIMAL: return (T) getDecimals();
-            default: throw new IllegalArgumentException("Invalid type:" + type);
+            case PropertyType.STRING: return (S) getConverter(values.get(index)).toString();
+            case PropertyType.BINARY: return (S) getConverter(values.get(index)).toBinary();
+            case PropertyType.LONG: return (S) (Long) getConverter(values.get(index)).toLong();
+            case PropertyType.DOUBLE: return (S) (Double) getConverter(values.get(index)).toDouble();
+            case PropertyType.DATE: return (S) getConverter(values.get(index)).toDate();
+            case PropertyType.BOOLEAN: return (S) (Boolean) getConverter(values.get(index)).toBoolean();
+            case PropertyType.NAME: return (S) getConverter(values.get(index)).toString();
+            case PropertyType.PATH: return (S) getConverter(values.get(index)).toString();
+            case PropertyType.REFERENCE: return (S) getConverter(values.get(index)).toString();
+            case PropertyType.WEAKREFERENCE: return (S) getConverter(values.get(index)).toString();
+            case PropertyType.URI: return (S) getConverter(values.get(index)).toString();
+            case PropertyType.DECIMAL: return (S) getConverter(values.get(index)).toDecimal();
+            default: throw new IllegalArgumentException("Unknown type:" + type);
         }
     }
 
@@ -217,26 +192,13 @@ abstract class MultiPropertyState<T> extends EmptyPropertyState {
     @SuppressWarnings("unchecked")
     @Nonnull
     @Override
-    public <T> T getValue(Type<T> type, int index) {
+    public <S> S getValue(Type<S> type, int index) {
         checkArgument(!type.isArray(), "Type must not be an array type");
-        if (index >= count()) {
-            throw new IndexOutOfBoundsException(String.valueOf(index));
+        if (getType().getBaseType() == type) {
+            return (S) values.get(index);
         }
-
-        switch (type.tag()) {
-            case PropertyType.STRING: return (T) getString(index);
-            case PropertyType.BINARY: return (T) getBlob(index);
-            case PropertyType.LONG: return (T) (Long) getLong(index);
-            case PropertyType.DOUBLE: return (T) (Double) getDouble(index);
-            case PropertyType.DATE: return (T) getDate(index);
-            case PropertyType.BOOLEAN: return (T) (Boolean) getBoolean(index);
-            case PropertyType.NAME: return (T) getString(index);
-            case PropertyType.PATH: return (T) getString(index);
-            case PropertyType.REFERENCE: return (T) getString(index);
-            case PropertyType.WEAKREFERENCE: return (T) getString(index);
-            case PropertyType.URI: return (T) getString(index);
-            case PropertyType.DECIMAL: return (T) getDecimal(index);
-            default: throw new IllegalArgumentException("Invalid type:" + type);
+        else {
+            return convertTo(type, index);
         }
     }
 
@@ -247,7 +209,7 @@ abstract class MultiPropertyState<T> extends EmptyPropertyState {
 
     @Override
     public long size(int index) {
-        return getString(index).length();
+        return convertTo(Type.STRING, index).length();
     }
 
 }
