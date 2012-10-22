@@ -147,45 +147,45 @@ public class MemoryPropertyBuilder<T> implements PropertyBuilder<T> {
     public PropertyState getPropertyState(boolean asArray) {
         checkState(name != null, "Property has no name");
         if (values.isEmpty()) {
-            return PropertyStates.emptyProperty(name, Type.fromTag(type.tag(), true));
+            return EmptyPropertyState.emptyProperty(name, Type.fromTag(type.tag(), true));
         }
         else if (isArray() || asArray) {
             switch (type.tag()) {
                 case PropertyType.STRING:
-                    return PropertyStates.stringProperty(name, (Iterable<String>) values);
+                    return MultiStringPropertyState.stringProperty(name, (Iterable<String>) values);
                 case PropertyType.BINARY:
-                    return PropertyStates.binaryPropertyFromBlob(name, (Iterable<Blob>) values);
+                    return MultiBinaryPropertyState.binaryPropertyFromBlob(name, (Iterable<Blob>) values);
                 case PropertyType.LONG:
-                    return PropertyStates.longProperty(name, (Iterable<Long>) values);
+                    return MultiLongPropertyState.createLongProperty(name, (Iterable<Long>) values);
                 case PropertyType.DOUBLE:
-                    return PropertyStates.doubleProperty(name, (Iterable<Double>) values);
+                    return MultiDoublePropertyState.doubleProperty(name, (Iterable<Double>) values);
                 case PropertyType.DATE:
-                    return LongsPropertyState.createDatesProperty(name, (Iterable<String>) values);
+                    return MultiLongPropertyState.createDateProperty(name, (Iterable<String>) values);
                 case PropertyType.BOOLEAN:
-                    return PropertyStates.booleanProperty(name, (Iterable<Boolean>) values);
+                    return MultiBooleanPropertyState.booleanProperty(name, (Iterable<Boolean>) values);
                 case PropertyType.DECIMAL:
-                    return PropertyStates.decimalProperty(name, (Iterable<BigDecimal>) values);
+                    return MultiDecimalPropertyState.decimalProperty(name, (Iterable<BigDecimal>) values);
                 default:
-                    return new GenericsPropertyState(name, (Iterable<String>) values, Type.fromTag(type.tag(), true));
+                    return new MultiGenericPropertyState(name, (Iterable<String>) values, Type.fromTag(type.tag(), true));
             }
         }
         else {
             T value = values.get(0);
             switch (type.tag()) {
                 case PropertyType.STRING:
-                    return PropertyStates.stringProperty(name, (String) value);
+                    return StringPropertyState.stringProperty(name, (String) value);
                 case PropertyType.BINARY:
-                    return PropertyStates.binaryProperty(name, (Blob) value);
+                    return  BinaryPropertyState.binaryProperty(name, (Blob) value);
                 case PropertyType.LONG:
-                    return PropertyStates.longProperty(name, (Long) value);
+                    return LongPropertyState.createLongProperty(name, (Long) value);
                 case PropertyType.DOUBLE:
-                    return PropertyStates.doubleProperty(name, (Double) value);
+                    return DoublePropertyState.doubleProperty(name, (Double) value);
                 case PropertyType.DATE:
-                    return PropertyStates.dateProperty(name, (String) value);
+                    return LongPropertyState.createDateProperty(name, (String) value);
                 case PropertyType.BOOLEAN:
-                    return PropertyStates.booleanProperty(name, (Boolean) value);
+                    return BooleanPropertyState.booleanProperty(name, (Boolean) value);
                 case PropertyType.DECIMAL:
-                    return PropertyStates.decimalProperty(name, (BigDecimal) value);
+                    return DecimalPropertyState.decimalProperty(name, (BigDecimal) value);
                 default:
                     return new GenericPropertyState(name, (String) value, type);
             }

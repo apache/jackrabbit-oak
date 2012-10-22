@@ -16,11 +16,17 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.value.Conversions;
 import org.apache.jackrabbit.oak.plugins.value.Conversions.Converter;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.api.Type.NAME;
+import static org.apache.jackrabbit.oak.api.Type.PATH;
+import static org.apache.jackrabbit.oak.api.Type.REFERENCE;
+import static org.apache.jackrabbit.oak.api.Type.URI;
+import static org.apache.jackrabbit.oak.api.Type.WEAKREFERENCE;
 
 public class GenericPropertyState extends SinglePropertyState<String> {
     private final String value;
@@ -34,6 +40,61 @@ public class GenericPropertyState extends SinglePropertyState<String> {
         checkArgument(!type.isArray());
         this.value = value;
         this.type = type;
+    }
+
+    /**
+     * Create a {@code PropertyState} from a name. No validation is performed
+     * on the string passed for {@code value}.
+     * @param name  The name of the property state
+     * @param value  The value of the property state
+     * @return  The new property state of type {@link Type#NAME}
+     */
+    public static PropertyState nameProperty(String name, String value) {
+        return new GenericPropertyState(name, value, NAME);
+    }
+
+    /**
+     * Create a {@code PropertyState} from a path. No validation is performed
+     * on the string passed for {@code value}.
+     * @param name  The name of the property state
+     * @param value  The value of the property state
+     * @return  The new property state of type {@link Type#PATH}
+     */
+    public static PropertyState pathProperty(String name, String value) {
+        return new GenericPropertyState(name, value, PATH);
+    }
+
+    /**
+     * Create a {@code PropertyState} from a reference. No validation is performed
+     * on the string passed for {@code value}.
+     * @param name  The name of the property state
+     * @param value  The value of the property state
+     * @return  The new property state of type {@link Type#REFERENCE}
+     */
+    public static PropertyState referenceProperty(String name, String value) {
+        return new GenericPropertyState(name, value, REFERENCE);
+    }
+
+    /**
+     * Create a {@code PropertyState} from a weak reference. No validation is performed
+     * on the string passed for {@code value}.
+     * @param name  The name of the property state
+     * @param value  The value of the property state
+     * @return  The new property state of type {@link Type#WEAKREFERENCE}
+     */
+    public static PropertyState weakreferenceProperty(String name, String value) {
+        return new GenericPropertyState(name, value, WEAKREFERENCE);
+    }
+
+    /**
+     * Create a {@code PropertyState} from a URI. No validation is performed
+     * on the string passed for {@code value}.
+     * @param name  The name of the property state
+     * @param value  The value of the property state
+     * @return  The new property state of type {@link Type#URI}
+     */
+    public static PropertyState uriProperty(String name, String value) {
+        return new GenericPropertyState(name, value, URI);
     }
 
     @Override

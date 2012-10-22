@@ -22,14 +22,15 @@ import java.util.Calendar;
 import java.util.List;
 
 import com.google.common.collect.Lists;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.value.Conversions;
 import org.apache.jackrabbit.oak.plugins.value.Conversions.Converter;
 
-public class LongsPropertyState extends MultiPropertyState<Long> {
+public class MultiLongPropertyState extends MultiPropertyState<Long> {
     private final Type<?> type;
 
-    private LongsPropertyState(String name, Iterable<Long> values, Type<?> type) {
+    public MultiLongPropertyState(String name, Iterable<Long> values, Type<?> type) {
         super(name, values);
         this.type = type;
     }
@@ -40,8 +41,8 @@ public class LongsPropertyState extends MultiPropertyState<Long> {
      * @param values  The values of the property state
      * @return  The new property state of type {@link Type#LONGS}
      */
-    public static LongsPropertyState createLongsProperty(String name, Iterable<Long> values) {
-        return new LongsPropertyState(name, Lists.newArrayList(values), Type.LONGS);
+    public static PropertyState createLongProperty(String name, Iterable<Long> values) {
+        return new MultiLongPropertyState(name, Lists.newArrayList(values), Type.LONGS);
     }
 
     /**
@@ -50,8 +51,8 @@ public class LongsPropertyState extends MultiPropertyState<Long> {
      * @param values  The values of the property state
      * @return  The new property state of type {@link Type#DATES}
      */
-    public static LongsPropertyState createDatesPropertyFromLong(String name, Iterable<Long> values) {
-        return new LongsPropertyState(name, Lists.newArrayList(values), Type.DATES);
+    public static PropertyState createDatePropertyFromLong(String name, Iterable<Long> values) {
+        return new MultiLongPropertyState(name, Lists.newArrayList(values), Type.DATES);
     }
 
     /**
@@ -60,12 +61,12 @@ public class LongsPropertyState extends MultiPropertyState<Long> {
      * @param values  The values of the property state
      * @return  The new property state of type {@link Type#DATES}
      */
-    public static LongsPropertyState createDatesPropertyFromCalendar(String name, Iterable<Calendar> values) {
+    public static PropertyState createDatePropertyFromCalendar(String name, Iterable<Calendar> values) {
         List<Long> dates = Lists.newArrayList();
         for (Calendar v : values) {
             dates.add(Conversions.convert(v).toLong());
         }
-        return new LongsPropertyState(name, dates, Type.DATES);
+        return new MultiLongPropertyState(name, dates, Type.DATES);
     }
 
     /**
@@ -75,12 +76,12 @@ public class LongsPropertyState extends MultiPropertyState<Long> {
      * @return  The new property state of type {@link Type#DATES}
      * @throws IllegalArgumentException if one of the {@code values} is not a parseable to a date.
      */
-    public static LongsPropertyState createDatesProperty(String name, Iterable<String> values) {
+    public static PropertyState createDateProperty(String name, Iterable<String> values) {
         List<Long> dates = Lists.newArrayList();
         for (String v : values) {
             dates.add(Conversions.convert(Conversions.convert(v).toCalendar()).toLong());
         }
-        return new LongsPropertyState(name, dates, Type.DATES);
+        return new MultiLongPropertyState(name, dates, Type.DATES);
     }
 
     @Override

@@ -42,7 +42,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.apache.jackrabbit.oak.plugins.memory.StringPropertyState;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -280,7 +280,7 @@ public class IdentifierManager {
 
     @CheckForNull
     private String resolveUUID(String uuid) {
-        return resolveUUID(PropertyStates.stringProperty("", uuid));
+        return resolveUUID(StringPropertyState.stringProperty("", uuid));
     }
 
     private String resolveUUID(PropertyState uuid) {

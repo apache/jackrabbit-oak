@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.plugins.memory;
 
 import java.util.Calendar;
 
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.value.Conversions;
 import org.apache.jackrabbit.oak.plugins.value.Conversions.Converter;
@@ -28,7 +29,7 @@ public class LongPropertyState extends SinglePropertyState<Long> {
     private final long value;
     private final Type<?> type;
 
-    private LongPropertyState(String name, long value, Type<?> type) {
+    public LongPropertyState(String name, long value, Type<?> type) {
         super(name);
         this.value = value;
         this.type = type;
@@ -40,7 +41,7 @@ public class LongPropertyState extends SinglePropertyState<Long> {
      * @param value  The value of the property state
      * @return  The new property state of type {@link Type#LONG}
      */
-    public static LongPropertyState createLongProperty(String name, long value) {
+    public static PropertyState createLongProperty(String name, long value) {
         return new LongPropertyState(name, value, Type.LONG);
     }
 
@@ -50,7 +51,7 @@ public class LongPropertyState extends SinglePropertyState<Long> {
      * @param value  The value of the property state
      * @return  The new property state of type {@link Type#DATE}
      */
-    public static LongPropertyState createDateProperty(String name, long value) {
+    public static PropertyState createDateProperty(String name, long value) {
         return new LongPropertyState(name, value, Type.DATE);
     }
 
@@ -60,7 +61,7 @@ public class LongPropertyState extends SinglePropertyState<Long> {
      * @param value  The value of the property state
      * @return  The new property state of type {@link Type#DATE}
      */
-    public static LongPropertyState createDateProperty(String name, Calendar value) {
+    public static PropertyState createDateProperty(String name, Calendar value) {
         return new LongPropertyState(name, Conversions.convert(value).toLong(), Type.DATE);
     }
 
@@ -71,7 +72,7 @@ public class LongPropertyState extends SinglePropertyState<Long> {
      * @return  The new property state of type {@link Type#DATE}
      * @throws IllegalArgumentException if {@code value} is not a parseable to a date.
      */
-    public static LongPropertyState createDateProperty(String name, String value) {
+    public static PropertyState createDateProperty(String name, String value) {
         return createDateProperty(name, Conversions.convert(value).toCalendar());
     }
 
