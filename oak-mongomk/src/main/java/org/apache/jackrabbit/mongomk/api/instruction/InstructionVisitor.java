@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.mongomk.api.instruction;
 
 import org.apache.jackrabbit.mongomk.api.instruction.Instruction.AddNodeInstruction;
-import org.apache.jackrabbit.mongomk.api.instruction.Instruction.AddPropertyInstruction;
 import org.apache.jackrabbit.mongomk.api.instruction.Instruction.CopyNodeInstruction;
 import org.apache.jackrabbit.mongomk.api.instruction.Instruction.MoveNodeInstruction;
 import org.apache.jackrabbit.mongomk.api.instruction.Instruction.RemoveNodeInstruction;
@@ -37,13 +36,6 @@ public interface InstructionVisitor {
      *            The instruction.
      */
     void visit(AddNodeInstruction instruction);
-
-    /**
-     * Visits a {@code AddPropertyInstruction}.
-     *
-     * @param instruction The instruction.
-     */
-    void visit(AddPropertyInstruction instruction);
 
     /**
      * Visits a {@code CopyNodeInstruction}.

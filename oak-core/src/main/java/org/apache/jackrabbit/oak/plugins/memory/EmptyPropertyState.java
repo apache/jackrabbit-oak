@@ -37,7 +37,7 @@ import static org.apache.jackrabbit.oak.api.Type.STRINGS;
  * providing default implementation which correspond to a property
  * without any value.
  */
-abstract class EmptyPropertyState implements PropertyState {
+public abstract class EmptyPropertyState implements PropertyState {
     private final String name;
 
     /**

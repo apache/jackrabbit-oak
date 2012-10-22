@@ -35,6 +35,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.kernel.KernelBlob;
 import org.apache.jackrabbit.oak.kernel.TypeCodes;
+import org.apache.jackrabbit.oak.plugins.value.Conversions;
 
 import static org.apache.jackrabbit.oak.api.Type.DATE;
 import static org.apache.jackrabbit.oak.api.Type.DATES;
@@ -164,15 +165,15 @@ public final class PropertyStates {
             case PropertyType.STRING:
                 return new StringPropertyState(name, value);
             case PropertyType.BINARY:
-                return new BinaryPropertyState(name, new StringBasedBlob(value));
+                return new BinaryPropertyState(name, Conversions.convert(value).toBinary());
             case PropertyType.LONG:
-                return new LongPropertyState(name, SinglePropertyState.getLong(value));
+                return new LongPropertyState(name, Conversions.convert(value).toLong());
             case PropertyType.DOUBLE:
-                return new DoublePropertyState(name, StringPropertyState.getDouble(value));
+                return new DoublePropertyState(name, Conversions.convert(value).toDouble());
             case PropertyType.BOOLEAN:
-                return new BooleanPropertyState(name, StringPropertyState.getBoolean(value));
+                return new BooleanPropertyState(name, Conversions.convert(value).toBoolean());
             case PropertyType.DECIMAL:
-                return new DecimalPropertyState(name, StringPropertyState.getDecimal(value));
+                return new DecimalPropertyState(name, Conversions.convert(value).toDecimal());
             default:
                 return new GenericPropertyState(name, value, Type.fromTag(type, false));
         }
@@ -619,7 +620,7 @@ public final class PropertyStates {
             if (reader.matches(JsopReader.NUMBER)) {
                 String number = reader.getToken();
                 type = PropertyType.LONG;
-                values.add(StringPropertyState.getLong(number));
+                values.add(Conversions.convert(number).toLong());
             } else if (reader.matches(JsopReader.TRUE)) {
                 type = PropertyType.BOOLEAN;
                 values.add(true);
@@ -634,9 +635,9 @@ public final class PropertyStates {
                     if (type == PropertyType.BINARY) {
                         values.add(new KernelBlob(value, kernel));
                     } else if(type == PropertyType.DOUBLE) {
-                        values.add(StringPropertyState.getDouble(value));
+                        values.add(Conversions.convert(value).toDouble());
                     } else if(type == PropertyType.DECIMAL) {
-                        values.add(StringPropertyState.getDecimal(value));
+                        values.add(Conversions.convert(value).toDecimal());
                     } else {
                         values.add(value);
                     }

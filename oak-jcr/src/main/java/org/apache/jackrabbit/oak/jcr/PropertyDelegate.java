@@ -31,7 +31,7 @@ import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.core.TreeImpl.PropertyLocation;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.util.TODO;
-import org.apache.jackrabbit.oak.value.ValueFactoryImpl;
+import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 
 /**
  * {@code PropertyDelegate} serve as internal representations of {@code Property}s.

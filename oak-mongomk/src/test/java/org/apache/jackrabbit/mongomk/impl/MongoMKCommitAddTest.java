@@ -6,7 +6,6 @@ import static org.junit.Assert.fail;
 
 import org.apache.jackrabbit.mongomk.BaseMongoMicroKernelTest;
 import org.json.simple.JSONObject;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -58,7 +57,7 @@ public class MongoMKCommitAddTest extends BaseMongoMicroKernelTest {
 
     @Test
     public void addSingleProperty() throws Exception {
-        mk.commit("/", "+\"a\" : {} +\"a/key1\" : \"value1\"", null, null);
+        mk.commit("/", "+\"a\" : {} ^\"a/key1\" : \"value1\"", null, null);
 
         long childCount = mk.getChildNodeCount("/", null);
         assertEquals(1, childCount);
@@ -83,24 +82,5 @@ public class MongoMKCommitAddTest extends BaseMongoMicroKernelTest {
             mk.commit("/", "^\"a/key1\" : \"value1\"", null, null);
             fail("Exception expected");
         } catch (Exception expected) {}
-    }
-
-    /**
-     * FIXME
-     * This test works even in MicroKernelImpl but we should consider whether
-     * throwing a MicroKernelException is a better alternative.
-     */
-    @Test
-    @Ignore
-    public void addDuplicateProperty() throws Exception {
-        mk.commit("/", "+\"a\" : {} +\"a/key1\" : \"value1\" +\"a/key1\" : \"value1\"", null, null);
-
-        long childCount = mk.getChildNodeCount("/", null);
-        assertEquals(1, childCount);
-
-        String nodes = mk.getNodes("/", null, -1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
-        JSONObject obj = parseJSONObject(nodes);
-        assertPropertyValue(obj, "a/:childNodeCount", 0L);
-        assertPropertyValue(obj, "a/key1", "value1");
     }
 }

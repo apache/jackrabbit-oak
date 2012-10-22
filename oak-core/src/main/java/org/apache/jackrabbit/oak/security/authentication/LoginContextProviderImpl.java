@@ -33,21 +33,21 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * LoginContextProviderImpl...  TODO
+ * {@code LoginContextProvider}
  */
 public class LoginContextProviderImpl implements LoginContextProvider {
 
     private static final Logger log = LoggerFactory.getLogger(LoginContextProviderImpl.class);
 
-    private static final String APP_NAME = "jackrabbit.oak";
-
+    private final String appName;
     private final Configuration configuration;
     private final NodeStore nodeStore;
     private final SecurityProvider securityProvider;
 
-    public LoginContextProviderImpl(Configuration configuration,
+    public LoginContextProviderImpl(String appName, Configuration configuration,
                                     NodeStore nodeStore,
                                     SecurityProvider securityProvider) {
+        this.appName = appName;
         this.configuration = configuration;
         this.nodeStore = nodeStore;
         this.securityProvider = securityProvider;
@@ -57,12 +57,10 @@ public class LoginContextProviderImpl implements LoginContextProvider {
     @Nonnull
     public LoginContext getLoginContext(Credentials credentials, String workspaceName)
             throws LoginException {
-        // TODO: add proper implementation
-        // TODO  - authentication against configurable spi-authentication
         // TODO  - validation of workspace name (including access rights for the given 'user')
         Subject subject = getSubject();
         CallbackHandler handler = getCallbackHandler(credentials, workspaceName);
-        return new JaasLoginContext(APP_NAME, subject, handler, configuration);
+        return new JaasLoginContext(appName, subject, handler, configuration);
     }
 
     //------------------------------------------------------------< private >---

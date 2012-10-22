@@ -29,4 +29,5 @@ public class ApiIT extends ConcurrentTestSuite {
         super("JCR API tests");
         addTest(org.apache.jackrabbit.test.api.TestAll.suite());
     }
+
 }

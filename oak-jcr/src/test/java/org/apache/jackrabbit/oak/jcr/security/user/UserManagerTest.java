@@ -221,6 +221,18 @@ public class UserManagerTest extends AbstractUserTest {
 
     }
 
+    /**
+     * @since oak
+     */
+    @Test
+    public void testCreateUserWithoutPassword() throws Exception {
+        try {
+            User u = userMgr.createUser(createUserId(), null);
+        } finally {
+            superuser.refresh(false);
+        }
+    }
+
     @Test
     public void testCreateGroupWithId() throws RepositoryException, NotExecutableException {
         Group gr = null;

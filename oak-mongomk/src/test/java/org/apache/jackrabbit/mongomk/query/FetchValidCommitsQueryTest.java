@@ -34,8 +34,7 @@ public class FetchValidCommitsQueryTest extends BaseMongoTest {
 
     @Test
     public void simple() throws Exception {
-        FetchCommitsQuery query = new FetchCommitsQuery(mongoConnection,
-                Long.MAX_VALUE);
+        FetchCommitsQuery query = new FetchCommitsQuery(mongoConnection);
         List<CommitMongo> commits = query.execute();
         assertEquals(MIN_COMMITS, commits.size());
 
@@ -52,8 +51,7 @@ public class FetchValidCommitsQueryTest extends BaseMongoTest {
 
     @Test
     public void revisionId() throws Exception {
-        FetchCommitsQuery query = new FetchCommitsQuery(mongoConnection,
-                Long.MAX_VALUE);
+        FetchCommitsQuery query = new FetchCommitsQuery(mongoConnection);
         List<CommitMongo> commits = query.execute();
         CommitMongo commit0 = commits.get(0);
 
@@ -72,8 +70,7 @@ public class FetchValidCommitsQueryTest extends BaseMongoTest {
 
     @Test
     public void time() throws Exception {
-        FetchCommitsQuery query = new FetchCommitsQuery(mongoConnection,
-                Long.MAX_VALUE);
+        FetchCommitsQuery query = new FetchCommitsQuery(mongoConnection);
         List<CommitMongo> commits = query.execute();
         CommitMongo commit0 = commits.get(0);
 

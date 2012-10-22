@@ -25,6 +25,7 @@ import javax.jcr.Session;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.jcr.RepositoryImpl;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 
 /**
  * Workaround to a JAAS class loading issue in OSGi environments.
@@ -33,9 +34,10 @@ import org.apache.jackrabbit.oak.jcr.RepositoryImpl;
  */
 public class OsgiRepository extends RepositoryImpl {
 
-    public OsgiRepository(
-            ContentRepository repository, ScheduledExecutorService executor) {
-        super(repository, executor, null); // FIXME pass security provider
+    public OsgiRepository(ContentRepository repository,
+                          ScheduledExecutorService executor,
+                          SecurityProvider securityProvider) {
+        super(repository, executor, securityProvider);
     }
 
     @Override

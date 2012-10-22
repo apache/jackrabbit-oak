@@ -81,9 +81,9 @@ public class SimpleNodeScenario {
         StringBuilder diff = new StringBuilder();
         diff.append("+\"a/d\" : {}");
         diff.append("+\"a/b/e\" : {}");
-        diff.append("+\"a/double\" : 0.123");
-        diff.append("+\"a/d/null\" :  null");
-        diff.append("+\"a/b/e/array\" : [ 123, null, 123.456, \"for:bar\", true ]");
+        diff.append("^\"a/double\" : 0.123");
+        diff.append("^\"a/d/int\" :  2");
+        diff.append("^\"a/b/e/array\" : [ 123, null, 123.456, \"for:bar\", true ]");
         Commit commit = CommitBuilder.build("/", diff.toString(),
                 "This is a commit with updated /a and added /a/d and /a/b/e");
         CommitCommandMongo command = new CommitCommandMongo(mongoConnection, commit);

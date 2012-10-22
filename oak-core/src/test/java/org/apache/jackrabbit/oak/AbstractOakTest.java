@@ -22,22 +22,19 @@ import java.util.List;
 import javax.jcr.Credentials;
 import javax.jcr.NoSuchWorkspaceException;
 import javax.jcr.SimpleCredentials;
+import javax.security.auth.login.Configuration;
 import javax.security.auth.login.LoginException;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.plugins.nodetype.InitialContent;
+import org.apache.jackrabbit.oak.security.OakConfiguration;
 import org.apache.jackrabbit.oak.spi.lifecycle.CompositeMicroKernelTracker;
 import org.apache.jackrabbit.oak.spi.lifecycle.MicroKernelTracker;
-import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.junit.Before;
-
-import com.google.common.collect.Lists;
-
-import static org.junit.Assert.assertEquals;
 
 /**
  * AbstractOakTest is the base class for oak test execution.
@@ -49,19 +46,17 @@ public abstract class AbstractOakTest {
     @Before
     public void before() throws Exception {
         contentRepository = createRepository();
+        // TODO: OAK-17. workaround for missing test configuration
+        Configuration.setConfiguration(new OakConfiguration());
     }
 
     protected MicroKernel createMicroKernelWithInitialContent() {
         MicroKernel mk = new MicroKernelImpl();
-        new InitialContent().available(mk);
+        new InitialContent().available(new KernelNodeStore(mk));
         return mk;
     }
 
     protected abstract ContentRepository createRepository();
-
-    protected static ContentRepository createEmptyRepository() {
-        return new Oak().with(new OpenSecurityProvider()).createContentRepository();
-    }
 
     protected ContentRepository getContentRepository() {
         return contentRepository;
@@ -71,7 +66,7 @@ public abstract class AbstractOakTest {
         return getContentRepository().login(getAdminCredentials(), null);
     }
 
-    private Credentials getAdminCredentials() {
+    protected Credentials getAdminCredentials() {
         // TODO retrieve from config
         return new SimpleCredentials("admin", "admin".toCharArray());
     }
@@ -82,12 +77,4 @@ public abstract class AbstractOakTest {
         return new CompositeMicroKernelTracker(hooks);
     }
 
-    protected void checkSequence(Iterable<Tree> trees, String... names) {
-        List<String> expected = Lists.newArrayList(names);
-        List<String> actual = Lists.newArrayList();
-        for (Tree t : trees) {
-            actual.add(t.getName());
-        }
-        assertEquals(expected.toString(), actual.toString());
-    }
 }

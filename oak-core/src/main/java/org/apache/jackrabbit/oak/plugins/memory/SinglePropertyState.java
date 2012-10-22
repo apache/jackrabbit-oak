@@ -25,6 +25,7 @@ import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.value.Conversions;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Collections.singleton;
@@ -43,42 +44,6 @@ abstract class SinglePropertyState extends EmptyPropertyState {
     }
 
     /**
-     * Utility method defining the conversion from {@code String}
-     * to {@code long}.
-     * @param value  The string to convert to a long
-     * @return  The long value parsed from {@code value}
-     * @throws NumberFormatException  if the string does not contain a
-     * parseable long.
-     */
-    public static long getLong(String value) {
-        return Long.parseLong(value);
-    }
-
-    /**
-     * Utility method defining the conversion from {@code String}
-     * to {@code double}.
-     * @param value  The string to convert to a double
-     * @return  The double value parsed from {@code value}
-     * @throws NumberFormatException  if the string does not contain a
-     * parseable double.
-     */
-    public static double getDouble(String value) {
-        return Double.parseDouble(value);
-    }
-
-    /**
-     * Utility method defining the conversion from {@code String}
-     * to {@code BigDecimal}.
-     * @param value  The string to convert to a BigDecimal
-     * @return  The BigDecimal value parsed from {@code value}
-     * @throws NumberFormatException  if the string does not contain a
-     * parseable BigDecimal.
-     */
-    public static BigDecimal getDecimal(String value) {
-        return new BigDecimal(value);
-    }
-
-    /**
      * String representation of the value of the property state.
      * @return
      */
@@ -89,35 +54,35 @@ abstract class SinglePropertyState extends EmptyPropertyState {
      * {@link #getString()}.
      */
     protected Blob getBlob() {
-        return new StringBasedBlob(getString());
+        return Conversions.convert(getString()).toBinary();
     }
 
     /**
      * @return  {@code getLong(getString())}
      */
     protected long getLong() {
-        return getLong(getString());
+        return Conversions.convert(getString()).toLong();
     }
 
     /**
      * @return  {@code getDouble(getString())}
      */
     protected double getDouble() {
-        return getDouble(getString());
+        return Conversions.convert(getString()).toDouble();
     }
 
     /**
      * @return  {@code StringPropertyState.getBoolean(getString())}
      */
     protected boolean getBoolean() {
-        return StringPropertyState.getBoolean(getString());
+        return Conversions.convert(getString()).toBoolean();
     }
 
     /**
      * @return  {@code getDecimal(getString())}
      */
     protected BigDecimal getDecimal() {
-        return getDecimal(getString());
+        return Conversions.convert(getString()).toDecimal();
     }
 
     /**

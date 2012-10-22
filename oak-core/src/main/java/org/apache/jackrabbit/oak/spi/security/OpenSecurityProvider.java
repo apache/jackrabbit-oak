@@ -16,28 +16,17 @@
  */
 package org.apache.jackrabbit.oak.spi.security;
 
-import java.util.Collections;
-import java.util.List;
 import javax.annotation.Nonnull;
-import javax.jcr.Session;
 
-import org.apache.jackrabbit.api.security.principal.PrincipalManager;
-import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginContextProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.OpenLoginContextProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.OpenAccessControlProvider;
-import org.apache.jackrabbit.oak.spi.security.principal.OpenPrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
-import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
-import org.apache.jackrabbit.oak.spi.security.user.MembershipProvider;
-import org.apache.jackrabbit.oak.spi.security.user.UserConfig;
-import org.apache.jackrabbit.oak.spi.security.user.UserContext;
-import org.apache.jackrabbit.oak.spi.security.user.UserProvider;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
+import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 /**
@@ -53,68 +42,31 @@ public class OpenSecurityProvider implements SecurityProvider {
 
     @Nonnull
     @Override
+    public TokenProvider getTokenProvider(Root root) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Nonnull
+    @Override
     public AccessControlProvider getAccessControlProvider() {
         return new OpenAccessControlProvider();
     }
 
     @Nonnull
     @Override
-    public TokenProvider getTokenProvider(Root root, ConfigurationParameters options) {
+    public PrivilegeConfiguration getPrivilegeConfiguration() {
         throw new UnsupportedOperationException();
     }
 
     @Nonnull
     @Override
-    public UserContext getUserContext() {
-        // TODO
-        return new UserContext() {
-            @Nonnull
-            @Override
-            public UserConfig getUserConfig() {
-                return new UserConfig();
-            }
-
-            @Nonnull
-            @Override
-            public UserProvider getUserProvider(Root root) {
-                throw new UnsupportedOperationException();
-            }
-
-            @Nonnull
-            @Override
-            public MembershipProvider getMembershipProvider(Root root) {
-                throw new UnsupportedOperationException();
-            }
-
-            @Nonnull
-            @Override
-            public List<ValidatorProvider> getValidatorProviders() {
-                return Collections.emptyList();
-            }
-
-            @Nonnull
-            @Override
-            public UserManager getUserManager(Session session, Root root, NamePathMapper namePathMapper) {
-                throw new UnsupportedOperationException();
-            }
-        };
+    public UserConfiguration getUserConfiguration() {
+        throw new UnsupportedOperationException();
     }
 
     @Nonnull
     @Override
     public PrincipalConfiguration getPrincipalConfiguration() {
-        return new PrincipalConfiguration() {
-            @Nonnull
-            @Override
-            public PrincipalManager getPrincipalManager(Session session, Root root, NamePathMapper namePathMapper) {
-                throw new UnsupportedOperationException();
-            }
-
-            @Nonnull
-            @Override
-            public PrincipalProvider getPrincipalProvider(Root root, NamePathMapper namePathMapper) {
-                return new OpenPrincipalProvider();
-            }
-        };
+        throw new UnsupportedOperationException();
     }
 }

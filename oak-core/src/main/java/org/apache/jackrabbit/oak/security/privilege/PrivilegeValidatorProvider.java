@@ -25,14 +25,14 @@ import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
-import static org.apache.jackrabbit.oak.security.privilege.PrivilegeConstants.REP_PRIVILEGES;
+import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.REP_PRIVILEGES;
 
 /**
  * {@code PrivilegeValidatorProvider} to construct a {@code Validator} instance
  * to make sure modifications to the /jcr:system/rep:privileges tree are compliant
  * with constraints applied for custom privileges.
  */
-public class PrivilegeValidatorProvider implements ValidatorProvider {
+class PrivilegeValidatorProvider implements ValidatorProvider {
 
     @Nonnull
     @Override

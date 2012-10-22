@@ -29,7 +29,7 @@ import javax.annotation.Nonnull;
  * {@code IllegalStateException}s to indicate that the snapshot is no
  * longer available.
  * <p/>
- * The children of a <code>Tree</code> are generally unordered. That is, the
+ * The children of a {@code Tree} are generally unordered. That is, the
  * sequence of the children returned by {@link #getChildren()} may change over
  * time as this Tree is modified either directly or through some other session.
  * Calling {@link #orderBefore(String)} will persist the current order and
@@ -224,17 +224,17 @@ public interface Tree {
     Tree addChild(String name);
 
     /**
-     * Orders this <code>Tree</code> before the sibling tree with the given
-     * <code>name</code>. Calling this method for the first time on this
-     * <code>Tree</code> or any of its siblings will persist the current order
+     * Orders this {@code Tree} before the sibling tree with the given
+     * {@code name}. Calling this method for the first time on this
+     * {@code Tree} or any of its siblings will persist the current order
      * of siblings and maintain it from this point on.
      *
      * @param name the name of the sibling node where this tree is ordered
      *             before. This tree will become the last sibling if
-     *             <code>name</code> is <code>null</code>.
-     * @return <code>false</code> if there is no sibling with the given
-     *         <code>name</code> and no reordering was performed;
-     *         <code>true</code> otherwise.
+     *             {@code name} is {@code null}.
+     * @return {@code false} if there is no sibling with the given
+     *         {@code name} and no reordering was performed;
+     *         {@code true} otherwise.
      */
     boolean orderBefore(String name);
 
@@ -257,6 +257,7 @@ public interface Tree {
      * Set a property state
      * @param name  The name of this property
      * @param value  The value of this property
+     * @param type The type of this property.
      * @param <T>  The type of this property.
      */
     <T> void setProperty(String name, T value, Type<T> type);

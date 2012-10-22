@@ -65,7 +65,7 @@ public class MongoMKDiffTest extends BaseMongoMicroKernelTest {
     }
 
     @Test
-    public void deletePath() {
+    public void removePath() {
         // Add level1 & level1/level2
         String rev0 = mk.commit("/","+\"level1\":{}" +
                 "+\"level1/level2\":{}", null, null);
@@ -103,15 +103,59 @@ public class MongoMKDiffTest extends BaseMongoMicroKernelTest {
         assertTrue(mk.nodeExists("/level1/level2", null));
     }
 
-    // FIXME - changePath test?
+    @Test
+    public void movePath() {
+        String rev1 = mk.commit("/", "+\"level1\":{}", null, null);
+        rev1 = mk.commit("/", "+\"level1/level2\":{}", null, null);
+        assertTrue(mk.nodeExists("/level1", null));
+        assertTrue(mk.nodeExists("/level1/level2", null));
+
+        String rev2 = mk.commit("/", ">\"level1\" : \"level1new\"", null, null);
+        assertFalse(mk.nodeExists("/level1", null));
+        assertTrue(mk.nodeExists("/level1new", null));
+        assertTrue(mk.nodeExists("/level1new/level2", null));
+
+        String reverseDiff = mk.diff(rev2, rev1, null, -1);
+        assertNotNull(reverseDiff);
+        assertTrue(reverseDiff.length() > 0);
+
+        mk.commit("", reverseDiff, null, null);
+        assertTrue(mk.nodeExists("/level1", null));
+        assertTrue(mk.nodeExists("/level1/level2", null));
+        assertFalse(mk.nodeExists("/level1new", null));
+        assertFalse(mk.nodeExists("/level1new/level2", null));
+    }
 
     @Test
-    public void addProperty() {
+    public void copyPath() {
+        String rev1 = mk.commit("/", "+\"level1\":{}", null, null);
+        rev1 = mk.commit("/", "+\"level1/level2\":{}", null, null);
+        assertTrue(mk.nodeExists("/level1", null));
+        assertTrue(mk.nodeExists("/level1/level2", null));
+
+        String rev2 = mk.commit("/", "*\"level1\" : \"level1new\"", null, null);
+        assertTrue(mk.nodeExists("/level1", null));
+        assertTrue(mk.nodeExists("/level1new", null));
+        assertTrue(mk.nodeExists("/level1new/level2", null));
+
+        String reverseDiff = mk.diff(rev2, rev1, null, -1);
+        assertNotNull(reverseDiff);
+        assertTrue(reverseDiff.length() > 0);
+
+        mk.commit("", reverseDiff, null, null);
+        assertTrue(mk.nodeExists("/level1", null));
+        assertTrue(mk.nodeExists("/level1/level2", null));
+        assertFalse(mk.nodeExists("/level1new", null));
+        assertFalse(mk.nodeExists("/level1new/level2", null));
+    }
+
+    @Test
+    public void setProperty() {
         String rev0 = mk.commit("/", "+\"level1\":{}", null, null);
         assertTrue(mk.nodeExists("/level1", null));
 
         // Add property.
-        String rev1 = mk.commit("/", "+\"level1/prop1\": \"value1\"", null, null);
+        String rev1 = mk.commit("/", "^\"level1/prop1\": \"value1\"", null, null);
         JSONObject obj = parseJSONObject(mk.getNodes("/level1", null, 1, 0, -1, null));
         assertPropertyExists(obj, "prop1");
 

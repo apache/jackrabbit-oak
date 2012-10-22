@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+
 import javax.jcr.Credentials;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
@@ -27,20 +27,20 @@ import javax.security.auth.login.LoginException;
 
 import org.apache.jackrabbit.commons.SimpleValueFactory;
 import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
+import org.apache.jackrabbit.oak.plugins.commit.AnnotatingConflictHandler;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexHook;
 import org.apache.jackrabbit.oak.plugins.name.NameValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.InitialContent;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypeValidatorProvider;
-import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
-import org.apache.jackrabbit.oak.security.privilege.PrivilegeValidatorProvider;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
 import org.apache.jackrabbit.oak.spi.commit.CompositeValidatorProvider;
+import org.apache.jackrabbit.oak.spi.commit.ConflictHandler;
 import org.apache.jackrabbit.oak.spi.commit.ValidatingHook;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
@@ -62,13 +62,14 @@ public class RepositoryImpl implements Repository {
                     new NameValidatorProvider(),
                     new NamespaceValidatorProvider(),
                     new TypeValidatorProvider(),
-                    new ConflictValidatorProvider(),
-                    new PrivilegeValidatorProvider());
+                    new ConflictValidatorProvider());
 
     private static final CompositeHook DEFAULT_COMMIT_HOOK =
             new CompositeHook(
                     new ValidatingHook(DEFAULT_VALIDATOR),
                     new PropertyIndexHook());
+
+    private static final ConflictHandler DEFAULT_CONFLICT_HANDLER = new AnnotatingConflictHandler();
 
     private final Descriptors descriptors = new Descriptors(new SimpleValueFactory());
     private final ContentRepository contentRepository;
@@ -77,25 +78,12 @@ public class RepositoryImpl implements Repository {
 
     private final SecurityProvider securityProvider;
 
-    /**
-     * Utility constructor that creates a new in-memory repository for use
-     * mostly in test cases. The executor service is initialized with an
-     * empty thread pool, so things like observation won't work by default.
-     * Use the other constructor with a properly managed executor service
-     * if such features are needed.
-     */
-    public RepositoryImpl() {
-        this(new MicroKernelImpl(), Executors.newScheduledThreadPool(0));
-    }
-
-    public RepositoryImpl(MicroKernel kernel, ScheduledExecutorService executor) {
-        this(kernel, executor, new SecurityProviderImpl());
-    }
-
     public RepositoryImpl(MicroKernel kernel, ScheduledExecutorService executor,
-                           SecurityProvider securityProvider) {
+                          SecurityProvider securityProvider) {
         this(new Oak(setupInitialContent(kernel))
-                .with(DEFAULT_COMMIT_HOOK).with(securityProvider)
+                .with(DEFAULT_COMMIT_HOOK)
+                .with(DEFAULT_CONFLICT_HANDLER)
+                .with(securityProvider)
                 .createContentRepository(),
                 executor, securityProvider);
     }
@@ -219,7 +207,7 @@ public class RepositoryImpl implements Repository {
     }
 
     private static MicroKernel setupInitialContent(MicroKernel mk) {
-        new InitialContent().available(mk);
+        new InitialContent().available(new KernelNodeStore(mk));
         return mk;
     }
 }

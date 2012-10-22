@@ -27,7 +27,7 @@ import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.spi.commit.ConflictHandlerProvider;
+import org.apache.jackrabbit.oak.spi.commit.ConflictHandler;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginContext;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlProvider;
@@ -46,18 +46,18 @@ class ContentSessionImpl implements ContentSession {
     private final AccessControlProvider accProvider;
     private final String workspaceName;
     private final NodeStore store;
-    private final ConflictHandlerProvider conflictHandlerProvider;
+    private final ConflictHandler conflictHandler;
     private final QueryIndexProvider indexProvider;
 
     public ContentSessionImpl(LoginContext loginContext,
             AccessControlProvider accProvider, String workspaceName,
-            NodeStore store, ConflictHandlerProvider conflictHandlerProvider,
+            NodeStore store, ConflictHandler conflictHandler,
             QueryIndexProvider indexProvider) {
         this.loginContext = loginContext;
         this.accProvider = accProvider;
         this.workspaceName = workspaceName;
         this.store = store;
-        this.conflictHandlerProvider = conflictHandlerProvider;
+        this.conflictHandler = conflictHandler;
         this.indexProvider = indexProvider;
     }
 
@@ -76,8 +76,8 @@ class ContentSessionImpl implements ContentSession {
     @Override
     public Root getLatestRoot() {
         RootImpl root = new RootImpl(store, workspaceName, loginContext.getSubject(), accProvider, indexProvider);
-        if (conflictHandlerProvider != null) {
-            root.setConflictHandler(conflictHandlerProvider.getConflictHandler());
+        if (conflictHandler != null) {
+            root.setConflictHandler(conflictHandler);
         }
         return root;
     }

@@ -23,13 +23,13 @@ import javax.security.auth.login.Configuration;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.security.authentication.ConfigurationImpl;
 import org.apache.jackrabbit.oak.security.authentication.LoginContextProviderImpl;
 import org.apache.jackrabbit.oak.security.authentication.token.TokenProviderImpl;
 import org.apache.jackrabbit.oak.security.authorization.AccessControlProviderImpl;
 import org.apache.jackrabbit.oak.security.principal.PrincipalManagerImpl;
 import org.apache.jackrabbit.oak.security.principal.PrincipalProviderImpl;
-import org.apache.jackrabbit.oak.security.user.UserContextImpl;
+import org.apache.jackrabbit.oak.security.privilege.PrivilegeConfigurationImpl;
+import org.apache.jackrabbit.oak.security.user.UserConfigurationImpl;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginContextProvider;
@@ -37,19 +37,52 @@ import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
-import org.apache.jackrabbit.oak.spi.security.user.MembershipProvider;
-import org.apache.jackrabbit.oak.spi.security.user.UserContext;
-import org.apache.jackrabbit.oak.spi.security.user.UserProvider;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
+import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SecurityProviderImpl implements SecurityProvider {
+
+    private static final Logger log = LoggerFactory.getLogger(SecurityProviderImpl.class);
+
+    public static final String PARAM_APP_NAME = "org.apache.jackrabbit.oak.auth.appName";
+    private static final String DEFAULT_APP_NAME = "jackrabbit.oak";
+
+    public static final String PARAM_USER_OPTIONS = "org.apache.jackrabbit.oak.user.options";
+    public static final String PARAM_TOKEN_OPTIONS = "org.apache.jackrabbit.oak.token.options";
+
+    private final ConfigurationParameters configuration;
+
+    public SecurityProviderImpl() {
+        this(new ConfigurationParameters());
+    }
+
+    public SecurityProviderImpl(ConfigurationParameters configuration) {
+        this.configuration = configuration;
+    }
 
     @Nonnull
     @Override
     public LoginContextProvider getLoginContextProvider(NodeStore nodeStore) {
-        // TODO: use configurable authentication config
-        Configuration configuration = new ConfigurationImpl();
-        return new LoginContextProviderImpl(configuration, nodeStore, this);
+        String appName = configuration.getConfigValue(PARAM_APP_NAME, DEFAULT_APP_NAME);
+        Configuration loginConfig;
+        try {
+            loginConfig = Configuration.getConfiguration();
+        } catch (SecurityException e) {
+            log.warn("Failed to retrieve login configuration: using default.", e);
+            loginConfig = new OakConfiguration(configuration); // TODO: define configuration structure
+            Configuration.setConfiguration(loginConfig);
+        }
+        return new LoginContextProviderImpl(appName, loginConfig, nodeStore, this);
+    }
+
+    @Nonnull
+    @Override
+    public TokenProvider getTokenProvider(Root root) {
+        ConfigurationParameters options = configuration.getConfigValue(PARAM_TOKEN_OPTIONS, new ConfigurationParameters());
+        return new TokenProviderImpl(root, options, getUserConfiguration());
     }
 
     @Nonnull
@@ -60,14 +93,15 @@ public class SecurityProviderImpl implements SecurityProvider {
 
     @Nonnull
     @Override
-    public TokenProvider getTokenProvider(Root root, ConfigurationParameters options) {
-        return new TokenProviderImpl(root, options, getUserContext());
+    public PrivilegeConfiguration getPrivilegeConfiguration() {
+        return new PrivilegeConfigurationImpl();
     }
 
     @Nonnull
     @Override
-    public UserContext getUserContext() {
-        return new UserContextImpl();
+    public UserConfiguration getUserConfiguration() {
+        ConfigurationParameters options = configuration.getConfigValue(PARAM_USER_OPTIONS, new ConfigurationParameters());
+        return new UserConfigurationImpl(options, this);
     }
 
     @Nonnull
@@ -84,10 +118,7 @@ public class SecurityProviderImpl implements SecurityProvider {
             @Nonnull
             @Override
             public PrincipalProvider getPrincipalProvider(Root root, NamePathMapper namePathMapper) {
-                UserContext userContext = getUserContext();
-                UserProvider userProvider = userContext.getUserProvider(root);
-                MembershipProvider msProvider = userContext.getMembershipProvider(root);
-                return new PrincipalProviderImpl(userProvider, msProvider, namePathMapper);
+                return new PrincipalProviderImpl(root, getUserConfiguration(), namePathMapper);
             }
         };
     }

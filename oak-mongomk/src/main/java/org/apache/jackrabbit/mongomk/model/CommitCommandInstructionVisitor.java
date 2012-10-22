@@ -22,7 +22,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.jackrabbit.mongomk.api.instruction.Instruction.AddNodeInstruction;
-import org.apache.jackrabbit.mongomk.api.instruction.Instruction.AddPropertyInstruction;
 import org.apache.jackrabbit.mongomk.api.instruction.Instruction.CopyNodeInstruction;
 import org.apache.jackrabbit.mongomk.api.instruction.Instruction.MoveNodeInstruction;
 import org.apache.jackrabbit.mongomk.api.instruction.Instruction.RemoveNodeInstruction;
@@ -94,13 +93,6 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
         }
         getStagedNode(nodePath);
         parent.addChild(nodeName);
-    }
-
-    @Override
-    public void visit(AddPropertyInstruction instruction) {
-        String nodePath = instruction.getPath();
-        NodeMongo node = getStoredNode(nodePath);
-        node.addProperty(instruction.getKey(), instruction.getValue());
     }
 
     @Override

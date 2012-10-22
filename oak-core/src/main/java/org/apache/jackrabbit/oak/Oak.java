@@ -18,25 +18,33 @@ package org.apache.jackrabbit.oak;
 
 import java.util.List;
 import javax.annotation.Nonnull;
+import javax.jcr.NoSuchWorkspaceException;
+import javax.security.auth.login.LoginException;
 
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.api.ContentRepository;
+import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
 import org.apache.jackrabbit.oak.spi.commit.CompositeValidatorProvider;
+import org.apache.jackrabbit.oak.spi.commit.ConflictHandler;
 import org.apache.jackrabbit.oak.spi.commit.ValidatingHook;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
+import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Builder class for constructing {@link ContentRepository} instances with
@@ -48,6 +56,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
  */
 public class Oak {
 
+    private static final Logger log = LoggerFactory.getLogger(Oak.class);
+
     private final MicroKernel kernel;
 
     private final List<QueryIndexProvider> queryIndexProviders = Lists.newArrayList();
@@ -56,7 +66,9 @@ public class Oak {
 
     private final List<ValidatorProvider> validatorProviders = Lists.newArrayList();
 
-    private SecurityProvider securityProvider;
+    private SecurityProvider securityProvider = new OpenSecurityProvider();
+
+    private ConflictHandler conflictHandler;
 
     public Oak(MicroKernel kernel) {
         this.kernel = kernel;
@@ -142,8 +154,25 @@ public class Oak {
     public Oak with(@Nonnull SecurityProvider securityProvider) {
         this.securityProvider = securityProvider;
 
-        validatorProviders.addAll(securityProvider.getAccessControlProvider().getValidatorProviders());
-        validatorProviders.addAll(securityProvider.getUserContext().getValidatorProviders());
+        try {
+            validatorProviders.addAll(securityProvider.getAccessControlProvider().getValidatorProviders());
+            validatorProviders.addAll(securityProvider.getUserConfiguration().getValidatorProviders());
+            validatorProviders.addAll(securityProvider.getPrivilegeConfiguration().getValidatorProviders());
+        } catch (UnsupportedOperationException e) {
+            log.info(e.getMessage());
+        }
+        return this;
+    }
+
+    /**
+     * Associates the given conflict handler with the repository to be created.
+     *
+     * @param conflictHandler conflict handler
+     * @return this builder
+     */
+    @Nonnull
+    public Oak with(@Nonnull ConflictHandler conflictHandler) {
+        this.conflictHandler = conflictHandler;
         return this;
     }
 
@@ -152,7 +181,56 @@ public class Oak {
                 kernel,
                 CompositeQueryIndexProvider.compose(queryIndexProviders),
                 createCommitHook(),
+                conflictHandler,
                 securityProvider);
+    }
+
+    /**
+     * Creates a content repository with the given configuration
+     * and logs in to the default workspace with no credentials,
+     * returning the resulting content session.
+     * <p>
+     * This method exists mostly as a convenience for one-off tests,
+     * as there's no way to create other sessions for accessing the
+     * same repository.
+     * <p>
+     * There is typically no need to explicitly close the returned
+     * session unless the repository has explicitly been configured
+     * to reserve some resources until all sessions have been closed.
+     * The repository will be garbage collected once the session is no
+     * longer used.
+     *
+     * @return content session
+     */
+    public ContentSession createContentSession() {
+        try {
+            return createContentRepository().login(null, null);
+        } catch (NoSuchWorkspaceException e) {
+            throw new IllegalStateException("Default workspace not found", e);
+        } catch (LoginException e) {
+            throw new IllegalStateException("Anonymous login not allowed", e);
+        }
+    }
+
+    /**
+     * Creates a content repository with the given configuration
+     * and returns a {@link Root} instance after logging in to the
+     * default workspace with no credentials.
+     * <p>
+     * This method exists mostly as a convenience for one-off tests, as
+     * the returned root is the only way to access the session or the
+     * repository.
+     * <p>
+     * Note that since there is no way to close the underlying content
+     * session, this method should only be used when no components that
+     * require sessions to be closed have been configured. The repository
+     * and the session will be garbage collected once the root is no longer
+     * used.
+     *
+     * @return root instance
+     */
+    public Root createRoot() {
+        return createContentSession().getLatestRoot();
     }
 
     private CommitHook createCommitHook() {

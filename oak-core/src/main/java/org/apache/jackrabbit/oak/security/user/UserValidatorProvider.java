@@ -21,7 +21,7 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.oak.core.ReadOnlyTree;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
-import org.apache.jackrabbit.oak.spi.security.user.UserConfig;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 
@@ -30,13 +30,14 @@ import static com.google.common.base.Preconditions.checkNotNull;
 /**
  * Provides a validator for user and group management.
  */
-public class UserValidatorProvider implements ValidatorProvider {
+class UserValidatorProvider implements ValidatorProvider {
 
-    private final UserConfig config;
+    private final ConfigurationParameters config;
 
-    public UserValidatorProvider(UserConfig config) {
+    UserValidatorProvider(ConfigurationParameters config) {
         this.config = checkNotNull(config);
     }
+
     //--------------------------------------------------< ValidatorProvider >---
     @Nonnull
     @Override
@@ -50,8 +51,7 @@ public class UserValidatorProvider implements ValidatorProvider {
 
     //-----------------------------------------------------------< internal >---
     @Nonnull
-    UserConfig getConfig() {
+    ConfigurationParameters getConfig() {
         return config;
     }
-
 }

@@ -30,7 +30,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * RepositoryCallback... TODO
+ * Callback implementation used to access the repository. It allows to set and
+ * get the {@code NodeStore} and the name of the workspace for which the login
+ * applies. In addition it provides access to a {@link Root} object based on
+ * the given node store and workspace name.
  */
 public class RepositoryCallback implements Callback {
 
@@ -54,7 +57,7 @@ public class RepositoryCallback implements Callback {
             try {
                 // FIXME: need a direct and fast way to create Root from the node store without having to call login
                 SecurityProvider sp = new OpenSecurityProvider();
-                return new ContentRepositoryImpl(nodeStore, null, sp).login(null, workspaceName).getLatestRoot();
+                return new ContentRepositoryImpl(nodeStore, null, null, sp).login(null, workspaceName).getLatestRoot();
             } catch (LoginException e) {
                 log.warn("Internal error ", e.getMessage());
             } catch (NoSuchWorkspaceException e) {

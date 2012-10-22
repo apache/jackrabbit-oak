@@ -20,10 +20,13 @@ import javax.jcr.nodetype.ConstraintViolationException;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.commit.DefaultValidator;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
+import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
+import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtility;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
-import org.apache.jackrabbit.oak.spi.security.user.UserConfig;
+import org.apache.jackrabbit.oak.spi.security.user.util.UserUtility;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.apache.jackrabbit.util.Text;
@@ -59,8 +62,15 @@ class UserValidator extends DefaultValidator implements UserConstants {
     @Override
     public void propertyChanged(PropertyState before, PropertyState after) throws CommitFailedException {
         String name = before.getName();
-        if (isAuthorizableNode(parentBefore) && (REP_PRINCIPAL_NAME.equals(name) || REP_AUTHORIZABLE_ID.equals(name))) {
+        if (UserUtility.isAuthorizableTree(parentBefore.getTree()) && (REP_PRINCIPAL_NAME.equals(name) || REP_AUTHORIZABLE_ID.equals(name))) {
             String msg = "Authorizable property " + name + " may not be altered after user/group creation.";
+            fail(msg);
+        }
+
+        if (UserUtility.isType(parentBefore.getTree(), AuthorizableType.USER)
+                && REP_PASSWORD.equals(name)
+                && PasswordUtility.isPlainTextPassword(after.getValue(Type.STRING))) {
+            String msg = "Password may not be plain text.";
             fail(msg);
         }
     }
@@ -69,7 +79,8 @@ class UserValidator extends DefaultValidator implements UserConstants {
     @Override
     public void propertyDeleted(PropertyState before) throws CommitFailedException {
         String name = before.getName();
-        if (isAuthorizableNode(parentBefore) && (REP_PASSWORD.equals(name) || REP_PRINCIPAL_NAME.equals(name) || REP_AUTHORIZABLE_ID.equals(name))) {
+        if (UserUtility.isAuthorizableTree(parentBefore.getTree())
+                && (REP_PASSWORD.equals(name) || REP_PRINCIPAL_NAME.equals(name) || REP_AUTHORIZABLE_ID.equals(name))) {
             String msg = "Authorizable property " + name + " may not be removed.";
             fail(msg);
         }
@@ -80,9 +91,9 @@ class UserValidator extends DefaultValidator implements UserConstants {
         NodeUtil node = parentAfter.getChild(name);
         String authRoot = null;
         if (node.hasPrimaryNodeTypeName(NT_REP_USER)) {
-            authRoot = provider.getConfig().getConfigValue(UserConfig.PARAM_USER_PATH, DEFAULT_USER_PATH);
+            authRoot = provider.getConfig().getConfigValue(PARAM_USER_PATH, DEFAULT_USER_PATH);
         } else if (node.hasPrimaryNodeTypeName(UserConstants.NT_REP_GROUP)) {
-            authRoot = provider.getConfig().getConfigValue(UserConfig.PARAM_GROUP_PATH, DEFAULT_GROUP_PATH);
+            authRoot = provider.getConfig().getConfigValue(PARAM_GROUP_PATH, DEFAULT_GROUP_PATH);
         }
         if (authRoot != null) {
             assertHierarchy(node, authRoot);
@@ -132,14 +143,11 @@ class UserValidator extends DefaultValidator implements UserConstants {
         }
     }
 
-    private boolean isAuthorizableNode(NodeUtil node) {
-        return node.hasPrimaryNodeTypeName(NT_REP_USER) || node.hasPrimaryNodeTypeName(NT_REP_GROUP);
-    }
-
     // FIXME: copied from UserProvider#isAdminUser
     private boolean isAdminUser(NodeUtil userNode) {
         String id = (userNode.getString(REP_AUTHORIZABLE_ID, Text.unescapeIllegalJcrChars(userNode.getName())));
-        return userNode.hasPrimaryNodeTypeName(NT_REP_USER) && provider.getConfig().getAdminId().equals(id);
+        return UserUtility.isType(userNode.getTree(), AuthorizableType.USER) &&
+               UserUtility.getAdminId(provider.getConfig()).equals(id);
     }
 
     private static void fail(String msg) throws CommitFailedException {

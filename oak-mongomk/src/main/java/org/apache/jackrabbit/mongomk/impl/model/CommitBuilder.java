@@ -18,7 +18,6 @@ package org.apache.jackrabbit.mongomk.impl.model;
 
 import org.apache.jackrabbit.mongomk.api.model.Commit;
 import org.apache.jackrabbit.mongomk.impl.instruction.AddNodeInstructionImpl;
-import org.apache.jackrabbit.mongomk.impl.instruction.AddPropertyInstructionImpl;
 import org.apache.jackrabbit.mongomk.impl.instruction.CopyNodeInstructionImpl;
 import org.apache.jackrabbit.mongomk.impl.instruction.MoveNodeInstructionImpl;
 import org.apache.jackrabbit.mongomk.impl.instruction.RemoveNodeInstructionImpl;
@@ -97,11 +96,6 @@ public class CommitBuilder {
         @Override
         public void nodeRemoved(String parentPath, String name) {
             commit.addInstruction(new RemoveNodeInstructionImpl(parentPath, name));
-        }
-
-        @Override
-        public void propertyAdded(String path, String key, Object value) {
-            commit.addInstruction(new AddPropertyInstructionImpl(path, key, value));
         }
 
         @Override
