@@ -45,11 +45,11 @@ import com.google.common.collect.Sets;
  * How to define a property index on a subtree you have to add an
  * <code>oak:index<code> node. Under it follows the index definition node that must be of type <code>oak:queryIndexDefinition</code>
  * and contain the
- * <code>pnames<code> property that indicates what property will be stored in the index.
+ * <code>propertyNames<code> property that indicates what property will be stored in the index.
  * </p>
  * 
  * <p>
- * <code>pnames<code> can be a list of properties, and it is optional.in case it is missing, the node name will be used as a property name reference value
+ * <code>propertyNames<code> can be a list of properties, and it is optional.in case it is missing, the node name will be used as a property name reference value
  * </p>
  * 
  * <p>
@@ -63,7 +63,7 @@ import com.google.common.collect.Sets;
  *     NodeBuilder index = root.child("oak:index");
  *     index.child("uuid")
  *         .setProperty("jcr:primaryType", "oak:queryIndexDefinition", Type.NAME)
- *         .setProperty("pnames", "jcr:uuid")
+ *         .setProperty("propertyNames", "jcr:uuid")
  *         .setProperty("unique", true);
  * }
  * </code>
