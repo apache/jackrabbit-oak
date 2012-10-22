@@ -16,7 +16,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
+import javax.jcr.Value;
+
 import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.value.Conversions;
 import org.apache.jackrabbit.oak.plugins.value.Conversions.Converter;
@@ -27,6 +30,46 @@ public class BinaryPropertyState extends SinglePropertyState<Blob> {
     public BinaryPropertyState(String name, Blob value) {
         super(name);
         this.value = value;
+    }
+
+    /**
+     * Create a {@code PropertyState} from an array of bytes.
+     * @param name  The name of the property state
+     * @param value  The value of the property state
+     * @return  The new property state of type {@link Type#BINARY}
+     */
+    public static PropertyState binaryProperty(String name, byte[] value) {
+        return new BinaryPropertyState(name, new ArrayBasedBlob(value));
+    }
+
+    /**
+     * Create a {@code PropertyState} from an array of bytes.
+     * @param name  The name of the property state
+     * @param value  The value of the property state
+     * @return  The new property state of type {@link Type#BINARY}
+     */
+    public static PropertyState binaryProperty(String name, String value) {
+        return new BinaryPropertyState(name, new StringBasedBlob(value));
+    }
+
+    /**
+     * Create a {@code PropertyState} from a {@link Blob}.
+     * @param name  The name of the property state
+     * @param value  The value of the property state
+     * @return  The new property state of type {@link Type#BINARY}
+     */
+    public static PropertyState binaryProperty(String name, Blob value) {
+        return new BinaryPropertyState(name, value);
+    }
+
+    /**
+     * Create a {@code PropertyState} from a {@link javax.jcr.Value}.
+     * @param name  The name of the property state
+     * @param value  The value of the property state
+     * @return  The new property state of type {@link Type#BINARY}
+     */
+    public static PropertyState binaryProperty(String name, Value value) {
+        return new BinaryPropertyState(name, new ValueBasedBlob(value));
     }
 
     @Override

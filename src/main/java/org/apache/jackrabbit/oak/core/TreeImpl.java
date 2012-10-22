@@ -37,7 +37,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.RootImpl.PurgeListener;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryPropertyBuilder;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.apache.jackrabbit.oak.plugins.memory.MultiStringPropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
@@ -359,9 +359,7 @@ public class TreeImpl implements Tree, PurgeListener {
             tail = Iterables.skip(filtered, idx);
         }
         // concatenate head, this name and tail
-        parent.getNodeBuilder().setProperty(PropertyStates.stringProperty(
-                OAK_CHILD_ORDER,
-                Iterables.concat(head, Collections.singleton(getName()), tail))
+        parent.getNodeBuilder().setProperty(MultiStringPropertyState.stringProperty(OAK_CHILD_ORDER, Iterables.concat(head, Collections.singleton(getName()), tail))
         );
         root.purge();
         return true;
@@ -574,9 +572,7 @@ public class TreeImpl implements Tree, PurgeListener {
         PropertyState childOrder = getNodeBuilder().getProperty(OAK_CHILD_ORDER);
         if (childOrder == null) {
             getNodeBuilder().setProperty(
-                    PropertyStates.stringProperty(
-                            OAK_CHILD_ORDER,
-                            getNodeBuilder().getChildNodeNames()));
+                    MultiStringPropertyState.stringProperty(OAK_CHILD_ORDER, getNodeBuilder().getChildNodeNames()));
         }
     }
 

@@ -34,9 +34,9 @@ public class MemoryNodeBuilderTest {
 
     private static final NodeState BASE = new MemoryNodeState(
             ImmutableMap.<String, PropertyState>of(
-                    "a", PropertyStates.longProperty("a", 1L),
-                    "b", PropertyStates.longProperty("b", 2L),
-                    "c", PropertyStates.longProperty("c", 3L)),
+                    "a", LongPropertyState.createLongProperty("a", 1L),
+                    "b", LongPropertyState.createLongProperty("b", 2L),
+                    "c", LongPropertyState.createLongProperty("c", 3L)),
             ImmutableMap.of(
                     "x", MemoryNodeState.EMPTY_NODE,
                     "y", MemoryNodeState.EMPTY_NODE,

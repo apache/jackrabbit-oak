@@ -18,15 +18,26 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.value.Conversions;
 import org.apache.jackrabbit.oak.plugins.value.Conversions.Converter;
 
 import static org.apache.jackrabbit.oak.api.Type.DOUBLES;
 
-public class DoublesPropertyState extends MultiPropertyState<Double> {
-    public DoublesPropertyState(String name, Iterable<Double>values) {
+public class MultiDoublePropertyState extends MultiPropertyState<Double> {
+    public MultiDoublePropertyState(String name, Iterable<Double> values) {
         super(name, values);
+    }
+
+    /**
+     * Create a multi valued {@code PropertyState} from a list of doubles.
+     * @param name  The name of the property state
+     * @param values  The values of the property state
+     * @return  The new property state of type {@link Type#DOUBLES}
+     */
+    public static PropertyState doubleProperty(String name, Iterable<Double> values) {
+        return new MultiDoublePropertyState(name, values);
     }
 
     @Override

@@ -28,7 +28,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Tree.Status;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.apache.jackrabbit.oak.plugins.memory.LongPropertyState;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -119,9 +119,9 @@ public class TreeImplTest {
         Tree tree = root.getTree("/");
 
         Set<PropertyState> expectedProperties = Sets.newHashSet(
-            PropertyStates.longProperty("a", 1),
-            PropertyStates.longProperty("b", 2),
-            PropertyStates.longProperty("c", 3));
+                LongPropertyState.createLongProperty("a", 1L),
+                LongPropertyState.createLongProperty("b", 2L),
+                LongPropertyState.createLongProperty("c", 3L));
 
         Iterable<? extends PropertyState> properties = tree.getProperties();
         for (PropertyState property : properties) {
