@@ -50,7 +50,7 @@ interface consists of three sets of methods:
 
   * Methods for accessing properties
   * Methods for accessing child nodes
-  * The `getBuilder` method for building modified states
+  * The `builder` method for building modified states
   * The `compareAgainstBaseState` method for comparing states
 
 You can request a property or a child node by name, get the number of
@@ -65,7 +65,7 @@ will return the items in the same order as before, but the specific ordering
 is not defined nor does it necessarily remain the same across different
 instances.
 
-The last two methods, `getBuilder` and `compareAgainstBaseState`, are
+The last two methods, `builder` and `compareAgainstBaseState`, are
 covered in the next two sections. See also the `NodeState` javadocs for
 more details about this interface and all its methods.
 
@@ -73,7 +73,7 @@ more details about this interface and all its methods.
 
 Since node states are immutable, a separate builder interface,
 `NodeBuilder`, is used to construct new, modified node states. Calling
-the `getBuilder` method on a node state returns such a builder for
+the `builder` method on a node state returns such a builder for
 modifying that node and the subtree below it.
 
 A node builder can be thought of as a _mutable_ version of a node state.
@@ -97,11 +97,11 @@ method would require the following overly verbose code:
     NodeState root = …;
     NodeState foo = root.getChildNode("foo")
     NodeState bar = foo.getChildNode("bar");
-    NodeBuilder barBuilder = bar.getBuilder();
+    NodeBuilder barBuilder = bar.builder();
     barBuilder.setProperty("test", …);
-    NodeBuilder fooBuilder = foo.getBuilder();
+    NodeBuilder fooBuilder = foo.builder();
     fooBuilder.setNode("bar", barBuilder.getNodeState());
-    NodeBuilder rootBuilder = root.getBuilder();
+    NodeBuilder rootBuilder = root.builder();
     rootBuilder.setNode("foo", fooBuilder.getNodeState());
     root = rootBuilder.getNodeState();
 
@@ -116,7 +116,7 @@ will automatically show up also in the node states created by the parent
 builder. With connected builders the above code can be simplified to:
 
     NodeState root = …;
-    NodeBuilder rootBuilder = root.getBuilder();
+    NodeBuilder rootBuilder = root.builder();
     rootBuilder
         .child("foo")
         .child("bar")
@@ -129,7 +129,7 @@ to another. For example, the following code copies the `/orig` subtree
 to `/copy`:
 
     NodeState root = …;
-    NodeBuilder rootBuilder = root.getBuilder();
+    NodeBuilder rootBuilder = root.builder();
     rootBuilder.setNode("copy", root.getChildNode("orig"));
     root = rootBuilder.getNodeState();
 
@@ -205,11 +205,10 @@ TODO: Basic validator class
 
 TODO: Example of how the validator works
 
-    ContentRepository contentRepository = new Oak()
+    Repository repository = new Jcr()
         .with(new DenyContentWithName("bar"))
-        .createContentRepository();
+        .createRepository();
 
-    Repository repository = new RepositoryImpl(contentRepository);
     Session session = repository.login();
     Node root = session.getRootNode();
     root.setProperty("foo", "abc");
@@ -278,7 +277,7 @@ TODO: Basic commit hook example
                 throws CommitFailedException {
             PropertyState property = after.getProperty(name);
             if (property != null) {
-                NodeBuilder builder = after.getBuilder();
+                NodeBuilder builder = after.builder();
                 builder.removeProperty(name);
                 if (property.isArray()) {
                     builder.setProperty(rename, property.getValues());
@@ -294,12 +293,11 @@ TODO: Basic commit hook example
 
 TODO: Using the commit hook to avoid the exception from a validator
 
-    ContentRepository contentRepository = new Oak()
+    Repository repository = new Jcr()
         .with(new RenameContentHook("bar", "foo"))
         .with(new DenyContentWithName("bar"))
-        .createContentRepository();
+        .createRepository();
 
-    Repository repository = new RepositoryImpl(contentRepository);
     Session session = repository.login();
     Node root = session.getRootNode();
     root.setProperty("foo", "abc");
