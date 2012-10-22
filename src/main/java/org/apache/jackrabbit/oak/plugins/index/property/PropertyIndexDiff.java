@@ -65,7 +65,7 @@ class PropertyIndexDiff implements NodeStateDiff {
             NodeBuilder index = node.child(INDEX_DEFINITIONS_NAME);
             for (String indexName : index.getChildNodeNames()) {
                 NodeBuilder indexChild = index.child(indexName);
-                PropertyState ps = indexChild.getProperty("pnames");
+                PropertyState ps = indexChild.getProperty("propertyNames");
                 Iterable<String> propertyNames = ps != null ? ps
                         .getValue(Type.STRINGS) : ImmutableList.of(indexName);
                 for (String pname : propertyNames) {

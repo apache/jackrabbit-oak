@@ -79,7 +79,7 @@ public class PropertyIndexTest {
 
         // Add index definition
         NodeBuilder builder = root.builder();
-        builder.child("oak:index").child("fooIndex").setProperty("pnames", Arrays.asList("foo", "extrafoo"), Type.STRINGS);
+        builder.child("oak:index").child("fooIndex").setProperty("propertyNames", Arrays.asList("foo", "extrafoo"), Type.STRINGS);
         NodeState before = builder.getNodeState();
 
         // Add some content and process it through the property index hook
