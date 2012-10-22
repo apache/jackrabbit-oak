@@ -36,6 +36,9 @@ public class QueryUtils {
     private static final Logger LOG = LoggerFactory.getLogger(QueryUtils.class);
 
     /**
+     * FIXME - This needs to take branchId into account. That is two paths with
+     * different branch ids should be somehow preserved.
+     *
      * Reads nodes from the given {@link DBCursor} and adds them to the returned
      * list if their revision id is contained in the list of given valid commits.
      * If multiple nodes with the same path are read by the cursor the one with
