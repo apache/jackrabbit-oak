@@ -16,26 +16,35 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
-import java.math.BigDecimal;
-
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.value.Conversions;
 import org.apache.jackrabbit.oak.plugins.value.Conversions.Converter;
 
-import static org.apache.jackrabbit.oak.api.Type.DECIMALS;
+import static org.apache.jackrabbit.oak.api.Type.BOOLEANS;
 
-public class DecimalsPropertyState extends MultiPropertyState<BigDecimal> {
-    public DecimalsPropertyState(String name, Iterable<BigDecimal> values) {
+public class MultiBooleanPropertyState extends MultiPropertyState<Boolean> {
+    public MultiBooleanPropertyState(String name, Iterable<Boolean> values) {
         super(name, values);
     }
 
+    /**
+     * Create a multi valued {@code PropertyState} from a list of booleans.
+     * @param name  The name of the property state
+     * @param values  The values of the property state
+     * @return  The new property state of type {@link Type#BOOLEANS}
+     */
+    public static PropertyState booleanProperty(String name, Iterable<Boolean> values) {
+        return new MultiBooleanPropertyState(name, values);
+    }
+
     @Override
-    public Converter getConverter(BigDecimal value) {
+    public Converter getConverter(Boolean value) {
         return Conversions.convert(value);
     }
 
     @Override
     public Type<?> getType() {
-        return DECIMALS;
+        return BOOLEANS;
     }
 }

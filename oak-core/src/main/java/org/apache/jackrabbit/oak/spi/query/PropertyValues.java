@@ -30,7 +30,14 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.apache.jackrabbit.oak.plugins.memory.BinaryPropertyState;
+import org.apache.jackrabbit.oak.plugins.memory.BooleanPropertyState;
+import org.apache.jackrabbit.oak.plugins.memory.DecimalPropertyState;
+import org.apache.jackrabbit.oak.plugins.memory.DoublePropertyState;
+import org.apache.jackrabbit.oak.plugins.memory.GenericPropertyState;
+import org.apache.jackrabbit.oak.plugins.memory.LongPropertyState;
+import org.apache.jackrabbit.oak.plugins.memory.MultiStringPropertyState;
+import org.apache.jackrabbit.oak.plugins.memory.StringPropertyState;
 
 /**
  * Utility class for creating {@link PropertyValue} instances.
@@ -61,69 +68,67 @@ public final class PropertyValues {
 
     @Nonnull
     public static PropertyValue newString(String value) {
-        return new PropertyStateValue(PropertyStates.stringProperty("", value));
+        return new PropertyStateValue(StringPropertyState.stringProperty("", value));
     }
 
     @Nonnull
     public static PropertyValue newString(Iterable<String> value) {
-        return new PropertyStateValue(PropertyStates.stringProperty("", value));
+        return new PropertyStateValue(MultiStringPropertyState.stringProperty("", value));
     }
 
     @Nonnull
     public static PropertyValue newLong(Long value) {
-        return new PropertyStateValue(PropertyStates.longProperty("", value));
+        return new PropertyStateValue(LongPropertyState.createLongProperty("", value));
     }
 
     @Nonnull
     public static PropertyValue newDouble(Double value) {
-        return new PropertyStateValue(PropertyStates.doubleProperty("", value));
+        return new PropertyStateValue(DoublePropertyState.doubleProperty("", value));
     }
 
     @Nonnull
     public static PropertyValue newDecimal(BigDecimal value) {
-        return new PropertyStateValue(PropertyStates.decimalProperty("", value));
+        return new PropertyStateValue(DecimalPropertyState.decimalProperty("", value));
     }
 
     @Nonnull
     public static PropertyValue newBoolean(boolean value) {
-        return new PropertyStateValue(PropertyStates.booleanProperty("", value));
+        return new PropertyStateValue(BooleanPropertyState.booleanProperty("", value));
     }
 
     @Nonnull
     public static PropertyValue newDate(String value) {
-        return new PropertyStateValue(PropertyStates.dateProperty("", value));
+        return new PropertyStateValue(LongPropertyState.createDateProperty("", value));
     }
 
     @Nonnull
     public static PropertyValue newName(String value) {
-        return new PropertyStateValue(PropertyStates.nameProperty("", value));
+        return new PropertyStateValue(GenericPropertyState.nameProperty("", value));
     }
 
     @Nonnull
     public static PropertyValue newPath(String value) {
-        return new PropertyStateValue(PropertyStates.pathProperty("", value));
+        return new PropertyStateValue(GenericPropertyState.pathProperty("", value));
     }
 
     @Nonnull
     public static PropertyValue newReference(String value) {
-        return new PropertyStateValue(PropertyStates.referenceProperty("",
-                value));
+        return new PropertyStateValue(GenericPropertyState.referenceProperty("", value));
     }
 
     @Nonnull
     public static PropertyValue newWeakReference(String value) {
-        return new PropertyStateValue(PropertyStates.weakreferenceProperty("",
-                value));
+        return new PropertyStateValue(GenericPropertyState.weakreferenceProperty("", value));
     }
 
     @Nonnull
     public static PropertyValue newUri(String value) {
-        return new PropertyStateValue(PropertyStates.uriProperty("", value));
+        return new PropertyStateValue(GenericPropertyState.uriProperty("", value));
     }
 
     @Nonnull
     public static PropertyValue newBinary(byte[] value) {
-        return new PropertyStateValue(PropertyStates.binaryProperty("", value));
+        return new PropertyStateValue(BinaryPropertyState.binaryProperty("", value));
     }
 
     // --

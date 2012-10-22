@@ -18,8 +18,11 @@ package org.apache.jackrabbit.oak.kernel;
 
 import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.plugins.memory.BooleanPropertyState;
+import org.apache.jackrabbit.oak.plugins.memory.DoublePropertyState;
+import org.apache.jackrabbit.oak.plugins.memory.LongPropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.apache.jackrabbit.oak.plugins.memory.StringPropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
@@ -30,22 +33,22 @@ public class JsopDiffTest {
     @Test
     public void testPropertyChanges() {
         JsopDiff diff;
-        PropertyState before = PropertyStates.stringProperty("foo", "bar");
+        PropertyState before = StringPropertyState.stringProperty("foo", "bar");
 
         diff = new JsopDiff(null);
         diff.propertyAdded(before);
         assertEquals("^\"/foo\":\"bar\"", diff.toString());
 
         diff = new JsopDiff(null);
-        diff.propertyChanged(before, PropertyStates.longProperty("foo", 123L));
+        diff.propertyChanged(before, LongPropertyState.createLongProperty("foo", 123L));
         assertEquals("^\"/foo\":123", diff.toString());
 
         diff = new JsopDiff(null);
-        diff.propertyChanged(before, PropertyStates.doubleProperty("foo", 1.23));
+        diff.propertyChanged(before, DoublePropertyState.doubleProperty("foo", 1.23));
         assertEquals("^\"/foo\":\"dou:1.23\"", diff.toString()); // TODO: 1.23?
 
         diff = new JsopDiff(null);
-        diff.propertyChanged(before, PropertyStates.booleanProperty("foo", true));
+        diff.propertyChanged(before, BooleanPropertyState.booleanProperty("foo", true));
         assertEquals("^\"/foo\":true", diff.toString());
 
         diff = new JsopDiff(null);
@@ -59,7 +62,7 @@ public class JsopDiffTest {
         NodeState before = MemoryNodeState.EMPTY_NODE;
         NodeState after = new MemoryNodeState(
                 ImmutableMap.<String, PropertyState>of(
-                        "a", PropertyStates.longProperty("a", 1L)),
+                        "a", LongPropertyState.createLongProperty("a", 1L)),
                 ImmutableMap.of(
                         "x", MemoryNodeState.EMPTY_NODE));
 
