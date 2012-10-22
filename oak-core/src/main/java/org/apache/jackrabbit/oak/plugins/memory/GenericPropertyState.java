@@ -17,17 +17,19 @@
 package org.apache.jackrabbit.oak.plugins.memory;
 
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.value.Conversions;
+import org.apache.jackrabbit.oak.plugins.value.Conversions.Converter;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-public class GenericPropertyState extends SinglePropertyState {
+public class GenericPropertyState extends SinglePropertyState<String> {
     private final String value;
     private final Type<?> type;
 
     /**
      * @throws IllegalArgumentException if {@code type.isArray()} is {@code true}
      */
-    protected GenericPropertyState(String name, String value, Type<?> type) {
+    public GenericPropertyState(String name, String value, Type<?> type) {
         super(name);
         checkArgument(!type.isArray());
         this.value = value;
@@ -35,8 +37,13 @@ public class GenericPropertyState extends SinglePropertyState {
     }
 
     @Override
-    protected String getString() {
+    public String getValue() {
         return value;
+    }
+
+    @Override
+    public Converter getConverter() {
+        return Conversions.convert(value);
     }
 
     @Override
