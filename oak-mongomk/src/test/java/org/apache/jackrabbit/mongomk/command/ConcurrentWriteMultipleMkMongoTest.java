@@ -8,26 +8,28 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mongomk.BaseMongoTest;
-import org.apache.jackrabbit.mongomk.api.model.Commit;
+import org.apache.jackrabbit.mongomk.impl.BlobStoreMongo;
 import org.apache.jackrabbit.mongomk.impl.MongoConnection;
-import org.apache.jackrabbit.mongomk.impl.model.CommitBuilder;
+import org.apache.jackrabbit.mongomk.impl.MongoMicroKernel;
+import org.apache.jackrabbit.mongomk.impl.NodeStoreMongo;
+
 import org.junit.Test;
 
 public class ConcurrentWriteMultipleMkMongoTest extends BaseMongoTest {
 
     @Test
     public void testConcurrency() throws NumberFormatException, Exception {
-        
-        String diff1 = buildPyramidDiff("/", 0, 3, 10, "N", new StringBuilder())
-                .toString();
-        String diff2 = buildPyramidDiff("/", 0, 3, 10, "P", new StringBuilder())
-                .toString();
-        String diff3 = buildPyramidDiff("/", 0, 3, 10, "R", new StringBuilder())
-                .toString();
 
-        System.out.println(diff1);
-        System.out.println(diff2);
-        System.out.println(diff3);
+        String diff1 = buildPyramidDiff("/", 0, 10, 100, "N",
+                new StringBuilder()).toString();
+        String diff2 = buildPyramidDiff("/", 0, 10, 100, "P",
+                new StringBuilder()).toString();
+        String diff3 = buildPyramidDiff("/", 0, 10, 100, "R",
+                new StringBuilder()).toString();
+
+        // System.out.println(diff1);
+        // System.out.println(diff2);
+        // System.out.println(diff3);
 
         InputStream is = BaseMongoTest.class.getResourceAsStream("/config.cfg");
         Properties properties = new Properties();
@@ -37,11 +39,18 @@ public class ConcurrentWriteMultipleMkMongoTest extends BaseMongoTest {
         int port = Integer.parseInt(properties.getProperty("port"));
         String db = properties.getProperty("db");
 
-        GenericWriteTask task1 = new GenericWriteTask(diff1, 0,
+        MongoMicroKernel mongo1 = new MongoMicroKernel(new NodeStoreMongo(
+                mongoConnection), new BlobStoreMongo(mongoConnection));
+        MongoMicroKernel mongo2 = new MongoMicroKernel(new NodeStoreMongo(
+                mongoConnection), new BlobStoreMongo(mongoConnection));
+        MongoMicroKernel mongo3 = new MongoMicroKernel(new NodeStoreMongo(
+                mongoConnection), new BlobStoreMongo(mongoConnection));
+
+        GenericWriteTask task1 = new GenericWriteTask(mongo1, diff1, 0,
                 new MongoConnection(host, port, db));
-        GenericWriteTask task2 = new GenericWriteTask(diff2, 0,
+        GenericWriteTask task2 = new GenericWriteTask(mongo2, diff2, 0,
                 new MongoConnection(host, port, db));
-        GenericWriteTask task3 = new GenericWriteTask(diff3, 0,
+        GenericWriteTask task3 = new GenericWriteTask(mongo3, diff3, 0,
                 new MongoConnection(host, port, db));
 
         ExecutorService threadExecutor = Executors.newFixedThreadPool(3);
@@ -63,7 +72,6 @@ public class ConcurrentWriteMultipleMkMongoTest extends BaseMongoTest {
         if (index >= nodesNumber)
             return diff;
         diff.append(addNodeToDiff(startingPoint, nodePrefixName + index));
-        // System.out.println("Create node "+ index);
         for (int i = 1; i <= numberOfChildren; i++) {
             if (!startingPoint.endsWith("/"))
                 startingPoint = startingPoint + "/";
@@ -80,33 +88,46 @@ public class ConcurrentWriteMultipleMkMongoTest extends BaseMongoTest {
 
         return ("+\"" + startingPoint + nodeName + "\" : {\"key\":\"00000000000000000000\"} \n");
     }
-
 }
 
 class GenericWriteTask implements Runnable {
 
-    MongoConnection mongoConnection;
+    MicroKernel mk;
     String diff;
     int nodesPerCommit;
 
-    public GenericWriteTask(String diff, int nodesPerCommit,
-            MongoConnection mongoConnection) {
+    public GenericWriteTask(MongoMicroKernel mk, String diff,
+            int nodesPerCommit, MongoConnection mongoConnection) {
 
         this.diff = diff;
-        this.mongoConnection = mongoConnection;
+        this.mk = mk;
     }
 
     @Override
     public void run() {
+        commit(mk, diff, 10);
+    }
+    
+    private void commit(MicroKernel mk, String diff, int nodesPerCommit) {
 
-        Commit commit;
-        try {
-            commit = CommitBuilder.build("", diff, "Add message");
-            CommitCommandMongo command = new CommitCommandMongo(
-                    mongoConnection, commit);
-            command.execute();
-        } catch (Exception e) {
-            e.printStackTrace();
+        if (nodesPerCommit == 0) {
+            mk.commit("", diff.toString(), null, "");
+            return;
         }
+        String[] string = diff.split(System.getProperty("line.separator"));
+        int i = 0;
+        StringBuilder finalCommit = new StringBuilder();
+        for (String line : string) {
+            finalCommit.append(line);
+            i++;
+            if (i == nodesPerCommit) {
+                mk.commit("", finalCommit.toString(), null, "");
+                finalCommit.setLength(0);
+                i = 0;
+            }
+        }
+        // commit remaining nodes
+        if (finalCommit.length() > 0)
+            mk.commit("", finalCommit.toString(), null, "");
     }
 }
