@@ -163,14 +163,23 @@ public class RootImpl implements Root {
 
         purgePendingChanges();
         source.moveTo(destParent, destName);
-        return branch.move(sourcePath, destPath);
+        boolean success = branch.move(sourcePath, destPath);
+        if (success) {
+            getTree(getParentPath(sourcePath)).updateChildOrder();
+            getTree(getParentPath(destPath)).updateChildOrder();
+        }
+        return success;
     }
 
     @Override
     public boolean copy(String sourcePath, String destPath) {
         checkLive();
         purgePendingChanges();
-        return branch.copy(sourcePath, destPath);
+        boolean success = branch.copy(sourcePath, destPath);
+        if (success) {
+            getTree(getParentPath(destPath)).updateChildOrder();
+        }
+        return success;
     }
 
     @Override
