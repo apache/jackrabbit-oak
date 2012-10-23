@@ -23,7 +23,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Calendar;
 import java.util.List;
-
 import javax.jcr.Binary;
 import javax.jcr.Node;
 import javax.jcr.PropertyType;
@@ -34,7 +33,7 @@ import javax.jcr.ValueFormatException;
 
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.Blob;
-import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.api.BlobFactory;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -57,7 +56,7 @@ import org.slf4j.LoggerFactory;
 public class ValueFactoryImpl implements ValueFactory {
     private static final Logger log = LoggerFactory.getLogger(ValueFactoryImpl.class);
 
-    private final ContentSession contentSession;
+    private final BlobFactory blobFactory;
     private final NamePathMapper namePathMapper;
 
     /**
@@ -66,8 +65,8 @@ public class ValueFactoryImpl implements ValueFactory {
      * @param namePathMapper The name/path mapping used for converting JCR names/paths to
      * the internal representation.
      */
-    public ValueFactoryImpl(ContentSession session, NamePathMapper namePathMapper) {
-        this.contentSession = session;
+    public ValueFactoryImpl(BlobFactory blobFactory, NamePathMapper namePathMapper) {
+        this.blobFactory = blobFactory;
         this.namePathMapper = namePathMapper;
     }
 
@@ -265,7 +264,7 @@ public class ValueFactoryImpl implements ValueFactory {
     }
 
     private ValueImpl createBinaryValue(InputStream value) throws IOException {
-        Blob blob = contentSession.createBlob(value);
+        Blob blob = blobFactory.createBlob(value);
         return new ValueImpl(BinaryPropertyState.binaryProperty("", blob), namePathMapper);
     }
 

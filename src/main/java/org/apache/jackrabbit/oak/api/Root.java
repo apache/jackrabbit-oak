@@ -132,4 +132,11 @@ public interface Root {
     @Nonnull
     SessionQueryEngine getQueryEngine();
 
+    /**
+     * Returns the blob factory. TODO: specify life-cycle of that factory....
+     *
+     * @return the blob factory.
+     */
+    @Nonnull
+    BlobFactory getBlobFactory();
 }
