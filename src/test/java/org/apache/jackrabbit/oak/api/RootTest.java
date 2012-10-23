@@ -23,7 +23,6 @@ import org.apache.jackrabbit.oak.plugins.commit.AnnotatingConflictHandler;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictValidator;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.OakAssert.assertSequence;
@@ -49,7 +48,6 @@ public class RootTest {
     }
 
     @Test
-    @Ignore("OAK-169")
     public void copyOrderableNodes() throws Exception {
         ContentSession s = repository.login(null, null);
         try {
@@ -64,13 +62,15 @@ public class RootTest {
             r.copy("/node3", "/c/node3");
             c = r.getTree("/").getChild("c");
             assertSequence(c.getChildren(), "node1", "node2", "node3");
+            r.commit();
+            c = r.getTree("/").getChild("c");
+            assertSequence(c.getChildren(), "node1", "node2", "node3");
         } finally {
             s.close();
         }
     }
 
     @Test
-    @Ignore("OAK-169")
     public void moveOrderableNodes() throws Exception {
         ContentSession s = repository.login(null, null);
         try {
@@ -83,6 +83,9 @@ public class RootTest {
             r.commit();
 
             r.move("/node3", "/c/node3");
+            c = r.getTree("/").getChild("c");
+            assertSequence(c.getChildren(), "node1", "node2", "node3");
+            r.commit();
             c = r.getTree("/").getChild("c");
             assertSequence(c.getChildren(), "node1", "node2", "node3");
         } finally {

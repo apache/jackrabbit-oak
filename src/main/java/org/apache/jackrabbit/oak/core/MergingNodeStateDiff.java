@@ -17,11 +17,15 @@
 package org.apache.jackrabbit.oak.core;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.commit.ConflictHandlerWrapper;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryPropertyBuilder;
 import org.apache.jackrabbit.oak.spi.commit.ConflictHandler;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
+import org.apache.jackrabbit.oak.spi.state.PropertyBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,7 +55,7 @@ class MergingNodeStateDiff implements NodeStateDiff {
     static void merge(NodeState fromState, NodeState toState, final NodeBuilder target,
             final ConflictHandler conflictHandler) {
         toState.compareAgainstBaseState(fromState, new MergingNodeStateDiff(
-                checkNotNull(target), conflictHandler));
+                checkNotNull(target), new ChildOrderConflictHandler(conflictHandler)));
     }
 
     //------------------------------------------------------< NodeStateDiff >---
@@ -188,7 +192,7 @@ class MergingNodeStateDiff implements NodeStateDiff {
         switch (resolution) {
             case OURS:
                 if (n != null) {
-                    target.removeNode(name);
+                    removeChild(target, name);
                 }
                 break;
             case THEIRS:
@@ -204,9 +208,102 @@ class MergingNodeStateDiff implements NodeStateDiff {
         for (PropertyState property : state.getProperties()) {
             child.setProperty(property);
         }
+        PropertyState childOrder = target.getProperty(TreeImpl.OAK_CHILD_ORDER);
+        if (childOrder != null) {
+            PropertyBuilder<String> builder = MemoryPropertyBuilder.create(
+                    Type.STRING, childOrder);
+            builder.addValue(name);
+            target.setProperty(builder.getPropertyState(true));
+        }
         for (ChildNodeEntry entry : state.getChildNodeEntries()) {
             addChild(child, entry.getName(), entry.getNodeState());
         }
     }
 
+    private static void removeChild(NodeBuilder target, String name) {
+        target.removeNode(name);
+        PropertyState childOrder = target.getProperty(TreeImpl.OAK_CHILD_ORDER);
+        if (childOrder != null) {
+            PropertyBuilder<String> builder = MemoryPropertyBuilder.create(
+                    Type.STRING, childOrder);
+            builder.removeValue(name);
+            target.setProperty(builder.getPropertyState(true));
+        }
+    }
+
+    /**
+     * <code>ChildOrderConflictHandler</code> ignores conflicts on the
+     * {@link TreeImpl#OAK_CHILD_ORDER} property. All other conflicts are forwarded
+     * to the wrapped handler.
+     */
+    private static class ChildOrderConflictHandler extends ConflictHandlerWrapper {
+
+        ChildOrderConflictHandler(ConflictHandler delegate) {
+            super(delegate);
+        }
+
+        @Override
+        public Resolution addExistingProperty(NodeBuilder parent,
+                                              PropertyState ours,
+                                              PropertyState theirs) {
+            if (isChildOrderProperty(ours)) {
+                // two sessions concurrently called orderBefore() on a Tree
+                // that was previously unordered.
+                return Resolution.THEIRS;
+            } else {
+                return handler.addExistingProperty(parent, ours, theirs);
+            }
+        }
+
+        @Override
+        public Resolution changeDeletedProperty(NodeBuilder parent,
+                                                PropertyState ours) {
+            if (isChildOrderProperty(ours)) {
+                // orderBefore() on trees that were deleted
+                return Resolution.THEIRS;
+            } else {
+                return handler.changeDeletedProperty(parent, ours);
+            }
+        }
+
+        @Override
+        public Resolution changeChangedProperty(NodeBuilder parent,
+                                                PropertyState ours,
+                                                PropertyState theirs) {
+            if (isChildOrderProperty(ours)) {
+                // concurrent orderBefore(), other changes win
+                return Resolution.THEIRS;
+            } else {
+                return handler.changeChangedProperty(parent, ours, theirs);
+            }
+        }
+
+        @Override
+        public Resolution deleteDeletedProperty(NodeBuilder parent,
+                                                PropertyState ours) {
+            if (isChildOrderProperty(ours)) {
+                // concurrent remove of ordered trees
+                return Resolution.THEIRS;
+            } else {
+                return handler.deleteDeletedProperty(parent, ours);
+            }
+        }
+
+        @Override
+        public Resolution deleteChangedProperty(NodeBuilder parent,
+                                                PropertyState theirs) {
+            if (isChildOrderProperty(theirs)) {
+                // remove trees that were reordered by another session
+                return Resolution.THEIRS;
+            } else {
+                return handler.deleteChangedProperty(parent, theirs);
+            }
+        }
+
+        //----------------------------< internal >----------------------------------
+
+        private static boolean isChildOrderProperty(PropertyState p) {
+            return TreeImpl.OAK_CHILD_ORDER.equals(p.getName());
+        }
+    }
 }
