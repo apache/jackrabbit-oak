@@ -26,20 +26,18 @@ import javax.jcr.Credentials;
 public interface TokenProvider {
 
     /**
-     * Constant for the token attribute passed with valid simple credentials to
-     * trigger the generation of a new token.
-     */
-    public static final String TOKEN_ATTRIBUTE = ".token";
-
-    /**
      * Optional configuration parameter to set the token expiration time in ms.
+     * Implementations that do not support this option will ignore any config
+     * options with that name.
      */
     String PARAM_TOKEN_EXPIRATION = "tokenExpiration";
 
     /**
-     * Default expiration time in ms for login tokens is 2 hours.
+     * Optional configuration parameter to define the length of the key.
+     * Implementations that do not support this option will ignore any config
+     * options with that name.
      */
-    long DEFAULT_TOKEN_EXPIRATION = 2 * 3600 * 1000;
+    String PARAM_TOKEN_LENGTH = "tokenLength";
 
     boolean doCreateToken(Credentials credentials);
 
