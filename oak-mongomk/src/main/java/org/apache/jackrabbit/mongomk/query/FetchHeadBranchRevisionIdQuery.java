@@ -44,7 +44,7 @@ public class FetchHeadBranchRevisionIdQuery extends AbstractQuery<Long> {
     }
 
     @Override
-    public Long execute() throws Exception {
+    public Long execute() {
         if (branchId == null) {
             throw new IllegalArgumentException("Branch id cannot be null");
         }
