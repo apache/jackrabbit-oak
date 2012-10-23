@@ -37,16 +37,16 @@ import org.junit.Test;
  * 
  * 
  */
-@Ignore
+
 public class MkAddNodesMultipleCommitsTest extends MicroKernelTestBase {
 
     static String diff;
-    static int nodesNumber = 10000;
+    static int nodesNumber = 1000;
     static String nodeNamePrefix = "N";
 
     @BeforeClass
     public static void prepareDiff() {
-        diff = MicroKernelOperation.buildPyramidDiff("/", 0, 100, nodesNumber,
+        diff = MicroKernelOperation.buildPyramidDiff("/", 0, 10, nodesNumber,
                 nodeNamePrefix, new StringBuilder()).toString();
     }
 
@@ -88,7 +88,7 @@ public class MkAddNodesMultipleCommitsTest extends MicroKernelTestBase {
 
         Committer commiter = new Committer();
         chronometer.start();
-        commiter.addNodes(mk, diff, 1000);
+        commiter.addNodes(mk, diff, 10);
         chronometer.stop();
         System.out
                 .println("Total time for testWriteNodes1000NodesPerCommit is "

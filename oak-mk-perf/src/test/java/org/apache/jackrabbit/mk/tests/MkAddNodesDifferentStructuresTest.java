@@ -28,7 +28,6 @@ import org.junit.Test;
  * 
  * 
  */
-@Ignore
 public class MkAddNodesDifferentStructuresTest extends MicroKernelTestBase {
 
     static long nodesNumber = 100;

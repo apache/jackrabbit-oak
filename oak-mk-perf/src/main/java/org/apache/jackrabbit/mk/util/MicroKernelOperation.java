@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.mk.util;
 
+
+
 /**
  * Useful methods for building node structure.
  * 
@@ -51,6 +53,7 @@ public class MicroKernelOperation {
         if (index >= nodesNumber)
             return diff;
         diff.append(addNodeToDiff(startingPoint, nodePrefixName + index));
+        //System.out.println("Create node "+ index);
         for (int i = 1; i <= numberOfChildren; i++) {
             if (!startingPoint.endsWith("/"))
                 startingPoint = startingPoint + "/";

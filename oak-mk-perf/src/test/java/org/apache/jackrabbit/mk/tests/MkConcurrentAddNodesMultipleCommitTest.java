@@ -24,6 +24,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.jackrabbit.mk.tasks.GenericWriteTask;
 import org.apache.jackrabbit.mk.testing.ConcurrentMicroKernelTestBase;
 import org.apache.jackrabbit.mk.util.MicroKernelOperation;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -33,23 +34,26 @@ import com.cedarsoft.test.utils.CatchAllExceptionsRule;
  * Test class for microkernel concurrent writing.The microkernel is adding 1000
  * nodes per commit.
  */
+
 public class MkConcurrentAddNodesMultipleCommitTest extends
         ConcurrentMicroKernelTestBase {
 
     // nodes for each worker
-    int nodesNumber = 200000;
-    int numberOfNodesPerCommit = 1000;
+    int nodesNumber = 20;
+    int numberOfNodesPerCommit = 3;
 
-    @Rule
-    public CatchAllExceptionsRule catchAllExceptionsRule = new CatchAllExceptionsRule();
-
+    /**
+     * @Rule public CatchAllExceptionsRule catchAllExceptionsRule = new
+     *       CatchAllExceptionsRule();
+     */
     @Test
     public void testConcurentWritingFlatStructure() throws InterruptedException {
 
+        int children = 0;
         ArrayList<GenericWriteTask> tasks = new ArrayList<GenericWriteTask>();
         String diff;
         for (int i = 0; i < mkNumber; i++) {
-            diff = MicroKernelOperation.buildPyramidDiff("/", 0, 1000,
+            diff = MicroKernelOperation.buildPyramidDiff("/", 0, children,
                     nodesNumber, "N" + i + "N", new StringBuilder()).toString();
             tasks.add(new GenericWriteTask(mks.get(i), diff,
                     numberOfNodesPerCommit));
@@ -69,11 +73,11 @@ public class MkConcurrentAddNodesMultipleCommitTest extends
 
     @Test
     public void testConcurentWritingPyramid1() throws InterruptedException {
-
+        int children = 3;
         ArrayList<GenericWriteTask> tasks = new ArrayList<GenericWriteTask>();
         String diff;
         for (int i = 0; i < mkNumber; i++) {
-            diff = MicroKernelOperation.buildPyramidDiff("/", 0, 1000,
+            diff = MicroKernelOperation.buildPyramidDiff("/", 0, children,
                     nodesNumber, "N" + i + "N", new StringBuilder()).toString();
             tasks.add(new GenericWriteTask(mks.get(i), diff,
                     numberOfNodesPerCommit));
@@ -93,15 +97,17 @@ public class MkConcurrentAddNodesMultipleCommitTest extends
 
     @Test
     public void testConcurentWritingPyramid2() throws InterruptedException {
-
+        int children = 2;
         ArrayList<GenericWriteTask> tasks = new ArrayList<GenericWriteTask>();
         String diff;
         for (int i = 0; i < mkNumber; i++) {
-            diff = MicroKernelOperation.buildPyramidDiff("/", 0, 10,
+
+            diff = MicroKernelOperation.buildPyramidDiff("/", 0, children,
                     nodesNumber, "N" + i + "N", new StringBuilder()).toString();
+
             tasks.add(new GenericWriteTask(mks.get(i), diff,
                     numberOfNodesPerCommit));
-            System.out.println("The diff size is " + diff.getBytes().length);
+
         }
 
         ExecutorService threadExecutor = Executors.newFixedThreadPool(mkNumber);
