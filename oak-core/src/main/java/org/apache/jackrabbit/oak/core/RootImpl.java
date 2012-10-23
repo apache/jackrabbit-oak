@@ -18,6 +18,8 @@
  */
 package org.apache.jackrabbit.oak.core;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.ArrayList;
@@ -26,6 +28,8 @@ import java.util.List;
 import javax.annotation.Nonnull;
 import javax.security.auth.Subject;
 
+import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.api.BlobFactory;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.SessionQueryEngine;
@@ -278,6 +282,18 @@ public class RootImpl implements Root {
     public SessionQueryEngine getQueryEngine() {
         checkLive();
         return new SessionQueryEngineImpl(store, indexProvider);
+    }
+
+    @Nonnull
+    @Override
+    public BlobFactory getBlobFactory() {
+        return new BlobFactory() {
+            @Override
+            public Blob createBlob(InputStream inputStream) throws IOException {
+                checkLive();
+                return store.createBlob(inputStream);
+            }
+        };
     }
 
     //-----------------------------------------------------------< internal >---
