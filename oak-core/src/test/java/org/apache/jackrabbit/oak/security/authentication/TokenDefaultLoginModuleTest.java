@@ -28,7 +28,6 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.security.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.security.authentication.token.TokenLoginModule;
-import org.apache.jackrabbit.oak.security.authentication.token.TokenProviderImpl;
 import org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenInfo;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
@@ -110,7 +109,7 @@ public class TokenDefaultLoginModuleTest extends AbstractSecurityTest {
         ContentSession cs = null;
         try {
             SimpleCredentials sc = new SimpleCredentials("test", new char[0]);
-            sc.setAttribute(TokenProviderImpl.TOKEN_ATTRIBUTE, "");
+            sc.setAttribute(".token", "");
 
             cs = login(sc);
             fail("Invalid simple credentials login should fail");
@@ -140,7 +139,7 @@ public class TokenDefaultLoginModuleTest extends AbstractSecurityTest {
         ContentSession cs = null;
         try {
             SimpleCredentials sc = (SimpleCredentials) getAdminCredentials();
-            sc.setAttribute(TokenProviderImpl.TOKEN_ATTRIBUTE, "");
+            sc.setAttribute(".token", "");
             cs = login(sc);
         } finally {
             if (cs != null) {
@@ -154,10 +153,10 @@ public class TokenDefaultLoginModuleTest extends AbstractSecurityTest {
         ContentSession cs = null;
         try {
             SimpleCredentials sc = (SimpleCredentials) getAdminCredentials();
-            sc.setAttribute(TokenProvider.TOKEN_ATTRIBUTE, "");
+            sc.setAttribute(".token", "");
             cs = login(sc);
 
-            Object token = sc.getAttribute(TokenProvider.TOKEN_ATTRIBUTE).toString();
+            Object token = sc.getAttribute(".token").toString();
             assertNotNull(token);
             TokenCredentials tc = new TokenCredentials(token.toString());
 

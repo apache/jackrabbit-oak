@@ -22,7 +22,6 @@ import javax.jcr.SimpleCredentials;
 import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
 import org.apache.jackrabbit.oak.security.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
-import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -58,13 +57,13 @@ public class TokenProviderImplTest extends AbstractSecurityTest {
         sc.setAttribute("any_attribute", "value");
         assertFalse(tokenProvider.doCreateToken(sc));
 
-        sc.setAttribute(TokenProvider.TOKEN_ATTRIBUTE + "_key", "value");
+        sc.setAttribute(".token_key", "value");
         assertFalse(tokenProvider.doCreateToken(sc));
 
-        sc.setAttribute(TokenProvider.TOKEN_ATTRIBUTE, "existing");
+        sc.setAttribute(".token", "existing");
         assertFalse(tokenProvider.doCreateToken(sc));
 
-        sc.setAttribute(TokenProvider.TOKEN_ATTRIBUTE, "");
+        sc.setAttribute(".token", "");
         assertTrue(tokenProvider.doCreateToken(sc));
     }
 

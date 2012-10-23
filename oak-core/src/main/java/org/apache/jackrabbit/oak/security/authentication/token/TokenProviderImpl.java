@@ -81,29 +81,35 @@ public class TokenProviderImpl implements TokenProvider {
      */
     private static final Logger log = LoggerFactory.getLogger(TokenProviderImpl.class);
 
+    /**
+     * Constant for the token attribute passed with valid simple credentials to
+     * trigger the generation of a new token.
+     */
+    private static final String TOKEN_ATTRIBUTE = ".token";
     private static final String TOKEN_ATTRIBUTE_EXPIRY = TOKEN_ATTRIBUTE + ".exp";
     private static final String TOKEN_ATTRIBUTE_KEY = TOKEN_ATTRIBUTE + ".key";
     private static final String TOKENS_NODE_NAME = ".tokens";
     private static final String TOKENS_NT_NAME = JcrConstants.NT_UNSTRUCTURED;
 
-    private static final int STATUS_VALID = 0;
-    private static final int STATUS_EXPIRED = 1;
-    private static final int STATUS_MISMATCH = 2;
-
+    /**
+     * Default expiration time in ms for login tokens is 2 hours.
+     */
+    private static final long DEFAULT_TOKEN_EXPIRATION = 2 * 3600 * 1000;
+    private static final int DEFAULT_KEY_SIZE = 8;
     private static final char DELIM = '_';
 
     private final Root root;
+    private final ConfigurationParameters options;
+
+    private final long tokenExpiration;
     private final UserManager userManager;
     private final IdentifierManager identifierManager;
-    private final long tokenExpiration;
 
     public TokenProviderImpl(Root root, ConfigurationParameters options, UserConfiguration userConfiguration) {
-        this(root, options.getConfigValue(PARAM_TOKEN_EXPIRATION, Long.valueOf(DEFAULT_TOKEN_EXPIRATION)), userConfiguration);
-    }
-
-    public TokenProviderImpl(Root root, long tokenExpiration, UserConfiguration userConfiguration) {
         this.root = root;
-        this.tokenExpiration = tokenExpiration;
+        this.options = options;
+
+        this.tokenExpiration = options.getConfigValue(PARAM_TOKEN_EXPIRATION, Long.valueOf(DEFAULT_TOKEN_EXPIRATION));
         this.userManager = userConfiguration.getUserManager(root, NamePathMapper.DEFAULT);
         this.identifierManager = new IdentifierManager(root);
     }
@@ -158,7 +164,7 @@ public class TokenProviderImpl implements TokenProvider {
 
                 NodeUtil tokenNode = tokenParent.addChild(tokenName, TOKENS_NT_NAME);
 
-                String key = generateKey(8);
+                String key = generateKey(options.getConfigValue(PARAM_TOKEN_LENGTH, DEFAULT_KEY_SIZE));
                 String nodeId = identifierManager.getIdentifier(tokenNode.getTree());
                 String token = new StringBuilder(nodeId).append(DELIM).append(key).toString();
 
