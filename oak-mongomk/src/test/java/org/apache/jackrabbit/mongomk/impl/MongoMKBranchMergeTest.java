@@ -6,9 +6,11 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import org.apache.jackrabbit.mongomk.BaseMongoMicroKernelTest;
+import org.json.simple.JSONObject;
 import org.junit.Test;
 
 /**
+ * FIXME - Add more complicated branch/merge tests with properties, conflicts etc.
  * Tests for {@code MicroKernel#branch}
  */
 public class MongoMKBranchMergeTest extends BaseMongoMicroKernelTest {
@@ -84,7 +86,7 @@ public class MongoMKBranchMergeTest extends BaseMongoMicroKernelTest {
     }
 
     @Test
-    public void twoBranchesAndMerge() {
+    public void twoBranchesOneChildAndMerge() {
         // Commit to initial trunk.
         commitNodes(null, "/trunk", "/trunk/child1");
 
@@ -139,6 +141,93 @@ public class MongoMKBranchMergeTest extends BaseMongoMicroKernelTest {
     }
 
     @Test
+    public void oneBranchSubChildren() {
+        // Commit to initial trunk.
+        commitNodes(null, "/trunk", "/trunk/child1", "/trunk/child1/child2", "/trunk/child1/child2/child3");
+
+        // Check initial trunk children exist on trunk.
+        assertNodesExist(null, "/trunk", "/trunk/child1", "/trunk/child1/child2", "/trunk/child1/child2/child3");
+
+        // Branch.
+        String branchRev = mk.branch(null);
+
+        // Commit to branch.
+        branchRev = commitNodes(branchRev, "/branch1", "/branch1/child1", "/branch1/child1/child2", "/branch1/child1/child2/child3");
+
+        // Check initial trunk children still exist in branch.
+        assertNodesExist(branchRev, "/trunk", "/trunk/child1", "/trunk/child1/child2", "/trunk/child1/child2/child3");
+
+        // Check that branch children also exist in branch.
+        assertNodesExist(branchRev, "/branch1", "/branch1/child1", "/branch1/child1/child2", "/branch1/child1/child2/child3");
+
+        // But branch children does not exist in trunk.
+        assertNodesNotExist(null, "/branch1", "/branch1/child1", "/branch1/child1/child2", "/branch1/child1/child2/child3");
+
+        // Add more children on trunk.
+        commitNodes(null, "/trunk/child1/child2/child3/child4", "/trunk/child5");
+
+        // Check that the new children exists in trunk but not on branch still.
+        assertNodesExist(null, "/trunk/child1/child2/child3/child4", "/trunk/child5");
+        assertNodesNotExist(branchRev, "/trunk/child1/child2/child3/child4", "/trunk/child5");
+    }
+
+    @Test
+    public void oneBranchOneChildWithProperties() {
+        // Commit to initial trunk.
+        commitNodes(null, "/trunk", "/trunk/child1");
+
+        // Add some props on node.
+        commitProp(null, "/trunk/child1/prop1", "value1");
+        commitProp(null, "/trunk/child1/prop2", "value2");
+
+        // Check initial trunk children exist on trunk.
+        assertNodesExist(null, "/trunk", "/trunk/child1");
+
+        // Check initial properties exist on trunk.
+        assertPropExists(null, "trunk/child1/prop1");
+        assertPropExists(null, "trunk/child1/prop2");
+
+        // Branch.
+        String branchRev = mk.branch(null);
+
+        // Commit to branch.
+        branchRev = commitNodes(branchRev, "/branch1", "/branch1/child1");
+
+        // Add some props on node.
+        branchRev = commitProp(branchRev, "/branch1/child1/prop1", "value1");
+        branchRev = commitProp(branchRev, "/branch1/child1/prop2", "value2");
+
+        // Check initial trunk children still exist in branch.
+        assertNodesExist(branchRev, "/trunk", "/trunk/child1");
+
+        // Check initial properties still exist in branch.
+        assertPropExists(branchRev, "trunk/child1/prop1");
+        assertPropExists(branchRev, "trunk/child1/prop2");
+
+        // Check that branch children also exist in branch.
+        assertNodesExist(branchRev, "/branch1", "/branch1/child1");
+
+        // Check properties exist in branch.
+        assertPropExists(branchRev, "branch1/child1/prop1");
+        assertPropExists(branchRev, "branch1/child1/prop2");
+
+        // But branch children does not exist in trunk.
+        assertNodesNotExist(null, "/branch1", "/branch1/child1");
+
+        // And branch properties does not exist in trunk.
+        assertPropNotExists(null, "branch1/child1/prop1");
+        assertPropNotExists(null, "branch1/child1/prop2");
+
+        // Merge branch1 and do the checks.
+        mk.merge(branchRev, "");
+        assertTrue(mk.nodeExists("/trunk", null));
+        assertTrue(mk.nodeExists("/branch1", null));
+        assertTrue(mk.nodeExists("/branch1/child1", null));
+        assertFalse(mk.nodeExists("/branch2", null));
+        assertFalse(mk.nodeExists("/branch2/child2", null));
+    }
+
+    @Test
     public void emptyMergeCausesNoChange() {
         String rev1 = mk.commit("", "+\"/child1\":{}", null, "");
 
@@ -162,7 +251,17 @@ public class MongoMKBranchMergeTest extends BaseMongoMicroKernelTest {
         } catch (Exception expected) {}
     }
 
-    // FIXME - Add more complicated branch/merge tests with properties, conflicts etc.
+    private void assertPropExists(String rev, String property) {
+        String nodes = mk.getNodes("/", rev, -1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        JSONObject obj = parseJSONObject(nodes);
+        assertPropertyExists(obj, property);
+    }
+
+    private void assertPropNotExists(String rev, String property) {
+        String nodes = mk.getNodes("/", rev, -1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        JSONObject obj = parseJSONObject(nodes);
+        assertPropertyNotExists(obj, property);
+    }
 
     private String commitNodes(String rev, String...nodes) {
         String newRev = rev;
@@ -170,6 +269,10 @@ public class MongoMKBranchMergeTest extends BaseMongoMicroKernelTest {
             newRev = mk.commit("", "+\"" + node + "\":{}", rev, "");
         }
         return newRev;
+    }
+
+    private String commitProp(String rev, String prop, String value) {
+        return mk.commit("", "^\"" + prop + "\" : \"" + value + "\"", rev, "");
     }
 
     private void assertNodesExist(String revision, String...paths) {
