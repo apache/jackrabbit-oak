@@ -90,7 +90,177 @@ public class TreeTest {
     }
 
     @Test
-    public void concurrentAddChildOrderable() throws Exception {
+    public void concurrentOrderBefore() throws Exception {
+        ContentSession s1 = repository.login(null, null);
+        try {
+            Root r1 = s1.getLatestRoot();
+            Tree t1 = r1.getTree("/");
+            t1.addChild("node1");
+            t1.addChild("node2");
+            t1.addChild("node3");
+            r1.commit();
+            t1 = r1.getTree("/");
+
+            ContentSession s2 = repository.login(null, null);
+            try {
+                Root r2 = s2.getLatestRoot();
+                Tree t2 = r2.getTree("/");
+
+                t1.getChild("node2").orderBefore("node1");
+                t1.getChild("node3").orderBefore(null);
+                r1.commit();
+                t1 = r1.getTree("/");
+                assertSequence(t1.getChildren(), "node2", "node1", "node3");
+
+                t2.getChild("node3").orderBefore("node1");
+                t2.getChild("node2").orderBefore(null);
+                r2.commit();
+                t2 = r2.getTree("/");
+                // other session wins
+                assertSequence(t2.getChildren(), "node2", "node1", "node3");
+
+                // try again on current root
+                t2.getChild("node3").orderBefore("node1");
+                t2.getChild("node2").orderBefore(null);
+                r2.commit();
+                t2 = r2.getTree("/");
+                assertSequence(t2.getChildren(), "node3", "node1", "node2");
+
+            } finally {
+                s2.close();
+            }
+        } finally {
+            s1.close();
+        }
+    }
+
+    @Test
+    public void concurrentOrderBeforeWithAdd() throws Exception {
+        ContentSession s1 = repository.login(null, null);
+        try {
+            Root r1 = s1.getLatestRoot();
+            Tree t1 = r1.getTree("/");
+            t1.addChild("node1");
+            t1.addChild("node2");
+            t1.addChild("node3");
+            r1.commit();
+            t1 = r1.getTree("/");
+
+            ContentSession s2 = repository.login(null, null);
+            try {
+                Root r2 = s2.getLatestRoot();
+                Tree t2 = r2.getTree("/");
+
+                t1.getChild("node2").orderBefore("node1");
+                t1.getChild("node3").orderBefore(null);
+                t1.addChild("node4");
+                r1.commit();
+                t1 = r1.getTree("/");
+                assertSequence(t1.getChildren(), "node2", "node1", "node3", "node4");
+
+                t2.getChild("node3").orderBefore("node1");
+                r2.commit();
+                t2 = r2.getTree("/");
+                // other session wins
+                assertSequence(t2.getChildren(), "node2", "node1", "node3", "node4");
+
+                // try again on current root
+                t2.getChild("node3").orderBefore("node1");
+                r2.commit();
+                t2 = r2.getTree("/");
+                assertSequence(t2.getChildren(), "node2", "node3", "node1", "node4");
+
+            } finally {
+                s2.close();
+            }
+        } finally {
+            s1.close();
+        }
+    }
+
+    @Test
+    public void concurrentOrderBeforeWithRemove() throws Exception {
+        ContentSession s1 = repository.login(null, null);
+        try {
+            Root r1 = s1.getLatestRoot();
+            Tree t1 = r1.getTree("/");
+            t1.addChild("node1");
+            t1.addChild("node2");
+            t1.addChild("node3");
+            t1.addChild("node4");
+            r1.commit();
+            t1 = r1.getTree("/");
+
+            ContentSession s2 = repository.login(null, null);
+            try {
+                Root r2 = s2.getLatestRoot();
+                Tree t2 = r2.getTree("/");
+
+                t1.getChild("node2").orderBefore("node1");
+                t1.getChild("node3").orderBefore(null);
+                t1.getChild("node4").remove();
+                r1.commit();
+                t1 = r1.getTree("/");
+                assertSequence(t1.getChildren(), "node2", "node1", "node3");
+
+                t2.getChild("node3").orderBefore("node1");
+                r2.commit();
+                t2 = r2.getTree("/");
+                // other session wins
+                assertSequence(t2.getChildren(), "node2", "node1", "node3");
+
+                // try again on current root
+                t2.getChild("node3").orderBefore("node1");
+                r2.commit();
+                t2 = r2.getTree("/");
+                assertSequence(t2.getChildren(), "node2", "node3", "node1");
+
+            } finally {
+                s2.close();
+            }
+        } finally {
+            s1.close();
+        }
+    }
+
+    @Test
+    public void concurrentOrderBeforeRemoved() throws Exception {
+        ContentSession s1 = repository.login(null, null);
+        try {
+            Root r1 = s1.getLatestRoot();
+            Tree t1 = r1.getTree("/");
+            t1.addChild("node1");
+            t1.addChild("node2");
+            t1.addChild("node3");
+            r1.commit();
+            t1 = r1.getTree("/");
+
+            ContentSession s2 = repository.login(null, null);
+            try {
+                Root r2 = s2.getLatestRoot();
+                Tree t2 = r2.getTree("/");
+
+                t1.getChild("node2").orderBefore("node1");
+                t1.getChild("node3").remove();
+                r1.commit();
+                t1 = r1.getTree("/");
+                assertSequence(t1.getChildren(), "node2", "node1");
+
+                t2.getChild("node3").orderBefore("node1");
+                r2.commit();
+                t2 = r2.getTree("/");
+                assertSequence(t2.getChildren(), "node2", "node1");
+
+            } finally {
+                s2.close();
+            }
+        } finally {
+            s1.close();
+        }
+    }
+
+    @Test
+    public void concurrentOrderBeforeTargetRemoved() throws Exception {
         ContentSession s1 = repository.login(null, null);
         try {
             Root r1 = s1.getLatestRoot();
@@ -98,6 +268,42 @@ public class TreeTest {
             t1.addChild("node1").orderBefore(null);
             t1.addChild("node2");
             t1.addChild("node3");
+            t1.addChild("node4");
+            r1.commit();
+            t1 = r1.getTree("/");
+
+            ContentSession s2 = repository.login(null, null);
+            try {
+                Root r2 = s2.getLatestRoot();
+                Tree t2 = r2.getTree("/");
+
+                t1.getChild("node2").orderBefore("node1");
+                t1.getChild("node3").remove();
+                r1.commit();
+                t1 = r1.getTree("/");
+                assertSequence(t1.getChildren(), "node2", "node1", "node4");
+
+                t2.getChild("node4").orderBefore("node3");
+                r2.commit();
+                t2 = r2.getTree("/");
+                assertSequence(t2.getChildren(), "node2", "node1", "node4");
+
+            } finally {
+                s2.close();
+            }
+        } finally {
+            s1.close();
+        }
+    }
+
+    @Test
+    public void concurrentAddChildOrderable() throws Exception {
+        ContentSession s1 = repository.login(null, null);
+        try {
+            Root r1 = s1.getLatestRoot();
+            Tree t1 = r1.getTree("/");
+            t1.addChild("node1").orderBefore(null);
+            t1.addChild("node2");
             r1.commit();
             ContentSession s2 = repository.login(null, null);
             try {
@@ -105,20 +311,15 @@ public class TreeTest {
                 Tree t2 = r2.getTree("/");
 
                 t1 = r1.getTree("/");
-                // node4 from s1
-                t1.addChild("node4");
+                // node3 from s1
+                t1.addChild("node3");
                 r1.commit();
 
-                // node5 from s2
-                t2.addChild("node5");
-                try {
-                    r2.commit();
-                    // commit must fail
-                } catch (CommitFailedException e) {
-                }
+                // node4 from s2
+                t2.addChild("node4");
+                r2.commit();
 
-                r1 = s1.getLatestRoot();
-                t1 = r1.getTree("/");
+                t1 = s1.getLatestRoot().getTree("/");
                 assertSequence(
                         t1.getChildren(), "node1", "node2", "node3", "node4");
             } finally {

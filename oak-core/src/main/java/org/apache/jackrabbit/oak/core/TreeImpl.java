@@ -21,15 +21,12 @@ package org.apache.jackrabbit.oak.core;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import com.google.common.base.Function;
-import com.google.common.base.Predicate;
-import com.google.common.cache.CacheBuilder;
-import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.TreeLocation;
@@ -41,6 +38,13 @@ import org.apache.jackrabbit.oak.plugins.memory.MultiStringPropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
+import org.apache.jackrabbit.oak.spi.state.PropertyBuilder;
+
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -481,6 +485,30 @@ public class TreeImpl implements Tree, PurgeListener {
             }
         }
         return (canRead(child)) ? child : null;
+    }
+
+    /**
+     * Update the child order with children that have been removed or added.
+     * Added children are appended to the end of the {@link #OAK_CHILD_ORDER}
+     * property.
+     */
+    void updateChildOrder() {
+        if (!hasOrderableChildren()) {
+            return;
+        }
+        Set<String> names = Sets.newLinkedHashSet();
+        for (String name : getOrderedChildNames()) {
+            if (getNodeBuilder().hasChildNode(name)) {
+                names.add(name);
+            }
+        }
+        for (String name : getNodeBuilder().getChildNodeNames()) {
+            names.add(name);
+        }
+        PropertyBuilder<String> builder = MemoryPropertyBuilder.create(
+                Type.STRING, OAK_CHILD_ORDER);
+        builder.setValues(names);
+        getNodeBuilder().setProperty(builder.getPropertyState(true));
     }
 
     //------------------------------------------------------------< private >---
