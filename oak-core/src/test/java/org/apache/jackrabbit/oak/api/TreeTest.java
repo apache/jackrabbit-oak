@@ -20,16 +20,20 @@ package org.apache.jackrabbit.oak.api;
 
 import java.util.Set;
 
-import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.plugins.commit.AnnotatingConflictHandler;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictValidator;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.google.common.collect.Sets;
+
 import static org.apache.jackrabbit.oak.OakAssert.assertSequence;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 
 /**
  * Contains tests related to {@link Tree}
@@ -42,7 +46,19 @@ public class TreeTest {
     public void setUp() {
         repository = new Oak()
             .with(new ConflictValidator())
-            .with(new AnnotatingConflictHandler())
+            .with(new AnnotatingConflictHandler() {
+
+                /**
+                 * Allow deleting changed node.
+                 * See {@link TreeTest#removeWithConcurrentOrderBefore()}
+                 */
+                @Override
+                public Resolution deleteChangedNode(NodeBuilder parent,
+                                                    String name,
+                                                    NodeState theirs) {
+                    return Resolution.OURS;
+                }
+            })
             .createContentRepository();
     }
 
@@ -224,6 +240,51 @@ public class TreeTest {
     }
 
     @Test
+    public void concurrentOrderBeforeWithRemoveOtherSession() throws Exception {
+        ContentSession s1 = repository.login(null, null);
+        try {
+            Root r1 = s1.getLatestRoot();
+            Tree t1 = r1.getTree("/");
+            t1.addChild("node1").orderBefore(null);
+            t1.addChild("node2");
+            t1.addChild("node3");
+            t1.addChild("node4");
+            r1.commit();
+            t1 = r1.getTree("/");
+
+            ContentSession s2 = repository.login(null, null);
+            try {
+                Root r2 = s2.getLatestRoot();
+                Tree t2 = r2.getTree("/");
+
+                t1.getChild("node2").orderBefore("node1");
+                t1.getChild("node3").orderBefore(null);
+                r1.commit();
+                t1 = r1.getTree("/");
+                assertSequence(t1.getChildren(), "node2", "node1", "node4", "node3");
+
+                t2.getChild("node3").orderBefore("node1");
+                t2.getChild("node4").remove();
+                r2.commit();
+                t2 = r2.getTree("/");
+                // other session wins wrt ordering, but node4 is gone
+                assertSequence(t2.getChildren(), "node2", "node1", "node3");
+
+                // try reorder again on current root
+                t2.getChild("node3").orderBefore("node1");
+                r2.commit();
+                t2 = r2.getTree("/");
+                assertSequence(t2.getChildren(), "node2", "node3", "node1");
+
+            } finally {
+                s2.close();
+            }
+        } finally {
+            s1.close();
+        }
+    }
+
+    @Test
     public void concurrentOrderBeforeRemoved() throws Exception {
         ContentSession s1 = repository.login(null, null);
         try {
@@ -250,6 +311,43 @@ public class TreeTest {
                 r2.commit();
                 t2 = r2.getTree("/");
                 assertSequence(t2.getChildren(), "node2", "node1");
+
+            } finally {
+                s2.close();
+            }
+        } finally {
+            s1.close();
+        }
+    }
+
+    @Test
+    public void concurrentOrderBeforeAllRemoved() throws Exception {
+        ContentSession s1 = repository.login(null, null);
+        try {
+            Root r1 = s1.getLatestRoot();
+            Tree t1 = r1.getTree("/").addChild("c");
+            t1.addChild("node1").orderBefore(null);
+            t1.addChild("node2");
+            t1.addChild("node3");
+            r1.commit();
+            t1 = r1.getTree("/c");
+
+            ContentSession s2 = repository.login(null, null);
+            try {
+                Root r2 = s2.getLatestRoot();
+                Tree t2 = r2.getTree("/c");
+
+                t1.remove();
+                // now 'c' does not have ordered children anymore
+                r1.getTree("/").addChild("c");
+                r1.commit();
+                t1 = r1.getTree("/c");
+                assertSequence(t1.getChildren());
+
+                t2.getChild("node3").orderBefore("node1");
+                r2.commit();
+                t2 = r2.getTree("/c");
+                assertSequence(t2.getChildren());
 
             } finally {
                 s2.close();
@@ -362,6 +460,38 @@ public class TreeTest {
                     names.add(t.getName());
                 }
                 assertEquals(Sets.newHashSet("node1", "node2", "node3", "node4", "node5"), names);
+            } finally {
+                s2.close();
+            }
+        } finally {
+            s1.close();
+        }
+    }
+
+    @Test
+    public void removeWithConcurrentOrderBefore() throws Exception {
+        ContentSession s1 = repository.login(null, null);
+        try {
+            Root r1 = s1.getLatestRoot();
+            Tree t1 = r1.getTree("/").addChild("c");
+            t1.addChild("node1").orderBefore(null);
+            t1.addChild("node2");
+            r1.commit();
+            ContentSession s2 = repository.login(null, null);
+            try {
+                Root r2 = s2.getLatestRoot();
+                Tree t2 = r2.getTree("/c");
+
+                t1 = r1.getTree("/c");
+                t1.getChild("node2").orderBefore("node1");
+                r1.commit();
+                t1 = r1.getTree("/c");
+                assertSequence(t1.getChildren(), "node2", "node1");
+
+                t2.remove();
+                r2.commit();
+                assertFalse(r2.getTree("/").hasChild("c"));
+
             } finally {
                 s2.close();
             }
