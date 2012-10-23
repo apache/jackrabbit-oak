@@ -106,7 +106,7 @@ public class TokenLoginModuleTest extends AbstractSecurityTest {
         ContentSession cs = null;
         try {
             SimpleCredentials sc = new SimpleCredentials("test", new char[0]);
-            sc.setAttribute(TokenProvider.TOKEN_ATTRIBUTE, "");
+            sc.setAttribute(".token", "");
 
             cs = login(sc);
             fail("Unsupported credentials login should fail");
