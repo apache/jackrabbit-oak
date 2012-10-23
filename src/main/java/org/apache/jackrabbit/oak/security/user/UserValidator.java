@@ -97,6 +97,11 @@ class UserValidator extends DefaultValidator implements UserConstants {
         }
         if (authRoot != null) {
             assertHierarchy(node, authRoot);
+            // assert rep:principalName is present (that should actually by covered
+            // by node type validator)
+            if (node.getString(REP_PRINCIPAL_NAME, null) == null) {
+                fail("Mandatory property rep:principalName missing.");
+            }
         }
         return new UserValidator(null, node, provider);
     }
