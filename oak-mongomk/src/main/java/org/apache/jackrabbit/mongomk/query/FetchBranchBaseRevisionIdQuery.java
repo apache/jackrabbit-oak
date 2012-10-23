@@ -26,9 +26,9 @@ import com.mongodb.DBObject;
 import com.mongodb.QueryBuilder;
 
 /**
- * A query for fetching the head revision of a branch.
+ * A query for fetching the base (trunk) revision id that the branch is based on.
  */
-public class FetchHeadBranchRevisionIdQuery extends AbstractQuery<Long> {
+public class FetchBranchBaseRevisionIdQuery extends AbstractQuery<Long> {
 
     private final String branchId;
 
@@ -38,7 +38,7 @@ public class FetchHeadBranchRevisionIdQuery extends AbstractQuery<Long> {
      * @param mongoConnection The {@link MongoConnection}.
      * @param branchId The branch id. It should not be null.
      */
-    public FetchHeadBranchRevisionIdQuery(MongoConnection mongoConnection, String branchId) {
+    public FetchBranchBaseRevisionIdQuery(MongoConnection mongoConnection, String branchId) {
         super(mongoConnection);
         this.branchId = branchId;
     }
@@ -56,14 +56,14 @@ public class FetchHeadBranchRevisionIdQuery extends AbstractQuery<Long> {
         DBObject query = queryBuilder.get();
 
         BasicDBObject filter = new BasicDBObject();
-        filter.put(CommitMongo.KEY_REVISION_ID, 1);
+        filter.put(CommitMongo.KEY_BASE_REVISION_ID, 1);
 
-        BasicDBObject orderBy = new BasicDBObject(CommitMongo.KEY_REVISION_ID, 1);
+        BasicDBObject orderBy = new BasicDBObject(CommitMongo.KEY_BASE_REVISION_ID, 1);
 
         DBCursor dbCursor = commitCollection.find(query, filter).sort(orderBy).limit(1);
         if (dbCursor.hasNext()) {
             CommitMongo commitMongo = (CommitMongo)dbCursor.next();
-            return commitMongo.getRevisionId();
+            return commitMongo.getBaseRevId();
         }
         return 0L;
     }
