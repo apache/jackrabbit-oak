@@ -16,15 +16,13 @@
  */
 package org.apache.jackrabbit.oak.security.user.query;
 
+import java.text.ParseException;
 import java.util.Iterator;
-
 import javax.annotation.Nonnull;
-import javax.jcr.Node;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.query.Query;
-import javax.jcr.query.QueryManager;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
@@ -35,6 +33,8 @@ import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.QueryBuilder;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.oak.api.ResultRow;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.util.Text;
@@ -44,38 +44,36 @@ import org.slf4j.LoggerFactory;
 /**
  * This evaluator for {@link org.apache.jackrabbit.api.security.user.Query}s use XPath
  * and some minimal client side filtering.
- *
- * FIXME: replace usage of jcr-query manager by oak-api SessionQueryEngine.
  */
 public class XPathQueryEvaluator implements ConditionVisitor {
     static final Logger log = LoggerFactory.getLogger(XPathQueryEvaluator.class);
 
     private final XPathQueryBuilder builder;
     private final UserManager userManager;
-    private final QueryManager queryManager;
+    private final Root root;
     private final NamePathMapper namePathMapper;
 
     private final StringBuilder xPath = new StringBuilder();
 
     public XPathQueryEvaluator(XPathQueryBuilder builder, UserManager userManager,
-                               QueryManager queryManager, NamePathMapper namePathMapper) {
+                               Root root, NamePathMapper namePathMapper) {
         this.builder = builder;
         this.userManager = userManager;
-        this.queryManager = queryManager;
+        this.root = root;
         this.namePathMapper = namePathMapper;
     }
 
     public Iterator<Authorizable> eval() throws RepositoryException {
+        // shortcut
+        if (builder.getMaxCount() == 0) {
+            return Iterators.emptyIterator();
+        }
+
         xPath.append("//element(*,")
                 .append(getNtName(builder.getSelector()))
                 .append(')');
 
         Value bound = builder.getBound();
-        long offset = builder.getOffset();
-        if (bound != null && offset > 0) {
-            log.warn("Found bound {} and offset {} in limit. Discarding offset.", bound, offset);
-            offset = 0;
-        }
 
         Condition condition = builder.getCondition();
         String sortCol = builder.getSortProperty();
@@ -106,27 +104,28 @@ public class XPathQueryEvaluator implements ConditionVisitor {
                     .append(sortDir.getDirection());
         }
 
-        Query query = queryManager.createQuery(xPath.toString(), Query.XPATH);
-        long maxCount = builder.getMaxCount();
-        if (maxCount == 0) {
-            return Iterators.emptyIterator();
+        try {
+            if (builder.getGroupName() == null) {
+                long offset = builder.getOffset();
+                if (bound != null && offset > 0) {
+                    log.warn("Found bound {} and offset {} in limit. Discarding offset.", bound, offset);
+                    offset = 0;
+                }
+                return findAuthorizables(builder.getMaxCount(), offset);
+            } else {
+                // filtering by group name not included in query -> enforce offset
+                // and limit on the result set.
+                Iterator<Authorizable> result = findAuthorizables(Long.MAX_VALUE, 0);
+                Iterator<Authorizable> filtered = filter(result, builder.getGroupName(), builder.isDeclaredMembersOnly());
+                return ResultIterator.create(builder.getOffset(), builder.getMaxCount(), filtered);
+            }
+        } catch (ParseException e) {
+            throw new RepositoryException(e);
         }
 
         // If we are scoped to a group and have a limit, we have to apply the limit
         // here (inefficient!) otherwise we can apply the limit in the query
-        if (builder.getGroupName() == null) {
-            if (offset > 0) {
-                query.setOffset(offset);
-            }
-            if (maxCount > 0) {
-                query.setLimit(maxCount);
-            }
-            return toAuthorizables(execute(query));
-        } else {
-            Iterator<Authorizable> result = toAuthorizables(execute(query));
-            Iterator<Authorizable> filtered = filter(result, builder.getGroupName(), builder.isDeclaredMembersOnly());
-            return ResultIterator.create(offset, maxCount, filtered);
-        }
+
     }
 
     //---------------------------------------------------< ConditionVisitor >---
@@ -294,26 +293,22 @@ public class XPathQueryEvaluator implements ConditionVisitor {
     }
 
     @Nonnull
-    @SuppressWarnings("unchecked")
-    private static Iterator<Node> execute(Query query) throws RepositoryException {
-        return query.execute().getNodes();
-    }
+    private Iterator<Authorizable> findAuthorizables(long limit, long offset) throws ParseException {
+        Iterable<? extends ResultRow> resultRows = root.getQueryEngine().executeQuery(xPath.toString(), Query.XPATH, limit, offset, null, root, namePathMapper).getRows();
 
-    @Nonnull
-    private Iterator<Authorizable> toAuthorizables(Iterator<Node> nodes) {
-        Function<Node, Authorizable> transformer = new Function<Node, Authorizable>() {
-            public Authorizable apply(Node node) {
+        Function<ResultRow, Authorizable> transformer = new Function<ResultRow, Authorizable>() {
+            public Authorizable apply(ResultRow resultRow) {
                 try {
-                    return userManager.getAuthorizableByPath(node.getPath());
+                    return userManager.getAuthorizableByPath(resultRow.getPath());
                 } catch (RepositoryException e) {
-                    log.warn("Cannot create authorizable from node {}", node);
+                    log.warn("Cannot create authorizable from result row {}", resultRow);
                     log.debug(e.getMessage(), e);
                     return null;
                 }
             }
         };
 
-        return Iterators.transform(nodes, transformer);
+        return Iterators.filter(Iterators.transform(resultRows.iterator(), transformer), Predicates.<Object>notNull());
     }
 
     @Nonnull
