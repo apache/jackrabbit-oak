@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.value;
 
-import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.util.Calendar;
@@ -27,7 +26,6 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.ValueFormatException;
 
-import com.google.common.base.Charsets;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -236,13 +234,7 @@ public class ValueImpl implements Value {
     }
 
     InputStream getNewStream() throws RepositoryException {
-        switch (getType()) {
-            case PropertyType.NAME:
-            case PropertyType.PATH:
-                return new ByteArrayInputStream(getString().getBytes(Charsets.UTF_8));
-            default:
-                return propertyState.getValue(Type.BINARY, index).getNewStream();
-        }
+        return propertyState.getValue(Type.BINARY, index).getNewStream();
     }
 
     long getStreamLength() {
