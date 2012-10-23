@@ -252,14 +252,9 @@ public class TokenProviderImpl implements TokenProvider {
 
 
     //--------------------------------------------------------------------------
-    // TODO: that should be done by the property state or some utility
+
     private static long getExpirationTime(NodeUtil tokenNode, long defaultValue) {
-        String date = tokenNode.getString(TOKEN_ATTRIBUTE_EXPIRY, null);
-        if (date == null) {
-            return defaultValue;
-        } else {
-            return ISO8601.parse(date).getTimeInMillis();
-        }
+        return tokenNode.getLong(TOKEN_ATTRIBUTE_EXPIRY, defaultValue);
     }
 
     @CheckForNull
