@@ -422,7 +422,7 @@ public class UserManagerImpl implements UserManager {
 
     private UserQueryManager getQueryManager() throws RepositoryException {
         if (queryManager == null) {
-            queryManager = new UserQueryManager(this, session, root);
+            queryManager = new UserQueryManager(this, root);
         }
         return queryManager;
     }

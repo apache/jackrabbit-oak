@@ -16,21 +16,26 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
+import java.text.ParseException;
+import java.util.Collections;
 import java.util.Iterator;
+import java.util.Map;
 import javax.annotation.Nonnull;
-import javax.jcr.Node;
-import javax.jcr.NodeIterator;
 import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-import javax.jcr.query.QueryManager;
 
 import com.google.common.base.Function;
+import com.google.common.base.Predicates;
 import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Query;
+import org.apache.jackrabbit.oak.api.PropertyValue;
+import org.apache.jackrabbit.oak.api.Result;
+import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.SessionQueryEngine;
 import org.apache.jackrabbit.oak.security.user.query.XPathQueryBuilder;
 import org.apache.jackrabbit.oak.security.user.query.XPathQueryEvaluator;
+import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.util.ISO9075;
@@ -50,20 +55,17 @@ class UserQueryManager {
 
     private final UserManagerImpl userManager;
     private final Root root;
-    private final QueryManager queryManager;
 
     private final String userRoot;
     private final String groupRoot;
     private final String authorizableRoot;
 
-    // TODO: replace usage of jcr-query-manager by oak query manager and drop session from constructor.
-    UserQueryManager(UserManagerImpl userManager, Session session, Root root) throws RepositoryException {
+    UserQueryManager(UserManagerImpl userManager, Root root) throws RepositoryException {
         this.userManager = userManager;
         this.root = root;
-        this.queryManager = (session != null) ? session.getWorkspace().getQueryManager() : null;
 
         this.userRoot = userManager.getConfig().getConfigValue(UserConstants.PARAM_USER_PATH, UserConstants.DEFAULT_USER_PATH);
-        this.groupRoot = userManager.getConfig().getConfigValue(UserConstants.PARAM_GROUP_PATH, UserConstants.DEFAULT_GROUP_PATH);;
+        this.groupRoot = userManager.getConfig().getConfigValue(UserConstants.PARAM_GROUP_PATH, UserConstants.DEFAULT_GROUP_PATH);
 
         String parent = userRoot;
         while (!Text.isDescendant(parent, groupRoot)) {
@@ -72,16 +74,11 @@ class UserQueryManager {
         authorizableRoot = parent;
     }
 
+    @Nonnull
     Iterator<Authorizable> find(Query query) throws RepositoryException {
-        // TODO: create query builder depending query-language configured with user-mgt configuration.
-        if (queryManager != null) {
-            XPathQueryBuilder builder = new XPathQueryBuilder();
-            query.build(builder);
-            return new XPathQueryEvaluator(builder, userManager, queryManager, userManager.getNamePathMapper()).eval();
-        } else {
-            // TODO: implement
-            throw new UnsupportedOperationException("not implemented");
-        }
+        XPathQueryBuilder builder = new XPathQueryBuilder();
+        query.build(builder);
+        return new XPathQueryEvaluator(builder, userManager, root, userManager.getNamePathMapper()).eval();
     }
 
     @Nonnull
@@ -108,21 +105,24 @@ class UserQueryManager {
      * @return An iterator of authorizable trees that match the specified
      * search parameters and filters or an empty iterator if no result can be
      * found.
+     * @throws javax.jcr.RepositoryException If an error occurs.
      */
     @Nonnull
     Iterator<Authorizable> findAuthorizables(String relPath, String value,
-                                             boolean exact, AuthorizableType type)
-            throws RepositoryException {
-        // TODO replace usage of jcr query manager by oak-query api.
+                                             boolean exact, AuthorizableType type) throws RepositoryException {
         String statement = buildXPathStatement(relPath, value, exact, type);
-        if (queryManager != null) {
-            NodeIterator results = queryManager.createQuery(statement, javax.jcr.query.Query.XPATH).execute().getNodes();
-            return Iterators.transform(results, new NodeToAuthorizable());
-        } else {
-            throw new UnsupportedOperationException("not yet implemented");
+        SessionQueryEngine queryEngine = root.getQueryEngine();
+        try {
+            Map<String,PropertyValue> bindings = (value != null) ? Collections.singletonMap("propValue", PropertyValues.newString(value)) : null;
+            Result result = queryEngine.executeQuery(statement, javax.jcr.query.Query.XPATH, Long.MAX_VALUE, 0, bindings, root, userManager.getNamePathMapper());
+            return Iterators.filter(Iterators.transform(result.getRows().iterator(), new ResultRowToAuthorizable()), Predicates.<Object>notNull());
+        } catch (ParseException e) {
+            throw new RepositoryException(e);
         }
     }
 
+    //------------------------------------------------------------< private >---
+    @Nonnull
     private String buildXPathStatement(String relPath, String value, boolean exact, AuthorizableType type) {
         StringBuilder stmt = new StringBuilder();
         String searchRoot = getSearchRoot(type);
@@ -180,6 +180,7 @@ class UserQueryManager {
      * @param type
      * @return The path of search root for the specified authorizable type.
      */
+    @Nonnull
     private String getSearchRoot(AuthorizableType type) {
         if (type == AuthorizableType.USER) {
             return userRoot;
@@ -190,6 +191,7 @@ class UserQueryManager {
         }
     }
 
+    @Nonnull
     private static String escapeForQuery(String value) {
         StringBuilder ret = new StringBuilder();
         for (int i = 0; i < value.length(); i++) {
@@ -205,6 +207,7 @@ class UserQueryManager {
         return ret.toString();
     }
 
+    @Nonnull
     private static String getNodeTypeName(AuthorizableType type) {
         if (type == AuthorizableType.USER) {
             return UserConstants.NT_REP_USER;
@@ -215,13 +218,13 @@ class UserQueryManager {
         }
     }
 
-    private class NodeToAuthorizable implements Function<Node, Authorizable> {
+    private class ResultRowToAuthorizable implements Function<ResultRow, Authorizable> {
         @Override
-        public Authorizable apply(Node node) {
+        public Authorizable apply(ResultRow row) {
             try {
-                return userManager.getAuthorizable(node.getPath());
+                return userManager.getAuthorizable(row.getPath());
             } catch (RepositoryException e) {
-                log.debug("Failed to access authorizable " + node);
+                log.debug("Failed to access authorizable " + row.getPath());
                 return null;
             }
         }
