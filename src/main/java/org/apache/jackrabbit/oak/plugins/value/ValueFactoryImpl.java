@@ -47,14 +47,11 @@ import org.apache.jackrabbit.oak.plugins.memory.LongPropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.StringPropertyState;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.util.ISO8601;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Implementation of {@link ValueFactory} interface.
  */
 public class ValueFactoryImpl implements ValueFactory {
-    private static final Logger log = LoggerFactory.getLogger(ValueFactoryImpl.class);
 
     private final BlobFactory blobFactory;
     private final NamePathMapper namePathMapper;
@@ -62,6 +59,7 @@ public class ValueFactoryImpl implements ValueFactory {
     /**
      * Creates a new instance of {@code ValueFactory}.
      *
+     * @param blobFactory The factory for creation of binary values
      * @param namePathMapper The name/path mapping used for converting JCR names/paths to
      * the internal representation.
      */
@@ -257,8 +255,7 @@ public class ValueFactoryImpl implements ValueFactory {
     public Binary createBinary(InputStream stream) throws RepositoryException {
         try {
             return new BinaryImpl(createBinaryValue(stream));
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             throw new RepositoryException(e);
         }
     }
