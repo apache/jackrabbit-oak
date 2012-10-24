@@ -133,7 +133,7 @@ public interface Root {
     SessionQueryEngine getQueryEngine();
 
     /**
-     * Returns the blob factory. TODO: specify life-cycle of that factory....
+     * Returns the blob factory (TODO: review if that really belongs to the OAK-API. see also todos on BlobFactory)
      *
      * @return the blob factory.
      */
