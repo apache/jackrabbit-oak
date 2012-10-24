@@ -100,11 +100,10 @@ public class MemoryNodeBuilder implements NodeBuilder {
     private long revision;
 
     /**
-     * The read state of this builder. Originally the immutable base state
-     * in an unconnected builder, or the shared mutable state
-     * (see {@link #writeState}) once the this builder has been connected.
+     * The base state of this builder, or {@code null} if this builder
+     * represents a new node that didn't yet exist in the base content tree.
      */
-    private NodeState readState;
+    private final NodeState baseState;
 
     /**
      * The shared mutable state of connected builder instances, or
@@ -117,7 +116,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
      *
      * @param parent parent node state builder
      * @param name name of this node
-     * @param base base state of this node
+     * @param base base state of this node, or {@code null}
      */
     protected MemoryNodeBuilder(
             MemoryNodeBuilder parent, String name, NodeState base) {
@@ -127,7 +126,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
         this.root = parent.root;
         this.revision = parent.revision;
 
-        this.readState = checkNotNull(base);
+        this.baseState = base;
         this.writeState = null;
     }
 
@@ -136,16 +135,15 @@ public class MemoryNodeBuilder implements NodeBuilder {
      *
      * @param base base state of the new builder
      */
-    public MemoryNodeBuilder(NodeState base) {
+    public MemoryNodeBuilder(@Nonnull NodeState base) {
         this.parent = null;
         this.name = null;
 
         this.root = this;
         this.revision = 0;
 
-        MutableNodeState mstate = new MutableNodeState(checkNotNull(base));
-        this.readState = mstate;
-        this.writeState = mstate;
+        this.baseState = checkNotNull(base);
+        this.writeState = new MutableNodeState(baseState);
     }
 
     private NodeState read() {
@@ -161,13 +159,17 @@ public class MemoryNodeBuilder implements NodeBuilder {
                                 "This node has been removed.");
                     }
                 } else if (mstate != writeState) {
-                    readState = mstate;
                     writeState = mstate;
                 }
             }
             revision = root.revision;
         }
-        return readState;
+        if (writeState != null) {
+            return writeState;
+        } else {
+            assert baseState != null; // new nodes must have a writeState
+            return baseState;
+        }
     }
 
     private MutableNodeState write() {
@@ -184,11 +186,14 @@ public class MemoryNodeBuilder implements NodeBuilder {
                     throw new IllegalStateException(
                             "This node has been removed.");
                 }
-                mstate = new MutableNodeState(readState);
+                NodeState base = baseState;
+                if (base == null) {
+                    base = NULL_STATE;
+                }
+                mstate = new MutableNodeState(base);
                 pstate.nodes.put(name, mstate);
             }
             if (mstate != writeState) {
-                readState = mstate;
                 writeState = mstate;
             }
         }
@@ -240,6 +245,11 @@ public class MemoryNodeBuilder implements NodeBuilder {
         } else {
             return state;
         }
+    }
+
+    @Override
+    public NodeState getBaseState() {
+        return baseState;
     }
 
     @Override
