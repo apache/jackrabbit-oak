@@ -55,9 +55,8 @@ class KernelRootBuilder extends MemoryNodeBuilder {
     //--------------------------------------------------< MemoryNodeBuilder >---
 
     @Override
-    protected MemoryNodeBuilder createChildBuilder(
-            String name, NodeState child) {
-        return new KernelNodeBuilder(this, name, child, this);
+    protected MemoryNodeBuilder createChildBuilder(String name) {
+        return new KernelNodeBuilder(this, name, this);
     }
 
     @Override

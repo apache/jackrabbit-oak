@@ -19,25 +19,22 @@ package org.apache.jackrabbit.oak.kernel;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 class KernelNodeBuilder extends MemoryNodeBuilder {
 
     private final KernelRootBuilder root;
 
     public KernelNodeBuilder(
-            MemoryNodeBuilder parent, String name,
-            NodeState base, KernelRootBuilder root) {
-        super(parent, name, base);
+            MemoryNodeBuilder parent, String name, KernelRootBuilder root) {
+        super(parent, name);
         this.root = checkNotNull(root);
     }
 
     //--------------------------------------------------< MemoryNodeBuilder >---
 
     @Override
-    protected MemoryNodeBuilder createChildBuilder(
-            String name, NodeState child) {
-        return new KernelNodeBuilder(this, name, child, root);
+    protected MemoryNodeBuilder createChildBuilder(String name) {
+        return new KernelNodeBuilder(this, name, root);
     }
 
     @Override
