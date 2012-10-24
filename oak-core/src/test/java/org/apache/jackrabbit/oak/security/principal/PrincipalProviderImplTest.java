@@ -41,7 +41,7 @@ public class PrincipalProviderImplTest extends AbstractSecurityTest {
     public void testGetPrincipals() throws Exception {
         Root root = admin.getLatestRoot();
         PrincipalProviderImpl principalProvider =
-                new PrincipalProviderImpl(root, securityProvider.getUserConfiguration(), NamePathMapper.DEFAULT);
+                new PrincipalProviderImpl(root, getSecurityProvider().getUserConfiguration(), NamePathMapper.DEFAULT);
 
         String adminId = admin.getAuthInfo().getUserID();
         Set<? extends Principal> principals = principalProvider.getPrincipals(adminId);
@@ -63,7 +63,7 @@ public class PrincipalProviderImplTest extends AbstractSecurityTest {
     @Test
     public void testEveryone() throws Exception {
         Root root = admin.getLatestRoot();
-        UserConfiguration config = securityProvider.getUserConfiguration();
+        UserConfiguration config = getSecurityProvider().getUserConfiguration();
 
         PrincipalProviderImpl principalProvider = new PrincipalProviderImpl(root, config, NamePathMapper.DEFAULT);
 

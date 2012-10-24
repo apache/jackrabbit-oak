@@ -25,10 +25,11 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
-import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.security.AbstractSecurityTest;
+import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
+import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtility;
+import org.junit.Before;
 import org.junit.Test;
 
 import static junit.framework.Assert.assertEquals;
@@ -43,8 +44,14 @@ import static org.junit.Assert.fail;
  */
 public class UserManagerImplTest extends AbstractSecurityTest {
 
-    private final UserConfigurationImpl uc = new UserConfigurationImpl(
-            ConfigurationParameters.EMPTY, securityProvider);
+    private UserConfiguration uc;
+
+    @Before
+    public void before() throws Exception {
+        super.before();
+
+        uc = getSecurityProvider().getUserConfiguration();
+    }
 
     @Test
     public void testSetPassword() throws Exception {
