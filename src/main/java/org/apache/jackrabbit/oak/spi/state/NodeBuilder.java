@@ -81,7 +81,7 @@ public interface NodeBuilder {
 
     /**
      * Remove a child node. This method has no effect if a
-     * property of the given {@code name} does not exist.
+     * name of the given {@code name} does not exist.
      *
      * @param name  name of the child node
      * @return this builder
