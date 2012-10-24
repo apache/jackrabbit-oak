@@ -43,6 +43,11 @@ public class ReadOnlyBuilder implements NodeBuilder {
     }
 
     @Override
+    public NodeState getBaseState() {
+        return state;
+    }
+
+    @Override
     public long getChildNodeCount() {
         return state.getChildNodeCount();
     }
