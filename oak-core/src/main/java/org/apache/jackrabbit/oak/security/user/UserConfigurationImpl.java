@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
+import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableAction;
 
 /**
  * UserConfigurationImpl... TODO
@@ -37,7 +38,8 @@ public class UserConfigurationImpl implements UserConfiguration {
     private final ConfigurationParameters config;
     private final SecurityProvider securityProvider;
 
-    public UserConfigurationImpl(ConfigurationParameters config, SecurityProvider securityProvider) {
+    public UserConfigurationImpl(ConfigurationParameters config,
+                                 SecurityProvider securityProvider) {
         this.config = config;
         this.securityProvider = securityProvider;
     }
@@ -52,6 +54,13 @@ public class UserConfigurationImpl implements UserConfiguration {
     public List<ValidatorProvider> getValidatorProviders() {
         ValidatorProvider vp = new UserValidatorProvider(getConfigurationParameters());
         return Collections.singletonList(vp);
+    }
+
+    @Nonnull
+    @Override
+    public List<AuthorizableAction> getAuthorizableActions() {
+        // TODO: create authorizable actions from configuration
+        return Collections.emptyList();
     }
 
     @Override
