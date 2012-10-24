@@ -18,6 +18,8 @@ package org.apache.jackrabbit.oak.plugins.index;
 
 public interface IndexConstants {
 
+    String INDEX_DEFINITIONS_NODE_TYPE = "oak:queryIndexDefinition";
+
     String INDEX_DEFINITIONS_NAME = "oak:index";
 
     String TYPE_PROPERTY_NAME = "type";
@@ -28,6 +30,7 @@ public interface IndexConstants {
 
     String INDEX_DATA_CHILD_NAME = ":data";
 
+    //TODO remove this property as soon as the index manager is in
     String DEFAULT_INDEX_HOME = "/";
 
 }

@@ -16,23 +16,16 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
-
 public class IndexDefinitionImpl implements IndexDefinition, IndexConstants {
 
     private final String name;
     private final String type;
     private final String path;
-    private final NodeState state;
 
-    public IndexDefinitionImpl(String name, String type, String path,
-            NodeState state) {
+    public IndexDefinitionImpl(String name, String type, String path) {
         this.name = name;
         this.type = type;
         this.path = path;
-        this.state = state;
     }
 
     @Override
@@ -51,28 +44,18 @@ public class IndexDefinitionImpl implements IndexDefinition, IndexConstants {
     }
 
     @Override
-    public boolean isReindex() {
-        PropertyState ps = state.getProperty(REINDEX_PROPERTY_NAME);
-        return ps != null && ps.getValue(Type.BOOLEAN);
-    }
-
-    @Override
-    public NodeState getState() {
-        return state;
-    }
-
-    @Override
     public String toString() {
         return "IndexDefinitionImpl [name=" + name + ", type=" + type
-                + ", path=" + path + ", reindex=" + isReindex() + ", state="
-                + state + "]";
+                + ", path=" + path + "]";
     }
 
     @Override
     public int hashCode() {
         final int prime = 31;
         int result = 1;
-        result = prime * result + ((state == null) ? 0 : state.hashCode());
+        result = prime * result + ((name == null) ? 0 : name.hashCode());
+        result = prime * result + ((path == null) ? 0 : path.hashCode());
+        result = prime * result + ((type == null) ? 0 : type.hashCode());
         return result;
     }
 
@@ -85,12 +68,21 @@ public class IndexDefinitionImpl implements IndexDefinition, IndexConstants {
         if (getClass() != obj.getClass())
             return false;
         IndexDefinitionImpl other = (IndexDefinitionImpl) obj;
-        if (state == null) {
-            if (other.state != null)
+        if (name == null) {
+            if (other.name != null)
                 return false;
-        } else if (!state.equals(other.state))
+        } else if (!name.equals(other.name))
+            return false;
+        if (path == null) {
+            if (other.path != null)
+                return false;
+        } else if (!path.equals(other.path))
+            return false;
+        if (type == null) {
+            if (other.type != null)
+                return false;
+        } else if (!type.equals(other.type))
             return false;
         return true;
     }
-
 }

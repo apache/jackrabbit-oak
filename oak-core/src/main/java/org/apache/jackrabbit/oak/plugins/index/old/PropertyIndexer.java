@@ -35,7 +35,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 public class PropertyIndexer implements QueryIndexProvider, CommitHook,
         PropertyIndexConstants {
 
-    private final String indexConfigPath = IndexUtils.DEFAULT_INDEX_HOME;
+    private final String indexConfigPath = "/";
 
     private final Indexer indexer;
 
