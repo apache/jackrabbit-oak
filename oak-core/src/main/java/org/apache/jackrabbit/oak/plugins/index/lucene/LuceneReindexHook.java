@@ -64,10 +64,6 @@ public class LuceneReindexHook implements CommitHook, LuceneIndexConstants {
             if (!defsBefore.contains(def)) {
                 defsChanged.add(def);
             }
-            // verify reindex flag
-            if (def.isReindex()) {
-                defsChanged.add(def);
-            }
         }
         if (defsChanged.isEmpty()) {
             return after;
@@ -79,7 +75,7 @@ public class LuceneReindexHook implements CommitHook, LuceneIndexConstants {
         // TODO buffer content reindex
         List<CommitHook> hooks = new ArrayList<CommitHook>();
         for (IndexDefinition def : defsChanged) {
-            hooks.add(new LuceneEditor(def));
+            hooks.add(new LuceneEditor(def.getPath()));
         }
         NodeState done = CompositeHook.compose(hooks).processCommit(
                 MemoryNodeState.EMPTY_NODE, after);

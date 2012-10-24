@@ -47,8 +47,8 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DEFAULT_INDEX_HOME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.junit.Assert.assertEquals;
@@ -60,9 +60,8 @@ import static org.junit.Assert.fail;
  */
 public abstract class AbstractQueryTest {
 
+    public static final String TEST_INDEX_HOME = "/";
     protected static final String TEST_INDEX_NAME = "test-index";
-    protected static final String TEST_INDEX_HOME = DEFAULT_INDEX_HOME;
-    protected static final String INDEX_DEFINITION_NODE_TYPE = "nam:oak:queryIndexDefinition";
 
     protected SessionQueryEngine qe;
     protected ContentSession session;
@@ -102,7 +101,7 @@ public abstract class AbstractQueryTest {
         indexDef = indexDef.addChild(INDEX_DEFINITIONS_NAME).addChild(
                 TEST_INDEX_NAME);
         indexDef.setProperty(JcrConstants.JCR_PRIMARYTYPE,
-                INDEX_DEFINITION_NODE_TYPE);
+                INDEX_DEFINITIONS_NODE_TYPE, Type.NAME);
         indexDef.setProperty(TYPE_PROPERTY_NAME, type);
         indexDef.setProperty(REINDEX_PROPERTY_NAME, true);
         return indexDef;

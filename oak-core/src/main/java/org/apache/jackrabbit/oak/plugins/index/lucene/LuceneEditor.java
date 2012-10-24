@@ -30,7 +30,6 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.index.IndexDefinition;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -72,10 +71,10 @@ class LuceneEditor implements CommitHook, LuceneIndexConstants {
         }
     }
 
-    private final IndexDefinition index;
+    private final String path;
 
-    public LuceneEditor(IndexDefinition indexDefinition) {
-        this.index = indexDefinition;
+    public LuceneEditor(String path) {
+        this.path = path;
     }
 
     @Override
@@ -83,7 +82,7 @@ class LuceneEditor implements CommitHook, LuceneIndexConstants {
             throws CommitFailedException {
         NodeBuilder rootBuilder = after.builder();
         NodeBuilder builder = rootBuilder;
-        for (String name : elements(index.getPath())) {
+        for (String name : elements(path)) {
             builder = builder.child(name);
         }
         builder = builder.child(INDEX_DATA_CHILD_NAME);
