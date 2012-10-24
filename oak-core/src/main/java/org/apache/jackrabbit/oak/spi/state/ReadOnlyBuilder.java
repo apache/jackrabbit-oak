@@ -48,6 +48,11 @@ public class ReadOnlyBuilder implements NodeBuilder {
     }
 
     @Override
+    public void reset(NodeState state) {
+        throw unsupported();
+    }
+
+    @Override
     public long getChildNodeCount() {
         return state.getChildNodeCount();
     }
