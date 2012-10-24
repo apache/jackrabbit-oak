@@ -126,6 +126,7 @@ public class NodeStoreMongo implements NodeStore {
             int maxChildNodes, String filter) throws Exception {
         GetNodesCommandMongo command = new GetNodesCommandMongo(mongoConnection, path,
                 MongoUtil.toMongoRepresentation(revisionId));
+        command.setBranchId(getBranchId(revisionId));
         command.setDepth(depth);
         return commandExecutor.execute(command);
     }
@@ -168,12 +169,7 @@ public class NodeStoreMongo implements NodeStore {
 
     @Override
     public boolean nodeExists(String path, String revisionId) throws Exception {
-        String branchId = null;
-        if (revisionId != null) {
-            CommitMongo baseCommit = getCommit(MongoUtil.toMongoRepresentation(revisionId));
-            branchId = baseCommit.getBranchId();
-        }
-
+        String branchId = getBranchId(revisionId);
         NodeExistsCommandMongo command = new NodeExistsCommandMongo(mongoConnection, path,
                 MongoUtil.toMongoRepresentation(revisionId));
         command.setBranchId(branchId);
@@ -316,6 +312,15 @@ public class NodeStoreMongo implements NodeStore {
             }
         }
         return null;
+    }
+
+    private String getBranchId(String revisionId) throws Exception {
+        if (revisionId == null) {
+            return null;
+        }
+
+        CommitMongo baseCommit = getCommit(MongoUtil.toMongoRepresentation(revisionId));
+        return baseCommit.getBranchId();
     }
 
     private CommitMongo getCommit(long revisionId) throws Exception {

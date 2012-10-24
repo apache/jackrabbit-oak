@@ -28,6 +28,7 @@ import org.apache.jackrabbit.mongomk.impl.MongoConnection;
 import org.apache.jackrabbit.mongomk.impl.model.NodeImpl;
 import org.apache.jackrabbit.mongomk.model.CommitMongo;
 import org.apache.jackrabbit.mongomk.model.NodeMongo;
+import org.apache.jackrabbit.mongomk.query.FetchBranchBaseRevisionIdQuery;
 import org.apache.jackrabbit.mongomk.query.FetchCommitQuery;
 import org.apache.jackrabbit.mongomk.query.FetchNodesQuery;
 import org.apache.jackrabbit.mongomk.query.FetchCommitsQuery;
@@ -53,7 +54,7 @@ public class GetNodesCommandMongo extends AbstractCommand<Node> {
 
     private Map<String, NodeMongo> pathAndNodeMap;
     private Map<String, Long> problematicNodes;
-    private Node rootOfPath;
+    private Node rootNode;
 
     /**
      * Constructs a new {@code GetNodesCommandMongo}.
@@ -93,17 +94,36 @@ public class GetNodesCommandMongo extends AbstractCommand<Node> {
         readLastCommits();
         deriveProblematicNodes();
 
+        readRootNode();
+
+        if (rootNode != null) {
+            return rootNode;
+        }
+
+        // If branching is not used, node does not exist.
+        if (branchId == null) {
+            return rootNode;
+        }
+
+        // Otherwise, node does not exist in the branch but it might exist in
+        // trunk before the branch was created.
+        FetchBranchBaseRevisionIdQuery query = new FetchBranchBaseRevisionIdQuery(mongoConnection, branchId);
+        Long branchBaseRevId = query.execute();
+        revisionId = branchBaseRevId;
+        branchId = null;
+        readRootNode();
+
+        return rootNode;
+    }
+
+    private void readRootNode() throws InconsistentNodeHierarchyException {
         readNodesByPath();
         createPathAndNodeMap();
         boolean verified = verifyProblematicNodes() && verifyNodeHierarchy();
-
         if (!verified) {
             throw new InconsistentNodeHierarchyException();
         }
-
         buildNodeStructure();
-
-        return rootOfPath;
     }
 
     @Override
@@ -118,7 +138,7 @@ public class GetNodesCommandMongo extends AbstractCommand<Node> {
 
     private void buildNodeStructure() {
         NodeMongo nodeMongoRootOfPath = pathAndNodeMap.get(path);
-        rootOfPath = buildNodeStructure(nodeMongoRootOfPath);
+        rootNode = buildNodeStructure(nodeMongoRootOfPath);
     }
 
     private NodeImpl buildNodeStructure(NodeMongo nodeMongo) {

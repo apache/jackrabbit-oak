@@ -11,6 +11,8 @@ import org.junit.Test;
 
 /**
  * FIXME - Add more complicated branch/merge tests with properties, conflicts etc.
+ * Also test getNodes work with branch.
+ *
  * Tests for {@code MicroKernel#branch}
  */
 public class MongoMKBranchMergeTest extends BaseMongoMicroKernelTest {
@@ -184,8 +186,8 @@ public class MongoMKBranchMergeTest extends BaseMongoMicroKernelTest {
         assertNodesExist(null, "/trunk", "/trunk/child1");
 
         // Check initial properties exist on trunk.
-        assertPropExists(null, "trunk/child1/prop1");
-        assertPropExists(null, "trunk/child1/prop2");
+        assertPropExists(null, "/trunk/child1", "prop1");
+        assertPropExists(null, "/trunk/child1", "prop2");
 
         // Branch.
         String branchRev = mk.branch(null);
@@ -201,22 +203,22 @@ public class MongoMKBranchMergeTest extends BaseMongoMicroKernelTest {
         assertNodesExist(branchRev, "/trunk", "/trunk/child1");
 
         // Check initial properties still exist in branch.
-        assertPropExists(branchRev, "trunk/child1/prop1");
-        assertPropExists(branchRev, "trunk/child1/prop2");
+        assertPropExists(branchRev, "/trunk/child1", "prop1");
+        assertPropExists(branchRev, "/trunk/child1", "prop2");
 
         // Check that branch children also exist in branch.
         assertNodesExist(branchRev, "/branch1", "/branch1/child1");
 
         // Check properties exist in branch.
-        assertPropExists(branchRev, "branch1/child1/prop1");
-        assertPropExists(branchRev, "branch1/child1/prop2");
+        assertPropExists(branchRev, "/branch1/child1", "prop1");
+        assertPropExists(branchRev, "/branch1/child1", "prop2");
 
         // But branch children does not exist in trunk.
         assertNodesNotExist(null, "/branch1", "/branch1/child1");
 
         // And branch properties does not exist in trunk.
-        assertPropNotExists(null, "branch1/child1/prop1");
-        assertPropNotExists(null, "branch1/child1/prop2");
+        assertPropNotExists(null, "/branch1/child1", "prop1");
+        assertPropNotExists(null, "/branch1/child1", "prop2");
 
         // Merge branch1 and do the checks.
         mk.merge(branchRev, "");
@@ -251,14 +253,17 @@ public class MongoMKBranchMergeTest extends BaseMongoMicroKernelTest {
         } catch (Exception expected) {}
     }
 
-    private void assertPropExists(String rev, String property) {
-        String nodes = mk.getNodes("/", rev, -1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+    private void assertPropExists(String rev, String path, String property) {
+        String nodes = mk.getNodes(path, rev, -1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
         JSONObject obj = parseJSONObject(nodes);
         assertPropertyExists(obj, property);
     }
 
-    private void assertPropNotExists(String rev, String property) {
-        String nodes = mk.getNodes("/", rev, -1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+    private void assertPropNotExists(String rev, String path, String property) {
+        String nodes = mk.getNodes(path, rev, -1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        if (nodes == null) {
+            return;
+        }
         JSONObject obj = parseJSONObject(nodes);
         assertPropertyNotExists(obj, property);
     }
