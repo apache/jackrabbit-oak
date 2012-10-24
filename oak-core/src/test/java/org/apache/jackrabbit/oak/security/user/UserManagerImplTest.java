@@ -18,15 +18,14 @@ package org.apache.jackrabbit.oak.security.user;
 
 import java.util.ArrayList;
 import java.util.List;
+import javax.jcr.UnsupportedRepositoryOperationException;
 
 import org.apache.jackrabbit.api.security.user.User;
-import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.security.AbstractSecurityTest;
-import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtility;
 import org.junit.Before;
@@ -44,20 +43,19 @@ import static org.junit.Assert.fail;
  */
 public class UserManagerImplTest extends AbstractSecurityTest {
 
-    private UserConfiguration uc;
+    private Root root;
+    private UserManagerImpl userMgr;
 
     @Before
     public void before() throws Exception {
         super.before();
 
-        uc = getSecurityProvider().getUserConfiguration();
+        root = admin.getLatestRoot();
+        userMgr = new UserManagerImpl(null, root, NamePathMapper.DEFAULT, getSecurityProvider());
     }
 
     @Test
     public void testSetPassword() throws Exception {
-        Root root = admin.getLatestRoot();
-        UserManagerImpl userMgr = (UserManagerImpl) uc.getUserManager(root, NamePathMapper.DEFAULT);
-
         User user = userMgr.createUser("a", "pw");
         root.commit();
 
@@ -89,9 +87,6 @@ public class UserManagerImplTest extends AbstractSecurityTest {
 
     @Test
     public void setPasswordNull() throws Exception {
-        Root root = admin.getLatestRoot();
-        UserManagerImpl userMgr = (UserManagerImpl) uc.getUserManager(root, NamePathMapper.DEFAULT);
-
         User user = userMgr.createUser("a", null);
         root.commit();
 
@@ -113,13 +108,25 @@ public class UserManagerImplTest extends AbstractSecurityTest {
 
     @Test
     public void testGetPasswordHash() throws Exception {
-        Root root = admin.getLatestRoot();
-        UserManager userMgr = uc.getUserManager(root, NamePathMapper.DEFAULT);
-
         User user = userMgr.createUser("a", null);
         root.commit();
 
         Tree userTree = root.getTree(user.getPath());
         assertNull(userTree.getProperty(UserConstants.REP_PASSWORD));
+    }
+
+    @Test
+    public void testIsAutoSave() throws Exception {
+        assertFalse(userMgr.isAutoSave());
+    }
+
+    @Test
+    public void testAutoSave() throws Exception {
+        try {
+            userMgr.autoSave(true);
+            fail("should fail");
+        } catch (UnsupportedRepositoryOperationException e) {
+            // success
+        }
     }
 }

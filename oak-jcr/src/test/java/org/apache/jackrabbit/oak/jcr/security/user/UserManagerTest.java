@@ -100,24 +100,6 @@ public class UserManagerTest extends AbstractUserTest {
     }
 
     @Test
-    public void testPrincipalNameEqualsUserID() throws RepositoryException, NotExecutableException {
-        User u = null;
-        try {
-            String uid = createUserId();
-            u = userMgr.createUser(uid, "pw");
-            superuser.save();
-
-            String msg = "User.getID() must return the userID pass to createUser.";
-            assertEquals(msg, uid, u.getID());
-        } finally {
-            if (u != null) {
-                u.remove();
-                superuser.save();
-            }
-        }
-    }
-
-    @Test
     public void testUserIDFromSession() throws RepositoryException, NotExecutableException {
         User u = null;
         Session uSession = null;
@@ -132,6 +114,27 @@ public class UserManagerTest extends AbstractUserTest {
             if (uSession != null) {
                 uSession.logout();
             }
+            if (u != null) {
+                u.remove();
+                superuser.save();
+            }
+        }
+    }
+
+    @Test
+    public void testCreateUserPrincipalNameEqualsUserID() throws RepositoryException, NotExecutableException {
+        User u = null;
+        try {
+            String uid = createUserId();
+            u = userMgr.createUser(uid, "pw");
+            superuser.save();
+
+            String msg = "User.getID() must return the userID pass to createUser.";
+            assertEquals(msg, uid, u.getID());
+
+            msg = "Principal name must be the same as userID.";
+            assertEquals(msg, uid, u.getPrincipal().getName());
+        } finally {
             if (u != null) {
                 u.remove();
                 superuser.save();
@@ -884,5 +887,28 @@ public class UserManagerTest extends AbstractUserTest {
                 superuser.save();
             }
         }
+    }
+
+    public void testAutoSave() throws RepositoryException, NotExecutableException {
+        if (userMgr.isAutoSave()) {
+            try {
+                userMgr.autoSave(false);
+            } catch (RepositoryException e) {
+                throw new NotExecutableException();
+            }
+        }
+
+        Principal p = getTestPrincipal();
+        String uid = p.getName();
+        User user = userMgr.createUser(uid, "pw");
+
+        String gid = createGroupId();
+        Group group = userMgr.createGroup(gid);
+        superuser.refresh(false);
+
+        // transient changes must be gone after the refresh-call.
+        assertNull(userMgr.getAuthorizable(uid));
+        assertNull(userMgr.getAuthorizable(p));
+        assertNull(userMgr.getAuthorizable(gid));
     }
 }
