@@ -18,8 +18,6 @@ package org.apache.jackrabbit.oak.plugins.index;
 
 import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.oak.spi.state.NodeState;
-
 /**
  * Defines an index definition
  * 
@@ -45,16 +43,5 @@ public interface IndexDefinition {
      */
     @Nonnull
     String getType();
-
-    /**
-     * @return flag marking if reindexing is required on this index
-     */
-    boolean isReindex();
-
-    /**
-     * @return the state that this definition is built on
-     */
-    @Nonnull
-    NodeState getState();
 
 }

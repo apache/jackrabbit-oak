@@ -41,15 +41,17 @@ import org.junit.Test;
 
 public class LuceneIndexTest implements LuceneIndexConstants {
 
+    private static String DEFAULT_INDEX_NAME = "default-lucene";
+
     @Test
     public void testLucene() throws Exception {
         KernelNodeStore store = new KernelNodeStore(new MicroKernelImpl());
 
         IndexDefinition testID = new IndexDefinitionImpl(DEFAULT_INDEX_NAME,
-                TYPE_LUCENE, DEFAULT_INDEX_HOME + INDEX_DEFINITIONS_NAME + "/"
-                        + DEFAULT_INDEX_NAME, store.getRoot());
+                TYPE_LUCENE, "/" + INDEX_DEFINITIONS_NAME + "/"
+                        + DEFAULT_INDEX_NAME);
 
-        store.setHook(new LuceneEditor(testID));
+        store.setHook(new LuceneEditor(testID.getPath()));
         Root root = new RootImpl(store, null, new Subject(),
                 new AccessControlProviderImpl(),
                 new CompositeQueryIndexProvider());

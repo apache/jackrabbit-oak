@@ -42,7 +42,7 @@ public class LuceneHook implements CommitHook, LuceneIndexConstants {
         List<IndexDefinition> indexDefinitions = buildIndexDefinitions(after,
                 indexConfigPath, TYPE_LUCENE);
         for (IndexDefinition def : indexDefinitions) {
-            hooks.add(new LuceneEditor(def));
+            hooks.add(new LuceneEditor(def.getPath()));
         }
         return CompositeHook.compose(hooks).processCommit(before, after);
     }
