@@ -20,7 +20,13 @@ import java.io.IOException;
 import java.io.InputStream;
 
 /**
- * BlobFactory... TODO
+ * BlobFactory...
+ * TODO review again if we really need/want to expose that in the OAK API
+ * TODO in particular exposing this interface (and Blob) requires additional thoughts on
+ * TODO - lifecycle of the factory,
+ * TODO - lifecycle of the Blob,
+ * TODO - access restrictions and how permissions are enforced on blob creation
+ * TODO - searchability, versioning and so forth
  */
 public interface BlobFactory {
 
