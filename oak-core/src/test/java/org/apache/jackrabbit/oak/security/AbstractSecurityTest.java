@@ -36,14 +36,15 @@ import org.junit.Before;
 public abstract class AbstractSecurityTest {
 
     private ContentRepository contentRepository;
+
+    protected SecurityProvider securityProvider;
     protected ContentSession admin;
-    protected final SecurityProvider securityProvider = new SecurityProviderImpl();
 
     @Before
     public void before() throws Exception {
         contentRepository = new Oak()
                 .with(new InitialContent())
-                .with(securityProvider)
+                .with(getSecurityProvider())
                 .createContentRepository();
 
         // TODO: OAK-17. workaround for missing test configuration
@@ -59,6 +60,12 @@ public abstract class AbstractSecurityTest {
         Configuration.setConfiguration(null);
     }
 
+    protected SecurityProvider getSecurityProvider() {
+        if (securityProvider == null) {
+            securityProvider = new SecurityProviderImpl();
+        }
+        return securityProvider;
+    }
     protected Configuration getConfiguration() {
         return new OakConfiguration();
     }

@@ -41,7 +41,7 @@ public class TokenProviderImplTest extends AbstractSecurityTest {
 
         tokenProvider = new TokenProviderImpl(admin.getLatestRoot(),
                 ConfigurationParameters.EMPTY,
-                securityProvider.getUserConfiguration());
+                getSecurityProvider().getUserConfiguration());
     }
 
 
