@@ -81,8 +81,9 @@ public class EveryonePrincipal implements JackrabbitPrincipal, java.security.acl
     public boolean equals(Object obj) {
         if (obj == this) {
             return true;
-        } else if (obj instanceof Principal) {
-            return NAME.equals(((Principal) obj).getName());
+        } else if (obj instanceof JackrabbitPrincipal) {
+            JackrabbitPrincipal other = (JackrabbitPrincipal) obj;
+            return NAME.equals(other.getName());
         }
         return false;
     }
