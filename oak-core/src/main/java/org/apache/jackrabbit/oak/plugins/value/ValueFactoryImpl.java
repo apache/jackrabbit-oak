@@ -183,13 +183,11 @@ public class ValueFactoryImpl implements ValueFactory {
         }
 
         try {
-            PropertyState pv;
             switch (type) {
                 case PropertyType.STRING:
                     return createValue(value);
                 case PropertyType.BINARY:
-                    pv = BinaryPropertyState.binaryProperty("", value);
-                    break;
+                    return new ValueImpl(BinaryPropertyState.binaryProperty("", value), namePathMapper);
                 case PropertyType.LONG:
                     return createValue(Conversions.convert(value).toLong());
                 case PropertyType.DOUBLE:
@@ -198,8 +196,7 @@ public class ValueFactoryImpl implements ValueFactory {
                     if (ISO8601.parse(value) == null) {
                         throw new ValueFormatException("Invalid date " + value);
                     }
-                    pv = LongPropertyState.createDateProperty("", value);
-                    break;
+                    return new ValueImpl(LongPropertyState.createDateProperty("", value), namePathMapper);
                 case PropertyType.BOOLEAN:
                     return createValue(Conversions.convert(value).toBoolean());
                 case PropertyType.NAME:
@@ -207,8 +204,7 @@ public class ValueFactoryImpl implements ValueFactory {
                     if (oakName == null) {
                         throw new ValueFormatException("Invalid name: " + value);
                     }
-                    pv = GenericPropertyState.nameProperty("", oakName);
-                    break;
+                    return new ValueImpl(GenericPropertyState.nameProperty("", oakName), namePathMapper);
                 case PropertyType.PATH:
                     String oakValue = value;
                     if (value.startsWith("[") && value.endsWith("]")) {
@@ -219,31 +215,25 @@ public class ValueFactoryImpl implements ValueFactory {
                     if (oakValue == null) {
                         throw new ValueFormatException("Invalid path: " + value);
                     }
-                    pv = GenericPropertyState.pathProperty("", oakValue);
-                    break;
+                    return new ValueImpl(GenericPropertyState.pathProperty("", oakValue), namePathMapper);
                 case PropertyType.REFERENCE:
                     if (!IdentifierManager.isValidUUID(value)) {
                         throw new ValueFormatException("Invalid reference value " + value);
                     }
-                    pv = GenericPropertyState.referenceProperty("", value);
-                    break;
+                    return new ValueImpl(GenericPropertyState.referenceProperty("", value), namePathMapper);
                 case PropertyType.WEAKREFERENCE:
                     if (!IdentifierManager.isValidUUID(value)) {
                         throw new ValueFormatException("Invalid weak reference value " + value);
                     }
-                    pv = GenericPropertyState.weakreferenceProperty("", value);
-                    break;
+                    return new ValueImpl(GenericPropertyState.weakreferenceProperty("", value), namePathMapper);
                 case PropertyType.URI:
                     new URI(value);
-                    pv = GenericPropertyState.uriProperty("", value);
-                    break;
+                    return new ValueImpl(GenericPropertyState.uriProperty("", value), namePathMapper);
                 case PropertyType.DECIMAL:
                     return createValue(Conversions.convert(value).toDecimal());
                 default:
                     throw new ValueFormatException("Invalid type: " + type);
             }
-
-            return new ValueImpl(pv, namePathMapper);
         } catch (NumberFormatException e) {
             throw new ValueFormatException("Invalid value " + value + " for type " + PropertyType.nameFromValue(type), e);
         } catch (URISyntaxException e) {
