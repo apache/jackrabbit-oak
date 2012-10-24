@@ -69,14 +69,13 @@ public class MongoMKBranchMergeTest extends BaseMongoMicroKernelTest {
         assertNodesExist(branchRev2, "/trunk", "/trunk/child1");
 
         // Check that branch children also exist in branches.
-        assertTrue(mk.nodeExists("/branch1/child1", branchRev1));
-        assertFalse(mk.nodeExists("/branch2/child2", branchRev1));
-        assertTrue(mk.nodeExists("/branch2/child2", branchRev2));
-        assertFalse(mk.nodeExists("/branch1/child1", branchRev2));
+        assertNodesExist(branchRev1, "/branch1/child1");
+        assertNodesNotExist(branchRev1, "/branch2/child2");
+        assertNodesExist(branchRev2, "/branch2/child2");
+        assertNodesNotExist(branchRev2, "/branch1/child1");
 
         // But branch children does not exist in trunk.
-        assertFalse(mk.nodeExists("/branch1/child1", null));
-        assertFalse(mk.nodeExists("/branch2/child2", null));
+        assertNodesNotExist(null, "/branch1/child1", "/branch2/child2");
 
         // Add another child on trunk.
         commitNodes(null, "/trunk/child2");
@@ -108,14 +107,13 @@ public class MongoMKBranchMergeTest extends BaseMongoMicroKernelTest {
         assertNodesExist(branchRev2, "/trunk", "/trunk/child1");
 
         // Check that branch children also exist in branches.
-        assertTrue(mk.nodeExists("/branch1/child1", branchRev1));
-        assertFalse(mk.nodeExists("/branch2/child2", branchRev1));
-        assertTrue(mk.nodeExists("/branch2/child2", branchRev2));
-        assertFalse(mk.nodeExists("/branch1/child1", branchRev2));
+        assertNodesExist(branchRev1, "/branch1/child1");
+        assertNodesNotExist(branchRev1, "/branch2/child2");
+        assertNodesExist(branchRev2, "/branch2/child2");
+        assertNodesNotExist(branchRev2, "/branch1/child1");
 
         // But branch children does not exist in trunk.
-        assertFalse(mk.nodeExists("/branch1/child1", null));
-        assertFalse(mk.nodeExists("/branch2/child2", null));
+        assertNodesNotExist(null, "/branch1/child1", "/branch2/child2");
 
         // Add another child on trunk.
         commitNodes(null, "/trunk/child2");
@@ -127,19 +125,12 @@ public class MongoMKBranchMergeTest extends BaseMongoMicroKernelTest {
 
         // Merge branch1 and do the checks.
         mk.merge(branchRev1, "");
-        assertTrue(mk.nodeExists("/trunk", null));
-        assertTrue(mk.nodeExists("/branch1", null));
-        assertTrue(mk.nodeExists("/branch1/child1", null));
-        assertFalse(mk.nodeExists("/branch2", null));
-        assertFalse(mk.nodeExists("/branch2/child2", null));
+        assertNodesExist(null, "/trunk", "/branch1", "/branch1/child1");
+        assertNodesNotExist(null, "/branch2", "/branch2/child2");
 
         // Merge branch2 and do the checks.
         mk.merge(branchRev2, "");
-        assertTrue(mk.nodeExists("/trunk", null));
-        assertTrue(mk.nodeExists("/branch1", null));
-        assertTrue(mk.nodeExists("/branch1/child1", null));
-        assertTrue(mk.nodeExists("/branch2", null));
-        assertTrue(mk.nodeExists("/branch2/child2", null));
+        assertNodesExist(null, "/trunk", "/branch1", "/branch1/child1", "/branch2", "/branch2/child2");
     }
 
     @Test
@@ -174,7 +165,7 @@ public class MongoMKBranchMergeTest extends BaseMongoMicroKernelTest {
     }
 
     @Test
-    public void oneBranchOneChildWithProperties() {
+    public void oneBranchOneChildWithAddedProperties() {
         // Commit to initial trunk.
         commitNodes(null, "/trunk", "/trunk/child1");
 
@@ -222,11 +213,12 @@ public class MongoMKBranchMergeTest extends BaseMongoMicroKernelTest {
 
         // Merge branch1 and do the checks.
         mk.merge(branchRev, "");
-        assertTrue(mk.nodeExists("/trunk", null));
-        assertTrue(mk.nodeExists("/branch1", null));
-        assertTrue(mk.nodeExists("/branch1/child1", null));
-        assertFalse(mk.nodeExists("/branch2", null));
-        assertFalse(mk.nodeExists("/branch2/child2", null));
+        assertNodesExist(null, "/trunk", "/trunk/child1");
+        assertPropExists(null, "/trunk/child1", "prop1");
+        assertPropExists(null, "/trunk/child1", "prop2");
+        assertNodesExist(null, "/branch1", "/branch1/child1");
+        assertPropExists(null, "/branch1/child1", "prop1");
+        assertPropExists(null, "/branch1/child1", "prop2");
     }
 
     @Test
