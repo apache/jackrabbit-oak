@@ -28,6 +28,7 @@ import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.NodeTypeIterator;
 import javax.jcr.nodetype.NodeTypeManager;
 
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -138,7 +139,7 @@ public class SelectorImpl extends SourceImpl {
                 continue;
             }
             if (nodeTypeName != null
-                    && !nodeTypeName.equals(NodeTypeConstants.NT_BASE)
+                    && !nodeTypeName.equals(JcrConstants.NT_BASE)
                     && !evaluateTypeMatch(tree)) {
                 continue;
             }
@@ -155,9 +156,9 @@ public class SelectorImpl extends SourceImpl {
 
     private boolean evaluateTypeMatch(Tree tree) {
         Set<String> primary =
-                getStrings(tree, NodeTypeConstants.JCR_PRIMARYTYPE);
+                getStrings(tree, JcrConstants.JCR_PRIMARYTYPE);
         Set<String> mixins =
-                getStrings(tree, NodeTypeConstants.JCR_MIXINTYPES);
+                getStrings(tree, JcrConstants.JCR_MIXINTYPES);
 
         // TODO: Should retrieve matching node types only once per query
         // execution instead of again and again for each return row
@@ -188,7 +189,7 @@ public class SelectorImpl extends SourceImpl {
         return false;
     }
 
-    private Set<String> getStrings(Tree tree, String name) {
+    private static Set<String> getStrings(Tree tree, String name) {
         ImmutableSet.Builder<String> builder = ImmutableSet.builder();
         PropertyState property = tree.getProperty(name);
         if (property != null) {
@@ -199,7 +200,7 @@ public class SelectorImpl extends SourceImpl {
         return builder.build();
     }
 
-    private boolean evaluateTypeMatch(
+    private static boolean evaluateTypeMatch(
             NodeType type, Set<String> primary, Set<String> mixins) {
         String name = type.getName();
         if (type.isMixin()) {

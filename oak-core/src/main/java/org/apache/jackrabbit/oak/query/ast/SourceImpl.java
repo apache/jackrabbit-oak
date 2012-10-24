@@ -127,6 +127,7 @@ public abstract class SourceImpl extends AstElement {
     /**
      * Get the query plan.
      *
+     * @param root the root
      * @return the query plan
      */
     public abstract String getPlan(NodeState root);
