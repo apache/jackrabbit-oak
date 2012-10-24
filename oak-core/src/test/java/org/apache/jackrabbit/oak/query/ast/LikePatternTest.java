@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.query.ast;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertFalse;
-import org.apache.jackrabbit.oak.query.ast.ComparisonImpl;
 import org.junit.Test;
 
 /**
