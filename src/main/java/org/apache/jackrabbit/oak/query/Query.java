@@ -308,7 +308,13 @@ public class Query {
                     null);
             it = Arrays.asList(r).iterator();
         } else {
-            it = new RowIterator(root, limit, offset);
+            if (orderings == null) {
+                // can apply limit and offset directly
+                it = new RowIterator(root, limit, offset);
+            } else {
+                // read and order first; skip and limit afterwards
+                it = new RowIterator(root, Long.MAX_VALUE, 0);
+            }
             long resultCount = 0;
             if (orderings != null) {
                 // TODO "order by" is not necessary if the used index returns
@@ -318,9 +324,25 @@ public class Query {
                     ResultRowImpl r = it.next();
                     list.add(r);
                 }
-                resultCount = size = list.size();
                 Collections.sort(list);
+                // if limit is set, possibly remove the tailing entries
+                // for list size 10, offset 2, limit 5: remove 3
+                resultCount = list.size();
+                // avoid overflow (both offset and limit could be Long.MAX_VALUE)
+                long keep = Math.min(list.size(), offset) + Math.min(list.size(), limit);
+                while (list.size() > keep) {
+                    // remove tail entries right now, to save memory (don't copy)
+                    // remove the entries starting at the end, 
+                    // to avoid n^2 performance
+                    list.remove(list.size() - 1);
+                }
                 it = list.iterator();
+                // skip the head (this is more efficient than removing
+                // if there are many entries)
+                for (int i = 0; i < offset && it.hasNext(); i++) {
+                    it.next();
+                }
+                size = list.size() - offset;
             } else if (measure) {
                 while (it.hasNext()) {
                     resultCount++;
