@@ -34,6 +34,7 @@ import com.google.common.collect.Sets;
 import static org.apache.jackrabbit.oak.OakAssert.assertSequence;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Contains tests related to {@link Tree}
@@ -98,8 +99,9 @@ public class TreeTest {
             t = r.getTree("/");
             assertSequence(t.getChildren(), "node3", "node2", "node1");
 
-            // TODO :childOrder property invisible?
-            //assertEquals("must not have any properties", 0, t.getPropertyCount());
+            // :childOrder property invisible?
+            assertTrue(t.getProperty(":childOrder") == null);
+            assertEquals("must not have any properties", 0, t.getPropertyCount());
         } finally {
             s.close();
         }

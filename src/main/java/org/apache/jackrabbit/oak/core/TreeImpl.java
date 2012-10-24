@@ -38,6 +38,7 @@ import org.apache.jackrabbit.oak.plugins.memory.MultiStringPropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
+import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.PropertyBuilder;
 
 import com.google.common.base.Function;
@@ -546,7 +547,9 @@ public class TreeImpl implements Tree, PurgeListener {
     private boolean canRead(PropertyState property) {
         // FIXME: access control eval must have full access to the tree/property
         // FIXME: special handling for access control item and version content
-        return (property != null) && root.getPermissions().canRead(this, property);
+        return (property != null)
+                && root.getPermissions().canRead(this, property)
+                && !NodeStateUtils.isHidden(property.getName());
     }
 
     /**
