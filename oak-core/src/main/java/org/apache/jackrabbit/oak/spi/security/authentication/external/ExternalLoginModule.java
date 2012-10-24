@@ -69,6 +69,7 @@ public abstract class ExternalLoginModule extends AbstractLoginModule {
         String shClass = options.getConfigValue(PARAM_SYNC_HANDLER, DEFAULT_SYNC_HANDLER);
         Object syncHandler;
         try {
+            // FIXME this will create problems within OSGi environment
             syncHandler = Class.forName(shClass).newInstance();
         } catch (Exception e) {
             throw new SyncException("Error while getting SyncHandler:", e);
