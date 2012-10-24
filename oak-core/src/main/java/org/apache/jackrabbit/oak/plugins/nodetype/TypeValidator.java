@@ -38,6 +38,7 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
+import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -83,6 +84,9 @@ class TypeValidator implements Validator {
 
     @Override
     public void propertyAdded(PropertyState after) throws CommitFailedException {
+        if (isHidden(after)) {
+            return;
+        }
         try {
             checkType(after);
             getParentType().checkSetProperty(after);
@@ -99,6 +103,9 @@ class TypeValidator implements Validator {
 
     @Override
     public void propertyChanged(PropertyState before, PropertyState after) throws CommitFailedException {
+        if (isHidden(after)) {
+            return;
+        }
         try {
             checkType(after);
             getParentType().checkSetProperty(after);
@@ -115,6 +122,9 @@ class TypeValidator implements Validator {
 
     @Override
     public void propertyDeleted(PropertyState before) throws CommitFailedException {
+        if (isHidden(before)) {
+            return;
+        }
         try {
             getParentType().checkRemoveProperty(before);
         }
@@ -346,4 +356,7 @@ class TypeValidator implements Validator {
 
     }
 
+    private boolean isHidden(PropertyState state) {
+        return NodeStateUtils.isHidden(state.getName());
+    }
 }

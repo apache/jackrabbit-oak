@@ -89,3 +89,6 @@
   + test:ignoreOnParentVersion (nt:base) = nt:unstructured ignore
   + test:abortOnParentVersion (nt:base) = nt:unstructured abort
   + test:copyOnParentVersion (nt:base) = nt:unstructured
+
+[test:orderableFolder] > nt:folder orderable
+  + * (nt:base) = test:orderableFolder
