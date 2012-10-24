@@ -46,7 +46,11 @@ public class QueryTest extends AbstractRepositoryTest {
         Session session = getAdminSession();
         Node hello = session.getRootNode().addNode("hello");
         hello.setProperty("id",  "1");
-        hello.setProperty("text",  "hello world");
+        hello.setProperty("text",  "hello_world");
+        session.save();
+        Node hello2 = session.getRootNode().addNode("hello2");
+        hello2.setProperty("id",  "2");
+        hello2.setProperty("text",  "hello world");
         session.save();
 
         ValueFactory vf = session.getValueFactory();
@@ -61,7 +65,7 @@ public class QueryTest extends AbstractRepositoryTest {
         RowIterator it = r.getRows();
         assertTrue(it.hasNext());
         Row row = it.nextRow();
-        assertEquals("hello world", row.getValue("text").getString());
+        assertEquals("hello_world", row.getValue("text").getString());
         String[] columns = r.getColumnNames();
         assertEquals(1, columns.length);
         assertEquals("text", columns[0]);
@@ -71,19 +75,24 @@ public class QueryTest extends AbstractRepositoryTest {
         NodeIterator nodeIt = r.getNodes();
         assertTrue(nodeIt.hasNext());
         Node n = nodeIt.nextNode();
-        assertEquals("hello world", n.getProperty("text").getString());
+        assertEquals("hello_world", n.getProperty("text").getString());
         assertFalse(it.hasNext());
 
         // SQL
 
-        q = qm.createQuery("select text from [nt:base] where id = 1", Query.SQL);
+        q = qm.createQuery("select text from [nt:base] where text like 'hello\\_world' escape '\\'", Query.SQL);
         r = q.execute();
         columns = r.getColumnNames();
         assertEquals(3, columns.length);
         assertEquals("text", columns[0]);
         assertEquals("jcr:path", columns[1]);
         assertEquals("jcr:score", columns[2]);
-
+        nodeIt = r.getNodes();
+        assertTrue(nodeIt.hasNext());
+        n = nodeIt.nextNode();
+        assertEquals("hello_world", n.getProperty("text").getString());
+        assertFalse(nodeIt.hasNext());
+        
         // XPath
 
         q = qm.createQuery("//*[@id=1]", Query.XPATH);
