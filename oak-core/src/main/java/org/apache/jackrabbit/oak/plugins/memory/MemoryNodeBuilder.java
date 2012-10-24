@@ -116,17 +116,15 @@ public class MemoryNodeBuilder implements NodeBuilder {
      *
      * @param parent parent node state builder
      * @param name name of this node
-     * @param base base state of this node, or {@code null}
      */
-    protected MemoryNodeBuilder(
-            MemoryNodeBuilder parent, String name, NodeState base) {
+    protected MemoryNodeBuilder(MemoryNodeBuilder parent, String name) {
         this.parent = checkNotNull(parent);
         this.name = checkNotNull(name);
 
         this.root = parent.root;
         this.revision = parent.revision;
 
-        this.baseState = base;
+        this.baseState = null;
         this.writeState = null;
     }
 
@@ -222,12 +220,10 @@ public class MemoryNodeBuilder implements NodeBuilder {
      * Factory method for creating new child state builders. Subclasses may
      * override this method to control the behavior of child state builders.
      *
-     * @param child base state of the new builder, or {@code null}
      * @return new builder
      */
-    protected MemoryNodeBuilder createChildBuilder(
-            String name, NodeState child) {
-        return new MemoryNodeBuilder(this, name, child);
+    protected MemoryNodeBuilder createChildBuilder(String name) {
+        return new MemoryNodeBuilder(this, name);
     }
 
     /**
@@ -293,15 +289,14 @@ public class MemoryNodeBuilder implements NodeBuilder {
 
     @Override @Nonnull
     public NodeBuilder setNode(String name, NodeState state) {
-        MutableNodeState mstate = write();
+        write();
 
-        MutableNodeState cstate = mstate.nodes.get(name);
-        if (cstate != null) {
-            cstate.reset(state);
-        } else {
-            mstate.nodes.remove(name);
-            createChildBuilder(name, state).write();
+        MutableNodeState childState = writeState.nodes.get(name);
+        if (childState == null) {
+            writeState.nodes.remove(name);
+            childState = createChildBuilder(name).write();
         }
+        childState.reset(state);
 
         updated();
         return this;
@@ -373,14 +368,9 @@ public class MemoryNodeBuilder implements NodeBuilder {
 
     @Override
     public NodeBuilder child(String name) {
-        // look for a read-only child node
-        read();
-        if (writeState == null) {
-            assert baseState != null; // guaranteed by read()
-            NodeState childBase = baseState.getChildNode(name);
-            if (childBase != null) { // read-only shortcut
-                return createChildBuilder(name, childBase);
-            }
+        read(); // shortcut when dealing with a read-only child node
+        if (writeState == null && baseState.hasChildNode(name)) {
+            return createChildBuilder(name);
         }
 
         // no read-only child node found, switch to write mode
@@ -402,7 +392,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
             writeState.nodes.put(name, new MutableNodeState(childBase));
         }
 
-        MemoryNodeBuilder builder = createChildBuilder(name, childBase);
+        MemoryNodeBuilder builder = createChildBuilder(name);
         builder.write();
         return builder;
     }
