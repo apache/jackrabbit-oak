@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.state;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -34,6 +35,16 @@ public interface NodeBuilder {
      */
     @Nonnull
     NodeState getNodeState();
+
+    /**
+     * Returns the original base state that this builder is modifying.
+     * Returns {@code null} if this builder represents a new node that
+     * didn't exist in the base content tree.
+     *
+     * @return base node state, or {@code null}
+     */
+    @CheckForNull
+    NodeState getBaseState();
 
     /**
      * Returns the current number of child nodes.
@@ -59,7 +70,7 @@ public interface NodeBuilder {
     Iterable<String> getChildNodeNames();
 
     /**
-     * Adds or replaces a sub-ree.
+     * Adds or replaces a subtree.
      *
      * @param name name of the child node containing the new subtree
      * @param nodeState subtree
