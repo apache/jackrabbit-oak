@@ -23,7 +23,6 @@ import static org.junit.Assert.fail;
 
 import java.text.ParseException;
 
-import org.apache.jackrabbit.oak.query.ast.FullTextSearchImpl;
 import org.junit.Test;
 
 /**
