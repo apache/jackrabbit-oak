@@ -143,6 +143,13 @@ public class RootImpl implements Root {
         this.conflictHandler = conflictHandler;
     }
 
+    /**
+     * Called whenever a method on this instance or on any {@code Tree} instance
+     * obtained from this {@code Root} is called. This default implementation
+     * does nothing. Sub classes may override this method and throw an exception
+     * indicating that this {@code Root} instance is not live anymore (e.g. because
+     * the session has been logged out already).
+     */
     protected void checkLive() {
 
     }
