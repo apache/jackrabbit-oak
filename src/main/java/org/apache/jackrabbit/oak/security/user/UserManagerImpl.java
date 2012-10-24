@@ -20,6 +20,7 @@ import java.io.UnsupportedEncodingException;
 import java.security.NoSuchAlgorithmException;
 import java.security.Principal;
 import java.util.Iterator;
+import java.util.List;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.Node;
@@ -66,7 +67,7 @@ public class UserManagerImpl implements UserManager {
     private final UserProvider userProvider;
     private final MembershipProvider membershipProvider;
     private final ConfigurationParameters config;
-    private final AuthorizableAction[] authorizableActions;
+    private final List<AuthorizableAction> authorizableActions;
 
     private UserQueryManager queryManager;
 
@@ -81,7 +82,7 @@ public class UserManagerImpl implements UserManager {
         this.config = uc.getConfigurationParameters();
         this.userProvider = new UserProvider(root, config);
         this.membershipProvider = new MembershipProvider(root, config);
-        this.authorizableActions = config.getConfigValue(UserConstants.PARAM_AUTHORIZABLE_ACTIONS, new AuthorizableAction[0]);
+        this.authorizableActions = uc.getAuthorizableActions();
     }
 
     //--------------------------------------------------------< UserManager >---
