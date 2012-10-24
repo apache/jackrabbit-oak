@@ -103,7 +103,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
      * The base state of this builder, or {@code null} if this builder
      * represents a new node that didn't yet exist in the base content tree.
      */
-    private final NodeState baseState;
+    private NodeState baseState;
 
     /**
      * The shared mutable state of connected builder instances, or
@@ -150,25 +150,34 @@ public class MemoryNodeBuilder implements NodeBuilder {
         if (revision != root.revision) {
             assert(parent != null); // root never gets here
             parent.read();
-            MutableNodeState pstate = parent.writeState;
-            if (pstate != null) {
-                MutableNodeState mstate = pstate.nodes.get(name);
-                if (mstate == null) {
-                    if (pstate.nodes.containsKey(name)) {
-                        throw new IllegalStateException(
-                                "This node has been removed.");
-                    }
-                } else if (mstate != writeState) {
-                    writeState = mstate;
-                }
+
+            // The builder could have been reset, need to re-get base state
+            if (parent.baseState != null) {
+                baseState = parent.baseState.getChildNode(name);
+            } else {
+                baseState = null;
             }
+
+            // ... same for the write state
+            if (parent.writeState != null) {
+                writeState = parent.writeState.nodes.get(name);
+                if (writeState == null
+                        && parent.writeState.nodes.containsKey(name)) {
+                    throw new IllegalStateException(
+                            "This node has been removed");
+                }
+            } else {
+                writeState = null;
+            }
+
             revision = root.revision;
         }
         if (writeState != null) {
             return writeState;
-        } else {
-            assert baseState != null; // new nodes must have a writeState
+        } else if (baseState != null) {
             return baseState;
+        } else {
+            throw new IllegalStateException("This node does not exist");
         }
     }
 
@@ -179,30 +188,34 @@ public class MemoryNodeBuilder implements NodeBuilder {
     private MutableNodeState write(long newRevision) {
         if (writeState == null || revision != root.revision) {
             assert(parent != null); // root never gets here
-            MutableNodeState pstate = parent.write(newRevision);
-            MutableNodeState mstate = pstate.nodes.get(name);
-            if (mstate == null) {
-                if (pstate.nodes.containsKey(name)) {
-                    throw new IllegalStateException(
-                            "This node has been removed.");
-                }
-                NodeState base = baseState;
-                if (base == null) {
-                    base = NULL_STATE;
-                }
-                mstate = new MutableNodeState(base);
-                pstate.nodes.put(name, mstate);
+            parent.write(newRevision);
+
+            // The builder could have been reset, need to re-get base state
+            if (parent.baseState != null) {
+                baseState = parent.baseState.getChildNode(name);
+            } else {
+                baseState = null;
             }
-            if (mstate != writeState) {
-                writeState = mstate;
+
+            assert parent.writeState != null; // we just called parent.write()
+            writeState = parent.writeState.nodes.get(name);
+            if (writeState == null) {
+                if (parent.writeState.nodes.containsKey(name)) {
+                    throw new IllegalStateException(
+                            "This node has been removed");
+                } else {
+                    // need to make this node writable
+                    NodeState base = baseState;
+                    if (base == null) {
+                        base = NULL_STATE;
+                    }
+                    writeState = new MutableNodeState(base);
+                    parent.writeState.nodes.put(name, writeState);
+                }
             }
         }
         revision = newRevision;
         return writeState;
-    }
-
-    protected void reset(NodeState newBase) {
-        write().reset(newBase);
     }
 
     /**
@@ -250,6 +263,17 @@ public class MemoryNodeBuilder implements NodeBuilder {
     @Override
     public NodeState getBaseState() {
         return baseState;
+    }
+
+    @Override
+    public void reset(NodeState newBase) {
+        if (this == root) {
+            baseState = checkNotNull(newBase);
+            writeState = new MutableNodeState(baseState);
+            revision++;
+        } else {
+            throw new IllegalStateException("Cannot reset a non-root builder");
+        }
     }
 
     @Override
@@ -349,31 +373,36 @@ public class MemoryNodeBuilder implements NodeBuilder {
 
     @Override
     public NodeBuilder child(String name) {
-        NodeState state = read();
-
+        // look for a read-only child node
+        read();
         if (writeState == null) {
-            NodeState base = state.getChildNode(name);
-            if (base != null) {
-                return createChildBuilder(name, base); // shortcut
+            assert baseState != null; // guaranteed by read()
+            NodeState childBase = baseState.getChildNode(name);
+            if (childBase != null) { // read-only shortcut
+                return createChildBuilder(name, childBase);
             }
         }
 
-        NodeState cbase = NULL_STATE;
-        MutableNodeState mstate = write();
-        MutableNodeState cstate = mstate.nodes.get(name);
-        if (cstate != null) {
-            cbase = cstate.base;
-        } else if (mstate.nodes.containsKey(name)) {
-            // The child node was removed earlier and we're creating
-            // a new child with the same name. Remove the removal marker
-            // so that the new child builder won't try reconnecting with
-            // the previously removed node.
-            mstate.nodes.remove(name);
-        } else if (mstate.base.hasChildNode(name)) {
-            return createChildBuilder(name, mstate.base.getChildNode(name));
+        // no read-only child node found, switch to write mode
+        write();
+        assert writeState != null; // guaranteed by write()
+
+        NodeState childBase = null;
+        if (baseState != null) {
+            childBase = baseState.getChildNode(name);
         }
 
-        MemoryNodeBuilder builder = createChildBuilder(name, cbase);
+        if (writeState.nodes.get(name) == null) {
+            if (writeState.nodes.containsKey(name)) {
+                // The child node was removed earlier and we're creating
+                // a new child with the same name. Use the null state to
+                // prevent the previous child state from re-surfacing.
+                childBase = null;
+            }
+            writeState.nodes.put(name, new MutableNodeState(childBase));
+        }
+
+        MemoryNodeBuilder builder = createChildBuilder(name, childBase);
         builder.write();
         return builder;
     }
@@ -442,7 +471,11 @@ public class MemoryNodeBuilder implements NodeBuilder {
                 Maps.newHashMap();
 
         public MutableNodeState(NodeState base) {
-            this.base = checkNotNull(base);
+            if (base != null) {
+                this.base = base;
+            } else {
+                this.base = NULL_STATE;
+            }
         }
 
         private void reset(NodeState newBase) {
