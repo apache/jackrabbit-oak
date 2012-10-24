@@ -74,7 +74,7 @@ public abstract class ExternalLoginModule extends AbstractLoginModule {
             throw new SyncException("Error while getting SyncHandler:", e);
         }
 
-        if (syncHandler.getClass().isAssignableFrom(SyncHandler.class)) {
+        if (syncHandler instanceof SyncHandler) {
             return (SyncHandler) syncHandler;
         } else {
             throw new SyncException("Invalid SyncHandler class configured: " + syncHandler.getClass().getName());
