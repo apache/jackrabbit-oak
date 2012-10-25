@@ -7,6 +7,7 @@ import static org.junit.Assert.fail;
 
 import org.apache.jackrabbit.mongomk.BaseMongoMicroKernelTest;
 import org.json.simple.JSONObject;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -20,7 +21,7 @@ public class MongoMKBranchMergeTest extends BaseMongoMicroKernelTest {
     @Test
     public void oneBranchOneAddedChild() {
         // Commit to initial trunk.
-        commitNodes(null, "/trunk", "/trunk/child1");
+        addNodes(null, "/trunk", "/trunk/child1");
 
         // Check initial trunk children exist on trunk.
         assertNodesExist(null, "/trunk", "/trunk/child1");
@@ -29,7 +30,7 @@ public class MongoMKBranchMergeTest extends BaseMongoMicroKernelTest {
         String branchRev = mk.branch(null);
 
         // Commit to branch.
-        branchRev = commitNodes(branchRev, "/branch1", "/branch1/child1");
+        branchRev = addNodes(branchRev, "/branch1", "/branch1/child1");
 
         // Check initial trunk children still exist in branch.
         assertNodesExist(branchRev, "/trunk", "/trunk/child1");
@@ -41,7 +42,7 @@ public class MongoMKBranchMergeTest extends BaseMongoMicroKernelTest {
         assertNodesNotExist(null, "/branch1", "/branch1/child1");
 
         // Add another child on trunk.
-        commitNodes(null, "/trunk/child2");
+        addNodes(null, "/trunk/child2");
 
         // Check that the new child exists in trunk but not on branch still.
         assertNodesExist(null, "/trunk/child2");
@@ -51,7 +52,7 @@ public class MongoMKBranchMergeTest extends BaseMongoMicroKernelTest {
     @Test
     public void oneBranchOneAddedChildToTrunk() {
         // Commit to initial trunk.
-        commitNodes(null, "/trunk", "/trunk/child1");
+        addNodes(null, "/trunk", "/trunk/child1");
 
         // Check initial trunk children exist on trunk.
         assertNodesExist(null, "/trunk", "/trunk/child1");
@@ -60,7 +61,7 @@ public class MongoMKBranchMergeTest extends BaseMongoMicroKernelTest {
         String branchRev = mk.branch(null);
 
         // Commit to branch under trunk.
-        branchRev = commitNodes(branchRev, "/trunk/child1/child2");
+        branchRev = addNodes(branchRev, "/trunk/child1/child2");
 
         // Check initial trunk children still exist in branch.
         assertNodesExist(branchRev, "/trunk", "/trunk/child1");
@@ -72,17 +73,42 @@ public class MongoMKBranchMergeTest extends BaseMongoMicroKernelTest {
         assertNodesNotExist(null, "/trunk/child1/child2");
 
         // Add another child on trunk.
-        commitNodes(null, "/trunk/child3");
+        addNodes(null, "/trunk/child3");
 
         // Check that the new child exists in trunk but not on branch still.
         assertNodesExist(null, "/trunk/child3");
         assertNodesNotExist(branchRev, "/trunk/child3");
     }
 
+    // FIXME - This currently does not work because there is no way to distinguish
+    // deleted nodes in the current branching scheme.
+    @Test
+    @Ignore
+    public void oneBranchOneRemovedChildFromTrunk() {
+        // Commit to initial trunk.
+        addNodes(null, "/trunk", "/trunk/child1");
+
+        // Check initial trunk children exist on trunk.
+        assertNodesExist(null, "/trunk", "/trunk/child1");
+
+        // Branch.
+        String branchRev = mk.branch(null);
+
+        // Remove child1 from branch.
+        branchRev = removeNodes(branchRev, "/trunk/child1");
+
+        // Check that child1 is indeed removed from branch.
+        assertNodesExist(branchRev, "/trunk");
+        assertNodesNotExist(branchRev, "/trunk/child1");
+
+        // But child1 still exists on trunk.
+        assertNodesExist(null, "/trunk", "/trunk/child1");
+    }
+
     @Test
     public void twoBranchesOneAddedChild() {
         // Commit to initial trunk.
-        commitNodes(null, "/trunk", "/trunk/child1");
+        addNodes(null, "/trunk", "/trunk/child1");
 
         // Check initial trunk children exist on trunk.
         assertNodesExist(null, "/trunk", "/trunk/child1");
@@ -92,8 +118,8 @@ public class MongoMKBranchMergeTest extends BaseMongoMicroKernelTest {
         String branchRev2 = mk.branch(null);
 
         // Commit to branches.
-        branchRev1 = commitNodes(branchRev1, "/branch1", "/branch1/child1");
-        branchRev2 = commitNodes(branchRev2, "/branch2", "/branch2/child2");
+        branchRev1 = addNodes(branchRev1, "/branch1", "/branch1/child1");
+        branchRev2 = addNodes(branchRev2, "/branch2", "/branch2/child2");
 
         // Check initial trunk children still exist in branches.
         assertNodesExist(branchRev1, "/trunk", "/trunk/child1");
@@ -109,7 +135,7 @@ public class MongoMKBranchMergeTest extends BaseMongoMicroKernelTest {
         assertNodesNotExist(null, "/branch1/child1", "/branch2/child2");
 
         // Add another child on trunk.
-        commitNodes(null, "/trunk/child2");
+        addNodes(null, "/trunk/child2");
 
         // Check that the new child exists in trunk but not on branches still.
         assertNodesExist(null, "/trunk/child2");
@@ -120,7 +146,7 @@ public class MongoMKBranchMergeTest extends BaseMongoMicroKernelTest {
     @Test
     public void twoBranchesOneAddedChildAndMerge() {
         // Commit to initial trunk.
-        commitNodes(null, "/trunk", "/trunk/child1");
+        addNodes(null, "/trunk", "/trunk/child1");
 
         // Check initial trunk children exist on trunk.
         assertNodesExist(null, "/trunk", "/trunk/child1");
@@ -130,8 +156,8 @@ public class MongoMKBranchMergeTest extends BaseMongoMicroKernelTest {
         String branchRev2 = mk.branch(null);
 
         // Commit to branches.
-        branchRev1 = commitNodes(branchRev1, "/branch1", "/branch1/child1");
-        branchRev2 = commitNodes(branchRev2, "/branch2", "/branch2/child2");
+        branchRev1 = addNodes(branchRev1, "/branch1", "/branch1/child1");
+        branchRev2 = addNodes(branchRev2, "/branch2", "/branch2/child2");
 
         // Check initial trunk children still exist in branches.
         assertNodesExist(branchRev1, "/trunk", "/trunk/child1");
@@ -147,7 +173,7 @@ public class MongoMKBranchMergeTest extends BaseMongoMicroKernelTest {
         assertNodesNotExist(null, "/branch1/child1", "/branch2/child2");
 
         // Add another child on trunk.
-        commitNodes(null, "/trunk/child2");
+        addNodes(null, "/trunk/child2");
 
         // Check that the new child exists in trunk but not on branches still.
         assertNodesExist(null, "/trunk/child2");
@@ -167,7 +193,7 @@ public class MongoMKBranchMergeTest extends BaseMongoMicroKernelTest {
     @Test
     public void oneBranchAddedSubChildren() {
         // Commit to initial trunk.
-        commitNodes(null, "/trunk", "/trunk/child1", "/trunk/child1/child2", "/trunk/child1/child2/child3");
+        addNodes(null, "/trunk", "/trunk/child1", "/trunk/child1/child2", "/trunk/child1/child2/child3");
 
         // Check initial trunk children exist on trunk.
         assertNodesExist(null, "/trunk", "/trunk/child1", "/trunk/child1/child2", "/trunk/child1/child2/child3");
@@ -176,7 +202,7 @@ public class MongoMKBranchMergeTest extends BaseMongoMicroKernelTest {
         String branchRev = mk.branch(null);
 
         // Commit to branch.
-        branchRev = commitNodes(branchRev, "/branch1", "/branch1/child1", "/branch1/child1/child2", "/branch1/child1/child2/child3");
+        branchRev = addNodes(branchRev, "/branch1", "/branch1/child1", "/branch1/child1/child2", "/branch1/child1/child2/child3");
 
         // Check initial trunk children still exist in branch.
         assertNodesExist(branchRev, "/trunk", "/trunk/child1", "/trunk/child1/child2", "/trunk/child1/child2/child3");
@@ -188,7 +214,7 @@ public class MongoMKBranchMergeTest extends BaseMongoMicroKernelTest {
         assertNodesNotExist(null, "/branch1", "/branch1/child1", "/branch1/child1/child2", "/branch1/child1/child2/child3");
 
         // Add more children on trunk.
-        commitNodes(null, "/trunk/child1/child2/child3/child4", "/trunk/child5");
+        addNodes(null, "/trunk/child1/child2/child3/child4", "/trunk/child5");
 
         // Check that the new children exists in trunk but not on branch still.
         assertNodesExist(null, "/trunk/child1/child2/child3/child4", "/trunk/child5");
@@ -198,7 +224,7 @@ public class MongoMKBranchMergeTest extends BaseMongoMicroKernelTest {
     @Test
     public void oneBranchOneAddedChildWithAddedProperties() {
         // Commit to initial trunk.
-        commitNodes(null, "/trunk", "/trunk/child1");
+        addNodes(null, "/trunk", "/trunk/child1");
 
         // Add some props on node.
         commitProp(null, "/trunk/child1/prop1", "value1");
@@ -215,7 +241,7 @@ public class MongoMKBranchMergeTest extends BaseMongoMicroKernelTest {
         String branchRev = mk.branch(null);
 
         // Commit to branch.
-        branchRev = commitNodes(branchRev, "/branch1", "/branch1/child1");
+        branchRev = addNodes(branchRev, "/branch1", "/branch1/child1");
 
         // Add some props on node.
         branchRev = commitProp(branchRev, "/branch1/child1/prop1", "value1");
@@ -291,10 +317,18 @@ public class MongoMKBranchMergeTest extends BaseMongoMicroKernelTest {
         assertPropertyNotExists(obj, property);
     }
 
-    private String commitNodes(String rev, String...nodes) {
+    private String addNodes(String rev, String...nodes) {
         String newRev = rev;
         for (String node : nodes) {
             newRev = mk.commit("", "+\"" + node + "\":{}", rev, "");
+        }
+        return newRev;
+    }
+
+    private String removeNodes(String rev, String...nodes) {
+        String newRev = rev;
+        for (String node : nodes) {
+            newRev = mk.commit("", "-\"" + node + "\"", rev, "");
         }
         return newRev;
     }
