@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.plugins.index.IndexHookManager;
 import org.apache.jackrabbit.oak.plugins.nodetype.InitialContent;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 
@@ -39,9 +40,8 @@ public class LuceneIndexQueryTest extends AbstractQueryTest {
     protected ContentRepository createRepository() {
         return new Oak()
             .with(new InitialContent())
-            .with(new LuceneIndexProvider(TEST_INDEX_HOME))
-            .with(new LuceneReindexHook(TEST_INDEX_HOME))
-            .with(new LuceneHook(TEST_INDEX_HOME))
+            .with(new LuceneIndexProvider())
+            .with(new IndexHookManager(new LuceneIndexHookProvider()))
             .createContentRepository();
     }
 

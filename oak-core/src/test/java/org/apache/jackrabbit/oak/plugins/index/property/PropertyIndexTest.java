@@ -61,7 +61,7 @@ public class PropertyIndexTest {
 
         // ... then see how adding an index affects the code
         lookup = new PropertyIndexLookup(
-                new PropertyIndexHook().processCommit(before, after));
+                new PropertyIndexHook(builder).processCommit(before, after));
         long withIndex = System.nanoTime();
         assertEquals(ImmutableSet.of("a", "b"), lookup.find("foo", "abc"));
         assertEquals(ImmutableSet.of("b"), lookup.find("foo", "def"));
@@ -105,7 +105,7 @@ public class PropertyIndexTest {
 
         // ... then see how adding an index affects the code
         lookup = new PropertyIndexLookup(
-                new PropertyIndexHook().processCommit(before, after));
+                new PropertyIndexHook(builder).processCommit(before, after));
         long withIndex = System.nanoTime();
         assertEquals(ImmutableSet.of("a", "b"), lookup.find("foo", "abc"));
         assertEquals(ImmutableSet.of("b"), lookup.find("foo", "def"));

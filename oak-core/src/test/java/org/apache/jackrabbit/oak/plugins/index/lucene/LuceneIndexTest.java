@@ -20,52 +20,42 @@ import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertTrue;
 
-import javax.security.auth.Subject;
-
-import org.apache.jackrabbit.mk.core.MicroKernelImpl;
-import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.core.RootImpl;
-import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.plugins.index.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.IndexDefinitionImpl;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
 import org.apache.jackrabbit.oak.query.ast.Operator;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
-import org.apache.jackrabbit.oak.security.authorization.AccessControlProviderImpl;
-import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
 public class LuceneIndexTest implements LuceneIndexConstants {
 
-    private static String DEFAULT_INDEX_NAME = "default-lucene";
-
     @Test
     public void testLucene() throws Exception {
-        KernelNodeStore store = new KernelNodeStore(new MicroKernelImpl());
+        NodeState root = MemoryNodeState.EMPTY_NODE;
 
-        IndexDefinition testID = new IndexDefinitionImpl(DEFAULT_INDEX_NAME,
-                TYPE_LUCENE, "/" + INDEX_DEFINITIONS_NAME + "/"
-                        + DEFAULT_INDEX_NAME);
+        NodeBuilder builder = root.builder();
+        NodeBuilder index = builder.child("oak:index").child("lucene");
+        IndexDefinition testDef = new IndexDefinitionImpl("lucene",
+                TYPE_LUCENE, "/oak:index/lucene");
 
-        store.setHook(new LuceneEditor(testID.getPath()));
-        Root root = new RootImpl(store, null, new Subject(),
-                new AccessControlProviderImpl(),
-                new CompositeQueryIndexProvider());
+        NodeState before = builder.getNodeState();
+        builder.setProperty("foo", "bar");
+        NodeState after = builder.getNodeState();
 
-        Tree tree = root.getTree("/");
-        tree.setProperty("foo", "bar");
-        root.commit();
+        new LuceneEditor(index).processCommit(before, after);
 
-        QueryIndex index = new LuceneIndex(testID);
+        QueryIndex queryIndex = new LuceneIndex(testDef);
         FilterImpl filter = new FilterImpl(null);
         filter.restrictPath("/", Filter.PathRestriction.EXACT);
         filter.restrictProperty("foo", Operator.EQUAL,
                 PropertyValues.newString("bar"));
-        Cursor cursor = index.query(filter, store.getRoot());
+        Cursor cursor = queryIndex.query(filter, builder.getNodeState());
         assertTrue(cursor.next());
         assertEquals("/", cursor.currentRow().getPath());
         assertFalse(cursor.next());

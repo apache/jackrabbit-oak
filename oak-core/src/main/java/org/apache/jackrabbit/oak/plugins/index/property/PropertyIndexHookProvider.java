@@ -16,25 +16,25 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.property;
 
-import org.apache.jackrabbit.oak.Oak;
-import org.apache.jackrabbit.oak.api.ContentRepository;
-import org.apache.jackrabbit.oak.plugins.index.IndexHookManager;
-import org.apache.jackrabbit.oak.plugins.nodetype.InitialContent;
-import org.apache.jackrabbit.oak.query.AbstractQueryTest;
+import java.util.List;
 
-/**
- * Tests the query engine using the default index implementation: the
- * {@link PropertyIndexProvider}
- */
-public class PropertyIndexQueryTest extends AbstractQueryTest {
+import org.apache.jackrabbit.oak.plugins.index.IndexHook;
+import org.apache.jackrabbit.oak.plugins.index.IndexHookProvider;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+
+import com.google.common.collect.ImmutableList;
+
+public class PropertyIndexHookProvider implements IndexHookProvider {
+
+    private static final String TYPE = "property";
 
     @Override
-    protected ContentRepository createRepository() {
-        return new Oak()
-            .with(new InitialContent())
-            .with(new PropertyIndexProvider())
-            .with(new IndexHookManager(new PropertyIndexHookProvider()))
-            .createContentRepository();
+    public List<? extends IndexHook> getIndexHooks(String type,
+            NodeBuilder builder) {
+        if (TYPE.equals(type)) {
+            return ImmutableList.of(new PropertyIndexHook(builder));
+        }
+        return ImmutableList.of();
     }
 
 }
