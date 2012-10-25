@@ -91,6 +91,7 @@ public class InitialContent implements RepositoryInitializer {
             NodeBuilder index = root.child("oak:index");
             index.child("uuid")
                 .setProperty("jcr:primaryType", "oak:queryIndexDefinition", Type.NAME)
+                .setProperty("type", "property")
                 .setProperty("propertyNames", "jcr:uuid")
                 .setProperty("unique", true);
             index.child("primaryType")
@@ -100,10 +101,12 @@ public class InitialContent implements RepositoryInitializer {
             // FIXME: rep:principalName only needs to be unique if defined with user/group nodes -> add defining nt-info to uniqueness constraint otherwise ac-editing will fail.
             index.child("authorizableId")
                 .setProperty("jcr:primaryType", "oak:queryIndexDefinition", Type.NAME)
+                .setProperty("type", "property")
                 .setProperty("propertyNames", "rep:authorizableId")
                 .setProperty("unique", true);
             index.child("principalName")
                 .setProperty("jcr:primaryType", "oak:queryIndexDefinition", Type.NAME)
+                .setProperty("type", "property")
                 .setProperty("propertyNames", "rep:principalName")
                 .setProperty("unique", true);
         }

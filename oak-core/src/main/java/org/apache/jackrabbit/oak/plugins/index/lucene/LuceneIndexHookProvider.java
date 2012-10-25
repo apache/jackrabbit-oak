@@ -16,31 +16,24 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import org.apache.jackrabbit.oak.api.CommitFailedException;
+import java.util.List;
+
 import org.apache.jackrabbit.oak.plugins.index.IndexHook;
+import org.apache.jackrabbit.oak.plugins.index.IndexHookProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
 
-/**
- * {@link IndexHook} implementation that is responsible for keeping the
- * {@link LuceneIndex} up to date
- * 
- * @see LuceneIndex
- * 
- */
-public class LuceneHook implements IndexHook {
+import com.google.common.collect.ImmutableList;
 
-    private final NodeBuilder builder;
-
-    public LuceneHook(NodeBuilder builder) {
-        this.builder = builder;
-    }
+public class LuceneIndexHookProvider implements IndexHookProvider,
+        LuceneIndexConstants {
 
     @Override
-    public NodeState processCommit(NodeState before, NodeState after)
-            throws CommitFailedException {
-        new LuceneEditor(builder).processCommit(before, after);
-        return after;
+    public List<? extends IndexHook> getIndexHooks(String type,
+            NodeBuilder builder) {
+        if (TYPE_LUCENE.equals(type)) {
+            return ImmutableList.of(new LuceneHook(builder));
+        }
+        return ImmutableList.of();
     }
 
 }

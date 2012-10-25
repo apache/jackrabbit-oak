@@ -48,6 +48,7 @@
                 org.apache.jackrabbit.oak.plugins.value,
                 org.apache.jackrabbit.oak.plugins.commit,
                 org.apache.jackrabbit.oak.plugins.identifier,
+                org.apache.jackrabbit.oak.plugins.index,
                 org.apache.jackrabbit.oak.plugins.index.lucene,
                 org.apache.jackrabbit.oak.plugins.index.property,
                 org.apache.jackrabbit.oak.plugins.memory,

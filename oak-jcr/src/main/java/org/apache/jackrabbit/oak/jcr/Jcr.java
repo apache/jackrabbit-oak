@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
@@ -26,10 +28,11 @@ import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.plugins.commit.AnnotatingConflictHandler;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
-import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneHook;
+import org.apache.jackrabbit.oak.plugins.index.CompositeIndexHookProvider;
+import org.apache.jackrabbit.oak.plugins.index.IndexHookManager;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexHookProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProvider;
-import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneReindexHook;
-import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexHook;
+import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexHookProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexProvider;
 import org.apache.jackrabbit.oak.plugins.name.NameValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceValidatorProvider;
@@ -44,9 +47,6 @@ import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DEFAULT_INDEX_HOME;
 
 public class Jcr {
 
@@ -71,13 +71,14 @@ public class Jcr {
         with(new TypeValidatorProvider());
         with(new ConflictValidatorProvider());
 
-        with(new PropertyIndexHook());
-        with(new LuceneReindexHook(DEFAULT_INDEX_HOME));
-        with(new LuceneHook(DEFAULT_INDEX_HOME));
+        with(new IndexHookManager(
+                new CompositeIndexHookProvider(
+                new PropertyIndexHookProvider(), 
+                new LuceneIndexHookProvider())));
         with(new AnnotatingConflictHandler());
 
         with(new PropertyIndexProvider());
-        with(new LuceneIndexProvider(DEFAULT_INDEX_HOME));
+        with(new LuceneIndexProvider());
     }
 
     public Jcr() {

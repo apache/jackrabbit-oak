@@ -16,7 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.property;
 
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 
 import java.util.List;
@@ -61,21 +63,13 @@ class PropertyIndexDiff implements NodeStateDiff {
         this.path = path;
         this.updates = updates;
 
+        if (node != null && isIndexNodeType(node.getProperty(JCR_PRIMARYTYPE))) {
+            update(node, name);
+        }
         if (node != null && node.hasChildNode(INDEX_DEFINITIONS_NAME)) {
             NodeBuilder index = node.child(INDEX_DEFINITIONS_NAME);
             for (String indexName : index.getChildNodeNames()) {
-                NodeBuilder indexChild = index.child(indexName);
-                PropertyState ps = indexChild.getProperty("propertyNames");
-                Iterable<String> propertyNames = ps != null ? ps
-                        .getValue(Type.STRINGS) : ImmutableList.of(indexName);
-                for (String pname : propertyNames) {
-                    List<PropertyIndexUpdate> list = this.updates.get(pname);
-                    if (list == null) {
-                        list = Lists.newArrayList();
-                        this.updates.put(pname, list);
-                    }
-                    list.add(new PropertyIndexUpdate(getPath(), indexChild));
-                }
+                update(index.child(indexName), indexName);
             }
         }
     }
@@ -112,6 +106,25 @@ class PropertyIndexDiff implements NodeStateDiff {
         } else {
             return ImmutableList.of();
         }
+    }
+
+    private void update(NodeBuilder builder, String indexName) {
+        PropertyState ps = builder.getProperty("propertyNames");
+        Iterable<String> propertyNames = ps != null ? ps.getValue(Type.STRINGS)
+                : ImmutableList.of(indexName);
+        for (String pname : propertyNames) {
+            List<PropertyIndexUpdate> list = this.updates.get(pname);
+            if (list == null) {
+                list = Lists.newArrayList();
+                this.updates.put(pname, list);
+            }
+            list.add(new PropertyIndexUpdate(getPath(), builder));
+        }
+    }
+
+    private boolean isIndexNodeType(PropertyState ps) {
+        return ps != null && !ps.isArray()
+                && ps.getValue(Type.STRING).equals(INDEX_DEFINITIONS_NODE_TYPE);
     }
 
     //-----------------------------------------------------< NodeStateDiff >--

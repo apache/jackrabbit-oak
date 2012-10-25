@@ -28,9 +28,4 @@ public interface IndexConstants {
 
     String REINDEX_PROPERTY_NAME = "reindex";
 
-    String INDEX_DATA_CHILD_NAME = ":data";
-
-    //TODO remove this property as soon as the index manager is in
-    String DEFAULT_INDEX_HOME = "/";
-
 }

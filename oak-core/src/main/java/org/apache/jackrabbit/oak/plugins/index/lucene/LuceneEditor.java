@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
-import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newPathField;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newPropertyField;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newPathTerm;
@@ -71,23 +70,17 @@ class LuceneEditor implements CommitHook, LuceneIndexConstants {
         }
     }
 
-    private final String path;
+    private final NodeBuilder root;
 
-    public LuceneEditor(String path) {
-        this.path = path;
+    public LuceneEditor(NodeBuilder root) {
+        this.root = root;
     }
 
     @Override
     public NodeState processCommit(NodeState before, NodeState after)
             throws CommitFailedException {
-        NodeBuilder rootBuilder = after.builder();
-        NodeBuilder builder = rootBuilder;
-        for (String name : elements(path)) {
-            builder = builder.child(name);
-        }
-        builder = builder.child(INDEX_DATA_CHILD_NAME);
-        Directory directory = new ReadWriteOakDirectory(builder);
-
+        Directory directory = new ReadWriteOakDirectory(
+                root.child(INDEX_DATA_CHILD_NAME));
         try {
             IndexWriter writer = new IndexWriter(directory, config);
             try {
@@ -96,9 +89,8 @@ class LuceneEditor implements CommitHook, LuceneIndexConstants {
                 diff.postProcess(after);
             } finally {
                 writer.close();
-                builder.setProperty(REINDEX_PROPERTY_NAME, false);
             }
-            return rootBuilder.getNodeState();
+            return after;
         } catch (IOException e) {
             e.printStackTrace();
             throw new CommitFailedException(

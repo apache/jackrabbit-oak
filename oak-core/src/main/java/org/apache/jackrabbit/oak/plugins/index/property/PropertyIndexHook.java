@@ -22,27 +22,31 @@ import java.util.Map;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.spi.commit.CommitHook;
+import org.apache.jackrabbit.oak.plugins.index.IndexHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import com.google.common.collect.Maps;
 
 /**
- * {@link CommitHook} implementation that is responsible for keeping the
+ * {@link IndexHook} implementation that is responsible for keeping the
  * {@link PropertyIndex} up to date
  * 
  * @see PropertyIndex
  * @see PropertyIndexLookup
  * 
  */
-public class PropertyIndexHook implements CommitHook {
+public class PropertyIndexHook implements IndexHook {
+    
+    private final NodeBuilder builder;
+
+    public PropertyIndexHook(NodeBuilder builder) {
+        this.builder = builder;
+    }
 
     @Override @Nonnull
     public NodeState processCommit(NodeState before, NodeState after)
             throws CommitFailedException {
-        NodeBuilder builder = after.builder();
-
         Map<String, List<PropertyIndexUpdate>> indexes = Maps.newHashMap();
         PropertyIndexDiff diff = new PropertyIndexDiff(builder, indexes);
         after.compareAgainstBaseState(before, diff);
@@ -53,7 +57,7 @@ public class PropertyIndexHook implements CommitHook {
             }
         }
 
-        return builder.getNodeState();
+        return after;
     }
 
 
