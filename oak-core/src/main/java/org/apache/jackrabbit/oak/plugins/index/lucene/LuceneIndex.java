@@ -225,15 +225,19 @@ public class LuceneIndex implements QueryIndex, LuceneIndexConstants {
                 // lucene cannot handle child-level property restrictions
                 continue;
             }
+
             String first = null;
             String last = null;
             boolean isLike = pr.isLike;
 
+            // TODO what to do with escaped tokens?
             if (pr.first != null) {
                 first = pr.first.getValue(Type.STRING);
+                first = first.replace("\\", "");
             }
             if (pr.last != null) {
                 last = pr.last.getValue(Type.STRING);
+                last = last.replace("\\", "");
             }
 
             if (isLike) {
