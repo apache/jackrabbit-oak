@@ -115,6 +115,7 @@ public class QueryEngineImpl {
         for (QueryIndex index : getIndexes()) {
             double cost = index.getCost(filter);
             if (cost < bestCost) {
+                bestCost = cost;
                 best = index;
             }
         }
