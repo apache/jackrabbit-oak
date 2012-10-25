@@ -89,9 +89,9 @@ class PropertyIndexUpdate {
             Set<String> paths = entry.getValue();
             PropertyState property = index.getProperty(encoded);
             if (property != null) {
-                PropertyBuilder<String> builder = MemoryPropertyBuilder.create(Type.STRING).setName(encoded);
+                PropertyBuilder<String> builder = MemoryPropertyBuilder.create(Type.STRING, encoded);
                 for (String value : property.getValue(Type.STRINGS)) {
-                    if (!paths.contains(builder)) {
+                    if (!paths.contains(value)) {
                         builder.addValue(value);
                     }
                 }
