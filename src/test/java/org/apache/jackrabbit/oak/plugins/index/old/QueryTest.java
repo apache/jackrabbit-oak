@@ -19,8 +19,6 @@ import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.mk.index.IndexWrapper;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
-import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneHook;
-import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneReindexHook;
 import org.apache.jackrabbit.oak.plugins.nodetype.InitialContent;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
@@ -37,7 +35,7 @@ public class QueryTest extends AbstractQueryTest {
     protected ContentRepository createRepository() {
         // the property and prefix index currently require the index wrapper
         IndexWrapper mk = new IndexWrapper(new MicroKernelImpl(),
-                TEST_INDEX_HOME + INDEX_DEFINITIONS_NAME + "/indexes");
+                "/" + INDEX_DEFINITIONS_NAME + "/indexes");
 
         PropertyIndexer indexer = new PropertyIndexer(mk.getIndexer());
 
@@ -45,8 +43,6 @@ public class QueryTest extends AbstractQueryTest {
             .with(new InitialContent())
             .with((QueryIndexProvider) indexer)
             .with((CommitHook) indexer)
-            .with(new LuceneReindexHook(TEST_INDEX_HOME))
-            .with(new LuceneHook(TEST_INDEX_HOME))
             .createContentRepository();
     }
 

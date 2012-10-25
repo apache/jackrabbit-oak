@@ -41,7 +41,6 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.SessionQueryEngine;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -60,7 +59,6 @@ import static org.junit.Assert.fail;
  */
 public abstract class AbstractQueryTest {
 
-    public static final String TEST_INDEX_HOME = "/";
     protected static final String TEST_INDEX_NAME = "test-index";
 
     protected SessionQueryEngine qe;
@@ -90,15 +88,7 @@ public abstract class AbstractQueryTest {
 
     protected static Tree createTestIndexNode(Tree index, String type)
             throws Exception {
-        Tree indexDef = index;
-        for (String p : PathUtils.elements(TEST_INDEX_HOME)) {
-            if (indexDef.hasChild(p)) {
-                indexDef = indexDef.getChild(p);
-            } else {
-                indexDef = indexDef.addChild(p);
-            }
-        }
-        indexDef = indexDef.addChild(INDEX_DEFINITIONS_NAME).addChild(
+        Tree indexDef = index.addChild(INDEX_DEFINITIONS_NAME).addChild(
                 TEST_INDEX_NAME);
         indexDef.setProperty(JcrConstants.JCR_PRIMARYTYPE,
                 INDEX_DEFINITIONS_NODE_TYPE, Type.NAME);
