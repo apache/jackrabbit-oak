@@ -26,6 +26,8 @@ import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import javax.annotation.Nonnull;
+
 /**
  * Abstract base class for {@link NodeState} implementations.
  * This base class contains default implementations of the
@@ -84,6 +86,27 @@ public abstract class AbstractNodeState implements NodeState {
                     @Override
                     public String apply(ChildNodeEntry input) {
                         return input.getName();
+                    }
+                });
+    }
+
+    @Override
+    public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
+        return Iterables.transform(
+                getChildNodeNames(),
+                new Function<String, ChildNodeEntry>() {
+                    @Override
+                    public ChildNodeEntry apply(final String input) {
+                        return new AbstractChildNodeEntry() {
+                            @Override @Nonnull
+                            public String getName() {
+                                return input;
+                            }
+                            @Override @Nonnull
+                            public NodeState getNodeState() {
+                                return getChildNode(input);
+                            }
+                        };
                     }
                 });
     }
