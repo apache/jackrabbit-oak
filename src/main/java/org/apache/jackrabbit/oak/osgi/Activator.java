@@ -24,6 +24,7 @@ import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
+import org.apache.jackrabbit.oak.plugins.index.IndexHookManager;
 import org.apache.jackrabbit.oak.plugins.nodetype.DefaultTypeEditor;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
 import org.apache.jackrabbit.oak.spi.commit.ValidatingHook;
@@ -42,6 +43,8 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer {
 
     private final OsgiIndexProvider indexProvider = new OsgiIndexProvider();
 
+    private final OsgiIndexHookProvider indexHookProvider = new OsgiIndexHookProvider();
+
     private final OsgiValidatorProvider validatorProvider = new OsgiValidatorProvider();
 
     private final OsgiRepositoryInitializer kernelTracker = new OsgiRepositoryInitializer();
@@ -56,6 +59,7 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer {
         context = bundleContext;
 
         indexProvider.start(bundleContext);
+        indexHookProvider.start(bundleContext);
         validatorProvider.start(bundleContext);
         kernelTracker.start(bundleContext);
 
@@ -69,6 +73,7 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer {
         tracker.close();
 
         indexProvider.stop();
+        indexHookProvider.stop();
         validatorProvider.stop();
         kernelTracker.stop();
     }
@@ -85,8 +90,8 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer {
                     .with(new CompositeHook(
                         // TODO: DefaultTypeEditor is JCR specific and does not belong here
                         new DefaultTypeEditor(),
-                        new ValidatingHook(validatorProvider)))
-                        // new LuceneEditor());
+                        new ValidatingHook(validatorProvider),
+                        new IndexHookManager(indexHookProvider)))
                     .with(indexProvider);
             services.put(reference, context.registerService(
                     ContentRepository.class.getName(),

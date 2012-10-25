@@ -22,8 +22,25 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 
+/**
+ * Extension point for plugging in different kinds of IndexHook providers.
+ * 
+ * @see IndexHook
+ */
 public interface IndexHookProvider {
 
+    /**
+     * 
+     * Each provider knows how to produce a certain type of index. If the
+     * <code>type</code> param is of an unknown value, the provider is expected
+     * to return an empty list.
+     * 
+     * @param type
+     *            the index type
+     * @param builder
+     *            the node state builder that will be used for updates
+     * @return a list of index hooks
+     */
     @Nonnull
     List<? extends IndexHook> getIndexHooks(String type, NodeBuilder builder);
 

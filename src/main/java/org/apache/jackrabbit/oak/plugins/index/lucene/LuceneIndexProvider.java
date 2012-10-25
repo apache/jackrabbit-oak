@@ -32,6 +32,9 @@ import org.slf4j.LoggerFactory;
 
 /**
  * A provider for Lucene indexes.
+ * 
+ * @see LuceneIndex
+ * 
  */
 public class LuceneIndexProvider implements QueryIndexProvider,
         LuceneIndexConstants {
