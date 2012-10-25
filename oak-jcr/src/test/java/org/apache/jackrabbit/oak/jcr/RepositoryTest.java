@@ -1374,6 +1374,32 @@ public class RepositoryTest extends AbstractRepositoryTest {
     }
 
     @Test
+    @Ignore("OAK-398")
+    public void moveReferenceable() throws RepositoryException {
+        Session session = getAdminSession();
+
+        Node node = getNode(TEST_PATH);
+        node.addNode("source").addNode("node").addMixin("mix:referenceable");
+        node.addNode("target");
+        session.save();
+
+        Node sourceNode = session.getNode(TEST_PATH + "/source/node");
+        session.refresh(true);
+        session.move(TEST_PATH + "/source/node", TEST_PATH + "/target/moved");
+        assertEquals("/test_node/target/moved", sourceNode.getPath());
+
+        assertFalse(node.hasNode("source/node"));
+        assertTrue(node.hasNode("source"));
+        assertTrue(node.hasNode("target/moved"));
+
+        session.save();
+
+        assertFalse(node.hasNode("source/node"));
+        assertTrue(node.hasNode("source"));
+        assertTrue(node.hasNode("target/moved"));
+    }
+
+    @Test
     public void workspaceMove() throws RepositoryException {
         Session session = getAdminSession();
 
