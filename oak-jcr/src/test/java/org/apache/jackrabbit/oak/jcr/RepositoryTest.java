@@ -180,7 +180,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
         assertTrue(same.isSame(node));
     }
 
-    @Ignore // FIXME OAK-369
+    @Ignore("OAK-369")
     @Test
     public void getNode3() throws RepositoryException {
         Node node = getNode("/foo");
@@ -206,7 +206,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
         assertTrue(node.isSame(node2));
     }
 
-    @Ignore //OAK-343
+    @Ignore("OAK-343")
     @Test
     public void getNodeByUUID() throws RepositoryException {
         Node node = getNode("/foo").addNode("boo");
