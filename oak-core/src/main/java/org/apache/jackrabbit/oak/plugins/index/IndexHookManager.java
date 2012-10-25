@@ -38,6 +38,17 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 
+/**
+ * Keeps existing IndexHooks updated.
+ * 
+ * <p>
+ * The existing index list is obtained via the IndexHookProvider.
+ * </p>
+ * 
+ * @see IndexHook
+ * @see IndexHookProvider
+ * 
+ */
 public class IndexHookManager implements CommitHook {
 
     private final IndexHookProvider provider;
