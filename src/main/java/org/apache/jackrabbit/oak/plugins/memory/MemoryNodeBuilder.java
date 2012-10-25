@@ -17,33 +17,31 @@
 package org.apache.jackrabbit.oak.plugins.memory;
 
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import javax.annotation.Nonnull;
 
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
-import com.google.common.collect.Collections2;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
-import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState.with;
+import static org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState.withNodes;
+import static org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState.withProperties;
 
 /**
- * In-memory node state builder. The following two builder states are used
+ * In-memory node state builder.
+ * <p>
+ * TODO: The following description is somewhat out of date
+ * <p>
+ * The following two builder states are used
  * to properly track uncommitted chances without relying on weak references
  * or requiring hard references on the entire accessed subtree:
  * <dl>
@@ -71,7 +69,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
  */
 public class MemoryNodeBuilder implements NodeBuilder {
 
-    private static final NodeState NULL_STATE = new MemoryNodeState(
+    static final NodeState NULL_STATE = new MemoryNodeState(
             ImmutableMap.<String, PropertyState>of(),
             ImmutableMap.<String, NodeState>of());
 
@@ -248,11 +246,12 @@ public class MemoryNodeBuilder implements NodeBuilder {
 
     @Override
     public NodeState getNodeState() {
-        NodeState state = read();
+        read();
         if (writeState != null) {
-            return new ModifiedNodeState(writeState);
+            return writeState.snapshot();
         } else {
-            return state;
+            assert baseState != null; // guaranteed by read()
+            return baseState;
         }
     }
 
@@ -337,9 +336,9 @@ public class MemoryNodeBuilder implements NodeBuilder {
         MutableNodeState mstate = write();
 
         if (mstate.base.getProperty(name) != null) {
-            mstate.props.put(name, null);
+            mstate.properties.put(name, null);
         } else {
-            mstate.props.remove(name);
+            mstate.properties.remove(name);
         }
 
         updated();
@@ -349,7 +348,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
     @Override
     public NodeBuilder setProperty(PropertyState property) {
         MutableNodeState mstate = write();
-        mstate.props.put(property.getName(), property);
+        mstate.properties.put(property.getName(), property);
         updated();
         return this;
     }
@@ -398,79 +397,63 @@ public class MemoryNodeBuilder implements NodeBuilder {
     }
 
     /**
-     * Filter for skipping property states with given names.
-     */
-    private static class SkipNamedProps implements Predicate<PropertyState> {
-
-        private final Set<String> names;
-
-        private SkipNamedProps(Set<String> names) {
-            this.names = names;
-        }
-
-        @Override
-        public boolean apply(PropertyState input) {
-            return !names.contains(input.getName());
-        }
-
-    }
-
-    /**
-     * Filter for skipping child node states with given names.
-     */
-    private static class SkipNamedNodes implements Predicate<ChildNodeEntry> {
-
-        private final Set<String> names;
-
-        private SkipNamedNodes(Set<String> names) {
-            this.names = names;
-        }
-
-        @Override
-        public boolean apply(ChildNodeEntry input) {
-            return !names.contains(input.getName());
-        }
-
-    }
-
-    /**
      * The <em>mutable</em> state being built. Instances of this class
      * are never passed beyond the containing {@code MemoryNodeBuilder},
      * so it's not a problem that we intentionally break the immutability
      * assumption of the {@link NodeState} interface.
      */
-    protected static class MutableNodeState extends AbstractNodeState {
+    private class MutableNodeState extends AbstractNodeState {
 
         /**
          * The immutable base state.
          */
-        protected NodeState base;
+        private NodeState base;
 
         /**
          * Set of added, modified or removed ({@code null} value)
          * property states.
          */
-        protected final Map<String, PropertyState> props =
+        private final Map<String, PropertyState> properties =
                 Maps.newHashMap();
 
         /**
          * Set of added, modified or removed ({@code null} value)
          * child nodes.
          */
-        protected final Map<String, MutableNodeState> nodes =
+        private final Map<String, MutableNodeState> nodes =
                 Maps.newHashMap();
 
         public MutableNodeState(NodeState base) {
             if (base != null) {
                 this.base = base;
             } else {
-                this.base = NULL_STATE;
+                this.base = MemoryNodeBuilder.NULL_STATE;
             }
         }
 
-        private void reset(NodeState newBase) {
+        public NodeState snapshot() {
+            Map<String, NodeState> nodes = Maps.newHashMap();
+            for (Map.Entry<String, MutableNodeState> entry : this.nodes.entrySet()) {
+                String name = entry.getKey();
+                MutableNodeState node = entry.getValue();
+                NodeState before = base.getChildNode(name);
+                if (node == null) {
+                    if (before != null) {
+                        nodes.put(name, null);
+                    }
+                } else {
+                    NodeState after = node.snapshot();
+                    if (after != before) {
+                        nodes.put(name, after);
+                    }
+                }
+            }
+            return with(base, Maps.newHashMap(this.properties), nodes);
+        }
+
+        void reset(NodeState newBase) {
             base = newBase;
-            props.clear();
+            properties.clear();
 
             Iterator<Map.Entry<String, MutableNodeState>> iterator =
                     nodes.entrySet().iterator();
@@ -486,293 +469,53 @@ public class MemoryNodeBuilder implements NodeBuilder {
             }
         }
 
-        public NodeState getBaseState() {
-            return base;
-        }
-
         //-----------------------------------------------------< NodeState >--
 
         @Override
         public long getPropertyCount() {
-            long count = base.getPropertyCount();
-
-            for (Map.Entry<String, PropertyState> entry : props.entrySet()) {
-                if (base.getProperty(entry.getKey()) != null) {
-                    count--;
-                }
-                if (entry.getValue() != null) {
-                    count++;
-                }
-            }
-
-            return count;
+            return withProperties(base, properties).getPropertyCount();
         }
 
         @Override
         public PropertyState getProperty(String name) {
-            PropertyState property = props.get(name);
-            if (property != null || props.containsKey(name)) {
-                return property;
-            }
-
-            return base.getProperty(name);
+            return withProperties(base, properties).getProperty(name);
         }
 
-        @Override
+        @Override @Nonnull
         public Iterable<? extends PropertyState> getProperties() {
-            if (props.isEmpty()) {
-                return base.getProperties(); // shortcut
-            } else {
-                return internalGetProperties();
-            }
-        }
-
-        protected Iterable<? extends PropertyState> internalGetProperties() {
-            Predicate<PropertyState> unmodifiedFilter =
-                    new SkipNamedProps(ImmutableSet.copyOf(props.keySet()));
-            Predicate<PropertyState> modifiedFilter = Predicates.notNull();
-            return Iterables.concat(
-                    Iterables.filter(base.getProperties(), unmodifiedFilter),
-                    ImmutableList.copyOf(Collections2.filter(
-                            props.values(), modifiedFilter)));
+            Map<String, PropertyState> copy = Maps.newHashMap(properties);
+            return withProperties(base, copy).getProperties();
         }
 
         @Override
         public long getChildNodeCount() {
-            long count = base.getChildNodeCount();
-
-            for (Map.Entry<String, MutableNodeState> entry : nodes.entrySet()) {
-                if (base.getChildNode(entry.getKey()) != null) {
-                    count--;
-                }
-                if (entry.getValue() != null) {
-                    count++;
-                }
-            }
-
-            return count;
+            return withNodes(base, nodes).getChildNodeCount();
         }
 
         @Override
         public boolean hasChildNode(String name) {
-            MutableNodeState node = nodes.get(name);
-            if (node != null) {
-                return true;
-            } else if (nodes.containsKey(name)) {
-                return false;
-            }
-
-            return base.hasChildNode(name);
+            return withNodes(base, nodes).hasChildNode(name);
         }
 
         @Override
         public NodeState getChildNode(String name) {
-            MutableNodeState node = nodes.get(name);
-            if (node != null) {
-                return node;
-            } else if (nodes.containsKey(name)) {
-                return null;
-            }
-
-            return base.getChildNode(name);
+            return withNodes(base, nodes).getChildNode(name); // mutable
         }
 
-        @Override
+        @Override @Nonnull
         public Iterable<String> getChildNodeNames() {
-            if (nodes.isEmpty()) {
-                return base.getChildNodeNames(); // shortcut
-            } else {
-                return internalGetChildNodeNames();
-            }
-        }
-
-        protected Iterable<String> internalGetChildNodeNames() {
-            Iterable<String> unmodified = base.getChildNodeNames();
-            Predicate<String> unmodifiedFilter = Predicates.not(Predicates.in(
-                    ImmutableSet.copyOf(nodes.keySet())));
-            Set<String> modified = ImmutableSet.copyOf(
-                    Maps.filterValues(nodes, Predicates.notNull()).keySet());
-            return Iterables.concat(
-                    Iterables.filter(unmodified, unmodifiedFilter),
-                    modified);
+            Map<String, MutableNodeState> copy = Maps.newHashMap(nodes);
+            return withNodes(base, copy).getChildNodeNames();
         }
 
         @Override
-        public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
-            if (nodes.isEmpty()) {
-                return base.getChildNodeEntries(); // shortcut
-            } else {
-                return internalGetChildNodeEntries();
-            }
+        public void compareAgainstBaseState(NodeState base, NodeStateDiff diff) {
+            with(this.base, properties, nodes).compareAgainstBaseState(base, diff);
         }
 
-        protected Iterable<? extends ChildNodeEntry> internalGetChildNodeEntries() {
-            Iterable<? extends ChildNodeEntry> unmodified =
-                    base.getChildNodeEntries();
-            Predicate<ChildNodeEntry> unmodifiedFilter =
-                    new SkipNamedNodes(ImmutableSet.copyOf(nodes.keySet()));
-
-            List<ChildNodeEntry> modified = Lists.newArrayList();
-            for (Map.Entry<String, MutableNodeState> entry : nodes.entrySet()) {
-                MutableNodeState cstate = entry.getValue();
-                if (cstate != null) {
-                    modified.add(new MemoryChildNodeEntry(
-                            entry.getKey(),
-                            new ModifiedNodeState(cstate)));
-                }
-            }
-
-            return Iterables.concat(
-                    Iterables.filter(unmodified, unmodifiedFilter),
-                    modified);
-        }
-
-        @Override
+        @Override @Nonnull
         public NodeBuilder builder() {
-            return new ModifiedNodeState(this).builder();
-        }
-
-        /**
-         * Since we keep track of an explicit base node state for a
-         * {@link ModifiedNodeState} instance, we can do this in two steps:
-         * first compare the base states to each other (often a fast operation),
-         * ignoring all changed properties and child nodes for which we have
-         * further modifications, and then compare all the modified properties
-         * and child nodes to those in the given base state.
-         */
-        @Override
-        public void compareAgainstBaseState(
-                NodeState base, final NodeStateDiff diff) {
-            this.base.compareAgainstBaseState(base, new NodeStateDiff() {
-                @Override
-                public void propertyAdded(PropertyState after) {
-                    if (!props.containsKey(after.getName())) {
-                        diff.propertyAdded(after);
-                    }
-                }
-                @Override
-                public void propertyChanged(
-                        PropertyState before, PropertyState after) {
-                    if (!props.containsKey(before.getName())) {
-                        diff.propertyChanged(before, after);
-                    }
-                }
-                @Override
-                public void propertyDeleted(PropertyState before) {
-                    if (!props.containsKey(before.getName())) {
-                        diff.propertyDeleted(before);
-                    }
-                }
-                @Override
-                public void childNodeAdded(String name, NodeState after) {
-                    if (!nodes.containsKey(name)) {
-                        diff.childNodeAdded(name, after);
-                    }
-                }
-                @Override
-                public void childNodeChanged(String name, NodeState before, NodeState after) {
-                    if (!nodes.containsKey(name)) {
-                        diff.childNodeChanged(name, before, after);
-                    }
-                }
-                @Override
-                public void childNodeDeleted(String name, NodeState before) {
-                    if (!nodes.containsKey(name)) {
-                        diff.childNodeDeleted(name, before);
-                    }
-                }
-            });
-
-            for (Map.Entry<String, PropertyState> entry : props.entrySet()) {
-                PropertyState before = base.getProperty(entry.getKey());
-                PropertyState after = entry.getValue();
-                if (before == null && after == null) {
-                    // do nothing
-                } else if (after == null) {
-                    diff.propertyDeleted(before);
-                } else if (before == null) {
-                    diff.propertyAdded(after);
-                } else if (!before.equals(after)) {
-                    diff.propertyChanged(before, after);
-                }
-            }
-
-            for (Map.Entry<String, MutableNodeState> entry : nodes.entrySet()) {
-                String name = entry.getKey();
-                NodeState before = base.getChildNode(name);
-                NodeState after = entry.getValue();
-                if (before == null && after == null) {
-                    // do nothing
-                } else if (after == null) {
-                    diff.childNodeDeleted(name, before);
-                } else if (before == null) {
-                    diff.childNodeAdded(name, after);
-                } else if (!before.equals(after)) {
-                    diff.childNodeChanged(name, before, after);
-                }
-            }
-        }
-
-    }
-
-    /**
-     * Immutable snapshot of a mutable node state.
-     */
-    protected static class ModifiedNodeState extends MutableNodeState {
-
-        public ModifiedNodeState(MutableNodeState mstate) {
-            super(mstate.base);
-            props.putAll(mstate.props);
-            for (Map.Entry<String, MutableNodeState> entry
-                    : mstate.nodes.entrySet()) {
-                String name = entry.getKey();
-                MutableNodeState node = entry.getValue();
-                if (node != null) {
-                    nodes.put(name, new ModifiedNodeState(node));
-                } else {
-                    nodes.put(name, null);
-                }
-            }
-        }
-
-        @Override
-        public NodeBuilder builder() {
-            return new MemoryNodeBuilder(this);
-        }
-
-        //----------------------------------------------< MutableNodeState >--
-
-        @Override
-        protected Iterable<? extends PropertyState> internalGetProperties() {
-            Predicate<PropertyState> unmodifiedFilter =
-                    new SkipNamedProps(props.keySet());
-            Predicate<PropertyState> modifiedFilter = Predicates.notNull();
-            return Iterables.concat(
-                    Iterables.filter(base.getProperties(), unmodifiedFilter),
-                    Collections2.filter(props.values(), modifiedFilter));
-        }
-
-        @Override
-        protected Iterable<String> internalGetChildNodeNames() {
-            Iterable<String> unmodified = base.getChildNodeNames();
-            Predicate<String> unmodifiedFilter =
-                    Predicates.not(Predicates.in(nodes.keySet()));
-            return Iterables.concat(
-                    Iterables.filter(unmodified, unmodifiedFilter),
-                    Maps.filterValues(nodes, Predicates.notNull()).keySet());
-        }
-
-        @Override
-        protected Iterable<? extends ChildNodeEntry> internalGetChildNodeEntries() {
-            Iterable<? extends ChildNodeEntry> unmodified =
-                    base.getChildNodeEntries();
-            Predicate<ChildNodeEntry> unmodifiedFilter =
-                    new SkipNamedNodes(nodes.keySet());
-            Map<String, MutableNodeState> modified =
-                    Maps.filterValues(nodes, Predicates.notNull());
-            return Iterables.concat(
-                    Iterables.filter(unmodified, unmodifiedFilter),
-                    MemoryChildNodeEntry.iterable(modified.entrySet()));
+            throw new UnsupportedOperationException();
         }
 
     }
