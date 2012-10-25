@@ -50,6 +50,7 @@ import javax.jcr.nodetype.NoSuchNodeTypeException;
 import javax.jcr.nodetype.NodeDefinition;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.NodeTypeManager;
+import javax.jcr.nodetype.PropertyDefinition;
 import javax.jcr.version.Version;
 import javax.jcr.version.VersionHistory;
 
@@ -58,6 +59,8 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
+import com.google.common.collect.Lists;
+
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.ItemNameMatcher;
 import org.apache.jackrabbit.commons.iterator.NodeIteratorAdapter;
@@ -254,8 +257,9 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
                     throw new ItemExistsException();
                 }
 
-                Node childNode = new NodeImpl(added);
+                NodeImpl childNode = new NodeImpl(added);
                 childNode.setPrimaryType(ntName);
+                childNode.autoCreateItems();
                 return childNode;
             }
         });
@@ -929,7 +933,7 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
             public Void perform() throws RepositoryException {
                 // TODO: figure out the right place for this check
                 NodeTypeManager ntm = sessionDelegate.getNodeTypeManager();
-                NodeType nt = ntm.getNodeType(mixinName); // throws on not found
+                ntm.getNodeType(mixinName); // throws on not found
                 // TODO: END
 
                 PropertyDelegate mixins = dlg.getProperty(JcrConstants.JCR_MIXINTYPES);
@@ -948,10 +952,8 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
                     }
                 }
 
-                // TODO: hack -- make sure we assign a UUID
-                if (nodeModified && nt.isNodeType(JcrConstants.MIX_REFERENCEABLE)) {
-                    Value uuid = sessionDelegate.getValueFactory().createValue(IdentifierManager.generateUUID());
-                    dlg.setProperty(JcrConstants.JCR_UUID, uuid);
+                if (nodeModified) {
+                    autoCreateItems();
                 }
                 return null;
             }
@@ -1376,6 +1378,90 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
             // TODO deal with values array containing a null value in the first position
             return getTargetType(values[0], type);
         }
+    }
+
+    private void autoCreateItems() throws RepositoryException {
+        Iterable<NodeType> types = getAllNodeTypes(this);
+        for (NodeType nt : types) {
+            for (PropertyDefinition pd : nt.getPropertyDefinitions()) {
+                if (pd.isAutoCreated() && dlg.getProperty(pd.getName()) == null) {
+                    if (pd.isMultiple()) {
+                        dlg.setProperty(pd.getName(), getAutoCreatedValues(pd));
+                    } else {
+                        dlg.setProperty(pd.getName(), getAutoCreatedValue(pd));
+                    }
+                }
+            }
+        }
+        for (NodeType nt : types) {
+            for (NodeDefinition nd : nt.getChildNodeDefinitions()) {
+                if (nd.isAutoCreated() && dlg.getChild(nd.getName()) == null) {
+                    autoCreateNode(nd);
+                }
+            }
+        }
+    }
+
+    private Value getAutoCreatedValue(PropertyDefinition definition)
+            throws RepositoryException {
+        String name = definition.getName();
+        String declaringNT = definition.getDeclaringNodeType().getName();
+
+        if (NodeTypeConstants.JCR_UUID.equals(name)) {
+            // jcr:uuid property of the mix:referenceable node type
+            if (NodeTypeConstants.MIX_REFERENCEABLE.equals(declaringNT)) {
+                return getValueFactory().createValue(IdentifierManager.generateUUID());
+            }
+        } else if (NodeTypeConstants.JCR_CREATED.equals(name)) {
+            // jcr:created property of a version or a mix:created
+            if (NodeTypeConstants.MIX_CREATED.equals(declaringNT)
+                    || NodeTypeConstants.NT_VERSION.equals(declaringNT)) {
+                return getValueFactory().createValue(Calendar.getInstance());
+            }
+        } else if (NodeTypeConstants.JCR_CREATEDBY.equals(name)) {
+            // jcr:createdBy property of a mix:created
+            if (NodeTypeConstants.MIX_CREATED.equals(declaringNT)) {
+                return getValueFactory().createValue(
+                        sessionDelegate.getAuthInfo().getUserID());
+            }
+        } else if (NodeTypeConstants.JCR_LASTMODIFIED.equals(name)) {
+            // jcr:lastModified property of a mix:lastModified
+            if (NodeTypeConstants.MIX_LASTMODIFIED.equals(declaringNT)) {
+                return getValueFactory().createValue(Calendar.getInstance());
+            }
+        } else if (NodeTypeConstants.JCR_LASTMODIFIEDBY.equals(name)) {
+            // jcr:lastModifiedBy property of a mix:lastModified
+            if (NodeTypeConstants.MIX_LASTMODIFIED.equals(declaringNT)) {
+                return getValueFactory().createValue(
+                        sessionDelegate.getAuthInfo().getUserID());
+            }
+        }
+        // does the definition have a default value?
+        if (definition.getDefaultValues() != null) {
+            Value[] values = definition.getDefaultValues();
+            if (values.length > 0) {
+                return values[0];
+            }
+        }
+        throw new RepositoryException("Unable to auto-create value for " +
+                PathUtils.concat(getPath(), name));
+    }
+
+    private Iterable<Value> getAutoCreatedValues(PropertyDefinition definition)
+            throws RepositoryException {
+        String name = definition.getName();
+
+        // default values?
+        if (definition.getDefaultValues() != null) {
+            return Lists.newArrayList(definition.getDefaultValues());
+        }
+        throw new RepositoryException("Unable to auto-create value for " +
+                PathUtils.concat(getPath(), name));
+    }
+
+    private void autoCreateNode(NodeDefinition definition)
+            throws RepositoryException {
+        addNode(definition.getName(), definition.getDefaultPrimaryTypeName());
     }
 
     // TODO: hack to filter for a subset of supported mixins for now

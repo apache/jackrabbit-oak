@@ -92,3 +92,8 @@
 
 [test:orderableFolder] > nt:folder orderable
   + * (nt:base) = test:orderableFolder
+
+[test:autoCreate]
+  - test:property (String) = 'default value' autocreated
+  - test:propertyMulti (String) = 'value1', 'value2' autocreated multiple
+  + test:folder (nt:folder) = nt:folder autocreated

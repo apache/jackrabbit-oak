@@ -33,6 +33,14 @@ public interface NodeTypeConstants extends JcrConstants {
     String JCR_AVAILABLE_QUERY_OPERATORS = "jcr:availableQueryOperators";
 
     /**
+     * Additinal name constants not present in JcrConstants
+     */
+    String JCR_CREATEDBY = "jcr:createdBy";
+    String JCR_LASTMODIFIEDBY = "jcr:lastModifiedBy";
+    String MIX_CREATED = "mix:created";
+    String MIX_LASTMODIFIED = "mix:lastModified";
+
+    /**
      * Merge conflict handling
      */
     String MIX_REP_MERGE_CONFLICT = "rep:MergeConflict";
