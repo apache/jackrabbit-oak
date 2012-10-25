@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.jcr;
 
 import javax.jcr.Node;
+import javax.jcr.PathNotFoundException;
 import javax.jcr.Property;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -24,7 +25,9 @@ import javax.jcr.Session;
 import org.junit.Test;
 
 import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertNotNull;
 import static junit.framework.Assert.assertTrue;
+import static junit.framework.Assert.fail;
 
 public class CRUDTest extends AbstractRepositoryTest {
 
@@ -55,10 +58,51 @@ public class CRUDTest extends AbstractRepositoryTest {
     }
 
     @Test
+    public void testRemoveBySetProperty() throws RepositoryException {
+        Session session = getAdminSession();
+        Node root = session.getRootNode();
+        try {
+            root.setProperty("test", "abc");
+            assertNotNull(root.setProperty("test", (String) null));
+        } catch (PathNotFoundException e) {
+            // success
+        }
+    }
+
+    @Test
+    public void testRemoveBySetMVProperty() throws RepositoryException {
+        Session session = getAdminSession();
+        Node root = session.getRootNode();
+        try {
+            root.setProperty("test", new String[] {"abc", "def"});
+            assertNotNull(root.setProperty("test", (String[]) null));
+        } catch (PathNotFoundException e) {
+            // success
+        }
+    }
+
+    @Test
     public void testRemoveMissingProperty() throws RepositoryException {
         Session session = getAdminSession();
         Node root = session.getRootNode();
-        root.setProperty("missing", (String) null);
+        try {
+            root.setProperty("missing", (String) null);
+            fail("removing a missing property should fail");
+        } catch (PathNotFoundException e) {
+            // success
+        }
+    }
+
+    @Test
+    public void testRemoveMissingMVProperty() throws RepositoryException {
+        Session session = getAdminSession();
+        Node root = session.getRootNode();
+        try {
+            root.setProperty("missing", (String[]) null);
+            fail("removing a missing property should fail");
+        } catch (PathNotFoundException e) {
+            // success
+        }
     }
 
     @Test
