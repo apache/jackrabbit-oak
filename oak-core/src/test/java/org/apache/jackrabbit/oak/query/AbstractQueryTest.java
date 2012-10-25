@@ -120,7 +120,7 @@ public abstract class AbstractQueryTest {
 
     @Test
     @Ignore("OAK-336")
-    public void sql2_measure() throws Exception {
+    public void sql2Measure() throws Exception {
         test("sql2_measure.txt");
     }
 
