@@ -20,7 +20,7 @@ import java.util.Iterator;
 
 import org.apache.jackrabbit.mk.json.JsopReader;
 import org.apache.jackrabbit.mk.json.JsopTokenizer;
-import org.apache.jackrabbit.mk.simple.NodeImpl;
+import org.apache.jackrabbit.oak.plugins.index.old.mk.simple.NodeImpl;
 
 /**
  * A node handler that maps the property value to the key, and the path of the

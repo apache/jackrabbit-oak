@@ -16,9 +16,9 @@ package org.apache.jackrabbit.oak.plugins.index.old;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
-import org.apache.jackrabbit.mk.index.IndexWrapper;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
+import org.apache.jackrabbit.oak.plugins.index.old.mk.IndexWrapper;
 import org.apache.jackrabbit.oak.plugins.nodetype.InitialContent;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
