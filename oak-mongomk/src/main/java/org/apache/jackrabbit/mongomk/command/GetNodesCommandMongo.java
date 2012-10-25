@@ -94,7 +94,16 @@ public class GetNodesCommandMongo extends AbstractCommand<Node> {
         readLastCommits();
         deriveProblematicNodes();
 
-        readRootNode();
+        // FIXME - See if we can avoid catching the exception here.
+        try {
+            readRootNode();
+        } catch (InconsistentNodeHierarchyException e) {
+            // When branching is used, there might be inconsistent node hierarchy
+            // exceptions, so ignore them in the first try.
+            if (branchId == null) {
+                throw e;
+            }
+        }
 
         if (rootNode != null) {
             return rootNode;

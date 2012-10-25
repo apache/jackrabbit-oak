@@ -18,7 +18,7 @@ import org.junit.Test;
 public class MongoMKBranchMergeTest extends BaseMongoMicroKernelTest {
 
     @Test
-    public void oneBranchOneChild() {
+    public void oneBranchOneAddedChild() {
         // Commit to initial trunk.
         commitNodes(null, "/trunk", "/trunk/child1");
 
@@ -49,7 +49,38 @@ public class MongoMKBranchMergeTest extends BaseMongoMicroKernelTest {
     }
 
     @Test
-    public void twoBranchesOneChild() {
+    public void oneBranchOneAddedChildToTrunk() {
+        // Commit to initial trunk.
+        commitNodes(null, "/trunk", "/trunk/child1");
+
+        // Check initial trunk children exist on trunk.
+        assertNodesExist(null, "/trunk", "/trunk/child1");
+
+        // Branch.
+        String branchRev = mk.branch(null);
+
+        // Commit to branch under trunk.
+        branchRev = commitNodes(branchRev, "/trunk/child1/child2");
+
+        // Check initial trunk children still exist in branch.
+        assertNodesExist(branchRev, "/trunk", "/trunk/child1");
+
+        // Check that branch children also exist in branch.
+        assertNodesExist(branchRev, "/trunk/child1/child2");
+
+        // But branch children does not exist in trunk.
+        assertNodesNotExist(null, "/trunk/child1/child2");
+
+        // Add another child on trunk.
+        commitNodes(null, "/trunk/child3");
+
+        // Check that the new child exists in trunk but not on branch still.
+        assertNodesExist(null, "/trunk/child3");
+        assertNodesNotExist(branchRev, "/trunk/child3");
+    }
+
+    @Test
+    public void twoBranchesOneAddedChild() {
         // Commit to initial trunk.
         commitNodes(null, "/trunk", "/trunk/child1");
 
@@ -87,7 +118,7 @@ public class MongoMKBranchMergeTest extends BaseMongoMicroKernelTest {
     }
 
     @Test
-    public void twoBranchesOneChildAndMerge() {
+    public void twoBranchesOneAddedChildAndMerge() {
         // Commit to initial trunk.
         commitNodes(null, "/trunk", "/trunk/child1");
 
@@ -134,7 +165,7 @@ public class MongoMKBranchMergeTest extends BaseMongoMicroKernelTest {
     }
 
     @Test
-    public void oneBranchSubChildren() {
+    public void oneBranchAddedSubChildren() {
         // Commit to initial trunk.
         commitNodes(null, "/trunk", "/trunk/child1", "/trunk/child1/child2", "/trunk/child1/child2/child3");
 
@@ -165,7 +196,7 @@ public class MongoMKBranchMergeTest extends BaseMongoMicroKernelTest {
     }
 
     @Test
-    public void oneBranchOneChildWithAddedProperties() {
+    public void oneBranchOneAddedChildWithAddedProperties() {
         // Commit to initial trunk.
         commitNodes(null, "/trunk", "/trunk/child1");
 
