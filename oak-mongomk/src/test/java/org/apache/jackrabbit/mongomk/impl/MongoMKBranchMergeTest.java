@@ -11,8 +11,9 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 /**
- * FIXME - Add more complicated branch/merge tests with properties, conflicts etc.
- * Also test getNodes work with branch.
+ * FIXME - Add more complicated branch/merge tests such as:
+ * -Branch with changed child nodes.
+ * -Merges with conflicts.
  *
  * Tests for {@code MicroKernel#branch}
  */
@@ -103,6 +104,41 @@ public class MongoMKBranchMergeTest extends BaseMongoMicroKernelTest {
 
         // But child1 still exists on trunk.
         assertNodesExist(null, "/trunk", "/trunk/child1");
+    }
+
+    @Test
+    public void oneBranchChangedPropertiesFromTrunk() {
+        // Commit to initial trunk.
+        addNodes(null, "/trunk", "/trunk/child1");
+
+        // Add some props on node.
+        setProp(null, "/trunk/child1/prop1", "value1");
+        setProp(null, "/trunk/child1/prop2", "value2");
+
+        // Check initial trunk children exist on trunk.
+        assertNodesExist(null, "/trunk", "/trunk/child1");
+
+        // Check initial properties exist on trunk.
+        assertPropExists(null, "/trunk/child1", "prop1");
+        assertPropExists(null, "/trunk/child1", "prop2");
+
+        // Branch.
+        String branchRev = mk.branch(null);
+
+        // Change child1 prop1 value, remove prop2 and add a new prop3 in branch.
+        branchRev = setProp(branchRev, "/trunk/child1/prop1", "value1a");
+        branchRev = setProp(branchRev, "/trunk/child1/prop2", null);
+        branchRev = setProp(branchRev, "/trunk/child1/prop3", "value3");
+
+        // Check that child1 indeed changed in branch.
+        assertPropValue(branchRev, "/trunk/child1", "prop1", "value1a");
+        assertPropNotExists(branchRev, "/trunk/child1", "prop2");
+        assertPropValue(branchRev, "/trunk/child1", "prop3", "value3");
+
+        // But child1 is still the same in trunk.
+        assertPropValue(null, "/trunk/child1", "prop1", "value1");
+        assertPropExists(null, "/trunk/child1", "prop2");
+        assertPropNotExists(null, "/trunk/child1", "prop3");
     }
 
     @Test
@@ -227,8 +263,8 @@ public class MongoMKBranchMergeTest extends BaseMongoMicroKernelTest {
         addNodes(null, "/trunk", "/trunk/child1");
 
         // Add some props on node.
-        commitProp(null, "/trunk/child1/prop1", "value1");
-        commitProp(null, "/trunk/child1/prop2", "value2");
+        setProp(null, "/trunk/child1/prop1", "value1");
+        setProp(null, "/trunk/child1/prop2", "value2");
 
         // Check initial trunk children exist on trunk.
         assertNodesExist(null, "/trunk", "/trunk/child1");
@@ -244,8 +280,8 @@ public class MongoMKBranchMergeTest extends BaseMongoMicroKernelTest {
         branchRev = addNodes(branchRev, "/branch1", "/branch1/child1");
 
         // Add some props on node.
-        branchRev = commitProp(branchRev, "/branch1/child1/prop1", "value1");
-        branchRev = commitProp(branchRev, "/branch1/child1/prop2", "value2");
+        branchRev = setProp(branchRev, "/branch1/child1/prop1", "value1");
+        branchRev = setProp(branchRev, "/branch1/child1/prop2", "value2");
 
         // Check initial trunk children still exist in branch.
         assertNodesExist(branchRev, "/trunk", "/trunk/child1");
@@ -317,6 +353,12 @@ public class MongoMKBranchMergeTest extends BaseMongoMicroKernelTest {
         assertPropertyNotExists(obj, property);
     }
 
+    private void assertPropValue(String rev, String path, String property, String value) {
+        String nodes = mk.getNodes(path, rev, -1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        JSONObject obj = parseJSONObject(nodes);
+        assertPropertyValue(obj, property, value);
+    }
+
     private String addNodes(String rev, String...nodes) {
         String newRev = rev;
         for (String node : nodes) {
@@ -333,8 +375,9 @@ public class MongoMKBranchMergeTest extends BaseMongoMicroKernelTest {
         return newRev;
     }
 
-    private String commitProp(String rev, String prop, String value) {
-        return mk.commit("", "^\"" + prop + "\" : \"" + value + "\"", rev, "");
+    private String setProp(String rev, String prop, Object value) {
+        value = value == null? null : "\"" + value + "\"";
+        return mk.commit("", "^\"" + prop + "\" : " + value, rev, "");
     }
 
     private void assertNodesExist(String revision, String...paths) {
