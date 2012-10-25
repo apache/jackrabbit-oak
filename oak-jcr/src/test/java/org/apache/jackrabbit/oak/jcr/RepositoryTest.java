@@ -1374,7 +1374,6 @@ public class RepositoryTest extends AbstractRepositoryTest {
     }
 
     @Test
-    @Ignore("OAK-398")
     public void moveReferenceable() throws RepositoryException {
         Session session = getAdminSession();
 
