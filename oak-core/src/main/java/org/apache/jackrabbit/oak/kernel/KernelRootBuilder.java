@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.kernel;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState.collapse;
 
 import java.util.Map;
 import java.util.Set;
@@ -24,6 +25,7 @@ import java.util.Set;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.json.JsopBuilder;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
+import org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import com.google.common.collect.Maps;
@@ -164,8 +166,8 @@ class KernelRootBuilder extends MemoryNodeBuilder {
         //-------------------------------------------------------< private >--
 
         private KernelNodeState getKernelBaseState(NodeState state) {
-            if (state instanceof MutableNodeState) {
-                state = ((MutableNodeState) state).getBaseState();
+            if (state instanceof ModifiedNodeState) {
+                state = collapse((ModifiedNodeState) state).getBaseState();
             }
 
             if (state instanceof KernelNodeState) {
