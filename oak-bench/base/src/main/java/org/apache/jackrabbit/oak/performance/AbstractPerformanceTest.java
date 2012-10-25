@@ -27,13 +27,9 @@ import javax.jcr.SimpleCredentials;
 
 import org.apache.commons.io.output.FileWriterWithEncoding;
 import org.apache.commons.math.stat.descriptive.DescriptiveStatistics;
-import org.apache.jackrabbit.mk.MicroKernelFactory;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
-import org.apache.jackrabbit.mk.index.IndexWrapper;
-import org.apache.jackrabbit.oak.Oak;
-import org.apache.jackrabbit.oak.api.ContentRepository;
-import org.apache.jackrabbit.oak.jcr.RepositoryImpl;
+import org.apache.jackrabbit.oak.jcr.Jcr;
 
 /**
  * This class calls all known performance tests.
@@ -83,12 +79,9 @@ public abstract class AbstractPerformanceTest {
         if (microKernelPattern.matcher(microKernel).matches()
                 && testPattern.matcher(test.toString()).matches()) {
 
-            MicroKernel mk = null;
-            RepositoryImpl repository;
+            MicroKernel mk = createMicroKernel(microKernel);
             try {
-
-                mk = createMicroKernel(microKernel);
-                repository = createRepository(mk);
+                Repository repository= createRepository(mk);
 
                 // Run the test
                 DescriptiveStatistics statistics = runTest(test, repository);
@@ -100,9 +93,7 @@ public abstract class AbstractPerformanceTest {
             } catch (Exception e) {
                 e.printStackTrace();
             } finally {
-                if (mk != null) {
-                    MicroKernelFactory.disposeInstance(mk);
-                }
+                disposeMicroKernel(mk);
             }
         }
     }
@@ -165,15 +156,12 @@ public abstract class AbstractPerformanceTest {
 
     }
 
-    protected RepositoryImpl createRepository(MicroKernel mk) {
+    protected void disposeMicroKernel(MicroKernel kernel) {
+        ((MicroKernelImpl) kernel).dispose();
+    }
 
-        // return new RepositoryImpl();
-
-        mk = new IndexWrapper(mk);
-        ContentRepository contentRepository =
-                new Oak(mk).createContentRepository();
-        return new RepositoryImpl(contentRepository, null, null);
-
+    protected Repository createRepository(MicroKernel mk) {
+        return new Jcr(mk).createRepository();
     }
 
 }
