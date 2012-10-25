@@ -28,6 +28,9 @@ import com.google.common.collect.ImmutableList;
 
 /**
  * A provider for property indexes.
+ * 
+ * @see PropertyIndex
+ * 
  */
 public class PropertyIndexProvider implements QueryIndexProvider {
 

@@ -16,16 +16,28 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
+
 import java.util.List;
 
+import org.apache.felix.scr.annotations.Component;
+import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.plugins.index.IndexHook;
 import org.apache.jackrabbit.oak.plugins.index.IndexHookProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 
 import com.google.common.collect.ImmutableList;
 
-public class LuceneIndexHookProvider implements IndexHookProvider,
-        LuceneIndexConstants {
+/**
+ * Service that provides Lucene based IndexHooks
+ * 
+ * @see LuceneHook
+ * @see IndexHookProvider
+ * 
+ */
+@Component
+@Service(IndexHookProvider.class)
+public class LuceneIndexHookProvider implements IndexHookProvider {
 
     @Override
     public List<? extends IndexHook> getIndexHooks(String type,

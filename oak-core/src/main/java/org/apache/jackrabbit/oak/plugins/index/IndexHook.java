@@ -18,6 +18,11 @@ package org.apache.jackrabbit.oak.plugins.index;
 
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 
+/**
+ * Represents the content of a QueryIndex as well as a mechanism for keeping
+ * this content up to date.
+ * 
+ */
 public interface IndexHook extends CommitHook {
 
 }

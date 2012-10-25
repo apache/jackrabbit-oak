@@ -42,19 +42,26 @@ import com.google.common.collect.Sets;
  * Provides a QueryIndex that does lookups against a property index
  * 
  * <p>
- * How to define a property index on a subtree you have to add an
- * <code>oak:index<code> node. Under it follows the index definition node that must be of type <code>oak:queryIndexDefinition</code>
- * and contain the
- * <code>propertyNames<code> property that indicates what property will be stored in the index.
- * </p>
+ * To define a property index on a subtree you have to add an <code>oak:index<code> node.
  * 
- * <p>
- * <code>propertyNames<code> can be a list of properties, and it is optional.in case it is missing, the node name will be used as a property name reference value
+ * Under it follows the index definition node that:
+ * <ul>
+ * <li>must be of type <code>oak:queryIndexDefinition</code></li>
+ * <li>must have the <code>type</code> property set to <b><code>property</code></b></li>
+ * <li>contains the <code>propertyNames<code> property that indicates what property will be stored in the index</li>
+ * </ul>
  * </p>
- * 
  * <p>
  * Optionally you can specify the uniqueness constraint on a property index by
- * setting the <code>unique</code> flag to true.
+ * setting the <code>unique</code> flag to <code>true</code>.
+ * </p>
+ * 
+ * <p>
+ * Note: <code>propertyNames<code> can be a list of properties, and it is optional.in case it is missing, the node name will be used as a property name reference value
+ * </p>
+ * 
+ * <p>
+ * Note: <code>reindex<code> is a property that when set to <code>true</code>, triggers a full content reindex.
  * </p>
  * 
  * <pre>
@@ -63,12 +70,15 @@ import com.google.common.collect.Sets;
  *     NodeBuilder index = root.child("oak:index");
  *     index.child("uuid")
  *         .setProperty("jcr:primaryType", "oak:queryIndexDefinition", Type.NAME)
+ *         .setProperty("type", "property")
  *         .setProperty("propertyNames", "jcr:uuid")
- *         .setProperty("unique", true);
+ *         .setProperty("unique", true)
+ *         .setProperty("reindex", true);
  * }
  * </code>
  * </pre>
  * 
+ * @see QueryIndex
  * @see PropertyIndexLookup
  */
 public class PropertyIndex implements QueryIndex {
