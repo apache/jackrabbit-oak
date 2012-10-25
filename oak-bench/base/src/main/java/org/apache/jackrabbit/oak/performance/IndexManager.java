@@ -21,7 +21,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.index.old.Indexer;
+import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 
 /**
  * A utility class to manage indexes in Oak.
@@ -31,7 +31,7 @@ public class IndexManager {
     /**
      * The root node of the index definition (configuration) nodes.
      */
-    public static final String INDEX_CONFIG_PATH = Indexer.INDEX_CONFIG_PATH;
+    public static final String INDEX_CONFIG_PATH = '/' + IndexConstants.INDEX_DEFINITIONS_NAME + "/indexes";
 
     /**
      * Creates a property index for the given property if such an index doesn't
