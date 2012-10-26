@@ -48,7 +48,7 @@ public class LuceneIndexTest implements LuceneIndexConstants {
         builder.setProperty("foo", "bar");
         NodeState after = builder.getNodeState();
 
-        new LuceneEditor(index).processCommit(before, after);
+        new LuceneHook(index).processCommit(before, after);
 
         QueryIndex queryIndex = new LuceneIndex(testDef);
         FilterImpl filter = new FilterImpl(null);
