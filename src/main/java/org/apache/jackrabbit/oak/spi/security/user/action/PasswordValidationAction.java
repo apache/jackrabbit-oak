@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.spi.security.user.action;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 import javax.jcr.RepositoryException;
-import javax.jcr.Session;
 import javax.jcr.nodetype.ConstraintViolationException;
 
 import org.apache.jackrabbit.api.security.user.User;
@@ -56,18 +55,8 @@ public class PasswordValidationAction extends AbstractAuthorizableAction {
 
     //-------------------------------------------------< AuthorizableAction >---
     @Override
-    public void onCreate(User user, String password, Session session) throws RepositoryException {
-        validatePassword(password, false);
-    }
-
-    @Override
     public void onCreate(User user, String password, Root root) throws RepositoryException {
         validatePassword(password, false);
-    }
-
-    @Override
-    public void onPasswordChange(User user, String newPassword, Session session) throws RepositoryException {
-        validatePassword(newPassword, true);
     }
 
     @Override

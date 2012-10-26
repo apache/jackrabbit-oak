@@ -16,18 +16,12 @@
  */
 package org.apache.jackrabbit.oak.spi.security.user.action;
 
-import java.security.Principal;
 import java.util.ArrayList;
 import java.util.List;
-import javax.jcr.Node;
 import javax.jcr.RepositoryException;
-import javax.jcr.Session;
 import javax.jcr.security.AccessControlManager;
-import javax.jcr.security.AccessControlPolicy;
-import javax.jcr.security.AccessControlPolicyIterator;
 import javax.jcr.security.Privilege;
 
-import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
@@ -103,22 +97,6 @@ public class AccessControlAction extends AbstractAuthorizableAction {
     private String[] userPrivilegeNames = new String[0];
 
     //-------------------------------------------------< AuthorizableAction >---
-    /**
-     * @see AuthorizableAction#onCreate(org.apache.jackrabbit.api.security.user.Group, javax.jcr.Session)
-     */
-    @Override
-    public void onCreate(Group group, Session session) throws RepositoryException {
-        setAC(group, session);
-    }
-
-    /**
-     * @see AuthorizableAction#onCreate(org.apache.jackrabbit.api.security.user.User, String, javax.jcr.Session)
-     */
-    @Override
-    public void onCreate(User user, String password, Session session) throws RepositoryException {
-        setAC(user, session);
-    }
-
     @Override
     public void onCreate(Group group, Root root) throws RepositoryException {
         setAC(group, root);
@@ -154,46 +132,45 @@ public class AccessControlAction extends AbstractAuthorizableAction {
     }
 
     //------------------------------------------------------------< private >---
-    private void setAC(Authorizable authorizable, Session session) throws RepositoryException {
-        Node aNode;
-        String path = authorizable.getPath();
-
-        JackrabbitAccessControlList acl = null;
-        AccessControlManager acMgr = session.getAccessControlManager();
-        for (AccessControlPolicyIterator it = acMgr.getApplicablePolicies(path); it.hasNext();) {
-            AccessControlPolicy plc = it.nextAccessControlPolicy();
-            if (plc instanceof JackrabbitAccessControlList) {
-                acl = (JackrabbitAccessControlList) plc;
-                break;
-            }
-        }
-
-        if (acl == null) {
-            log.warn("Cannot process AccessControlAction: no applicable ACL at " + path);
-        } else {
-            // setup acl according to configuration.
-            Principal principal = authorizable.getPrincipal();
-            boolean modified = false;
-            if (authorizable.isGroup()) {
-                // new authorizable is a Group
-                if (groupPrivilegeNames.length > 0) {
-                    modified = acl.addAccessControlEntry(principal, getPrivileges(groupPrivilegeNames, acMgr));
-                }
-            } else {
-                // new authorizable is a User
-                if (userPrivilegeNames.length > 0) {
-                    modified = acl.addAccessControlEntry(principal, getPrivileges(userPrivilegeNames, acMgr));
-                }
-            }
-            if (modified) {
-                acMgr.setPolicy(path, acl);
-            }
-        }
-    }
 
     private void setAC(Authorizable authorizable, Root root) throws RepositoryException {
         // TODO: add implementation
         log.error("Not yet implemented");
+
+//        Node aNode;
+//        String path = authorizable.getPath();
+//
+//        JackrabbitAccessControlList acl = null;
+//        AccessControlManager acMgr = session.getAccessControlManager();
+//        for (AccessControlPolicyIterator it = acMgr.getApplicablePolicies(path); it.hasNext();) {
+//            AccessControlPolicy plc = it.nextAccessControlPolicy();
+//            if (plc instanceof JackrabbitAccessControlList) {
+//                acl = (JackrabbitAccessControlList) plc;
+//                break;
+//            }
+//        }
+//
+//        if (acl == null) {
+//            log.warn("Cannot process AccessControlAction: no applicable ACL at " + path);
+//        } else {
+//            // setup acl according to configuration.
+//            Principal principal = authorizable.getPrincipal();
+//            boolean modified = false;
+//            if (authorizable.isGroup()) {
+//                // new authorizable is a Group
+//                if (groupPrivilegeNames.length > 0) {
+//                    modified = acl.addAccessControlEntry(principal, getPrivileges(groupPrivilegeNames, acMgr));
+//                }
+//            } else {
+//                // new authorizable is a User
+//                if (userPrivilegeNames.length > 0) {
+//                    modified = acl.addAccessControlEntry(principal, getPrivileges(userPrivilegeNames, acMgr));
+//                }
+//            }
+//            if (modified) {
+//                acMgr.setPolicy(path, acl);
+//            }
+//        }
     }
 
     /**
