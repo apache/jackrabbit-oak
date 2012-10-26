@@ -562,16 +562,28 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
         }
 
         // TODO: This may need to be optimized
+        List<PropertyDefinition> residualDefs = new ArrayList<PropertyDefinition>();
         for (NodeType nt : getAllNodeTypes(getParent())) {
             for (PropertyDefinition def : nt.getDeclaredPropertyDefinitions()) {
                 String defName = def.getName();
                 int defType = def.getRequiredType();
-                if ((name.equals(defName) || "*".equals(defName))
-                        && (type == defType
-                            || UNDEFINED == type || UNDEFINED == defType)
+                if ((name.equals(defName))
+                        && (type == defType || UNDEFINED == type || UNDEFINED == defType)
                         && isMultiple() == def.isMultiple()) {
                     return def;
+                } else if ("*".equals(defName)) {
+                    residualDefs.add(def);
                 }
+            }
+        }
+
+        for (PropertyDefinition def : residualDefs) {
+            String defName = def.getName();
+            int defType = def.getRequiredType();
+            if (("*".equals(defName))
+                    && (type == defType || UNDEFINED == type || UNDEFINED == defType)
+                    && isMultiple() == def.isMultiple()) {
+                return def;
             }
         }
 
