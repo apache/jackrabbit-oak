@@ -21,8 +21,9 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFIN
 import static org.junit.Assert.assertTrue;
 
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexHookManager.IndexDefDiff;
@@ -30,6 +31,8 @@ import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
+
+import com.google.common.collect.Lists;
 
 public class IndexHookManagerTest {
 
@@ -68,31 +71,33 @@ public class IndexHookManagerTest {
         NodeState after = builder.getNodeState();
 
         // <path>, <state>
-        Map<String, NodeBuilder> changedDefs = new HashMap<String, NodeBuilder>();
-        // <path>, <state>
-        Map<String, NodeBuilder> existingDefs = new HashMap<String, NodeBuilder>();
-
-        IndexDefDiff diff = new IndexDefDiff(builder, changedDefs, existingDefs);
+        Map<String, NodeBuilder> defs = new HashMap<String, NodeBuilder>();
+        IndexDefDiff diff = new IndexDefDiff(builder, defs);
         after.compareAgainstBaseState(before, diff);
 
-        Set<String> updates = changedDefs.keySet();
-        String[] expected = new String[] { "/oak:index/foo",
-                "/test/other/oak:index/index2" };
-        for (String def : expected) {
-            assertTrue("Expected to find " + def, updates.remove(def));
-        }
-        assertTrue(updates.isEmpty());
+        List<String> reindex = Lists.newArrayList("/oak:index/foo",
+                "/test/other/oak:index/index2");
+        List<String> updates = Lists.newArrayList("/oak:index/existing");
 
-        Set<String> existing = existingDefs.keySet();
-        String[] expectedE = new String[] { "/oak:index/existing", };
-        for (String def : expectedE) {
-            assertTrue("Expected to find " + def, existing.remove(def));
+        Iterator<String> iterator = defs.keySet().iterator();
+        while (iterator.hasNext()) {
+            String path = iterator.next();
+            if (IndexHookManager.getAndResetReindex(defs.get(path))) {
+                assertTrue("Missing " + path + " from reindex list",
+                        reindex.remove(path));
+            } else {
+                assertTrue("Missing " + path + " from updates list",
+                        updates.remove(path));
+            }
+            iterator.remove();
         }
-        assertTrue(existing.isEmpty());
+        assertTrue(reindex.isEmpty());
+        assertTrue(updates.isEmpty());
+        assertTrue(defs.isEmpty());
     }
 
     @Test
-    public void testReindex() throws Exception {
+    public void testReindexFlag() throws Exception {
         NodeState root = MemoryNodeState.EMPTY_NODE;
 
         NodeBuilder builder = root.builder();
@@ -101,23 +106,22 @@ public class IndexHookManagerTest {
                 .setProperty(JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE,
                         Type.NAME)
                 .setProperty(IndexConstants.REINDEX_PROPERTY_NAME, true);
-
         NodeState state = builder.getNodeState();
 
         // <path>, <state>
-        Map<String, NodeBuilder> changedDefs = new HashMap<String, NodeBuilder>();
-        // <path>, <state>
-        Map<String, NodeBuilder> existingDefs = new HashMap<String, NodeBuilder>();
-
-        IndexDefDiff diff = new IndexDefDiff(builder, changedDefs, existingDefs);
+        Map<String, NodeBuilder> defs = new HashMap<String, NodeBuilder>();
+        IndexDefDiff diff = new IndexDefDiff(builder, defs);
         state.compareAgainstBaseState(state, diff);
 
-        Set<String> updates = changedDefs.keySet();
-        String[] expected = new String[] { "/oak:index/reindexed" };
-        for (String def : expected) {
-            assertTrue("Expected to find " + def, updates.remove(def));
+        List<String> reindex = Lists.newArrayList("/oak:index/reindexed");
+        Iterator<String> iterator = defs.keySet().iterator();
+        while (iterator.hasNext()) {
+            String path = iterator.next();
+            assertTrue("Missing " + path + " from reindex list",
+                    reindex.remove(path));
+            iterator.remove();
         }
-        assertTrue(updates.isEmpty());
-        assertTrue(existingDefs.isEmpty());
+        assertTrue(reindex.isEmpty());
+        assertTrue(defs.isEmpty());
     }
 }
