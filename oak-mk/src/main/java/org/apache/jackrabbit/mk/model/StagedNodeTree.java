@@ -374,7 +374,7 @@ public class StagedNodeTree {
 
         StagedNode stagedNode = getStagedNode(path, true);
 
-        // merge non-conflicting changes
+        // apply our changes
         stagedNode.getProperties().putAll(ourChanges.getAddedProperties());
         stagedNode.getProperties().putAll(ourChanges.getChangedProperties());
         for (String name : ourChanges.getRemovedProperties().keySet()) {
@@ -385,7 +385,9 @@ public class StagedNodeTree {
             stagedNode.add(new ChildNodeEntry(entry.getKey(), entry.getValue()));
         }
         for (Map.Entry<String, Id> entry : ourChanges.getChangedChildNodes().entrySet()) {
-            stagedNode.add(new ChildNodeEntry(entry.getKey(), entry.getValue()));
+            if (!theirChanges.getChangedChildNodes().containsKey(entry.getKey())) {
+                stagedNode.add(new ChildNodeEntry(entry.getKey(), entry.getValue()));
+            }
         }
         for (String name : ourChanges.getRemovedChildNodes().keySet()) {
             stagedNode.remove(name);

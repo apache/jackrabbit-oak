@@ -1025,6 +1025,36 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
     }
 
     @Test
+    public void branchAndMerge2() {
+        // make sure /trunk doesn't exist in head
+        assertFalse(mk.nodeExists("/trunk", null));
+
+        // add a node /trunk in head
+        mk.commit("", "+\"/trunk\":{}", null, "");
+        // add a node /trunk/child1 in head
+        mk.commit("", "+\"/trunk/child1\":{}", null, "");
+
+        // create a branch on head
+        String branchRev = mk.branch(null);
+        // add a node /trunk/child1/child2 in branchRev
+        branchRev = mk.commit("", "+\"/trunk/child1/child2\":{}", branchRev, "");
+
+        // add a node /trunk/child3 in head
+        mk.commit("", "+\"/trunk/child3\":{}", null, "");
+
+        // merge branchRev with head
+        mk.merge(branchRev, "");
+
+        assertTrue(mk.nodeExists("/trunk", null));
+        assertTrue(mk.nodeExists("/trunk/child1", null));
+
+        // make sure /trunk/child1/child2 does now exist in head
+        assertTrue(mk.nodeExists("/trunk/child1/child2", null));
+        // make sure /trunk/child3 still exists in head
+        assertTrue(mk.nodeExists("/trunk/child3", null));
+    }
+
+    @Test
     public void testSmallBlob() {
         testBlobs(1234, 8 * 1024);
     }
