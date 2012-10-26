@@ -34,6 +34,7 @@ import org.junit.runners.Parameterized.Parameters;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -326,5 +327,66 @@ public abstract class AbstractMicroKernelIT {
             val = ((JSONObject) val).get(name);
         }
         return val;
+    }
+
+    protected void assertPropExists(String rev, String path, String property) {
+        String nodes = mk.getNodes(path, rev, -1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        JSONObject obj = parseJSONObject(nodes);
+        assertPropertyExists(obj, property);
+    }
+
+    protected void assertPropNotExists(String rev, String path, String property) {
+        String nodes = mk.getNodes(path, rev, -1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        if (nodes == null) {
+            return;
+        }
+        JSONObject obj = parseJSONObject(nodes);
+        assertPropertyNotExists(obj, property);
+    }
+
+    protected void assertPropValue(String rev, String path, String property, String value) {
+        String nodes = mk.getNodes(path, rev, -1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        JSONObject obj = parseJSONObject(nodes);
+        assertPropertyValue(obj, property, value);
+    }
+
+    protected String addNodes(String rev, String...nodes) {
+        String newRev = rev;
+        for (String node : nodes) {
+            newRev = mk.commit("", "+\"" + node + "\":{}", newRev, "");
+        }
+        return newRev;
+    }
+
+    protected String removeNodes(String rev, String...nodes) {
+        String newRev = rev;
+        for (String node : nodes) {
+            newRev = mk.commit("", "-\"" + node + "\"", newRev, "");
+        }
+        return newRev;
+    }
+
+    protected String setProp(String rev, String prop, Object value) {
+        value = value == null? null : "\"" + value + "\"";
+        return mk.commit("", "^\"" + prop + "\" : " + value, rev, "");
+    }
+
+    protected void assertNodesExist(String revision, String...paths) {
+        doAssertNodes(true, revision, paths);
+    }
+
+    protected void assertNodesNotExist(String revision, String...paths) {
+        doAssertNodes(false, revision, paths);
+    }
+
+    protected void doAssertNodes(boolean checkExists, String revision, String...paths) {
+        for (String path : paths) {
+            boolean exists = mk.nodeExists(path, revision);
+            if (checkExists) {
+                assertTrue(path + " does not exist", exists);
+            } else {
+                assertFalse(path + " should not exist", exists);
+            }
+        }
     }
 }
