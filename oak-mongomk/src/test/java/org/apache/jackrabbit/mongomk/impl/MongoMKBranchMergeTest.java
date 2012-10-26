@@ -20,7 +20,7 @@ import org.junit.Test;
 public class MongoMKBranchMergeTest extends BaseMongoMicroKernelTest {
 
     @Test
-    public void oneBranchOneAddedChildToEach() {
+    public void oneBranchAddedChildren1() {
         addNodes(null, "/trunk", "/trunk/child1");
         assertNodesExist(null, "/trunk", "/trunk/child1");
 
@@ -42,7 +42,7 @@ public class MongoMKBranchMergeTest extends BaseMongoMicroKernelTest {
     // FIXME - The last merge does not work correctly.
     @Test
     @Ignore
-    public void oneBranchOneAddedChildToTrunk() {
+    public void oneBranchAddedChildren2() {
         addNodes(null, "/trunk", "/trunk/child1");
         assertNodesExist(null, "/trunk", "/trunk/child1");
 
@@ -61,11 +61,36 @@ public class MongoMKBranchMergeTest extends BaseMongoMicroKernelTest {
         assertNodesExist(null, "/trunk", "/trunk/child1", "/trunk/child1/child2", "/trunk/child3");
     }
 
+    // FIXME - The last merge does not work correctly.
+    @Test
+    @Ignore
+    public void oneBranchAddedChildren3() {
+        addNodes(null, "/root", "/root/child1");
+        assertNodesExist(null, "/root", "/root/child1");
+
+        String branchRev = mk.branch(null);
+
+        addNodes(null, "/root/child2");
+        assertNodesExist(null, "/root", "/root/child1", "/root/child2");
+        assertNodesExist(branchRev, "/root", "/root/child1");
+        assertNodesNotExist(branchRev, "/root/child2");
+
+        branchRev = addNodes(branchRev, "/root/child1/child3", "/root/child4");
+        assertNodesExist(branchRev, "/root", "/root/child1", "/root/child1/child3", "/root/child4");
+        assertNodesNotExist(branchRev, "/root/child2");
+        assertNodesExist(null, "/root", "/root/child1", "/root/child2");
+        assertNodesNotExist(null, "/root/child1/child3", "/root/child4");
+
+        mk.merge(branchRev, "");
+        assertNodesExist(null, "/root", "/root/child1", "/root/child2",
+                "/root/child1/child3", "/root/child4");
+    }
+
     // FIXME - This currently does not work because there is no way to distinguish
     // deleted nodes in the current branching scheme.
     @Test
     @Ignore
-    public void oneBranchOneRemovedChildFromTrunk() {
+    public void oneBranchRemovedChildren() {
         addNodes(null, "/trunk", "/trunk/child1");
         assertNodesExist(null, "/trunk", "/trunk/child1");
 
@@ -77,8 +102,10 @@ public class MongoMKBranchMergeTest extends BaseMongoMicroKernelTest {
         assertNodesExist(null, "/trunk", "/trunk/child1");
     }
 
+    // FIXME - The last merge does not work correctly.
     @Test
-    public void oneBranchChangedPropertiesFromTrunk() {
+    @Ignore
+    public void oneBranchChangedProperties() {
         addNodes(null, "/trunk", "/trunk/child1");
         setProp(null, "/trunk/child1/prop1", "value1");
         setProp(null, "/trunk/child1/prop2", "value2");
@@ -98,42 +125,10 @@ public class MongoMKBranchMergeTest extends BaseMongoMicroKernelTest {
         assertPropExists(null, "/trunk/child1", "prop2");
         assertPropNotExists(null, "/trunk/child1", "prop3");
 
-        // FIXME - Merge does not seem to work properly yet.
         mk.merge(branchRev, "");
-        //assertPropValue(null, "/trunk/child1", "prop1", "value1a");
-        //assertPropNotExists(null, "/trunk/child1", "prop2");
-        //assertPropValue(null, "/trunk/child1", "prop3", "value3");
-    }
-
-    @Test
-    public void twoBranchesOneAddedChild() {
-        addNodes(null, "/trunk", "/trunk/child1");
-        assertNodesExist(null, "/trunk", "/trunk/child1");
-
-        String branchRev1 = mk.branch(null);
-        String branchRev2 = mk.branch(null);
-
-        branchRev1 = addNodes(branchRev1, "/branch1", "/branch1/child1");
-        branchRev2 = addNodes(branchRev2, "/branch2", "/branch2/child2");
-        assertNodesExist(branchRev1, "/trunk", "/trunk/child1");
-        assertNodesExist(branchRev2, "/trunk", "/trunk/child1");
-        assertNodesExist(branchRev1, "/branch1/child1");
-        assertNodesNotExist(branchRev1, "/branch2/child2");
-        assertNodesExist(branchRev2, "/branch2/child2");
-        assertNodesNotExist(branchRev2, "/branch1/child1");
-        assertNodesNotExist(null, "/branch1/child1", "/branch2/child2");
-
-        addNodes(null, "/trunk/child2");
-        assertNodesExist(null, "/trunk/child2");
-        assertNodesNotExist(branchRev1, "/trunk/child2");
-        assertNodesNotExist(branchRev2, "/trunk/child2");
-
-        mk.merge(branchRev1, "");
-        assertNodesExist(null, "/trunk", "/branch1", "/branch1/child1");
-        assertNodesNotExist(null, "/branch2", "/branch2/child2");
-
-        mk.merge(branchRev2, "");
-        assertNodesExist(null, "/trunk", "/branch1", "/branch1/child1", "/branch2", "/branch2/child2");
+        assertPropValue(null, "/trunk/child1", "prop1", "value1a");
+        assertPropNotExists(null, "/trunk/child1", "prop2");
+        assertPropValue(null, "/trunk/child1", "prop3", "value3");
     }
 
     @Test
@@ -158,7 +153,7 @@ public class MongoMKBranchMergeTest extends BaseMongoMicroKernelTest {
     }
 
     @Test
-    public void oneBranchOneAddedChildWithAddedProperties() {
+    public void oneBranchAddedChildrenAndAddedProperties() {
         addNodes(null, "/trunk", "/trunk/child1");
         setProp(null, "/trunk/child1/prop1", "value1");
         setProp(null, "/trunk/child1/prop2", "value2");
@@ -188,6 +183,37 @@ public class MongoMKBranchMergeTest extends BaseMongoMicroKernelTest {
         assertNodesExist(null, "/branch1", "/branch1/child1");
         assertPropExists(null, "/branch1/child1", "prop1");
         assertPropExists(null, "/branch1/child1", "prop2");
+    }
+
+    @Test
+    public void twoBranchesAddedChildren1() {
+        addNodes(null, "/trunk", "/trunk/child1");
+        assertNodesExist(null, "/trunk", "/trunk/child1");
+
+        String branchRev1 = mk.branch(null);
+        String branchRev2 = mk.branch(null);
+
+        branchRev1 = addNodes(branchRev1, "/branch1", "/branch1/child1");
+        branchRev2 = addNodes(branchRev2, "/branch2", "/branch2/child2");
+        assertNodesExist(branchRev1, "/trunk", "/trunk/child1");
+        assertNodesExist(branchRev2, "/trunk", "/trunk/child1");
+        assertNodesExist(branchRev1, "/branch1/child1");
+        assertNodesNotExist(branchRev1, "/branch2/child2");
+        assertNodesExist(branchRev2, "/branch2/child2");
+        assertNodesNotExist(branchRev2, "/branch1/child1");
+        assertNodesNotExist(null, "/branch1/child1", "/branch2/child2");
+
+        addNodes(null, "/trunk/child2");
+        assertNodesExist(null, "/trunk/child2");
+        assertNodesNotExist(branchRev1, "/trunk/child2");
+        assertNodesNotExist(branchRev2, "/trunk/child2");
+
+        mk.merge(branchRev1, "");
+        assertNodesExist(null, "/trunk", "/branch1", "/branch1/child1");
+        assertNodesNotExist(null, "/branch2", "/branch2/child2");
+
+        mk.merge(branchRev2, "");
+        assertNodesExist(null, "/trunk", "/branch1", "/branch1/child1", "/branch2", "/branch2/child2");
     }
 
     @Test
@@ -268,9 +294,9 @@ public class MongoMKBranchMergeTest extends BaseMongoMicroKernelTest {
         for (String path : paths) {
             boolean exists = mk.nodeExists(path, revision);
             if (checkExists) {
-                assertTrue(exists);
+                assertTrue(path + " does not exist", exists);
             } else {
-                assertFalse(exists);
+                assertFalse(path + " should not exist", exists);
             }
         }
     }
