@@ -45,6 +45,7 @@ import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.Value;
+import javax.jcr.ValueFormatException;
 import javax.jcr.lock.Lock;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.NoSuchNodeTypeException;
@@ -173,6 +174,7 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
     @Override
     public void remove() throws RepositoryException {
         checkStatus();
+        checkProtected();
 
         sessionDelegate.perform(new SessionOperation<Void>() {
             @Override
@@ -211,6 +213,7 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
     @Nonnull
     public Node addNode(final String relPath, final String primaryNodeTypeName) throws RepositoryException {
         checkStatus();
+        checkProtected();
 
         return sessionDelegate.perform(new SessionOperation<Node>() {
             @Override
@@ -260,7 +263,7 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
                 }
 
                 NodeImpl childNode = new NodeImpl(added);
-                childNode.setPrimaryType(ntName);
+                childNode.internalSetPrimaryType(ntName);
                 childNode.autoCreateItems();
                 return childNode;
             }
@@ -270,6 +273,7 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
     @Override
     public void orderBefore(final String srcChildRelPath, final String destChildRelPath) throws RepositoryException {
         checkStatus();
+        checkProtected();
 
         sessionDelegate.perform(new SessionOperation<Void>() {
             @Override
@@ -297,7 +301,7 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
         if (value != null) {
             type = value.getType();
         }
-        return setProperty(name, value, type);
+        return internalSetProperty(name, value, type, false);
     }
 
     /**
@@ -305,26 +309,9 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
      */
     @Override
     @Nonnull
-    public Property setProperty(final String jcrName, final Value value, final int type)
+    public Property setProperty(String name, Value value, int type)
             throws RepositoryException {
-        checkStatus();
-
-        return sessionDelegate.perform(new SessionOperation<Property>() {
-            @Override
-            public Property perform() throws RepositoryException {
-                if (value == null) {
-                    Property property = getProperty(jcrName);
-                    property.remove();
-                    return property;
-                } else {
-                    String oakName = sessionDelegate.getOakPathOrThrow(jcrName);
-                    int targetType = getTargetType(value, type);
-                    Value targetValue =
-                            ValueHelper.convert(value, targetType, getValueFactory());
-                    return new PropertyImpl(dlg.setProperty(oakName, targetValue));
-                }
-            }
-        });
+        return internalSetProperty(name, value, type, type != PropertyType.UNDEFINED);
     }
 
     /**
@@ -339,33 +326,13 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
         } else {
             type = values[0].getType();
         }
-        return setProperty(name, values, type);
+        return internalSetProperty(name, values, type, false);
     }
 
     @Override
     @Nonnull
-    public Property setProperty(final String jcrName, final Value[] values, final int type) throws RepositoryException {
-        checkStatus();
-
-        return sessionDelegate.perform(new SessionOperation<Property>() {
-            @Override
-            public Property perform() throws RepositoryException {
-                int targetType = getTargetType(values, type);
-                Value[] targetValues = ValueHelper.convert(values, targetType, getValueFactory());
-                if (targetValues == null) {
-                    Property p = getProperty(jcrName);
-                    p.remove();
-                    return p;
-                } else {
-                    String oakName = sessionDelegate.getOakPathOrThrow(jcrName);
-                    Iterable<Value> nonNullValues = Iterables.filter(
-                            Arrays.asList(targetValues),
-                            Predicates.notNull());
-
-                    return new PropertyImpl(dlg.setProperty(oakName, nonNullValues));
-                }
-            }
-        });
+    public Property setProperty(String jcrName, Value[] values, int type) throws RepositoryException {
+        return internalSetProperty(jcrName, values, type, true);
     }
 
     /**
@@ -389,7 +356,7 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
         } else {
             vs = ValueHelper.convert(values, type, getValueFactory());
         }
-        return setProperty(name, vs, type);
+        return internalSetProperty(name, vs, type, (type != PropertyType.UNDEFINED));
     }
 
     /**
@@ -399,7 +366,7 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
     @CheckForNull
     public Property setProperty(String name, String value) throws RepositoryException {
         Value v = (value == null) ? null : getValueFactory().createValue(value, PropertyType.STRING);
-        return setProperty(name, v, PropertyType.UNDEFINED);
+        return internalSetProperty(name, v, PropertyType.UNDEFINED, false);
     }
 
     /**
@@ -409,7 +376,7 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
     @CheckForNull
     public Property setProperty(String name, String value, int type) throws RepositoryException {
         Value v = (value == null) ? null : getValueFactory().createValue(value, type);
-        return setProperty(name, v, type);
+        return internalSetProperty(name, v, type, true);
     }
 
     /**
@@ -907,29 +874,15 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
     @Override
     public void setPrimaryType(final String nodeTypeName) throws RepositoryException {
         checkStatus();
+        checkProtected();
 
-        sessionDelegate.perform(new SessionOperation<Void>() {
-            @Override
-            public Void perform() throws RepositoryException {
-                // TODO: figure out the right place for this check
-                NodeTypeManager ntm = sessionDelegate.getNodeTypeManager();
-                NodeType nt = ntm.getNodeType(nodeTypeName); // throws on not found
-                if (nt.isAbstract() || nt.isMixin()) {
-                    throw new ConstraintViolationException();
-                }
-                // TODO: END
-
-                String jcrPrimaryType = sessionDelegate.getOakPathOrThrow(Property.JCR_PRIMARY_TYPE);
-                Value value = sessionDelegate.getValueFactory().createValue(nodeTypeName, PropertyType.NAME);
-                dlg.setProperty(jcrPrimaryType, value);
-                return null;
-            }
-        });
+        internalSetPrimaryType(nodeTypeName);
     }
 
     @Override
     public void addMixin(final String mixinName) throws RepositoryException {
         checkStatus();
+        checkProtected();
 
         sessionDelegate.perform(new SessionOperation<Void>() {
             @Override
@@ -966,6 +919,7 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
     @Override
     public void removeMixin(final String mixinName) throws RepositoryException {
         checkStatus();
+        checkProtected();
 
         sessionDelegate.perform(new SessionOperation<Void>() {
             @Override
@@ -1331,12 +1285,12 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
 
     @Override
     public void removeSharedSet() throws RepositoryException {
-        // TODO
+        throw new UnsupportedRepositoryOperationException("TODO: Node.removeSharedSet");
     }
 
     @Override
     public void removeShare() throws RepositoryException {
-        // TODO
+        throw new UnsupportedRepositoryOperationException("TODO: Node.removeShare");
     }
 
     /**
@@ -1381,21 +1335,26 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
                 });
     }
 
-    private static int getTargetType(Value value, int type) {
-        if (value == null) {
-            return PropertyType.STRING; // TODO: review again. rather use
-            // property definition
-        } else {
+    private static int getTargetType(Value value, PropertyDefinition definition) {
+        if (definition.getRequiredType() == PropertyType.UNDEFINED) {
             return value.getType();
+        } else {
+            return definition.getRequiredType();
         }
     }
 
-    private static int getTargetType(Value[] values, int type) {
-        if (values == null || values.length == 0) {
-            return PropertyType.STRING; // TODO: review again. rather use property definition
+    private static int getTargetType(Value[] values, PropertyDefinition definition) {
+        if (definition.getRequiredType() == PropertyType.UNDEFINED) {
+            if (values.length != 0) {
+                for (Value v : values) {
+                    if (v != null) {
+                        return v.getType();
+                    }
+                }
+            }
+            return PropertyType.STRING;
         } else {
-            // TODO deal with values array containing a null value in the first position
-            return getTargetType(values[0], type);
+            return definition.getRequiredType();
         }
     }
 
@@ -1500,5 +1459,98 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
             }
         }
         throw new NoSuchWorkspaceException(workspaceName + " does not exist.");
+    }
+
+    private void internalSetPrimaryType(final String nodeTypeName) throws RepositoryException {
+        sessionDelegate.perform(new SessionOperation<Void>() {
+            @Override
+            public Void perform() throws RepositoryException {
+                // TODO: figure out the right place for this check
+                NodeTypeManager ntm = sessionDelegate.getNodeTypeManager();
+                NodeType nt = ntm.getNodeType(nodeTypeName); // throws on not found
+                if (nt.isAbstract() || nt.isMixin()) {
+                    throw new ConstraintViolationException();
+                }
+                // TODO: END
+
+                String jcrPrimaryType = sessionDelegate.getOakPathOrThrow(Property.JCR_PRIMARY_TYPE);
+                Value value = sessionDelegate.getValueFactory().createValue(nodeTypeName, PropertyType.NAME);
+                dlg.setProperty(jcrPrimaryType, value);
+                return null;
+            }
+        });
+    }
+
+    private Property internalSetProperty(final String jcrName, final Value value,
+                                         final int type, final boolean exactTypeMatch) throws RepositoryException {
+        checkStatus();
+        checkProtected();
+
+        return sessionDelegate.perform(new SessionOperation<Property>() {
+            @Override
+            public Property perform() throws RepositoryException {
+                if (value == null) {
+                    Property property = getProperty(jcrName);
+                    property.remove();
+                    return property;
+                } else {
+                    String oakName = sessionDelegate.getOakPathOrThrow(jcrName);
+
+                    PropertyDefinition definition;
+                    if (hasProperty(jcrName)) {
+                        definition = getProperty(jcrName).getDefinition();
+                    } else {
+                        definition = getPropertyDefinition(NodeImpl.this, oakName, false, type, exactTypeMatch);
+                    }
+                    checkProtected(definition);
+                    if (definition.isMultiple()) {
+                        throw new ValueFormatException("Cannot set single value to multivalued property");
+                    }
+
+                    int targetType = getTargetType(value, definition);
+                    Value targetValue = ValueHelper.convert(value, targetType, getValueFactory());
+
+                    return new PropertyImpl(dlg.setProperty(oakName, targetValue));
+                }
+            }
+        });
+    }
+
+    private Property internalSetProperty(final String jcrName, final Value[] values,
+                                         final int type, final boolean exactTypeMatch) throws RepositoryException {
+        checkStatus();
+        checkProtected();
+
+        return sessionDelegate.perform(new SessionOperation<Property>() {
+            @Override
+            public Property perform() throws RepositoryException {
+                if (values == null) {
+                    Property p = getProperty(jcrName);
+                    p.remove();
+                    return p;
+                } else {
+                    String oakName = sessionDelegate.getOakPathOrThrow(jcrName);
+
+                    PropertyDefinition definition;
+                    if (hasProperty(jcrName)) {
+                        definition = getProperty(jcrName).getDefinition();
+                    } else {
+                        definition = getPropertyDefinition(NodeImpl.this, oakName, true, type, exactTypeMatch);
+                    }
+                    checkProtected(definition);
+                    if (!definition.isMultiple()) {
+                        throw new ValueFormatException("Cannot set value array to single value property");
+                    }
+
+                    int targetType = getTargetType(values, definition);
+                    Value[] targetValues = ValueHelper.convert(values, targetType, getValueFactory());
+
+                    Iterable<Value> nonNullValues = Iterables.filter(
+                            Arrays.asList(targetValues),
+                            Predicates.notNull());
+                    return new PropertyImpl(dlg.setProperty(oakName, nonNullValues));
+                }
+            }
+        });
     }
 }

@@ -35,7 +35,6 @@ import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.ValueFormatException;
-import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.PropertyDefinition;
 
 import com.google.common.base.Predicates;
@@ -131,6 +130,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
     @Override
     public void remove() throws RepositoryException {
         checkStatus();
+        checkProtected();
 
         sessionDelegate.perform(new SessionOperation<Void>() {
             @Override
@@ -550,7 +550,6 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
     @Override
     @Nonnull
     public PropertyDefinition getDefinition() throws RepositoryException {
-        String name = getName();
         int type = UNDEFINED;
         if (isMultiple()) {
             Value[] values = getValues();
@@ -561,46 +560,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
             type = getValue().getType();
         }
 
-        // TODO: This may need to be optimized
-        List<PropertyDefinition> residualDefs = new ArrayList<PropertyDefinition>();
-        for (NodeType nt : getAllNodeTypes(getParent())) {
-            for (PropertyDefinition def : nt.getDeclaredPropertyDefinitions()) {
-                String defName = def.getName();
-                int defType = def.getRequiredType();
-                if ((name.equals(defName))
-                        && (type == defType || UNDEFINED == type || UNDEFINED == defType)
-                        && isMultiple() == def.isMultiple()) {
-                    return def;
-                } else if ("*".equals(defName)) {
-                    residualDefs.add(def);
-                }
-            }
-        }
-
-        for (PropertyDefinition def : residualDefs) {
-            String defName = def.getName();
-            int defType = def.getRequiredType();
-            if (("*".equals(defName))
-                    && (type == defType || UNDEFINED == type || UNDEFINED == defType)
-                    && isMultiple() == def.isMultiple()) {
-                return def;
-            }
-        }
-
-        // FIXME: Shouldn't be needed
-        for (NodeType nt : getAllNodeTypes(getParent())) {
-            for (PropertyDefinition def : nt.getDeclaredPropertyDefinitions()) {
-                String defName = def.getName();
-                if ((name.equals(defName) || "*".equals(defName))
-                        && type == PropertyType.STRING
-                        && isMultiple() == def.isMultiple()) {
-                    return def;
-                }
-            }
-        }
-
-        throw new RepositoryException(
-                "No matching property definition found for " + this);
+        return getPropertyDefinition(getParent(), getName(), isMultiple(), type, true);
     }
 
     /**
@@ -680,6 +640,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
      */
     private void setValue(Value value, int requiredType) throws RepositoryException {
         checkArgument(requiredType != PropertyType.UNDEFINED);
+        checkProtected();
 
         // TODO check again if definition validation should be respected here.
         if (isMultiple()) {
@@ -700,6 +661,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
      */
     private void setValues(Value[] values, int requiredType) throws RepositoryException {
         checkArgument(requiredType != PropertyType.UNDEFINED);
+        checkProtected();
 
         // TODO check again if definition validation should be respected here.
         if (!isMultiple()) {

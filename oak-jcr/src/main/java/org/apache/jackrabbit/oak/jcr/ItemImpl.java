@@ -19,22 +19,27 @@ package org.apache.jackrabbit.oak.jcr;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Queue;
-
 import javax.annotation.Nonnull;
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.Item;
 import javax.jcr.Node;
+import javax.jcr.Property;
+import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.ValueFactory;
+import javax.jcr.nodetype.ConstraintViolationException;
+import javax.jcr.nodetype.ItemDefinition;
 import javax.jcr.nodetype.NodeType;
+import javax.jcr.nodetype.PropertyDefinition;
 
+import com.google.common.collect.Maps;
+import com.google.common.collect.Queues;
 import org.apache.jackrabbit.commons.AbstractItem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Maps;
-import com.google.common.collect.Queues;
+import static javax.jcr.PropertyType.UNDEFINED;
 
 /**
  * {@code ItemImpl}...
@@ -185,6 +190,52 @@ abstract class ItemImpl<T extends ItemDelegate> extends AbstractItem {
         return types.values();
     }
 
+    // FIXME: move to node type utility (oak-nodetype-plugin)
+    protected static PropertyDefinition getPropertyDefinition(Node parent,
+                                                              String propName,
+                                                              boolean isMultiple,
+                                                              int type,
+                                                              boolean exactTypeMatch) throws RepositoryException {
+        // TODO: This may need to be optimized
+        for (NodeType nt : getAllNodeTypes(parent)) {
+            for (PropertyDefinition def : nt.getDeclaredPropertyDefinitions()) {
+                String defName = def.getName();
+                int defType = def.getRequiredType();
+                if (propName.equals(defName)
+                        && isMultiple == def.isMultiple()
+                        &&(!exactTypeMatch || (type == defType || UNDEFINED == type || UNDEFINED == defType))) {
+                    return def;
+                }
+            }
+        }
+
+        // try if there is a residual definition
+        for (NodeType nt : getAllNodeTypes(parent)) {
+            for (PropertyDefinition def : nt.getDeclaredPropertyDefinitions()) {
+                String defName = def.getName();
+                int defType = def.getRequiredType();
+                if ("*".equals(defName)
+                        && isMultiple == def.isMultiple()
+                        && (!exactTypeMatch || (type == defType || UNDEFINED == type || UNDEFINED == defType))) {
+                    return def;
+                }
+            }
+        }
+
+        // FIXME: Shouldn't be needed
+        for (NodeType nt : getAllNodeTypes(parent)) {
+            for (PropertyDefinition def : nt.getDeclaredPropertyDefinitions()) {
+                String defName = def.getName();
+                if ((propName.equals(defName) || "*".equals(defName))
+                        && type == PropertyType.STRING
+                        && isMultiple == def.isMultiple()) {
+                    return def;
+                }
+            }
+        }
+        throw new RepositoryException("No matching property definition found for " + propName);
+    }
+
 
     /**
      * Performs a sanity check on this item and the associated session.
@@ -202,6 +253,17 @@ abstract class ItemImpl<T extends ItemDelegate> extends AbstractItem {
         }
 
         // TODO: validate item state.
+    }
+
+    void checkProtected() throws RepositoryException {
+        ItemDefinition definition = (isNode()) ? ((Node) this).getDefinition() : ((Property) this).getDefinition();
+        checkProtected(definition);
+    }
+
+    void checkProtected(ItemDefinition definition) throws RepositoryException {
+        if (definition.isProtected()) {
+            throw new ConstraintViolationException("Item is protected.");
+        }
     }
 
     /**

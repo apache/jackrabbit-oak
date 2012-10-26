@@ -45,8 +45,6 @@
       org.apache.jackrabbit.test.api.NodeTest#testAddNodeConstraintViolationExceptionUndefinedNodeType<!--OAK-66-->
       org.apache.jackrabbit.test.api.NodeTest#testRemoveMandatoryNode<!--OAK-66-->
       org.apache.jackrabbit.test.api.NodeTest#testRefreshInvalidItemStateException<!--OAK-141-->
-      org.apache.jackrabbit.test.api.NodeTest#testPrimaryTypeProtected<!--OAK-66-->
-      org.apache.jackrabbit.test.api.NodeTest#testMixinTypesProtected<!--OAK-66-->
       org.apache.jackrabbit.test.api.NodeTest#testRemoveNodeLockedItself
       org.apache.jackrabbit.test.api.NodeTest#testRemoveNodeParentLocked
       org.apache.jackrabbit.test.api.NodeUUIDTest#testSaveReferentialIntegrityException<!--OAK-66-->
@@ -267,13 +265,6 @@
       org.apache.jackrabbit.oak.jcr.security.user.GroupTest#testCyclicGroups                             <!-- OAK-343 -->
       org.apache.jackrabbit.oak.jcr.security.user.AuthorizableTest#testRemoveListedAuthorizable          <!-- OAK-343 -->
       org.apache.jackrabbit.oak.jcr.security.user.AuthorizableTest#testSetPropertyInvalidRelativePath    <!-- OAK-369 -->
-      org.apache.jackrabbit.oak.jcr.security.user.AuthorizableTest#testSetSpecialProperties                 <!-- OAK-250 -->
-      org.apache.jackrabbit.oak.jcr.security.user.AuthorizableTest#testRemoveSpecialProperties              <!-- OAK-250 -->
-      org.apache.jackrabbit.oak.jcr.security.user.AuthorizableTest#testProtectedUserProperties              <!-- OAK-250 -->
-      org.apache.jackrabbit.oak.jcr.security.user.AuthorizableTest#testProtectedGroupProperties             <!-- OAK-250 -->
-      org.apache.jackrabbit.oak.jcr.security.user.AuthorizableTest#testSetSpecialPropertiesDirectly         <!-- OAK-250 -->
-      org.apache.jackrabbit.oak.jcr.security.user.AuthorizableTest#testRemoveSpecialUserPropertiesDirectly  <!-- OAK-250 -->
-      org.apache.jackrabbit.oak.jcr.security.user.AuthorizableTest#testRemoveSpecialGroupPropertiesDirectly <!-- OAK-250 -->
       org.apache.jackrabbit.oak.jcr.security.principal.PrincipalManagerTest#testGetPrincipals            <!-- principal search missing -->
       org.apache.jackrabbit.oak.jcr.security.principal.PrincipalManagerTest#testGetGroupPrincipals       <!-- principal search missing -->
       org.apache.jackrabbit.oak.jcr.security.principal.PrincipalManagerTest#testGetAllPrincipals         <!-- principal search missing -->
