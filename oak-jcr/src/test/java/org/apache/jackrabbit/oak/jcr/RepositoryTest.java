@@ -27,7 +27,6 @@ import java.util.Calendar;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
@@ -1881,26 +1880,6 @@ public class RepositoryTest extends AbstractRepositoryTest {
         assertTrue(n2.hasProperty("p2"));
         assertFalse(c2.hasProperty("pc1"));
         assertTrue(c2.hasProperty("pc2"));
-    }
-
-    @Test
-    public void testUniqueness() throws RepositoryException {
-        Session session = getAdminSession();
-
-        Node node = getNode("/foo");
-        node.addMixin("mix:referenceable");
-        node.setProperty("jcr:uuid", UUID.randomUUID().toString());
-        session.save();
-
-        Node node2 = node.addNode("foo2");
-        node2.addMixin("mix:referenceable");
-        node2.setProperty("jcr:uuid", node.getProperty("jcr:uuid").getValue());
-        try {
-            session.save();
-            fail();
-        } catch (RepositoryException e) {
-            // expected
-        }
     }
 
     //------------------------------------------------------------< private >---
