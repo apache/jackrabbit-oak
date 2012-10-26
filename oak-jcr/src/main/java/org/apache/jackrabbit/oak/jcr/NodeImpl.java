@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.jcr;
 
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
@@ -73,6 +74,7 @@ import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
+import org.apache.jackrabbit.oak.plugins.nodetype.RootNodeDefinition;
 import org.apache.jackrabbit.oak.util.TODO;
 import org.apache.jackrabbit.value.ValueHelper;
 import org.slf4j.Logger;
@@ -998,16 +1000,16 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
     @Nonnull
     public NodeDefinition getDefinition() throws RepositoryException {
         if (getDepth() == 0) {
-            // TODO: What should be the root node definition?
-            return getPrimaryNodeType().getChildNodeDefinitions()[0];
+            return new RootNodeDefinition(dlg.sessionDelegate.getNodeTypeManager());
         }
 
         String name = getName();
+        List<NodeDefinition> residualDefs = new ArrayList<NodeDefinition>();
         // TODO: This may need to be optimized
         for (NodeType nt : getAllNodeTypes(getParent())) {
             for (NodeDefinition def : nt.getDeclaredChildNodeDefinitions()) {
                 String defName = def.getName();
-                if (name.equals(defName) || "*".equals(defName)) {
+                if (name.equals(defName)) {
                     boolean match = true;
                     for (String type : def.getRequiredPrimaryTypeNames()) {
                         if (!isNodeType(type)) {
@@ -1017,12 +1019,28 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
                     if (match) {
                         return def;
                     }
+                } else if ("*".equals(defName)) {
+                    residualDefs.add(def);
                 }
             }
         }
 
-        throw new RepositoryException(
-                "No matching node definition found for " + this);
+        for (NodeDefinition def : residualDefs) {
+            String defName = def.getName();
+            if ("*".equals(defName)) {
+                boolean match = true;
+                for (String type : def.getRequiredPrimaryTypeNames()) {
+                    if (!isNodeType(type)) {
+                        match = false;
+                    }
+                }
+                if (match) {
+                    return def;
+                }
+            }
+        }
+
+        throw new RepositoryException("No matching node definition found for " + this);
     }
 
     @Override
