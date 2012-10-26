@@ -63,17 +63,10 @@ public class IndexHookManager implements CommitHook {
         NodeBuilder builder = after.builder();
 
         // <path>, <builder>
-        Map<String, NodeBuilder> changedDefs = new HashMap<String, NodeBuilder>();
-        // <path>, <builder>
-        Map<String, NodeBuilder> existingDefs = new HashMap<String, NodeBuilder>();
+        Map<String, NodeBuilder> allDefs = new HashMap<String, NodeBuilder>();
 
-        IndexDefDiff diff = new IndexDefDiff(builder, changedDefs, existingDefs);
+        IndexDefDiff diff = new IndexDefDiff(builder, allDefs);
         after.compareAgainstBaseState(before, diff);
-
-        // <path>, <builder>
-        Map<String, NodeBuilder> allDefs = new HashMap<String, NodeBuilder>(
-                changedDefs);
-        allDefs.putAll(existingDefs);
 
         // <type, <<path>, <builder>>
         Map<String, Map<String, NodeBuilder>> updates = new HashMap<String, Map<String, NodeBuilder>>();
@@ -94,21 +87,33 @@ public class IndexHookManager implements CommitHook {
 
         // commit
         for (String type : updates.keySet()) {
-            Map<String, NodeBuilder> indexDefs = updates.get(type);
-            for (String p : indexDefs.keySet()) {
+            Map<String, NodeBuilder> update = updates.get(type);
+            for (String path : update.keySet()) {
+                NodeBuilder updateBuiler = update.get(path);
+                boolean reindex = getAndResetReindex(updateBuiler);
                 List<? extends IndexHook> hooks = provider.getIndexHooks(type,
-                        indexDefs.get(p));
+                        updateBuiler);
                 for (IndexHook hook : hooks) {
-                    boolean reindex = changedDefs.keySet().contains(p);
                     if (reindex) {
                         hook.processCommit(MemoryNodeState.EMPTY_NODE, after);
                     } else {
                         hook.processCommit(before, after);
                     }
                 }
+                
             }
         }
         return builder.getNodeState();
+    }
+
+    protected static boolean getAndResetReindex(NodeBuilder builder) {
+        boolean isReindex = false;
+        PropertyState ps = builder.getProperty(REINDEX_PROPERTY_NAME);
+        if (ps != null) {
+            isReindex = ps.getValue(Type.BOOLEAN);
+            builder.setProperty(REINDEX_PROPERTY_NAME, false);
+        }
+        return isReindex;
     }
 
     protected static class IndexDefDiff implements NodeStateDiff {
@@ -122,23 +127,19 @@ public class IndexHookManager implements CommitHook {
         private String path;
 
         private final Map<String, NodeBuilder> updates;
-        private final Map<String, NodeBuilder> existing;
 
         public IndexDefDiff(IndexDefDiff parent, NodeBuilder node, String name,
-                String path, Map<String, NodeBuilder> updates,
-                Map<String, NodeBuilder> existing) {
+                String path, Map<String, NodeBuilder> updates) {
             this.parent = parent;
             this.node = node;
             this.name = name;
             this.path = path;
             this.updates = updates;
-            this.existing = existing;
 
             if (node != null
                     && isIndexNodeType(node.getProperty(JCR_PRIMARYTYPE))) {
-                getAndResetReindex(node);
+                node.setProperty(REINDEX_PROPERTY_NAME, true);
                 this.updates.put(getPath(), node);
-                this.existing.remove(getPath());
             }
 
             if (node != null && node.hasChildNode(INDEX_DEFINITIONS_NAME)) {
@@ -148,25 +149,19 @@ public class IndexHookManager implements CommitHook {
                             INDEX_DEFINITIONS_NAME, indexName);
                     NodeBuilder indexChild = index.child(indexName);
                     if (isIndexNodeType(indexChild.getProperty(JCR_PRIMARYTYPE))) {
-                        boolean reindex = getAndResetReindex(indexChild);
-                        if (reindex) {
-                            this.updates.put(indexPath, indexChild);
-                        } else {
-                            this.existing.put(indexPath, indexChild);
-                        }
+                        this.updates.put(indexPath, indexChild);
                     }
                 }
             }
         }
 
-        public IndexDefDiff(NodeBuilder root, Map<String, NodeBuilder> updates,
-                Map<String, NodeBuilder> existing) {
-            this(null, root, null, "/", updates, existing);
+        public IndexDefDiff(NodeBuilder root, Map<String, NodeBuilder> updates) {
+            this(null, root, null, "/", updates);
         }
 
         public IndexDefDiff(IndexDefDiff parent, String name) {
             this(parent, getChildNode(parent.node, name), name, null,
-                    parent.updates, parent.existing);
+                    parent.updates);
         }
 
         private static NodeBuilder getChildNode(NodeBuilder node, String name) {
@@ -221,14 +216,5 @@ public class IndexHookManager implements CommitHook {
                             INDEX_DEFINITIONS_NODE_TYPE);
         }
 
-        private boolean getAndResetReindex(NodeBuilder builder) {
-            boolean isReindex = false;
-            PropertyState ps = builder.getProperty(REINDEX_PROPERTY_NAME);
-            if (ps != null) {
-                isReindex = ps.getValue(Type.BOOLEAN);
-                builder.setProperty(REINDEX_PROPERTY_NAME, false);
-            }
-            return isReindex;
-        }
     }
 }
