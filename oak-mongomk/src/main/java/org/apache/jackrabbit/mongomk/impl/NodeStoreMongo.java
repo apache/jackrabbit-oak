@@ -22,6 +22,7 @@ import java.util.Map;
 
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.json.JsopBuilder;
+import org.apache.jackrabbit.mk.model.ChildNodeEntry;
 import org.apache.jackrabbit.mk.model.Id;
 import org.apache.jackrabbit.mk.model.tree.DiffBuilder;
 import org.apache.jackrabbit.mk.model.tree.NodeState;
@@ -151,7 +152,9 @@ public class NodeStoreMongo implements NodeStore {
         // Merge nodes from head to branch.
         ourRoot = mergeNodes(ourRoot, currentHead, branchRootId);
 
-        String diff = new DiffBuilder(wrap(getNode("/", currentHead)),
+        Node currentHeadNode = getNode("/", currentHead);
+
+        String diff = new DiffBuilder(wrap(currentHeadNode),
                 wrap(ourRoot), "/", -1,
                 new MongoNodeStore(), "").build();
 
@@ -384,9 +387,10 @@ public class NodeStoreMongo implements NodeStore {
             stagedNode.addChildNodeEntry(nodeState.unwrap());
             //stagedNode.addChild(new NodeImpl(entry.getKey()));
         }
-        for (Map.Entry<String, Id> entry : ourChanges.getChangedChildNodes().entrySet()) {
+        for (Map.Entry<String, NodeState> entry : ourChanges.getChangedChildNodes().entrySet()) {
             if (!theirChanges.getChangedChildNodes().containsKey(entry.getKey())) {
-                stagedNode.addChildNodeEntry(new NodeImpl(entry.getKey()));
+                MongoNodeState nodeState = (MongoNodeState)entry.getValue();
+                stagedNode.addChildNodeEntry(nodeState.unwrap());
             }
         }
 //        for (String name : ourChanges.getRemovedChildNodes().keySet()) {

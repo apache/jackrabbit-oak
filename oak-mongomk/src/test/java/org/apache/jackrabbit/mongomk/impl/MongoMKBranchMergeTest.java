@@ -41,7 +41,6 @@ public class MongoMKBranchMergeTest extends BaseMongoMicroKernelTest {
 
     // FIXME - The last merge does not work correctly.
     @Test
-    @Ignore
     public void oneBranchAddedChildren2() {
         addNodes(null, "/trunk", "/trunk/child1");
         assertNodesExist(null, "/trunk", "/trunk/child1");
@@ -130,9 +129,7 @@ public class MongoMKBranchMergeTest extends BaseMongoMicroKernelTest {
         assertNodesExist(null, "/trunk", "/trunk/child1");
     }
 
-    // FIXME - The last merge does not work correctly.
     @Test
-    @Ignore
     public void oneBranchChangedProperties() {
         addNodes(null, "/trunk", "/trunk/child1");
         setProp(null, "/trunk/child1/prop1", "value1");

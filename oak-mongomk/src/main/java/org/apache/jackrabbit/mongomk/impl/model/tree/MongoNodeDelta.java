@@ -63,7 +63,8 @@ public class MongoNodeDelta {
 
     Map<String, NodeState> addedChildNodes = new HashMap<String, NodeState>();
     Map<String, Id> removedChildNodes = new HashMap<String, Id>();
-    Map<String, Id> changedChildNodes = new HashMap<String, Id>();
+    Map<String, NodeState> changedChildNodes = new HashMap<String, NodeState>();
+    //Map<String, Id> changedChildNodes = new HashMap<String, Id>();
 
     public MongoNodeDelta(NodeStore provider, NodeState node1, NodeState node2) {
         this.provider = provider;
@@ -91,7 +92,7 @@ public class MongoNodeDelta {
         return removedChildNodes;
     }
 
-    public Map<String, Id> getChangedChildNodes() {
+    public Map<String, NodeState> getChangedChildNodes() {
         return changedChildNodes;
     }
 
@@ -202,14 +203,13 @@ public class MongoNodeDelta {
         @Override
         public void childNodeChanged(
                 String name, NodeState before, NodeState after) {
-            changedChildNodes.put(name, null /*provider.getId(after)*/);
+            changedChildNodes.put(name, after /*provider.getId(after)*/);
         }
 
         @Override
         public void childNodeDeleted(String name, NodeState before) {
             removedChildNodes.put(name, null /*provider.getId(before)*/);
         }
-
     }
 
     public static class Conflict {
