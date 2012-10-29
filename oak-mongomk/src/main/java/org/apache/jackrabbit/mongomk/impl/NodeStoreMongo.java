@@ -22,8 +22,6 @@ import java.util.Map;
 
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.json.JsopBuilder;
-import org.apache.jackrabbit.mk.model.ChildNodeEntry;
-import org.apache.jackrabbit.mk.model.Id;
 import org.apache.jackrabbit.mk.model.tree.DiffBuilder;
 import org.apache.jackrabbit.mk.model.tree.NodeState;
 import org.apache.jackrabbit.mongomk.api.NodeStore;
@@ -39,6 +37,7 @@ import org.apache.jackrabbit.mongomk.impl.command.CommandExecutorImpl;
 import org.apache.jackrabbit.mongomk.impl.model.CommitBuilder;
 import org.apache.jackrabbit.mongomk.impl.model.NodeImpl;
 import org.apache.jackrabbit.mongomk.impl.model.tree.MongoNodeDelta;
+import org.apache.jackrabbit.mongomk.impl.model.tree.MongoNodeDelta.Conflict;
 import org.apache.jackrabbit.mongomk.impl.model.tree.MongoNodeState;
 import org.apache.jackrabbit.mongomk.impl.model.tree.MongoNodeStore;
 import org.apache.jackrabbit.mongomk.model.CommitMongo;
@@ -46,6 +45,7 @@ import org.apache.jackrabbit.mongomk.query.FetchCommitQuery;
 import org.apache.jackrabbit.mongomk.query.FetchCommitsQuery;
 import org.apache.jackrabbit.mongomk.query.FetchHeadRevisionIdQuery;
 import org.apache.jackrabbit.mongomk.util.MongoUtil;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -397,45 +397,46 @@ public class NodeStoreMongo implements NodeStore {
             stagedNode.removeChildNodeEntry(name);
         }
 
-//        List<NodeDelta.Conflict> conflicts = theirChanges.listConflicts(ourChanges);
-//        // resolve/report merge conflicts
-//        for (NodeDelta.Conflict conflict : conflicts) {
-//            String conflictName = conflict.getName();
-//            String conflictPath = PathUtils.concat(path, conflictName);
-//            switch (conflict.getType()) {
-//                case PROPERTY_VALUE_CONFLICT:
-//                    throw new Exception(
-//                            "concurrent modification of property " + conflictPath
-//                                    + " with conflicting values: \""
-//                                    + ourNode.getProperties().get(conflictName)
-//                                    + "\", \""
-//                                    + theirNode.getProperties().get(conflictName));
-//
-//                case NODE_CONTENT_CONFLICT: {
-//                    if (ourChanges.getChangedChildNodes().containsKey(conflictName)) {
-//                        // modified subtrees
-//                        StoredNode baseChild = store.getNode(baseNode.getChildNodeEntry(conflictName).getId());
-//                        StoredNode ourChild = store.getNode(ourNode.getChildNodeEntry(conflictName).getId());
-//                        StoredNode theirChild = store.getNode(theirNode.getChildNodeEntry(conflictName).getId());
-//                        // merge the dirty subtrees recursively
-//                        mergeNode(baseChild, ourChild, theirChild, PathUtils.concat(path, conflictName));
-//                    } else {
-//                        // todo handle/merge colliding node creation
-//                        throw new Exception("colliding concurrent node creation: " + conflictPath);
-//                    }
-//                    break;
-//                }
-//
-//                case REMOVED_DIRTY_PROPERTY_CONFLICT:
-//                    stagedNode.getProperties().remove(conflictName);
-//                    break;
-//
-//                case REMOVED_DIRTY_NODE_CONFLICT:
-//                    stagedNode.remove(conflictName);
-//                    break;
-//            }
-//
-//        }
+        List<Conflict> conflicts = theirChanges.listConflicts(ourChanges);
+        // resolve/report merge conflicts
+        for (Conflict conflict : conflicts) {
+            String conflictName = conflict.getName();
+            String conflictPath = PathUtils.concat(path, conflictName);
+            switch (conflict.getType()) {
+                case PROPERTY_VALUE_CONFLICT:
+                    throw new Exception(
+                            "concurrent modification of property " + conflictPath
+                                    + " with conflicting values: \""
+                                    + ourNode.getProperties().get(conflictName)
+                                    + "\", \""
+                                    + theirNode.getProperties().get(conflictName));
+
+                case NODE_CONTENT_CONFLICT: {
+                    if (ourChanges.getChangedChildNodes().containsKey(conflictName)) {
+                        // modified subtrees
+                        Node baseChild = getNode(baseNode.getChildNodeEntry(conflictName).getPath(), null);
+                        Node ourChild = getNode(ourNode.getChildNodeEntry(conflictName).getPath(), null);
+                        Node theirChild = getNode(theirNode.getChildNodeEntry(conflictName).getPath(), null);
+                        // merge the dirty subtrees recursively
+                        mergeNode(baseChild, ourChild, theirChild, PathUtils.concat(path, conflictName));
+                    } else {
+                        // todo handle/merge colliding node creation
+                        throw new Exception("colliding concurrent node creation: " + conflictPath);
+                    }
+                    break;
+                }
+
+                case REMOVED_DIRTY_PROPERTY_CONFLICT:
+                    stagedNode.getProperties().remove(conflictName);
+                    break;
+
+                case REMOVED_DIRTY_NODE_CONFLICT:
+                    //stagedNode.remove(conflictName);
+                    stagedNode.removeChildNodeEntry(conflictName);
+                    break;
+            }
+
+        }
         return stagedNode;
     }
 

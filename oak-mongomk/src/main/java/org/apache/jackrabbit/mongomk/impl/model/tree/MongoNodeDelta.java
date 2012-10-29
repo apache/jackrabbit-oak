@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.mongomk.impl.model.tree;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -101,79 +102,80 @@ public class MongoNodeDelta {
     }
 
     public List<Conflict> listConflicts(MongoNodeDelta other) {
-        return null;
-//        // assume that both delta's were built using the *same* base node revision
-//        if (!node1.equals(other.node1)) {
-//            throw new IllegalArgumentException("other and this NodeDelta object are expected to share common node1 instance");
-//        }
-//
-//        List<Conflict> conflicts = new ArrayList<Conflict>();
-//
-//        // properties
-//
-//        Map<String, String> otherAddedProps = other.getAddedProperties();
-//        for (Map.Entry<String, String> added : addedProperties.entrySet()) {
-//            String otherValue = otherAddedProps.get(added.getKey());
-//            if (otherValue != null && !added.getValue().equals(otherValue)) {
-//                // same property added with conflicting values
-//                conflicts.add(new Conflict(ConflictType.PROPERTY_VALUE_CONFLICT, added.getKey()));
-//            }
-//        }
-//
-//        Map<String, String> otherChangedProps = other.getChangedProperties();
-//        Map<String, String> otherRemovedProps = other.getRemovedProperties();
-//        for (Map.Entry<String, String> changed : changedProperties.entrySet()) {
-//            String otherValue = otherChangedProps.get(changed.getKey());
-//            if (otherValue != null && !changed.getValue().equals(otherValue)) {
-//                // same property changed with conflicting values
-//                conflicts.add(new Conflict(ConflictType.PROPERTY_VALUE_CONFLICT, changed.getKey()));
-//            }
-//            if (otherRemovedProps.containsKey(changed.getKey())) {
-//                // changed property has been removed
-//                conflicts.add(new Conflict(ConflictType.REMOVED_DIRTY_PROPERTY_CONFLICT, changed.getKey()));
-//            }
-//        }
-//
-//        for (Map.Entry<String, String> removed : removedProperties.entrySet()) {
-//            if (otherChangedProps.containsKey(removed.getKey())) {
-//                // removed property has been changed
-//                conflicts.add(new Conflict(ConflictType.REMOVED_DIRTY_PROPERTY_CONFLICT, removed.getKey()));
-//            }
-//        }
-//
-//        // child node entries
-//
-//        Map<String, Id> otherAddedChildNodes = other.getAddedChildNodes();
-//        for (Map.Entry<String, Id> added : addedChildNodes.entrySet()) {
-//            Id otherValue = otherAddedChildNodes.get(added.getKey());
-//            if (otherValue != null && !added.getValue().equals(otherValue)) {
-//                // same child node entry added with different target id's
-//                conflicts.add(new Conflict(ConflictType.NODE_CONTENT_CONFLICT, added.getKey()));
-//            }
-//        }
-//
-//        Map<String, Id> otherChangedChildNodes = other.getChangedChildNodes();
-//        Map<String, Id> otherRemovedChildNodes = other.getRemovedChildNodes();
-//        for (Map.Entry<String, Id> changed : changedChildNodes.entrySet()) {
-//            Id otherValue = otherChangedChildNodes.get(changed.getKey());
-//            if (otherValue != null && !changed.getValue().equals(otherValue)) {
-//                // same child node entry changed with different target id's
-//                conflicts.add(new Conflict(ConflictType.NODE_CONTENT_CONFLICT, changed.getKey()));
-//            }
-//            if (otherRemovedChildNodes.containsKey(changed.getKey())) {
-//                // changed child node entry has been removed
-//                conflicts.add(new Conflict(ConflictType.REMOVED_DIRTY_NODE_CONFLICT, changed.getKey()));
-//            }
-//        }
-//
-//        for (Map.Entry<String, Id> removed : removedChildNodes.entrySet()) {
-//            if (otherChangedChildNodes.containsKey(removed.getKey())) {
-//                // removed child node entry has been changed
-//                conflicts.add(new Conflict(ConflictType.REMOVED_DIRTY_NODE_CONFLICT, removed.getKey()));
-//            }
-//        }
-//
-//        return conflicts;
+        // assume that both delta's were built using the *same* base node revision
+        if (!node1.equals(other.node1)) {
+            throw new IllegalArgumentException("other and this NodeDelta object are expected to share common node1 instance");
+        }
+
+        List<Conflict> conflicts = new ArrayList<Conflict>();
+
+        // properties
+
+        Map<String, String> otherAddedProps = other.getAddedProperties();
+        for (Map.Entry<String, String> added : addedProperties.entrySet()) {
+            String otherValue = otherAddedProps.get(added.getKey());
+            if (otherValue != null && !added.getValue().equals(otherValue)) {
+                // same property added with conflicting values
+                conflicts.add(new Conflict(ConflictType.PROPERTY_VALUE_CONFLICT, added.getKey()));
+            }
+        }
+
+        Map<String, String> otherChangedProps = other.getChangedProperties();
+        Map<String, String> otherRemovedProps = other.getRemovedProperties();
+        for (Map.Entry<String, String> changed : changedProperties.entrySet()) {
+            String otherValue = otherChangedProps.get(changed.getKey());
+            if (otherValue != null && !changed.getValue().equals(otherValue)) {
+                // same property changed with conflicting values
+                conflicts.add(new Conflict(ConflictType.PROPERTY_VALUE_CONFLICT, changed.getKey()));
+            }
+            if (otherRemovedProps.containsKey(changed.getKey())) {
+                // changed property has been removed
+                conflicts.add(new Conflict(ConflictType.REMOVED_DIRTY_PROPERTY_CONFLICT, changed.getKey()));
+            }
+        }
+
+        for (Map.Entry<String, String> removed : removedProperties.entrySet()) {
+            if (otherChangedProps.containsKey(removed.getKey())) {
+                // removed property has been changed
+                conflicts.add(new Conflict(ConflictType.REMOVED_DIRTY_PROPERTY_CONFLICT, removed.getKey()));
+            }
+        }
+
+        // child node entries
+
+        //Map<String, Id> otherAddedChildNodes = other.getAddedChildNodes();
+        Map<String, NodeState> otherAddedChildNodes = other.getAddedChildNodes();
+        for (Map.Entry<String, NodeState> added : addedChildNodes.entrySet()) {
+            NodeState otherValue = otherAddedChildNodes.get(added.getKey());
+            if (otherValue != null && !added.getValue().equals(otherValue)) {
+                // same child node entry added with different target id's
+                conflicts.add(new Conflict(ConflictType.NODE_CONTENT_CONFLICT, added.getKey()));
+            }
+        }
+
+        //Map<String, Id> otherChangedChildNodes = other.getChangedChildNodes();
+        Map<String, NodeState> otherChangedChildNodes = other.getChangedChildNodes();
+        Map<String, Id> otherRemovedChildNodes = other.getRemovedChildNodes();
+        for (Map.Entry<String, NodeState> changed : changedChildNodes.entrySet()) {
+            NodeState otherValue = otherChangedChildNodes.get(changed.getKey());
+            if (otherValue != null && !changed.getValue().equals(otherValue)) {
+                // same child node entry changed with different target id's
+                conflicts.add(new Conflict(ConflictType.NODE_CONTENT_CONFLICT, changed.getKey()));
+            }
+            if (otherRemovedChildNodes.containsKey(changed.getKey())) {
+                // changed child node entry has been removed
+                conflicts.add(new Conflict(ConflictType.REMOVED_DIRTY_NODE_CONFLICT, changed.getKey()));
+            }
+        }
+
+        for (Map.Entry<String, Id> removed : removedChildNodes.entrySet()) {
+            if (otherChangedChildNodes.containsKey(removed.getKey())) {
+                // removed child node entry has been changed
+                conflicts.add(new Conflict(ConflictType.REMOVED_DIRTY_NODE_CONFLICT, removed.getKey()));
+            }
+        }
+
+        return conflicts;
     }
 
     //--------------------------------------------------------< inner classes >
