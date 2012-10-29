@@ -28,10 +28,9 @@ import org.apache.jackrabbit.mongomk.impl.MongoConnection;
 import org.apache.jackrabbit.mongomk.impl.model.NodeImpl;
 import org.apache.jackrabbit.mongomk.model.CommitMongo;
 import org.apache.jackrabbit.mongomk.model.NodeMongo;
-import org.apache.jackrabbit.mongomk.query.FetchBranchBaseRevisionIdQuery;
 import org.apache.jackrabbit.mongomk.query.FetchCommitQuery;
-import org.apache.jackrabbit.mongomk.query.FetchNodesQuery;
 import org.apache.jackrabbit.mongomk.query.FetchCommitsQuery;
+import org.apache.jackrabbit.mongomk.query.FetchNodesQuery;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -93,35 +92,7 @@ public class GetNodesCommandMongo extends AbstractCommand<Node> {
         ensureRevisionId();
         readLastCommits();
         deriveProblematicNodes();
-
-        // FIXME - See if we can avoid catching the exception here.
-        try {
-            readRootNode();
-        } catch (InconsistentNodeHierarchyException e) {
-            // When branching is used, there might be inconsistent node hierarchy
-            // exceptions, so ignore them in the first try.
-            if (branchId == null) {
-                throw e;
-            }
-        }
-
-        if (rootNode != null) {
-            return rootNode;
-        }
-
-        // If branching is not used, node does not exist.
-        if (branchId == null) {
-            return rootNode;
-        }
-
-        // Otherwise, node does not exist in the branch but it might exist in
-        // trunk before the branch was created.
-        FetchBranchBaseRevisionIdQuery query = new FetchBranchBaseRevisionIdQuery(mongoConnection, branchId);
-        Long branchBaseRevId = query.execute();
-        revisionId = branchBaseRevId;
-        branchId = null;
         readRootNode();
-
         return rootNode;
     }
 

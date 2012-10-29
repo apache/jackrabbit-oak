@@ -385,7 +385,6 @@ public class NodeStoreMongo implements NodeStore {
         for (Map.Entry<String, NodeState> entry : ourChanges.getAddedChildNodes().entrySet()) {
             MongoNodeState nodeState = (MongoNodeState)entry.getValue();
             stagedNode.addChildNodeEntry(nodeState.unwrap());
-            //stagedNode.addChild(new NodeImpl(entry.getKey()));
         }
         for (Map.Entry<String, NodeState> entry : ourChanges.getChangedChildNodes().entrySet()) {
             if (!theirChanges.getChangedChildNodes().containsKey(entry.getKey())) {
@@ -393,9 +392,10 @@ public class NodeStoreMongo implements NodeStore {
                 stagedNode.addChildNodeEntry(nodeState.unwrap());
             }
         }
-//        for (String name : ourChanges.getRemovedChildNodes().keySet()) {
-//            stagedNode.remove(name);
-//        }
+        // FIXME - Not sure if this is currently used, check.
+        for (String name : ourChanges.getRemovedChildNodes().keySet()) {
+            stagedNode.removeChildNodeEntry(name);
+        }
 
 //        List<NodeDelta.Conflict> conflicts = theirChanges.listConflicts(ourChanges);
 //        // resolve/report merge conflicts

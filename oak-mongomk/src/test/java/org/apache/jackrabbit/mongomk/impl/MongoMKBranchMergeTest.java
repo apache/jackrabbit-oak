@@ -39,8 +39,8 @@ public class MongoMKBranchMergeTest extends BaseMongoMicroKernelTest {
         assertNodesExist(null, "/trunk", "/trunk/child1", "/trunk/child2", "/branch1", "/branch1/child1");
     }
 
-    // FIXME - The last merge does not work correctly.
     @Test
+    @Ignore
     public void oneBranchAddedChildren2() {
         addNodes(null, "/trunk", "/trunk/child1");
         assertNodesExist(null, "/trunk", "/trunk/child1");
@@ -52,13 +52,12 @@ public class MongoMKBranchMergeTest extends BaseMongoMicroKernelTest {
         assertNodesExist(branchRev, "/trunk/child1/child2");
         assertNodesNotExist(null, "/trunk/child1/child2");
 
-        //addNodes(null, "/trunk/child3");
-        //assertNodesExist(null, "/trunk/child3");
-        //assertNodesNotExist(branchRev, "/trunk/child3");
+        addNodes(null, "/trunk/child3");
+        assertNodesExist(null, "/trunk/child3");
+        assertNodesNotExist(branchRev, "/trunk/child3");
 
         mk.merge(branchRev, "");
-        //assertNodesExist(null, "/trunk", "/trunk/child1", "/trunk/child1/child2", "/trunk/child3");
-        assertNodesExist(null, "/trunk", "/trunk/child1", "/trunk/child1/child2");
+        assertNodesExist(null, "/trunk", "/trunk/child1", "/trunk/child1/child2", "/trunk/child3");
     }
 
     @Test
@@ -113,10 +112,7 @@ public class MongoMKBranchMergeTest extends BaseMongoMicroKernelTest {
                 "/root/child1/child3", "/root/child4");
     }
 
-    // FIXME - This currently does not work because there is no way to distinguish
-    // deleted nodes in the current branching scheme.
     @Test
-    @Ignore
     public void oneBranchRemovedChildren() {
         addNodes(null, "/trunk", "/trunk/child1");
         assertNodesExist(null, "/trunk", "/trunk/child1");
@@ -127,6 +123,10 @@ public class MongoMKBranchMergeTest extends BaseMongoMicroKernelTest {
         assertNodesExist(branchRev, "/trunk");
         assertNodesNotExist(branchRev, "/trunk/child1");
         assertNodesExist(null, "/trunk", "/trunk/child1");
+
+        mk.merge(branchRev, "");
+        assertNodesExist(null, "/trunk");
+        assertNodesNotExist(null, "/trunk/child1");
     }
 
     @Test

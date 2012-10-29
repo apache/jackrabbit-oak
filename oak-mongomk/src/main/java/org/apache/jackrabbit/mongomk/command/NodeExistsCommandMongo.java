@@ -19,7 +19,6 @@ package org.apache.jackrabbit.mongomk.command;
 import org.apache.jackrabbit.mongomk.api.command.AbstractCommand;
 import org.apache.jackrabbit.mongomk.api.model.Node;
 import org.apache.jackrabbit.mongomk.impl.MongoConnection;
-import org.apache.jackrabbit.mongomk.query.FetchBranchBaseRevisionIdQuery;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 
 /**
@@ -64,23 +63,10 @@ public class NodeExistsCommandMongo extends AbstractCommand<Boolean> {
         }
 
         // Check that all the paths up to the root actually exist.
-        if (pathExists(revisionId, branchId)) {
-            return true;
-        }
-
-        // If branching is not used, node does not exist.
-        if (branchId == null) {
-            return false;
-        }
-
-        // If branching is used, node does not exist in the branch but it might
-        // exist in trunk before the branch was created.
-        FetchBranchBaseRevisionIdQuery query = new FetchBranchBaseRevisionIdQuery(mongoConnection, branchId);
-        Long branchBaseRevId = query.execute();
-        return pathExists(branchBaseRevId, null);
+        return pathExists();
     }
 
-    private boolean pathExists(Long revisionId, String branchId) throws Exception {
+    private boolean pathExists() throws Exception {
         while (!PathUtils.denotesRoot(path)) {
             readParentNode(revisionId, branchId);
             if (parentNode == null || !childExists()) {
