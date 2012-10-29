@@ -88,7 +88,6 @@ public class MongoMKBranchMergeTest extends BaseMongoMicroKernelTest {
 
     // FIXME - The last merge does not work correctly.
     @Test
-    @Ignore
     public void oneBranchAddedChildren3() {
         addNodes(null, "/root", "/root/child1");
         assertNodesExist(null, "/root", "/root/child1");

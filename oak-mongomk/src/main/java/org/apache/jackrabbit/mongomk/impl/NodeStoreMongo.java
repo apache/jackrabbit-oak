@@ -41,6 +41,7 @@ import org.apache.jackrabbit.mongomk.impl.model.tree.MongoNodeDelta.Conflict;
 import org.apache.jackrabbit.mongomk.impl.model.tree.MongoNodeState;
 import org.apache.jackrabbit.mongomk.impl.model.tree.MongoNodeStore;
 import org.apache.jackrabbit.mongomk.model.CommitMongo;
+import org.apache.jackrabbit.mongomk.query.FetchBranchBaseRevisionIdQuery;
 import org.apache.jackrabbit.mongomk.query.FetchCommitQuery;
 import org.apache.jackrabbit.mongomk.query.FetchCommitsQuery;
 import org.apache.jackrabbit.mongomk.query.FetchHeadRevisionIdQuery;
@@ -145,9 +146,8 @@ public class NodeStoreMongo implements NodeStore {
 
         Node ourRoot = getNode("/", rootNodeId, branchId);
 
-        // FIXME - branchRootId might need to be real branch root it, rather
-        // than base revision id.
-        long branchRootId = commit.getBaseRevId();
+        FetchBranchBaseRevisionIdQuery branchQuery = new FetchBranchBaseRevisionIdQuery(mongoConnection, branchId);
+        long branchRootId = branchQuery.execute();
 
         // Merge nodes from head to branch.
         ourRoot = mergeNodes(ourRoot, currentHead, branchRootId);

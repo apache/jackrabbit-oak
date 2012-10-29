@@ -29,7 +29,6 @@ import org.apache.jackrabbit.mongomk.api.instruction.Instruction.SetPropertyInst
 import org.apache.jackrabbit.mongomk.api.instruction.InstructionVisitor;
 import org.apache.jackrabbit.mongomk.command.NodeExistsCommandMongo;
 import org.apache.jackrabbit.mongomk.impl.MongoConnection;
-import org.apache.jackrabbit.mongomk.query.FetchBranchBaseRevisionIdQuery;
 import org.apache.jackrabbit.mongomk.query.FetchNodesQuery;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 
@@ -262,16 +261,6 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
         query.setBranchId(branchId);
         query.setFetchDescendants(false);
         List<NodeMongo> nodes = query.execute();
-
-        // If nodes list is empty and branching is in use, the node might exist
-        // in pre-branch revisions.
-        if (nodes.isEmpty() && branchId != null) {
-            FetchBranchBaseRevisionIdQuery branchQuery = new FetchBranchBaseRevisionIdQuery(mongoConnection, branchId);
-            long branchBaseRevId = branchQuery.execute();
-            query = new FetchNodesQuery(mongoConnection, path, branchBaseRevId);
-            query.setFetchDescendants(false);
-            nodes = query.execute();
-        }
 
         if (!nodes.isEmpty()) {
             node = nodes.get(0);
