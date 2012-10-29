@@ -372,7 +372,7 @@ public class NodeStoreMongo implements NodeStore {
 
         NodeImpl stagedNode = (NodeImpl)theirNode; //new NodeImpl(path);
 
-        // Merge non-conflicting changes
+        // Apply our changes.
         stagedNode.getProperties().putAll(ourChanges.getAddedProperties());
         stagedNode.getProperties().putAll(ourChanges.getChangedProperties());
         for (String name : ourChanges.getRemovedProperties().keySet()) {
@@ -385,7 +385,9 @@ public class NodeStoreMongo implements NodeStore {
             //stagedNode.addChild(new NodeImpl(entry.getKey()));
         }
         for (Map.Entry<String, Id> entry : ourChanges.getChangedChildNodes().entrySet()) {
-            stagedNode.addChildNodeEntry(new NodeImpl(entry.getKey()));
+            if (!theirChanges.getChangedChildNodes().containsKey(entry.getKey())) {
+                stagedNode.addChildNodeEntry(new NodeImpl(entry.getKey()));
+            }
         }
 //        for (String name : ourChanges.getRemovedChildNodes().keySet()) {
 //            stagedNode.remove(name);
