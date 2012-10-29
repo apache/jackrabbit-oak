@@ -356,7 +356,7 @@ class TypeValidator implements Validator {
 
     }
 
-    private boolean isHidden(PropertyState state) {
+    private static boolean isHidden(PropertyState state) {
         return NodeStateUtils.isHidden(state.getName());
     }
 }
