@@ -7,13 +7,10 @@ import static org.junit.Assert.fail;
 
 import org.apache.jackrabbit.mongomk.BaseMongoMicroKernelTest;
 import org.json.simple.JSONObject;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
- * FIXME - Add more complicated branch/merge tests such as:
- * -Branch with changed child nodes.
- * -Merges with conflicts.
+ * FIXME - Add more complicated branch/merge tests especially merges with conflicts.
  *
  * Tests for {@code MicroKernel#branch}
  */
@@ -86,7 +83,6 @@ public class MongoMKBranchMergeTest extends BaseMongoMicroKernelTest {
         } catch (Exception expected) {}
     }
 
-    // FIXME - The last merge does not work correctly.
     @Test
     public void oneBranchAddedChildren3() {
         addNodes(null, "/root", "/root/child1");
