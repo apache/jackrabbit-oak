@@ -414,9 +414,9 @@ public class NodeStoreMongo implements NodeStore {
                 case NODE_CONTENT_CONFLICT: {
                     if (ourChanges.getChangedChildNodes().containsKey(conflictName)) {
                         // modified subtrees
-                        Node baseChild = getNode(baseNode.getChildNodeEntry(conflictName).getPath(), null);
-                        Node ourChild = getNode(ourNode.getChildNodeEntry(conflictName).getPath(), null);
-                        Node theirChild = getNode(theirNode.getChildNodeEntry(conflictName).getPath(), null);
+                        Node baseChild = baseNode.getChildNodeEntry(conflictName);
+                        Node ourChild = ourNode.getChildNodeEntry(conflictName);
+                        Node theirChild = theirNode.getChildNodeEntry(conflictName);
                         // merge the dirty subtrees recursively
                         mergeNode(baseChild, ourChild, theirChild, PathUtils.concat(path, conflictName));
                     } else {

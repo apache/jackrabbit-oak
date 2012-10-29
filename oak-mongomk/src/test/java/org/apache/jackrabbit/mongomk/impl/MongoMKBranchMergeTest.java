@@ -40,7 +40,6 @@ public class MongoMKBranchMergeTest extends BaseMongoMicroKernelTest {
     }
 
     @Test
-    @Ignore
     public void oneBranchAddedChildren2() {
         addNodes(null, "/trunk", "/trunk/child1");
         assertNodesExist(null, "/trunk", "/trunk/child1");
