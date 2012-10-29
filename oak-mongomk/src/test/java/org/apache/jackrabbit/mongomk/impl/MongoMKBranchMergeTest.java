@@ -63,7 +63,6 @@ public class MongoMKBranchMergeTest extends BaseMongoMicroKernelTest {
     }
 
     @Test
-    @Ignore
     public void addExistingRootInBranch() {
         addNodes(null, "/root");
         assertNodesExist(null, "/root");
@@ -76,7 +75,6 @@ public class MongoMKBranchMergeTest extends BaseMongoMicroKernelTest {
     }
 
     @Test
-    @Ignore
     public void addExistingChildInBranch() {
         addNodes(null, "/root", "/root/child1");
         assertNodesExist(null, "/root", "/root/child1");

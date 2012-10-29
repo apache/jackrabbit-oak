@@ -115,7 +115,16 @@ public class FetchNodesQuery extends AbstractQuery<List<NodeMongo>> {
             DBObject query = new BasicDBObject(NodeMongo.KEY_BRANCH_ID, new BasicDBObject("$exists", false));
             queryBuilder = queryBuilder.and(query);
         } else {
-            queryBuilder = queryBuilder.and(NodeMongo.KEY_BRANCH_ID).is(branchId);
+            // Not only return nodes in the branch but also nodes in the trunk
+            // before the branch was created.
+            FetchBranchBaseRevisionIdQuery query = new FetchBranchBaseRevisionIdQuery(mongoConnection, branchId);
+            long headBranchRevisionId = query.execute();
+
+            DBObject branchQuery = QueryBuilder.start().or(
+                    QueryBuilder.start(NodeMongo.KEY_BRANCH_ID).is(branchId).get(),
+                    QueryBuilder.start(NodeMongo.KEY_REVISION_ID).lessThanEquals(headBranchRevisionId).get()
+            ).get();
+            queryBuilder = queryBuilder.and(branchQuery);
         }
 
         DBObject query = queryBuilder.get();

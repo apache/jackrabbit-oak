@@ -60,8 +60,8 @@ public class MongoMicroKernel implements MicroKernel {
         String revId = trunkRevisionId == null ? getHeadRevision() : trunkRevisionId;
 
         try {
-            CommitImpl commit = (CommitImpl)CommitBuilder.build(MongoUtil.INITIAL_COMMIT_PATH,
-                    MongoUtil.INITIAL_COMMIT_DIFF, revId, MongoUtil.INITIAL_COMMIT_MESSAGE);
+            CommitImpl commit = (CommitImpl)CommitBuilder.build("",
+                    "", revId, MongoUtil.INITIAL_COMMIT_MESSAGE);
             commit.setBranchId(UUID.randomUUID().toString());
             return nodeStore.commit(commit);
         } catch (Exception e) {
