@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.core;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -32,15 +33,19 @@ import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.RootImpl.PurgeListener;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryPropertyBuilder;
+import org.apache.jackrabbit.oak.plugins.memory.MultiStringPropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
+import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
+import org.apache.jackrabbit.oak.spi.state.PropertyBuilder;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -99,16 +104,19 @@ public class TreeImpl implements Tree, PurgeListener {
 
     @Override
     public String getName() {
+        root.checkLive();
         return name;
     }
 
     @Override
     public boolean isRoot() {
+        root.checkLive();
         return parent == null;
     }
 
     @Override
     public String getPath() {
+        root.checkLive();
         if (isRoot()) {
             // shortcut
             return "/";
@@ -121,6 +129,7 @@ public class TreeImpl implements Tree, PurgeListener {
 
     @Override
     public Tree getParent() {
+        root.checkLive();
         if (parent != null && canRead(parent)) {
             return parent;
         } else {
@@ -130,6 +139,7 @@ public class TreeImpl implements Tree, PurgeListener {
 
     @Override
     public PropertyState getProperty(String name) {
+        root.checkLive();
         PropertyState property = internalGetProperty(name);
         if (canRead(property)) {
             return property;
@@ -141,6 +151,7 @@ public class TreeImpl implements Tree, PurgeListener {
     @Override
     public Status getPropertyStatus(String name) {
         // TODO: see OAK-212
+        root.checkLive();
         Status nodeStatus = getStatus();
         if (nodeStatus == Status.NEW) {
             return (hasProperty(name)) ? Status.NEW : null;
@@ -170,16 +181,19 @@ public class TreeImpl implements Tree, PurgeListener {
 
     @Override
     public boolean hasProperty(String name) {
+        root.checkLive();
         return getProperty(name) != null;
     }
 
     @Override
     public long getPropertyCount() {
+        root.checkLive();
         return Iterables.size(getProperties());
     }
 
     @Override
     public Iterable<? extends PropertyState> getProperties() {
+        root.checkLive();
         return Iterables.filter(getNodeBuilder().getProperties(),
                 new Predicate<PropertyState>() {
                     @Override
@@ -191,6 +205,7 @@ public class TreeImpl implements Tree, PurgeListener {
 
     @Override
     public TreeImpl getChild(String name) {
+        root.checkLive();
         TreeImpl child = internalGetChild(name);
         if (child != null && canRead(child)) {
             return child;
@@ -201,6 +216,7 @@ public class TreeImpl implements Tree, PurgeListener {
 
     @Override
     public Status getStatus() {
+        root.checkLive();
         if (isRemoved()) {
             return Status.REMOVED;
         }
@@ -223,17 +239,20 @@ public class TreeImpl implements Tree, PurgeListener {
 
     @Override
     public boolean hasChild(String name) {
+        root.checkLive();
         return getChild(name) != null;
     }
 
     @Override
     public long getChildrenCount() {
         // TODO: make sure cnt respects access control
+        root.checkLive();
         return getNodeBuilder().getChildNodeCount();
     }
 
     @Override
     public Iterable<Tree> getChildren() {
+        root.checkLive();
         Iterable<String> childNames;
         if (hasOrderableChildren()) {
             childNames = getOrderedChildNames();
@@ -263,14 +282,14 @@ public class TreeImpl implements Tree, PurgeListener {
 
     @Override
     public Tree addChild(String name) {
+        root.checkLive();
         if (!hasChild(name)) {
             getNodeBuilder().child(name);
             if (hasOrderableChildren()) {
-                getNodeBuilder().setProperty(PropertyStates.stringProperty(
-                        OAK_CHILD_ORDER,
-                        Iterables.concat(
-                                getOrderedChildNames(),
-                                Collections.singleton(name))));
+                getNodeBuilder().setProperty(
+                        MemoryPropertyBuilder.create(Type.STRING, internalGetProperty(OAK_CHILD_ORDER))
+                                .addValue(name)
+                                .getPropertyState(true));
             }
             root.purge();
         }
@@ -282,6 +301,7 @@ public class TreeImpl implements Tree, PurgeListener {
 
     @Override
     public boolean remove() {
+        root.checkLive();
         if (isRemoved()) {
             throw new IllegalStateException("Cannot remove removed tree");
         }
@@ -292,14 +312,11 @@ public class TreeImpl implements Tree, PurgeListener {
             parent.children.remove(name);
             removed = true;
             if (parent.hasOrderableChildren()) {
-                builder.setProperty(PropertyStates.stringProperty(
-                        OAK_CHILD_ORDER,
-                        Iterables.filter(parent.getOrderedChildNames(), new Predicate<String>() {
-                            @Override
-                            public boolean apply(@Nullable String input) {
-                                return !name.equals(input);
-                            }
-                        })));
+                builder.setProperty(
+                        MemoryPropertyBuilder.create(Type.STRING, parent.internalGetProperty(OAK_CHILD_ORDER))
+                                .removeValue(name)
+                                .getPropertyState(true)
+                );
             }
             root.purge();
             return true;
@@ -310,6 +327,7 @@ public class TreeImpl implements Tree, PurgeListener {
 
     @Override
     public boolean orderBefore(final String name) {
+        root.checkLive();
         if (isRoot()) {
             // root does not have siblings
             return false;
@@ -346,9 +364,7 @@ public class TreeImpl implements Tree, PurgeListener {
             tail = Iterables.skip(filtered, idx);
         }
         // concatenate head, this name and tail
-        parent.getNodeBuilder().setProperty(PropertyStates.stringProperty(
-                OAK_CHILD_ORDER,
-                Iterables.concat(head, Collections.singleton(getName()), tail))
+        parent.getNodeBuilder().setProperty(MultiStringPropertyState.stringProperty(OAK_CHILD_ORDER, Iterables.concat(head, Collections.singleton(getName()), tail))
         );
         root.purge();
         return true;
@@ -356,6 +372,7 @@ public class TreeImpl implements Tree, PurgeListener {
 
     @Override
     public void setProperty(PropertyState property) {
+        root.checkLive();
         NodeBuilder builder = getNodeBuilder();
         builder.setProperty(property);
         root.purge();
@@ -363,6 +380,7 @@ public class TreeImpl implements Tree, PurgeListener {
 
     @Override
     public <T> void setProperty(String name, T value) {
+        root.checkLive();
         NodeBuilder builder = getNodeBuilder();
         builder.setProperty(name, value);
         root.purge();
@@ -370,6 +388,7 @@ public class TreeImpl implements Tree, PurgeListener {
 
     @Override
     public <T> void setProperty(String name, T value, Type<T> type) {
+        root.checkLive();
         NodeBuilder builder = getNodeBuilder();
         builder.setProperty(name, value, type);
         root.purge();
@@ -377,6 +396,7 @@ public class TreeImpl implements Tree, PurgeListener {
 
     @Override
     public void removeProperty(String name) {
+        root.checkLive();
         NodeBuilder builder = getNodeBuilder();
         builder.removeProperty(name);
         root.purge();
@@ -384,6 +404,7 @@ public class TreeImpl implements Tree, PurgeListener {
 
     @Override
     public TreeLocation getLocation() {
+        root.checkLive();
         return new NodeLocation(this);
     }
 
@@ -467,6 +488,30 @@ public class TreeImpl implements Tree, PurgeListener {
         return (canRead(child)) ? child : null;
     }
 
+    /**
+     * Update the child order with children that have been removed or added.
+     * Added children are appended to the end of the {@link #OAK_CHILD_ORDER}
+     * property.
+     */
+    void updateChildOrder() {
+        if (!hasOrderableChildren()) {
+            return;
+        }
+        Set<String> names = Sets.newLinkedHashSet();
+        for (String name : getOrderedChildNames()) {
+            if (getNodeBuilder().hasChildNode(name)) {
+                names.add(name);
+            }
+        }
+        for (String name : getNodeBuilder().getChildNodeNames()) {
+            names.add(name);
+        }
+        PropertyBuilder<String> builder = MemoryPropertyBuilder.create(
+                Type.STRING, OAK_CHILD_ORDER);
+        builder.setValues(names);
+        getNodeBuilder().setProperty(builder.getPropertyState(true));
+    }
+
     //------------------------------------------------------------< private >---
 
     private TreeImpl internalGetChild(String childName) {
@@ -502,12 +547,14 @@ public class TreeImpl implements Tree, PurgeListener {
     private boolean canRead(PropertyState property) {
         // FIXME: access control eval must have full access to the tree/property
         // FIXME: special handling for access control item and version content
-        return (property != null) && root.getPermissions().canRead(this, property);
+        return (property != null)
+                && root.getPermissions().canRead(this, property)
+                && !NodeStateUtils.isHidden(property.getName());
     }
 
     /**
-     * @return <code>true</code> if this tree has orderable children;
-     *         <code>false</code> otherwise.
+     * @return {@code true} if this tree has orderable children;
+     *         {@code false} otherwise.
      */
     private boolean hasOrderableChildren() {
         return internalGetProperty(OAK_CHILD_ORDER) != null;
@@ -525,7 +572,7 @@ public class TreeImpl implements Tree, PurgeListener {
             @Override
             public Iterator<String> iterator() {
                 return new Iterator<String>() {
-                    PropertyState childOrder = internalGetProperty(OAK_CHILD_ORDER);
+                    final PropertyState childOrder = internalGetProperty(OAK_CHILD_ORDER);
                     int index = 0;
 
                     @Override
@@ -556,9 +603,7 @@ public class TreeImpl implements Tree, PurgeListener {
         PropertyState childOrder = getNodeBuilder().getProperty(OAK_CHILD_ORDER);
         if (childOrder == null) {
             getNodeBuilder().setProperty(
-                    PropertyStates.stringProperty(
-                            OAK_CHILD_ORDER,
-                            getNodeBuilder().getChildNodeNames()));
+                    MultiStringPropertyState.stringProperty(OAK_CHILD_ORDER, getNodeBuilder().getChildNodeNames()));
         }
     }
 

@@ -48,6 +48,7 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
     private static final Logger log = LoggerFactory.getLogger(AuthorizableImpl.class);
 
     private final String id;
+    private final String principalName;
     private final UserManagerImpl userManager;
 
     private Node node;
@@ -55,10 +56,16 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
     private int hashCode;
 
     AuthorizableImpl(String id, Tree tree, UserManagerImpl userManager) throws RepositoryException {
-        this.id = id;
-        this.userManager = userManager;
-
         checkValidTree(tree);
+        this.id = id;
+        if (tree.hasProperty(REP_PRINCIPAL_NAME)) {
+            principalName = tree.getProperty(REP_PRINCIPAL_NAME).getValue(STRING);
+        } else {
+            String msg = "Authorizable without principal name " + id;
+            log.warn(msg);
+            throw new RepositoryException(msg);
+        }
+        this.userManager = userManager;
     }
 
     abstract void checkValidTree(Tree tree) throws RepositoryException;
@@ -68,33 +75,21 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
     }
 
     //-------------------------------------------------------< Authorizable >---
-    /**
-     * @see org.apache.jackrabbit.api.security.user.Authorizable#getID()
-     */
     @Override
     public String getID() {
         return id;
     }
 
-    /**
-     * @see Authorizable#declaredMemberOf()
-     */
     @Override
     public Iterator<Group> declaredMemberOf() throws RepositoryException {
         return getMembership(false);
     }
 
-    /**
-     * @see Authorizable#memberOf()
-     */
     @Override
     public Iterator<Group> memberOf() throws RepositoryException {
         return getMembership(true);
     }
 
-    /**
-     * @see org.apache.jackrabbit.api.security.user.Authorizable#remove()
-     */
     @Override
     public void remove() throws RepositoryException {
         // don't allow for removal of the administrator even if the executing
@@ -106,65 +101,41 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
         getTree().remove();
     }
 
-    /**
-     * @see org.apache.jackrabbit.api.security.user.Authorizable#getPropertyNames()
-     */
     @Override
     public Iterator<String> getPropertyNames() throws RepositoryException {
         return getPropertyNames(".");
     }
 
-    /**
-     * @see Authorizable#getPropertyNames(String)
-     */
     @Override
     public Iterator<String> getPropertyNames(String relPath) throws RepositoryException {
         return getAuthorizableProperties().getNames(relPath);
     }
 
-    /**
-     * @see org.apache.jackrabbit.api.security.user.Authorizable#hasProperty(String)
-     */
     @Override
     public boolean hasProperty(String relPath) throws RepositoryException {
         return getAuthorizableProperties().hasProperty(relPath);
     }
 
-    /**
-     * @see org.apache.jackrabbit.api.security.user.Authorizable#getProperty(String)
-     */
     @Override
     public Value[] getProperty(String relPath) throws RepositoryException {
         return getAuthorizableProperties().getProperty(relPath);
     }
 
-    /**
-     * @see org.apache.jackrabbit.api.security.user.Authorizable#setProperty(String, javax.jcr.Value)
-     */
     @Override
     public void setProperty(String relPath, Value value) throws RepositoryException {
         getAuthorizableProperties().setProperty(relPath, value);
     }
 
-    /**
-     * @see org.apache.jackrabbit.api.security.user.Authorizable#setProperty(String, javax.jcr.Value[])
-     */
     @Override
     public void setProperty(String relPath, Value[] values) throws RepositoryException {
         getAuthorizableProperties().setProperty(relPath, values);
     }
 
-    /**
-     * @see org.apache.jackrabbit.api.security.user.Authorizable#removeProperty(String)
-     */
     @Override
     public boolean removeProperty(String relPath) throws RepositoryException {
         return getAuthorizableProperties().removeProperty(relPath);
     }
 
-    /**
-     * @see org.apache.jackrabbit.api.security.user.Authorizable#getPath()
-     */
     @Override
     public String getPath() throws RepositoryException {
         Node n = getNode();
@@ -176,9 +147,6 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
     }
 
     //-------------------------------------------------------------< Object >---
-    /**
-     * @see Object#hashCode()
-     */
     @Override
     public int hashCode() {
         if (hashCode == 0) {
@@ -198,9 +166,6 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
         return hashCode;
     }
 
-    /**
-     * @see Object#equals(Object)
-     */
     @Override
     public boolean equals(Object obj) {
         if (obj == this) {
@@ -214,9 +179,6 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
         return false;
     }
 
-    /**
-     * @see Object#toString()
-     */
     @Override
     public String toString() {
         String typeStr = (isGroup()) ? "Group '" : "User '";
@@ -226,24 +188,15 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
     //--------------------------------------------------------------------------
     @Nonnull
     Tree getTree() {
-        Tree tree = getUserProvider().getAuthorizable(id);
-        if (tree == null) {
-            throw new IllegalStateException("Authorizable not associated with an existing tree");
-        }
-        return tree;
+        return userManager.getAuthorizableTree(id);
     }
 
-    String getPrincipalName(Tree thisTree) throws RepositoryException {
-        String principalName;
-        if (thisTree.hasProperty(REP_PRINCIPAL_NAME)) {
-            return thisTree.getProperty(REP_PRINCIPAL_NAME).getValue(STRING);
-        } else {
-            String msg = "Authorizable without principal name " + id;
-            log.warn(msg);
-            throw new RepositoryException(msg);
-        }
+    @Nonnull
+    String getPrincipalName() throws RepositoryException {
+        return principalName;
     }
 
+    @CheckForNull
     String getJcrName(String oakName) {
         return userManager.getNamePathMapper().getJcrName(oakName);
     }
@@ -254,14 +207,6 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
     @Nonnull
     UserManagerImpl getUserManager() {
         return userManager;
-    }
-
-    /**
-     * @return The user provider associated with this authorizable
-     */
-    @Nonnull
-    UserProvider getUserProvider() {
-        return userManager.getUserProvider();
     }
 
     /**
@@ -280,7 +225,7 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
      * @throws RepositoryException If an error occurs.
      */
     boolean isEveryone() throws RepositoryException {
-        return isGroup() && EveryonePrincipal.NAME.equals(getPrincipalName(getTree()));
+        return isGroup() && EveryonePrincipal.NAME.equals(getPrincipalName());
     }
 
     /**

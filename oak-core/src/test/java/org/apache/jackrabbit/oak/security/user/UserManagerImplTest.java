@@ -18,90 +18,115 @@ package org.apache.jackrabbit.oak.security.user;
 
 import java.util.ArrayList;
 import java.util.List;
+import javax.jcr.UnsupportedRepositoryOperationException;
 
 import org.apache.jackrabbit.api.security.user.User;
-import org.apache.jackrabbit.oak.AbstractOakTest;
-import org.apache.jackrabbit.oak.api.ContentRepository;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.security.AbstractSecurityTest;
+import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtility;
+import org.junit.Before;
 import org.junit.Test;
 
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertNotNull;
-import static junit.framework.Assert.assertNull;
 import static junit.framework.Assert.assertTrue;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
 /**
  * UserManagerImplTest...
  */
-public class UserManagerImplTest extends AbstractOakTest {
+public class UserManagerImplTest extends AbstractSecurityTest {
 
-     @Override
-    protected ContentRepository createRepository() {
-        // TODO
-        return null;
+    private Root root;
+    private UserManagerImpl userMgr;
+
+    @Before
+    public void before() throws Exception {
+        super.before();
+
+        root = admin.getLatestRoot();
+        userMgr = new UserManagerImpl(null, root, NamePathMapper.DEFAULT, getSecurityProvider());
     }
 
-//    @Test
-//    public void testSetPassword() throws Exception {
-//        UserManagerImpl userMgr = createUserManager();
-//        User user = userMgr.createUser("a", "pw");
-//
-//        List<String> pwds = new ArrayList<String>();
-//        pwds.add("pw");
-//        pwds.add("");
-//        pwds.add("{sha1}pw");
-//
-//        for (String pw : pwds) {
-//            user.setPassword(user, pw, true);
-//            String pwHash = up.getPasswordHash(user);
-//            assertNotNull(pwHash);
-//            assertTrue(PasswordUtility.isSame(pwHash, pw));
-//        }
-//
-//        for (String pw : pwds) {
-//            up.setPassword(user, pw, false);
-//            String pwHash = up.getPasswordHash(user);
-//            assertNotNull(pwHash);
-//            if (!pw.startsWith("{")) {
-//                assertTrue(PasswordUtility.isSame(pwHash, pw));
-//            } else {
-//                assertFalse(PasswordUtility.isSame(pwHash, pw));
-//                assertEquals(pw, pwHash);
-//            }
-//        }
-//    }
-//
-//    @Test
-//    public void setPasswordNull() throws Exception {
-//        UserProviderImpl up = createUserProvider();
-//        Tree user = up.createUser("a", null);
-//
-//        try {
-//            up.setPassword(user, null, true);
-//            fail("setting null password should fail");
-//        } catch (IllegalArgumentException e) {
-//            // expected
-//        }
-//
-//        try {
-//            up.setPassword(user, null, false);
-//            fail("setting null password should fail");
-//        } catch (IllegalArgumentException e) {
-//            // expected
-//        }
-//    }
+    @Test
+    public void testSetPassword() throws Exception {
+        User user = userMgr.createUser("a", "pw");
+        root.commit();
 
+        List<String> pwds = new ArrayList<String>();
+        pwds.add("pw");
+        pwds.add("");
+        pwds.add("{sha1}pw");
 
-//
-//    @Test
-//    public void testGetPasswordHash() throws Exception {
-//        UserProviderImpl up = createUserProvider();
-//        Tree user = up.createUser("a", null);
-//
-//        assertNull(up.getPasswordHash(user));
-//    }
+        Tree userTree = root.getTree(user.getPath());
+        for (String pw : pwds) {
+            userMgr.setPassword(userTree, pw, true);
+            String pwHash = userTree.getProperty(UserConstants.REP_PASSWORD).getValue(Type.STRING);
+            assertNotNull(pwHash);
+            assertTrue(PasswordUtility.isSame(pwHash, pw));
+        }
 
+        for (String pw : pwds) {
+            userMgr.setPassword(userTree, pw, false);
+            String pwHash = userTree.getProperty(UserConstants.REP_PASSWORD).getValue(Type.STRING);
+            assertNotNull(pwHash);
+            if (!pw.startsWith("{")) {
+                assertTrue(PasswordUtility.isSame(pwHash, pw));
+            } else {
+                assertFalse(PasswordUtility.isSame(pwHash, pw));
+                assertEquals(pw, pwHash);
+            }
+        }
+    }
+
+    @Test
+    public void setPasswordNull() throws Exception {
+        User user = userMgr.createUser("a", null);
+        root.commit();
+
+        Tree userTree = root.getTree(user.getPath());
+        try {
+            userMgr.setPassword(userTree, null, true);
+            fail("setting null password should fail");
+        } catch (IllegalArgumentException e) {
+            // expected
+        }
+
+        try {
+            userMgr.setPassword(userTree, null, false);
+            fail("setting null password should fail");
+        } catch (IllegalArgumentException e) {
+            // expected
+        }
+    }
+
+    @Test
+    public void testGetPasswordHash() throws Exception {
+        User user = userMgr.createUser("a", null);
+        root.commit();
+
+        Tree userTree = root.getTree(user.getPath());
+        assertNull(userTree.getProperty(UserConstants.REP_PASSWORD));
+    }
+
+    @Test
+    public void testIsAutoSave() throws Exception {
+        assertFalse(userMgr.isAutoSave());
+    }
+
+    @Test
+    public void testAutoSave() throws Exception {
+        try {
+            userMgr.autoSave(true);
+            fail("should fail");
+        } catch (UnsupportedRepositoryOperationException e) {
+            // success
+        }
+    }
 }

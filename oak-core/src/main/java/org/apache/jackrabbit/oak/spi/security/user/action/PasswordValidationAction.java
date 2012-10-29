@@ -19,10 +19,10 @@ package org.apache.jackrabbit.oak.spi.security.user.action;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 import javax.jcr.RepositoryException;
-import javax.jcr.Session;
 import javax.jcr.nodetype.ConstraintViolationException;
 
 import org.apache.jackrabbit.api.security.user.User;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtility;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,13 +55,13 @@ public class PasswordValidationAction extends AbstractAuthorizableAction {
 
     //-------------------------------------------------< AuthorizableAction >---
     @Override
-    public void onCreate(User user, String password, Session session) throws RepositoryException {
-        validatePassword(password);
+    public void onCreate(User user, String password, Root root) throws RepositoryException {
+        validatePassword(password, false);
     }
 
     @Override
-    public void onPasswordChange(User user, String newPassword, Session session) throws RepositoryException {
-        validatePassword(newPassword);
+    public void onPasswordChange(User user, String newPassword, Root root) throws RepositoryException {
+        validatePassword(newPassword, true);
     }
 
     //------------------------------------------------------< Configuration >---
@@ -83,18 +83,16 @@ public class PasswordValidationAction extends AbstractAuthorizableAction {
      * Validate the specified password.
      *
      * @param password The password to be validated
+     * @param forceMatch If true the specified password is always validated;
+     * otherwise only if it is a plain text password.
      * @throws RepositoryException If the specified password is too short or
      * doesn't match the specified password pattern.
      */
-    private void validatePassword(String password) throws RepositoryException {
-        if (password != null && isPlainText(password)) {
+    private void validatePassword(String password, boolean forceMatch) throws RepositoryException {
+        if (password != null && (forceMatch || PasswordUtility.isPlainTextPassword(password))) {
             if (pattern != null && !pattern.matcher(password).matches()) {
                 throw new ConstraintViolationException("Password violates password constraint (" + pattern.pattern() + ").");
             }
         }
-    }
-
-    private static boolean isPlainText(String password) {
-        return !PasswordUtility.isPlainTextPassword(password);
     }
 }

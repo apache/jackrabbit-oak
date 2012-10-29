@@ -48,9 +48,19 @@ public class TraversingIndexTest {
                     int slash = key.indexOf('/');
                     String revision = key.substring(0, slash);
                     String path = key.substring(slash);
-                    return new KernelNodeState(mk, path, revision, cache);
+                    // this method is strictly called _after_ the cache is initialized,
+                    // when the fields are set
+                    return new KernelNodeState(getMicroKernel(), path, revision, getCache());
                 }
             });
+    
+    MicroKernel getMicroKernel() {
+        return mk;
+    }
+    
+    LoadingCache<String, KernelNodeState> getCache() {
+        return cache;
+    }
 
     @Test
     public void traverse() throws Exception {

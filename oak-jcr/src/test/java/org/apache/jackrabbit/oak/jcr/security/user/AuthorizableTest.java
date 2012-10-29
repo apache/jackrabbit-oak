@@ -19,9 +19,11 @@ package org.apache.jackrabbit.oak.jcr.security.user;
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import javax.jcr.Node;
 import javax.jcr.Property;
@@ -47,19 +49,19 @@ import org.junit.Test;
  */
 public class AuthorizableTest extends AbstractUserTest {
 
-    private List<String> protectedUserProps = new ArrayList<String>();
-    private List<String> protectedGroupProps = new ArrayList<String>();
+    private Map<String, Boolean> protectedUserProps = new HashMap<String, Boolean>();
+    private Map<String, Boolean> protectedGroupProps = new HashMap<String, Boolean>();
 
     @Override
     protected void setUp() throws Exception {
         super.setUp();
 
-        protectedUserProps.add(UserConstants.REP_PASSWORD);
-        protectedUserProps.add(UserConstants.REP_IMPERSONATORS);
-        protectedUserProps.add(UserConstants.REP_PRINCIPAL_NAME);
+        protectedUserProps.put(UserConstants.REP_PASSWORD, false);
+        protectedUserProps.put(UserConstants.REP_IMPERSONATORS, true);
+        protectedUserProps.put(UserConstants.REP_PRINCIPAL_NAME, false);
 
-        protectedUserProps.add(UserConstants.REP_MEMBERS);
-        protectedGroupProps.add(UserConstants.REP_PRINCIPAL_NAME);
+        protectedGroupProps.put(UserConstants.REP_MEMBERS, true);
+        protectedGroupProps.put(UserConstants.REP_PRINCIPAL_NAME, false);
     }
 
     private static void checkProtected(Property prop) throws RepositoryException {
@@ -423,9 +425,14 @@ public class AuthorizableTest extends AbstractUserTest {
     public void testSetSpecialProperties() throws NotExecutableException, RepositoryException {
         Value v = superuser.getValueFactory().createValue("any_value");
 
-        for (String pName : protectedUserProps) {
+        for (String pName : protectedUserProps.keySet()) {
             try {
-                user.setProperty(pName, v);
+                boolean isMultiValued = protectedUserProps.get(pName);
+                if (isMultiValued) {
+                    user.setProperty(pName, new Value[] {v});
+                } else {
+                    user.setProperty(pName, v);
+                }
                 superuser.save();
                 fail("changing the '" + pName + "' property on a User should fail.");
             } catch (RepositoryException e) {
@@ -435,9 +442,14 @@ public class AuthorizableTest extends AbstractUserTest {
             }
         }
 
-        for (String pName : protectedGroupProps) {
+        for (String pName : protectedGroupProps.keySet()) {
             try {
-                group.setProperty(pName, v);
+                boolean isMultiValued = protectedGroupProps.get(pName);
+                if (isMultiValued) {
+                    group.setProperty(pName, new Value[] {v});
+                } else {
+                    group.setProperty(pName, v);
+                }
                 superuser.save();
                 fail("changing the '" + pName + "' property on a Group should fail.");
             } catch (RepositoryException e) {
@@ -450,22 +462,24 @@ public class AuthorizableTest extends AbstractUserTest {
 
     @Test
     public void testRemoveSpecialProperties() throws NotExecutableException, RepositoryException {
-        for (String pName : protectedUserProps) {
+        for (String pName : protectedUserProps.keySet()) {
             try {
-                user.removeProperty(pName);
-                superuser.save();
-                fail("removing the '" + pName + "' property on a User should fail.");
+                if (user.removeProperty(pName)) {
+                    superuser.save();
+                    fail("removing the '" + pName + "' property on a User should fail.");
+                } // else: property not present: fine as well.
             } catch (RepositoryException e) {
                 // success
             } finally {
                 superuser.refresh(false);
             }
         }
-        for (String pName : protectedGroupProps) {
+        for (String pName : protectedGroupProps.keySet()) {
             try {
-                group.removeProperty(pName);
-                superuser.save();
-                fail("removing the '" + pName + "' property on a Group should fail.");
+                if (group.removeProperty(pName)) {
+                    superuser.save();
+                    fail("removing the '" + pName + "' property on a Group should fail.");
+                } // else: property not present. fine as well.
             } catch (RepositoryException e) {
                 // success
             } finally {

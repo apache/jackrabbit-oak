@@ -19,18 +19,13 @@ package org.apache.jackrabbit.oak.security.principal;
 import java.security.Principal;
 import java.util.Set;
 
-import org.apache.jackrabbit.oak.AbstractOakTest;
-import org.apache.jackrabbit.oak.Oak;
-import org.apache.jackrabbit.oak.api.ContentRepository;
-import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexHook;
-import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
-import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.apache.jackrabbit.oak.security.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
-import org.junit.Before;
+import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.junit.Test;
 
 import static org.junit.Assert.assertFalse;
@@ -40,28 +35,14 @@ import static org.junit.Assert.assertTrue;
 /**
  * PrincipalProviderImplTest...
  */
-public class PrincipalProviderImplTest extends AbstractOakTest {
-
-    private SecurityProvider securityProvider = new SecurityProviderImpl();
-    private ContentSession admin;
-    private PrincipalProviderImpl principalProvider;
-
-    @Before
-    public void before() throws Exception {
-        super.before();
-
-        admin = createAdminSession();
-        Root root = admin.getLatestRoot();
-        principalProvider = new PrincipalProviderImpl(root, securityProvider.getUserConfiguration(), NamePathMapper.DEFAULT);
-    }
-
-    @Override
-    protected ContentRepository createRepository() {
-        return new Oak(createMicroKernelWithInitialContent()).with(new PropertyIndexHook()).with(securityProvider).createContentRepository();
-    }
+public class PrincipalProviderImplTest extends AbstractSecurityTest {
 
     @Test
     public void testGetPrincipals() throws Exception {
+        Root root = admin.getLatestRoot();
+        PrincipalProviderImpl principalProvider =
+                new PrincipalProviderImpl(root, getSecurityProvider().getUserConfiguration(), NamePathMapper.DEFAULT);
+
         String adminId = admin.getAuthInfo().getUserID();
         Set<? extends Principal> principals = principalProvider.getPrincipals(adminId);
 
@@ -77,5 +58,31 @@ public class PrincipalProviderImplTest extends AbstractOakTest {
             }
         }
         assertTrue(containsAdminPrincipal);
+    }
+
+    @Test
+    public void testEveryone() throws Exception {
+        Root root = admin.getLatestRoot();
+        UserConfiguration config = getSecurityProvider().getUserConfiguration();
+
+        PrincipalProviderImpl principalProvider = new PrincipalProviderImpl(root, config, NamePathMapper.DEFAULT);
+
+        Principal everyone = principalProvider.getPrincipal(EveryonePrincipal.NAME);
+        assertTrue(everyone instanceof EveryonePrincipal);
+
+        org.apache.jackrabbit.api.security.user.Group everyoneGroup = null;
+        try {
+            UserManager userMgr = config.getUserManager(root, NamePathMapper.DEFAULT);
+            everyoneGroup = userMgr.createGroup(EveryonePrincipal.NAME);
+            root.commit();
+
+            Principal ep = principalProvider.getPrincipal(EveryonePrincipal.NAME);
+            assertFalse(ep instanceof EveryonePrincipal);
+        } finally {
+            if (everyoneGroup != null) {
+                everyoneGroup.remove();
+                root.commit();
+            }
+        }
     }
 }

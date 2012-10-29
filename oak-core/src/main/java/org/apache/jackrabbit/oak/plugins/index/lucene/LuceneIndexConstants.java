@@ -22,6 +22,6 @@ public interface LuceneIndexConstants extends IndexConstants {
 
     String TYPE_LUCENE = "lucene";
 
-    String DEFAULT_INDEX_NAME = "default-lucene";
+    String INDEX_DATA_CHILD_NAME = ":data";
 
 }

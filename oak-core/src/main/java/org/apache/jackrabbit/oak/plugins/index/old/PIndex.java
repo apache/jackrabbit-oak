@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.plugins.index.old;
 
 import java.util.Iterator;
 
-import org.apache.jackrabbit.mk.simple.NodeImpl;
+import org.apache.jackrabbit.oak.plugins.index.old.mk.simple.NodeImpl;
 
 /**
  * An index is a lookup mechanism. It typically uses a tree to store data. It

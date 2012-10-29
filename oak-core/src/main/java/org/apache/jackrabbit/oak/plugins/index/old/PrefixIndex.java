@@ -20,8 +20,8 @@ import java.util.Iterator;
 
 import org.apache.jackrabbit.mk.json.JsopReader;
 import org.apache.jackrabbit.mk.json.JsopTokenizer;
-import org.apache.jackrabbit.mk.simple.NodeImpl;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.index.old.mk.simple.NodeImpl;
 
 /**
  * An index for all values with a given prefix.

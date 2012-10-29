@@ -32,8 +32,21 @@ public enum AuthorizableType {
 
     private final int userType;
 
-    private AuthorizableType(int userType) {
-        this.userType = userType;
+    private AuthorizableType(int jcrUserType) {
+        this.userType = jcrUserType;
+    }
+
+    public static AuthorizableType getType(int jcrUserType) {
+        switch (jcrUserType) {
+            case UserManager.SEARCH_TYPE_AUTHORIZABLE:
+                return AUTHORIZABLE;
+            case UserManager.SEARCH_TYPE_GROUP:
+                return GROUP;
+            case UserManager.SEARCH_TYPE_USER:
+                return USER;
+            default:
+                throw new IllegalArgumentException("Invalid authorizable type "+jcrUserType);
+        }
     }
 
     public boolean isType(Authorizable authorizable) {

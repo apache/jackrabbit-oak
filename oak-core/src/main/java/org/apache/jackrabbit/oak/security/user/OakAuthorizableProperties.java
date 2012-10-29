@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.name.NamespaceConstants;
 import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.apache.jackrabbit.util.Text;
@@ -37,7 +38,7 @@ import org.slf4j.LoggerFactory;
 /**
  * OakAuthorizableProperty... TODO
  */
-public class OakAuthorizableProperties implements AuthorizableProperties {
+class OakAuthorizableProperties implements AuthorizableProperties {
 
     /**
      * logger instance
@@ -198,20 +199,10 @@ public class OakAuthorizableProperties implements AuthorizableProperties {
     }
 
     private boolean isAuthorizableProperty(Tree authorizableTree, PropertyState property) throws RepositoryException {
-
-        // TODO: check protection and declaring nt of the property
-        return true;
-//        PropertyDefinition def = prop.getDefinition();
-//        if (def.isProtected()) {
-//            return false;
-//        } else if (node.isSame(prop.getParent())) {
-//            NodeType declaringNt = prop.getDefinition().getDeclaringNodeType();
-//            return declaringNt.isNodeType(getJcrName(NT_REP_AUTHORIZABLE));
-//        } else {
-//            // another non-protected property somewhere in the subtree of this
-//            // authorizable node -> is a property that can be set using #setProperty.
-//            return true;
-//        }
+        // FIXME: add proper check for protection and declaring nt of the
+        // FIXME: property using nt functionality provided by nt-plugins
+        String prefix = Text.getNamespacePrefix(property.getName());
+        return NamespaceConstants.RESERVED_PREFIXES.contains(prefix);
     }
 
     /**

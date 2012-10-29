@@ -36,7 +36,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
-import org.apache.jackrabbit.util.ISO8601;
+import org.apache.jackrabbit.oak.plugins.value.Conversions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -185,7 +185,7 @@ public class NodeUtil {
     public void setDate(String name, long time) {
         Calendar cal = GregorianCalendar.getInstance();
         cal.setTimeInMillis(time);
-        tree.setProperty(name, ISO8601.format(cal), DATE);
+        tree.setProperty(name, Conversions.convert(cal).toDate(), DATE);
     }
 
     public long getLong(String name, long defaultValue) {

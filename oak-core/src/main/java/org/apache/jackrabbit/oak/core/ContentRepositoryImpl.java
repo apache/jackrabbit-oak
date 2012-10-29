@@ -24,9 +24,6 @@ import javax.security.auth.login.LoginException;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
-import org.apache.jackrabbit.oak.spi.commit.CommitHook;
-import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
 import org.apache.jackrabbit.oak.spi.commit.ConflictHandler;
 import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
@@ -54,24 +51,6 @@ public class ContentRepositoryImpl implements ContentRepository {
     private final QueryIndexProvider indexProvider;
     private final NodeStore nodeStore;
     private final ConflictHandler conflictHandler;
-
-    /**
-     * Creates an content repository instance based on the given, already
-     * initialized components.
-     *
-     * @param microKernel   underlying kernel instance
-     * @param indexProvider index provider
-     * @param commitHook    the commit hook
-     * @param securityProvider The configured security provider or {@code null} if
-     * default implementations should be used.
-     */
-    public ContentRepositoryImpl(MicroKernel microKernel,
-                                 QueryIndexProvider indexProvider,
-                                 CommitHook commitHook,
-                                 ConflictHandler conflictHandler,
-                                 SecurityProvider securityProvider) {
-        this(createNodeStore(microKernel, commitHook), conflictHandler, indexProvider, securityProvider);
-    }
 
     /**
      * Creates an content repository instance based on the given, already
@@ -114,11 +93,4 @@ public class ContentRepositoryImpl implements ContentRepository {
                 nodeStore, conflictHandler, indexProvider);
     }
 
-    //--------------------------------------------------------------------------
-    private static NodeStore createNodeStore(MicroKernel microKernel, CommitHook commitHook) {
-        KernelNodeStore nodeStore = new KernelNodeStore(microKernel);
-        commitHook = new CompositeHook(commitHook, new OrderedChildrenEditor());
-        nodeStore.setHook(commitHook);
-        return nodeStore;
-    }
 }

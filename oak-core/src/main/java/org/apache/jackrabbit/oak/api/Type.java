@@ -165,7 +165,7 @@ public final class Type<T> {
      * @throws IllegalStateException if {@code isArray} is false.
      */
     public Type<?> getBaseType() {
-        checkState(isArray(), "Not an array: " + this);
+        checkState(isArray(), "Not an array");
         return fromTag(tag, false);
     }
 
@@ -175,7 +175,7 @@ public final class Type<T> {
      * @throws IllegalStateException if {@code isArray} is true.
      */
     public Type<?> getArrayType() {
-        checkState(!isArray(), "Not a simply type: " + this);
+        checkState(!isArray(), "Not a simply type");
         return fromTag(tag, true);
     }
 

@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.List;
 import javax.annotation.Nonnull;
 import javax.jcr.NoSuchWorkspaceException;
@@ -29,7 +31,6 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
-import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
 import org.apache.jackrabbit.oak.spi.commit.CompositeValidatorProvider;
@@ -37,12 +38,12 @@ import org.apache.jackrabbit.oak.spi.commit.ConflictHandler;
 import org.apache.jackrabbit.oak.spi.commit.ValidatingHook;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
+import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,11 +61,13 @@ public class Oak {
 
     private final MicroKernel kernel;
 
+    private final List<RepositoryInitializer> initializers = Lists.newArrayList();
+
     private final List<QueryIndexProvider> queryIndexProviders = Lists.newArrayList();
 
     private final List<CommitHook> commitHooks = Lists.newArrayList();
 
-    private final List<ValidatorProvider> validatorProviders = Lists.newArrayList();
+    private List<ValidatorProvider> validatorProviders = Lists.newArrayList();
 
     private SecurityProvider securityProvider = new OpenSecurityProvider();
 
@@ -76,6 +79,12 @@ public class Oak {
 
     public Oak() {
         this(new MicroKernelImpl());
+    }
+
+    @Nonnull
+    public Oak with(@Nonnull RepositoryInitializer initializer) {
+       initializers.add(checkNotNull(initializer));
+       return this;
     }
 
     /**
@@ -116,7 +125,7 @@ public class Oak {
         if (!validatorProviders.isEmpty()) {
             commitHooks.add(new ValidatingHook(
                     CompositeValidatorProvider.compose(validatorProviders)));
-            //validatorProviders.clear(); FIXME
+            validatorProviders = Lists.newArrayList();
         }
     }
 
@@ -153,7 +162,6 @@ public class Oak {
     @Nonnull
     public Oak with(@Nonnull SecurityProvider securityProvider) {
         this.securityProvider = securityProvider;
-
         try {
             validatorProviders.addAll(securityProvider.getAccessControlProvider().getValidatorProviders());
             validatorProviders.addAll(securityProvider.getUserConfiguration().getValidatorProviders());
@@ -177,11 +185,18 @@ public class Oak {
     }
 
     public ContentRepository createContentRepository() {
+        KernelNodeStore store = new KernelNodeStore(kernel);
+        for (RepositoryInitializer initializer : initializers) {
+            initializer.initialize(store);
+        }
+
+        withValidatorHook();
+        store.setHook(CompositeHook.compose(commitHooks));
+
         return new ContentRepositoryImpl(
-                kernel,
-                CompositeQueryIndexProvider.compose(queryIndexProviders),
-                createCommitHook(),
+                store,
                 conflictHandler,
+                CompositeQueryIndexProvider.compose(queryIndexProviders),
                 securityProvider);
     }
 
@@ -233,27 +248,4 @@ public class Oak {
         return createContentSession().getLatestRoot();
     }
 
-    private CommitHook createCommitHook() {
-        withValidatorHook();
-        return CompositeHook.compose(commitHooks);
-    }
-
-    /**
-     * Creates a {@link NodeStore} based on the previously set micro kernel,
-     * hooks and validators.
-     * <p/>
-     * This method will return an in memory node store without hooks nor
-     * validators if no {@link MicroKernel} was set.
-     *
-     * @return a {@link NodeStore}.
-     */
-    public NodeStore createNodeStore() {
-        if (kernel != null) {
-            KernelNodeStore nodeStore = new KernelNodeStore(kernel);
-            nodeStore.setHook(createCommitHook());
-            return nodeStore;
-        } else {
-            return new MemoryNodeStore();
-        }
-    }
 }

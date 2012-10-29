@@ -25,6 +25,7 @@ import javax.jcr.Property;
 import javax.jcr.PropertyIterator;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
+import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.PropertyDefinition;
 
@@ -152,6 +153,8 @@ class JcrAuthorizableProperties implements AuthorizableProperties, UserConstants
             if (isAuthorizableProperty(p, true)) {
                 p.remove();
                 return true;
+            } else {
+                throw new ConstraintViolationException("Property " + relPath + " isn't a modifiable authorizable property");
             }
         }
         // no such property or wasn't a property of this authorizable.

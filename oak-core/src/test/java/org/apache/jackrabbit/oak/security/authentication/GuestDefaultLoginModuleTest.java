@@ -21,18 +21,12 @@ import javax.jcr.GuestCredentials;
 import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.login.Configuration;
 
-import org.apache.jackrabbit.oak.AbstractOakTest;
-import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.AuthInfo;
-import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
+import org.apache.jackrabbit.oak.security.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl;
-import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.GuestLoginModule;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtility;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -40,32 +34,34 @@ import static org.junit.Assert.assertEquals;
 /**
  * LoginTest...
  */
-public class GuestDefaultLoginModuleTest extends AbstractOakTest {
-
-    SecurityProvider securityProvider = new SecurityProviderImpl();
-
-    @Before
-    public void before() throws Exception {
-        super.before();
-        Configuration.setConfiguration(new GuestDefaultConfiguration());
-    }
-
-    @After
-    public void after() throws Exception {
-        Configuration.setConfiguration(null);
-    }
+public class GuestDefaultLoginModuleTest extends AbstractSecurityTest {
 
     @Override
-    protected ContentRepository createRepository() {
-        return new Oak(createMicroKernelWithInitialContent()).with(securityProvider).createContentRepository();
+    protected Configuration getConfiguration() {
+        return new Configuration() {
+            @Override
+            public AppConfigurationEntry[] getAppConfigurationEntry(String s) {
+                AppConfigurationEntry guestEntry = new AppConfigurationEntry(
+                        GuestLoginModule.class.getName(),
+                        AppConfigurationEntry.LoginModuleControlFlag.OPTIONAL,
+                        Collections.<String, Object>emptyMap());
+
+                AppConfigurationEntry defaultEntry = new AppConfigurationEntry(
+                        LoginModuleImpl.class.getName(),
+                        AppConfigurationEntry.LoginModuleControlFlag.REQUIRED,
+                        Collections.<String, Object>emptyMap());
+
+                return new AppConfigurationEntry[] {guestEntry, defaultEntry};
+            }
+        };
     }
 
     @Test
     public void testNullLogin() throws Exception {
-        ContentSession cs = getContentRepository().login(null, null);
+        ContentSession cs = login(null);
         try {
             AuthInfo authInfo = cs.getAuthInfo();
-            String anonymousID = UserUtility.getAnonymousId(securityProvider.getUserConfiguration().getConfigurationParameters());
+            String anonymousID = UserUtility.getAnonymousId(getSecurityProvider().getUserConfiguration().getConfigurationParameters());
             assertEquals(anonymousID, authInfo.getUserID());
         } finally {
             cs.close();
@@ -74,31 +70,13 @@ public class GuestDefaultLoginModuleTest extends AbstractOakTest {
 
     @Test
     public void testGuestLogin() throws Exception {
-        ContentSession cs = getContentRepository().login(new GuestCredentials(), null);
+        ContentSession cs = login(new GuestCredentials());
         try {
             AuthInfo authInfo = cs.getAuthInfo();
-            String anonymousID = UserUtility.getAnonymousId(securityProvider.getUserConfiguration().getConfigurationParameters());
+            String anonymousID = UserUtility.getAnonymousId(getSecurityProvider().getUserConfiguration().getConfigurationParameters());
             assertEquals(anonymousID, authInfo.getUserID());
         } finally {
             cs.close();
-        }
-    }
-
-    private class GuestDefaultConfiguration extends Configuration {
-
-        @Override
-        public AppConfigurationEntry[] getAppConfigurationEntry(String s) {
-            AppConfigurationEntry guestEntry = new AppConfigurationEntry(
-                    GuestLoginModule.class.getName(),
-                    AppConfigurationEntry.LoginModuleControlFlag.OPTIONAL,
-                    Collections.<String, Object>emptyMap());
-
-            AppConfigurationEntry defaultEntry = new AppConfigurationEntry(
-                    LoginModuleImpl.class.getName(),
-                    AppConfigurationEntry.LoginModuleControlFlag.REQUIRED,
-                    Collections.<String, Object>emptyMap());
-
-            return new AppConfigurationEntry[] {guestEntry, defaultEntry};
         }
     }
 }

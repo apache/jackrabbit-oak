@@ -48,6 +48,24 @@ public abstract class EmptyPropertyState implements PropertyState {
         this.name = name;
     }
 
+    /**
+     * Create an empty {@code PropertyState}
+     * @param name  The name of the property state
+     * @param type  The type of the property state
+     * @return  The new property state
+     */
+    public static PropertyState emptyProperty(String name, final Type<?> type) {
+        if (!type.isArray()) {
+            throw new IllegalArgumentException("Not an array type:" + type);
+        }
+        return new EmptyPropertyState(name) {
+            @Override
+            public Type<?> getType() {
+                return type;
+            }
+        };
+    }
+
     @Nonnull
     @Override
     public String getName() {

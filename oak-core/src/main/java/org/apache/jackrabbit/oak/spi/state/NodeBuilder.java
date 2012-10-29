@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.state;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -34,6 +35,33 @@ public interface NodeBuilder {
      */
     @Nonnull
     NodeState getNodeState();
+
+    /**
+     * Returns the original base state that this builder is modifying.
+     * Returns {@code null} if this builder represents a new node that
+     * didn't exist in the base content tree.
+     *
+     * @return base node state, or {@code null}
+     */
+    @CheckForNull
+    NodeState getBaseState();
+
+    /**
+     * Replaces the base state of this builder and throws away all changes.
+     * The effect of this method is equivalent to replacing this builder
+     * (and the connected subtree) with a new builder returned by
+     * {@code state.builder()}.
+     * <p>
+     * This method only works on builders acquired directly from a call
+     * to {@link NodeState#builder()}. Calling it on a builder returned
+     * by the {@link #child(String)} method will throw an
+     * {@link IllegalStateException}.
+     *
+     * @param state new base state
+     * @throws IllegalStateException if this is not a root builder
+     */
+    void reset(@Nonnull NodeState state)
+        throws IllegalStateException;
 
     /**
      * Returns the current number of child nodes.
@@ -59,7 +87,7 @@ public interface NodeBuilder {
     Iterable<String> getChildNodeNames();
 
     /**
-     * Adds or replaces a sub-ree.
+     * Adds or replaces a subtree.
      *
      * @param name name of the child node containing the new subtree
      * @param nodeState subtree
@@ -70,7 +98,7 @@ public interface NodeBuilder {
 
     /**
      * Remove a child node. This method has no effect if a
-     * property of the given {@code name} does not exist.
+     * name of the given {@code name} does not exist.
      *
      * @param name  name of the child node
      * @return this builder

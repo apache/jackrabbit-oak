@@ -16,12 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.value;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.util.Calendar;
-import java.util.TimeZone;
 
 import javax.jcr.Binary;
 import javax.jcr.PropertyType;
@@ -29,17 +26,14 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.ValueFormatException;
 
-import com.google.common.base.Charsets;
-import com.google.common.io.CharStreams;
-import com.google.common.io.InputSupplier;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.util.ISO8601;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkState;
 
 /**
  * Implementation of {@link Value} based on {@code PropertyState}.
@@ -99,10 +93,13 @@ public class ValueImpl implements Value {
      */
     @Override
     public boolean getBoolean() throws RepositoryException {
-        if (getType() == PropertyType.STRING || getType() == PropertyType.BINARY || getType() == PropertyType.BOOLEAN) {
-            return propertyState.getValue(Type.BOOLEAN, index);
-        } else {
-            throw new ValueFormatException("Incompatible type " + PropertyType.nameFromValue(getType()));
+        switch (getType()) {
+            case PropertyType.STRING:
+            case PropertyType.BINARY:
+            case PropertyType.BOOLEAN:
+                return propertyState.getValue(Type.BOOLEAN, index);
+            default:
+                throw new ValueFormatException("Incompatible type " + PropertyType.nameFromValue(getType()));
         }
     }
 
@@ -111,21 +108,24 @@ public class ValueImpl implements Value {
      */
     @Override
     public Calendar getDate() throws RepositoryException {
-        Calendar cal;
-        switch (getType()) {
-            case PropertyType.DOUBLE:
-            case PropertyType.LONG:
-            case PropertyType.DECIMAL:
-                cal = Calendar.getInstance(TimeZone.getTimeZone("GMT+00:00"));
-                cal.setTimeInMillis(getLong());
-                break;
-            default:
-                cal = ISO8601.parse(getString());
-                if (cal == null) {
-                    throw new ValueFormatException("Not a date string: " + getString());
-                }
+        try {
+            switch (getType()) {
+                case PropertyType.STRING:
+                case PropertyType.BINARY:
+                    String value = propertyState.getValue(Type.DATE, index);
+                    return Conversions.convert(value).toCalendar();
+                case PropertyType.LONG:
+                case PropertyType.DOUBLE:
+                case PropertyType.DATE:
+                case PropertyType.DECIMAL:
+                    return Conversions.convert(propertyState.getValue(Type.LONG, index)).toCalendar();
+                default:
+                    throw new ValueFormatException("Incompatible type " + PropertyType.nameFromValue(getType()));
+            }
         }
-        return cal;
+        catch (IllegalArgumentException e) {
+            throw new ValueFormatException("Error converting value to date", e);
+        }
     }
 
     /**
@@ -135,14 +135,19 @@ public class ValueImpl implements Value {
     public BigDecimal getDecimal() throws RepositoryException {
         try {
             switch (getType()) {
+                case PropertyType.STRING:
+                case PropertyType.BINARY:
+                case PropertyType.LONG:
+                case PropertyType.DOUBLE:
                 case PropertyType.DATE:
-                    Calendar cal = getDate();
-                    return BigDecimal.valueOf(cal.getTimeInMillis());
-                default:
+                case PropertyType.DECIMAL:
                     return propertyState.getValue(Type.DECIMAL, index);
+                default:
+                    throw new ValueFormatException("Incompatible type " + PropertyType.nameFromValue(getType()));
             }
-        } catch (NumberFormatException e) {
-            throw new ValueFormatException("Incompatible type " + PropertyType.nameFromValue(getType()));
+        }
+        catch (IllegalArgumentException e) {
+            throw new ValueFormatException("Error converting value to decimal", e);
         }
     }
 
@@ -153,14 +158,19 @@ public class ValueImpl implements Value {
     public double getDouble() throws RepositoryException {
         try {
             switch (getType()) {
+                case PropertyType.STRING:
+                case PropertyType.BINARY:
+                case PropertyType.LONG:
+                case PropertyType.DOUBLE:
                 case PropertyType.DATE:
-                    Calendar cal = getDate();
-                    return cal.getTimeInMillis();
-                default:
+                case PropertyType.DECIMAL:
                     return propertyState.getValue(Type.DOUBLE, index);
+                default:
+                    throw new ValueFormatException("Incompatible type " + PropertyType.nameFromValue(getType()));
             }
-        } catch (NumberFormatException e) {
-            throw new ValueFormatException("Incompatible type " + PropertyType.nameFromValue(getType()));
+        }
+        catch (IllegalArgumentException e) {
+            throw new ValueFormatException("Error converting value to double", e);
         }
     }
 
@@ -171,14 +181,19 @@ public class ValueImpl implements Value {
     public long getLong() throws RepositoryException {
         try {
             switch (getType()) {
+                case PropertyType.STRING:
+                case PropertyType.BINARY:
+                case PropertyType.LONG:
+                case PropertyType.DOUBLE:
                 case PropertyType.DATE:
-                    Calendar cal = getDate();
-                    return cal.getTimeInMillis();
-                default:
+                case PropertyType.DECIMAL:
                     return propertyState.getValue(Type.LONG, index);
+                default:
+                    throw new ValueFormatException("Incompatible type " + PropertyType.nameFromValue(getType()));
             }
-        } catch (NumberFormatException e) {
-            throw new ValueFormatException("Incompatible type " + PropertyType.nameFromValue(getType()));
+        }
+        catch (IllegalArgumentException e) {
+            throw new ValueFormatException("Error converting value to double", e);
         }
     }
 
@@ -187,6 +202,10 @@ public class ValueImpl implements Value {
      */
     @Override
     public String getString() throws RepositoryException {
+        checkState(getType() != PropertyType.BINARY || stream == null,
+                "getStream has previously been called on this Value instance. " +
+                "In this case a new Value instance must be acquired in order to successfully call this method.");
+
         switch (getType()) {
             case PropertyType.NAME:
                 return namePathMapper.getJcrName(propertyState.getValue(Type.STRING, index));
@@ -197,27 +216,6 @@ public class ValueImpl implements Value {
                     return s;
                 } else {
                     return namePathMapper.getJcrPath(s);
-                }
-            case PropertyType.BINARY:
-                if (stream != null) {
-                    throw new IllegalStateException("getStream has previously been called on this Value instance. " +
-                            "In this case a new Value instance must be acquired in order to successfully call this method.");
-                }
-                try {
-                    final InputStream is = propertyState.getValue(Type.BINARY, index).getNewStream();
-                    try {
-                        return CharStreams.toString(CharStreams.newReaderSupplier(
-                                new InputSupplier<InputStream>() {
-                                    @Override
-                                    public InputStream getInput() {
-                                        return is;
-                                    }
-                                }, Charsets.UTF_8));
-                    } finally {
-                        is.close();
-                    }
-                } catch (IOException e) {
-                    throw new RepositoryException("conversion from stream to string failed", e);
                 }
             default:
                 return propertyState.getValue(Type.STRING, index);
@@ -236,12 +234,6 @@ public class ValueImpl implements Value {
     }
 
     InputStream getNewStream() throws RepositoryException {
-        switch (getType()) {
-            case PropertyType.NAME:
-            case PropertyType.PATH:
-                return new ByteArrayInputStream(
-                        getString().getBytes(Charsets.UTF_8));
-        }
         return propertyState.getValue(Type.BINARY, index).getNewStream();
     }
 
@@ -299,6 +291,10 @@ public class ValueImpl implements Value {
                 return compare(p1.getValue(Type.BINARY, i1), p2.getValue(Type.BINARY, i2));
             case PropertyType.DOUBLE:
                 return compare(p1.getValue(Type.DOUBLE, i1), p2.getValue(Type.DOUBLE, i2));
+            case PropertyType.LONG:
+                return compare(p1.getValue(Type.LONG, i1), p2.getValue(Type.LONG, i2));
+            case PropertyType.DECIMAL:
+                return compare(p1.getValue(Type.DECIMAL, i1), p2.getValue(Type.DECIMAL, i2));
             case PropertyType.DATE:
                 return compareAsDate(p1.getValue(Type.STRING, i1), p2.getValue(Type.STRING, i2));
             default:
@@ -311,8 +307,8 @@ public class ValueImpl implements Value {
     }
 
     private static int compareAsDate(String p1, String p2) {
-        Calendar c1 = ISO8601.parse(p1);
-        Calendar c2 = ISO8601.parse(p2);
+        Calendar c1 = Conversions.convert(p1).toCalendar();
+        Calendar c2 = Conversions.convert(p1).toCalendar();
         return c1 != null && c2 != null
                 ? c1.compareTo(c2)
                 : p1.compareTo(p2);

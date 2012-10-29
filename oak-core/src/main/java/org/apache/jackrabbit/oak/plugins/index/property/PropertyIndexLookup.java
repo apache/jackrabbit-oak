@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.property;
 
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -27,6 +29,24 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import com.google.common.collect.Sets;
 
+/**
+ * Is responsible for querying the property index content.
+ * 
+ * <p>
+ * This class can be used directly on a subtree where there is an index defined
+ * by supplying a {@link NodeState} root.
+ * </p>
+ * 
+ * <pre>
+ * <code>
+ * {
+ *     NodeState state = ... // get a node state
+ *     PropertyIndexLookup lookup = new PropertyIndexLookup(state);
+ *     Set<String> hits = lookup.find("foo", PropertyValues.newString("xyz"));
+ * }
+ * </code>
+ * </pre>
+ */
 public class PropertyIndexLookup {
 
     private final NodeState root;
@@ -43,7 +63,7 @@ public class PropertyIndexLookup {
      * @param path lookup path
      */
     public boolean isIndexed(String name, String path) {
-        NodeState state = root.getChildNode("oak:index");
+        NodeState state = root.getChildNode(INDEX_DEFINITIONS_NAME);
         if (state != null) {
             state = state.getChildNode(name);
             if (state != null) {
@@ -64,15 +84,33 @@ public class PropertyIndexLookup {
                 name, path.substring(slash));
     }
 
+    /**
+     * Searches for a given <code>String<code> value within this index.
+     * 
+     * <p><b>Note</b> if the property you are looking for is not of type <code>String<code>, the converted key value might not match the index key, and there will be no hits on the index.</p>
+     * 
+     * @param name
+     *            the property name
+     * @param value
+     *            the property value
+     * @return the set of matched paths
+     */
     public Set<String> find(String name, String value) {
         return find(name, PropertyValues.newString(value));
     }
 
+    /**
+     * Searches for a given value within this index.
+     * 
+     * @param name the property name
+     * @param value the property value
+     * @return the set of matched paths
+     */
     public Set<String> find(String name, PropertyValue value) {
         Set<String> paths = Sets.newHashSet();
 
         PropertyState property = null;
-        NodeState state = root.getChildNode("oak:index");
+        NodeState state = root.getChildNode(INDEX_DEFINITIONS_NAME);
         if (state != null) {
             state = state.getChildNode(name);
             if (state != null) {

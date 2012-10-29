@@ -18,39 +18,39 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
-import java.math.BigDecimal;
-
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.value.Conversions;
+import org.apache.jackrabbit.oak.plugins.value.Conversions.Converter;
 
-import static org.apache.jackrabbit.oak.api.Type.*;
+import static org.apache.jackrabbit.oak.api.Type.DOUBLE;
 
-public class DoublePropertyState extends SinglePropertyState {
+public class DoublePropertyState extends SinglePropertyState<Double> {
     private final double value;
 
-    protected DoublePropertyState(String name, double value) {
+    public DoublePropertyState(String name, double value) {
         super(name);
         this.value = value;
     }
 
-    @Override
-    public BigDecimal getDecimal() {
-        return Conversions.convert(value).toDecimal();
+    /**
+     * Create a {@code PropertyState} from a double.
+     * @param name  The name of the property state
+     * @param value  The value of the property state
+     * @return  The new property state of type {@link Type#DOUBLE}
+     */
+    public static PropertyState doubleProperty(String name, double value) {
+        return new DoublePropertyState(name, value);
     }
 
     @Override
-    public double getDouble() {
+    public Double getValue() {
         return value;
     }
 
     @Override
-    public long getLong() {
-        return Conversions.convert(value).toLong();
-    }
-
-    @Override
-    public String getString() {
-        return Conversions.convert(value).toString();
+    public Converter getConverter() {
+        return Conversions.convert(value);
     }
 
     @Override

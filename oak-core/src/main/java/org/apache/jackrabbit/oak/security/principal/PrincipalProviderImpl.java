@@ -129,7 +129,6 @@ public class PrincipalProviderImpl implements PrincipalProvider {
 
     private Set<Group> getGroupMembership(Authorizable authorizable) {
         Set<java.security.acl.Group> groupPrincipals = new HashSet<Group>();
-        groupPrincipals.add(EveryonePrincipal.getInstance());
         try {
             Iterator<org.apache.jackrabbit.api.security.user.Group> groups = authorizable.memberOf();
             while (groups.hasNext()) {
@@ -141,6 +140,7 @@ public class PrincipalProviderImpl implements PrincipalProvider {
         } catch (RepositoryException e) {
             log.debug(e.getMessage());
         }
+        groupPrincipals.add(EveryonePrincipal.getInstance());
         return groupPrincipals;
     }
 
