@@ -18,7 +18,7 @@ package org.apache.jackrabbit.mongomk.impl;
 
 import java.io.InputStream;
 
-import org.apache.jackrabbit.mongomk.api.BlobStore;
+import org.apache.jackrabbit.mk.blobs.BlobStore;
 import org.apache.jackrabbit.mongomk.api.command.Command;
 import org.apache.jackrabbit.mongomk.api.command.CommandExecutor;
 import org.apache.jackrabbit.mongomk.command.GetBlobLengthCommandMongo;

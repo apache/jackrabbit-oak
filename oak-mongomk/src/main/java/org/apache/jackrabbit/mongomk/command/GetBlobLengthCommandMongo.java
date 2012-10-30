@@ -38,7 +38,7 @@ public class GetBlobLengthCommandMongo extends AbstractCommand<Long> {
         GridFS gridFS = mongoConnection.getGridFS();
         GridFSDBFile gridFSDBFile = gridFS.findOne(new BasicDBObject("md5", blobId));
         if (gridFSDBFile == null) {
-            throw new Exception("Blob does not exiss");
+            throw new Exception("Blob does not exist");
         }
         return gridFSDBFile.getLength();
     }
