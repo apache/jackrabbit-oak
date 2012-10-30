@@ -164,7 +164,11 @@ public class MongoMicroKernel implements MicroKernel {
     @Override
     public String getRevisionHistory(long since, int maxEntries, String path)
             throws MicroKernelException {
-        return nodeStore.getRevisionHistory(since, maxEntries, path);
+        try {
+            return nodeStore.getRevisionHistory(since, maxEntries, path);
+        } catch (Exception e) {
+            throw new MicroKernelException(e);
+        }
     }
 
     @Override

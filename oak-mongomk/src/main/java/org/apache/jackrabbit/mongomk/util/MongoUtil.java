@@ -33,7 +33,8 @@ import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
 
 /**
- * Utility class for preparing the {@code MongoDB} environment.
+ * Utility class for preparing the {@code MongoDB} environment and other MongoMK
+ * specific utility functionality.
  */
 public class MongoUtil {
 
@@ -132,5 +133,13 @@ public class MongoUtil {
 
     public static NodeState wrap(Node node) {
         return node != null? new MongoNodeState(node) : null;
+    }
+
+    public static String adjustPath(String path) {
+        return (path == null || path.isEmpty()) ? "/" : path;
+    }
+
+    public static boolean isFiltered(String path) {
+        return !"/".equals(path);
     }
 }

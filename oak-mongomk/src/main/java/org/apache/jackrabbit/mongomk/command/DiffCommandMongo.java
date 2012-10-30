@@ -42,7 +42,7 @@ public class DiffCommandMongo extends DefaultCommand<String> {
 
     @Override
     public String execute() throws Exception {
-        checkPath();
+        path = MongoUtil.adjustPath(path);
         checkDepth();
 
         long fromRevisionId, toRevisionId;
@@ -81,10 +81,6 @@ public class DiffCommandMongo extends DefaultCommand<String> {
         if (depth < -1) {
             throw new IllegalArgumentException("depth");
         }
-    }
-
-    private void checkPath() {
-        path = (path == null || path.isEmpty())? "/" : path;
     }
 
     private Node getNode(String path, long revisionId) throws Exception {

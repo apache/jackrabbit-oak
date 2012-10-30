@@ -42,8 +42,7 @@ public class GetJournalCommandMongo extends DefaultCommand<String> {
 
     @Override
     public String execute() throws Exception {
-        checkPath();
-        boolean filtered = !"/".equals(path);
+        path = MongoUtil.adjustPath(path);
 
         long fromRevision = MongoUtil.toMongoRepresentation(fromRevisionId);
         long toRevision;
@@ -82,7 +81,7 @@ public class GetJournalCommandMongo extends DefaultCommand<String> {
             CommitMongo commit = commits.get(i);
 
             String diff = commit.getDiff();
-            if (filtered) {
+            if (MongoUtil.isFiltered(path)) {
                 try {
                     diff = new DiffBuilder(
                             MongoUtil.wrap(getNode("/", commit.getBaseRevId())),
@@ -102,10 +101,6 @@ public class GetJournalCommandMongo extends DefaultCommand<String> {
             .key("changes").value(diff).endObject();
         }
         return commitBuff.endArray().toString();
-    }
-
-    private void checkPath() {
-        path = (path == null || path.isEmpty())? "/" : path;
     }
 
     private CommitMongo extractCommit(List<CommitMongo> commits, long revisionId) {

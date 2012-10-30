@@ -16,12 +16,6 @@
  */
 package org.apache.jackrabbit.mongomk.impl;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import org.apache.jackrabbit.mk.api.MicroKernelException;
-import org.apache.jackrabbit.mk.json.JsopBuilder;
-import org.apache.jackrabbit.mk.model.tree.DiffBuilder;
 import org.apache.jackrabbit.mongomk.api.NodeStore;
 import org.apache.jackrabbit.mongomk.api.command.Command;
 import org.apache.jackrabbit.mongomk.api.command.CommandExecutor;
@@ -32,13 +26,12 @@ import org.apache.jackrabbit.mongomk.command.DiffCommandMongo;
 import org.apache.jackrabbit.mongomk.command.GetHeadRevisionCommandMongo;
 import org.apache.jackrabbit.mongomk.command.GetJournalCommandMongo;
 import org.apache.jackrabbit.mongomk.command.GetNodesCommandMongo;
+import org.apache.jackrabbit.mongomk.command.GetRevisionHistoryCommandMongo;
 import org.apache.jackrabbit.mongomk.command.MergeCommandMongo;
 import org.apache.jackrabbit.mongomk.command.NodeExistsCommandMongo;
 import org.apache.jackrabbit.mongomk.impl.command.DefaultCommandExecutor;
-import org.apache.jackrabbit.mongomk.impl.model.tree.MongoNodeStore;
 import org.apache.jackrabbit.mongomk.model.CommitMongo;
 import org.apache.jackrabbit.mongomk.query.FetchCommitQuery;
-import org.apache.jackrabbit.mongomk.query.FetchCommitsQuery;
 import org.apache.jackrabbit.mongomk.query.FetchHeadRevisionIdQuery;
 import org.apache.jackrabbit.mongomk.util.MongoUtil;
 
@@ -121,48 +114,11 @@ public class NodeStoreMongo implements NodeStore {
     }
 
     @Override
-    public String getRevisionHistory(long since, int maxEntries, String path) {
-      path = (path == null || "".equals(path)) ? "/" : path;
-      boolean filtered = !"/".equals(path);
-
-      maxEntries = maxEntries < 0 ? Integer.MAX_VALUE : maxEntries;
-
-      FetchCommitsQuery query = new FetchCommitsQuery(mongoConnection);
-      query.setMaxEntries(maxEntries);
-      query.includeBranchCommits(false);
-
-      List<CommitMongo> commits = query.execute();
-      List<CommitMongo> history = new ArrayList<CommitMongo>();
-      for (int i = commits.size() - 1; i >= 0; i--) {
-          CommitMongo commit = commits.get(i);
-          if (commit.getTimestamp() >= since) {
-              if (filtered) {
-                  try {
-                      String diff = new DiffBuilder(
-                              MongoUtil.wrap(getNode("/", commit.getBaseRevId())),
-                              MongoUtil.wrap(getNode("/", commit.getRevisionId())),
-                              "/", -1, new MongoNodeStore(), path).build();
-                      if (!diff.isEmpty()) {
-                          history.add(commit);
-                      }
-                  } catch (Exception e) {
-                      throw new MicroKernelException(e);
-                  }
-              } else {
-                  history.add(commit);
-              }
-          }
-      }
-
-      JsopBuilder buff = new JsopBuilder().array();
-      for (CommitMongo commit : history) {
-          buff.object()
-          .key("id").value(MongoUtil.fromMongoRepresentation(commit.getRevisionId()))
-          .key("ts").value(commit.getTimestamp())
-          .key("msg").value(commit.getMessage())
-          .endObject();
-      }
-      return buff.endArray().toString();
+    public String getRevisionHistory(long since, int maxEntries, String path)
+            throws Exception {
+        GetRevisionHistoryCommandMongo command = new GetRevisionHistoryCommandMongo(mongoConnection,
+                since, maxEntries, path);
+        return commandExecutor.execute(command);
     }
 
     @Override
@@ -208,16 +164,5 @@ public class NodeStoreMongo implements NodeStore {
         FetchHeadRevisionIdQuery query = new FetchHeadRevisionIdQuery(mongoConnection);
         query.includeBranchCommits(includeBranchCommits);
         return query.execute();
-    }
-
-    private Node getNode(String path, Long revisionId) throws Exception {
-        return getNode(path, revisionId, null);
-    }
-
-    private Node getNode(String path, Long revisionId, String branchId) throws Exception {
-        GetNodesCommandMongo command = new GetNodesCommandMongo(mongoConnection,
-                path, revisionId);
-        command.setBranchId(branchId);
-        return command.execute();
     }
 }
