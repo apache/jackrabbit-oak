@@ -93,9 +93,12 @@ public class InitialContent implements RepositoryInitializer {
                 .setProperty("jcr:primaryType", "oak:queryIndexDefinition", Type.NAME)
                 .setProperty("type", "property")
                 .setProperty("propertyNames", "jcr:uuid")
+                .setProperty("reindex", true)
                 .setProperty("unique", true);
             index.child("primaryType")
                 .setProperty("jcr:primaryType", "oak:queryIndexDefinition", Type.NAME)
+                .setProperty("type", "property")
+                .setProperty("reindex", true)
                 .setProperty("propertyNames", "jcr:primaryType");
             // FIXME: user-mgt related unique properties (rep:authorizableId, rep:principalName) are implementation detail and not generic for repo
             // FIXME OAK-396: rep:principalName only needs to be unique if defined with user/group nodes -> add defining nt-info to uniqueness constraint otherwise ac-editing will fail.
@@ -103,11 +106,13 @@ public class InitialContent implements RepositoryInitializer {
                 .setProperty("jcr:primaryType", "oak:queryIndexDefinition", Type.NAME)
                 .setProperty("type", "property")
                 .setProperty("propertyNames", "rep:authorizableId")
+                .setProperty("reindex", true)
                 .setProperty("unique", true);
             index.child("principalName")
                 .setProperty("jcr:primaryType", "oak:queryIndexDefinition", Type.NAME)
                 .setProperty("type", "property")
                 .setProperty("propertyNames", "rep:principalName")
+                .setProperty("reindex", true)
                 .setProperty("unique", true);
         }
         try {
