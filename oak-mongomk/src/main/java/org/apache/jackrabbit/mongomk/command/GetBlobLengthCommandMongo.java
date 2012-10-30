@@ -16,14 +16,14 @@
  */
 package org.apache.jackrabbit.mongomk.command;
 
-import org.apache.jackrabbit.mongomk.api.command.AbstractCommand;
+import org.apache.jackrabbit.mongomk.api.command.DefaultCommand;
 import org.apache.jackrabbit.mongomk.impl.MongoConnection;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.gridfs.GridFS;
 import com.mongodb.gridfs.GridFSDBFile;
 
-public class GetBlobLengthCommandMongo extends AbstractCommand<Long> {
+public class GetBlobLengthCommandMongo extends DefaultCommand<Long> {
 
     private final MongoConnection mongoConnection;
     private final String blobId;

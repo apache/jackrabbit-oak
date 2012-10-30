@@ -24,7 +24,7 @@ import org.apache.jackrabbit.mongomk.api.command.CommandExecutor;
 import org.apache.jackrabbit.mongomk.command.GetBlobLengthCommandMongo;
 import org.apache.jackrabbit.mongomk.command.ReadBlobCommandMongo;
 import org.apache.jackrabbit.mongomk.command.WriteBlobCommandMongo;
-import org.apache.jackrabbit.mongomk.impl.command.CommandExecutorImpl;
+import org.apache.jackrabbit.mongomk.impl.command.DefaultCommandExecutor;
 
 public class BlobStoreMongo implements BlobStore {
 
@@ -33,7 +33,7 @@ public class BlobStoreMongo implements BlobStore {
 
     public BlobStoreMongo(MongoConnection mongoConnection) {
         this.mongoConnection = mongoConnection;
-        this.commandExecutor = new CommandExecutorImpl();
+        commandExecutor = new DefaultCommandExecutor();
     }
 
     @Override

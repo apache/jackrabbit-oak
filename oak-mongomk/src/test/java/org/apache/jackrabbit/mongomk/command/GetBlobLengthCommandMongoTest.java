@@ -41,9 +41,9 @@ public class GetBlobLengthCommandMongoTest extends BaseMongoTest {
     }
 
     @Test
-    public void testNonExistantBlobLength() throws Exception {
+    public void testNonExistentBlobLength() throws Exception {
         GetBlobLengthCommandMongo command = new GetBlobLengthCommandMongo(mongoConnection,
-                "nonExistantBlobId");
+                "nonExistentBlobId");
         try {
             command.execute();
             fail("Exception expected");

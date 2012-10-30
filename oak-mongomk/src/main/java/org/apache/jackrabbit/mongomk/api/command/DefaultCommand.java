@@ -17,11 +17,11 @@
 package org.apache.jackrabbit.mongomk.api.command;
 
 /**
- * Base implementation of {@link Command}.
+ * Default implementation of {@link Command}.
  *
  * @param <T> The result type of the {@code Command}.
  */
-public abstract class AbstractCommand<T> implements Command<T> {
+public abstract class DefaultCommand<T> implements Command<T> {
 
     @Override
     public int getNumOfRetries() {

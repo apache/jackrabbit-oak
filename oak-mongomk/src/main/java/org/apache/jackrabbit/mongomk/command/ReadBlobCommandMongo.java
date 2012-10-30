@@ -19,7 +19,7 @@ package org.apache.jackrabbit.mongomk.command;
 import java.io.InputStream;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.jackrabbit.mongomk.api.command.AbstractCommand;
+import org.apache.jackrabbit.mongomk.api.command.DefaultCommand;
 import org.apache.jackrabbit.mongomk.impl.MongoConnection;
 
 import com.mongodb.BasicDBObject;
@@ -30,7 +30,7 @@ import com.mongodb.gridfs.GridFSDBFile;
  * FIXME - Reading from large blobs with small increments is slow in this implementation.
  * See if this could be improved with some kind of cache mechanism.
  */
-public class ReadBlobCommandMongo extends AbstractCommand<Integer> {
+public class ReadBlobCommandMongo extends DefaultCommand<Integer> {
 
     private final MongoConnection mongoConnection;
     private final String blobId;

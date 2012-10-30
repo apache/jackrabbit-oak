@@ -33,7 +33,7 @@ import org.apache.jackrabbit.mongomk.command.CommitCommandMongo;
 import org.apache.jackrabbit.mongomk.command.GetHeadRevisionCommandMongo;
 import org.apache.jackrabbit.mongomk.command.GetNodesCommandMongo;
 import org.apache.jackrabbit.mongomk.command.NodeExistsCommandMongo;
-import org.apache.jackrabbit.mongomk.impl.command.CommandExecutorImpl;
+import org.apache.jackrabbit.mongomk.impl.command.DefaultCommandExecutor;
 import org.apache.jackrabbit.mongomk.impl.model.CommitBuilder;
 import org.apache.jackrabbit.mongomk.impl.model.NodeImpl;
 import org.apache.jackrabbit.mongomk.impl.model.tree.MongoNodeDelta;
@@ -51,6 +51,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
+ * FIXME- Create commands out of methods if not already done so.
+ *
  * Implementation of {@link NodeStore} for the {@code MongoDB}.
  */
 public class NodeStoreMongo implements NodeStore {
@@ -68,7 +70,7 @@ public class NodeStoreMongo implements NodeStore {
      */
     public NodeStoreMongo(MongoConnection mongoConnection) {
         this.mongoConnection = mongoConnection;
-        commandExecutor = new CommandExecutorImpl();
+        commandExecutor = new DefaultCommandExecutor();
     }
 
     @Override

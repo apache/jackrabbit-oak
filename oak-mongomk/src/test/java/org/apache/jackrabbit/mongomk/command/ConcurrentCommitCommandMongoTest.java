@@ -29,7 +29,7 @@ import org.apache.jackrabbit.mongomk.BaseMongoTest;
 import org.apache.jackrabbit.mongomk.api.command.CommandExecutor;
 import org.apache.jackrabbit.mongomk.api.model.Commit;
 import org.apache.jackrabbit.mongomk.api.model.Node;
-import org.apache.jackrabbit.mongomk.impl.command.CommandExecutorImpl;
+import org.apache.jackrabbit.mongomk.impl.command.DefaultCommandExecutor;
 import org.apache.jackrabbit.mongomk.impl.model.CommitBuilder;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.junit.Assert;
@@ -66,7 +66,7 @@ public class ConcurrentCommitCommandMongoTest extends BaseMongoTest {
         }
 
         // execute the commands
-        final CommandExecutor commandExecutor = new CommandExecutorImpl();
+        final CommandExecutor commandExecutor = new DefaultCommandExecutor();
         ExecutorService executorService = Executors.newFixedThreadPool(numOfConcurrentThreads);
         final List<Long> revisionIds = new LinkedList<Long>();
         for (int i = 0; i < numOfConcurrentThreads; ++i) {

@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.mongomk.command;
 
-import org.apache.jackrabbit.mongomk.api.command.AbstractCommand;
+import org.apache.jackrabbit.mongomk.api.command.DefaultCommand;
 import org.apache.jackrabbit.mongomk.api.model.Node;
 import org.apache.jackrabbit.mongomk.impl.MongoConnection;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -24,7 +24,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 /**
  * A {@code Command} for determine whether a node exists from {@code MongoDB}.
  */
-public class NodeExistsCommandMongo extends AbstractCommand<Boolean> {
+public class NodeExistsCommandMongo extends DefaultCommand<Boolean> {
 
     private final MongoConnection mongoConnection;
     private final Long revisionId;

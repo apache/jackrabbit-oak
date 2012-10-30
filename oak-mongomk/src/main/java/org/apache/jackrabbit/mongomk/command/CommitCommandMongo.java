@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.jackrabbit.mongomk.api.command.AbstractCommand;
+import org.apache.jackrabbit.mongomk.api.command.DefaultCommand;
 import org.apache.jackrabbit.mongomk.api.instruction.Instruction;
 import org.apache.jackrabbit.mongomk.api.model.Commit;
 import org.apache.jackrabbit.mongomk.impl.MongoConnection;
@@ -48,7 +48,7 @@ import com.mongodb.WriteResult;
 /**
  * A {@code Command} for committing into {@code MongoDB}.
  */
-public class CommitCommandMongo extends AbstractCommand<Long> {
+public class CommitCommandMongo extends DefaultCommand<Long> {
 
     private static final Logger logger = LoggerFactory.getLogger(CommitCommandMongo.class);
 

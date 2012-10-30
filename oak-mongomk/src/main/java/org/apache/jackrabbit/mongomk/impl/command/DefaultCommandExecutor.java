@@ -22,7 +22,7 @@ import org.apache.jackrabbit.mongomk.api.command.CommandExecutor;
 /**
  * Implementation of the {@link CommandExecutor} interface.
  */
-public class CommandExecutorImpl implements CommandExecutor {
+public class DefaultCommandExecutor implements CommandExecutor {
 
     @Override
     public <T> T execute(Command<T> command) throws Exception {

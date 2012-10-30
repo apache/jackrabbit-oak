@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 
-import org.apache.jackrabbit.mongomk.api.command.AbstractCommand;
+import org.apache.jackrabbit.mongomk.api.command.DefaultCommand;
 import org.apache.jackrabbit.mongomk.api.model.Node;
 import org.apache.jackrabbit.mongomk.impl.MongoConnection;
 import org.apache.jackrabbit.mongomk.impl.model.NodeImpl;
@@ -38,7 +38,7 @@ import org.slf4j.LoggerFactory;
 /**
  * A {@code Command} for getting nodes from {@code MongoDB}.
  */
-public class GetNodesCommandMongo extends AbstractCommand<Node> {
+public class GetNodesCommandMongo extends DefaultCommand<Node> {
 
     private static final Logger LOG = LoggerFactory.getLogger(GetNodesCommandMongo.class);
 
