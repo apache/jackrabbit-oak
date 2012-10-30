@@ -22,6 +22,8 @@ import javax.jcr.nodetype.NodeType;
 
 /**
  * EffectiveNodeTypeProvider... TODO
+ *
+ * FIXME: see also TypeValidator which has it's own private EffectiveNodeType class.
  */
 public interface EffectiveNodeTypeProvider {
 

@@ -400,10 +400,11 @@ class NodeTypeImpl implements NodeType {
 
     @Override
     public boolean canAddChildNode(String childNodeName) {
+        // FIXME: properly calculate matching definition
         for (NodeDefinition definition : getChildNodeDefinitions()) {
             String name = definition.getName();
             if (matches(childNodeName, name) || "*".equals(name)) {
-                return definition.getDefaultPrimaryType() != null;
+                return !definition.isProtected() && definition.getDefaultPrimaryType() != null;
             }
         }
         return false;

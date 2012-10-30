@@ -239,6 +239,7 @@ class TypeValidator implements Validator {
         return types;
     }
 
+    // FIXME: the same is also required on JCR level. probably keeping that in 1 single location would be preferable.
     private EffectiveNodeType getEffectiveNodeType(Tree tree) throws RepositoryException {
         return new EffectiveNodeType(getPrimaryType(tree), getMixinTypes(tree));
     }
@@ -251,7 +252,7 @@ class TypeValidator implements Validator {
         }
 
         public void checkSetProperty(PropertyState property) throws ConstraintViolationException {
-            if (isProtected(property.getName())) {
+            if (isProtectedProperty(property.getName())) {
                 return;
             }
             if (property.isArray()) {
@@ -266,6 +267,9 @@ class TypeValidator implements Validator {
 
         private void checkSetProperty(final String propertyName, List<Value> values)
                 throws ConstraintViolationException {
+            if (isProtectedProperty(propertyName)) {
+                return;
+            }
             Value[] valueArray = values.toArray(new Value[values.size()]);
             for (NodeType nodeType : allTypes) {
                 if (nodeType.canSetProperty(propertyName, valueArray)) {
@@ -276,6 +280,9 @@ class TypeValidator implements Validator {
         }
 
         private void checkSetProperty(final String propertyName, Value value) throws ConstraintViolationException {
+            if (isProtectedProperty(propertyName)) {
+                return;
+            }
             for (NodeType nodeType : allTypes) {
                 if (nodeType.canSetProperty(propertyName, value)) {
                     return;
@@ -285,7 +292,7 @@ class TypeValidator implements Validator {
         }
 
         public void checkRemoveProperty(PropertyState property) throws ConstraintViolationException {
-            if (isProtected(property.getName())) {
+            if (isProtectedProperty(property.getName())) {
                 return;
             }
             final String name = property.getName();
@@ -298,6 +305,9 @@ class TypeValidator implements Validator {
         }
 
         public void checkRemoveNode(final String name) throws ConstraintViolationException {
+            if (isProtectedNode(name)) {
+                return;
+            }
             for (NodeType nodeType : allTypes) {
                 if (nodeType.canRemoveNode(name)) {
                     return;
@@ -307,6 +317,9 @@ class TypeValidator implements Validator {
         }
 
         public void canAddChildNode(final String name) throws ConstraintViolationException {
+            if (isProtectedNode(name)) {
+                return;
+            }
             for (NodeType nodeType : allTypes) {
                 if (nodeType.canAddChildNode(name)) {
                     return;
@@ -316,6 +329,9 @@ class TypeValidator implements Validator {
         }
 
         public void checkAddChildNode(final String name, final String ntName) throws ConstraintViolationException {
+            if (isProtectedNode(name)) {
+                return;
+            }
             for (NodeType nodeType : allTypes) {
                 if (nodeType.canAddChildNode(name, ntName)) {
                     return;
@@ -343,10 +359,45 @@ class TypeValidator implements Validator {
             }
         }
 
-        private boolean isProtected(String propertyName) {
+        private boolean isProtectedProperty(String propertyName) {
+            // FIXME: duplicated code. we should use one common way to determine a matching definition (DefinitionProvider)
             for (NodeType nodeType : allTypes) {
                 for (PropertyDefinition pd : nodeType.getPropertyDefinitions()) {
                     if (propertyName.equals(pd.getName()) && pd.isProtected()) {
+                        return true;
+                    }
+                }
+            }
+            for (NodeType nodeType : allTypes) {
+                for (PropertyDefinition pd : nodeType.getPropertyDefinitions()) {
+                    if ("*".equals(pd.getName()) && pd.isProtected()) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        private boolean isProtectedNode(String nodeName) {
+            // FIXME: ugly hack to workaround sns-hack that was used to map sns-item definitions with node types.
+            String nameToCheck = nodeName;
+            if (nodeName.startsWith("jcr:childNodeDefinition") && !nodeName.equals("jcr:childNodeDefinition")) {
+                nameToCheck = nodeName.substring(0, "jcr:childNodeDefinition".length());
+            }
+            if (nodeName.startsWith("jcr:propertyDefinition") && !nodeName.equals("jcr:propertyDefinition")) {
+                nameToCheck = nodeName.substring(0, "jcr:propertyDefinition".length());
+            }
+            // FIXME: duplicated code. we should use one common way to determine a matching definition (DefinitionProvider)
+            for (NodeType nodeType : allTypes) {
+                for (NodeDefinition nd : nodeType.getChildNodeDefinitions()) {
+                    if (nameToCheck.equals(nd.getName()) && nd.isProtected()) {
+                        return true;
+                    }
+                }
+            }
+            for (NodeType nodeType : allTypes) {
+                for (NodeDefinition nd : nodeType.getChildNodeDefinitions()) {
+                    if ("*".equals(nd.getName()) && nd.isProtected()) {
                         return true;
                     }
                 }
