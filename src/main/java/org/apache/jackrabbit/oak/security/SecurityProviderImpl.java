@@ -30,6 +30,7 @@ import org.apache.jackrabbit.oak.security.principal.PrincipalManagerImpl;
 import org.apache.jackrabbit.oak.security.principal.PrincipalProviderImpl;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeConfigurationImpl;
 import org.apache.jackrabbit.oak.security.user.UserConfigurationImpl;
+import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginContextProvider;
@@ -65,7 +66,7 @@ public class SecurityProviderImpl implements SecurityProvider {
 
     @Nonnull
     @Override
-    public LoginContextProvider getLoginContextProvider(NodeStore nodeStore) {
+    public LoginContextProvider getLoginContextProvider(NodeStore nodeStore, QueryIndexProvider indexProvider) {
         String appName = configuration.getConfigValue(PARAM_APP_NAME, DEFAULT_APP_NAME);
         Configuration loginConfig;
         try {
@@ -75,7 +76,7 @@ public class SecurityProviderImpl implements SecurityProvider {
             loginConfig = new OakConfiguration(configuration); // TODO: define configuration structure
             Configuration.setConfiguration(loginConfig);
         }
-        return new LoginContextProviderImpl(appName, loginConfig, nodeStore, this);
+        return new LoginContextProviderImpl(appName, loginConfig, nodeStore, indexProvider, this);
     }
 
     @Nonnull

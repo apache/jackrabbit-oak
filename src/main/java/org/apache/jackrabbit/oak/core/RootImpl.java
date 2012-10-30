@@ -130,9 +130,9 @@ public class RootImpl implements Root {
         refresh();
     }
 
+    // TODO: review if this constructor really makes sense and cannot be replaced.
     public RootImpl(NodeStore store) {
         this.store = checkNotNull(store);
-        // TODO review again (see also comment in RepositoryCallback)
         this.subject = new Subject(true, Collections.singleton(SystemPrincipal.INSTANCE), Collections.<Object>emptySet(), Collections.<Object>emptySet());
         this.accProvider = new OpenAccessControlProvider();
         this.indexProvider = new CompositeQueryIndexProvider();

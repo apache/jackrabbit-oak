@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.spi.security;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginContextProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlProvider;
@@ -32,8 +33,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
  */
 public interface SecurityProvider {
 
+    // TODO review again
     @Nonnull
-    LoginContextProvider getLoginContextProvider(NodeStore nodeStore);
+    LoginContextProvider getLoginContextProvider(NodeStore nodeStore, QueryIndexProvider indexProvider);
 
     @Nonnull
     TokenProvider getTokenProvider(Root root);
