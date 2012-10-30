@@ -100,7 +100,6 @@ import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_
  * {@link ReadOnlyNodeTypeManager} for the following methods:
  * <ul>
  *     <li>{@link #getValueFactory()}</li>
- *     <li>{@link #getCoreValueFactory()}</li>
  *     <li>{@link #getNameMapper()}</li>
  * </ul>
  */

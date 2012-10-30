@@ -45,7 +45,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static javax.jcr.PropertyType.UNDEFINED;
 
 /**
  * {@code PropertyImpl}...
@@ -550,17 +549,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
     @Override
     @Nonnull
     public PropertyDefinition getDefinition() throws RepositoryException {
-        int type = UNDEFINED;
-        if (isMultiple()) {
-            Value[] values = getValues();
-            if (values.length > 0) {
-                type = values[0].getType();
-            }
-        } else {
-            type = getValue().getType();
-        }
-
-        return getPropertyDefinition(getParent(), getName(), isMultiple(), type, true);
+        return dlg.sessionDelegate.getDefinitionProvider().getDefinition(getParent(), this);
     }
 
     /**
