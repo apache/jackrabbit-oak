@@ -36,11 +36,14 @@ public interface DefinitionProvider {
     NodeDefinition getDefinition(Node parent, Node targetNode) throws RepositoryException;
 
     @Nonnull
+    NodeDefinition getDefinition(Iterable<NodeType> parentNodeTypes, String nodeName, NodeType nodeType) throws RepositoryException;
+
+    @Nonnull
     PropertyDefinition getDefinition(Node parent, Property targetProperty) throws RepositoryException;
 
     @Nonnull
     PropertyDefinition getDefinition(Node parent, String propertyName, boolean isMultiple, int type, boolean exactTypeMatch) throws RepositoryException;
 
     @Nonnull
-    PropertyDefinition getDefinition(NodeType nodeType, String propertyName, boolean isMultiple, int type, boolean exactTypeMatch) throws RepositoryException;
+    PropertyDefinition getDefinition(Iterable<NodeType> nodeTypes, String propertyName, boolean isMultiple, int type, boolean exactTypeMatch) throws RepositoryException;
 }

@@ -46,12 +46,20 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Queues;
 import org.apache.jackrabbit.commons.iterator.NodeTypeIteratorAdapter;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
 import org.apache.jackrabbit.oak.util.NodeUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static javax.jcr.PropertyType.UNDEFINED;
+import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
+import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 
 /**
  * Base implementation of a {@link NodeTypeManager} with support for reading
@@ -60,6 +68,8 @@ import static javax.jcr.PropertyType.UNDEFINED;
  * {@link UnsupportedRepositoryOperationException}.
  */
 public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, EffectiveNodeTypeProvider, DefinitionProvider {
+
+    private static final Logger log = LoggerFactory.getLogger(ReadOnlyNodeTypeManager.class);
 
     /**
      * Returns the internal name for the specified JCR name.
@@ -243,6 +253,32 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
         return getEffectiveNodeTypes(queue);
     }
 
+    @Override
+    public Iterable<NodeType> getEffectiveNodeTypes(Tree tree) throws RepositoryException {
+        Queue<NodeType> queue = Queues.newArrayDeque();
+
+        NodeType primaryType;
+        PropertyState jcrPrimaryType = tree.getProperty(JCR_PRIMARYTYPE);
+        if (jcrPrimaryType != null) {
+            String ntName = jcrPrimaryType.getValue(STRING);
+            primaryType = getNodeType(ntName);
+        } else {
+            log.warn("Item at {} has no primary type. Assuming nt:unstructured", tree.getPath());
+            primaryType = getNodeType(NT_UNSTRUCTURED);
+        }
+        queue.add(primaryType);
+
+        List<NodeType> mixinTypes = Lists.newArrayList();
+        PropertyState jcrMixinType = tree.getProperty(JCR_MIXINTYPES);
+        if (jcrMixinType != null) {
+            for (String ntName : jcrMixinType.getValue(STRINGS)) {
+                mixinTypes.add(getNodeType(ntName));
+            }
+        }
+        queue.addAll(mixinTypes);
+
+        return getEffectiveNodeTypes(queue);
+    }
 
     //-------------------------------------------------< DefinitionProvider >---
 
@@ -281,6 +317,51 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
                 boolean match = true;
                 for (String type : def.getRequiredPrimaryTypeNames()) {
                     if (!targetNode.isNodeType(type)) {
+                        match = false;
+                    }
+                }
+                if (match) {
+                    return def;
+                }
+            }
+        }
+
+        throw new RepositoryException("No matching node definition found for " + this);
+    }
+
+    @Override
+    public NodeDefinition getDefinition(Iterable<NodeType> parentNodeTypes, String nodeName, NodeType nodeType) throws RepositoryException {
+        List<NodeDefinition> residualDefs = new ArrayList<NodeDefinition>();
+        // TODO: This may need to be optimized
+        // TODO: cleanup redundancy with getDefinition(Node, Node)
+        for (NodeType nt : parentNodeTypes) {
+            for (NodeDefinition def : nt.getDeclaredChildNodeDefinitions()) {
+                String defName = def.getName();
+                if (nodeName.equals(defName)) {
+                    boolean match = true;
+                    // TODO: check again if passing null nodeType is legal.
+                    if (nodeType != null) {
+                        for (String type : def.getRequiredPrimaryTypeNames()) {
+                            if (!nodeType.isNodeType(type)) {
+                                match = false;
+                            }
+                        }
+                    }
+                    if (match) {
+                        return def;
+                    }
+                } else if ("*".equals(defName)) {
+                    residualDefs.add(def);
+                }
+            }
+        }
+
+        for (NodeDefinition def : residualDefs) {
+            String defName = def.getName();
+            if ("*".equals(defName)) {
+                boolean match = true;
+                for (String type : def.getRequiredPrimaryTypeNames()) {
+                    if (!nodeType.isNodeType(type)) {
                         match = false;
                     }
                 }
@@ -354,9 +435,11 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
     }
 
     @Override
-    public PropertyDefinition getDefinition(NodeType nodeType, String propertyName, boolean isMultiple, int type, boolean exactTypeMatch) throws RepositoryException {
+    public PropertyDefinition getDefinition(Iterable<NodeType> nodeTypes, String propertyName, boolean isMultiple, int type, boolean exactTypeMatch) throws RepositoryException {
         Queue<NodeType> queue = Queues.newArrayDeque();
-        queue.add(nodeType);
+        for (NodeType nt : nodeTypes) {
+            queue.add(nt);
+        }
         Collection<NodeType> effective = getEffectiveNodeTypes(queue);
         return getPropertyDefinition(effective, propertyName, isMultiple, type, exactTypeMatch);
     }
@@ -364,7 +447,7 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
     //------------------------------------------------------------< private >---
 
     private Collection<NodeType> getEffectiveNodeTypes(Queue<NodeType> queue) {
-        Map<String, NodeType> types = Maps.<String, NodeType>newHashMap();
+        Map<String, NodeType> types = Maps.newHashMap();
         while (!queue.isEmpty()) {
             NodeType type = queue.remove();
             String name = type.getName();

@@ -20,6 +20,8 @@ import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.NodeType;
 
+import org.apache.jackrabbit.oak.api.Tree;
+
 /**
  * EffectiveNodeTypeProvider... TODO
  *
@@ -35,4 +37,13 @@ public interface EffectiveNodeTypeProvider {
      * @throws RepositoryException if the type information can not be accessed
      */
     Iterable<NodeType> getEffectiveNodeTypes(Node targetNode) throws RepositoryException;
+
+    /**
+     * Calculates and returns all effective node types of the given tree.
+     *
+     * @param tree
+     * @return all node types of the given tree
+     * @throws RepositoryException if the type information can not be accessed
+     */
+    Iterable<NodeType> getEffectiveNodeTypes(Tree tree) throws RepositoryException;
 }

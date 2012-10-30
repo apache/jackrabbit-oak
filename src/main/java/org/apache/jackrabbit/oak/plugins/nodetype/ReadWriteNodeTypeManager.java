@@ -354,6 +354,13 @@ public abstract class ReadWriteNodeTypeManager extends ReadOnlyNodeTypeManager {
 
     @Override
     public void unregisterNodeType(String name) throws RepositoryException {
+        // TODO: review again. added to make tck happy.
+        // TODO  before refactoring the type-validation removing nt:based fail with
+        // TODO  IllegalStateException: Inconsistent node type: org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeImpl@55ab3cda
+        if (NT_BASE.equals(name)) {
+            throw new RepositoryException("nt:base cannot be removed.");
+        }
+
         Tree type = null;
         Root root = getWriteRoot();
         Tree types = root.getTree(NODE_TYPES_PATH);
@@ -383,6 +390,13 @@ public abstract class ReadWriteNodeTypeManager extends ReadOnlyNodeTypeManager {
 
         try {
             for (String name : names) {
+                // TODO: review again. added to make tck happy.
+                // TODO  before refactoring the type-validation removing nt:based fail with
+                // TODO  IllegalStateException: Inconsistent node type: org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeImpl@55ab3cda
+                if (NT_BASE.equals(name)) {
+                    throw new RepositoryException("nt:base cannot be removed.");
+                }
+
                 Tree type = types.getChild(getOakName(name));
                 if (type == null) {
                     throw new NoSuchNodeTypeException("Node type " + name + " can not be unregistered.");
