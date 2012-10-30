@@ -28,7 +28,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Node definition for the root node.
  */
-public final class RootNodeDefinition implements NodeDefinition {
+final class RootNodeDefinition implements NodeDefinition {
 
     /**
      * logger instance
@@ -39,10 +39,11 @@ public final class RootNodeDefinition implements NodeDefinition {
 
     private final NodeTypeManager ntManager;
 
-    public RootNodeDefinition(NodeTypeManager ntManager) {
+    RootNodeDefinition(NodeTypeManager ntManager) {
         this.ntManager = ntManager;
     }
 
+    //-----------------------------------------------------< NodeDefinition >---
     @Override
     public NodeType[] getRequiredPrimaryTypes() {
         try {
