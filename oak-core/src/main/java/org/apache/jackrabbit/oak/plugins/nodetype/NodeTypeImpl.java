@@ -21,6 +21,7 @@ import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -270,7 +271,8 @@ class NodeTypeImpl implements NodeType {
         }
 
         try {
-            PropertyDefinition def = manager.getDefinition(this, propertyName, false, value.getType(), false);
+            Iterable<NodeType> nts = Collections.singleton((NodeType) this);
+            PropertyDefinition def = manager.getDefinition(nts, propertyName, false, value.getType(), false);
             return !def.isProtected() &&
                     meetsTypeConstraints(value, def.getRequiredType()) &&
                     meetsValueConstraints(value, def.getValueConstraints());
@@ -287,8 +289,9 @@ class NodeTypeImpl implements NodeType {
         }
 
         try {
+            Iterable<NodeType> nts = Collections.singleton((NodeType) this);
             int type = (values.length == 0) ? PropertyType.STRING : values[0].getType();
-            PropertyDefinition def = manager.getDefinition(this, propertyName, true, type, false);
+            PropertyDefinition def = manager.getDefinition(nts, propertyName, true, type, false);
             return !def.isProtected() &&
                     meetsTypeConstraints(values, def.getRequiredType()) &&
                     meetsValueConstraints(values, def.getValueConstraints());

@@ -16,35 +16,30 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype;
 
-import java.util.Collections;
 import java.util.List;
-
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.NodeDefinition;
 import javax.jcr.nodetype.NodeType;
-import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.nodetype.PropertyDefinition;
 
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.core.ReadOnlyTree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
-import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 
@@ -60,7 +55,7 @@ import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 class TypeValidator implements Validator {
     private static final Logger log = LoggerFactory.getLogger(TypeValidator.class);
 
-    private final NodeTypeManager ntm;
+    private final ReadOnlyNodeTypeManager ntm;
     private final ReadOnlyTree parent;
     private final NamePathMapper mapper;
 
@@ -74,7 +69,7 @@ class TypeValidator implements Validator {
         return parentType;
     }
 
-    public TypeValidator(NodeTypeManager ntm, ReadOnlyTree parent, NamePathMapper mapper) {
+    public TypeValidator(ReadOnlyNodeTypeManager ntm, ReadOnlyTree parent, NamePathMapper mapper) {
         this.ntm = ntm;
         this.parent = parent;
         this.mapper = mapper;
@@ -129,13 +124,7 @@ class TypeValidator implements Validator {
     @Override
     public Validator childNodeAdded(String name, NodeState after) throws CommitFailedException {
         try {
-            PropertyState type = after.getProperty(JCR_PRIMARYTYPE);
-            if (type == null || type.count() == 0) {
-                getParentType().canAddChildNode(name);
-            } else {
-                String ntName = type.getValue(STRING, 0);
-                getParentType().checkAddChildNode(name, ntName);
-            }
+            getParentType().checkAddChildNode(name, getNodeType(after));
 
             ReadOnlyTree addedTree = new ReadOnlyTree(parent, name, after);
             EffectiveNodeType addedType = getEffectiveNodeType(addedTree);
@@ -156,7 +145,7 @@ class TypeValidator implements Validator {
     @Override
     public Validator childNodeDeleted(String name, NodeState before) throws CommitFailedException {
         try {
-            getParentType().checkRemoveNode(name);
+            getParentType().checkRemoveNode(name, getNodeType(before));
             return null;
         } catch (RepositoryException e) {
             throw new CommitFailedException("Cannot remove node '" + name + "' at " + parent.getPath(), e);
@@ -186,129 +175,95 @@ class TypeValidator implements Validator {
         }
     }
 
-    private NodeType getPrimaryType(Tree tree) throws RepositoryException {
-        PropertyState jcrPrimaryType = tree.getProperty(JCR_PRIMARYTYPE);
-        if (jcrPrimaryType != null) {
-            String ntName = jcrPrimaryType.getValue(STRING);
-            return ntm.getNodeType(ntName);
+    @CheckForNull
+    private NodeType getNodeType(NodeState state) throws RepositoryException {
+        PropertyState type = state.getProperty(JCR_PRIMARYTYPE);
+        if (type == null || type.count() == 0) {
+            // TODO: review again
+            return null;
         } else {
-            log.warn("Item at {} has no primary type. Assuming nt:unstructured", tree.getPath());
-            return ntm.getNodeType(NT_UNSTRUCTURED);
+            String ntName = type.getValue(STRING, 0);
+            return ntm.getNodeType(ntName);
         }
     }
 
-    private List<NodeType> getMixinTypes(Tree tree) throws RepositoryException {
-        List<NodeType> types = Lists.newArrayList();
-        PropertyState jcrMixinType = tree.getProperty(JCR_MIXINTYPES);
-        if (jcrMixinType != null) {
-            for (String ntName : jcrMixinType.getValue(STRINGS)) {
-                types.add(ntm.getNodeType(ntName));
-            }
-        }
-        return types;
+    private static boolean isHidden(PropertyState state) {
+        return NodeStateUtils.isHidden(state.getName());
     }
 
     // FIXME: the same is also required on JCR level. probably keeping that in 1 single location would be preferable.
     private EffectiveNodeType getEffectiveNodeType(Tree tree) throws RepositoryException {
-        return new EffectiveNodeType(getPrimaryType(tree), getMixinTypes(tree));
+        return new EffectiveNodeType(ntm.getEffectiveNodeTypes(tree));
     }
 
     private class EffectiveNodeType {
         private final Iterable<NodeType> allTypes;
 
-        public EffectiveNodeType(NodeType primaryType, List<NodeType> mixinTypes) {
-            this.allTypes = Iterables.concat(mixinTypes, Collections.singleton(primaryType));
+        public EffectiveNodeType(Iterable<NodeType> allTypes) {
+            this.allTypes = allTypes;
         }
 
-        public void checkSetProperty(PropertyState property) throws ConstraintViolationException {
-            if (isProtectedProperty(property.getName())) {
+        public void checkSetProperty(PropertyState property) throws RepositoryException {
+            PropertyDefinition definition = getDefinition(property);
+            if (definition.isProtected()) {
                 return;
             }
-            if (property.isArray()) {
+
+            NodeType nt = definition.getDeclaringNodeType();
+            if (definition.isMultiple()) {
                 List<Value> values = ValueFactoryImpl.createValues(property, mapper);
-                checkSetProperty(property.getName(), values);
+                if (!nt.canSetProperty(property.getName(), values.toArray(new Value[values.size()]))) {
+                    throw new ConstraintViolationException("Cannot set property '" + property.getName() + "' to '" + values + '\'');
+                }
             } else {
-                Value value = ValueFactoryImpl.createValue(property, mapper);
-                checkSetProperty(property.getName(), value);
-            }
-        }
-
-        private void checkSetProperty(final String propertyName, List<Value> values)
-                throws ConstraintViolationException {
-            if (isProtectedProperty(propertyName)) {
-                return;
-            }
-            Value[] valueArray = values.toArray(new Value[values.size()]);
-            for (NodeType nodeType : allTypes) {
-                if (nodeType.canSetProperty(propertyName, valueArray)) {
-                    return;
+                Value v = ValueFactoryImpl.createValue(property, mapper);
+                if (!nt.canSetProperty(property.getName(), v)) {
+                    throw new ConstraintViolationException("Cannot set property '" + property.getName() + "' to '" + v + '\'');
                 }
             }
-            throw new ConstraintViolationException("Cannot set property '" + propertyName + "' to '" + values + '\'');
         }
 
-        private void checkSetProperty(final String propertyName, Value value) throws ConstraintViolationException {
-            if (isProtectedProperty(propertyName)) {
+        public void checkRemoveProperty(PropertyState property) throws RepositoryException {
+            PropertyDefinition definition = getDefinition(property);
+            if (definition.isProtected()) {
                 return;
             }
-            for (NodeType nodeType : allTypes) {
-                if (nodeType.canSetProperty(propertyName, value)) {
-                    return;
-                }
+
+            if (!definition.getDeclaringNodeType().canRemoveProperty(property.getName())) {
+                throw new ConstraintViolationException("Cannot remove property '" + property.getName() + '\'');
             }
-            throw new ConstraintViolationException("Cannot set property '" + propertyName + "' to '" + value + '\'');
         }
 
-        public void checkRemoveProperty(PropertyState property) throws ConstraintViolationException {
-            if (isProtectedProperty(property.getName())) {
+        public void checkRemoveNode(String name, NodeType nodeType) throws RepositoryException {
+            NodeDefinition definition = getDefinition(name, nodeType);
+            if (definition.isProtected()) {
                 return;
             }
-            final String name = property.getName();
-            for (NodeType nodeType : allTypes) {
-                if (nodeType.canRemoveProperty(name)) {
-                    return;
-                }
+
+            if (!definition.getDeclaringNodeType().canRemoveNode(name)) {
+                throw new ConstraintViolationException("Cannot remove node '" + name + '\'');
             }
-            throw new ConstraintViolationException("Cannot remove property '" + property.getName() + '\'');
         }
 
-        public void checkRemoveNode(final String name) throws ConstraintViolationException {
-            if (isProtectedNode(name)) {
+        public void checkAddChildNode(String name, NodeType nodeType) throws RepositoryException {
+            NodeDefinition definition = getDefinition(name, nodeType);
+            if (definition.isProtected()) {
                 return;
             }
-            for (NodeType nodeType : allTypes) {
-                if (nodeType.canRemoveNode(name)) {
-                    return;
+
+            if (nodeType == null) {
+                if (!definition.getDeclaringNodeType().canAddChildNode(name)) {
+                    throw new ConstraintViolationException("Cannot add node '" + name + '\'');
+                }
+            } else {
+                if (!definition.getDeclaringNodeType().canAddChildNode(name, nodeType.getName())) {
+                    throw new ConstraintViolationException("Cannot add node '" + name + "' of type '" + nodeType.getName() + '\'');
                 }
             }
-            throw new ConstraintViolationException("Cannot remove node '" + name + '\'');
+
         }
 
-        public void canAddChildNode(final String name) throws ConstraintViolationException {
-            if (isProtectedNode(name)) {
-                return;
-            }
-            for (NodeType nodeType : allTypes) {
-                if (nodeType.canAddChildNode(name)) {
-                    return;
-                }
-            }
-            throw new ConstraintViolationException("Cannot add node '" + name + '\'');
-        }
-
-        public void checkAddChildNode(final String name, final String ntName) throws ConstraintViolationException {
-            if (isProtectedNode(name)) {
-                return;
-            }
-            for (NodeType nodeType : allTypes) {
-                if (nodeType.canAddChildNode(name, ntName)) {
-                    return;
-                }
-            }
-            throw new ConstraintViolationException("Cannot add node '" + name + "' of type '" + ntName + '\'');
-        }
-
-        public void checkMandatoryItems(final ReadOnlyTree tree) throws ConstraintViolationException {
+        public void checkMandatoryItems(ReadOnlyTree tree) throws ConstraintViolationException {
             for (NodeType nodeType : allTypes) {
                 for (PropertyDefinition pd : nodeType.getPropertyDefinitions()) {
                     String name = pd.getName();
@@ -327,26 +282,15 @@ class TypeValidator implements Validator {
             }
         }
 
-        private boolean isProtectedProperty(String propertyName) {
-            // FIXME: duplicated code. we should use one common way to determine a matching definition (DefinitionProvider)
-            for (NodeType nodeType : allTypes) {
-                for (PropertyDefinition pd : nodeType.getPropertyDefinitions()) {
-                    if (propertyName.equals(pd.getName()) && pd.isProtected()) {
-                        return true;
-                    }
-                }
-            }
-            for (NodeType nodeType : allTypes) {
-                for (PropertyDefinition pd : nodeType.getPropertyDefinitions()) {
-                    if ("*".equals(pd.getName()) && pd.isProtected()) {
-                        return true;
-                    }
-                }
-            }
-            return false;
+        private PropertyDefinition getDefinition(PropertyState property) throws RepositoryException {
+            String propertyName = property.getName();
+            int propertyType = property.getType().tag();
+            boolean isMultiple = property.isArray();
+
+            return ntm.getDefinition(allTypes, propertyName, isMultiple, propertyType, true);
         }
 
-        private boolean isProtectedNode(String nodeName) {
+        private NodeDefinition getDefinition(String nodeName, NodeType nodeType) throws RepositoryException {
             // FIXME: ugly hack to workaround sns-hack that was used to map sns-item definitions with node types.
             String nameToCheck = nodeName;
             if (nodeName.startsWith("jcr:childNodeDefinition") && !nodeName.equals("jcr:childNodeDefinition")) {
@@ -355,27 +299,9 @@ class TypeValidator implements Validator {
             if (nodeName.startsWith("jcr:propertyDefinition") && !nodeName.equals("jcr:propertyDefinition")) {
                 nameToCheck = nodeName.substring(0, "jcr:propertyDefinition".length());
             }
-            // FIXME: duplicated code. we should use one common way to determine a matching definition (DefinitionProvider)
-            for (NodeType nodeType : allTypes) {
-                for (NodeDefinition nd : nodeType.getChildNodeDefinitions()) {
-                    if (nameToCheck.equals(nd.getName()) && nd.isProtected()) {
-                        return true;
-                    }
-                }
-            }
-            for (NodeType nodeType : allTypes) {
-                for (NodeDefinition nd : nodeType.getChildNodeDefinitions()) {
-                    if ("*".equals(nd.getName()) && nd.isProtected()) {
-                        return true;
-                    }
-                }
-            }
-            return false;
+            return ntm.getDefinition(allTypes, nameToCheck, nodeType);
         }
 
-    }
 
-    private static boolean isHidden(PropertyState state) {
-        return NodeStateUtils.isHidden(state.getName());
     }
 }
