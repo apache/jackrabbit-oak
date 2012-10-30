@@ -96,22 +96,18 @@ public class MongoMicroKernel implements MicroKernel {
 
     @Override
     public long getChildNodeCount(String path, String revisionId) throws MicroKernelException {
-        long childNodeCount = 0L;
-
+        Node node;
         try {
-            String revId = null;
-            if (revisionId != null) {
-                revId = new String(revisionId);
-            }
-            Node rootOfPath = nodeStore.getNodes(path, revId, 0, 0, -1, null);
-            if (rootOfPath != null) {
-                childNodeCount = rootOfPath.getChildNodeCount();
-            }
+            node = nodeStore.getNodes(path, revisionId, 0, 0, -1, null);
         } catch (Exception e) {
             throw new MicroKernelException(e);
         }
-
-        return childNodeCount;
+        if (node != null) {
+            return node.getChildNodeCount();
+        } else {
+            throw new MicroKernelException("Path " + path + " not found in revision "
+                    + revisionId);
+        }
     }
 
     @Override
