@@ -28,7 +28,8 @@ import org.apache.jackrabbit.mk.model.tree.NodeStore;
 import org.apache.jackrabbit.mk.model.tree.PropertyState;
 
 /**
- * FIXME - Stolen from Oak, consolidate if possible.
+ * Note: Most of this functionality is mirrored from NodeDelta with the hopes
+ * that the two functionality can be consolidated at some point.
  */
 public class MongoNodeDelta {
 
@@ -53,7 +54,6 @@ public class MongoNodeDelta {
         REMOVED_DIRTY_NODE_CONFLICT
     }
 
-    //private final RevisionProvider provider;
     private final NodeStore provider;
 
     private final NodeState node1;
@@ -65,12 +65,11 @@ public class MongoNodeDelta {
     Map<String, NodeState> addedChildNodes = new HashMap<String, NodeState>();
     Map<String, Id> removedChildNodes = new HashMap<String, Id>();
     Map<String, NodeState> changedChildNodes = new HashMap<String, NodeState>();
-    //Map<String, Id> changedChildNodes = new HashMap<String, Id>();
 
     public MongoNodeDelta(NodeStore provider, NodeState node1, NodeState node2) {
         this.provider = provider;
         this.node1 = node1;
-        provider.compare(node1, node2, new DiffHandler());
+        this.provider.compare(node1, node2, new DiffHandler());
     }
 
     public Map<String, String> getAddedProperties() {

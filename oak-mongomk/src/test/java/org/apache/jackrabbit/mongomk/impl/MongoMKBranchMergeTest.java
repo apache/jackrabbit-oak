@@ -57,33 +57,6 @@ public class MongoMKBranchMergeTest extends BaseMongoMicroKernelTest {
     }
 
     @Test
-    public void addExistingRootInBranch() {
-        addNodes(null, "/root");
-        assertNodesExist(null, "/root");
-
-        String branchRev = mk.branch(null);
-        try {
-            branchRev = addNodes(branchRev, "/root");
-            fail("Should not be able to add the same root node twice");
-        } catch (Exception expected) {}
-    }
-
-    @Test
-    public void addExistingChildInBranch() {
-        addNodes(null, "/root", "/root/child1");
-        assertNodesExist(null, "/root", "/root/child1");
-
-        String branchRev = mk.branch(null);
-        branchRev = addNodes(branchRev, "/root/child2");
-        assertNodesExist(branchRev, "/root/child1", "/root/child2");
-
-        try {
-            branchRev = addNodes(branchRev, "/root/child1");
-            fail("Should not be able to add the same root node twice");
-        } catch (Exception expected) {}
-    }
-
-    @Test
     public void oneBranchAddedChildren3() {
         addNodes(null, "/root", "/root/child1");
         assertNodesExist(null, "/root", "/root/child1");
@@ -121,6 +94,21 @@ public class MongoMKBranchMergeTest extends BaseMongoMicroKernelTest {
         mk.merge(branchRev, "");
         assertNodesExist(null, "/trunk");
         assertNodesNotExist(null, "/trunk/child1");
+    }
+
+    @Test
+    public void oneBranchRemovedRoot() {
+        addNodes(null, "/trunk", "/trunk/child1");
+        assertNodesExist(null, "/trunk", "/trunk/child1");
+
+        String branchRev = mk.branch(null);
+
+        branchRev = removeNodes(branchRev, "/trunk");
+        assertNodesNotExist(branchRev, "/trunk", "/trunk/child1");
+        assertNodesExist(null, "/trunk", "/trunk/child1");
+
+        mk.merge(branchRev, "");
+        assertNodesNotExist(null, "/trunk", "/trunk/child1");
     }
 
     @Test
@@ -233,6 +221,33 @@ public class MongoMKBranchMergeTest extends BaseMongoMicroKernelTest {
 
         mk.merge(branchRev2, "");
         assertNodesExist(null, "/trunk", "/branch1", "/branch1/child1", "/branch2", "/branch2/child2");
+    }
+
+    @Test
+    public void addExistingRootInBranch() {
+        addNodes(null, "/root");
+        assertNodesExist(null, "/root");
+
+        String branchRev = mk.branch(null);
+        try {
+            branchRev = addNodes(branchRev, "/root");
+            fail("Should not be able to add the same root node twice");
+        } catch (Exception expected) {}
+    }
+
+    @Test
+    public void addExistingChildInBranch() {
+        addNodes(null, "/root", "/root/child1");
+        assertNodesExist(null, "/root", "/root/child1");
+
+        String branchRev = mk.branch(null);
+        branchRev = addNodes(branchRev, "/root/child2");
+        assertNodesExist(branchRev, "/root/child1", "/root/child2");
+
+        try {
+            branchRev = addNodes(branchRev, "/root/child1");
+            fail("Should not be able to add the same root node twice");
+        } catch (Exception expected) {}
     }
 
     @Test

@@ -353,7 +353,6 @@ public class NodeStoreMongo implements NodeStore {
         return command.execute();
     }
 
-    // FIXME - Make sure merge related functions work as expected.
     private NodeImpl mergeNodes(Node ourRoot, Long newBaseRevisionId,
             Long commonAncestorRevisionId) throws Exception {
 
@@ -392,7 +391,6 @@ public class NodeStoreMongo implements NodeStore {
                 stagedNode.addChildNodeEntry(nodeState.unwrap());
             }
         }
-        // FIXME - Not sure if this is currently used, check.
         for (String name : ourChanges.getRemovedChildNodes().keySet()) {
             stagedNode.removeChildNodeEntry(name);
         }
