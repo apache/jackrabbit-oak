@@ -80,7 +80,7 @@ class TypeValidator implements Validator {
         this.mapper = mapper;
     }
 
-    //-------------------------------------------------------< NodeValidator >
+    //----------------------------------------------------------< Validator >---
 
     @Override
     public void propertyAdded(PropertyState after) throws CommitFailedException {
@@ -88,16 +88,12 @@ class TypeValidator implements Validator {
             return;
         }
         try {
-            checkType(after);
+            checkPrimaryAndMixinTypes(after);
             getParentType().checkSetProperty(after);
-        }
-        catch (RepositoryException e) {
-            throw new CommitFailedException(
-                    "Cannot add property '" + after.getName() + "' at " + parent.getPath(), e);
-        }
-        catch (IllegalStateException e) {
-            throw new CommitFailedException(
-                    "Cannot add property '" + after.getName() + "' at " + parent.getPath(), e);
+        } catch (RepositoryException e) {
+            throw new CommitFailedException("Cannot add property '" + after.getName() + "' at " + parent.getPath(), e);
+        } catch (IllegalStateException e) {
+            throw new CommitFailedException("Cannot add property '" + after.getName() + "' at " + parent.getPath(), e);
         }
     }
 
@@ -107,16 +103,12 @@ class TypeValidator implements Validator {
             return;
         }
         try {
-            checkType(after);
+            checkPrimaryAndMixinTypes(after);
             getParentType().checkSetProperty(after);
-        }
-        catch (RepositoryException e) {
-            throw new CommitFailedException(
-                    "Cannot set property '" + after.getName() + "' at " + parent.getPath(), e);
-        }
-        catch (IllegalStateException e) {
-            throw new CommitFailedException(
-                    "Cannot set property '" + after.getName() + "' at " + parent.getPath(), e);
+        } catch (RepositoryException e) {
+            throw new CommitFailedException("Cannot set property '" + after.getName() + "' at " + parent.getPath(), e);
+        } catch (IllegalStateException e) {
+            throw new CommitFailedException("Cannot set property '" + after.getName() + "' at " + parent.getPath(), e);
         }
     }
 
@@ -127,14 +119,10 @@ class TypeValidator implements Validator {
         }
         try {
             getParentType().checkRemoveProperty(before);
-        }
-        catch (RepositoryException e) {
-            throw new CommitFailedException(
-                    "Cannot remove property '" + before.getName() + "' at " + parent.getPath(), e);
-        }
-        catch (IllegalStateException e) {
-            throw new CommitFailedException(
-                    "Cannot remove property '" + before.getName() + "' at " + parent.getPath(), e);
+        } catch (RepositoryException e) {
+            throw new CommitFailedException("Cannot remove property '" + before.getName() + "' at " + parent.getPath(), e);
+        } catch (IllegalStateException e) {
+            throw new CommitFailedException("Cannot remove property '" + before.getName() + "' at " + parent.getPath(), e);
         }
     }
 
@@ -144,8 +132,7 @@ class TypeValidator implements Validator {
             PropertyState type = after.getProperty(JCR_PRIMARYTYPE);
             if (type == null || type.count() == 0) {
                 getParentType().canAddChildNode(name);
-            }
-            else {
+            } else {
                 String ntName = type.getValue(STRING, 0);
                 getParentType().checkAddChildNode(name, ntName);
             }
@@ -154,14 +141,10 @@ class TypeValidator implements Validator {
             EffectiveNodeType addedType = getEffectiveNodeType(addedTree);
             addedType.checkMandatoryItems(addedTree);
             return new TypeValidator(ntm, new ReadOnlyTree(parent, name, after), mapper);
-        }
-        catch (RepositoryException e) {
-            throw new CommitFailedException(
-                    "Cannot add node '" + name + "' at " + parent.getPath(), e);
-        }
-        catch (IllegalStateException e) {
-            throw new CommitFailedException(
-                    "Cannot add node '" + name + "' at " + parent.getPath(), e);
+        } catch (RepositoryException e) {
+            throw new CommitFailedException("Cannot add node '" + name + "' at " + parent.getPath(), e);
+        } catch (IllegalStateException e) {
+            throw new CommitFailedException("Cannot add node '" + name + "' at " + parent.getPath(), e);
         }
     }
 
@@ -175,20 +158,16 @@ class TypeValidator implements Validator {
         try {
             getParentType().checkRemoveNode(name);
             return null;
-        }
-        catch (RepositoryException e) {
-            throw new CommitFailedException(
-                    "Cannot remove node '" + name + "' at " + parent.getPath(), e);
-        }
-        catch (IllegalStateException e) {
-            throw new CommitFailedException(
-                    "Cannot add node '" + name + "' at " + parent.getPath(), e);
+        } catch (RepositoryException e) {
+            throw new CommitFailedException("Cannot remove node '" + name + "' at " + parent.getPath(), e);
+        } catch (IllegalStateException e) {
+            throw new CommitFailedException("Cannot add node '" + name + "' at " + parent.getPath(), e);
         }
     }
 
     //------------------------------------------------------------< private >---
 
-    private void checkType(PropertyState after) throws RepositoryException {
+    private void checkPrimaryAndMixinTypes(PropertyState after) throws RepositoryException {
         boolean primaryType = JCR_PRIMARYTYPE.equals(after.getName());
         boolean mixinType = JCR_MIXINTYPES.equals(after.getName());
         if (primaryType || mixinType) {
@@ -210,16 +189,12 @@ class TypeValidator implements Validator {
     private NodeType getPrimaryType(Tree tree) throws RepositoryException {
         PropertyState jcrPrimaryType = tree.getProperty(JCR_PRIMARYTYPE);
         if (jcrPrimaryType != null) {
-            for (String ntName : jcrPrimaryType.getValue(STRINGS)) {
-                NodeType type = ntm.getNodeType(ntName);
-                if (type == null) {
-                    log.warn("Could not find node type {} for item at {}", ntName, tree.getPath());
-                }
-                return type;
-            }
+            String ntName = jcrPrimaryType.getValue(STRING);
+            return ntm.getNodeType(ntName);
+        } else {
+            log.warn("Item at {} has no primary type. Assuming nt:unstructured", tree.getPath());
+            return ntm.getNodeType(NT_UNSTRUCTURED);
         }
-        log.warn("Item at {} has no primary type. Assuming nt:unstructured", tree.getPath());
-        return ntm.getNodeType(NT_UNSTRUCTURED);
     }
 
     private List<NodeType> getMixinTypes(Tree tree) throws RepositoryException {
@@ -227,13 +202,7 @@ class TypeValidator implements Validator {
         PropertyState jcrMixinType = tree.getProperty(JCR_MIXINTYPES);
         if (jcrMixinType != null) {
             for (String ntName : jcrMixinType.getValue(STRINGS)) {
-                NodeType type = ntm.getNodeType(ntName);
-                if (type == null) {
-                    log.warn("Could not find mixin type {} for item at {}", ntName, tree.getPath());
-                }
-                else {
-                    types.add(type);
-                }
+                types.add(ntm.getNodeType(ntName));
             }
         }
         return types;
@@ -258,8 +227,7 @@ class TypeValidator implements Validator {
             if (property.isArray()) {
                 List<Value> values = ValueFactoryImpl.createValues(property, mapper);
                 checkSetProperty(property.getName(), values);
-            }
-            else {
+            } else {
                 Value value = ValueFactoryImpl.createValue(property, mapper);
                 checkSetProperty(property.getName(), value);
             }
