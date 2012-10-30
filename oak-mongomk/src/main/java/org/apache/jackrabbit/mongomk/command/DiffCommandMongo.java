@@ -5,7 +5,6 @@ import org.apache.jackrabbit.mk.model.tree.NodeState;
 import org.apache.jackrabbit.mongomk.api.command.DefaultCommand;
 import org.apache.jackrabbit.mongomk.api.model.Node;
 import org.apache.jackrabbit.mongomk.impl.MongoConnection;
-import org.apache.jackrabbit.mongomk.impl.model.tree.MongoNodeState;
 import org.apache.jackrabbit.mongomk.impl.model.tree.MongoNodeStore;
 import org.apache.jackrabbit.mongomk.model.CommitMongo;
 import org.apache.jackrabbit.mongomk.query.FetchCommitQuery;
@@ -15,7 +14,7 @@ import org.apache.jackrabbit.mongomk.util.MongoUtil;
 /**
  * A {@code Command} for {@code MongoMicroKernel#diff(String, String, String, int)}
  */
-public class DiffCommandCommandMongo extends DefaultCommand<String> {
+public class DiffCommandMongo extends DefaultCommand<String> {
 
     private final String fromRevision;
     private final String toRevision;
@@ -32,7 +31,7 @@ public class DiffCommandCommandMongo extends DefaultCommand<String> {
      * @param path Path.
      * @param depth Depth.
      */
-    public DiffCommandCommandMongo(MongoConnection mongoConnection, String fromRevision,
+    public DiffCommandMongo(MongoConnection mongoConnection, String fromRevision,
             String toRevision, String path, int depth) {
         super(mongoConnection);
         this.fromRevision = fromRevision;
@@ -71,8 +70,8 @@ public class DiffCommandCommandMongo extends DefaultCommand<String> {
             }
         }
 
-        NodeState beforeState = wrap(getNode(path, fromRevisionId));
-        NodeState afterState = wrap(getNode(path, toRevisionId));
+        NodeState beforeState = MongoUtil.wrap(getNode(path, fromRevisionId));
+        NodeState afterState = MongoUtil.wrap(getNode(path, toRevisionId));
 
         return new DiffBuilder(beforeState, afterState, path, depth,
                 new MongoNodeStore(), path).build();
@@ -92,9 +91,5 @@ public class DiffCommandCommandMongo extends DefaultCommand<String> {
         GetNodesCommandMongo command = new GetNodesCommandMongo(mongoConnection,
                 path, revisionId);
         return command.execute();
-    }
-
-    private NodeState wrap(Node node) {
-        return node != null? new MongoNodeState(node) : null;
     }
 }

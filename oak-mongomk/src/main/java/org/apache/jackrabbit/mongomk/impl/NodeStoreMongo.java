@@ -18,38 +18,28 @@ package org.apache.jackrabbit.mongomk.impl;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.json.JsopBuilder;
 import org.apache.jackrabbit.mk.model.tree.DiffBuilder;
-import org.apache.jackrabbit.mk.model.tree.NodeState;
 import org.apache.jackrabbit.mongomk.api.NodeStore;
 import org.apache.jackrabbit.mongomk.api.command.Command;
 import org.apache.jackrabbit.mongomk.api.command.CommandExecutor;
 import org.apache.jackrabbit.mongomk.api.model.Commit;
 import org.apache.jackrabbit.mongomk.api.model.Node;
 import org.apache.jackrabbit.mongomk.command.CommitCommandMongo;
-import org.apache.jackrabbit.mongomk.command.DiffCommandCommandMongo;
+import org.apache.jackrabbit.mongomk.command.DiffCommandMongo;
 import org.apache.jackrabbit.mongomk.command.GetHeadRevisionCommandMongo;
 import org.apache.jackrabbit.mongomk.command.GetNodesCommandMongo;
+import org.apache.jackrabbit.mongomk.command.MergeCommandMongo;
 import org.apache.jackrabbit.mongomk.command.NodeExistsCommandMongo;
 import org.apache.jackrabbit.mongomk.impl.command.DefaultCommandExecutor;
-import org.apache.jackrabbit.mongomk.impl.model.CommitBuilder;
-import org.apache.jackrabbit.mongomk.impl.model.NodeImpl;
-import org.apache.jackrabbit.mongomk.impl.model.tree.MongoNodeDelta;
-import org.apache.jackrabbit.mongomk.impl.model.tree.MongoNodeDelta.Conflict;
-import org.apache.jackrabbit.mongomk.impl.model.tree.MongoNodeState;
 import org.apache.jackrabbit.mongomk.impl.model.tree.MongoNodeStore;
 import org.apache.jackrabbit.mongomk.model.CommitMongo;
-import org.apache.jackrabbit.mongomk.query.FetchBranchBaseRevisionIdQuery;
 import org.apache.jackrabbit.mongomk.query.FetchCommitQuery;
 import org.apache.jackrabbit.mongomk.query.FetchCommitsQuery;
 import org.apache.jackrabbit.mongomk.query.FetchHeadRevisionIdQuery;
 import org.apache.jackrabbit.mongomk.util.MongoUtil;
-import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * FIXME- Create commands out of methods if not already done so.
@@ -58,7 +48,6 @@ import org.slf4j.LoggerFactory;
  */
 public class NodeStoreMongo implements NodeStore {
 
-    private static final Logger LOG = LoggerFactory.getLogger(NodeStoreMongo.class);
     private static final long WAIT_FOR_COMMIT_POLL_MILLIS = 1000;
 
     private final CommandExecutor commandExecutor;
@@ -77,21 +66,22 @@ public class NodeStoreMongo implements NodeStore {
     @Override
     public String commit(Commit commit) throws Exception {
         Command<Long> command = new CommitCommandMongo(mongoConnection, commit);
-        Long revision = commandExecutor.execute(command);
+        long revision = commandExecutor.execute(command);
         return MongoUtil.fromMongoRepresentation(revision);
     }
 
     @Override
     public String diff(String fromRevision, String toRevision, String path, int depth)
             throws Exception {
-        Command<String> command = new DiffCommandCommandMongo(mongoConnection,
+        Command<String> command = new DiffCommandMongo(mongoConnection,
                 fromRevision, toRevision, path, depth);
-        return command.execute();
+        return commandExecutor.execute(command);
     }
 
     @Override
     public String getHeadRevision() throws Exception {
-        Long headRevision = commandExecutor.execute(new GetHeadRevisionCommandMongo(mongoConnection));
+        GetHeadRevisionCommandMongo command = new GetHeadRevisionCommandMongo(mongoConnection);
+        long headRevision = commandExecutor.execute(command);
         return MongoUtil.fromMongoRepresentation(headRevision);
     }
 
@@ -107,39 +97,9 @@ public class NodeStoreMongo implements NodeStore {
 
     @Override
     public String merge(String branchRevisionId, String message) throws Exception {
-        CommitMongo commit = getCommit(MongoUtil.toMongoRepresentation(branchRevisionId));
-        String branchId = commit.getBranchId();
-        if (branchId == null) {
-            throw new Exception("Can only merge a private branch commit");
-        }
-
-        long rootNodeId = commit.getRevisionId();
-        long currentHead =  getHeadRevision(false);
-
-        Node ourRoot = getNode("/", rootNodeId, branchId);
-
-        FetchBranchBaseRevisionIdQuery branchQuery = new FetchBranchBaseRevisionIdQuery(mongoConnection, branchId);
-        long branchRootId = branchQuery.execute();
-
-        // Merge nodes from head to branch.
-        ourRoot = mergeNodes(ourRoot, currentHead, branchRootId);
-
-        Node currentHeadNode = getNode("/", currentHead);
-
-        String diff = new DiffBuilder(wrap(currentHeadNode),
-                wrap(ourRoot), "/", -1,
-                new MongoNodeStore(), "").build();
-
-        if (diff.isEmpty()) {
-            LOG.debug("Merge of empty branch {} with differing content hashes encountered, " +
-                    "ignore and keep current head {}", branchRevisionId, currentHead);
-            return MongoUtil.fromMongoRepresentation(currentHead);
-        }
-
-        Commit newCommit = CommitBuilder.build("", diff,
-                MongoUtil.fromMongoRepresentation(currentHead), message);
-
-        return commit(newCommit);
+        MergeCommandMongo command = new MergeCommandMongo(mongoConnection,
+                branchRevisionId, message);
+        return commandExecutor.execute(command);
     }
 
     @Override
@@ -191,8 +151,8 @@ public class NodeStoreMongo implements NodeStore {
             if (filtered) {
                 try {
                     diff = new DiffBuilder(
-                            wrap(getNode("/", commit.getBaseRevId())),
-                            wrap(getNode("/", commit.getRevisionId())),
+                            MongoUtil.wrap(getNode("/", commit.getBaseRevId())),
+                            MongoUtil.wrap(getNode("/", commit.getRevisionId())),
                             "/", -1, new MongoNodeStore(), path).build();
                     if (diff.isEmpty()) {
                         continue;
@@ -229,8 +189,8 @@ public class NodeStoreMongo implements NodeStore {
               if (filtered) {
                   try {
                       String diff = new DiffBuilder(
-                              wrap(getNode("/", commit.getBaseRevId())),
-                              wrap(getNode("/", commit.getRevisionId())),
+                              MongoUtil.wrap(getNode("/", commit.getBaseRevId())),
+                              MongoUtil.wrap(getNode("/", commit.getRevisionId())),
                               "/", -1, new MongoNodeStore(), path).build();
                       if (!diff.isEmpty()) {
                           history.add(commit);
@@ -324,94 +284,5 @@ public class NodeStoreMongo implements NodeStore {
                 path, revisionId);
         command.setBranchId(branchId);
         return command.execute();
-    }
-
-    private NodeImpl mergeNodes(Node ourRoot, Long newBaseRevisionId,
-            Long commonAncestorRevisionId) throws Exception {
-
-        Node baseRoot = getNode("/", commonAncestorRevisionId);
-        Node theirRoot = getNode("/", newBaseRevisionId);
-
-        // Recursively merge 'our' changes with 'their' changes...
-        NodeImpl mergedNode = mergeNode(baseRoot, ourRoot, theirRoot, "/");
-
-        return mergedNode;
-    }
-
-    private NodeImpl mergeNode(Node baseNode, Node ourNode, Node theirNode,
-            String path) throws Exception {
-        MongoNodeDelta theirChanges = new MongoNodeDelta(new MongoNodeStore(),
-                wrap(baseNode), wrap(theirNode));
-        MongoNodeDelta ourChanges = new MongoNodeDelta(new MongoNodeStore(),
-                wrap(baseNode), wrap(ourNode));
-
-        NodeImpl stagedNode = (NodeImpl)theirNode; //new NodeImpl(path);
-
-        // Apply our changes.
-        stagedNode.getProperties().putAll(ourChanges.getAddedProperties());
-        stagedNode.getProperties().putAll(ourChanges.getChangedProperties());
-        for (String name : ourChanges.getRemovedProperties().keySet()) {
-            stagedNode.getProperties().remove(name);
-        }
-
-        for (Map.Entry<String, NodeState> entry : ourChanges.getAddedChildNodes().entrySet()) {
-            MongoNodeState nodeState = (MongoNodeState)entry.getValue();
-            stagedNode.addChildNodeEntry(nodeState.unwrap());
-        }
-        for (Map.Entry<String, NodeState> entry : ourChanges.getChangedChildNodes().entrySet()) {
-            if (!theirChanges.getChangedChildNodes().containsKey(entry.getKey())) {
-                MongoNodeState nodeState = (MongoNodeState)entry.getValue();
-                stagedNode.addChildNodeEntry(nodeState.unwrap());
-            }
-        }
-        for (String name : ourChanges.getRemovedChildNodes().keySet()) {
-            stagedNode.removeChildNodeEntry(name);
-        }
-
-        List<Conflict> conflicts = theirChanges.listConflicts(ourChanges);
-        // resolve/report merge conflicts
-        for (Conflict conflict : conflicts) {
-            String conflictName = conflict.getName();
-            String conflictPath = PathUtils.concat(path, conflictName);
-            switch (conflict.getType()) {
-                case PROPERTY_VALUE_CONFLICT:
-                    throw new Exception(
-                            "concurrent modification of property " + conflictPath
-                                    + " with conflicting values: \""
-                                    + ourNode.getProperties().get(conflictName)
-                                    + "\", \""
-                                    + theirNode.getProperties().get(conflictName));
-
-                case NODE_CONTENT_CONFLICT: {
-                    if (ourChanges.getChangedChildNodes().containsKey(conflictName)) {
-                        // modified subtrees
-                        Node baseChild = baseNode.getChildNodeEntry(conflictName);
-                        Node ourChild = ourNode.getChildNodeEntry(conflictName);
-                        Node theirChild = theirNode.getChildNodeEntry(conflictName);
-                        // merge the dirty subtrees recursively
-                        mergeNode(baseChild, ourChild, theirChild, PathUtils.concat(path, conflictName));
-                    } else {
-                        // todo handle/merge colliding node creation
-                        throw new Exception("colliding concurrent node creation: " + conflictPath);
-                    }
-                    break;
-                }
-
-                case REMOVED_DIRTY_PROPERTY_CONFLICT:
-                    stagedNode.getProperties().remove(conflictName);
-                    break;
-
-                case REMOVED_DIRTY_NODE_CONFLICT:
-                    //stagedNode.remove(conflictName);
-                    stagedNode.removeChildNodeEntry(conflictName);
-                    break;
-            }
-
-        }
-        return stagedNode;
-    }
-
-    private NodeState wrap(Node node) {
-        return node != null? new MongoNodeState(node) : null;
     }
 }
