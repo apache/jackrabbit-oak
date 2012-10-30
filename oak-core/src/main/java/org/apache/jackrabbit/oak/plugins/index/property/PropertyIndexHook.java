@@ -57,7 +57,7 @@ public class PropertyIndexHook implements IndexHook {
             }
         }
 
-        return after;
+        return builder.getNodeState();
     }
 
 

@@ -38,6 +38,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import com.google.common.base.Charsets;
 import com.google.common.collect.Sets;
 
+import static org.apache.jackrabbit.oak.commons.PathUtils.isAbsolute;
+
 /**
  * Provides a QueryIndex that does lookups against a property index
  * 
@@ -168,7 +170,7 @@ public class PropertyIndex implements QueryIndex {
         @Override
         public IndexRow currentRow() {
             // TODO support jcr:score and possibly rep:exceprt
-            return new IndexRowImpl(path);
+            return new IndexRowImpl(isAbsolute(path) ? path : "/" + path);
         }
 
     }

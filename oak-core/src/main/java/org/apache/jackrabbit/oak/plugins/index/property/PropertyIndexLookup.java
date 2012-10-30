@@ -20,6 +20,8 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFIN
 
 import java.util.Set;
 
+import javax.annotation.Nullable;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
@@ -63,12 +65,8 @@ public class PropertyIndexLookup {
      * @param path lookup path
      */
     public boolean isIndexed(String name, String path) {
-        NodeState state = root.getChildNode(INDEX_DEFINITIONS_NAME);
-        if (state != null) {
-            state = state.getChildNode(name);
-            if (state != null) {
-                return true;
-            }
+        if (getIndexDefinitionNode(name) != null) {
+            return true;
         }
 
         if (path.startsWith("/")) {
@@ -109,30 +107,36 @@ public class PropertyIndexLookup {
     public Set<String> find(String name, PropertyValue value) {
         Set<String> paths = Sets.newHashSet();
 
-        PropertyState property = null;
-        NodeState state = root.getChildNode(INDEX_DEFINITIONS_NAME);
-        if (state != null) {
-            state = state.getChildNode(name);
-            if (state != null) {
-                state = state.getChildNode(":index");
-                if (state != null) {
-                    //TODO what happens when I search using an mvp?
-                    property = state.getProperty(PropertyIndex.encode(value).get(0));
+        PropertyState property;
+        NodeState state = getIndexDefinitionNode(name);
+        if (state != null && state.getChildNode(":index") != null) {
+            state = state.getChildNode(":index");
+            for (String p : PropertyIndex.encode(value)) {
+                property = state.getProperty(p);
+                if (property != null) {
+                    // We have an entry for this value, so use it
+                    for (String path : property.getValue(Type.STRINGS)) {
+                        paths.add(path);
+                    }
                 }
-            }
-        }
-
-        if (property != null) {
-            // We have an index for this property, so use it
-            for (String path : property.getValue(Type.STRINGS)) {
-                paths.add(path);
             }
         } else {
             // No index available, so first check this node for a match
             property = root.getProperty(name);
-            if (property != null){
-                if(PropertyValues.match(property, value)){
+            if (property != null) {
+                if (value.isArray()) {
+                    // let query engine handle multi-valued look ups
+                    // simply return all nodes that have this property
                     paths.add("");
+                } else {
+                    // does it match any of the values of this property?
+                    for (int i = 0; i < property.count(); i++) {
+                        if (property.getValue(value.getType(), i).equals(value.getValue(value.getType()))) {
+                            paths.add("");
+                            // no need to check for more matches in this property
+                            break;
+                        }
+                    }
                 }
             }
 
@@ -152,6 +156,24 @@ public class PropertyIndexLookup {
         }
 
         return paths;
+    }
+
+    @Nullable
+    private NodeState getIndexDefinitionNode(String name) {
+        NodeState state = root.getChildNode(INDEX_DEFINITIONS_NAME);
+        if (state != null) {
+            for (ChildNodeEntry entry : state.getChildNodeEntries()) {
+                PropertyState names = entry.getNodeState().getProperty("propertyNames");
+                if (names != null) {
+                    for (int i = 0; i < names.count(); i++) {
+                        if (name.equals(names.getValue(Type.STRING, i))) {
+                            return entry.getNodeState();
+                        }
+                    }
+                }
+            }
+        }
+        return null;
     }
 
 }
