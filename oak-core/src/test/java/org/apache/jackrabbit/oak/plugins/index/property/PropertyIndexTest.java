@@ -37,7 +37,9 @@ public class PropertyIndexTest {
 
         // Add index definition
         NodeBuilder builder = root.builder();
-        builder.child("oak:index").child("foo");
+        builder.child("oak:index").child("foo")
+                .setProperty("jcr:primaryType", "oak:queryIndexDefinition", Type.NAME)
+                .setProperty("propertyNames", "foo");
         NodeState before = builder.getNodeState();
 
         // Add some content and process it through the property index hook
