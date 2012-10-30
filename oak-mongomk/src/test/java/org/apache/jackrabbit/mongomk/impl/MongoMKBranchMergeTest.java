@@ -10,8 +10,6 @@ import org.json.simple.JSONObject;
 import org.junit.Test;
 
 /**
- * FIXME - Add more complicated branch/merge tests especially merges with conflicts.
- *
  * Tests for {@code MicroKernel#branch}
  */
 public class MongoMKBranchMergeTest extends BaseMongoMicroKernelTest {
@@ -221,6 +219,43 @@ public class MongoMKBranchMergeTest extends BaseMongoMicroKernelTest {
 
         mk.merge(branchRev2, "");
         assertNodesExist(null, "/trunk", "/branch1", "/branch1/child1", "/branch2", "/branch2/child2");
+    }
+
+    @Test
+    public void oneBranchAddedChildrenWithConflict() {
+        addNodes(null, "/trunk", "/trunk/child1");
+        assertNodesExist(null, "/trunk", "/trunk/child1");
+
+        String branchRev = mk.branch(null);
+
+        branchRev = removeNodes(branchRev, "/trunk/child1");
+        assertNodesExist(branchRev, "/trunk");
+        assertNodesNotExist(branchRev, "/trunk/child1");
+
+        addNodes(null, "/trunk/child1/child2");
+        assertNodesExist(null, "/trunk", "/trunk/child1", "/trunk/child1/child2");
+
+        mk.merge(branchRev, "");
+        assertNodesExist(null, "/trunk");
+        assertNodesNotExist(null, "/trunk/child1", "/trunk/child1/child2");
+    }
+
+    @Test
+    public void oneBranchChangedPropertiesWithConflict() {
+        addNodes(null, "/trunk");
+        setProp(null, "/trunk/prop1", "value1");
+        assertPropExists(null, "/trunk", "prop1");
+
+        String branchRev = mk.branch(null);
+
+        branchRev = setProp(branchRev, "/trunk/prop1", "value1a");
+        assertPropValue(branchRev, "/trunk", "prop1", "value1a");
+
+        setProp(null, "/trunk/prop1", "value1b");
+        try {
+            mk.merge(branchRev, "");
+            fail("Expected: Concurrent modification exception");
+        } catch (Exception expected){}
     }
 
     @Test
