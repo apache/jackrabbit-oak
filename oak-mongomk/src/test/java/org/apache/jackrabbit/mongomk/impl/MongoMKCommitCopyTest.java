@@ -76,13 +76,13 @@ public class MongoMKCommitCopyTest extends BaseMongoMicroKernelTest {
     public void copyNodeWithProperties() throws Exception {
         mk.commit("/", "+\"a\" : { \"key1\" : \"value1\" }", null, null);
         assertTrue(mk.nodeExists("/a", null));
-        String nodes = mk.getNodes("/", null, -1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        String nodes = mk.getNodes("/", null, 1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
         JSONObject obj = parseJSONObject(nodes);
         assertPropertyValue(obj, "a/key1", "value1");
 
         mk.commit("/", "*\"a\" : \"c\"", null, null);
         assertTrue(mk.nodeExists("/c", null));
-        nodes = mk.getNodes("/", null, -1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        nodes = mk.getNodes("/", null, 1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
         obj = parseJSONObject(nodes);
         assertPropertyValue(obj, "c/key1", "value1");
     }
@@ -189,7 +189,7 @@ public class MongoMKCommitCopyTest extends BaseMongoMicroKernelTest {
         mk.commit("/", "^\"a/key1\": \"value1\"\n" +
                         "*\"a\":\"c\"", null, null);
 
-        String nodes = mk.getNodes("/", null, -1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        String nodes = mk.getNodes("/", null, 1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
         JSONObject obj = parseJSONObject(nodes);
         assertPropertyValue(obj, "a/key1", "value1");
         assertPropertyValue(obj, "c/key1", "value1");
@@ -201,7 +201,7 @@ public class MongoMKCommitCopyTest extends BaseMongoMicroKernelTest {
         mk.commit("/", "^\"a/b/key1\": \"value1\"\n" +
                         "*\"a\":\"c\"", null, null);
 
-        String nodes = mk.getNodes("/", null, -1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        String nodes = mk.getNodes("/", null, 2 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
         JSONObject obj = parseJSONObject(nodes);
         assertPropertyValue(obj, "a/b/key1", "value1");
         assertPropertyValue(obj, "c/b/key1", "value1");
@@ -214,7 +214,7 @@ public class MongoMKCommitCopyTest extends BaseMongoMicroKernelTest {
                      + "^\"a/key1\": \"value1\"\n"
                      + "*\"a\":\"c\"", null, null);
 
-        String nodes = mk.getNodes("/", null, -1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        String nodes = mk.getNodes("/", null, 1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
         JSONObject obj = parseJSONObject(nodes);
         assertPropertyValue(obj, "a/key1", "value1");
         assertPropertyValue(obj, "c/key1", "value1");
@@ -226,7 +226,7 @@ public class MongoMKCommitCopyTest extends BaseMongoMicroKernelTest {
         mk.commit("/", "^\"a/b/key1\": null\n" +
                         "*\"a\":\"c\"", null, null);
 
-        String nodes = mk.getNodes("/", null, -1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        String nodes = mk.getNodes("/", null, 1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
         JSONObject obj = parseJSONObject(nodes);
         assertPropertyNotExists(obj, "a/b/key1");
         assertPropertyNotExists(obj, "c/b/key1");
@@ -238,7 +238,7 @@ public class MongoMKCommitCopyTest extends BaseMongoMicroKernelTest {
         mk.commit("/", "^\"a/key1\" : null\n" +
                         "*\"a\":\"c\"", null, null);
 
-        String nodes = mk.getNodes("/", null, -1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        String nodes = mk.getNodes("/", null, 1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
         JSONObject obj = parseJSONObject(nodes);
         assertPropertyNotExists(obj, "a/key1");
         assertPropertyNotExists(obj, "c/key1");
@@ -251,7 +251,7 @@ public class MongoMKCommitCopyTest extends BaseMongoMicroKernelTest {
                      + "^\"a/key1\" : null\n"
                      + "*\"a\":\"c\"", null, null);
 
-        String nodes = mk.getNodes("/", null, -1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        String nodes = mk.getNodes("/", null, 1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
         JSONObject obj = parseJSONObject(nodes);
         assertPropertyNotExists(obj, "a/key1");
         assertPropertyNotExists(obj, "c/key1");

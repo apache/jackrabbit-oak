@@ -23,7 +23,7 @@ public class MongoMKCommitAddTest extends BaseMongoMicroKernelTest {
 
         String nodes = mk.getNodes("/", null, -1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
         JSONObject obj = parseJSONObject(nodes);
-        assertPropertyValue(obj, "a/:childNodeCount", 0L);
+        assertPropertyValue(obj, ":childNodeCount", 1L);
     }
 
     @Test
@@ -62,9 +62,9 @@ public class MongoMKCommitAddTest extends BaseMongoMicroKernelTest {
         long childCount = mk.getChildNodeCount("/", null);
         assertEquals(1, childCount);
 
-        String nodes = mk.getNodes("/", null, -1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        String nodes = mk.getNodes("/", null, 1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
         JSONObject obj = parseJSONObject(nodes);
-        assertPropertyValue(obj, "a/:childNodeCount", 0L);
+        assertPropertyValue(obj, ":childNodeCount", 1L);
         assertPropertyValue(obj, "a/key1", "value1");
     }
 

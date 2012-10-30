@@ -30,6 +30,7 @@ import org.apache.jackrabbit.mongomk.api.model.Node;
 import org.apache.jackrabbit.mongomk.impl.json.JsonUtil;
 import org.apache.jackrabbit.mongomk.impl.model.CommitBuilder;
 import org.apache.jackrabbit.mongomk.impl.model.CommitImpl;
+import org.apache.jackrabbit.mongomk.impl.model.tree.MongoNodeState;
 import org.apache.jackrabbit.mongomk.util.MongoUtil;
 
 /**
@@ -166,9 +167,9 @@ public class MongoMicroKernel implements MicroKernel {
                 return null;
             }
 
-            JsopBuilder builder = new JsopBuilder();
-            JsonUtil.toJson(builder, rootNode, depth, (int)offset, maxChildNodes, true, nodeFilter);
-            return builder.toString();
+            JsopBuilder builder = new JsopBuilder().object();
+            JsonUtil.toJson(builder, new MongoNodeState(rootNode), depth, (int)offset, maxChildNodes, true, nodeFilter);
+            return builder.endObject().toString();
         } catch (Exception e) {
             throw new MicroKernelException(e);
         }
