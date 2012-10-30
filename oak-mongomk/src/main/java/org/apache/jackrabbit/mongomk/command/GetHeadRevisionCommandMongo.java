@@ -21,11 +21,9 @@ import org.apache.jackrabbit.mongomk.impl.MongoConnection;
 import org.apache.jackrabbit.mongomk.query.FetchHeadRevisionIdQuery;
 
 /**
- * A {@code Command} for getting the head revision from {@code MongoDB}.
+ * {@code Command} for {@code MongoMicroKernel#getHeadRevision()}
  */
 public class GetHeadRevisionCommandMongo extends DefaultCommand<Long> {
-
-    private final MongoConnection mongoConnection;
 
     /**
      * Constructs a new {@code GetHeadRevisionCommandMongo}.
@@ -33,7 +31,7 @@ public class GetHeadRevisionCommandMongo extends DefaultCommand<Long> {
      * @param mongoConnection The {@link MongoConnection}.
      */
     public GetHeadRevisionCommandMongo(MongoConnection mongoConnection) {
-        this.mongoConnection = mongoConnection;
+        super(mongoConnection);
     }
 
     @Override

@@ -24,6 +24,7 @@ import java.util.Map;
 
 import org.apache.jackrabbit.mongomk.api.command.DefaultCommand;
 import org.apache.jackrabbit.mongomk.api.model.Node;
+import org.apache.jackrabbit.mongomk.command.exception.InconsistentNodeHierarchyException;
 import org.apache.jackrabbit.mongomk.impl.MongoConnection;
 import org.apache.jackrabbit.mongomk.impl.model.NodeImpl;
 import org.apache.jackrabbit.mongomk.model.CommitMongo;
@@ -36,13 +37,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * A {@code Command} for getting nodes from {@code MongoDB}.
+ * {@code Command} for {@code MongoMicroKernel#getNodes(String, String, int, long, int, String)}
  */
 public class GetNodesCommandMongo extends DefaultCommand<Node> {
 
     private static final Logger LOG = LoggerFactory.getLogger(GetNodesCommandMongo.class);
 
-    private final MongoConnection mongoConnection;
     private final String path;
 
     private String branchId;
@@ -64,7 +64,7 @@ public class GetNodesCommandMongo extends DefaultCommand<Node> {
      */
     public GetNodesCommandMongo(MongoConnection mongoConnection, String path,
             Long revisionId) {
-        this.mongoConnection = mongoConnection;
+        super(mongoConnection);
         this.path = path;
         this.revisionId = revisionId;
     }

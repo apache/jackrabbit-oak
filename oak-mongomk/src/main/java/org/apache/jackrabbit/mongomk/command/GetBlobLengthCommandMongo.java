@@ -23,13 +23,21 @@ import com.mongodb.BasicDBObject;
 import com.mongodb.gridfs.GridFS;
 import com.mongodb.gridfs.GridFSDBFile;
 
+/**
+ * {@code Command} for {@code MongoMicroKernel#getLength(String)}
+ */
 public class GetBlobLengthCommandMongo extends DefaultCommand<Long> {
 
-    private final MongoConnection mongoConnection;
     private final String blobId;
 
+    /**
+     * Constructs the command.
+     *
+     * @param mongoConnection Mongo connection.
+     * @param blobId Blob id.
+     */
     public GetBlobLengthCommandMongo(MongoConnection mongoConnection, String blobId) {
-        this.mongoConnection = mongoConnection;
+        super(mongoConnection);
         this.blobId = blobId;
     }
 

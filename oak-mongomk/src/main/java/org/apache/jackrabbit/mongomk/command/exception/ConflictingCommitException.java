@@ -14,10 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mongomk.command;
+package org.apache.jackrabbit.mongomk.command.exception;
 
-public class InconsistentNodeHierarchyException extends Exception {
+public class ConflictingCommitException extends Exception {
 
-    private static final long serialVersionUID = 6361719178625761034L;
+    private static final long serialVersionUID = -5827664000083665577L;
 
+    public ConflictingCommitException() {
+        super();
+    }
+
+    public ConflictingCommitException(String message) {
+        super(message);
+    }
+
+    public ConflictingCommitException(Throwable t) {
+        super(t);
+    }
+
+    public ConflictingCommitException(String message, Throwable t) {
+        super(message, t);
+    }
 }

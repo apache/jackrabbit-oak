@@ -29,13 +29,21 @@ import com.mongodb.gridfs.GridFS;
 import com.mongodb.gridfs.GridFSDBFile;
 import com.mongodb.gridfs.GridFSInputFile;
 
+/**
+ * {@code Command} for {@code MongoMicroKernel#write(InputStream)}
+ */
 public class WriteBlobCommandMongo extends DefaultCommand<String> {
 
-    private final MongoConnection mongoConnection;
     private final InputStream is;
 
+    /**
+     * Constructs a {@code WriteBlobCommandMongo}
+     *
+     * @param mongoConnection Mongo connection.
+     * @param is Input stream.
+     */
     public WriteBlobCommandMongo(MongoConnection mongoConnection, InputStream is) {
-        this.mongoConnection = mongoConnection;
+        super(mongoConnection);
         this.is = is;
     }
 

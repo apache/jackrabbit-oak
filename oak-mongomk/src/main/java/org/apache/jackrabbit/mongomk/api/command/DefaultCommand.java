@@ -16,12 +16,25 @@
  */
 package org.apache.jackrabbit.mongomk.api.command;
 
+import org.apache.jackrabbit.mongomk.impl.MongoConnection;
+
 /**
- * Default implementation of {@link Command}.
+ * Default implementation of {@code Command}.
  *
  * @param <T> The result type of the {@code Command}.
  */
 public abstract class DefaultCommand<T> implements Command<T> {
+
+    protected final MongoConnection mongoConnection;
+
+    /**
+     * Constructs a default command with the supplied connection.
+     *
+     * @param mongoConnection The mongo connection.
+     */
+    public DefaultCommand(MongoConnection mongoConnection) {
+        this.mongoConnection = mongoConnection;
+    }
 
     @Override
     public int getNumOfRetries() {

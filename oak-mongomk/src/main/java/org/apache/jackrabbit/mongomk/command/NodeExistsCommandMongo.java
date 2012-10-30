@@ -22,11 +22,10 @@ import org.apache.jackrabbit.mongomk.impl.MongoConnection;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 
 /**
- * A {@code Command} for determine whether a node exists from {@code MongoDB}.
+ * {@code Command} for {@code MongoMicroKernel#nodeExists(String, String)}
  */
 public class NodeExistsCommandMongo extends DefaultCommand<Boolean> {
 
-    private final MongoConnection mongoConnection;
     private final Long revisionId;
 
     private String branchId;
@@ -42,7 +41,7 @@ public class NodeExistsCommandMongo extends DefaultCommand<Boolean> {
      */
     public NodeExistsCommandMongo(MongoConnection mongoConnection, String path,
             Long revisionId) {
-        this.mongoConnection = mongoConnection;
+        super(mongoConnection);
         this.path = path;
         this.revisionId = revisionId;
     }
