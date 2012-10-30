@@ -30,6 +30,7 @@ import org.apache.jackrabbit.mongomk.api.model.Node;
 import org.apache.jackrabbit.mongomk.command.CommitCommandMongo;
 import org.apache.jackrabbit.mongomk.command.DiffCommandMongo;
 import org.apache.jackrabbit.mongomk.command.GetHeadRevisionCommandMongo;
+import org.apache.jackrabbit.mongomk.command.GetJournalCommandMongo;
 import org.apache.jackrabbit.mongomk.command.GetNodesCommandMongo;
 import org.apache.jackrabbit.mongomk.command.MergeCommandMongo;
 import org.apache.jackrabbit.mongomk.command.NodeExistsCommandMongo;
@@ -104,9 +105,9 @@ public class NodeStoreMongo implements NodeStore {
 
     @Override
     public boolean nodeExists(String path, String revisionId) throws Exception {
-        String branchId = getBranchId(revisionId);
         NodeExistsCommandMongo command = new NodeExistsCommandMongo(mongoConnection, path,
                 MongoUtil.toMongoRepresentation(revisionId));
+        String branchId = getBranchId(revisionId);
         command.setBranchId(branchId);
         return commandExecutor.execute(command);
     }
@@ -114,60 +115,9 @@ public class NodeStoreMongo implements NodeStore {
     @Override
     public String getJournal(String fromRevisionId, String toRevisionId, String path)
             throws Exception {
-        path = (path == null || "".equals(path)) ? "/" : path;
-        boolean filtered = !"/".equals(path);
-
-        long fromRevision = MongoUtil.toMongoRepresentation(fromRevisionId);
-        long toRevision = toRevisionId == null? getHeadRevision(true)
-                : MongoUtil.toMongoRepresentation(toRevisionId);
-
-        List<CommitMongo> commits = getCommits(fromRevision, toRevision);
-
-        CommitMongo toCommit = extractCommit(commits, toRevision);
-        if (toCommit.getBranchId() != null) {
-            throw new MicroKernelException("Branch revisions are not supported: " + toRevisionId);
-        }
-
-        CommitMongo fromCommit;
-        if (toRevision == fromRevision) {
-            fromCommit = toCommit;
-        } else {
-            fromCommit = extractCommit(commits, fromRevision);
-            if (fromCommit == null || (fromCommit.getTimestamp() > toCommit.getTimestamp())) {
-                // negative range, return empty journal
-                return "[]";
-            }
-        }
-        if (fromCommit.getBranchId() != null) {
-            throw new MicroKernelException("Branch revisions are not supported: " + fromRevisionId);
-        }
-
-        JsopBuilder commitBuff = new JsopBuilder().array();
-        // Iterate over commits in chronological order, starting with oldest commit
-        for (int i = commits.size() - 1; i >= 0; i--) {
-            CommitMongo commit = commits.get(i);
-
-            String diff = commit.getDiff();
-            if (filtered) {
-                try {
-                    diff = new DiffBuilder(
-                            MongoUtil.wrap(getNode("/", commit.getBaseRevId())),
-                            MongoUtil.wrap(getNode("/", commit.getRevisionId())),
-                            "/", -1, new MongoNodeStore(), path).build();
-                    if (diff.isEmpty()) {
-                        continue;
-                    }
-                } catch (Exception e) {
-                    throw new MicroKernelException(e);
-                }
-            }
-            commitBuff.object()
-            .key("id").value(MongoUtil.fromMongoRepresentation(commit.getRevisionId()))
-            .key("ts").value(commit.getTimestamp())
-            .key("msg").value(commit.getMessage())
-            .key("changes").value(diff).endObject();
-        }
-        return commitBuff.endArray().toString();
+        GetJournalCommandMongo command = new GetJournalCommandMongo(mongoConnection,
+                fromRevisionId, toRevisionId, path);
+        return commandExecutor.execute(command);
     }
 
     @Override
@@ -240,15 +190,6 @@ public class NodeStoreMongo implements NodeStore {
         }
     }
 
-    private CommitMongo extractCommit(List<CommitMongo> commits, long revisionId) {
-        for (CommitMongo commit : commits) {
-            if (commit.getRevisionId() == revisionId) {
-                return commit;
-            }
-        }
-        return null;
-    }
-
     private String getBranchId(String revisionId) throws Exception {
         if (revisionId == null) {
             return null;
@@ -260,12 +201,6 @@ public class NodeStoreMongo implements NodeStore {
 
     private CommitMongo getCommit(long revisionId) throws Exception {
         FetchCommitQuery query = new FetchCommitQuery(mongoConnection, revisionId);
-        return query.execute();
-    }
-
-    private List<CommitMongo> getCommits(long fromRevisionId, long toRevisionId) throws Exception {
-        FetchCommitsQuery query = new FetchCommitsQuery(mongoConnection, fromRevisionId,
-                toRevisionId);
         return query.execute();
     }
 
