@@ -29,20 +29,16 @@ import org.apache.jackrabbit.mongomk.command.GetNodesCommandMongo;
 import org.apache.jackrabbit.mongomk.command.GetRevisionHistoryCommandMongo;
 import org.apache.jackrabbit.mongomk.command.MergeCommandMongo;
 import org.apache.jackrabbit.mongomk.command.NodeExistsCommandMongo;
+import org.apache.jackrabbit.mongomk.command.WaitForCommitCommandMongo;
 import org.apache.jackrabbit.mongomk.impl.command.DefaultCommandExecutor;
 import org.apache.jackrabbit.mongomk.model.CommitMongo;
 import org.apache.jackrabbit.mongomk.query.FetchCommitQuery;
-import org.apache.jackrabbit.mongomk.query.FetchHeadRevisionIdQuery;
 import org.apache.jackrabbit.mongomk.util.MongoUtil;
 
 /**
- * FIXME- Create commands out of methods if not already done so.
- *
  * Implementation of {@link NodeStore} for the {@code MongoDB}.
  */
 public class NodeStoreMongo implements NodeStore {
-
-    private static final long WAIT_FOR_COMMIT_POLL_MILLIS = 1000;
 
     private final CommandExecutor commandExecutor;
     private final MongoConnection mongoConnection;
@@ -123,27 +119,9 @@ public class NodeStoreMongo implements NodeStore {
 
     @Override
     public String waitForCommit(String oldHeadRevisionId, long timeout) throws Exception {
-        long startTimestamp = System.currentTimeMillis();
-        long initialHeadRevisionId = getHeadRevision(true);
-
-        if (timeout <= 0) {
-            return MongoUtil.fromMongoRepresentation(initialHeadRevisionId);
-        }
-
-        long oldHeadRevision = MongoUtil.toMongoRepresentation(oldHeadRevisionId);
-        if (oldHeadRevision < initialHeadRevisionId) {
-            return MongoUtil.fromMongoRepresentation(initialHeadRevisionId);
-        }
-
-        long waitForCommitPollMillis = Math.min(WAIT_FOR_COMMIT_POLL_MILLIS, timeout);
-        while (true) {
-            long headRevisionId = getHeadRevision(true);
-            long now = System.currentTimeMillis();
-            if (headRevisionId != initialHeadRevisionId || now - startTimestamp >= timeout) {
-                return MongoUtil.fromMongoRepresentation(headRevisionId);
-            }
-            Thread.sleep(waitForCommitPollMillis);
-        }
+        WaitForCommitCommandMongo command = new WaitForCommitCommandMongo(mongoConnection,
+                oldHeadRevisionId, timeout);
+        return commandExecutor.execute(command);
     }
 
     private String getBranchId(String revisionId) throws Exception {
@@ -151,18 +129,8 @@ public class NodeStoreMongo implements NodeStore {
             return null;
         }
 
-        CommitMongo baseCommit = getCommit(MongoUtil.toMongoRepresentation(revisionId));
+        FetchCommitQuery query = new FetchCommitQuery(mongoConnection, MongoUtil.toMongoRepresentation(revisionId));
+        CommitMongo baseCommit = query.execute();
         return baseCommit.getBranchId();
-    }
-
-    private CommitMongo getCommit(long revisionId) throws Exception {
-        FetchCommitQuery query = new FetchCommitQuery(mongoConnection, revisionId);
-        return query.execute();
-    }
-
-    private long getHeadRevision(boolean includeBranchCommits) throws Exception {
-        FetchHeadRevisionIdQuery query = new FetchHeadRevisionIdQuery(mongoConnection);
-        query.includeBranchCommits(includeBranchCommits);
-        return query.execute();
     }
 }
