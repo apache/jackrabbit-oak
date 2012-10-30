@@ -16,28 +16,42 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
-
+import java.util.Map;
+import java.util.Queue;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.jcr.Node;
+import javax.jcr.Property;
+import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
+import javax.jcr.Value;
 import javax.jcr.ValueFactory;
 import javax.jcr.nodetype.NoSuchNodeTypeException;
+import javax.jcr.nodetype.NodeDefinition;
 import javax.jcr.nodetype.NodeDefinitionTemplate;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.NodeTypeDefinition;
 import javax.jcr.nodetype.NodeTypeIterator;
 import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.nodetype.NodeTypeTemplate;
+import javax.jcr.nodetype.PropertyDefinition;
 import javax.jcr.nodetype.PropertyDefinitionTemplate;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Queues;
 import org.apache.jackrabbit.commons.iterator.NodeTypeIteratorAdapter;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
 import org.apache.jackrabbit.oak.util.NodeUtil;
+
+import static javax.jcr.PropertyType.UNDEFINED;
 
 /**
  * Base implementation of a {@link NodeTypeManager} with support for reading
@@ -45,7 +59,7 @@ import org.apache.jackrabbit.oak.util.NodeUtil;
  * related to node type modifications throw
  * {@link UnsupportedRepositoryOperationException}.
  */
-public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager {
+public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, EffectiveNodeTypeProvider, DefinitionProvider {
 
     /**
      * Returns the internal name for the specified JCR name.
@@ -205,5 +219,204 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager {
     @Override
     public void unregisterNodeTypes(String[] names) throws RepositoryException {
         throw new UnsupportedRepositoryOperationException();
+    }
+
+    //------------------------------------------< EffectiveNodeTypeProvider >---
+
+    /**
+     * Returns all the node types of the given node, in a breadth-first
+     * traversal order of the type hierarchy.
+     *
+     * @param node node instance
+     * @return all types of the given node
+     * @throws RepositoryException if the type information can not be accessed
+     * @param node
+     * @return
+     * @throws RepositoryException
+     */
+    @Override
+    public Iterable<NodeType> getEffectiveNodeTypes(Node node) throws RepositoryException {
+        Queue<NodeType> queue = Queues.newArrayDeque();
+        queue.add(node.getPrimaryNodeType());
+        queue.addAll(Arrays.asList(node.getMixinNodeTypes()));
+
+        return getEffectiveNodeTypes(queue);
+    }
+
+
+    //-------------------------------------------------< DefinitionProvider >---
+
+    @Override
+    public NodeDefinition getRootDefinition() throws RepositoryException {
+        return new RootNodeDefinition(this);
+    }
+
+    @Override
+    public NodeDefinition getDefinition(@Nonnull Node parent, @Nonnull Node targetNode) throws RepositoryException {
+        String name = targetNode.getName();
+        List<NodeDefinition> residualDefs = new ArrayList<NodeDefinition>();
+        // TODO: This may need to be optimized
+        for (NodeType nt : getEffectiveNodeTypes(parent)) {
+            for (NodeDefinition def : nt.getDeclaredChildNodeDefinitions()) {
+                String defName = def.getName();
+                if (name.equals(defName)) {
+                    boolean match = true;
+                    for (String type : def.getRequiredPrimaryTypeNames()) {
+                        if (!targetNode.isNodeType(type)) {
+                            match = false;
+                        }
+                    }
+                    if (match) {
+                        return def;
+                    }
+                } else if ("*".equals(defName)) {
+                    residualDefs.add(def);
+                }
+            }
+        }
+
+        for (NodeDefinition def : residualDefs) {
+            String defName = def.getName();
+            if ("*".equals(defName)) {
+                boolean match = true;
+                for (String type : def.getRequiredPrimaryTypeNames()) {
+                    if (!targetNode.isNodeType(type)) {
+                        match = false;
+                    }
+                }
+                if (match) {
+                    return def;
+                }
+            }
+        }
+
+        throw new RepositoryException("No matching node definition found for " + this);
+    }
+
+    @Override
+    public PropertyDefinition getDefinition(Node parent, Property targetProperty) throws RepositoryException {
+        String name = targetProperty.getName();
+        boolean isMultiple = targetProperty.isMultiple();
+        int type = UNDEFINED;
+        if (isMultiple) {
+            Value[] values = targetProperty.getValues();
+            if (values.length > 0) {
+                type = values[0].getType();
+            }
+        } else {
+            type = targetProperty.getValue().getType();
+        }
+
+        // TODO: This may need to be optimized
+        List<PropertyDefinition> residualDefs = new ArrayList<PropertyDefinition>();
+        for (NodeType nt : getEffectiveNodeTypes(parent)) {
+            for (PropertyDefinition def : nt.getDeclaredPropertyDefinitions()) {
+                String defName = def.getName();
+                int defType = def.getRequiredType();
+                if ((name.equals(defName))
+                        && (type == defType || UNDEFINED == type || UNDEFINED == defType)
+                        && isMultiple == def.isMultiple()) {
+                    return def;
+                } else if ("*".equals(defName)) {
+                    residualDefs.add(def);
+                }
+            }
+        }
+
+        for (PropertyDefinition def : residualDefs) {
+            String defName = def.getName();
+            int defType = def.getRequiredType();
+            if (("*".equals(defName))
+                    && (type == defType || UNDEFINED == type || UNDEFINED == defType)
+                    && isMultiple == def.isMultiple()) {
+                return def;
+            }
+        }
+
+        // FIXME: Shouldn't be needed
+        for (NodeType nt : getEffectiveNodeTypes(parent)) {
+            for (PropertyDefinition def : nt.getDeclaredPropertyDefinitions()) {
+                String defName = def.getName();
+                if ((name.equals(defName) || "*".equals(defName))
+                        && type == PropertyType.STRING
+                        && isMultiple == def.isMultiple()) {
+                    return def;
+                }
+            }
+        }
+
+        throw new RepositoryException("No matching property definition found for " + this);
+    }
+
+    @Override
+    public PropertyDefinition getDefinition(Node parent, String propertyName, boolean isMultiple, int type, boolean exactTypeMatch) throws RepositoryException {
+        return getPropertyDefinition(getEffectiveNodeTypes(parent), propertyName, isMultiple, type, exactTypeMatch);
+    }
+
+    @Override
+    public PropertyDefinition getDefinition(NodeType nodeType, String propertyName, boolean isMultiple, int type, boolean exactTypeMatch) throws RepositoryException {
+        Queue<NodeType> queue = Queues.newArrayDeque();
+        queue.add(nodeType);
+        Collection<NodeType> effective = getEffectiveNodeTypes(queue);
+        return getPropertyDefinition(effective, propertyName, isMultiple, type, exactTypeMatch);
+    }
+
+    //------------------------------------------------------------< private >---
+
+    private Collection<NodeType> getEffectiveNodeTypes(Queue<NodeType> queue) {
+        Map<String, NodeType> types = Maps.<String, NodeType>newHashMap();
+        while (!queue.isEmpty()) {
+            NodeType type = queue.remove();
+            String name = type.getName();
+            if (!types.containsKey(name)) {
+                types.put(name, type);
+                queue.addAll(Arrays.asList(type.getDeclaredSupertypes()));
+            }
+        }
+
+        return types.values();
+    }
+
+    private PropertyDefinition getPropertyDefinition(Iterable<NodeType> effectiveNodeTypes,
+                                                     String propertyName, boolean isMultiple,
+                                                     int type, boolean exactTypeMatch) throws RepositoryException {
+        // TODO: This may need to be optimized
+        for (NodeType nt : effectiveNodeTypes) {
+            for (PropertyDefinition def : nt.getDeclaredPropertyDefinitions()) {
+                String defName = def.getName();
+                int defType = def.getRequiredType();
+                if (propertyName.equals(defName)
+                        && isMultiple == def.isMultiple()
+                        &&(!exactTypeMatch || (type == defType || UNDEFINED == type || UNDEFINED == defType))) {
+                    return def;
+                }
+            }
+        }
+
+        // try if there is a residual definition
+        for (NodeType nt : effectiveNodeTypes) {
+            for (PropertyDefinition def : nt.getDeclaredPropertyDefinitions()) {
+                String defName = def.getName();
+                int defType = def.getRequiredType();
+                if ("*".equals(defName)
+                        && isMultiple == def.isMultiple()
+                        && (!exactTypeMatch || (type == defType || UNDEFINED == type || UNDEFINED == defType))) {
+                    return def;
+                }
+            }
+        }
+
+        // FIXME: Shouldn't be needed
+        for (NodeType nt : effectiveNodeTypes) {
+            for (PropertyDefinition def : nt.getDeclaredPropertyDefinitions()) {
+                String defName = def.getName();
+                if ((propertyName.equals(defName) || "*".equals(defName))
+                        && type == PropertyType.STRING
+                        && isMultiple == def.isMultiple()) {
+                    return def;
+                }
+            }
+        }
+        throw new RepositoryException("No matching property definition found for " + propertyName);
     }
 }

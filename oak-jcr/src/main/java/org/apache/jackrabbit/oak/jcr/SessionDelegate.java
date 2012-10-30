@@ -47,6 +47,8 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
+import org.apache.jackrabbit.oak.plugins.nodetype.DefinitionProvider;
+import org.apache.jackrabbit.oak.plugins.nodetype.EffectiveNodeTypeProvider;
 import org.apache.jackrabbit.oak.plugins.observation.ObservationManagerImpl;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeManagerImpl;
@@ -511,5 +513,15 @@ public class SessionDelegate {
             }
         }
         return privilegeManager;
+    }
+
+    @Nonnull
+    EffectiveNodeTypeProvider getEffectiveNodeTypeProvider() throws RepositoryException {
+        return (EffectiveNodeTypeProvider) workspace.getNodeTypeManager();
+    }
+
+    @Nonnull
+    DefinitionProvider getDefinitionProvider() throws RepositoryException {
+        return (DefinitionProvider) workspace.getNodeTypeManager();
     }
 }

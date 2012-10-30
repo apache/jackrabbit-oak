@@ -35,7 +35,6 @@ import javax.jcr.nodetype.NoSuchNodeTypeException;
 import javax.jcr.nodetype.NodeDefinition;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.NodeTypeIterator;
-import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.nodetype.PropertyDefinition;
 
 import org.apache.jackrabbit.commons.iterator.NodeTypeIteratorAdapter;
@@ -73,17 +72,15 @@ import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_I
  */
 class NodeTypeImpl implements NodeType {
 
-    private static final Logger log =
-            LoggerFactory.getLogger(NodeTypeImpl.class);
+    private static final Logger log = LoggerFactory.getLogger(NodeTypeImpl.class);
 
-    private final NodeTypeManager manager;
+    private final ReadOnlyNodeTypeManager manager;
 
     private final ValueFactory factory;
 
     private final NodeUtil node;
 
-    public NodeTypeImpl(
-            NodeTypeManager manager, ValueFactory factory, NodeUtil node) {
+    public NodeTypeImpl(ReadOnlyNodeTypeManager manager, ValueFactory factory, NodeUtil node) {
         this.manager = manager;
         this.factory = factory;
         this.node = node;
@@ -272,16 +269,15 @@ class NodeTypeImpl implements NodeType {
             return canRemoveProperty(propertyName);
         }
 
-        for (PropertyDefinition definition : getPropertyDefinitions()) {
-            String name = definition.getName();
-            if (propertyName.equals(name) || "*".equals(name)) {
-                if (!definition.isMultiple()) {
-                    return meetsTypeConstraints(value, definition.getRequiredType()) &&
-                           meetsValueConstraints(value, definition.getValueConstraints());
-                }
-            }
+        try {
+            PropertyDefinition def = manager.getDefinition(this, propertyName, false, value.getType(), false);
+            return !def.isProtected() &&
+                    meetsTypeConstraints(value, def.getRequiredType()) &&
+                    meetsValueConstraints(value, def.getValueConstraints());
+        } catch (RepositoryException e) {
+            log.debug(e.getMessage());
+            return false;
         }
-        return false;
     }
 
     @Override
@@ -290,16 +286,16 @@ class NodeTypeImpl implements NodeType {
             return canRemoveProperty(propertyName);
         }
 
-        for (PropertyDefinition definition : getPropertyDefinitions()) {
-            String name = definition.getName();
-            if (propertyName.equals(name) || "*".equals(name)) {
-                if (definition.isMultiple()) {
-                    return meetsTypeConstraints(values, definition.getRequiredType()) &&
-                           meetsValueConstraints(values, definition.getValueConstraints());
-                }
-            }
+        try {
+            int type = (values.length == 0) ? PropertyType.STRING : values[0].getType();
+            PropertyDefinition def = manager.getDefinition(this, propertyName, true, type, false);
+            return !def.isProtected() &&
+                    meetsTypeConstraints(values, def.getRequiredType()) &&
+                    meetsValueConstraints(values, def.getValueConstraints());
+        } catch (RepositoryException e) {
+            log.debug(e.getMessage());
+            return false;
         }
-        return false;
     }
 
     private static boolean meetsTypeConstraints(Value value, int requiredType) {
@@ -427,9 +423,13 @@ class NodeTypeImpl implements NodeType {
             log.warn("Unable to access node type " + nodeTypeName, e);
             return false;
         }
+        // FIXME: properly calculate matching definition
         for (NodeDefinition definition : getChildNodeDefinitions()) {
             String name = definition.getName();
             if (matches(childNodeName, name) || "*".equals(name)) {
+                if (definition.isProtected()) {
+                    return false;
+                }
                 for (String required : definition.getRequiredPrimaryTypeNames()) {
                     if (type.isNodeType(required)) {
                         return true;
@@ -447,6 +447,7 @@ class NodeTypeImpl implements NodeType {
 
     @Override
     public boolean canRemoveNode(String nodeName) {
+        // FIXME: properly calculate matching definition taking residual definitions into account.
         NodeDefinition[] childNodeDefinitions = getChildNodeDefinitions();
         for (NodeDefinition definition : childNodeDefinitions) {
             String name = definition.getName();
@@ -461,6 +462,7 @@ class NodeTypeImpl implements NodeType {
 
     @Override
     public boolean canRemoveProperty(String propertyName) {
+        // FIXME: should properly calculate matching definition taking residual definitions into account.
         PropertyDefinition[] propertyDefinitions = getPropertyDefinitions();
         for (PropertyDefinition definition : propertyDefinitions) {
             String name = definition.getName();
