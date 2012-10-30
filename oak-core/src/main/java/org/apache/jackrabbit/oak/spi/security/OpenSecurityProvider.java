@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.spi.security;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginContextProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.OpenLoginContextProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
@@ -36,7 +37,7 @@ public class OpenSecurityProvider implements SecurityProvider {
 
     @Nonnull
     @Override
-    public LoginContextProvider getLoginContextProvider(NodeStore nodeStore) {
+    public LoginContextProvider getLoginContextProvider(NodeStore nodeStore, QueryIndexProvider indexProvider) {
         return new OpenLoginContextProvider();
     }
 

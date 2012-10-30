@@ -24,6 +24,7 @@ import javax.security.auth.callback.CallbackHandler;
 import javax.security.auth.login.Configuration;
 import javax.security.auth.login.LoginException;
 
+import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.JaasLoginContext;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginContext;
@@ -42,14 +43,16 @@ public class LoginContextProviderImpl implements LoginContextProvider {
     private final String appName;
     private final Configuration configuration;
     private final NodeStore nodeStore;
+    private final QueryIndexProvider indexProvider;
     private final SecurityProvider securityProvider;
 
     public LoginContextProviderImpl(String appName, Configuration configuration,
-                                    NodeStore nodeStore,
+                                    NodeStore nodeStore, QueryIndexProvider indexProvider,
                                     SecurityProvider securityProvider) {
         this.appName = appName;
         this.configuration = configuration;
         this.nodeStore = nodeStore;
+        this.indexProvider = indexProvider;
         this.securityProvider = securityProvider;
     }
 
@@ -78,6 +81,6 @@ public class LoginContextProviderImpl implements LoginContextProvider {
     }
 
     private CallbackHandler getCallbackHandler(Credentials credentials, String workspaceName) {
-        return new CallbackHandlerImpl(credentials, workspaceName, nodeStore, securityProvider);
+        return new CallbackHandlerImpl(credentials, workspaceName, nodeStore, indexProvider, securityProvider);
     }
 }
