@@ -30,6 +30,7 @@ import org.apache.jackrabbit.mongomk.api.command.CommandExecutor;
 import org.apache.jackrabbit.mongomk.api.model.Commit;
 import org.apache.jackrabbit.mongomk.api.model.Node;
 import org.apache.jackrabbit.mongomk.command.CommitCommandMongo;
+import org.apache.jackrabbit.mongomk.command.DiffCommandCommandMongo;
 import org.apache.jackrabbit.mongomk.command.GetHeadRevisionCommandMongo;
 import org.apache.jackrabbit.mongomk.command.GetNodesCommandMongo;
 import org.apache.jackrabbit.mongomk.command.NodeExistsCommandMongo;
@@ -83,40 +84,9 @@ public class NodeStoreMongo implements NodeStore {
     @Override
     public String diff(String fromRevision, String toRevision, String path, int depth)
             throws Exception {
-        path = (path == null || path.isEmpty())? "/" : path;
-
-        if (depth < -1) {
-            throw new IllegalArgumentException("depth");
-        }
-
-        long fromRevisionId, toRevisionId;
-        if (fromRevision == null || toRevision == null) {
-            long head = getHeadRevision(true);
-            fromRevisionId = fromRevision == null? head : MongoUtil.toMongoRepresentation(fromRevision);
-            toRevisionId = toRevision == null ? head : MongoUtil.toMongoRepresentation(toRevision);;
-        } else {
-            fromRevisionId = MongoUtil.toMongoRepresentation(fromRevision);
-            toRevisionId = MongoUtil.toMongoRepresentation(toRevision);;
-        }
-
-        if (fromRevisionId == toRevisionId) {
-            return "";
-        }
-
-        if ("/".equals(path)) {
-            CommitMongo toCommit = getCommit(toRevisionId);
-            if (toCommit.getBaseRevId() == fromRevisionId) {
-                // Specified range spans a single commit:
-                // use diff stored in commit instead of building it dynamically
-                return toCommit.getDiff();
-            }
-        }
-
-        NodeState beforeState = wrap(getNode(path, fromRevisionId));
-        NodeState afterState = wrap(getNode(path, toRevisionId));
-
-        return new DiffBuilder(beforeState, afterState, path, depth,
-                new MongoNodeStore(), path).build();
+        Command<String> command = new DiffCommandCommandMongo(mongoConnection,
+                fromRevision, toRevision, path, depth);
+        return command.execute();
     }
 
     @Override
@@ -338,6 +308,7 @@ public class NodeStoreMongo implements NodeStore {
                 toRevisionId);
         return query.execute();
     }
+
     private long getHeadRevision(boolean includeBranchCommits) throws Exception {
         FetchHeadRevisionIdQuery query = new FetchHeadRevisionIdQuery(mongoConnection);
         query.includeBranchCommits(includeBranchCommits);

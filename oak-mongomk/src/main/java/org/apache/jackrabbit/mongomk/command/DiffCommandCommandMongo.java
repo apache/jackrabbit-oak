@@ -1,0 +1,100 @@
+package org.apache.jackrabbit.mongomk.command;
+
+import org.apache.jackrabbit.mk.model.tree.DiffBuilder;
+import org.apache.jackrabbit.mk.model.tree.NodeState;
+import org.apache.jackrabbit.mongomk.api.command.DefaultCommand;
+import org.apache.jackrabbit.mongomk.api.model.Node;
+import org.apache.jackrabbit.mongomk.impl.MongoConnection;
+import org.apache.jackrabbit.mongomk.impl.model.tree.MongoNodeState;
+import org.apache.jackrabbit.mongomk.impl.model.tree.MongoNodeStore;
+import org.apache.jackrabbit.mongomk.model.CommitMongo;
+import org.apache.jackrabbit.mongomk.query.FetchCommitQuery;
+import org.apache.jackrabbit.mongomk.query.FetchHeadRevisionIdQuery;
+import org.apache.jackrabbit.mongomk.util.MongoUtil;
+
+/**
+ * A {@code Command} for {@code MongoMicroKernel#diff(String, String, String, int)}
+ */
+public class DiffCommandCommandMongo extends DefaultCommand<String> {
+
+    private final String fromRevision;
+    private final String toRevision;
+    private final int depth;
+
+    private String path;
+
+    /**
+     * Constructs a {@code DiffCommandCommandMongo}
+     *
+     * @param mongoConnection Mongo connection
+     * @param fromRevision From revision id.
+     * @param toRevision To revision id.
+     * @param path Path.
+     * @param depth Depth.
+     */
+    public DiffCommandCommandMongo(MongoConnection mongoConnection, String fromRevision,
+            String toRevision, String path, int depth) {
+        super(mongoConnection);
+        this.fromRevision = fromRevision;
+        this.toRevision = toRevision;
+        this.path = path;
+        this.depth = depth;
+    }
+
+    @Override
+    public String execute() throws Exception {
+        checkPath();
+        checkDepth();
+
+        long fromRevisionId, toRevisionId;
+        if (fromRevision == null || toRevision == null) {
+            FetchHeadRevisionIdQuery query = new FetchHeadRevisionIdQuery(mongoConnection);
+            query.includeBranchCommits(true);
+            long head = query.execute();
+            fromRevisionId = fromRevision == null? head : MongoUtil.toMongoRepresentation(fromRevision);
+            toRevisionId = toRevision == null ? head : MongoUtil.toMongoRepresentation(toRevision);;
+        } else {
+            fromRevisionId = MongoUtil.toMongoRepresentation(fromRevision);
+            toRevisionId = MongoUtil.toMongoRepresentation(toRevision);;
+        }
+
+        if (fromRevisionId == toRevisionId) {
+            return "";
+        }
+
+        if ("/".equals(path)) {
+            CommitMongo toCommit = new FetchCommitQuery(mongoConnection, toRevisionId).execute();
+            if (toCommit.getBaseRevId() == fromRevisionId) {
+                // Specified range spans a single commit:
+                // use diff stored in commit instead of building it dynamically
+                return toCommit.getDiff();
+            }
+        }
+
+        NodeState beforeState = wrap(getNode(path, fromRevisionId));
+        NodeState afterState = wrap(getNode(path, toRevisionId));
+
+        return new DiffBuilder(beforeState, afterState, path, depth,
+                new MongoNodeStore(), path).build();
+    }
+
+    private void checkDepth() {
+        if (depth < -1) {
+            throw new IllegalArgumentException("depth");
+        }
+    }
+
+    private void checkPath() {
+        path = (path == null || path.isEmpty())? "/" : path;
+    }
+
+    private Node getNode(String path, long revisionId) throws Exception {
+        GetNodesCommandMongo command = new GetNodesCommandMongo(mongoConnection,
+                path, revisionId);
+        return command.execute();
+    }
+
+    private NodeState wrap(Node node) {
+        return node != null? new MongoNodeState(node) : null;
+    }
+}
