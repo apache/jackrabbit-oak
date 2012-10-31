@@ -192,7 +192,7 @@ public abstract class ReadWriteNodeTypeManager extends ReadOnlyNodeTypeManager {
 
     @Override
     public NodeType registerNodeType(NodeTypeDefinition ntd, boolean allowUpdate) throws RepositoryException {
-        // TODO proper node type registration... (OAK-66)
+        // TODO proper node type registration... (OAK-66, OAK-411)
         Root root = getWriteRoot();
         Tree types = getOrCreateNodeTypes(root);
         try {
@@ -208,7 +208,7 @@ public abstract class ReadWriteNodeTypeManager extends ReadOnlyNodeTypeManager {
     @Override
     public final NodeTypeIterator registerNodeTypes(NodeTypeDefinition[] ntds, boolean allowUpdate)
             throws RepositoryException {
-        // TODO handle inter-type dependencies (OAK-66)
+        // TODO handle inter-type dependencies (OAK-66, OAK-411)
         Root root = getWriteRoot();
         try {
             List<NodeType> list = internalRegister(
@@ -257,16 +257,16 @@ public abstract class ReadWriteNodeTypeManager extends ReadOnlyNodeTypeManager {
         node.setBoolean(JCR_IS_QUERYABLE, ntd.isQueryable());
         node.setBoolean(JCR_ISMIXIN, ntd.isMixin());
 
-        // TODO fail if not orderable but a supertype is orderable. See 3.7.6.7 Node Type Attribute Subtyping Rules
+        // TODO fail if not orderable but a supertype is orderable. See 3.7.6.7 Node Type Attribute Subtyping Rules (OAK-411)
         node.setBoolean(JCR_HASORDERABLECHILDNODES, ntd.hasOrderableChildNodes());
         String primaryItemName = ntd.getPrimaryItemName();
 
-        // TODO fail if a supertype specifies a different primary item. See 3.7.6.7 Node Type Attribute Subtyping Rules
+        // TODO fail if a supertype specifies a different primary item. See 3.7.6.7 Node Type Attribute Subtyping Rules (OAK-411)
         if (primaryItemName != null) {
             node.setName(JCR_PRIMARYITEMNAME, primaryItemName);
         }
 
-        // TODO fail on invalid item definitions. See 3.7.6.8 Item Definitions in Subtypes
+        // TODO fail on invalid item definitions. See 3.7.6.8 Item Definitions in Subtypes (OAK-411)
         PropertyDefinition[] propertyDefinitions = ntd.getDeclaredPropertyDefinitions();
         if (propertyDefinitions != null) {
             int pdn = 1;
@@ -295,7 +295,7 @@ public abstract class ReadWriteNodeTypeManager extends ReadOnlyNodeTypeManager {
             node.setName(JCR_NAME, name);
         }
 
-        // TODO avoid unbounded recursive auto creation. See 3.7.2.3.5 Chained Auto-creation
+        // TODO avoid unbounded recursive auto creation. See 3.7.2.3.5 Chained Auto-creation (OAK-411)
         node.setBoolean(JCR_AUTOCREATED, def.isAutoCreated());
         node.setBoolean(JCR_MANDATORY, def.isMandatory());
         node.setBoolean(JCR_PROTECTED, def.isProtected());
