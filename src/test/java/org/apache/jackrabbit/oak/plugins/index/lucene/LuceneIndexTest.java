@@ -16,12 +16,14 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertTrue;
 
 import org.apache.jackrabbit.oak.plugins.index.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.IndexDefinitionImpl;
+import org.apache.jackrabbit.oak.plugins.index.IndexHook;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
 import org.apache.jackrabbit.oak.query.ast.Operator;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
@@ -40,16 +42,21 @@ public class LuceneIndexTest implements LuceneIndexConstants {
         NodeState root = MemoryNodeState.EMPTY_NODE;
 
         NodeBuilder builder = root.builder();
-        NodeBuilder index = builder.child("oak:index").child("lucene");
-        IndexDefinition testDef = new IndexDefinitionImpl("lucene",
-                TYPE_LUCENE, "/oak:index/lucene");
+        builder.child("oak:index").child("lucene")
+                .setProperty(JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE)
+                .setProperty("type", TYPE_LUCENE);
 
         NodeState before = builder.getNodeState();
         builder.setProperty("foo", "bar");
         NodeState after = builder.getNodeState();
 
-        new LuceneHook(index).processCommit(before, after);
+        IndexHook l = new LuceneHook(builder);
+        after.compareAgainstBaseState(before, l.preProcess());
+        l.postProcess();
+        l.close();
 
+        IndexDefinition testDef = new IndexDefinitionImpl("lucene",
+                TYPE_LUCENE, "/oak:index/lucene");
         QueryIndex queryIndex = new LuceneIndex(testDef);
         FilterImpl filter = new FilterImpl(null);
         filter.restrictPath("/", Filter.PathRestriction.EXACT);

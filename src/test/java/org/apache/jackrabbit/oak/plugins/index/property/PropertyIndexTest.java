@@ -20,6 +20,7 @@ import java.util.Arrays;
 
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.index.IndexHook;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -62,8 +63,12 @@ public class PropertyIndexTest {
         withoutIndex = System.nanoTime() - withoutIndex;
 
         // ... then see how adding an index affects the code
-        lookup = new PropertyIndexLookup(
-                new PropertyIndexHook(builder).processCommit(before, after));
+        IndexHook p = new PropertyIndexHook(builder);
+        after.compareAgainstBaseState(before, p.preProcess());
+        p.postProcess();
+        p.close();
+
+        lookup = new PropertyIndexLookup(builder.getNodeState());
         long withIndex = System.nanoTime();
         assertEquals(ImmutableSet.of("a", "b"), lookup.find("foo", "abc"));
         assertEquals(ImmutableSet.of("b"), lookup.find("foo", "def"));
@@ -81,7 +86,9 @@ public class PropertyIndexTest {
 
         // Add index definition
         NodeBuilder builder = root.builder();
-        builder.child("oak:index").child("fooIndex").setProperty("propertyNames", Arrays.asList("foo", "extrafoo"), Type.STRINGS);
+        builder.child("oak:index").child("fooIndex")
+                .setProperty("jcr:primaryType", "oak:queryIndexDefinition", Type.NAME)
+                .setProperty("propertyNames", Arrays.asList("foo", "extrafoo"), Type.STRINGS);
         NodeState before = builder.getNodeState();
 
         // Add some content and process it through the property index hook
@@ -106,8 +113,12 @@ public class PropertyIndexTest {
         withoutIndex = System.nanoTime() - withoutIndex;
 
         // ... then see how adding an index affects the code
-        lookup = new PropertyIndexLookup(
-                new PropertyIndexHook(builder).processCommit(before, after));
+        IndexHook p = new PropertyIndexHook(builder);
+        after.compareAgainstBaseState(before, p.preProcess());
+        p.postProcess();
+        p.close();
+
+        lookup = new PropertyIndexLookup(builder.getNodeState());
         long withIndex = System.nanoTime();
         assertEquals(ImmutableSet.of("a", "b"), lookup.find("foo", "abc"));
         assertEquals(ImmutableSet.of("b"), lookup.find("foo", "def"));

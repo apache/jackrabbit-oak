@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.property;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -24,7 +25,7 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.index.IndexHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 
 import com.google.common.collect.Maps;
 
@@ -37,28 +38,35 @@ import com.google.common.collect.Maps;
  * 
  */
 public class PropertyIndexHook implements IndexHook {
-    
+
     private final NodeBuilder builder;
+
+    private Map<String, List<PropertyIndexUpdate>> indexes;
 
     public PropertyIndexHook(NodeBuilder builder) {
         this.builder = builder;
     }
 
-    @Override @Nonnull
-    public NodeState processCommit(NodeState before, NodeState after)
-            throws CommitFailedException {
-        Map<String, List<PropertyIndexUpdate>> indexes = Maps.newHashMap();
-        PropertyIndexDiff diff = new PropertyIndexDiff(builder, indexes);
-        after.compareAgainstBaseState(before, diff);
 
+    // -----------------------------------------------------< IndexHook >--
+
+    @Override @Nonnull
+    public NodeStateDiff preProcess() {
+        indexes = Maps.newHashMap();
+        return new PropertyIndexDiff(builder, indexes);
+    }
+
+    @Override
+    public void postProcess() throws CommitFailedException {
         for (List<PropertyIndexUpdate> updates : indexes.values()) {
             for (PropertyIndexUpdate update : updates) {
                 update.apply();
             }
         }
-
-        return builder.getNodeState();
     }
 
-
+    @Override
+    public void close() throws IOException {
+        indexes = null;
+    }
 }
