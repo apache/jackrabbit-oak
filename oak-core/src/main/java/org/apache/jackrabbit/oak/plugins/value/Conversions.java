@@ -41,6 +41,9 @@ import org.apache.jackrabbit.util.ISO8601;
  * </pre>
  */
 public final class Conversions {
+
+    private static final TimeZone UTC = TimeZone.getTimeZone("GMT+00:00");
+
     private Conversions() {}
 
     /**
@@ -198,7 +201,7 @@ public final class Conversions {
 
             @Override
             public Calendar toCalendar() {
-                Calendar date = Calendar.getInstance(TimeZone.getTimeZone("GMT+00:00"));
+                Calendar date = Calendar.getInstance(UTC);
                 date.setTimeInMillis(value);
                 return date;
             }
