@@ -6,7 +6,7 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,26 +16,29 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype;
 
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Service;
+import javax.annotation.Nonnull;
+
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.core.ReadOnlyTree;
-import org.apache.jackrabbit.oak.namepath.NameMapperImpl;
-import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
+import org.apache.jackrabbit.oak.spi.commit.SubtreeValidator;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
-@Component
-@Service(ValidatorProvider.class)
-public class TypeValidatorProvider implements ValidatorProvider {
+/**
+ * ValidationProvider implementation that returns a {@code SubtreeValidator}
+ * that is looking for changes made to /jcr:system/jcr:nodeTypes and
+ * is responsible for making sure that any modifications made to node type
+ * definitions are valid.
+ */
+public class RegistrationValidatorProvider implements ValidatorProvider {
 
+    @Nonnull
     @Override
-    public Validator getRootValidator(NodeState before, final NodeState after) {
-        ReadOnlyNodeTypeManager ntm = new ValidatingNodeTypeManager(after);
-        ReadOnlyTree root = new ReadOnlyTree(after);
-        final NamePathMapper mapper = new NamePathMapperImpl(new NameMapperImpl(root));
-        return new TypeValidator(ntm, root, mapper);
+    public Validator getRootValidator(NodeState before, NodeState after) {
+        Validator validator = new RegistrationValidator(new ValidatingNodeTypeManager(before),
+                new ValidatingNodeTypeManager(after),
+                new ReadOnlyTree(before), new ReadOnlyTree(after));
+        return new SubtreeValidator(validator, JcrConstants.JCR_SYSTEM, NodeTypeConstants.JCR_NODE_TYPES);
     }
-
 }
