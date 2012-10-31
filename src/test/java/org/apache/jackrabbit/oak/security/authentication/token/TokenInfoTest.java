@@ -22,15 +22,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
-import org.apache.jackrabbit.api.security.user.Authorizable;
-import org.apache.jackrabbit.api.security.user.UserManager;
-import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.security.AbstractSecurityTest;
-import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenInfo;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -41,42 +33,7 @@ import static org.junit.Assert.assertTrue;
 /**
  * TokenInfoTest...
  */
-public class TokenInfoTest extends AbstractSecurityTest {
-
-    private Root root;
-    private TokenProviderImpl tokenProvider;
-
-    private String userId;
-    private UserManager userManager;
-
-    @Before
-    public void before() throws Exception {
-        super.before();
-
-        root = admin.getLatestRoot();
-        tokenProvider = new TokenProviderImpl(root,
-                ConfigurationParameters.EMPTY,
-                getSecurityProvider().getUserConfiguration());
-
-        userId = "testUser";
-        userManager = getSecurityProvider().getUserConfiguration().getUserManager(root, NamePathMapper.DEFAULT);
-
-        userManager.createUser(userId, "pw");
-        root.commit();
-    }
-
-    @After
-    public void after() throws Exception {
-        try {
-            Authorizable a = userManager.getAuthorizable(userId);
-            if (a != null) {
-                a.remove();
-                root.commit();
-            }
-        } finally {
-            super.after();
-        }
-    }
+public class TokenInfoTest extends AbstractTokenTest {
 
     @Test
     public void testGetUserId() {
