@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import javax.jcr.InvalidItemStateException;
 import javax.jcr.Node;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.Property;
@@ -85,11 +86,13 @@ public class CRUDTest extends AbstractRepositoryTest {
     public void testRemoveMissingProperty() throws RepositoryException {
         Session session = getAdminSession();
         Node root = session.getRootNode();
+        Property p = root.setProperty("missing", (String) null);
+        assertNotNull(p);
         try {
-            root.setProperty("missing", (String) null);
-            fail("removing a missing property should fail");
-        } catch (PathNotFoundException e) {
-            // success
+            p.getValue();
+            fail("must throw InvalidItemStateException");
+        } catch (InvalidItemStateException e) {
+            // expected
         }
     }
 
@@ -97,11 +100,13 @@ public class CRUDTest extends AbstractRepositoryTest {
     public void testRemoveMissingMVProperty() throws RepositoryException {
         Session session = getAdminSession();
         Node root = session.getRootNode();
+        Property p = root.setProperty("missing", (String[]) null);
+        assertNotNull(p);
         try {
-            root.setProperty("missing", (String[]) null);
-            fail("removing a missing property should fail");
-        } catch (PathNotFoundException e) {
-            // success
+            p.getValues();
+            fail("must throw InvalidItemStateException");
+        } catch (InvalidItemStateException e) {
+            // expected
         }
     }
 
