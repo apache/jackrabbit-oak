@@ -22,13 +22,9 @@ import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.TreeBasedPrincipal;
 
 /**
- * AdminPrincipalImpl... TODO
+ * AdminPrincipal variant of the {@link TreeBasedPrincipal}.
  */
 public class AdminPrincipalImpl extends TreeBasedPrincipal implements AdminPrincipal {
-
-    public AdminPrincipalImpl(Tree tree, PathMapper pathMapper) {
-        super(tree, pathMapper);
-    }
 
     public AdminPrincipalImpl(String principalName, Tree tree, PathMapper pathMapper) {
         super(principalName, tree, pathMapper);
