@@ -32,6 +32,22 @@ public interface DefinitionProvider {
     @Nonnull
     NodeDefinition getRootDefinition() throws RepositoryException;
 
+    /**
+     * Returns the node definition for a child node of <code>parent</code> named
+     * <code>nodeName</code> with a default primary type. First the non-residual
+     * child node definitions of <code>parent</code> are checked matching the
+     * given node name. Then the residual definitions are checked.
+     *
+     * @param parent   the parent node.
+     * @param nodeName the name of the child node.
+     * @return the applicable node definition.
+     * @throws RepositoryException if there is no applicable node definition
+     *                             with a default primary type.
+     */
+    @Nonnull
+    NodeDefinition getDefinition(@Nonnull Node parent, @Nonnull String nodeName)
+            throws RepositoryException;
+
     @Nonnull
     NodeDefinition getDefinition(Node parent, Node targetNode) throws RepositoryException;
 

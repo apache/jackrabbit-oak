@@ -73,6 +73,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
+import org.apache.jackrabbit.oak.plugins.nodetype.DefinitionProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.util.TODO;
 import org.apache.jackrabbit.value.ValueHelper;
@@ -244,8 +245,17 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
                     throw new ItemExistsException(relPath);
                 }
 
-                // TODO retrieve matching nt from effective definition based on name-matching.
-                String ntName = primaryNodeTypeName == null ? NodeType.NT_UNSTRUCTURED : primaryNodeTypeName;
+                String ntName = primaryNodeTypeName;
+                if (ntName == null) {
+                    DefinitionProvider dp = sessionDelegate.getDefinitionProvider();
+                    try {
+                        ntName = dp.getDefinition(new NodeImpl(parent),
+                                PathUtils.getName(relPath)).getDefaultPrimaryTypeName();
+                    } catch (RepositoryException e) {
+                        throw new ConstraintViolationException(
+                                "no matching child node definition found for " + relPath);
+                    }
+                }
 
                 // TODO: figure out the right place for this check
                 NodeTypeManager ntm = sessionDelegate.getNodeTypeManager();
