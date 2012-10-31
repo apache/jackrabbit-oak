@@ -41,10 +41,6 @@ import static org.junit.Assert.fail;
 
 /**
  * UserProviderImplTest...
- *
- * TODO: create tests with custom config that persists changes (currently fails since config used in UserValidator is different)
- * TODO: add tests for setProtectedProperty (might still be refactored...)
- * TODO: add tests for findAuthorizables once implementation is ready
  */
 public class UserProviderTest {
 
@@ -261,13 +257,12 @@ public class UserProviderTest {
         Tree user = up.createUser("shams", null);
         Tree a = up.getAuthorizableByPath(user.getPath());
         assertNotNull(a);
-        // FIXME there is no additional contract on equality of Tree instances neither do the various accessors guarantee to return the same instance on call
-        assertEquals(user, a);
+        assertEquals(user.getPath(), a.getPath());
 
         Tree group = up.createGroup("devs", null);
         a = up.getAuthorizableByPath(group.getPath());
         assertNotNull(a);
-        assertEquals(group, a);
+        assertEquals(group.getPath(), a.getPath());
     }
 
     @Test
