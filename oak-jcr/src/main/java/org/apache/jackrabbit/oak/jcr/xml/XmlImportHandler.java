@@ -30,6 +30,8 @@ public class XmlImportHandler extends DefaultHandler {
 
     private Node node;
 
+    private String nodeName;
+
     private String name;
 
     private final List<String> values = new ArrayList<String>();
@@ -47,11 +49,8 @@ public class XmlImportHandler extends DefaultHandler {
         if ("http://www.jcp.org/jcr/sv/1.0".equals(uri)) {
             String value = atts.getValue("sv:name");
             if ("node".equals(localName)) {
-                try {
-                    node = node.addNode(value);
-                } catch (RepositoryException e) {
-                    throw new SAXException(e);
-                }
+                // create node on jcr:primaryType sv:property
+                nodeName = value;
             } else if (value != null) {
                 name = value;
             }
@@ -79,7 +78,11 @@ public class XmlImportHandler extends DefaultHandler {
             try {
                 if (values.size() == 1) {
                     if (name.equals("jcr:primaryType")) {
-                        node.setPrimaryType(values.get(0));
+                        try {
+                            node = node.addNode(nodeName, values.get(0));
+                        } catch (RepositoryException e) {
+                            throw new SAXException(e);
+                        }
                     } else if (name.equals("jcr:mixinTypes")) {
                         node.addMixin(values.get(0));
                     } else {
