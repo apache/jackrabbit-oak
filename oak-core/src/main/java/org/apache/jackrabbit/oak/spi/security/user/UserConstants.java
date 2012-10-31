@@ -116,10 +116,4 @@ public interface UserConstants {
      * password hash generation.
      */
     String PARAM_PASSWORD_SALT_SIZE = "passwordSaltSize";
-    /**
-     * Configuration parameter to set the authorizable actions.
-     *
-     * @see org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableAction
-     */
-    String PARAM_AUTHORIZABLE_ACTIONS = "authorizableActions";
 }

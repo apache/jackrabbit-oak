@@ -26,6 +26,7 @@ import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -98,12 +99,12 @@ public class AccessControlAction extends AbstractAuthorizableAction {
 
     //-------------------------------------------------< AuthorizableAction >---
     @Override
-    public void onCreate(Group group, Root root) throws RepositoryException {
+    public void onCreate(Group group, Root root, NamePathMapper namePathMapper) throws RepositoryException {
         setAC(group, root);
     }
 
     @Override
-    public void onCreate(User user, String password, Root root) throws RepositoryException {
+    public void onCreate(User user, String password, Root root, NamePathMapper namePathMapper) throws RepositoryException {
         setAC(user, root);
     }
 
