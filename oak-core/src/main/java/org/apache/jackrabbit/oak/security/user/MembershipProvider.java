@@ -100,7 +100,7 @@ class MembershipProvider extends AuthorizableBaseProvider {
     @Nonnull
     Iterator<String> getMembership(Tree authorizableTree, boolean includeInherited) {
         Set<String> groupPaths = new HashSet<String>();
-        Set<String> refPaths = identifierManager.getReferences(true, authorizableTree, null, NT_REP_GROUP, NT_REP_MEMBERS);
+        Set<String> refPaths = identifierManager.getReferences(true, authorizableTree, REP_MEMBERS, NT_REP_GROUP, NT_REP_MEMBERS);
         for (String propPath : refPaths) {
             int index = propPath.indexOf('/'+REP_MEMBERS);
             if (index > 0) {

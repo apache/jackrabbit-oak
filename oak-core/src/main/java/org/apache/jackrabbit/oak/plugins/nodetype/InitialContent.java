@@ -22,6 +22,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.core.RootImpl;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
+import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
@@ -105,15 +106,20 @@ public class InitialContent implements RepositoryInitializer {
             index.child("authorizableId")
                 .setProperty("jcr:primaryType", "oak:queryIndexDefinition", Type.NAME)
                 .setProperty("type", "property")
-                .setProperty("propertyNames", "rep:authorizableId")
+                .setProperty("propertyNames", UserConstants.REP_AUTHORIZABLE_ID)
                 .setProperty("reindex", true)
                 .setProperty("unique", true);
             index.child("principalName")
                 .setProperty("jcr:primaryType", "oak:queryIndexDefinition", Type.NAME)
                 .setProperty("type", "property")
-                .setProperty("propertyNames", "rep:principalName")
+                .setProperty("propertyNames", UserConstants.REP_PRINCIPAL_NAME)
                 .setProperty("reindex", true)
                 .setProperty("unique", true);
+            index.child("members")
+                .setProperty("jcr:primaryType", "oak:queryIndexDefinition", Type.NAME)
+                .setProperty("type", "property")
+                .setProperty("propertyNames", UserConstants.REP_MEMBERS)
+                .setProperty("reindex", true);
         }
         try {
             branch.setRoot(root.getNodeState());
