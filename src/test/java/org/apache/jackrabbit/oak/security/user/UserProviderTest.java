@@ -261,6 +261,7 @@ public class UserProviderTest {
         Tree user = up.createUser("shams", null);
         Tree a = up.getAuthorizableByPath(user.getPath());
         assertNotNull(a);
+        // FIXME there is no additional contract on equality of Tree instances neither do the various accessors guarantee to return the same instance on call
         assertEquals(user, a);
 
         Tree group = up.createGroup("devs", null);
