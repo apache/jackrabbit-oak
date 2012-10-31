@@ -31,7 +31,7 @@ public abstract class AbstractChildNodeEntry implements ChildNodeEntry {
      */
     @Override
     public String toString() {
-        return getName() + ": " + getNodeState();
+        return getName();
     }
 
     /**
