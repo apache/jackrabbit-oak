@@ -239,7 +239,7 @@ public class UserManagerImpl implements UserManager {
      */
     void onCreate(User user, String password) throws RepositoryException {
         for (AuthorizableAction action : authorizableActions) {
-            action.onCreate(user, password, root);
+            action.onCreate(user, password, root, namePathMapper);
         }
     }
 
@@ -253,7 +253,7 @@ public class UserManagerImpl implements UserManager {
      */
     void onCreate(Group group) throws RepositoryException {
         for (AuthorizableAction action : authorizableActions) {
-            action.onCreate(group, root);
+            action.onCreate(group, root, namePathMapper);
         }
     }
 
@@ -267,7 +267,7 @@ public class UserManagerImpl implements UserManager {
      */
     void onRemove(Authorizable authorizable) throws RepositoryException {
         for (AuthorizableAction action : authorizableActions) {
-            action.onRemove(authorizable, root);
+            action.onRemove(authorizable, root, namePathMapper);
         }
     }
 
@@ -282,7 +282,7 @@ public class UserManagerImpl implements UserManager {
      */
     void onPasswordChange(User user, String password) throws RepositoryException {
         for (AuthorizableAction action : authorizableActions) {
-            action.onPasswordChange(user, password, root);
+            action.onPasswordChange(user, password, root, namePathMapper);
         }
     }
 

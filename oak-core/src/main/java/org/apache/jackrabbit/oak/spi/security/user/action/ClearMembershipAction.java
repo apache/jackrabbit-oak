@@ -22,18 +22,19 @@ import javax.jcr.RepositoryException;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 
 /**
  * Authorizable action attempting to clear all group membership before removing
  * the specified authorizable. If {@link Group#removeMember(Authorizable)}
- * fails due to lack of permissions {@link #onRemove(Authorizable, Root)}
+ * fails due to lack of permissions {@link AuthorizableAction#onRemove(org.apache.jackrabbit.api.security.user.Authorizable, org.apache.jackrabbit.oak.api.Root, org.apache.jackrabbit.oak.namepath.NamePathMapper)}
  * throws an exception and removing the specified authorizable will be aborted.
  */
 public class ClearMembershipAction extends AbstractAuthorizableAction {
 
     //-------------------------------------------------< AuthorizableAction >---
     @Override
-    public void onRemove(Authorizable authorizable, Root root) throws RepositoryException {
+    public void onRemove(Authorizable authorizable, Root root, NamePathMapper namePathMapper) throws RepositoryException {
         clearMembership(authorizable);
     }
 
