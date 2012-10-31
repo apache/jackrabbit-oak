@@ -36,7 +36,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 /**
- * LoginTest...
+ * TokenLoginModuleTest...
  */
 public class TokenLoginModuleTest extends AbstractSecurityTest {
 
@@ -148,6 +148,5 @@ public class TokenLoginModuleTest extends AbstractSecurityTest {
         } finally {
             cs.close();
         }
-
     }
 }
