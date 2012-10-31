@@ -1467,6 +1467,7 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
                         property.remove();
                         return property;
                     } else {
+                        // Return a property instance which throws on access. See OAK-395
                         return new PropertyImpl(new PropertyDelegate(
                                 sessionDelegate, dlg.getLocation().getChild(oakName)));
                     }
