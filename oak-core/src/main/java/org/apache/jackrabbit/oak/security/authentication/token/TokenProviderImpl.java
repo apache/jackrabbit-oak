@@ -172,6 +172,7 @@ public class TokenProviderImpl implements TokenProvider {
                 String tokenName = Text.replace(ISO8601.format(creation), ":", ".");
 
                 NodeUtil tokenNode = tokenParent.addChild(tokenName, TOKENS_NT_NAME);
+                // TODO: review if token node should be made referenceable
 
                 String key = generateKey(options.getConfigValue(PARAM_TOKEN_LENGTH, DEFAULT_KEY_SIZE));
                 String nodeId = identifierManager.getIdentifier(tokenNode.getTree());

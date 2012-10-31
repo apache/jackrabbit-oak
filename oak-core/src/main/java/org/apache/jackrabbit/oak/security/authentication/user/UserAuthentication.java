@@ -74,7 +74,7 @@ class UserAuthentication implements Authentication {
             return false;
         }
 
-        boolean success;
+        boolean success = false;
         try {
             Authorizable authorizable = userManager.getAuthorizable(userId);
             if (authorizable == null || authorizable.isGroup()) {
@@ -89,15 +89,14 @@ class UserAuthentication implements Authentication {
             if (credentials instanceof SimpleCredentials) {
                 SimpleCredentials creds = (SimpleCredentials) credentials;
                 Credentials userCreds = user.getCredentials();
-                if (userCreds instanceof CredentialsImpl) {
+                if (userId.equals(creds.getUserID()) && userCreds instanceof CredentialsImpl) {
                     success = PasswordUtility.isSame(((CredentialsImpl) userCreds).getPasswordHash(), creds.getPassword());
-                } else {
-                    success = false;
                 }
                 checkSuccess(success, "UserId/Password mismatch.");
             } else if (credentials instanceof ImpersonationCredentials) {
-                AuthInfo info = ((ImpersonationCredentials) credentials).getImpersonatorInfo();
-                success = impersonate(info, user);
+                ImpersonationCredentials ipCreds = (ImpersonationCredentials) credentials;
+                AuthInfo info = ipCreds.getImpersonatorInfo();
+                success = equalUserId(ipCreds) && impersonate(info, user);
                 checkSuccess(success, "Impersonation not allowed.");
             } else {
                 // guest login is allowed if an anonymous user exists in the content (see get user above)
@@ -114,6 +113,11 @@ class UserAuthentication implements Authentication {
         if (!success) {
             throw new LoginException(msg);
         }
+    }
+
+    private boolean equalUserId(ImpersonationCredentials creds) {
+        Credentials base = creds.getBaseCredentials();
+        return (base instanceof SimpleCredentials) && userId.equals(((SimpleCredentials) base).getUserID());
     }
 
     private boolean impersonate(AuthInfo info, User user) {
