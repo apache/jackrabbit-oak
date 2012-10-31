@@ -26,7 +26,9 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.Credentials;
@@ -97,6 +99,13 @@ public class TokenProviderImpl implements TokenProvider {
     private static final long DEFAULT_TOKEN_EXPIRATION = 2 * 3600 * 1000;
     private static final int DEFAULT_KEY_SIZE = 8;
     private static final char DELIM = '_';
+
+    private static final Set<String> RESERVED_ATTRIBUTES = new HashSet(2);
+    static {
+        RESERVED_ATTRIBUTES.add(TOKEN_ATTRIBUTE);
+        RESERVED_ATTRIBUTES.add(TOKEN_ATTRIBUTE_EXPIRY);
+        RESERVED_ATTRIBUTES.add(TOKEN_ATTRIBUTE_KEY);
+    }
 
     private final Root root;
     private final ConfigurationParameters options;
@@ -174,13 +183,12 @@ public class TokenProviderImpl implements TokenProvider {
                 tokenNode.setDate(TOKEN_ATTRIBUTE_EXPIRY, expirationTime);
 
                 for (String name : attributes.keySet()) {
-                    if (!TOKEN_ATTRIBUTE.equals(name)) {
+                    if (!RESERVED_ATTRIBUTES.contains(name)) {
                         String attr = attributes.get(name).toString();
                         tokenNode.setString(name, attr);
                     }
                 }
                 root.commit();
-
 
                 return new TokenInfoImpl(tokenNode, token, userId);
             } else {
@@ -203,8 +211,8 @@ public class TokenProviderImpl implements TokenProvider {
     @Override
     public TokenInfo getTokenInfo(String token) {
         int pos = token.indexOf(DELIM);
-        String tokenPath = (pos == -1) ? token : token.substring(0, pos);
-        Tree tokenTree = root.getTree(tokenPath);
+        String nodeId = (pos == -1) ? token : token.substring(0, pos);
+        Tree tokenTree = identifierManager.getTree(nodeId);
         String userId = getUserId(tokenTree);
         if (tokenTree == null || userId == null) {
             return null;
@@ -343,7 +351,7 @@ public class TokenProviderImpl implements TokenProvider {
             for (PropertyState propertyState : tokenNode.getTree().getProperties()) {
                 String name = propertyState.getName();
                 String value = propertyState.getValue(STRING);
-                if (TOKEN_ATTRIBUTE_KEY.equals(name) || TOKEN_ATTRIBUTE_EXPIRY.equals(name)) {
+                if (RESERVED_ATTRIBUTES.contains(name)) {
                     continue;
                 }
                 if (isMandatoryAttribute(name)) {
