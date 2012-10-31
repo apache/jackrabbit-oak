@@ -363,14 +363,22 @@ public abstract class AbstractLoginModule implements LoginModule {
         return principalProvider;
     }
 
+    /**
+     * Retrieves all principals associated with the specified {@code userId} for
+     * the configured principal provider.
+     *
+     * @param userId The id of the user.
+     * @return The set of principals associated with the given {@code userId}.
+     * @see #getPrincipalProvider()
+     */
     @Nonnull
-    protected Set<? extends Principal> getPrincipals(String userID) {
+    protected Set<? extends Principal> getPrincipals(String userId) {
         PrincipalProvider principalProvider = getPrincipalProvider();
         if (principalProvider == null) {
             log.debug("Cannot retrieve principals. No principal provider configured.");
             return Collections.emptySet();
         } else {
-            return principalProvider.getPrincipals(userID);
+            return principalProvider.getPrincipals(userId);
         }
     }
 }

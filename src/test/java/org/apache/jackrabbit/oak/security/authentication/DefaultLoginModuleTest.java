@@ -32,6 +32,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.security.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl;
+import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtility;
@@ -138,6 +139,83 @@ public class DefaultLoginModuleTest extends AbstractSecurityTest {
             cs = login(new SimpleCredentials("test", "pw".toCharArray()));
             AuthInfo authInfo = cs.getAuthInfo();
             assertEquals("test", authInfo.getUserID());
+        } finally {
+            if (user != null) {
+                user.remove();
+                root.commit();
+            }
+            if (cs != null) {
+                cs.close();
+            }
+        }
+    }
+
+    @Test
+    public void testSelfImpersonation() throws Exception {
+        Root root = admin.getLatestRoot();
+        UserManager userManager = uc.getUserManager(root, NamePathMapper.DEFAULT);
+
+        ContentSession cs = null;
+        User user = null;
+        try {
+            user = userManager.createUser("test", "pw");
+            root.commit();
+
+            SimpleCredentials sc = new SimpleCredentials("test", "pw".toCharArray());
+            cs = login(sc);
+
+            AuthInfo authInfo = cs.getAuthInfo();
+            assertEquals("test", authInfo.getUserID());
+
+            cs.close();
+
+            sc = new SimpleCredentials("test", new char[0]);
+            ImpersonationCredentials ic = new ImpersonationCredentials(sc, authInfo);
+            cs = login(ic);
+
+            authInfo = cs.getAuthInfo();
+            assertEquals("test", authInfo.getUserID());
+        } finally {
+            if (user != null) {
+                user.remove();
+                root.commit();
+            }
+            if (cs != null) {
+                cs.close();
+            }
+        }
+    }
+
+    @Test
+    public void testInvalidImpersonation() throws Exception {
+        Root root = admin.getLatestRoot();
+        UserManager userManager = uc.getUserManager(root, NamePathMapper.DEFAULT);
+
+        ContentSession cs = null;
+        User user = null;
+        try {
+            user = userManager.createUser("test", "pw");
+            root.commit();
+
+            SimpleCredentials sc = new SimpleCredentials("test", "pw".toCharArray());
+            cs = login(sc);
+
+            AuthInfo authInfo = cs.getAuthInfo();
+            assertEquals("test", authInfo.getUserID());
+
+            cs.close();
+            cs = null;
+
+            String adminId = UserUtility.getAdminId(securityProvider.getUserConfiguration().getConfigurationParameters());
+            sc = new SimpleCredentials(adminId, new char[0]);
+            ImpersonationCredentials ic = new ImpersonationCredentials(sc, authInfo);
+
+            try {
+                cs = login(ic);
+                fail("User 'test' should not be allowed to impersonate " + adminId);
+            } catch (LoginException e) {
+                // success
+            }
         } finally {
             if (user != null) {
                 user.remove();
