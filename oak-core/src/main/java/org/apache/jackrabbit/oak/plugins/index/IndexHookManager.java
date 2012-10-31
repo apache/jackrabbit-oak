@@ -24,6 +24,8 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPER
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_UNKNOWN;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
 
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -64,9 +66,8 @@ public class IndexHookManager implements CommitHook {
 
         // <path>, <builder>
         Map<String, NodeBuilder> allDefs = new HashMap<String, NodeBuilder>();
-
-        IndexDefDiff diff = new IndexDefDiff(builder, allDefs);
-        after.compareAgainstBaseState(before, diff);
+        after.compareAgainstBaseState(before,
+                new IndexDefDiff(builder, allDefs));
 
         // <type, <<path>, <builder>>
         Map<String, Map<String, NodeBuilder>> updates = new HashMap<String, Map<String, NodeBuilder>>();
@@ -86,24 +87,52 @@ public class IndexHookManager implements CommitHook {
         }
 
         // commit
+        List<IndexHook> hooks = new ArrayList<IndexHook>();
+        List<IndexHook> reindexHooks = new ArrayList<IndexHook>();
+
         for (String type : updates.keySet()) {
             Map<String, NodeBuilder> update = updates.get(type);
             for (String path : update.keySet()) {
                 NodeBuilder updateBuiler = update.get(path);
                 boolean reindex = getAndResetReindex(updateBuiler);
-                List<? extends IndexHook> hooks = provider.getIndexHooks(type,
-                        updateBuiler);
-                for (IndexHook hook : hooks) {
-                    if (reindex) {
-                        hook.processCommit(MemoryNodeState.EMPTY_NODE, after);
-                    } else {
-                        hook.processCommit(before, after);
-                    }
+                if (reindex) {
+                    reindexHooks.addAll(provider.getIndexHooks(type,
+                            updateBuiler));
+                } else {
+                    hooks.addAll(provider.getIndexHooks(type, updateBuiler));
                 }
-                
             }
         }
+        processIndexHooks(reindexHooks, MemoryNodeState.EMPTY_NODE, after);
+        processIndexHooks(hooks, before, after);
         return builder.getNodeState();
+    }
+
+    private void processIndexHooks(List<IndexHook> hooks, NodeState before,
+            NodeState after) throws CommitFailedException {
+        try {
+
+            List<NodeStateDiff> diffs = new ArrayList<NodeStateDiff>();
+            for (IndexHook hook : hooks) {
+                diffs.add(hook.preProcess());
+            }
+            after.compareAgainstBaseState(before, new CompositeNodeStateDiff(
+                    diffs));
+            for (IndexHook hook : hooks) {
+                hook.postProcess();
+            }
+
+        } finally {
+            for (IndexHook hook : hooks) {
+                try {
+                    hook.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    throw new CommitFailedException(
+                            "Failed to close the index hook", e);
+                }
+            }
+        }
     }
 
     protected static boolean getAndResetReindex(NodeBuilder builder) {

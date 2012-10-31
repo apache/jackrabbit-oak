@@ -16,10 +16,14 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import java.io.IOException;
+
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.index.IndexHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 
 /**
  * {@link IndexHook} implementation that is responsible for keeping the
@@ -32,15 +36,34 @@ public class LuceneHook implements IndexHook {
 
     private final NodeBuilder builder;
 
+    private IndexHook luceneEditor;
+
     public LuceneHook(NodeBuilder builder) {
         this.builder = builder;
     }
 
+    // -----------------------------------------------------< IndexHook >--
+
     @Override
-    public NodeState processCommit(NodeState before, NodeState after)
-            throws CommitFailedException {
-        new LuceneEditor(builder).processCommit(before, after);
-        return after;
+    @Nonnull
+    public NodeStateDiff preProcess() throws CommitFailedException {
+        luceneEditor = new LuceneEditor(builder);
+        return luceneEditor.preProcess();
     }
 
+    @Override
+    public void postProcess() throws CommitFailedException {
+        luceneEditor.postProcess();
+    }
+
+    @Override
+    public void close() throws IOException {
+        try {
+            if (luceneEditor != null) {
+                luceneEditor.close();
+            }
+        } finally {
+            luceneEditor = null;
+        }
+    }
 }
