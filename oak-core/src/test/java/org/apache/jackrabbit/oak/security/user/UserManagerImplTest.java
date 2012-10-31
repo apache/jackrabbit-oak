@@ -16,11 +16,16 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
+import java.security.Principal;
 import java.util.ArrayList;
 import java.util.List;
+import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
 
+import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.User;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
@@ -28,8 +33,10 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.security.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtility;
+import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.junit.Before;
 import org.junit.Test;
+import sun.security.acl.PrincipalImpl;
 
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertFalse;
@@ -127,6 +134,89 @@ public class UserManagerImplTest extends AbstractSecurityTest {
             fail("should fail");
         } catch (UnsupportedRepositoryOperationException e) {
             // success
+        }
+    }
+
+    @Test
+    public void testEnforceAuthorizableFolderHierarchy() throws RepositoryException, CommitFailedException {
+        User user = userMgr.createUser("testUser", null);
+        root.commit();
+
+        NodeUtil userNode = new NodeUtil(root.getTree(user.getPath()));
+
+        NodeUtil folder = userNode.addChild("folder", UserConstants.NT_REP_AUTHORIZABLE_FOLDER);
+        String path = folder.getTree().getPath();
+        try {
+            // authNode - authFolder -> create User
+            try {
+                Principal p = new PrincipalImpl("test2");
+                Authorizable a = userMgr.createUser(p.getName(), p.getName(), p, path);
+                root.commit();
+
+                fail("Users may not be nested.");
+            } catch (CommitFailedException e) {
+                // success
+            } finally {
+                root.refresh();
+                Authorizable a = userMgr.getAuthorizable("test2");
+                if (a != null) {
+                    a.remove();
+                    root.commit();
+                }
+            }
+        } finally {
+            root.refresh();
+            folder.getTree().remove();
+            root.commit();
+        }
+
+        NodeUtil someContent = userNode.addChild("mystuff", JcrConstants.NT_UNSTRUCTURED);
+        path = someContent.getTree().getPath();
+        try {
+            // authNode - anyNode -> create User
+            try {
+                Principal p = new PrincipalImpl("test3");
+                userMgr.createUser(p.getName(), p.getName(), p, path);
+                root.commit();
+
+                fail("Users may not be nested.");
+            } catch (CommitFailedException e) {
+                // success
+            } finally {
+                root.refresh();
+                Authorizable a = userMgr.getAuthorizable("test3");
+                if (a != null) {
+                    a.remove();
+                    root.commit();
+                }
+            }
+
+            // authNode - anyNode - authFolder -> create User
+            folder = someContent.addChild("folder", UserConstants.NT_REP_AUTHORIZABLE_FOLDER);
+            root.commit(); // this time save node structure
+            try {
+                Principal p = new PrincipalImpl("test4");
+                userMgr.createUser(p.getName(), p.getName(), p, folder.getTree().getPath());
+                root.commit();
+
+                fail("Users may not be nested.");
+            } catch (CommitFailedException e) {
+                // success
+            } finally {
+                root.refresh();
+                Authorizable a = userMgr.getAuthorizable("test4");
+                if (a != null) {
+                    a.remove();
+                    root.commit();
+                }
+            }
+        } finally {
+            root.refresh();
+            Tree t = root.getTree(path);
+            if (t != null) {
+                t.remove();
+                root.commit();
+            }
         }
     }
 }
