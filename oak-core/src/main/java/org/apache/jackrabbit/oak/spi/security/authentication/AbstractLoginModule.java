@@ -284,6 +284,15 @@ public abstract class AbstractLoginModule implements LoginModule {
         }
     }
 
+    /**
+     * Tries to obtain the {@code SecurityProvider} object from the callback
+     * handler using a new SecurityProviderCallback and keeps the value as
+     * private field. If the callback handler isn't able to handle the
+     * SecurityProviderCallback this method returns {@code null}.
+     *
+     * @return The {@code SecurityProvider} associated with this
+     * {@code LoginModule} or {@code null}.
+     */
     @CheckForNull
     protected SecurityProvider getSecurityProvider() {
         if (securityProvider == null && callbackHandler != null) {
@@ -300,6 +309,15 @@ public abstract class AbstractLoginModule implements LoginModule {
         return securityProvider;
     }
 
+    /**
+     * Tries to obtain a {@code Root} object from the callback handler using
+     * a new RepositoryCallback and keeps the value as private field.
+     * If the callback handler isn't able to handle the RepositoryCallback
+     * this method returns {@code null}.
+     *
+     * @return The {@code Root} associated with this {@code LoginModule} or
+     * {@code null}.
+     */
     @CheckForNull
     protected Root getRoot() {
         if (root == null && callbackHandler != null) {
@@ -316,6 +334,13 @@ public abstract class AbstractLoginModule implements LoginModule {
         return root;
     }
 
+    /**
+     * Retrieves the {@link UserManager} that should be used to handle
+     * this authentication. If no user manager has been configure this
+     * method returns {@code null}.
+     *
+     * @return A instance of {@code UserManager} or {@code null}.
+     */
     @CheckForNull
     protected UserManager getUserManager() {
         UserManager userManager = null;
@@ -340,6 +365,13 @@ public abstract class AbstractLoginModule implements LoginModule {
         return userManager;
     }
 
+    /**
+     * Retrieves the {@link PrincipalProvider} that should be used to handle
+     * this authentication. If no principal provider has been configure this
+     * method returns {@code null}.
+     *
+     * @return A instance of {@code PrincipalProvider} or {@code null}.
+     */
     @CheckForNull
     protected PrincipalProvider getPrincipalProvider() {
         PrincipalProvider principalProvider = null;
