@@ -35,7 +35,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.util.Text;
 
 /**
- * PrivilegeValidator... TODO
+ * Validator implementation that is responsible for validating any modifications
+ * made to privileges stored in the repository.
  */
 class PrivilegeValidator implements PrivilegeConstants, Validator {
 
