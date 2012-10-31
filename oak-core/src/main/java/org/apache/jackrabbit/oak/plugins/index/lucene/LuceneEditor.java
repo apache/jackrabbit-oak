@@ -16,47 +16,34 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newPathField;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newPropertyField;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newPathTerm;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 
 import java.io.IOException;
 
-import javax.jcr.PropertyType;
-
-import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.spi.commit.CommitHook;
-import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
+import org.apache.jackrabbit.oak.plugins.index.IndexHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
-import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
-import org.apache.lucene.document.Document;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
-import org.apache.lucene.store.Directory;
 import org.apache.lucene.util.Version;
-import org.apache.tika.Tika;
-import org.apache.tika.exception.TikaException;
 
 /**
  * This class updates a Lucene index when node content is changed.
  */
-class LuceneEditor implements CommitHook, LuceneIndexConstants {
-
-    private static final Tika TIKA = new Tika();
+class LuceneEditor implements IndexHook, LuceneIndexConstants {
 
     private static final Version VERSION = Version.LUCENE_40;
 
     private static final Analyzer ANALYZER = new StandardAnalyzer(VERSION);
 
     private static final IndexWriterConfig config = getIndexWriterConfig();
+
+    private LuceneIndexDiff diff;
 
     private static IndexWriterConfig getIndexWriterConfig() {
         // FIXME: Hack needed to make Lucene work in an OSGi environment
@@ -76,21 +63,52 @@ class LuceneEditor implements CommitHook, LuceneIndexConstants {
         this.root = root;
     }
 
+    // -----------------------------------------------------< IndexHook >--
+
     @Override
-    public NodeState processCommit(NodeState before, NodeState after)
-            throws CommitFailedException {
-        Directory directory = new ReadWriteOakDirectory(
-                root.child(INDEX_DATA_CHILD_NAME));
+    public NodeStateDiff preProcess() throws CommitFailedException {
         try {
-            IndexWriter writer = new IndexWriter(directory, config);
-            try {
-                LuceneDiff diff = new LuceneDiff(writer, "/");
-                after.compareAgainstBaseState(before, diff);
-                diff.postProcess(after);
-            } finally {
-                writer.close();
+            IndexWriter writer = new IndexWriter(new ReadWriteOakDirectory(
+                    getIndexNode(root).child(INDEX_DATA_CHILD_NAME)), config);
+            diff = new LuceneIndexDiff(writer, root, "/");
+            return diff;
+        } catch (IOException e) {
+            e.printStackTrace();
+            throw new CommitFailedException(
+                    "Failed to create writer for the full text search index", e);
+        }
+    }
+
+    private static NodeBuilder getIndexNode(NodeBuilder node) {
+        if (node != null && node.hasChildNode(INDEX_DEFINITIONS_NAME)) {
+            NodeBuilder index = node.child(INDEX_DEFINITIONS_NAME);
+            for (String indexName : index.getChildNodeNames()) {
+                NodeBuilder child = index.child(indexName);
+                if (isIndexNodeType(child.getProperty(JCR_PRIMARYTYPE))
+                        && isIndexType(child.getProperty(TYPE_PROPERTY_NAME),
+                                TYPE_LUCENE)) {
+                    return child;
+                }
             }
-            return after;
+        }
+        // did not find a proper child, will use root directly
+        return node;
+    }
+
+    private static boolean isIndexNodeType(PropertyState ps) {
+        return ps != null && !ps.isArray()
+                && ps.getValue(Type.STRING).equals(INDEX_DEFINITIONS_NODE_TYPE);
+    }
+
+    private static boolean isIndexType(PropertyState ps, String type) {
+        return ps != null && !ps.isArray()
+                && ps.getValue(Type.STRING).equals(type);
+    }
+
+    @Override
+    public void postProcess() throws CommitFailedException {
+        try {
+            diff.postProcess();
         } catch (IOException e) {
             e.printStackTrace();
             throw new CommitFailedException(
@@ -98,145 +116,9 @@ class LuceneEditor implements CommitHook, LuceneIndexConstants {
         }
     }
 
-    private static class LuceneDiff implements NodeStateDiff {
-
-        private final IndexWriter writer;
-
-        private final String path;
-
-        private boolean modified;
-
-        private IOException exception;
-
-        public LuceneDiff(IndexWriter writer, String path) {
-            this.writer = writer;
-            this.path = path;
-        }
-
-        public void postProcess(NodeState state) throws IOException {
-            if (exception != null) {
-                throw exception;
-            }
-            if (modified) {
-                writer.updateDocument(newPathTerm(path),
-                        makeDocument(path, state));
-            }
-        }
-
-        @Override
-        public void propertyAdded(PropertyState after) {
-            modified = true;
-        }
-
-        @Override
-        public void propertyChanged(PropertyState before, PropertyState after) {
-            modified = true;
-        }
-
-        @Override
-        public void propertyDeleted(PropertyState before) {
-            modified = true;
-        }
-
-        @Override
-        public void childNodeAdded(String name, NodeState after) {
-            if (NodeStateUtils.isHidden(name)) {
-                return;
-            }
-            if (exception == null) {
-                try {
-                    addSubtree(concat(path, name), after);
-                } catch (IOException e) {
-                    exception = e;
-                }
-            }
-        }
-
-        private void addSubtree(String path, NodeState state)
-                throws IOException {
-            writer.updateDocument(newPathTerm(path), makeDocument(path, state));
-            for (ChildNodeEntry entry : state.getChildNodeEntries()) {
-                if (NodeStateUtils.isHidden(entry.getName())) {
-                    continue;
-                }
-                addSubtree(concat(path, entry.getName()), entry.getNodeState());
-            }
-        }
-
-        @Override
-        public void childNodeChanged(String name, NodeState before,
-                NodeState after) {
-            if (NodeStateUtils.isHidden(name)) {
-                return;
-            }
-            if (exception == null) {
-                try {
-                    LuceneDiff diff = new LuceneDiff(writer, concat(path, name));
-                    after.compareAgainstBaseState(before, diff);
-                    diff.postProcess(after);
-                } catch (IOException e) {
-                    exception = e;
-                }
-            }
-        }
-
-        @Override
-        public void childNodeDeleted(String name, NodeState before) {
-            if (NodeStateUtils.isHidden(name)) {
-                return;
-            }
-            if (exception == null) {
-                try {
-                    deleteSubtree(concat(path, name), before);
-                } catch (IOException e) {
-                    exception = e;
-                }
-            }
-        }
-
-        private void deleteSubtree(String path, NodeState state)
-                throws IOException {
-            writer.deleteDocuments(newPathTerm(path));
-            for (ChildNodeEntry entry : state.getChildNodeEntries()) {
-                if (NodeStateUtils.isHidden(entry.getName())) {
-                    continue;
-                }
-                deleteSubtree(concat(path, entry.getName()),
-                        entry.getNodeState());
-            }
-        }
-
-        private static Document makeDocument(String path, NodeState state) {
-            Document document = new Document();
-            document.add(newPathField(path));
-            for (PropertyState property : state.getProperties()) {
-                String pname = property.getName();
-                switch (property.getType().tag()) {
-                case PropertyType.BINARY:
-                    for (Blob v : property.getValue(Type.BINARIES)) {
-                        document.add(newPropertyField(pname,
-                                parseStringValue(v)));
-                    }
-                    break;
-                default:
-                    for (String v : property.getValue(Type.STRINGS)) {
-                        document.add(newPropertyField(pname, v));
-                    }
-                    break;
-                }
-            }
-            return document;
-        }
-
-        private static String parseStringValue(Blob v) {
-            try {
-                return TIKA.parseToString(v.getNewStream());
-            } catch (IOException e) {
-            } catch (TikaException e) {
-            }
-            return "";
-        }
-
+    @Override
+    public void close() throws IOException {
+        diff.close();
+        diff = null;
     }
-
 }
