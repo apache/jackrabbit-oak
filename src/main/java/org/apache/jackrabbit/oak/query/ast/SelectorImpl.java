@@ -20,6 +20,8 @@ package org.apache.jackrabbit.oak.query.ast;
 
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 
 import javax.annotation.CheckForNull;
@@ -56,6 +58,10 @@ public class SelectorImpl extends SourceImpl {
     private final String nodeTypeName, selectorName;
     private Cursor cursor;
     private int scanCount;
+    /**
+     * Iterable over selected node type and its subtypes
+     */
+    private Iterable<NodeType> nodeTypes;
 
     /**
      * The selector condition can be evaluated when the given selector is
@@ -160,23 +166,8 @@ public class SelectorImpl extends SourceImpl {
         Set<String> mixins =
                 getStrings(tree, JcrConstants.JCR_MIXINTYPES);
 
-        // TODO: Should retrieve matching node types only once per query
-        // execution instead of again and again for each return row
-        NodeTypeManager manager = new ReadOnlyNodeTypeManager() {
-            @Override @CheckForNull
-            protected Tree getTypes() {
-                return getTree(NodeTypeConstants.NODE_TYPES_PATH);
-            }
-        };
-
         try {
-            NodeType type = manager.getNodeType(nodeTypeName);
-            if (evaluateTypeMatch(type, primary, mixins)) {
-                return true;
-            }
-            NodeTypeIterator iterator = type.getSubtypes();
-            while (iterator.hasNext()) {
-                type = iterator.nextNodeType();
+            for (NodeType type : getNodeTypes()) {
                 if (evaluateTypeMatch(type, primary, mixins)) {
                     return true;
                 }
@@ -274,4 +265,24 @@ public class SelectorImpl extends SourceImpl {
         }
     }
 
+    private Iterable<NodeType> getNodeTypes() throws RepositoryException {
+        if (nodeTypes == null) {
+            List<NodeType> types = new ArrayList<NodeType>();
+            NodeTypeManager manager = new ReadOnlyNodeTypeManager() {
+                @Override @CheckForNull
+                protected Tree getTypes() {
+                    return getTree(NodeTypeConstants.NODE_TYPES_PATH);
+                }
+            };
+            NodeType type = manager.getNodeType(nodeTypeName);
+            types.add(type);
+
+            NodeTypeIterator it = type.getSubtypes();
+            while (it.hasNext()) {
+                types.add(it.nextNodeType());
+            }
+            nodeTypes = types;
+        }
+        return nodeTypes;
+    }
 }
