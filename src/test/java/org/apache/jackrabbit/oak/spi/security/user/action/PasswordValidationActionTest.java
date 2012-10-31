@@ -112,7 +112,7 @@ public class PasswordValidationActionTest extends AbstractSecurityTest {
 
         for (String pw : invalid) {
             try {
-                pwAction.onPasswordChange(user, pw, root);
+                pwAction.onPasswordChange(user, pw, root, NamePathMapper.DEFAULT);
                 fail("should throw constraint violation");
             } catch (ConstraintViolationException e) {
                 // success
@@ -127,7 +127,7 @@ public class PasswordValidationActionTest extends AbstractSecurityTest {
         valid.add("&)(*&^%23qW");
 
         for (String pw : valid) {
-            pwAction.onPasswordChange(user, pw, root);
+            pwAction.onPasswordChange(user, pw, root, NamePathMapper.DEFAULT);
         }
     }
 
@@ -166,12 +166,12 @@ public class PasswordValidationActionTest extends AbstractSecurityTest {
         private int onPasswordChangeCalled = 0;
 
         @Override
-        public void onCreate(User user, String password, Root root) throws RepositoryException {
+        public void onCreate(User user, String password, Root root, NamePathMapper namePathMapper) throws RepositoryException {
             onCreateCalled++;
         }
 
         @Override
-        public void onPasswordChange(User user, String newPassword, Root root) throws RepositoryException {
+        public void onPasswordChange(User user, String newPassword, Root root, NamePathMapper namePathMapper) throws RepositoryException {
             onPasswordChangeCalled++;
         }
     }

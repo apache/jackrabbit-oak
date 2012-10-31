@@ -23,6 +23,7 @@ import javax.jcr.nodetype.ConstraintViolationException;
 
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtility;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,12 +56,12 @@ public class PasswordValidationAction extends AbstractAuthorizableAction {
 
     //-------------------------------------------------< AuthorizableAction >---
     @Override
-    public void onCreate(User user, String password, Root root) throws RepositoryException {
+    public void onCreate(User user, String password, Root root, NamePathMapper namePathMapper) throws RepositoryException {
         validatePassword(password, false);
     }
 
     @Override
-    public void onPasswordChange(User user, String newPassword, Root root) throws RepositoryException {
+    public void onPasswordChange(User user, String newPassword, Root root, NamePathMapper namePathMapper) throws RepositoryException {
         validatePassword(newPassword, true);
     }
 
