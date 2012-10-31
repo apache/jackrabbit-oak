@@ -22,6 +22,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.Node;
@@ -54,7 +55,6 @@ import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static javax.jcr.PropertyType.UNDEFINED;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
@@ -467,18 +467,16 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
     }
 
     @Override
-    public PropertyDefinition getDefinition(Iterable<NodeType> nodeTypes, String propertyName, boolean isMultiple, int type, boolean exactTypeMatch) throws RepositoryException {
-        Queue<NodeType> queue = Queues.newArrayDeque();
-        for (NodeType nt : nodeTypes) {
-            queue.add(nt);
-        }
+    public PropertyDefinition getDefinition(Iterable<NodeType> nodeTypes, String propertyName, boolean isMultiple,
+            int type, boolean exactTypeMatch) throws RepositoryException {
+        Queue<NodeType> queue = Queues.newArrayDeque(nodeTypes);
         Collection<NodeType> effective = getEffectiveNodeTypes(queue);
         return getPropertyDefinition(effective, propertyName, isMultiple, type, exactTypeMatch);
     }
 
     //------------------------------------------------------------< private >---
 
-    private Collection<NodeType> getEffectiveNodeTypes(Queue<NodeType> queue) {
+    private static Collection<NodeType> getEffectiveNodeTypes(Queue<NodeType> queue) {
         Map<String, NodeType> types = Maps.newHashMap();
         while (!queue.isEmpty()) {
             NodeType type = queue.remove();
@@ -492,9 +490,9 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
         return types.values();
     }
 
-    private PropertyDefinition getPropertyDefinition(Iterable<NodeType> effectiveNodeTypes,
-                                                     String propertyName, boolean isMultiple,
-                                                     int type, boolean exactTypeMatch) throws RepositoryException {
+    private static PropertyDefinition getPropertyDefinition(Iterable<NodeType> effectiveNodeTypes,
+            String propertyName, boolean isMultiple,
+            int type, boolean exactTypeMatch) throws RepositoryException {
         // TODO: This may need to be optimized
         for (NodeType nt : effectiveNodeTypes) {
             for (PropertyDefinition def : nt.getDeclaredPropertyDefinitions()) {
