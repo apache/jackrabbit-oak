@@ -54,6 +54,8 @@ import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 import static javax.jcr.PropertyType.UNDEFINED;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
@@ -285,6 +287,36 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
     @Override
     public NodeDefinition getRootDefinition() throws RepositoryException {
         return new RootNodeDefinition(this);
+    }
+
+    @Nonnull
+    @Override
+    public NodeDefinition getDefinition(@Nonnull Node parent,
+                                        @Nonnull String nodeName)
+            throws RepositoryException {
+        checkNotNull(parent);
+        checkNotNull(nodeName);
+        List<NodeDefinition> residualDefs = new ArrayList<NodeDefinition>();
+        for (NodeType nt : getEffectiveNodeTypes(parent)) {
+            for (NodeDefinition def : nt.getDeclaredChildNodeDefinitions()) {
+                String defName = def.getName();
+                if (nodeName.equals(defName)
+                        && def.getDefaultPrimaryTypeName() != null) {
+                    return def;
+                } else if ("*".equals(defName)) {
+                    residualDefs.add(def);
+                }
+            }
+        }
+
+        for (NodeDefinition def : residualDefs) {
+            if (def.getDefaultPrimaryTypeName() != null) {
+                // return the first definition with a default primary type
+                return def;
+            }
+        }
+
+        throw new RepositoryException("No matching node definition found for " + this);
     }
 
     @Override
