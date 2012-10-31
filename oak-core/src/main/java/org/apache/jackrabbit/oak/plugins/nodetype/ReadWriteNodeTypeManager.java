@@ -354,7 +354,7 @@ public abstract class ReadWriteNodeTypeManager extends ReadOnlyNodeTypeManager {
 
     @Override
     public void unregisterNodeType(String name) throws RepositoryException {
-        // TODO: review again. added to make tck happy.
+        // TODO: review again. added to make tck happy.  (see also OAK-411)
         // TODO  before refactoring the type-validation removing nt:based fail with
         // TODO  IllegalStateException: Inconsistent node type: org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeImpl@55ab3cda
         if (NT_BASE.equals(name)) {
@@ -390,7 +390,7 @@ public abstract class ReadWriteNodeTypeManager extends ReadOnlyNodeTypeManager {
 
         try {
             for (String name : names) {
-                // TODO: review again. added to make tck happy.
+                // TODO: review again. added to make tck happy. (see also OAK-411)
                 // TODO  before refactoring the type-validation removing nt:based fail with
                 // TODO  IllegalStateException: Inconsistent node type: org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeImpl@55ab3cda
                 if (NT_BASE.equals(name)) {
