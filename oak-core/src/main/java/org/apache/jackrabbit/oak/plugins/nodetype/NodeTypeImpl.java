@@ -276,7 +276,7 @@ class NodeTypeImpl implements NodeType {
             return !def.isProtected() &&
                     meetsTypeConstraints(value, def.getRequiredType()) &&
                     meetsValueConstraints(value, def.getValueConstraints());
-        } catch (RepositoryException e) {
+        } catch (RepositoryException e) {  // TODO don't use exceptions for flow control. Use internal method in ReadOnlyNodeTypeManager instead.
             log.debug(e.getMessage());
             return false;
         }
@@ -295,7 +295,7 @@ class NodeTypeImpl implements NodeType {
             return !def.isProtected() &&
                     meetsTypeConstraints(values, def.getRequiredType()) &&
                     meetsValueConstraints(values, def.getValueConstraints());
-        } catch (RepositoryException e) {
+        } catch (RepositoryException e) {  // TODO don't use exceptions for flow control. Use internal method in ReadOnlyNodeTypeManager instead.
             log.debug(e.getMessage());
             return false;
         }
