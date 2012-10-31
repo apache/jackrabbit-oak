@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.security.user;
 
 import javax.jcr.nodetype.ConstraintViolationException;
 
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -32,7 +33,10 @@ import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.apache.jackrabbit.util.Text;
 
 /**
- * UserValidator... TODO
+ * Validator that enforces user management specific constraints. Please note that
+ * is this validator is making implementation specific assumptions; if the
+ * user management implementation is replace it is most probably necessary to
+ * provide a custom validator as well.
  */
 class UserValidator extends DefaultValidator implements UserConstants {
 
@@ -52,24 +56,38 @@ class UserValidator extends DefaultValidator implements UserConstants {
 
     @Override
     public void propertyAdded(PropertyState after) throws CommitFailedException {
+        if (!isAuthorizable(parentAfter)) {
+            return;
+        }
+
         String name = after.getName();
         if (REP_DISABLED.equals(name) && isAdminUser(parentAfter)) {
             String msg = "Admin user cannot be disabled.";
+            fail(msg);
+        }
+
+        if (JcrConstants.JCR_UUID.equals(name) && !isValidUUID(after.getValue(Type.STRING))) {
+            String msg = "Invalid jcr:uuid for authorizable " + parentAfter.getName();
             fail(msg);
         }
     }
 
     @Override
     public void propertyChanged(PropertyState before, PropertyState after) throws CommitFailedException {
+        if (!isAuthorizable(parentAfter)) {
+            return;
+        }
+
         String name = before.getName();
-        if (UserUtility.isAuthorizableTree(parentBefore.getTree()) && (REP_PRINCIPAL_NAME.equals(name) || REP_AUTHORIZABLE_ID.equals(name))) {
+        if (REP_PRINCIPAL_NAME.equals(name) || REP_AUTHORIZABLE_ID.equals(name)) {
             String msg = "Authorizable property " + name + " may not be altered after user/group creation.";
+            fail(msg);
+        } else if (JcrConstants.JCR_UUID.equals(name) && !isValidUUID(after.getValue(Type.STRING))) {
+            String msg = "Invalid jcr:uuid for authorizable " + parentAfter.getName();
             fail(msg);
         }
 
-        if (UserUtility.isType(parentBefore.getTree(), AuthorizableType.USER)
-                && REP_PASSWORD.equals(name)
-                && PasswordUtility.isPlainTextPassword(after.getValue(Type.STRING))) {
+        if (isUser(parentBefore) && REP_PASSWORD.equals(name) && PasswordUtility.isPlainTextPassword(after.getValue(Type.STRING))) {
             String msg = "Password may not be plain text.";
             fail(msg);
         }
@@ -78,9 +96,12 @@ class UserValidator extends DefaultValidator implements UserConstants {
 
     @Override
     public void propertyDeleted(PropertyState before) throws CommitFailedException {
+        if (!isAuthorizable(parentAfter)) {
+            return;
+        }
+
         String name = before.getName();
-        if (UserUtility.isAuthorizableTree(parentBefore.getTree())
-                && (REP_PASSWORD.equals(name) || REP_PRINCIPAL_NAME.equals(name) || REP_AUTHORIZABLE_ID.equals(name))) {
+        if (REP_PASSWORD.equals(name) || REP_PRINCIPAL_NAME.equals(name) || REP_AUTHORIZABLE_ID.equals(name)) {
             String msg = "Authorizable property " + name + " may not be removed.";
             fail(msg);
         }
@@ -148,12 +169,27 @@ class UserValidator extends DefaultValidator implements UserConstants {
         }
     }
 
+
     // FIXME: copied from UserProvider#isAdminUser
     private boolean isAdminUser(NodeUtil userNode) {
         String id = (userNode.getString(REP_AUTHORIZABLE_ID, Text.unescapeIllegalJcrChars(userNode.getName())));
-        return UserUtility.isType(userNode.getTree(), AuthorizableType.USER) &&
-               UserUtility.getAdminId(provider.getConfig()).equals(id);
+        return isUser(userNode) && UserUtility.getAdminId(provider.getConfig()).equals(id);
     }
+
+    private boolean isValidUUID(String uuid) {
+        String id = UserProvider.getAuthorizableId(parentAfter.getTree());
+        return uuid.equals(UserProvider.getContentID(id));
+    }
+
+    private static boolean isAuthorizable(NodeUtil node) {
+        return UserUtility.isType(node.getTree(), AuthorizableType.AUTHORIZABLE);
+    }
+
+    private static boolean isUser(NodeUtil node) {
+        return UserUtility.isType(node.getTree(), AuthorizableType.USER);
+    }
+
+
 
     private static void fail(String msg) throws CommitFailedException {
         Exception e = new ConstraintViolationException(msg);

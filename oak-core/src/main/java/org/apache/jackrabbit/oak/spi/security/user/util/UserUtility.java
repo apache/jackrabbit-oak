@@ -41,10 +41,6 @@ public final class UserUtility implements UserConstants{
         return parameters.getConfigValue(PARAM_ANONYMOUS_ID, DEFAULT_ANONYMOUS_ID);
     }
 
-    public static boolean isAuthorizableTree(Tree authorizableTree) {
-        return isType(authorizableTree, AuthorizableType.AUTHORIZABLE);
-    }
-
     public static boolean isType(Tree authorizableTree, AuthorizableType type) {
         // FIXME: check for node type according to the specified type constraint
         if (authorizableTree != null && authorizableTree.hasProperty(JcrConstants.JCR_PRIMARYTYPE)) {
