@@ -60,7 +60,6 @@ public class LoginContextProviderImpl implements LoginContextProvider {
     @Nonnull
     public LoginContext getLoginContext(Credentials credentials, String workspaceName)
             throws LoginException {
-        // TODO  - validation of workspace name (including access rights for the given 'user')
         Subject subject = getSubject();
         CallbackHandler handler = getCallbackHandler(credentials, workspaceName);
         return new JaasLoginContext(appName, subject, handler, configuration);
