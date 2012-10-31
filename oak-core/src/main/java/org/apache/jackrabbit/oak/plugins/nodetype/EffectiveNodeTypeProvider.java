@@ -25,11 +25,13 @@ import org.apache.jackrabbit.oak.api.Tree;
 /**
  * EffectiveNodeTypeProvider... TODO
  *
- * FIXME: see also TypeValidator which has it's own private EffectiveNodeType class.
+ * FIXME: see also TypeValidator which has it's own private EffectiveNodeType class. See OAK-412
  */
 public interface EffectiveNodeTypeProvider {
 
     /**
+     * FIXME in contrast what the method name implies this method returns the transitive closure of the super types
+     * TODO clarify contract, what is the difference between this method and NodeType.getSuperTypes()
      * Calculates and returns all effective node types of the given node.
      *
      * @param targetNode the node for which the types should be calculated.
@@ -39,6 +41,8 @@ public interface EffectiveNodeTypeProvider {
     Iterable<NodeType> getEffectiveNodeTypes(Node targetNode) throws RepositoryException;
 
     /**
+     * FIXME in contrast what the method name implies this method returns the transitive closure of the super types
+     * TODO clarify contract, what is the difference between this method and NodeType.getSuperTypes()
      * Calculates and returns all effective node types of the given tree.
      *
      * @param tree
