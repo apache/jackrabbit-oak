@@ -16,12 +16,10 @@
  */
 package org.apache.jackrabbit.mongomk.impl;
 
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 
 import org.apache.jackrabbit.mongomk.BaseMongoMicroKernelTest;
 import org.json.simple.JSONObject;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -94,11 +92,11 @@ public class MongoMKGetNodesTest extends BaseMongoMicroKernelTest {
     }
 
     @Test
-    @Ignore
     public void depthLimitless() throws Exception {
         SimpleNodeScenario scenario = new SimpleNodeScenario(mk);
         scenario.create();
 
+        //JSONObject root = parseJSONObject(mk.getNodes("/", null, 3450, 0, -1, null));
         JSONObject root = parseJSONObject(mk.getNodes("/", null, Integer.MAX_VALUE, 0, -1, null));
         assertPropertyValue(root, ":childNodeCount", 1L);
 
