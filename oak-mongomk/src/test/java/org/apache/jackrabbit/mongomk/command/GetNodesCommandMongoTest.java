@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.mongomk.command;
 
-import static org.junit.Assert.fail;
-
 import org.apache.jackrabbit.mongomk.BaseMongoTest;
 import org.apache.jackrabbit.mongomk.api.model.Node;
 import org.apache.jackrabbit.mongomk.impl.NodeAssert;
@@ -142,19 +140,5 @@ public class GetNodesCommandMongoTest extends BaseMongoTest {
         Node expected = NodeBuilder.build(String.format("{ \"/#%1$s\" : {} }", revisionId));
 
         NodeAssert.assertDeepEquals(expected, actual);
-    }
-
-    @Test
-    public void getNodesInvalidRevisionId() throws Exception {
-        SimpleNodeScenario scenario = new SimpleNodeScenario(mongoConnection);
-        scenario.create();
-
-        GetNodesCommandMongo command = new GetNodesCommandMongo(mongoConnection,
-                "/", Long.MAX_VALUE);
-        try {
-            command.execute();
-            fail("Exception expected");
-        } catch (Exception expected) {
-        }
     }
 }

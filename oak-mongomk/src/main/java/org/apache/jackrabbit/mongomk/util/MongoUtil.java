@@ -127,8 +127,15 @@ public class MongoUtil {
         return String.valueOf(revisionId);
     }
 
-    public static Long toMongoRepresentation(String revisionId) {
-        return revisionId != null? Long.parseLong(revisionId) : null;
+    public static Long toMongoRepresentation(String revisionId) throws Exception {
+        if (revisionId == null) {
+            return null;
+        }
+        try {
+            return Long.parseLong(revisionId);
+        } catch (NumberFormatException e) {
+            throw new Exception("Invalid revision id: " + revisionId);
+        }
     }
 
     public static NodeState wrap(Node node) {
