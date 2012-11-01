@@ -63,7 +63,7 @@ public class TokenInfoTest extends AbstractTokenTest {
         loginTime = new Date().getTime() + 3600000;
         assertFalse(info.isExpired(loginTime));
 
-        long expiredTime = new Date().getTime() + 7200000;
+        long expiredTime = new Date().getTime() + 7200001;
         assertTrue(info.isExpired(expiredTime));
     }
 
