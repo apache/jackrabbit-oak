@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import javax.jcr.InvalidItemStateException;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -112,7 +113,12 @@ public class CompatibilityIssuesTest extends AbstractRepositoryTest {
         Node sourceNode = session.getNode("/source/node");
         session.move("/source/node", "/target/moved");
         // assertEquals("/target/moved", sourceNode.getPath());  // passes on JR2, fails on Oak
-        assertEquals("/source/node", sourceNode.getPath());      // fails on JR2, passed on Oak
+        try {
+            sourceNode.getPath();
+        }
+        catch (InvalidItemStateException expected) {
+            // sourceNode is stale
+        }
     }
 
     @Test
