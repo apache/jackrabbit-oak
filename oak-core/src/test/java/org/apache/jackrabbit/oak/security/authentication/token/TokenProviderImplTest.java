@@ -218,7 +218,7 @@ public class TokenProviderImplTest extends AbstractTokenTest {
     public void testResetTokenExpirationExpiredToken() throws Exception {
         TokenInfo info = tokenProvider.createToken(userId, Collections.<String, Object>emptyMap());
 
-        long expiredTime = new Date().getTime() + 7200000;
+        long expiredTime = new Date().getTime() + 7200001;
         assertTrue(info.isExpired(expiredTime));
         assertFalse(tokenProvider.resetTokenExpiration(info, expiredTime));
     }
