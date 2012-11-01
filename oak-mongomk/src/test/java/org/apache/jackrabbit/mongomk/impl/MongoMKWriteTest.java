@@ -14,38 +14,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mongomk.command;
+package org.apache.jackrabbit.mongomk.impl;
 
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.util.Arrays;
 
-import org.apache.jackrabbit.mk.util.IOUtils;
-import org.apache.jackrabbit.mongomk.BaseMongoTest;
-import org.apache.jackrabbit.mongomk.command.WriteBlobCommandMongo;
+import org.apache.jackrabbit.mongomk.BaseMongoMicroKernelTest;
 import org.junit.Test;
 
-import com.mongodb.BasicDBObject;
-import com.mongodb.gridfs.GridFS;
-import com.mongodb.gridfs.GridFSDBFile;
-
-public class WriteBlobCommandMongoTest extends BaseMongoTest {
+/**
+ * Tests for {@code MongoMicroKernel#write(java.io.InputStream)}
+ */
+public class MongoMKWriteTest extends BaseMongoMicroKernelTest {
 
     @Test
-    public void testWriteBlobComplete() throws Exception {
+    public void complete() throws Exception {
         int blobLength = 100;
         byte[] blob = createBlob(blobLength);
 
-        WriteBlobCommandMongo command = new WriteBlobCommandMongo(mongoConnection,
-                new ByteArrayInputStream(blob));
-        String blobId = command.execute();
+        String blobId = mk.write(new ByteArrayInputStream(blob));
         assertNotNull(blobId);
 
         byte[] readBlob = new byte[blobLength];
-        readBlob(blobId, readBlob);
+        mk.read(blobId, 0, readBlob, 0, readBlob.length);
         assertTrue(Arrays.equals(blob, readBlob));
     }
 
@@ -55,11 +49,5 @@ public class WriteBlobCommandMongoTest extends BaseMongoTest {
             blob[i] = (byte)i;
         }
         return blob;
-    }
-
-    private void readBlob(String blobId, byte[] readBlob) throws IOException {
-        GridFS gridFS = mongoConnection.getGridFS();
-        GridFSDBFile gridFile = gridFS.findOne(new BasicDBObject("md5", blobId));
-        IOUtils.readFully(gridFile.getInputStream(), readBlob, 0, readBlob.length);
     }
 }

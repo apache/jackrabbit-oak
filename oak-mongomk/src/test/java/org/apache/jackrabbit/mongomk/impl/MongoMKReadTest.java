@@ -14,21 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mongomk.command;
+package org.apache.jackrabbit.mongomk.impl;
 
 import java.io.ByteArrayInputStream;
 import java.util.Arrays;
 
 import junit.framework.Assert;
 
-import org.apache.jackrabbit.mongomk.BaseMongoTest;
-import org.apache.jackrabbit.mongomk.command.ReadBlobCommandMongo;
+import org.apache.jackrabbit.mongomk.BaseMongoMicroKernelTest;
 import org.junit.Test;
 
-import com.mongodb.gridfs.GridFS;
-import com.mongodb.gridfs.GridFSInputFile;
-
-public class ReadBlobCommandMongoTest extends BaseMongoTest {
+/**
+ * Tests for {@code MongoMicroKernel#read(String, long, byte[], int, int)}
+ */
+public class MongoMKReadTest extends BaseMongoMicroKernelTest {
 
     private byte[] blob;
     private String blobId;
@@ -41,29 +40,22 @@ public class ReadBlobCommandMongoTest extends BaseMongoTest {
         for (int i = 0; i < blob.length; i++) {
             blob[i] = (byte) i;
         }
-        ByteArrayInputStream is = new ByteArrayInputStream(blob);
-        GridFS gridFS = mongoConnection.getGridFS();
-        GridFSInputFile gridFSInputFile = gridFS.createFile(is, true);
-        gridFSInputFile.save();
-        blobId = gridFSInputFile.getMD5();
+        blobId = mk.write(new ByteArrayInputStream(blob));
     }
 
     @Test
-    public void testReadBlobComplete() throws Exception {
+    public void complete() throws Exception {
         byte[] buffer = new byte[blob.length];
-        ReadBlobCommandMongo command = new ReadBlobCommandMongo(mongoConnection, blobId, 0, buffer, 0, blob.length);
-        int totalBytes = command.execute();
+        int totalBytes = mk.read(blobId, 0, buffer, 0, blob.length);
 
         Assert.assertEquals(blob.length, totalBytes);
         Assert.assertTrue(Arrays.equals(blob, buffer));
     }
 
     @Test
-    public void testReadBlobRangeFromEnd() throws Exception {
+    public void rangeEndFromEnd() throws Exception {
         byte[] buffer = new byte[blob.length / 2];
-        ReadBlobCommandMongo command = new ReadBlobCommandMongo(mongoConnection, blobId, (blob.length / 2) - 1,
-                buffer, 0, blob.length / 2);
-        int totalBytes = command.execute();
+        int totalBytes = mk.read(blobId, (blob.length / 2) - 1, buffer, 0, blob.length / 2);
 
         Assert.assertEquals(blob.length / 2, totalBytes);
         for (int i = 0; i < buffer.length; i++) {
@@ -72,11 +64,9 @@ public class ReadBlobCommandMongoTest extends BaseMongoTest {
     }
 
     @Test
-    public void testReadBlobRangeFromStart() throws Exception {
+    public void rangeFromStart() throws Exception {
         byte[] buffer = new byte[blob.length / 2];
-        ReadBlobCommandMongo command = new ReadBlobCommandMongo(mongoConnection, blobId, 0, buffer, 0,
-                blob.length / 2);
-        int totalBytes = command.execute();
+        int totalBytes = mk.read(blobId, 0, buffer, 0, blob.length / 2);
 
         Assert.assertEquals(blob.length / 2, totalBytes);
         for (int i = 0; i < buffer.length; i++) {
