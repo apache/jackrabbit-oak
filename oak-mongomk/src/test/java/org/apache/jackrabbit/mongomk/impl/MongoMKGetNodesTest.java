@@ -16,9 +16,11 @@
  */
 package org.apache.jackrabbit.mongomk.impl;
 
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 
 import org.apache.jackrabbit.mongomk.BaseMongoMicroKernelTest;
+import org.json.simple.JSONObject;
 import org.junit.Test;
 
 /**
@@ -32,5 +34,20 @@ public class MongoMKGetNodesTest extends BaseMongoMicroKernelTest {
             mk.getNodes("/", "invalid", 1, 0, -1, null);
             fail("Exception expected");
         } catch (Exception expected) {}
+    }
+
+    @Test
+    public void afterDelete() throws Exception {
+        SimpleNodeScenario scenario = new SimpleNodeScenario(mk);
+        String revisionId = scenario.create();
+        JSONObject root = parseJSONObject(mk.getNodes("/", revisionId,1, 0, -1, null));
+        assertPropertyValue(root, ":childNodeCount", 1L);
+        JSONObject a = resolveObjectValue(root, "a");
+        assertNotNull(a);
+        assertPropertyValue(a, ":childNodeCount", 2L);
+
+        revisionId = scenario.delete_A();
+        root = parseJSONObject(mk.getNodes("/", revisionId,1, 0, -1, null));
+        assertPropertyValue(root, ":childNodeCount", 0L);
     }
 }

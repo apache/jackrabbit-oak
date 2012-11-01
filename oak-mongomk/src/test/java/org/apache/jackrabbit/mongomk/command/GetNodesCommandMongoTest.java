@@ -29,28 +29,6 @@ import org.junit.Test;
 public class GetNodesCommandMongoTest extends BaseMongoTest {
 
     @Test
-    public void getNodesSimple() throws Exception {
-        SimpleNodeScenario scenario = new SimpleNodeScenario(mongoConnection);
-        Long firstRevisionId = scenario.create();
-        Long secondRevisionId = scenario.update_A_and_add_D_and_E();
-
-        GetNodesCommandMongo command = new GetNodesCommandMongo(mongoConnection, "/",
-                firstRevisionId);
-        command.setDepth(0);
-        Node actual = command.execute();
-        Node expected = NodeBuilder.build(String.format("{ \"/#%1$s\" : { \"a\" : {} } }",
-                firstRevisionId));
-        NodeAssert.assertDeepEquals(expected, actual);
-
-        command = new GetNodesCommandMongo(mongoConnection, "/", secondRevisionId);
-        command.setDepth(0);
-        actual = command.execute();
-        expected = NodeBuilder.build(String.format("{ \"/#%1$s\" : { \"a\" : {} } }",
-                firstRevisionId, secondRevisionId));
-        NodeAssert.assertDeepEquals(expected, actual);
-    }
-
-    @Test
     public void getNodesDepthLimited() throws Exception {
         SimpleNodeScenario scenario = new SimpleNodeScenario(mongoConnection);
         Long firstRevisionId = scenario.create();
@@ -125,20 +103,6 @@ public class GetNodesCommandMongoTest extends BaseMongoTest {
         expected = NodeBuilder.build(
                 String.format("{ \"/#%1$s\" : { \"a#%2$s\" : { \"int\" : 1 , \"double\" : 0.123 , \"b#%2$s\" : { \"string\" : \"foo\" , \"e#%2$s\" : { \"array\" : [ 123, null, 123.456, \"for:bar\", true ] } } , \"c#%1$s\" : { \"bool\" : true }, \"d#%2$s\" : { \"int\" : 2 } } } }",
                         firstRevisionId, secondRevisionId));
-        NodeAssert.assertDeepEquals(expected, actual);
-    }
-
-    @Test
-    public void getNodesAfterDeletion() throws Exception {
-        SimpleNodeScenario scenario = new SimpleNodeScenario(mongoConnection);
-        Long revisionId = scenario.create();
-        revisionId = scenario.delete_A();
-
-        GetNodesCommandMongo command = new GetNodesCommandMongo(mongoConnection,
-                "/", revisionId);
-        Node actual = command.execute();
-        Node expected = NodeBuilder.build(String.format("{ \"/#%1$s\" : {} }", revisionId));
-
         NodeAssert.assertDeepEquals(expected, actual);
     }
 }

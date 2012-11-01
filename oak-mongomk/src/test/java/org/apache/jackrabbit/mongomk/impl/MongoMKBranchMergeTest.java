@@ -6,7 +6,6 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import org.apache.jackrabbit.mongomk.BaseMongoMicroKernelTest;
-import org.json.simple.JSONObject;
 import org.junit.Test;
 
 /**
@@ -309,27 +308,6 @@ public class MongoMKBranchMergeTest extends BaseMongoMicroKernelTest {
         } catch (Exception expected) {}
     }
 
-    private void assertPropExists(String rev, String path, String property) {
-        String nodes = mk.getNodes(path, rev, -1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
-        JSONObject obj = parseJSONObject(nodes);
-        assertPropertyExists(obj, property);
-    }
-
-    private void assertPropNotExists(String rev, String path, String property) {
-        String nodes = mk.getNodes(path, rev, -1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
-        if (nodes == null) {
-            return;
-        }
-        JSONObject obj = parseJSONObject(nodes);
-        assertPropertyNotExists(obj, property);
-    }
-
-    private void assertPropValue(String rev, String path, String property, String value) {
-        String nodes = mk.getNodes(path, rev, -1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
-        JSONObject obj = parseJSONObject(nodes);
-        assertPropertyValue(obj, property, value);
-    }
-
     private String addNodes(String rev, String...nodes) {
         String newRev = rev;
         for (String node : nodes) {
@@ -349,24 +327,5 @@ public class MongoMKBranchMergeTest extends BaseMongoMicroKernelTest {
     private String setProp(String rev, String prop, Object value) {
         value = value == null? null : "\"" + value + "\"";
         return mk.commit("", "^\"" + prop + "\" : " + value, rev, "");
-    }
-
-    private void assertNodesExist(String revision, String...paths) {
-        doAssertNodes(true, revision, paths);
-    }
-
-    private void assertNodesNotExist(String revision, String...paths) {
-        doAssertNodes(false, revision, paths);
-    }
-
-    private void doAssertNodes(boolean checkExists, String revision, String...paths) {
-        for (String path : paths) {
-            boolean exists = mk.nodeExists(path, revision);
-            if (checkExists) {
-                assertTrue(path + " does not exist", exists);
-            } else {
-                assertFalse(path + " should not exist", exists);
-            }
-        }
     }
 }

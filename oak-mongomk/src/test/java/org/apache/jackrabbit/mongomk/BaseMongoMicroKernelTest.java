@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.mongomk;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -69,6 +70,35 @@ public class BaseMongoMicroKernelTest extends BaseMongoTest {
         }
     }
 
+    protected void assertNodesExist(String revision, String...paths) {
+        doAssertNodes(true, revision, paths);
+    }
+
+    protected void assertNodesNotExist(String revision, String...paths) {
+        doAssertNodes(false, revision, paths);
+    }
+
+    protected void assertPropExists(String rev, String path, String property) {
+        String nodes = mk.getNodes(path, rev, -1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        JSONObject obj = parseJSONObject(nodes);
+        assertPropertyExists(obj, property);
+    }
+
+    protected void assertPropNotExists(String rev, String path, String property) {
+        String nodes = mk.getNodes(path, rev, -1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        if (nodes == null) {
+            return;
+        }
+        JSONObject obj = parseJSONObject(nodes);
+        assertPropertyNotExists(obj, property);
+    }
+
+    protected void assertPropValue(String rev, String path, String property, String value) {
+        String nodes = mk.getNodes(path, rev, -1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        JSONObject obj = parseJSONObject(nodes);
+        assertPropertyValue(obj, property, value);
+    }
+
     protected void assertPropertyExists(JSONObject obj, String relPath)
             throws AssertionError {
         Object val = resolveValue(obj, relPath);
@@ -93,6 +123,25 @@ public class BaseMongoMicroKernelTest extends BaseMongoTest {
         Object val = resolveValue(obj, relPath);
         assertNotNull("not found: " + relPath, val);
         assertEquals(expected, val);
+    }
+
+    private void doAssertNodes(boolean checkExists, String revision, String...paths) {
+        for (String path : paths) {
+            boolean exists = mk.nodeExists(path, revision);
+            if (checkExists) {
+                assertTrue(path + " does not exist", exists);
+            } else {
+                assertFalse(path + " should not exist", exists);
+            }
+        }
+    }
+
+    protected JSONObject resolveObjectValue(JSONObject obj, String relPath) {
+        Object val = resolveValue(obj, relPath);
+        if (val instanceof JSONObject) {
+            return (JSONObject) val;
+        }
+        throw new AssertionError("failed to resolve JSONObject value at " + relPath + ": " + val);
     }
 
     private Object resolveValue(JSONObject obj, String relPath) {
