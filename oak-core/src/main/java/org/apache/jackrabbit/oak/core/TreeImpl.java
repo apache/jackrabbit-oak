@@ -20,13 +20,16 @@ package org.apache.jackrabbit.oak.core;
 
 import java.util.Collections;
 import java.util.Iterator;
-import java.util.Map;
 import java.util.Set;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.TreeLocation;
@@ -40,12 +43,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.PropertyBuilder;
-
-import com.google.common.base.Function;
-import com.google.common.base.Predicate;
-import com.google.common.cache.CacheBuilder;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -70,12 +67,6 @@ public class TreeImpl implements Tree, PurgeListener {
 
     /** Lazily initialised {@code NodeBuilder} for the underlying node state */
     NodeBuilder nodeBuilder;
-
-    /**
-     * Cache for child trees that have been accessed before.
-     */
-    private final Map<String, TreeImpl> children =
-            CacheBuilder.newBuilder().weakValues().<String, TreeImpl>build().asMap();
 
     private TreeImpl(RootImpl root, TreeImpl parent, String name) {
         this.root = checkNotNull(root);
@@ -154,7 +145,7 @@ public class TreeImpl implements Tree, PurgeListener {
         root.checkLive();
         Status nodeStatus = getStatus();
         if (nodeStatus == Status.NEW) {
-            return (hasProperty(name)) ? Status.NEW : null;
+                return (hasProperty(name)) ? Status.NEW : null;
         } else if (nodeStatus == Status.REMOVED) {
             return Status.REMOVED; // FIXME not correct if no property existed with that name
         } else {
@@ -264,12 +255,7 @@ public class TreeImpl implements Tree, PurgeListener {
                 new Function<String, Tree>() {
                     @Override
                     public Tree apply(String input) {
-                        TreeImpl child = children.get(input);
-                        if (child == null) {
-                            child = new TreeImpl(root, TreeImpl.this, input);
-                            children.put(input, child);
-                        }
-                        return  child;
+                        return new TreeImpl(root, TreeImpl.this, input);
                     }
                 }),
                 new Predicate<Tree>() {
@@ -309,7 +295,6 @@ public class TreeImpl implements Tree, PurgeListener {
         if (!isRoot() && parent.hasChild(name)) {
             NodeBuilder builder = parent.getNodeBuilder();
             builder.removeNode(name);
-            parent.children.remove(name);
             removed = true;
             if (parent.hasOrderableChildren()) {
                 builder.setProperty(
@@ -456,9 +441,6 @@ public class TreeImpl implements Tree, PurgeListener {
             throw new IllegalStateException("Cannot move removed tree");
         }
 
-        parent.children.remove(name);
-        destParent.children.put(destName, this);
-
         name = destName;
         parent = destParent;
     }
@@ -515,12 +497,9 @@ public class TreeImpl implements Tree, PurgeListener {
     //------------------------------------------------------------< private >---
 
     private TreeImpl internalGetChild(String childName) {
-        TreeImpl child = children.get(childName);
-        if (child == null && getNodeBuilder().hasChildNode(childName)) {
-            child = new TreeImpl(root, this, childName);
-            children.put(childName, child);
-        }
-        return child;
+        return getNodeBuilder().hasChildNode(childName)
+            ? new TreeImpl(root, this, childName)
+            : null;
     }
 
     private PropertyState internalGetProperty(String propertyName) {

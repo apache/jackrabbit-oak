@@ -1356,10 +1356,8 @@ public class RepositoryTest extends AbstractRepositoryTest {
         node.addNode("target");
         session.save();
 
-        Node sourceNode = session.getNode(TEST_PATH + "/source/node");
         session.refresh(true);
         session.move(TEST_PATH + "/source/node", TEST_PATH + "/target/moved");
-        assertEquals("/test_node/target/moved", sourceNode.getPath());
 
         assertFalse(node.hasNode("source/node"));
         assertTrue(node.hasNode("source"));
@@ -1381,10 +1379,8 @@ public class RepositoryTest extends AbstractRepositoryTest {
         node.addNode("target");
         session.save();
 
-        Node sourceNode = session.getNode(TEST_PATH + "/source/node");
         session.refresh(true);
         session.move(TEST_PATH + "/source/node", TEST_PATH + "/target/moved");
-        assertEquals("/test_node/target/moved", sourceNode.getPath());
 
         assertFalse(node.hasNode("source/node"));
         assertTrue(node.hasNode("source"));

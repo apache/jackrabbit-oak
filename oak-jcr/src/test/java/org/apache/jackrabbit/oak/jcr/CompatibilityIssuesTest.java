@@ -20,8 +20,16 @@ import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
+import org.apache.jackrabbit.oak.Oak;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.junit.Test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 /**
@@ -60,12 +68,12 @@ public class CompatibilityIssuesTest extends AbstractRepositoryTest {
             session1.save();
 
             session2.getNode("/testNode").setProperty("p2", -1);
-            check(session2);      // Throws on JR2, not on JR3
+            check(session2);      // Throws on JR2, not on Oak
             session2.save();
 
             Session session3 = createAnonymousSession();
             try {
-                check(session3);  // Throws on JR3
+                check(session3);  // Throws on Oak
                 fail();
             } catch (AssertionError e) {
                 // expected
@@ -89,6 +97,42 @@ public class CompatibilityIssuesTest extends AbstractRepositoryTest {
                 session.getNode("/testNode").getProperty("p2").getLong() < 0) {
             fail("p1 + p2 < 0");
         }
+    }
+
+    @Test
+    public void move() throws RepositoryException {
+        Session session = getAdminSession();
+
+        Node node = session.getNode("/");
+        node.addNode("source").addNode("node");
+        node.addNode("target");
+        session.save();
+
+        session.refresh(true);
+        Node sourceNode = session.getNode("/source/node");
+        session.move("/source/node", "/target/moved");
+        // assertEquals("/target/moved", sourceNode.getPath());  // passes on JR2, fails on Oak
+        assertEquals("/source/node", sourceNode.getPath());      // fails on JR2, passed on Oak
+    }
+
+    @Test
+    public void move2() throws CommitFailedException {
+        ContentSession session = new Oak().createContentSession();
+        Root root = session.getLatestRoot();
+        root.getTree("/").addChild("x");
+        root.getTree("/").addChild("y");
+        root.commit();
+
+        Tree r = root.getTree("/");
+        Tree x = r.getChild("x");
+        Tree y = r.getChild("y");
+
+        assertFalse(y.hasChild("x"));
+        assertEquals("", x.getParent().getName());
+        root.move("/x", "/y/x");
+        assertTrue(y.hasChild("x"));
+        // assertEquals("y", x.getParent().getName());  // passed on JR2, fails on Oak
+        assertEquals("", x.getParent().getName());      // fails on JR2, passes on Oak
     }
 
 }
