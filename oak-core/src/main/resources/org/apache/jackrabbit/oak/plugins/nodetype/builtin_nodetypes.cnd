@@ -649,6 +649,15 @@
   - rep:isAbstract (BOOLEAN) protected
   - rep:aggregates (NAME) protected multiple
 
+// -----------------------------------------------------------------------------
+// Token Management
+// -----------------------------------------------------------------------------
+/**
+ * @since oak 1.0
+ */
+[rep:Token] > nt:unstructured, mix:referenceable
+  - rep:token.key (STRING) protected mandatory
+  - rep:token.exp (STRING) protected mandatory
 
 // -----------------------------------------------------------------------------
 // J A C K R A B B I T  R E T E N T I O N  M A N A G E M E N T

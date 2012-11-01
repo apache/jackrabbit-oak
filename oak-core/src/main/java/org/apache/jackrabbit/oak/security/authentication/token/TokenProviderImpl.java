@@ -46,6 +46,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
+import org.apache.jackrabbit.oak.plugins.name.NamespaceConstants;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenInfo;
@@ -88,10 +89,11 @@ public class TokenProviderImpl implements TokenProvider {
      * trigger the generation of a new token.
      */
     private static final String TOKEN_ATTRIBUTE = ".token";
-    private static final String TOKEN_ATTRIBUTE_EXPIRY = TOKEN_ATTRIBUTE + ".exp";
-    private static final String TOKEN_ATTRIBUTE_KEY = TOKEN_ATTRIBUTE + ".key";
+    private static final String TOKEN_ATTRIBUTE_EXPIRY = "rep:token.exp";
+    private static final String TOKEN_ATTRIBUTE_KEY = "rep:token.key";
     private static final String TOKENS_NODE_NAME = ".tokens";
     private static final String TOKENS_NT_NAME = JcrConstants.NT_UNSTRUCTURED;
+    private static final String TOKEN_NT_NAME = "rep:Token";
 
     /**
      * Default expiration time in ms for login tokens is 2 hours.
@@ -171,8 +173,8 @@ public class TokenProviderImpl implements TokenProvider {
                 creation.setTimeInMillis(creationTime);
                 String tokenName = Text.replace(ISO8601.format(creation), ":", ".");
 
-                NodeUtil tokenNode = tokenParent.addChild(tokenName, TOKENS_NT_NAME);
-                // TODO: review if token node should be made referenceable
+                NodeUtil tokenNode = tokenParent.addChild(tokenName, TOKEN_NT_NAME);
+                tokenNode.setString(JcrConstants.JCR_UUID, IdentifierManager.generateUUID());
 
                 String key = generateKey(options.getConfigValue(PARAM_TOKEN_LENGTH, DEFAULT_KEY_SIZE));
                 String nodeId = identifierManager.getIdentifier(tokenNode.getTree());
@@ -450,7 +452,7 @@ public class TokenProviderImpl implements TokenProvider {
          */
         private static boolean isInfoAttribute(String propertyName) {
             String prefix = Text.getNamespacePrefix(propertyName);
-            return !"jcr".equals(prefix) && !"rep".equals(prefix);
+            return !NamespaceConstants.RESERVED_PREFIXES.contains(prefix);
         }
     }
 }

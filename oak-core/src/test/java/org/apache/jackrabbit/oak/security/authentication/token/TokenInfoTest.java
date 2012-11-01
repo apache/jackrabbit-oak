@@ -93,8 +93,8 @@ public class TokenInfoTest extends AbstractTokenTest {
     public void testGetAttributes() {
         Map<String, String> reserved = new HashMap<String, String>();
         reserved.put(".token", "value");
-        reserved.put(".token.key", "value");
-        reserved.put(".token.exp", "value");
+        reserved.put("rep:token.key", "value");
+        reserved.put("rep:token.exp", "value");
 
         Map<String, String> privateAttributes = new HashMap<String, String>();
         privateAttributes.put(".token_exp", "value");
@@ -113,22 +113,22 @@ public class TokenInfoTest extends AbstractTokenTest {
         TokenInfo info = tokenProvider.createToken(userId, attributes);
 
         Map<String,String> pubAttr = info.getPublicAttributes();
-        assertEquals(publicAttributes.size(), pubAttr.size());
+        assertEquals("public attributes",publicAttributes.size(), pubAttr.size());
         for (String key : publicAttributes.keySet()) {
-            assertTrue(pubAttr.containsKey(key));
-            assertEquals(publicAttributes.get(key), pubAttr.get(key));
+            assertTrue("public attribute "+key+" not contained",pubAttr.containsKey(key));
+            assertEquals("public attribute " + key,publicAttributes.get(key), pubAttr.get(key));
         }
 
         Map<String,String> privAttr = info.getPrivateAttributes();
-        assertEquals(privateAttributes.size(), privAttr.size());
+        assertEquals("private attributes",privateAttributes.size(), privAttr.size());
         for (String key : privateAttributes.keySet()) {
-            assertTrue(privAttr.containsKey(key));
-            assertEquals(privateAttributes.get(key), privAttr.get(key));
+            assertTrue("private attribute "+key+" not contained",privAttr.containsKey(key));
+            assertEquals("private attribute" + key,privateAttributes.get(key), privAttr.get(key));
         }
 
         for (String key : reserved.keySet()) {
-            assertFalse(privAttr.containsKey(key));
-            assertFalse(pubAttr.containsKey(key));
+            assertFalse("reserved attribute "+key,privAttr.containsKey(key));
+            assertFalse("reserved attribute "+key,pubAttr.containsKey(key));
         }
     }
 }
