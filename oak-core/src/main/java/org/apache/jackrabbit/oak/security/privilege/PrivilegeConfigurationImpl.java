@@ -17,7 +17,7 @@
 package org.apache.jackrabbit.oak.security.privilege;
 
 import java.util.Collections;
-import java.util.Set;
+import java.util.List;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
@@ -25,6 +25,7 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
+import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeManagerImpl;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeProvider;
@@ -32,7 +33,7 @@ import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeProvider;
 /**
  * PrivilegeConfigurationImpl... TODO
  */
-public class PrivilegeConfigurationImpl implements PrivilegeConfiguration {
+public class PrivilegeConfigurationImpl extends SecurityConfiguration.Default implements PrivilegeConfiguration {
 
     @Override
     public PrivilegeProvider getPrivilegeProvider(ContentSession contentSession, Root root) {
@@ -46,8 +47,8 @@ public class PrivilegeConfigurationImpl implements PrivilegeConfiguration {
     }
 
     @Override
-    public Set<ValidatorProvider> getValidatorProviders() {
+    public List<ValidatorProvider> getValidatorProviders() {
         ValidatorProvider vp = new PrivilegeValidatorProvider();
-        return Collections.singleton(vp);
+        return Collections.singletonList(vp);
     }
 }
