@@ -16,17 +16,15 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization;
 
-import java.util.Collections;
-import java.util.List;
 import javax.security.auth.Subject;
 
-import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
+import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 
 /**
  * This class implements an {@link AccessControlProvider} which grants
  * full access to any {@link Subject} passed to {@link #getAccessControlContext(Subject)}.
  */
-public class OpenAccessControlProvider
+public class OpenAccessControlProvider extends SecurityConfiguration.Default
         implements AccessControlProvider {
 
     @Override
@@ -37,10 +35,5 @@ public class OpenAccessControlProvider
                 return AllPermissions.getInstance();
             }
         };
-    }
-
-    @Override
-    public List<ValidatorProvider> getValidatorProviders() {
-        return Collections.emptyList();
     }
 }
