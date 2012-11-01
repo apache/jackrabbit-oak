@@ -118,7 +118,7 @@ public class QueryManagerImpl implements QueryManager {
             Map<String, PropertyValue> bindMap = convertMap(bindVariableMap);
             NamePathMapper namePathMapper = sessionDelegate.getNamePathMapper();
             Result r = queryEngine.executeQuery(statement, language, limit, offset,
-                    bindMap, sessionDelegate.getRoot(), namePathMapper);
+                    bindMap, namePathMapper);
             return new QueryResultImpl(sessionDelegate, r);
         } catch (IllegalArgumentException e) {
             throw new InvalidQueryException(e);

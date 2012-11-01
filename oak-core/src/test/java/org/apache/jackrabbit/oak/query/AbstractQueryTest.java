@@ -99,8 +99,7 @@ public abstract class AbstractQueryTest {
 
     protected Result executeQuery(String statement, String language,
             Map<String, PropertyValue> sv) throws ParseException {
-        return qe.executeQuery(statement, language, Long.MAX_VALUE, 0, sv,
-                session.getLatestRoot(), null);
+        return qe.executeQuery(statement, language, Long.MAX_VALUE, 0, sv, null);
     }
 
     @Test

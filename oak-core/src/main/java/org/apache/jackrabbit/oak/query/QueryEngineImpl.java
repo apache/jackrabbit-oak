@@ -29,7 +29,7 @@ import org.apache.jackrabbit.oak.query.index.TraversingIndex;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
  * The query engine implementation.
@@ -41,11 +41,11 @@ public class QueryEngineImpl {
     static final String XPATH = "xpath";
     static final String JQOM = "JCR-JQOM";
 
-    private final NodeStore store;
+    private final NodeState root;
     private final QueryIndexProvider indexProvider;
 
-    public QueryEngineImpl(NodeStore store, QueryIndexProvider indexProvider) {
-        this.store = store;
+    public QueryEngineImpl(NodeState root, QueryIndexProvider indexProvider) {
+        this.root = root;
         this.indexProvider = indexProvider;
     }
 
@@ -106,7 +106,7 @@ public class QueryEngineImpl {
         }
         q.setQueryEngine(this);
         q.prepare();
-        return q.executeQuery(store.getRoot());
+        return q.executeQuery(this.root);
     }
 
     public QueryIndex getBestIndex(Filter filter) {
@@ -126,7 +126,7 @@ public class QueryEngineImpl {
     }
 
     private List<? extends QueryIndex> getIndexes() {
-        return indexProvider.getQueryIndexes(store.getRoot());
+        return indexProvider.getQueryIndexes(root);
     }
 
 }
