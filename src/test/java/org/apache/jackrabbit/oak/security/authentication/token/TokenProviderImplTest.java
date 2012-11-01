@@ -215,6 +215,15 @@ public class TokenProviderImplTest extends AbstractTokenTest {
     }
 
     @Test
+    public void testResetTokenExpirationExpiredToken() throws Exception {
+        TokenInfo info = tokenProvider.createToken(userId, Collections.<String, Object>emptyMap());
+
+        long expiredTime = new Date().getTime() + 7200000;
+        assertTrue(info.isExpired(expiredTime));
+        assertFalse(tokenProvider.resetTokenExpiration(info, expiredTime));
+    }
+
+    @Test
     public void testResetTokenExpiration() throws Exception {
         TokenInfo info = tokenProvider.createToken(userId, Collections.<String, Object>emptyMap());
 
@@ -223,11 +232,6 @@ public class TokenProviderImplTest extends AbstractTokenTest {
         long loginTime = new Date().getTime() + 3600000;
         assertFalse(info.isExpired(loginTime));
         assertTrue(tokenProvider.resetTokenExpiration(info, loginTime));
-
-        // TODO: check again if expired tokens should be resettable
-        long expiredTime = new Date().getTime() + 7200000;
-        assertTrue(info.isExpired(expiredTime));
-        assertTrue(tokenProvider.resetTokenExpiration(info, expiredTime));
     }
 
     //--------------------------------------------------------------------------
