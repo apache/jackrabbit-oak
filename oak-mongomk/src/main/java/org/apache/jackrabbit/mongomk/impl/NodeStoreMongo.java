@@ -56,8 +56,8 @@ public class NodeStoreMongo implements NodeStore {
     @Override
     public String commit(Commit commit) throws Exception {
         Command<Long> command = new CommitCommandMongo(mongoConnection, commit);
-        long revision = commandExecutor.execute(command);
-        return MongoUtil.fromMongoRepresentation(revision);
+        long revisionId = commandExecutor.execute(command);
+        return MongoUtil.fromMongoRepresentation(revisionId);
     }
 
     @Override
@@ -71,8 +71,8 @@ public class NodeStoreMongo implements NodeStore {
     @Override
     public String getHeadRevision() throws Exception {
         GetHeadRevisionCommandMongo command = new GetHeadRevisionCommandMongo(mongoConnection);
-        long headRevision = commandExecutor.execute(command);
-        return MongoUtil.fromMongoRepresentation(headRevision);
+        long revisionId = commandExecutor.execute(command);
+        return MongoUtil.fromMongoRepresentation(revisionId);
     }
 
     @Override
@@ -121,7 +121,8 @@ public class NodeStoreMongo implements NodeStore {
     public String waitForCommit(String oldHeadRevisionId, long timeout) throws Exception {
         WaitForCommitCommandMongo command = new WaitForCommitCommandMongo(mongoConnection,
                 oldHeadRevisionId, timeout);
-        return commandExecutor.execute(command);
+        long revisionId = commandExecutor.execute(command);
+        return MongoUtil.fromMongoRepresentation(revisionId);
     }
 
     private String getBranchId(String revisionId) throws Exception {

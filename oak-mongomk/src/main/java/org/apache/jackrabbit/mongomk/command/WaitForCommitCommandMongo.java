@@ -8,7 +8,7 @@ import org.apache.jackrabbit.mongomk.util.MongoUtil;
 /**
  * A {@code Command} for {@code MongoMicroKernel#waitForCommit(String, long)}
  */
-public class WaitForCommitCommandMongo extends DefaultCommand<String> {
+public class WaitForCommitCommandMongo extends DefaultCommand<Long> {
 
     private static final long WAIT_FOR_COMMIT_POLL_MILLIS = 1000;
 
@@ -30,17 +30,17 @@ public class WaitForCommitCommandMongo extends DefaultCommand<String> {
     }
 
     @Override
-    public String execute() throws Exception {
+    public Long execute() throws Exception {
         long startTimestamp = System.currentTimeMillis();
-        long initialHeadRevisionId = getHeadRevision();
+        Long initialHeadRevisionId = getHeadRevision();
 
         if (timeout <= 0) {
-            return MongoUtil.fromMongoRepresentation(initialHeadRevisionId);
+            return initialHeadRevisionId;
         }
 
-        long oldHeadRevision = MongoUtil.toMongoRepresentation(oldHeadRevisionId);
-        if (oldHeadRevision < initialHeadRevisionId) {
-            return MongoUtil.fromMongoRepresentation(initialHeadRevisionId);
+        Long oldHeadRevision = MongoUtil.toMongoRepresentation(oldHeadRevisionId);
+        if (oldHeadRevision != initialHeadRevisionId) {
+            return initialHeadRevisionId;
         }
 
         long waitForCommitPollMillis = Math.min(WAIT_FOR_COMMIT_POLL_MILLIS, timeout);
@@ -48,7 +48,7 @@ public class WaitForCommitCommandMongo extends DefaultCommand<String> {
             long headRevisionId = getHeadRevision();
             long now = System.currentTimeMillis();
             if (headRevisionId != initialHeadRevisionId || now - startTimestamp >= timeout) {
-                return MongoUtil.fromMongoRepresentation(headRevisionId);
+                return headRevisionId;
             }
             Thread.sleep(waitForCommitPollMillis);
         }
