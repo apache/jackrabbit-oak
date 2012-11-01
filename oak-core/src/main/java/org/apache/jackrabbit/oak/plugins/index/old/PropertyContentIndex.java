@@ -43,7 +43,7 @@ public class PropertyContentIndex implements QueryIndex {
     }
 
     @Override
-    public double getCost(Filter filter) {
+    public double getCost(Filter filter, NodeState root) {
         String propertyName = index.getPropertyName();
         Filter.PropertyRestriction restriction = filter.getPropertyRestriction(propertyName);
         if (restriction == null) {

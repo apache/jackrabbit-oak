@@ -118,7 +118,8 @@ public class LuceneIndex implements QueryIndex, LuceneIndexConstants {
     }
 
     @Override
-    public double getCost(Filter filter) {
+    public double getCost(Filter filter, NodeState root) {
+        // TODO: proper cost calculation
         return 1.0;
     }
 
