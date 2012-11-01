@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.jcr;
 
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
-import javax.jcr.Session;
 import javax.jcr.ValueFactory;
 import javax.jcr.ValueFormatException;
 
@@ -32,14 +31,11 @@ import static org.junit.Assert.fail;
  */
 public class ValueFactoryTest extends AbstractRepositoryTest {
 
-    private static final String TEST_NODE = "test_node";
-
     private ValueFactory valueFactory;
 
     @Before
     public void setup() throws RepositoryException {
-        Session session = getAdminSession();
-        valueFactory = session.getValueFactory();
+        valueFactory = getAdminSession().getValueFactory();
     }
 
     // TODO: this tests should be moved to the TCK. retrieving "invalidIdentifier" from the config.
