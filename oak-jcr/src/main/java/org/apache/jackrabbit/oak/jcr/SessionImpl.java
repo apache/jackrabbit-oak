@@ -255,6 +255,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     public void move(final String srcAbsPath, final String destAbsPath) throws RepositoryException {
         ensureIsAlive();
 
+        // FIXME: check for protection on src-parent and dest-parent (OAK-250)
         dlg.perform(new SessionOperation<Void>() {
             @Override
             public Void perform() throws RepositoryException {

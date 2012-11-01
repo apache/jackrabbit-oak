@@ -96,6 +96,8 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
             throw new UnsupportedRepositoryOperationException("Not implemented.");
         }
 
+        // FIXME: check for protection on src-parent and dest-parent (OAK-250)
+
         String oakPath = sessionDelegate.getOakPathKeepIndexOrThrowNotFound(destAbsPath);
         String oakName = PathUtils.getName(oakPath);
         // handle index
@@ -112,13 +114,17 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
     public void clone(String srcWorkspace, String srcAbsPath, String destAbsPath, boolean removeExisting) throws RepositoryException {
         ensureIsAlive();
 
-        // TODO -> SPI
+        // TODO
+        // FIXME: check for protection on src-parent and dest-parent (OAK-250)
+
         throw new UnsupportedRepositoryOperationException("Not implemented.");
     }
 
     @Override
     public void move(String srcAbsPath, String destAbsPath) throws RepositoryException {
         ensureIsAlive();
+
+        // FIXME: check for protection on src-parent and dest-parent (OAK-250)
 
         String oakPath = sessionDelegate.getOakPathKeepIndexOrThrowNotFound(destAbsPath);
         String oakName = PathUtils.getName(oakPath);
