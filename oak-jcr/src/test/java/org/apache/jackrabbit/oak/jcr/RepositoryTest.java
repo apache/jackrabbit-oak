@@ -1049,6 +1049,19 @@ public class RepositoryTest extends AbstractRepositoryTest {
     }
 
     @Test
+    public void accessRemovedProperty() throws RepositoryException {
+        Node foo = getNode("/foo");
+        Property p = foo.setProperty("name", "value");
+        p.remove();
+        try {
+            p.getPath();
+            fail("Expected InvalidItemStateException");
+        }
+        catch (InvalidItemStateException expected) {
+        }
+    }
+
+    @Test
     public void getReferences() throws RepositoryException {
         Session session = getAdminSession();
         Node referee = getNode("/foo");
