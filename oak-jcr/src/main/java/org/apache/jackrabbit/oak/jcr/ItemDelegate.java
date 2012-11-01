@@ -24,6 +24,7 @@ import javax.jcr.InvalidItemStateException;
 import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.core.TreeImpl.NullLocation;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -75,7 +76,7 @@ public abstract class ItemDelegate {
      * @return  {@code true} iff stale
      */
     public boolean isStale() {
-        return getLocationOrNull() == null;
+        return getLocationOrNull() == NullLocation.INSTANCE;
     }
 
     /**
@@ -104,7 +105,7 @@ public abstract class ItemDelegate {
     @Nonnull
     public TreeLocation getLocation() throws InvalidItemStateException {
         TreeLocation location = getLocationOrNull();
-        if (location == null) {
+        if (location == NullLocation.INSTANCE) {
             throw new InvalidItemStateException("Item is stale");
         }
         return location;
@@ -124,21 +125,10 @@ public abstract class ItemDelegate {
      */
     @CheckForNull
     private synchronized TreeLocation getLocationOrNull() {
-        if (isStale(location)) {
-            return null;
+        if (location != NullLocation.INSTANCE) {
+            location = sessionDelegate.getLocation(location.getPath());
         }
-
-        location = sessionDelegate.getLocation(location.getPath());
-        return isStale(location) ? null : location;
-    }
-
-    private static boolean isStale(TreeLocation location) {
-        try {
-            return location.getStatus() == Status.REMOVED || location.getPath() == null;
-        }
-        catch (IllegalStateException e) {
-            return true; // FIXME left over from OAK-391. Find better way to determine staleness (OAK-417, OAK-418)
-        }
+        return location;
     }
 
 }
