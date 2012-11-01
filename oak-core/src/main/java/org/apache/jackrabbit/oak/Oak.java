@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import java.util.List;
 import javax.annotation.Nonnull;
 import javax.jcr.NoSuchWorkspaceException;
@@ -42,10 +40,13 @@ import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
+import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Builder class for constructing {@link ContentRepository} instances with
@@ -69,6 +70,7 @@ public class Oak {
 
     private List<ValidatorProvider> validatorProviders = Lists.newArrayList();
 
+    // TODO: review if we really want to have the OpenSecurityProvider as default.
     private SecurityProvider securityProvider = new OpenSecurityProvider();
 
     private ConflictHandler conflictHandler;
@@ -163,9 +165,9 @@ public class Oak {
     public Oak with(@Nonnull SecurityProvider securityProvider) {
         this.securityProvider = securityProvider;
         try {
-            validatorProviders.addAll(securityProvider.getAccessControlProvider().getValidatorProviders());
-            validatorProviders.addAll(securityProvider.getUserConfiguration().getValidatorProviders());
-            validatorProviders.addAll(securityProvider.getPrivilegeConfiguration().getValidatorProviders());
+            for (SecurityConfiguration sc : securityProvider.getSecurityConfigurations()) {
+                validatorProviders.addAll(sc.getValidatorProviders());
+            }
         } catch (UnsupportedOperationException e) {
             log.info(e.getMessage());
         }

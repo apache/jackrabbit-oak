@@ -17,7 +17,9 @@
 package org.apache.jackrabbit.oak.security;
 
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.jcr.Session;
 import javax.security.auth.login.Configuration;
@@ -67,6 +69,17 @@ public class SecurityProviderImpl implements SecurityProvider {
 
     public SecurityProviderImpl(ConfigurationParameters configuration) {
         this.configuration = configuration;
+    }
+
+    @Nonnull
+    @Override
+    public Iterable<SecurityConfiguration> getSecurityConfigurations() {
+        Set<SecurityConfiguration> scs = new HashSet<SecurityConfiguration>();
+        scs.add(getAccessControlProvider());
+        scs.add(getUserConfiguration());
+        scs.add(getPrincipalConfiguration());
+        scs.add(getPrivilegeConfiguration());
+        return scs;
     }
 
     @Nonnull

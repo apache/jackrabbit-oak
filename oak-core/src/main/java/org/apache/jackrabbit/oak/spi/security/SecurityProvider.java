@@ -33,6 +33,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
  */
 public interface SecurityProvider {
 
+    @Nonnull
+    Iterable<SecurityConfiguration> getSecurityConfigurations();
+
     // TODO review again
     @Nonnull
     LoginContextProvider getLoginContextProvider(NodeStore nodeStore, QueryIndexProvider indexProvider);
