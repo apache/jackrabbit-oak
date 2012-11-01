@@ -277,7 +277,7 @@ public class TreeImpl implements Tree, PurgeListener {
                                 .addValue(name)
                                 .getPropertyState(true));
             }
-            root.purge();
+            root.updated();
         }
 
         TreeImpl child = getChild(name);
@@ -303,7 +303,7 @@ public class TreeImpl implements Tree, PurgeListener {
                                 .getPropertyState(true)
                 );
             }
-            root.purge();
+            root.updated();
             return true;
         } else {
             return false;
@@ -351,7 +351,7 @@ public class TreeImpl implements Tree, PurgeListener {
         // concatenate head, this name and tail
         parent.getNodeBuilder().setProperty(MultiStringPropertyState.stringProperty(OAK_CHILD_ORDER, Iterables.concat(head, Collections.singleton(getName()), tail))
         );
-        root.purge();
+        root.updated();
         return true;
     }
 
@@ -360,7 +360,7 @@ public class TreeImpl implements Tree, PurgeListener {
         root.checkLive();
         NodeBuilder builder = getNodeBuilder();
         builder.setProperty(property);
-        root.purge();
+        root.updated();
     }
 
     @Override
@@ -368,7 +368,7 @@ public class TreeImpl implements Tree, PurgeListener {
         root.checkLive();
         NodeBuilder builder = getNodeBuilder();
         builder.setProperty(name, value);
-        root.purge();
+        root.updated();
     }
 
     @Override
@@ -376,7 +376,7 @@ public class TreeImpl implements Tree, PurgeListener {
         root.checkLive();
         NodeBuilder builder = getNodeBuilder();
         builder.setProperty(name, value, type);
-        root.purge();
+        root.updated();
     }
 
     @Override
@@ -384,7 +384,7 @@ public class TreeImpl implements Tree, PurgeListener {
         root.checkLive();
         NodeBuilder builder = getNodeBuilder();
         builder.removeProperty(name);
-        root.purge();
+        root.updated();
     }
 
     @Override
