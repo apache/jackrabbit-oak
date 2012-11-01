@@ -59,7 +59,7 @@ public class TokenProviderImplTest extends AbstractTokenTest {
         sc.setAttribute("any_attribute", "value");
         assertFalse(tokenProvider.doCreateToken(sc));
 
-        sc.setAttribute(".token_key", "value");
+        sc.setAttribute("rep:token_key", "value");
         assertFalse(tokenProvider.doCreateToken(sc));
 
         sc.setAttribute(".token", "existing");
@@ -111,8 +111,8 @@ public class TokenProviderImplTest extends AbstractTokenTest {
     public void testTokenNode() throws Exception {
         Map<String, String> reserved = new HashMap<String, String>();
         reserved.put(".token", "value");
-        reserved.put(".token.key", "value");
-        reserved.put(".token.exp", "value");
+        reserved.put("rep:token.key", "value");
+        reserved.put("rep:token.exp", "value");
 
         Map<String, String> privateAttributes = new HashMap<String, String>();
         privateAttributes.put(".token_exp", "value");
@@ -136,8 +136,8 @@ public class TokenProviderImplTest extends AbstractTokenTest {
         assertEquals(1, tokens.getChildrenCount());
 
         Tree tokenNode = tokens.getChildren().iterator().next();
-        assertNotNull(tokenNode.getProperty(".token.key"));
-        assertNotNull(tokenNode.getProperty(".token.exp"));
+        assertNotNull(tokenNode.getProperty("rep:token.key"));
+        assertNotNull(tokenNode.getProperty("rep:token.exp"));
 
         for (String key : reserved.keySet()) {
             PropertyState p = tokenNode.getProperty(key);
