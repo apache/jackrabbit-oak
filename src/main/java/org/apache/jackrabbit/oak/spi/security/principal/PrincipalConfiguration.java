@@ -22,11 +22,12 @@ import javax.jcr.Session;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 
 /**
  * PrincipalConfig... TODO
  */
-public interface PrincipalConfiguration {
+public interface PrincipalConfiguration extends SecurityConfiguration {
 
     @Nonnull
     public PrincipalManager getPrincipalManager(Session session, Root root, NamePathMapper namePathMapper);

@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.security;
 
+import java.util.Collections;
+import java.util.List;
 import javax.annotation.Nonnull;
 import javax.jcr.Session;
 import javax.security.auth.login.Configuration;
@@ -30,8 +32,10 @@ import org.apache.jackrabbit.oak.security.principal.PrincipalManagerImpl;
 import org.apache.jackrabbit.oak.security.principal.PrincipalProviderImpl;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeConfigurationImpl;
 import org.apache.jackrabbit.oak.security.user.UserConfigurationImpl;
+import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginContextProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
@@ -41,6 +45,7 @@ import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -108,19 +113,33 @@ public class SecurityProviderImpl implements SecurityProvider {
     @Nonnull
     @Override
     public PrincipalConfiguration getPrincipalConfiguration() {
-        return new PrincipalConfiguration() {
-            @Nonnull
-            @Override
-            public PrincipalManager getPrincipalManager(Session session, Root root, NamePathMapper namePathMapper) {
-                PrincipalProvider principalProvider = getPrincipalProvider(root, namePathMapper);
-                return new PrincipalManagerImpl(principalProvider);
-            }
+        return new PrincipalConfigurationImpl();
+    }
 
-            @Nonnull
-            @Override
-            public PrincipalProvider getPrincipalProvider(Root root, NamePathMapper namePathMapper) {
-                return new PrincipalProviderImpl(root, getUserConfiguration(), namePathMapper);
-            }
-        };
+    private class PrincipalConfigurationImpl extends SecurityConfiguration.Default implements PrincipalConfiguration {
+        @Nonnull
+        @Override
+        public PrincipalManager getPrincipalManager(Session session, Root root, NamePathMapper namePathMapper) {
+            PrincipalProvider principalProvider = getPrincipalProvider(root, namePathMapper);
+            return new PrincipalManagerImpl(principalProvider);
+        }
+
+        @Nonnull
+        @Override
+        public PrincipalProvider getPrincipalProvider(Root root, NamePathMapper namePathMapper) {
+            return new PrincipalProviderImpl(root, getUserConfiguration(), namePathMapper);
+        }
+
+        @Nonnull
+        @Override
+        public List<ValidatorProvider> getValidatorProviders() {
+            return Collections.emptyList();
+        }
+
+        @Nonnull
+        @Override
+        public List<ProtectedItemImporter> getProtectedItemImporters() {
+            return Collections.emptyList();
+        }
     }
 }

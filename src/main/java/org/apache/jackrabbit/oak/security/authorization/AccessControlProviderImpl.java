@@ -22,6 +22,7 @@ import java.util.List;
 import javax.security.auth.Subject;
 
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
+import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlContext;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlProvider;
 
@@ -29,7 +30,7 @@ import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlProvide
  * {@code AccessControlProviderImpl} is a default implementation and
  * creates {@link AccessControlContextImpl} for a given set of principals.
  */
-public class AccessControlProviderImpl implements AccessControlProvider {
+public class AccessControlProviderImpl extends SecurityConfiguration.Default implements AccessControlProvider {
 
     @Override
     public AccessControlContext getAccessControlContext(Subject subject) {
