@@ -133,7 +133,12 @@ public abstract class ItemDelegate {
     }
 
     private static boolean isStale(TreeLocation location) {
-        return location.getStatus() == Status.REMOVED || location.getPath() == null;
+        try {
+            return location.getStatus() == Status.REMOVED || location.getPath() == null;
+        }
+        catch (IllegalStateException e) {
+            return true; // FIXME left over from OAK-391. Find better way to determine staleness
+        }
     }
 
 }
