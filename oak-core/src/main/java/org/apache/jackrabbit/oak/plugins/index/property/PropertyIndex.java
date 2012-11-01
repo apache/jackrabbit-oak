@@ -112,8 +112,9 @@ public class PropertyIndex implements QueryIndex {
     }
 
     @Override
-    public double getCost(Filter filter) {
-        return 1.0; // FIXME: proper cost calculation
+    public double getCost(Filter filter, NodeState root) {
+        // TODO: proper cost calculation
+        return 1.0;
     }
 
     @Override

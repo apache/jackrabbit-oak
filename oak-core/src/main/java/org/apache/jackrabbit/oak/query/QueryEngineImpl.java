@@ -113,7 +113,7 @@ public class QueryEngineImpl {
         QueryIndex best = null;
         double bestCost = Double.MAX_VALUE;
         for (QueryIndex index : getIndexes()) {
-            double cost = index.getCost(filter);
+            double cost = index.getCost(filter, root);
             if (cost < bestCost) {
                 bestCost = cost;
                 best = index;

@@ -47,9 +47,10 @@ public interface QueryIndex {
      * estimated number of nodes to traverse.
      *
      * @param filter the filter
+     * @param root root state of the current repository snapshot
      * @return the estimated cost in number of read nodes
      */
-    double getCost(Filter filter);
+    double getCost(Filter filter, NodeState root);
 
     /**
      * Start a query.
