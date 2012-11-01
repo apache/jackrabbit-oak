@@ -137,7 +137,7 @@ public abstract class ItemDelegate {
             return location.getStatus() == Status.REMOVED || location.getPath() == null;
         }
         catch (IllegalStateException e) {
-            return true; // FIXME left over from OAK-391. Find better way to determine staleness
+            return true; // FIXME left over from OAK-391. Find better way to determine staleness (OAK-417, OAK-418)
         }
     }
 
