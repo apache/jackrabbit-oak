@@ -14,38 +14,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mongomk.command;
+package org.apache.jackrabbit.mongomk.impl;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 import java.io.ByteArrayInputStream;
 
-import org.apache.jackrabbit.mongomk.BaseMongoTest;
-import org.apache.jackrabbit.mongomk.command.GetBlobLengthCommandMongo;
+import org.apache.jackrabbit.mongomk.BaseMongoMicroKernelTest;
 import org.junit.Test;
 
-import com.mongodb.gridfs.GridFS;
-import com.mongodb.gridfs.GridFSInputFile;
-
-public class GetBlobLengthCommandMongoTest extends BaseMongoTest {
+/**
+ * Tests for {@code MongoMicroKernel#getLength(String)}
+ */
+public class MongoMKGetLengthTest extends BaseMongoMicroKernelTest {
 
     @Test
-    public void testGetBlobLength() throws Exception {
+    public void getLength() throws Exception {
         int blobLength = 100;
         String blobId = createAndWriteBlob(blobLength);
 
-        GetBlobLengthCommandMongo command = new GetBlobLengthCommandMongo(mongoConnection, blobId);
-        long length = command.execute();
+        long length = mk.getLength(blobId);
         assertEquals(blobLength, length);
     }
 
     @Test
     public void testNonExistentBlobLength() throws Exception {
-        GetBlobLengthCommandMongo command = new GetBlobLengthCommandMongo(mongoConnection,
-                "nonExistentBlobId");
         try {
-            command.execute();
+            mk.getLength("nonExistentBlob");
             fail("Exception expected");
         } catch (Exception expected) {
         }
@@ -65,9 +61,6 @@ public class GetBlobLengthCommandMongoTest extends BaseMongoTest {
     }
 
     private String writeBlob(byte[] blob) {
-        GridFS gridFS = mongoConnection.getGridFS();
-        GridFSInputFile gridFSInputFile = gridFS.createFile(new ByteArrayInputStream(blob), true);
-        gridFSInputFile.save();
-        return gridFSInputFile.getMD5();
+        return mk.write(new ByteArrayInputStream(blob));
     }
 }
