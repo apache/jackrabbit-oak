@@ -288,7 +288,17 @@ public class RootImpl implements Root {
     @Override
     public SessionQueryEngine getQueryEngine() {
         checkLive();
-        return new SessionQueryEngineImpl(store, indexProvider);
+        return new SessionQueryEngineImpl(indexProvider) {
+            @Override
+            protected NodeState getRootNodeState() {
+                return rootTree.getNodeState();
+            }
+
+            @Override
+            protected Root getRoot() {
+                return RootImpl.this;
+            }
+        };
     }
 
     @Nonnull

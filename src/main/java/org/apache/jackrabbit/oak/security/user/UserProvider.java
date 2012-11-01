@@ -197,7 +197,7 @@ class UserProvider extends AuthorizableBaseProvider {
             Result result = root.getQueryEngine().executeQuery(stmt.toString(),
                     Query.JCR_SQL2, 1, 0,
                     Collections.singletonMap("principalName", PropertyValues.newString(principal.getName())),
-                    root, new NamePathMapper.Default());
+                    new NamePathMapper.Default());
 
             Iterator<? extends ResultRow> rows = result.getRows().iterator();
             if (rows.hasNext()) {

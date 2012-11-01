@@ -114,7 +114,7 @@ class UserQueryManager {
         SessionQueryEngine queryEngine = root.getQueryEngine();
         try {
             Map<String,PropertyValue> bindings = (value != null) ? Collections.singletonMap("propValue", PropertyValues.newString(value)) : null;
-            Result result = queryEngine.executeQuery(statement, javax.jcr.query.Query.XPATH, Long.MAX_VALUE, 0, bindings, root, userManager.getNamePathMapper());
+            Result result = queryEngine.executeQuery(statement, javax.jcr.query.Query.XPATH, Long.MAX_VALUE, 0, bindings, userManager.getNamePathMapper());
             return Iterators.filter(Iterators.transform(result.getRows().iterator(), new ResultRowToAuthorizable()), Predicates.<Object>notNull());
         } catch (ParseException e) {
             throw new RepositoryException(e);

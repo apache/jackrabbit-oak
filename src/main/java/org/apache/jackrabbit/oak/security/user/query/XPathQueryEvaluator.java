@@ -294,7 +294,7 @@ public class XPathQueryEvaluator implements ConditionVisitor {
 
     @Nonnull
     private Iterator<Authorizable> findAuthorizables(long limit, long offset) throws ParseException {
-        Iterable<? extends ResultRow> resultRows = root.getQueryEngine().executeQuery(xPath.toString(), Query.XPATH, limit, offset, null, root, namePathMapper).getRows();
+        Iterable<? extends ResultRow> resultRows = root.getQueryEngine().executeQuery(xPath.toString(), Query.XPATH, limit, offset, null, namePathMapper).getRows();
 
         Function<ResultRow, Authorizable> transformer = new Function<ResultRow, Authorizable>() {
             public Authorizable apply(ResultRow resultRow) {
