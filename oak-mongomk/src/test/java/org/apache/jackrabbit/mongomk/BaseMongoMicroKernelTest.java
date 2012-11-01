@@ -27,6 +27,7 @@ import org.apache.jackrabbit.mongomk.api.NodeStore;
 import org.apache.jackrabbit.mongomk.impl.BlobStoreMongo;
 import org.apache.jackrabbit.mongomk.impl.MongoMicroKernel;
 import org.apache.jackrabbit.mongomk.impl.NodeStoreMongo;
+import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.junit.Before;
@@ -44,6 +45,17 @@ public class BaseMongoMicroKernelTest extends BaseMongoTest {
         NodeStore nodeStore = new NodeStoreMongo(mongoConnection);
         BlobStore blobStore = new BlobStoreMongo(mongoConnection);
         mk = new MongoMicroKernel(nodeStore, blobStore);
+    }
+
+    protected JSONArray parseJSONArray(String json) throws AssertionError {
+        JSONParser parser = new JSONParser();
+        try {
+            Object obj = parser.parse(json);
+            assertTrue(obj instanceof JSONArray);
+            return (JSONArray) obj;
+        } catch (Exception e) {
+            throw new AssertionError("not a valid JSON array: " + e.getMessage());
+        }
     }
 
     protected JSONObject parseJSONObject(String json) throws AssertionError {
