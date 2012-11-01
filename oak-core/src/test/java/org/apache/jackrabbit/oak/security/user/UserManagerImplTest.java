@@ -36,7 +36,6 @@ import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtility;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.junit.Before;
 import org.junit.Test;
-import sun.security.acl.PrincipalImpl;
 
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertFalse;
@@ -149,7 +148,7 @@ public class UserManagerImplTest extends AbstractSecurityTest {
         try {
             // authNode - authFolder -> create User
             try {
-                Principal p = new PrincipalImpl("test2");
+                Principal p = new TestPrincipal("test2");
                 Authorizable a = userMgr.createUser(p.getName(), p.getName(), p, path);
                 root.commit();
 
@@ -175,7 +174,7 @@ public class UserManagerImplTest extends AbstractSecurityTest {
         try {
             // authNode - anyNode -> create User
             try {
-                Principal p = new PrincipalImpl("test3");
+                Principal p = new TestPrincipal("test3");
                 userMgr.createUser(p.getName(), p.getName(), p, path);
                 root.commit();
 
@@ -195,7 +194,7 @@ public class UserManagerImplTest extends AbstractSecurityTest {
             folder = someContent.addChild("folder", UserConstants.NT_REP_AUTHORIZABLE_FOLDER);
             root.commit(); // this time save node structure
             try {
-                Principal p = new PrincipalImpl("test4");
+                Principal p = new TestPrincipal("test4");
                 userMgr.createUser(p.getName(), p.getName(), p, folder.getTree().getPath());
                 root.commit();
 
@@ -217,6 +216,19 @@ public class UserManagerImplTest extends AbstractSecurityTest {
                 t.remove();
                 root.commit();
             }
+        }
+    }
+
+    private class TestPrincipal implements Principal {
+
+        private final String name;
+
+        private TestPrincipal(String name) {
+            this.name = name;
+        }
+        @Override
+        public String getName() {
+            return name;
         }
     }
 }
