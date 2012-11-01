@@ -85,7 +85,11 @@ public abstract class ItemDelegate {
      */
     @Nonnull
     public Status getStatus() throws InvalidItemStateException {
-        return getLocation().getStatus();  // never null
+        Status status = getLocation().getStatus();
+        if (status == null) {
+            throw new InvalidItemStateException();
+        }
+        return status;
     }
 
     /**

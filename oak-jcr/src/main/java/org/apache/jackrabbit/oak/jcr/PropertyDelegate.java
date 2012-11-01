@@ -74,7 +74,7 @@ public class PropertyDelegate extends ItemDelegate {
      * @param value
      */
     public void setValue(Value value) throws RepositoryException {
-        getLocation().set(PropertyStates.createProperty(getName(), value));
+        getPropertyLocation().set(PropertyStates.createProperty(getName(), value));
     }
 
     /**
@@ -82,28 +82,27 @@ public class PropertyDelegate extends ItemDelegate {
      * @param values
      */
     public void setValues(Iterable<Value> values) throws RepositoryException {
-        getLocation().set(PropertyStates.createProperty(getName(), values));
+        getPropertyLocation().set(PropertyStates.createProperty(getName(), values));
     }
 
     /**
      * Remove the property
      */
     public void remove() throws InvalidItemStateException {
-        getLocation().remove();
+        getPropertyLocation().remove();
     }
 
     //------------------------------------------------------------< private >---
 
     @Nonnull
     private PropertyState getPropertyState() throws InvalidItemStateException {
-        return getLocation().getProperty();  // Not null
+        return getPropertyLocation().getProperty();  // Not null
     }
 
-    @Override
-    public PropertyLocation getLocation() throws InvalidItemStateException {
-        TreeLocation location = super.getLocation();
-        if (location.getProperty() == null) {
-            throw new InvalidItemStateException("Property is stale");
+    private PropertyLocation getPropertyLocation() throws InvalidItemStateException {
+        TreeLocation location = getLocation();
+        if (!(location instanceof PropertyLocation)) {
+            throw new InvalidItemStateException();
         }
         return (PropertyLocation) location;
     }
