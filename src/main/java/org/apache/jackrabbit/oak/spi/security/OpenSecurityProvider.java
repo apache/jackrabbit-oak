@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.security;
 
+import java.util.Collections;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.Root;
@@ -34,6 +35,12 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
  * OpenSecurityProvider... TODO: review if we really have the need for that once TODO in InitialContent is resolved
  */
 public class OpenSecurityProvider implements SecurityProvider {
+
+    @Nonnull
+    @Override
+    public Iterable<SecurityConfiguration> getSecurityConfigurations() {
+        return Collections.<SecurityConfiguration>singletonList(getAccessControlProvider());
+    }
 
     @Nonnull
     @Override
