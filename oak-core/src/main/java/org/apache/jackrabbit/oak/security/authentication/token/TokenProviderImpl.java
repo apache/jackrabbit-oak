@@ -244,6 +244,11 @@ public class TokenProviderImpl implements TokenProvider {
         if (tokenTree != null) {
             NodeUtil tokenNode = new NodeUtil(tokenTree);
             long expTime = getExpirationTime(tokenNode, 0);
+            if (tokenInfo.isExpired(loginTime)) {
+                log.debug("Attempt to reset an expired token.");
+                return false;
+            }
+
             if (expTime - loginTime <= tokenExpiration/2) {
                 long expirationTime = loginTime + tokenExpiration;
                 try {
