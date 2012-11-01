@@ -69,7 +69,7 @@ import static org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState.withPro
  */
 public class MemoryNodeBuilder implements NodeBuilder {
 
-    static final NodeState NULL_STATE = new MemoryNodeState(
+    private static final NodeState NULL_STATE = new MemoryNodeState(
             ImmutableMap.<String, PropertyState>of(),
             ImmutableMap.<String, NodeState>of());
 
@@ -120,7 +120,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
         this.name = checkNotNull(name);
 
         this.root = parent.root;
-        this.revision = parent.revision;
+        this.revision = -1;
 
         this.baseState = null;
         this.writeState = null;
@@ -173,7 +173,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
         } else if (baseState != null) {
             return baseState;
         } else {
-            throw new IllegalStateException("This node does not exist");
+            return NULL_STATE;
         }
     }
 
@@ -368,7 +368,9 @@ public class MemoryNodeBuilder implements NodeBuilder {
     @Override
     public NodeBuilder child(String name) {
         read(); // shortcut when dealing with a read-only child node
-        if (writeState == null && baseState.hasChildNode(name)) {
+        if (baseState != null
+                && baseState.hasChildNode(name)
+                && (writeState == null || !writeState.nodes.containsKey(name))) {
             return createChildBuilder(name);
         }
 
