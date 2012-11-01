@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableAction;
@@ -33,7 +34,7 @@ import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableAction;
 /**
  * UserConfigurationImpl... TODO
  */
-public class UserConfigurationImpl implements UserConfiguration {
+public class UserConfigurationImpl extends SecurityConfiguration.Default implements UserConfiguration {
 
     private final ConfigurationParameters config;
     private final SecurityProvider securityProvider;

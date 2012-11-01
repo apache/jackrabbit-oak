@@ -23,20 +23,13 @@ import javax.jcr.Session;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
-import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableAction;
 
 /**
  * UserContext... TODO
  */
-public interface UserConfiguration {
-
-    @Nonnull
-    ConfigurationParameters getConfigurationParameters();
-
-    @Nonnull
-    List<ValidatorProvider> getValidatorProviders();
+public interface UserConfiguration extends SecurityConfiguration {
 
     @Nonnull
     List<AuthorizableAction> getAuthorizableActions();
