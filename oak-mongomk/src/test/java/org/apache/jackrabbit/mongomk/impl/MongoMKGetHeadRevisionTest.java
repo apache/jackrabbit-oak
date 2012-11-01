@@ -14,29 +14,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mongomk.command;
+package org.apache.jackrabbit.mongomk.impl;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
-import org.apache.jackrabbit.mongomk.BaseMongoTest;
-import org.apache.jackrabbit.mongomk.command.GetHeadRevisionCommandMongo;
-import org.apache.jackrabbit.mongomk.scenario.SimpleNodeScenario;
+import org.apache.jackrabbit.mongomk.BaseMongoMicroKernelTest;
 import org.junit.Test;
 
-public class GetHeadRevisionCommandMongoTest extends BaseMongoTest {
+/**
+ * Tests for {@code MongoMicroKernel#getHeadRevision()}.
+ */
+public class MongoMKGetHeadRevisionTest extends BaseMongoMicroKernelTest {
 
     @Test
-    public void testGeadHeadRevisionSimple() throws Exception {
-        SimpleNodeScenario scenario = new SimpleNodeScenario(mongoConnection);
-        Long revisionId = scenario.create();
+    public void simple() throws Exception {
+        SimpleNodeScenario scenario = new SimpleNodeScenario(mk);
+        String rev1 = scenario.create();
 
-        GetHeadRevisionCommandMongo command = new GetHeadRevisionCommandMongo(mongoConnection);
-        Long revisionId2 = command.execute();
-        assertTrue(revisionId == revisionId2);
+        String rev2 = mk.getHeadRevision();
+        assertEquals(rev1, rev2);
 
-        scenario.delete_A();
-        Long revisionId3 = command.execute();
-        assertFalse(revisionId3 == revisionId2);
+        String rev3 = scenario.delete_A();
+        assertFalse(rev3 == rev2);
     }
 }
