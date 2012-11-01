@@ -56,7 +56,7 @@ public class WaitForCommitCommandMongo extends DefaultCommand<Long> {
 
     private long getHeadRevision() throws Exception {
         FetchHeadRevisionIdQuery query = new FetchHeadRevisionIdQuery(mongoConnection);
-        query.includeBranchCommits(true);
+        query.includeBranchCommits(false);
         return query.execute();
     }
 }

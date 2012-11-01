@@ -56,7 +56,7 @@ public class MongoMKWaitForCommitTest extends BaseMongoMicroKernelTest {
     @Test
     public void timeoutWithCommit1() throws Exception {
         String headRev = mk.commit("/", "+\"a\" : {}", null, null);
-        ScheduledFuture<String> future = scheduleCommit(1000);
+        ScheduledFuture<String> future = scheduleCommit(1000, null);
         int timeout = 500;
         long before = System.currentTimeMillis();
         String rev = mk2.waitForCommit(headRev, timeout);
@@ -69,14 +69,28 @@ public class MongoMKWaitForCommitTest extends BaseMongoMicroKernelTest {
     @Test
     public void timeoutWithCommit2() throws Exception {
         String headRev = mk.commit("/", "+\"a\" : {}", null, null);
-        ScheduledFuture<String> future = scheduleCommit(500);
+        ScheduledFuture<String> future = scheduleCommit(500, null);
         int timeout = 2000;
         long before = System.currentTimeMillis();
         String rev = mk2.waitForCommit(headRev, timeout);
         long after = System.currentTimeMillis();
         headRev = future.get();
         assertTrue(headRev.equals(rev));
-        assertTrue((after - before) < timeout);
+        assertTrue(after - before < timeout);
+    }
+
+    @Test
+    public void branchIgnored() throws Exception {
+        String headRev = mk.commit("/", "+\"a\" : {}", null, null);
+        String branchRev = mk.branch(headRev);
+        ScheduledFuture<String> future = scheduleCommit(500, branchRev);
+        int timeout = 2000;
+        long before = System.currentTimeMillis();
+        String rev = mk2.waitForCommit(headRev, timeout);
+        long after = System.currentTimeMillis();
+        headRev = future.get();
+        assertFalse(headRev.equals(rev));
+        assertTrue(after - before >= timeout);
     }
 
     @Test
@@ -90,12 +104,12 @@ public class MongoMKWaitForCommitTest extends BaseMongoMicroKernelTest {
         assertTrue(after - before < 10); // Basically no wait.
     }
 
-    private ScheduledFuture<String> scheduleCommit(long delay) {
+    private ScheduledFuture<String> scheduleCommit(long delay, final String revisionId) {
         ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
         ScheduledFuture<String> future = executorService.schedule(new Callable<String>(){
             @Override
             public String call() throws Exception {
-                return mk.commit("/", "+\"b\" : {}", null, null);
+                return mk.commit("/", "+\"b\" : {}", revisionId, null);
             }
         }, delay, TimeUnit.MILLISECONDS);
         executorService.shutdown();
