@@ -125,6 +125,14 @@ public class BaseMongoMicroKernelTest extends BaseMongoTest {
         assertEquals(expected, val);
     }
 
+    protected void assertPropertyValue(JSONObject obj, String relPath, Boolean expected)
+            throws AssertionError {
+        Object val = resolveValue(obj, relPath);
+        assertNotNull("not found: " + relPath, val);
+
+        assertEquals(expected, val);
+    }
+
     private void doAssertNodes(boolean checkExists, String revision, String...paths) {
         for (String path : paths) {
             boolean exists = mk.nodeExists(path, revision);

@@ -21,6 +21,7 @@ import static org.junit.Assert.fail;
 
 import org.apache.jackrabbit.mongomk.BaseMongoMicroKernelTest;
 import org.json.simple.JSONObject;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -39,15 +40,76 @@ public class MongoMKGetNodesTest extends BaseMongoMicroKernelTest {
     @Test
     public void afterDelete() throws Exception {
         SimpleNodeScenario scenario = new SimpleNodeScenario(mk);
-        String revisionId = scenario.create();
-        JSONObject root = parseJSONObject(mk.getNodes("/", revisionId,1, 0, -1, null));
+        scenario.create();
+
+        JSONObject root = parseJSONObject(mk.getNodes("/", null, 1, 0, -1, null));
         assertPropertyValue(root, ":childNodeCount", 1L);
+
         JSONObject a = resolveObjectValue(root, "a");
-        assertNotNull(a);
         assertPropertyValue(a, ":childNodeCount", 2L);
 
-        revisionId = scenario.delete_A();
-        root = parseJSONObject(mk.getNodes("/", revisionId,1, 0, -1, null));
+        scenario.delete_A();
+        root = parseJSONObject(mk.getNodes("/", null, 1, 0, -1, null));
         assertPropertyValue(root, ":childNodeCount", 0L);
+    }
+
+    @Test
+    public void depthNegative() throws Exception {
+        SimpleNodeScenario scenario = new SimpleNodeScenario(mk);
+        scenario.create();
+
+        JSONObject root = parseJSONObject(mk.getNodes("/", null, -1, 0, -1, null));
+        assertPropertyValue(root, ":childNodeCount", 1L);
+    }
+
+    @Test
+    public void depthZero() throws Exception {
+        SimpleNodeScenario scenario = new SimpleNodeScenario(mk);
+        scenario.create();
+
+        JSONObject root = parseJSONObject(mk.getNodes("/", null, 0, 0, -1, null));
+        assertPropertyValue(root, ":childNodeCount", 1L);
+
+        JSONObject a = resolveObjectValue(root, "a");
+        assertPropertyNotExists(a, "int");
+    }
+
+    @Test
+    public void depthOne() throws Exception {
+        SimpleNodeScenario scenario = new SimpleNodeScenario(mk);
+        scenario.create();
+
+        JSONObject root = parseJSONObject(mk.getNodes("/", null, 1, 0, -1, null));
+        assertPropertyValue(root, ":childNodeCount", 1L);
+
+        JSONObject a = resolveObjectValue(root, "a");
+        assertPropertyValue(a, ":childNodeCount", 2L);
+        assertPropertyValue(a, "int", 1L);
+
+        JSONObject b = resolveObjectValue(a, "b");
+        assertPropertyNotExists(b, "string");
+
+        JSONObject c = resolveObjectValue(a, "c");
+        assertPropertyNotExists(c, "bool");
+    }
+
+    @Test
+    @Ignore
+    public void depthLimitless() throws Exception {
+        SimpleNodeScenario scenario = new SimpleNodeScenario(mk);
+        scenario.create();
+
+        JSONObject root = parseJSONObject(mk.getNodes("/", null, Integer.MAX_VALUE, 0, -1, null));
+        assertPropertyValue(root, ":childNodeCount", 1L);
+
+        JSONObject a = resolveObjectValue(root, "a");
+        assertPropertyValue(a, ":childNodeCount", 2L);
+        assertPropertyValue(a, "int", 1L);
+
+        JSONObject b = resolveObjectValue(a, "b");
+        assertPropertyValue(b, "string", "foo");
+
+        JSONObject c = resolveObjectValue(a, "c");
+        assertPropertyValue(c, "bool", true);
     }
 }

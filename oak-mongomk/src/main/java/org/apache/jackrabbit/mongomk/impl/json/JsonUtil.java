@@ -62,16 +62,10 @@ public class JsonUtil {
         return jsonObject;
     }
 
-    public static void toJson(JsopBuilder builder, NodeState node, int depth, int offset,
-            int maxChildNodes, boolean inclVirtualProps, NodeFilter filter) {
-        toJson(builder, node, depth, 0, offset, maxChildNodes, inclVirtualProps, filter);
-    }
-
     // Most of this method borrowed from MicroKernelImpl#toJson. It'd be nice if
     // this somehow consolidated with MicroKernelImpl#toJson.
-    private static void toJson(JsopBuilder builder, NodeState node, int depth,
-            int currentDepth, int offset, int maxChildNodes, boolean inclVirtualProps,
-            NodeFilter filter) {
+    public static void toJson(JsopBuilder builder, NodeState node, int depth,
+            int offset, int maxChildNodes, boolean inclVirtualProps, NodeFilter filter) {
 
         for (PropertyState property : node.getProperties()) {
             if (filter == null || filter.includeProperty(property.getName())) {
