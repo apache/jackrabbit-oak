@@ -157,7 +157,6 @@ public class CommitCommandMongo extends DefaultCommand<Long> {
 
         Map<String, NodeMongo> pathNodeMap = visitor.getPathNodeMap();
 
-        // FIXME Original copies and moved nodes must be included!
         affectedPaths = pathNodeMap.keySet();
         nodeMongos = new HashSet<NodeMongo>(pathNodeMap.values());
         for (NodeMongo nodeMongo : nodeMongos) {
@@ -178,7 +177,7 @@ public class CommitCommandMongo extends DefaultCommand<Long> {
         DBObject update = new BasicDBObject("$set", new BasicDBObject(CommitMongo.KEY_FAILED, Boolean.TRUE));
         WriteResult writeResult = commitCollection.update(query, update);
         if (writeResult.getError() != null) {
-            // FIXME now what?
+            // FIXME This is potentially a bug that we need to handle.
             throw new Exception(String.format("Update wasn't successful: %s", writeResult));
         }
     }
