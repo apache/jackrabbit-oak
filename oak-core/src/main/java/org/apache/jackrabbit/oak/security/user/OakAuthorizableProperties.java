@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceConstants;
 import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.util.NodeUtil;
@@ -122,7 +123,8 @@ class OakAuthorizableProperties implements AuthorizableProperties {
                 n.removeProperty(name);
             }
         }
-        n.setProperty(name, value);
+        PropertyState propertyState = PropertyStates.createProperty(name, value);
+        n.setProperty(propertyState);
     }
 
     /**
@@ -143,7 +145,8 @@ class OakAuthorizableProperties implements AuthorizableProperties {
                 n.removeProperty(name);
             }
         }
-        n.setProperty(name, values);
+        PropertyState propertyState = PropertyStates.createProperty(name, values);
+        n.setProperty(propertyState);
     }
 
     /**
@@ -202,7 +205,7 @@ class OakAuthorizableProperties implements AuthorizableProperties {
         // FIXME: add proper check for protection and declaring nt of the
         // FIXME: property using nt functionality provided by nt-plugins
         String prefix = Text.getNamespacePrefix(property.getName());
-        return NamespaceConstants.RESERVED_PREFIXES.contains(prefix);
+        return !NamespaceConstants.RESERVED_PREFIXES.contains(prefix);
     }
 
     /**
