@@ -17,8 +17,8 @@
 package org.apache.jackrabbit.oak.spi.xml;
 
 import javax.jcr.RepositoryException;
+import javax.jcr.Session;
 
-import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 
@@ -45,7 +45,7 @@ public abstract interface ProtectedItemImporter {
      * @return {@code true} if this importer was successfully initialized and
      * is able to handle an import with the given setup; {@code false} otherwise.
      */
-    boolean init(JackrabbitSession session, Root root,
+    boolean init(Session session, Root root,
                  NamePathMapper namePathMapper,
                  boolean isWorkspaceImport, int uuidBehavior,
                  ReferenceChangeTracker referenceTracker);

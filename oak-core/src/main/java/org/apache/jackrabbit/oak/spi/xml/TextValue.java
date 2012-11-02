@@ -29,6 +29,8 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
  */
 public interface TextValue {
 
+    String getString();
+
     // TODO: review again
     Value getValue(Type targetType, NamePathMapper namePathMapper) throws ValueFormatException, RepositoryException;
 
