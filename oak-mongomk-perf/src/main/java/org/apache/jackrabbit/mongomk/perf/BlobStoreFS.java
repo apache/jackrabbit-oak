@@ -18,10 +18,10 @@ package org.apache.jackrabbit.mongomk.perf;
 
 import java.io.File;
 import java.io.InputStream;
+import org.apache.jackrabbit.mk.blobs.BlobStore;
 
-import org.apache.jackrabbit.mongomk.api.BlobStore;
 
-public class BlobStoreFS implements BlobStore {
+public class BlobStoreFS implements  BlobStore{
 
     private final File rootDir;
 

@@ -28,11 +28,11 @@ import org.junit.Test;
  * 
  * 
  */
-@Ignore
+
 public class MKAddNodesRelativePathTest extends MicroKernelTestBase {
 
     static String nodeNamePrefix = "N";
-    static int nodesNumber = 1000000;
+    static int nodesNumber = 1000;
 
     @Test
     public void testWriteNodesSameLevel() throws Exception {

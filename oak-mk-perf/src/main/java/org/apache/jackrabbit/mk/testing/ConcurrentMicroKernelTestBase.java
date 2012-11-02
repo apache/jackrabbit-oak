@@ -26,7 +26,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 
 public class ConcurrentMicroKernelTestBase {
-    public static int mkNumber = 1;
+    public static int mkNumber = 3;
     public ArrayList<MicroKernel> mks;
     public Chronometer chronometer;
     static MicroKernelInitializer initializator;

@@ -49,6 +49,8 @@ public class Committer {
                 i = 0;
             }
         }
+        if (finalCommit.length() > 0)
+            mk.commit("", finalCommit.toString(), null, "");
     }
 
     /**
