@@ -59,9 +59,6 @@ public class TreeImpl implements Tree, PurgeListener {
     /** Parent of this tree. Null for the root. */
     private TreeImpl parent;
 
-    /** Marker for removed trees */
-    private boolean removed;
-
     /** Name of this tree */
     private String name;
 
@@ -295,7 +292,6 @@ public class TreeImpl implements Tree, PurgeListener {
         if (!isRoot() && parent.hasChild(name)) {
             NodeBuilder builder = parent.getNodeBuilder();
             builder.removeNode(name);
-            removed = true;
             if (parent.hasOrderableChildren()) {
                 builder.setProperty(
                         MemoryPropertyBuilder.create(Type.STRING, parent.internalGetProperty(OAK_CHILD_ORDER))
@@ -416,10 +412,6 @@ public class TreeImpl implements Tree, PurgeListener {
 
     @Nonnull
     protected synchronized NodeBuilder getNodeBuilder() {
-        if (isRemoved()) {
-            throw new IllegalStateException("Cannot get a builder for a removed tree");
-        }
-
         if (nodeBuilder == null) {
             nodeBuilder = parent.getNodeBuilder().child(name);
             root.addListener(this);
@@ -506,8 +498,20 @@ public class TreeImpl implements Tree, PurgeListener {
         return getNodeBuilder().getProperty(propertyName);
     }
 
+    // FIXME rely on underlying mechanism to determine whether a node has been removed. (OAK-417)
     private boolean isRemoved() {
-        return removed || (parent != null && parent.isRemoved());
+        if (parent != null && parent.isRemoved()) {
+            return true;
+        }
+        try {
+            if (nodeBuilder != null) {
+                nodeBuilder.getNodeState();
+            }
+            return false;
+        }
+        catch (IllegalStateException e) {
+            return true;
+        }
     }
 
     private void buildPath(StringBuilder sb) {
