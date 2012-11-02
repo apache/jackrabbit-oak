@@ -126,13 +126,20 @@ public class SelectorImpl extends SourceImpl {
         if (joinCondition != null) {
             joinCondition.restrict(f);
         }
-        if (!outerJoin) {
-            // for outer joins, query constraints can't be applied to the
-            // filter, because that would alter the result
-            if (queryConstraint != null) {
-                queryConstraint.restrict(f);
-            }
+        
+        // all conditions can be pushed to the selectors -
+        // except in some cases to "outer joined" selectors,
+        // but the exceptions are handled in the condition
+        // itself.
+        // An example where it *is* a problem:
+        //  "select * from a left outer join b on a.x = b.y
+        // where b.y is null" - in this case the selector b
+        // must not use an index condition on "y is null"
+        // (".. is null" must be written as "not .. is not null").
+        if (queryConstraint != null) {
+            queryConstraint.restrict(f);
         }
+
         return f;
     }
 

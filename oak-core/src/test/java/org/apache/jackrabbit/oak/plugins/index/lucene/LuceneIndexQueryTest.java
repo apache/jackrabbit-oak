@@ -22,6 +22,8 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.index.IndexHookManager;
 import org.apache.jackrabbit.oak.plugins.nodetype.InitialContent;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
+import org.junit.Ignore;
+import org.junit.Test;
 
 /**
  * Tests the query engine using the default index implementation: the
@@ -44,5 +46,18 @@ public class LuceneIndexQueryTest extends AbstractQueryTest {
             .with(new IndexHookManager(new LuceneIndexHookProvider()))
             .createContentRepository();
     }
+    
+    @Test
+    @Ignore("OAK-420")
+    public void sql2() throws Exception {
+        test("sql2.txt");
+    }
+
+    @Test
+    @Ignore("OAK-420")
+    public void sql2Measure() throws Exception {
+        test("sql2_measure.txt");
+    }
+
 
 }
