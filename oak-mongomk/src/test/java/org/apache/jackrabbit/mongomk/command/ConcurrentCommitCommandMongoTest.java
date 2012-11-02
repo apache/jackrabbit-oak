@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.mongomk.command;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -31,8 +34,9 @@ import org.apache.jackrabbit.mongomk.api.model.Commit;
 import org.apache.jackrabbit.mongomk.api.model.Node;
 import org.apache.jackrabbit.mongomk.impl.command.DefaultCommandExecutor;
 import org.apache.jackrabbit.mongomk.impl.model.CommitBuilder;
+import org.apache.jackrabbit.mongomk.model.CommitMongo;
+import org.apache.jackrabbit.mongomk.query.FetchCommitsQuery;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.junit.Assert;
 import org.junit.Test;
 
 public class ConcurrentCommitCommandMongoTest extends BaseMongoTest {
@@ -119,7 +123,7 @@ public class ConcurrentCommitCommandMongoTest extends BaseMongoTest {
                         break;
                     }
                 }
-                Assert.assertTrue(contained);
+                assertTrue(contained);
             }
             lastChildren.clear();
             for (Iterator<Node> it = root.getChildNodeEntries(0, -1); it.hasNext(); ) {
@@ -129,6 +133,9 @@ public class ConcurrentCommitCommandMongoTest extends BaseMongoTest {
             }
         }
 
-        // FIXME Assert the number of commits
+        // Assert number of successful commits.
+        FetchCommitsQuery query = new FetchCommitsQuery(mongoConnection);
+        List<CommitMongo> commits = query.execute();
+        assertEquals(numOfConcurrentThreads + 1, commits.size());
     }
 }
