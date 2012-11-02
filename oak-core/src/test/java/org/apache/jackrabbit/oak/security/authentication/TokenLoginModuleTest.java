@@ -24,19 +24,12 @@ import javax.security.auth.login.Configuration;
 import javax.security.auth.login.LoginException;
 
 import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
-import org.apache.jackrabbit.oak.AbstractOakTest;
-import org.apache.jackrabbit.oak.Oak;
-import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
+import org.apache.jackrabbit.oak.security.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.security.authentication.token.TokenLoginModule;
-import org.apache.jackrabbit.oak.security.authentication.token.TokenProviderImpl;
-import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenInfo;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -45,35 +38,28 @@ import static org.junit.Assert.fail;
 /**
  * LoginTest...
  */
-public class TokenLoginModuleTest extends AbstractOakTest {
-
-    SecurityProvider securityProvider = new SecurityProviderImpl();
-    ContentSession admin;
-
-    @Before
-    public void before() throws Exception {
-        super.before();
-
-        admin = createAdminSession();
-        Configuration.setConfiguration(new TokenConfiguration());
-    }
-
-    @After
-    public void after() throws Exception {
-        Configuration.setConfiguration(null);
-        admin.close();
-    }
+public class TokenLoginModuleTest extends AbstractSecurityTest {
 
     @Override
-    protected ContentRepository createRepository() {
-        return new Oak(createMicroKernelWithInitialContent()).with(securityProvider).createContentRepository();
+    protected Configuration getConfiguration() {
+        return new Configuration() {
+            @Override
+            public AppConfigurationEntry[] getAppConfigurationEntry(String s) {
+                AppConfigurationEntry defaultEntry = new AppConfigurationEntry(
+                        TokenLoginModule.class.getName(),
+                        AppConfigurationEntry.LoginModuleControlFlag.REQUIRED,
+                        Collections.<String, Object>emptyMap());
+
+                return new AppConfigurationEntry[] {defaultEntry};
+            }
+        };
     }
 
     @Test
     public void testNullLogin() throws Exception {
         ContentSession cs = null;
         try {
-            cs = getContentRepository().login(null, null);
+            cs = login(null);
             fail("Null login should fail");
         } catch (LoginException e) {
             // success
@@ -88,8 +74,24 @@ public class TokenLoginModuleTest extends AbstractOakTest {
     public void testGuestLogin() throws Exception {
         ContentSession cs = null;
         try {
-            cs = getContentRepository().login(new GuestCredentials(), null);
+            cs = login(new GuestCredentials());
             fail("GuestCredentials login should fail");
+        } catch (LoginException e) {
+            // success
+        } finally {
+            if (cs != null) {
+                cs.close();
+            }
+        }
+    }
+
+    @Test
+    public void testSimpleCredentials() throws Exception {
+        ContentSession cs = null;
+        try {
+            SimpleCredentials sc = new SimpleCredentials("admin", "admin".toCharArray());
+            cs = login(sc);
+            fail("Unsupported credentials login should fail");
         } catch (LoginException e) {
             // success
         } finally {
@@ -104,9 +106,9 @@ public class TokenLoginModuleTest extends AbstractOakTest {
         ContentSession cs = null;
         try {
             SimpleCredentials sc = new SimpleCredentials("test", new char[0]);
-            sc.setAttribute(TokenProviderImpl.TOKEN_ATTRIBUTE, "");
+            sc.setAttribute(".token", "");
 
-            cs = getContentRepository().login(sc, null);
+            cs = login(sc);
             fail("Unsupported credentials login should fail");
         } catch (LoginException e) {
             // success
@@ -121,7 +123,7 @@ public class TokenLoginModuleTest extends AbstractOakTest {
     public void testInvalidTokenCredentials() throws Exception {
         ContentSession cs = null;
         try {
-            cs = getContentRepository().login(new TokenCredentials("invalid"), null);
+            cs = login(new TokenCredentials("invalid"));
             fail("Invalid token credentials login should fail");
         } catch (LoginException e) {
             // success
@@ -135,30 +137,17 @@ public class TokenLoginModuleTest extends AbstractOakTest {
     @Test
     public void testValidTokenCredentials() throws Exception {
         Root root = admin.getLatestRoot();
-        TokenProvider tp = securityProvider.getTokenProvider(root);
+        TokenProvider tp = getSecurityProvider().getTokenProvider(root);
 
         SimpleCredentials sc = (SimpleCredentials) getAdminCredentials();
         TokenInfo info = tp.createToken(sc.getUserID(), Collections.<String, Object>emptyMap());
 
-        ContentSession cs = getContentRepository().login(new TokenCredentials(info.getToken()), null);
+        ContentSession cs = login(new TokenCredentials(info.getToken()));
         try {
             assertEquals(sc.getUserID(), cs.getAuthInfo().getUserID());
         } finally {
             cs.close();
         }
 
-    }
-
-    private class TokenConfiguration extends Configuration {
-
-        @Override
-        public AppConfigurationEntry[] getAppConfigurationEntry(String s) {
-            AppConfigurationEntry defaultEntry = new AppConfigurationEntry(
-                    TokenLoginModule.class.getName(),
-                    AppConfigurationEntry.LoginModuleControlFlag.REQUIRED,
-                    Collections.<String, Object>emptyMap());
-
-            return new AppConfigurationEntry[] {defaultEntry};
-        }
     }
 }

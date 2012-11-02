@@ -18,21 +18,39 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.value.Conversions;
+import org.apache.jackrabbit.oak.plugins.value.Conversions.Converter;
 
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 
-public class StringPropertyState extends SinglePropertyState {
+public class StringPropertyState extends SinglePropertyState<String> {
     private final String value;
 
-    protected StringPropertyState(String name, String value) {
+    public StringPropertyState(String name, String value) {
         super(name);
         this.value = value;
     }
 
+    /**
+     * Create a {@code PropertyState} from a string.
+     * @param name  The name of the property state
+     * @param value  The value of the property state
+     * @return  The new property state of type {@link Type#STRING}
+     */
+    public static PropertyState stringProperty(String name, String value) {
+        return new StringPropertyState(name, value);
+    }
+
     @Override
-    protected String getString() {
+    public String getValue() {
         return value;
+    }
+
+    @Override
+    public Converter getConverter() {
+        return Conversions.convert(value);
     }
 
     @Override

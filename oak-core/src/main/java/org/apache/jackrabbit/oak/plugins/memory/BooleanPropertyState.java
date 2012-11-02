@@ -18,27 +18,39 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.value.Conversions;
+import org.apache.jackrabbit.oak.plugins.value.Conversions.Converter;
 
-import static org.apache.jackrabbit.oak.api.Type.*;
+import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
 
-public class BooleanPropertyState extends SinglePropertyState {
+public class BooleanPropertyState extends SinglePropertyState<Boolean> {
     private final boolean value;
 
-    protected BooleanPropertyState(String name, boolean value) {
+    public BooleanPropertyState(String name, boolean value) {
         super(name);
         this.value = value;
     }
 
-    @Override
-    protected String getString() {
-        return Conversions.convert(value).toString();
+    /**
+     * Create a {@code PropertyState} from a boolean.
+     * @param name  The name of the property state
+     * @param value  The value of the property state
+     * @return  The new property state of type {@link Type#BOOLEAN}
+     */
+    public static PropertyState booleanProperty(String name, boolean value) {
+        return new BooleanPropertyState(name, value);
     }
 
     @Override
-    protected boolean getBoolean() {
+    public Boolean getValue() {
         return value;
+    }
+
+    @Override
+    public Converter getConverter() {
+        return Conversions.convert(value);
     }
 
     @Override

@@ -100,14 +100,14 @@ public class MongoMKCommitMoveTest extends BaseMongoMicroKernelTest {
     public void moveNodeWithProperties() throws Exception {
         mk.commit("/", "+\"a\" : { \"key1\" : \"value1\" }", null, null);
         assertTrue(mk.nodeExists("/a", null));
-        String nodes = mk.getNodes("/", null, -1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        String nodes = mk.getNodes("/", null, 1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
         JSONObject obj = parseJSONObject(nodes);
         assertPropertyValue(obj, "a/key1", "value1");
 
         mk.commit("/", ">\"a\" : \"c\"", null, null);
         assertFalse(mk.nodeExists("/a", null));
         assertTrue(mk.nodeExists("/c", null));
-        nodes = mk.getNodes("/", null, -1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        nodes = mk.getNodes("/", null, 1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
         obj = parseJSONObject(nodes);
         assertPropertyValue(obj, "c/key1", "value1");
     }
@@ -222,7 +222,7 @@ public class MongoMKCommitMoveTest extends BaseMongoMicroKernelTest {
         assertFalse(mk.nodeExists("/a", null));
         assertTrue(mk.nodeExists("/c", null));
 
-        String nodes = mk.getNodes("/", null, -1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        String nodes = mk.getNodes("/", null, 1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
         JSONObject obj = parseJSONObject(nodes);
         assertPropertyValue(obj, "c/key1", "value1");
     }
@@ -238,7 +238,7 @@ public class MongoMKCommitMoveTest extends BaseMongoMicroKernelTest {
         assertTrue(mk.nodeExists("/c", null));
         assertTrue(mk.nodeExists("/c/b", null));
 
-        String nodes = mk.getNodes("/", null, -1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        String nodes = mk.getNodes("/", null, 2 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
         JSONObject obj = parseJSONObject(nodes);
         assertPropertyValue(obj, "c/b/key1", "value1");
     }
@@ -254,7 +254,7 @@ public class MongoMKCommitMoveTest extends BaseMongoMicroKernelTest {
         assertTrue(mk.nodeExists("/b", null));
         assertTrue(mk.nodeExists("/c", null));
 
-        String nodes = mk.getNodes("/", null, -1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        String nodes = mk.getNodes("/", null, 1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
         JSONObject obj = parseJSONObject(nodes);
         assertPropertyValue(obj, "c/key1", "value1");
     }
@@ -270,7 +270,7 @@ public class MongoMKCommitMoveTest extends BaseMongoMicroKernelTest {
         assertTrue(mk.nodeExists("/c", null));
         assertTrue(mk.nodeExists("/c/b", null));
 
-        String nodes = mk.getNodes("/", null, -1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        String nodes = mk.getNodes("/", null, 1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
         JSONObject obj = parseJSONObject(nodes);
         assertPropertyNotExists(obj, "c/b/key1");
     }
@@ -284,7 +284,7 @@ public class MongoMKCommitMoveTest extends BaseMongoMicroKernelTest {
         assertFalse(mk.nodeExists("/a", null));
         assertTrue(mk.nodeExists("/c", null));
 
-        String nodes = mk.getNodes("/", null, -1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        String nodes = mk.getNodes("/", null, 1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
         JSONObject obj = parseJSONObject(nodes);
         assertPropertyNotExists(obj, "c/key1");
     }
@@ -300,7 +300,7 @@ public class MongoMKCommitMoveTest extends BaseMongoMicroKernelTest {
         assertTrue(mk.nodeExists("/b", null));
         assertTrue(mk.nodeExists("/c", null));
 
-        String nodes = mk.getNodes("/", null, -1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        String nodes = mk.getNodes("/", null, 1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
         JSONObject obj = parseJSONObject(nodes);
         assertPropertyNotExists(obj, "c/key1");
     }

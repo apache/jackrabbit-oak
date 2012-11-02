@@ -25,6 +25,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 
+import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 
 /**
@@ -76,6 +77,10 @@ public abstract class ReadWriteNamespaceRegistry
             Root root = getWriteRoot();
             Tree namespaces =
                     getOrCreate(root, JcrConstants.JCR_SYSTEM, REP_NAMESPACES);
+            if (!namespaces.hasProperty(JcrConstants.JCR_PRIMARYTYPE)) {
+                namespaces.setProperty(JcrConstants.JCR_PRIMARYTYPE,
+                        JcrConstants.NT_UNSTRUCTURED, NAME);
+            }
             // remove existing mapping to given uri
             for (PropertyState p : namespaces.getProperties()) {
                 if (!p.isArray() && p.getValue(STRING).equals(uri)) {

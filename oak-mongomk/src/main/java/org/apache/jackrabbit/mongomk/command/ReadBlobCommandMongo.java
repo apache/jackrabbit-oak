@@ -19,7 +19,7 @@ package org.apache.jackrabbit.mongomk.command;
 import java.io.InputStream;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.jackrabbit.mongomk.api.command.AbstractCommand;
+import org.apache.jackrabbit.mongomk.api.command.DefaultCommand;
 import org.apache.jackrabbit.mongomk.impl.MongoConnection;
 
 import com.mongodb.BasicDBObject;
@@ -27,21 +27,31 @@ import com.mongodb.gridfs.GridFS;
 import com.mongodb.gridfs.GridFSDBFile;
 
 /**
+ * {@code Command} for {@code MongoMicroKernel#read(String, long, byte[], int, int)}
  * FIXME - Reading from large blobs with small increments is slow in this implementation.
  * See if this could be improved with some kind of cache mechanism.
  */
-public class ReadBlobCommandMongo extends AbstractCommand<Integer> {
+public class ReadBlobCommandMongo extends DefaultCommand<Integer> {
 
-    private final MongoConnection mongoConnection;
     private final String blobId;
     private final long blobOffset;
     private final byte[] buffer;
     private final int bufferOffset;
     private final int length;
 
+    /**
+     * Constructs a new {@code ReadBlobCommandMongo}.
+     *
+     * @param mongoConnection Mongo connection.
+     * @param blobId Blob id.
+     * @param blobOffset Blob offset.
+     * @param buffer Buffer.
+     * @param bufferOffset Buffer offset.
+     * @param length Length.
+     */
     public ReadBlobCommandMongo(MongoConnection mongoConnection, String blobId,
             long blobOffset, byte[] buffer, int bufferOffset, int length) {
-        this.mongoConnection = mongoConnection;
+        super(mongoConnection);
         this.blobId = blobId;
         this.blobOffset = blobOffset;
         this.buffer = buffer;

@@ -220,14 +220,22 @@ public class NodeMongo extends BasicDBObject {
         StringBuilder sb = new StringBuilder();
         sb.append(super.toString());
         sb.deleteCharAt(sb.length() - 1);
-        sb.append(", addedChildren : ");
-        sb.append(addedChildren);
-        sb.append(", removedChildren : ");
-        sb.append(removedChildren);
-        sb.append(", addedProps : ");
-        sb.append(addedProps);
-        sb.append(", removedProps : ");
-        sb.append(removedProps);
+        if (addedChildren != null && !addedChildren.isEmpty()) {
+            sb.append(", addedChildren : ");
+            sb.append(addedChildren);
+        }
+        if (removedChildren != null && !removedChildren.isEmpty()) {
+            sb.append(", removedChildren : ");
+            sb.append(removedChildren);
+        }
+        if (addedProps != null && !addedProps.isEmpty()) {
+            sb.append(", addedProps : ");
+            sb.append(addedProps);
+        }
+        if (removedProps != null && !removedProps.isEmpty()) {
+            sb.append(", removedProps : ");
+            sb.append(removedProps);
+        }
         sb.append(" }");
         return sb.toString();
     }

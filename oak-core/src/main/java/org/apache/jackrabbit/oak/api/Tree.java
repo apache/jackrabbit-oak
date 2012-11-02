@@ -51,6 +51,10 @@ import javax.annotation.Nonnull;
  * The data returned by this class and intermediary objects such as
  * {@link PropertyState} is filtered for the access rights that are set in the
  * {@link ContentSession} that created the {@link Root} of this object.
+ * <p>
+ * All tree instances created in the context of a content session become invalid
+ * after the content session is closed. Any method called on an invalid tree instance
+ * will throw an {@code InvalidStateException}.
  */
 public interface Tree {
 

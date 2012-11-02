@@ -28,6 +28,7 @@ import org.apache.jackrabbit.mongomk.impl.MongoConnection;
 import org.apache.jackrabbit.mongomk.model.CommitMongo;
 import org.apache.jackrabbit.mongomk.model.HeadMongo;
 import org.apache.jackrabbit.mongomk.model.NodeMongo;
+import org.apache.jackrabbit.mongomk.util.MongoUtil;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.junit.Assert;
 
@@ -42,10 +43,11 @@ public class MongoAssert {
 
     private static MongoConnection mongoConnection;
 
-    public static void assertCommitContainsAffectedPaths(Long revisionId, String... expectedPaths) {
+    public static void assertCommitContainsAffectedPaths(String revisionId,
+            String... expectedPaths) throws Exception {
         DBCollection commitCollection = mongoConnection.getCommitCollection();
         DBObject query = QueryBuilder.start(CommitMongo.KEY_REVISION_ID)
-                .is(revisionId).get();
+                .is(MongoUtil.toMongoRepresentation(revisionId)).get();
         CommitMongo result = (CommitMongo) commitCollection.findOne(query);
         Assert.assertNotNull(result);
 
@@ -75,10 +77,11 @@ public class MongoAssert {
         Assert.assertEquals(revisionId, result.getNextRevisionId());
     }
 
-    public static void assertNodeRevisionId(String path, Long revisionId, boolean exists) {
+    public static void assertNodeRevisionId(String path, String revisionId,
+            boolean exists) throws Exception {
         DBCollection nodeCollection = mongoConnection.getNodeCollection();
         DBObject query = QueryBuilder.start(NodeMongo.KEY_PATH).is(path).and(NodeMongo.KEY_REVISION_ID)
-                .is(revisionId).get();
+                .is(MongoUtil.toMongoRepresentation(revisionId)).get();
         NodeMongo nodeMongo = (NodeMongo) nodeCollection.findOne(query);
 
         if (exists) {

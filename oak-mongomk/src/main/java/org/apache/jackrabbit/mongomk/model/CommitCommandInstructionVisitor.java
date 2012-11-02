@@ -261,11 +261,13 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
         query.setBranchId(branchId);
         query.setFetchDescendants(false);
         List<NodeMongo> nodes = query.execute();
+
         if (!nodes.isEmpty()) {
             node = nodes.get(0);
             node.removeField("_id");
             pathNodeMap.put(path, node);
         }
+
         return node;
     }
 

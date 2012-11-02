@@ -4,6 +4,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
 
+import org.apache.jackrabbit.mk.json.JsopBuilder;
 import org.apache.jackrabbit.mk.model.tree.AbstractChildNode;
 import org.apache.jackrabbit.mk.model.tree.AbstractNodeState;
 import org.apache.jackrabbit.mk.model.tree.AbstractPropertyState;
@@ -54,8 +55,14 @@ public class MongoNodeState extends AbstractNodeState {
                     @Override
                     public PropertyState next() {
                         Map.Entry<String, Object> entry = iterator.next();
-                        return new SimplePropertyState(
-                                entry.getKey(), entry.getValue().toString());
+                        Object value = entry.getValue();
+                        String valueStr = null;
+                        if (value instanceof String) {
+                            valueStr = JsopBuilder.encode(value.toString());
+                        } else {
+                            valueStr = value.toString();
+                        }
+                        return new SimplePropertyState(entry.getKey(), valueStr);
                     }
                     @Override
                     public void remove() {

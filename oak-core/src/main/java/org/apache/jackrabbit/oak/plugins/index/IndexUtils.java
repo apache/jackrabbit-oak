@@ -72,7 +72,7 @@ public class IndexUtils implements IndexConstants {
         if (typeFilter != null && !typeFilter.equals(type)) {
             return null;
         }
-        return new IndexDefinitionImpl(name, type, concat(path, name), ns);
+        return new IndexDefinitionImpl(name, type, concat(path, name));
     }
 
 }

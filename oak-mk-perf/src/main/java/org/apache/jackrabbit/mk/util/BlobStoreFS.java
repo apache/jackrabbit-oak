@@ -19,7 +19,7 @@ package org.apache.jackrabbit.mk.util;
 import java.io.File;
 import java.io.InputStream;
 
-import org.apache.jackrabbit.mongomk.api.BlobStore;
+import org.apache.jackrabbit.mk.blobs.BlobStore;
 
 public class BlobStoreFS implements BlobStore {
 

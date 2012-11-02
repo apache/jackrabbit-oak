@@ -94,8 +94,9 @@ public interface NodeStore {
      * @param path optional path filter; if {@code null} or {@code ""} the default
      *  ({@code "/"}) will be assumed, i.e. no filter will be applied
      * @return a list of revisions in chronological order in JSON format.
+     * @throws Exception if an error occurred while getting the revision history.
      */
-    String getRevisionHistory(long since, int maxEntries, String path);
+    String getRevisionHistory(long since, int maxEntries, String path) throws Exception;;
 
     /**
      * @see MicroKernel#getNodes(String, String, int, long, int, String)

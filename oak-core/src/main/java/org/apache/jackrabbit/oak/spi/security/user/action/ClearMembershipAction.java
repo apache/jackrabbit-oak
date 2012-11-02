@@ -18,25 +18,27 @@ package org.apache.jackrabbit.oak.spi.security.user.action;
 
 import java.util.Iterator;
 import javax.jcr.RepositoryException;
-import javax.jcr.Session;
 
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
+import org.apache.jackrabbit.oak.api.Root;
 
 /**
  * Authorizable action attempting to clear all group membership before removing
- * the specified authorizable. If {@link Group#removeMember(org.apache.jackrabbit.api.security.user.Authorizable)}
- * fails due to lack of permissions {@link #onRemove(org.apache.jackrabbit.api.security.user.Authorizable, javax.jcr.Session)}
+ * the specified authorizable. If {@link Group#removeMember(Authorizable)}
+ * fails due to lack of permissions {@link #onRemove(Authorizable, Root)}
  * throws an exception and removing the specified authorizable will be aborted.
  */
 public class ClearMembershipAction extends AbstractAuthorizableAction {
 
     //-------------------------------------------------< AuthorizableAction >---
-    /**
-     * @see AuthorizableAction#onRemove(org.apache.jackrabbit.api.security.user.Authorizable, javax.jcr.Session)
-     */
     @Override
-    public void onRemove(Authorizable authorizable, Session session) throws RepositoryException {
+    public void onRemove(Authorizable authorizable, Root root) throws RepositoryException {
+        clearMembership(authorizable);
+    }
+
+    //--------------------------------------------------------------------------
+    private static void clearMembership(Authorizable authorizable) throws RepositoryException {
         Iterator<Group> membership = authorizable.declaredMemberOf();
         while (membership.hasNext()) {
             membership.next().removeMember(authorizable);

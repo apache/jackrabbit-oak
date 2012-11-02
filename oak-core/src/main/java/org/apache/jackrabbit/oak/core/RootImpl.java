@@ -18,15 +18,18 @@
  */
 package org.apache.jackrabbit.oak.core;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
-
 import javax.annotation.Nonnull;
 import javax.security.auth.Subject;
 
-import org.apache.jackrabbit.oak.spi.observation.ChangeExtractor;
+import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.api.BlobFactory;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.SessionQueryEngine;
@@ -34,18 +37,18 @@ import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.plugins.commit.DefaultConflictHandler;
 import org.apache.jackrabbit.oak.query.SessionQueryEngineImpl;
 import org.apache.jackrabbit.oak.spi.commit.ConflictHandler;
+import org.apache.jackrabbit.oak.spi.observation.ChangeExtractor;
 import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.CompiledPermissions;
 import org.apache.jackrabbit.oak.spi.security.authorization.OpenAccessControlProvider;
+import org.apache.jackrabbit.oak.spi.security.principal.SystemPrincipal;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -53,7 +56,6 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 
 public class RootImpl implements Root {
-    static final Logger log = LoggerFactory.getLogger(RootImpl.class);
 
     /**
      * Number of {@link #purge()} calls for which changes are kept in memory.
@@ -130,23 +132,32 @@ public class RootImpl implements Root {
 
     public RootImpl(NodeStore store) {
         this.store = checkNotNull(store);
-        this.subject = new Subject();
+        // TODO review again (see also comment in RepositoryCallback)
+        this.subject = new Subject(true, Collections.singleton(SystemPrincipal.INSTANCE), Collections.<Object>emptySet(), Collections.<Object>emptySet());
         this.accProvider = new OpenAccessControlProvider();
         this.indexProvider = new CompositeQueryIndexProvider();
         refresh();
     }
 
-    public void setConflictHandler(ConflictHandler conflictHandler) {
+    void setConflictHandler(ConflictHandler conflictHandler) {
         this.conflictHandler = conflictHandler;
     }
 
-    public ConflictHandler getConflictHandler() {
-        return conflictHandler;
+    /**
+     * Called whenever a method on this instance or on any {@code Tree} instance
+     * obtained from this {@code Root} is called. This default implementation
+     * does nothing. Sub classes may override this method and throw an exception
+     * indicating that this {@code Root} instance is not live anymore (e.g. because
+     * the session has been logged out already).
+     */
+    protected void checkLive() {
+
     }
 
     //---------------------------------------------------------------< Root >---
     @Override
     public boolean move(String sourcePath, String destPath) {
+        checkLive();
         TreeImpl source = rootTree.getTree(sourcePath);
         if (source == null) {
             return false;
@@ -163,28 +174,41 @@ public class RootImpl implements Root {
 
         purgePendingChanges();
         source.moveTo(destParent, destName);
-        return branch.move(sourcePath, destPath);
+        boolean success = branch.move(sourcePath, destPath);
+        if (success) {
+            getTree(getParentPath(sourcePath)).updateChildOrder();
+            getTree(getParentPath(destPath)).updateChildOrder();
+        }
+        return success;
     }
 
     @Override
     public boolean copy(String sourcePath, String destPath) {
+        checkLive();
         purgePendingChanges();
-        return branch.copy(sourcePath, destPath);
+        boolean success = branch.copy(sourcePath, destPath);
+        if (success) {
+            getTree(getParentPath(destPath)).updateChildOrder();
+        }
+        return success;
     }
 
     @Override
     public TreeImpl getTree(String path) {
+        checkLive();
         return rootTree.getTree(path);
     }
 
     @Override
     public TreeLocation getLocation(String path) {
+        checkLive();
         checkArgument(path.startsWith("/"));
         return rootTree.getLocation().getChild(path.substring(1));
     }
 
     @Override
     public void rebase() {
+        checkLive();
         if (!store.getRoot().equals(rootTree.getBaseState())) {
             purgePendingChanges();
             NodeState base = getBaseState();
@@ -196,12 +220,14 @@ public class RootImpl implements Root {
 
     @Override
     public final void refresh() {
+        checkLive();
         branch = store.branch();
         rootTree = TreeImpl.createRoot(this);
     }
 
     @Override
     public void commit() throws CommitFailedException {
+        checkLive();
         rebase();
         purgePendingChanges();
         CommitFailedException exception = Subject.doAs(
@@ -240,11 +266,13 @@ public class RootImpl implements Root {
 
     @Override
     public boolean hasPendingChanges() {
+        checkLive();
         return !getBaseState().equals(rootTree.getNodeState());
     }
 
     @Nonnull
     public ChangeExtractor getChangeExtractor() {
+        checkLive();
         return new ChangeExtractor() {
             private NodeState baseLine = store.getRoot();
 
@@ -259,7 +287,20 @@ public class RootImpl implements Root {
 
     @Override
     public SessionQueryEngine getQueryEngine() {
+        checkLive();
         return new SessionQueryEngineImpl(store, indexProvider);
+    }
+
+    @Nonnull
+    @Override
+    public BlobFactory getBlobFactory() {
+        return new BlobFactory() {
+            @Override
+            public Blob createBlob(InputStream inputStream) throws IOException {
+                checkLive();
+                return store.createBlob(inputStream);
+            }
+        };
     }
 
     //-----------------------------------------------------------< internal >---

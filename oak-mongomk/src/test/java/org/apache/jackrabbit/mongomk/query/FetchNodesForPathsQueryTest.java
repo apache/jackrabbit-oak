@@ -31,7 +31,6 @@ import org.apache.jackrabbit.mongomk.impl.builder.NodeBuilder;
 import org.apache.jackrabbit.mongomk.impl.model.CommitBuilder;
 import org.apache.jackrabbit.mongomk.model.CommitMongo;
 import org.apache.jackrabbit.mongomk.model.NodeMongo;
-import org.apache.jackrabbit.mongomk.scenario.SimpleNodeScenario;
 import org.junit.Test;
 
 import com.mongodb.BasicDBObject;

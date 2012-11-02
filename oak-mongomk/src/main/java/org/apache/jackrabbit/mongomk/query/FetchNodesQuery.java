@@ -115,14 +115,10 @@ public class FetchNodesQuery extends AbstractQuery<List<NodeMongo>> {
             DBObject query = new BasicDBObject(NodeMongo.KEY_BRANCH_ID, new BasicDBObject("$exists", false));
             queryBuilder = queryBuilder.and(query);
         } else {
-            // FIXME - The idea here is to not only return nodes in the branch
-            // but also return nodes before the branch was created.
-            FetchHeadBranchRevisionIdQuery query = new FetchHeadBranchRevisionIdQuery(mongoConnection, branchId);
-            long headBranchRevisionId = 0L;
-            try {
-                headBranchRevisionId = query.execute();
-            } catch (Exception e) {
-            }
+            // Not only return nodes in the branch but also nodes in the trunk
+            // before the branch was created.
+            FetchBranchBaseRevisionIdQuery query = new FetchBranchBaseRevisionIdQuery(mongoConnection, branchId);
+            long headBranchRevisionId = query.execute();
 
             DBObject branchQuery = QueryBuilder.start().or(
                     QueryBuilder.start(NodeMongo.KEY_BRANCH_ID).is(branchId).get(),

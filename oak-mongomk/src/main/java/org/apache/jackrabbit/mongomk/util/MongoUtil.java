@@ -19,7 +19,11 @@ package org.apache.jackrabbit.mongomk.util;
 import java.util.Arrays;
 
 import com.mongodb.DB;
+
+import org.apache.jackrabbit.mk.model.tree.NodeState;
+import org.apache.jackrabbit.mongomk.api.model.Node;
 import org.apache.jackrabbit.mongomk.impl.MongoConnection;
+import org.apache.jackrabbit.mongomk.impl.model.tree.MongoNodeState;
 import org.apache.jackrabbit.mongomk.model.CommitMongo;
 import org.apache.jackrabbit.mongomk.model.HeadMongo;
 import org.apache.jackrabbit.mongomk.model.NodeMongo;
@@ -29,7 +33,8 @@ import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
 
 /**
- * Utility class for preparing the {@code MongoDB} environment.
+ * Utility class for preparing the {@code MongoDB} environment and other MongoMK
+ * specific utility functionality.
  */
 public class MongoUtil {
 
@@ -122,7 +127,26 @@ public class MongoUtil {
         return String.valueOf(revisionId);
     }
 
-    public static Long toMongoRepresentation(String revisionId) {
-        return revisionId != null? Long.parseLong(revisionId) : null;
+    public static Long toMongoRepresentation(String revisionId) throws Exception {
+        if (revisionId == null) {
+            return null;
+        }
+        try {
+            return Long.parseLong(revisionId);
+        } catch (NumberFormatException e) {
+            throw new Exception("Invalid revision id: " + revisionId);
+        }
+    }
+
+    public static NodeState wrap(Node node) {
+        return node != null? new MongoNodeState(node) : null;
+    }
+
+    public static String adjustPath(String path) {
+        return (path == null || path.isEmpty()) ? "/" : path;
+    }
+
+    public static boolean isFiltered(String path) {
+        return !"/".equals(path);
     }
 }

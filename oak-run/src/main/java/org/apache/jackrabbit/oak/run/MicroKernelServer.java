@@ -18,20 +18,20 @@ package org.apache.jackrabbit.oak.run;
 
 import java.net.InetAddress;
 
-import org.apache.jackrabbit.mk.MicroKernelFactory;
 import org.apache.jackrabbit.mk.api.MicroKernel;
+import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.mk.server.Server;
 
 public class MicroKernelServer {
 
     public static void main(String[] args) throws Exception {
         if (args.length == 0) {
-            System.out.format("usage: %s microkernel-url [port] [bindaddr]%n",
+            System.out.format("usage: %s /path/to/mk [port] [bindaddr]%n",
                     MicroKernelServer.class.getName());
             return;
         }
 
-        final MicroKernel mk = MicroKernelFactory.getInstance(args[0]);
+        final MicroKernelImpl mk = new MicroKernelImpl(args[0]);
 
         final Server server = new Server(mk);
         if (args.length >= 2) {
@@ -48,7 +48,7 @@ public class MicroKernelServer {
             @Override
             public void run() {
                 server.stop();
-                MicroKernelFactory.disposeInstance(mk);
+                mk.dispose();
             }
         }, "ShutdownHook"));
     }

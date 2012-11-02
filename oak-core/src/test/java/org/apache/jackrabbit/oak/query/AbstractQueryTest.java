@@ -32,7 +32,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.oak.AbstractOakTest;
+import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Result;
@@ -41,15 +41,15 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.SessionQueryEngine;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
-import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
-import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -57,26 +57,23 @@ import static org.junit.Assert.fail;
 /**
  * AbstractQueryTest...
  */
-public abstract class AbstractQueryTest extends AbstractOakTest implements
-        IndexConstants {
+public abstract class AbstractQueryTest {
 
     protected static final String TEST_INDEX_NAME = "test-index";
-    protected static final String TEST_INDEX_HOME = DEFAULT_INDEX_HOME;
-    protected static final String INDEX_DEFINITION_NODE_TYPE = "nam:oak:queryIndexDefinition";
 
     protected SessionQueryEngine qe;
     protected ContentSession session;
     protected Root root;
 
-    @Override
     @Before
     public void before() throws Exception {
-        super.before();
-        session = createAdminSession();
+        session = createRepository().login(null, null);
         root = session.getLatestRoot();
         qe = root.getQueryEngine();
         createTestIndexNode();
     }
+
+    protected abstract ContentRepository createRepository();
 
     /**
      * Override this method to add your default index definition
@@ -91,18 +88,10 @@ public abstract class AbstractQueryTest extends AbstractOakTest implements
 
     protected static Tree createTestIndexNode(Tree index, String type)
             throws Exception {
-        Tree indexDef = index;
-        for (String p : PathUtils.elements(TEST_INDEX_HOME)) {
-            if (indexDef.hasChild(p)) {
-                indexDef = indexDef.getChild(p);
-            } else {
-                indexDef = indexDef.addChild(p);
-            }
-        }
-        indexDef = indexDef.addChild(INDEX_DEFINITIONS_NAME).addChild(
+        Tree indexDef = index.addChild(INDEX_DEFINITIONS_NAME).addChild(
                 TEST_INDEX_NAME);
         indexDef.setProperty(JcrConstants.JCR_PRIMARYTYPE,
-                INDEX_DEFINITION_NODE_TYPE);
+                INDEX_DEFINITIONS_NODE_TYPE, Type.NAME);
         indexDef.setProperty(TYPE_PROPERTY_NAME, type);
         indexDef.setProperty(REINDEX_PROPERTY_NAME, true);
         return indexDef;
@@ -112,10 +101,6 @@ public abstract class AbstractQueryTest extends AbstractOakTest implements
             Map<String, PropertyValue> sv) throws ParseException {
         return qe.executeQuery(statement, language, Long.MAX_VALUE, 0, sv,
                 session.getLatestRoot(), null);
-    }
-
-    protected SecurityProvider getSecurityProvider() {
-        return new OpenSecurityProvider();
     }
 
     @Test
@@ -135,7 +120,7 @@ public abstract class AbstractQueryTest extends AbstractOakTest implements
 
     @Test
     @Ignore("OAK-336")
-    public void sql2_measure() throws Exception {
+    public void sql2Measure() throws Exception {
         test("sql2_measure.txt");
     }
 

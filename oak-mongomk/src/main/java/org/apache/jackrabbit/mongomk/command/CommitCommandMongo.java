@@ -22,9 +22,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.jackrabbit.mongomk.api.command.AbstractCommand;
+import org.apache.jackrabbit.mongomk.api.command.DefaultCommand;
 import org.apache.jackrabbit.mongomk.api.instruction.Instruction;
 import org.apache.jackrabbit.mongomk.api.model.Commit;
+import org.apache.jackrabbit.mongomk.command.exception.ConflictingCommitException;
 import org.apache.jackrabbit.mongomk.impl.MongoConnection;
 import org.apache.jackrabbit.mongomk.model.CommitCommandInstructionVisitor;
 import org.apache.jackrabbit.mongomk.model.CommitMongo;
@@ -46,14 +47,13 @@ import com.mongodb.QueryBuilder;
 import com.mongodb.WriteResult;
 
 /**
- * A {@code Command} for committing into {@code MongoDB}.
+ * {@code Command} for {@code MongoMicroKernel#commit(String, String, String, String)}
  */
-public class CommitCommandMongo extends AbstractCommand<Long> {
+public class CommitCommandMongo extends DefaultCommand<Long> {
 
     private static final Logger logger = LoggerFactory.getLogger(CommitCommandMongo.class);
 
     private final Commit commit;
-    private final MongoConnection mongoConnection;
 
     private Set<String> affectedPaths;
     private CommitMongo commitMongo;
@@ -70,7 +70,7 @@ public class CommitCommandMongo extends AbstractCommand<Long> {
      * @param commit {@link Commit}
      */
     public CommitCommandMongo(MongoConnection mongoConnection, Commit commit) {
-        this.mongoConnection = mongoConnection;
+        super(mongoConnection);
         this.commit = commit;
     }
 

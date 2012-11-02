@@ -17,14 +17,11 @@
 package org.apache.jackrabbit.oak.core;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.Set;
-
 import javax.annotation.Nonnull;
 import javax.security.auth.login.LoginException;
 
 import org.apache.jackrabbit.oak.api.AuthInfo;
-import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.commit.ConflictHandler;
@@ -34,6 +31,8 @@ import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlProvide
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static com.google.common.base.Preconditions.checkState;
 
 /**
  * {@code MicroKernel}-based implementation of the {@link ContentSession} interface.
@@ -49,6 +48,8 @@ class ContentSessionImpl implements ContentSession {
     private final ConflictHandler conflictHandler;
     private final QueryIndexProvider indexProvider;
 
+    private volatile boolean live = true;
+
     public ContentSessionImpl(LoginContext loginContext,
             AccessControlProvider accProvider, String workspaceName,
             NodeStore store, ConflictHandler conflictHandler,
@@ -61,9 +62,15 @@ class ContentSessionImpl implements ContentSession {
         this.indexProvider = indexProvider;
     }
 
+    private void checkLive() {
+        checkState(live, "This session has been closed");
+    }
+
+    //-----------------------------------------------------< ContentSession >---
     @Nonnull
     @Override
     public AuthInfo getAuthInfo() {
+        checkLive();
         Set<AuthInfo> infoSet = loginContext.getSubject().getPublicCredentials(AuthInfo.class);
         if (infoSet.isEmpty()) {
             return AuthInfo.EMPTY;
@@ -72,33 +79,36 @@ class ContentSessionImpl implements ContentSession {
         }
     }
 
+    @Override
+    public String getWorkspaceName() {
+        return workspaceName;
+    }
+
     @Nonnull
     @Override
     public Root getLatestRoot() {
-        RootImpl root = new RootImpl(store, workspaceName, loginContext.getSubject(), accProvider, indexProvider);
+        checkLive();
+        RootImpl root = new RootImpl(store, workspaceName, loginContext.getSubject(), accProvider, indexProvider) {
+            @Override
+            protected void checkLive() {
+                ContentSessionImpl.this.checkLive();
+            }
+        };
         if (conflictHandler != null) {
             root.setConflictHandler(conflictHandler);
         }
         return root;
     }
 
-    @Override
-    public Blob createBlob(InputStream inputStream) throws IOException {
-        return store.createBlob(inputStream);
-    }
-
+    //-----------------------------------------------------------< Closable >---
     @Override
     public synchronized void close() throws IOException {
         try {
             loginContext.logout();
+            live = false;
         } catch (LoginException e) {
             log.error("Error during logout.", e);
         }
-    }
-
-    @Override
-    public String getWorkspaceName() {
-        return workspaceName;
     }
 
 }

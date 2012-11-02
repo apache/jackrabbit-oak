@@ -1,6 +1,7 @@
 package org.apache.jackrabbit.mongomk.impl;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -23,7 +24,7 @@ public class MongoMKCommitAddTest extends BaseMongoMicroKernelTest {
 
         String nodes = mk.getNodes("/", null, -1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
         JSONObject obj = parseJSONObject(nodes);
-        assertPropertyValue(obj, "a/:childNodeCount", 0L);
+        assertPropertyValue(obj, ":childNodeCount", 1L);
     }
 
     @Test
@@ -46,6 +47,21 @@ public class MongoMKCommitAddTest extends BaseMongoMicroKernelTest {
         assertTrue(mk.nodeExists("/a/b/c/d",null));
     }
 
+
+    @Test
+    public void addIntermediataryNodes() throws Exception {
+        String rev1 = mk.commit("/", "+\"a\" : { \"b\" : { \"c\": {} }}", null, null);
+        String rev2 = mk.commit("/", "+\"a/d\" : {} +\"a/b/e\" : {}", null, null);
+
+        assertTrue(mk.nodeExists("/a/b/c", rev1));
+        assertFalse(mk.nodeExists("/a/b/e", rev1));
+        assertFalse(mk.nodeExists("/a/d", rev1));
+
+        assertTrue(mk.nodeExists("/a/b/c", rev2));
+        assertTrue(mk.nodeExists("/a/b/e", rev2));
+        assertTrue(mk.nodeExists("/a/d", rev2));
+    }
+
     @Test
     public void addDuplicateNode() throws Exception {
         mk.commit("/", "+\"a\" : {}", null, null);
@@ -56,24 +72,35 @@ public class MongoMKCommitAddTest extends BaseMongoMicroKernelTest {
     }
 
     @Test
-    public void addSingleProperty() throws Exception {
+    public void setSingleProperty() throws Exception {
         mk.commit("/", "+\"a\" : {} ^\"a/key1\" : \"value1\"", null, null);
 
         long childCount = mk.getChildNodeCount("/", null);
         assertEquals(1, childCount);
 
-        String nodes = mk.getNodes("/", null, -1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        String nodes = mk.getNodes("/", null, 1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
         JSONObject obj = parseJSONObject(nodes);
-        assertPropertyValue(obj, "a/:childNodeCount", 0L);
+        assertPropertyValue(obj, ":childNodeCount", 1L);
         assertPropertyValue(obj, "a/key1", "value1");
     }
 
     @Test
-    public void addPropertyWithoutAddingNode() throws Exception {
-        try {
-            mk.commit("/", "+\"a/key1\" : \"value1\"", null, null);
-            fail("Exception expected");
-        } catch (Exception expected) {}
+    public void setMultipleProperties() throws Exception {
+        mk.commit("/", "+\"a\" : {} ^\"a/key1\" : \"value1\"", null, null);
+        mk.commit("/", "^\"a/key2\" : 2", null, null);
+        mk.commit("/", "^\"a/key3\" : false", null, null);
+        mk.commit("/", "^\"a/key4\" : 0.25", null, null);
+
+        long childCount = mk.getChildNodeCount("/", null);
+        assertEquals(1, childCount);
+
+        String nodes = mk.getNodes("/", null, 1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        JSONObject obj = parseJSONObject(nodes);
+        assertPropertyValue(obj, ":childNodeCount", 1L);
+        assertPropertyValue(obj, "a/key1", "value1");
+        assertPropertyValue(obj, "a/key2", 2L);
+        assertPropertyValue(obj, "a/key3", false);
+        assertPropertyValue(obj, "a/key4", 0.25);
     }
 
     @Test

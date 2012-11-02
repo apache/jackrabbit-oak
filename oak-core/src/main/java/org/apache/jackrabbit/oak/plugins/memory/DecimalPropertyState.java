@@ -18,37 +18,39 @@ package org.apache.jackrabbit.oak.plugins.memory;
 
 import java.math.BigDecimal;
 
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.value.Conversions;
+import org.apache.jackrabbit.oak.plugins.value.Conversions.Converter;
 
-import static org.apache.jackrabbit.oak.api.Type.*;
+import static org.apache.jackrabbit.oak.api.Type.DECIMAL;
 
-public class DecimalPropertyState extends SinglePropertyState {
+public class DecimalPropertyState extends SinglePropertyState<BigDecimal> {
     private final BigDecimal value;
 
-    protected DecimalPropertyState(String name, BigDecimal value) {
+    public DecimalPropertyState(String name, BigDecimal value) {
         super(name);
         this.value = value;
     }
 
+    /**
+     * Create a {@code PropertyState} from a decimal.
+     * @param name  The name of the property state
+     * @param value  The value of the property state
+     * @return  The new property state of type {@link Type#DECIMAL}
+     */
+    public static PropertyState decimalProperty(String name, BigDecimal value) {
+        return new DecimalPropertyState(name, value);
+    }
+
     @Override
-    public BigDecimal getDecimal() {
+    public BigDecimal getValue() {
         return value;
     }
 
     @Override
-    public double getDouble() {
-        return Conversions.convert(value).toDouble();
-    }
-
-    @Override
-    public long getLong() {
-        return Conversions.convert(value).toLong();
-    }
-
-    @Override
-    public String getString() {
-        return Conversions.convert(value).toString();
+    public Converter getConverter() {
+        return Conversions.convert(value);
     }
 
     @Override

@@ -16,35 +16,31 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.buildIndexDefinitions;
-
-import java.util.ArrayList;
-import java.util.List;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.plugins.index.IndexDefinition;
-import org.apache.jackrabbit.oak.spi.commit.CommitHook;
-import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
+import org.apache.jackrabbit.oak.plugins.index.IndexHook;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
-public class LuceneHook implements CommitHook, LuceneIndexConstants {
+/**
+ * {@link IndexHook} implementation that is responsible for keeping the
+ * {@link LuceneIndex} up to date
+ * 
+ * @see LuceneIndex
+ * 
+ */
+public class LuceneHook implements IndexHook {
 
-    private final String indexConfigPath;
+    private final NodeBuilder builder;
 
-    public LuceneHook(String indexConfigPath) {
-        this.indexConfigPath = indexConfigPath;
+    public LuceneHook(NodeBuilder builder) {
+        this.builder = builder;
     }
 
     @Override
     public NodeState processCommit(NodeState before, NodeState after)
             throws CommitFailedException {
-        List<CommitHook> hooks = new ArrayList<CommitHook>();
-        List<IndexDefinition> indexDefinitions = buildIndexDefinitions(after,
-                indexConfigPath, TYPE_LUCENE);
-        for (IndexDefinition def : indexDefinitions) {
-            hooks.add(new LuceneEditor(def));
-        }
-        return CompositeHook.compose(hooks).processCommit(before, after);
+        new LuceneEditor(builder).processCommit(before, after);
+        return after;
     }
 
 }

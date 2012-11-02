@@ -16,15 +16,15 @@
  */
 package org.apache.jackrabbit.mongomk.impl.json;
 
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.jackrabbit.mk.json.JsopBuilder;
+import org.apache.jackrabbit.mk.model.tree.ChildNode;
+import org.apache.jackrabbit.mk.model.tree.NodeState;
+import org.apache.jackrabbit.mk.model.tree.PropertyState;
+import org.apache.jackrabbit.mk.util.NameFilter;
 import org.apache.jackrabbit.mk.util.NodeFilter;
-import org.apache.jackrabbit.mongomk.api.model.Node;
-import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -62,28 +62,14 @@ public class JsonUtil {
         return jsonObject;
     }
 
-    public static void toJson(JsopBuilder builder, Node node, int depth, int offset,
-            int maxChildNodes, boolean inclVirtualProps, NodeFilter filter) {
-        toJson(builder, node, depth, 0, offset, maxChildNodes, inclVirtualProps, filter);
-    }
+    // Most of this method borrowed from MicroKernelImpl#toJson. It'd be nice if
+    // this somehow consolidated with MicroKernelImpl#toJson.
+    public static void toJson(JsopBuilder builder, NodeState node, int depth,
+            int offset, int maxChildNodes, boolean inclVirtualProps, NodeFilter filter) {
 
-    private static void toJson(JsopBuilder builder, Node node, int depth,
-            int currentDepth, int offset, int maxChildNodes, boolean inclVirtualProps,
-            NodeFilter filter) {
-
-        builder.object();
-
-        Map<String, Object> properties = node.getProperties();
-        for (Map.Entry<String, Object> entry : properties.entrySet()) {
-            String key = entry.getKey();
-            if (filter == null || filter.includeProperty(key)) {
-                Object value = entry.getValue();
-                builder.key(key);
-                if (value instanceof String) {
-                    builder.value(value.toString());
-                } else {
-                    builder.encodedValue(value.toString());
-                }
+        for (PropertyState property : node.getProperties()) {
+            if (filter == null || filter.includeProperty(property.getName())) {
+                builder.key(property.getName()).encodedValue(property.getEncodedValue());
             }
         }
 
@@ -96,26 +82,61 @@ public class JsonUtil {
             }
         }
 
-        // FIXME Implement the optimization in MicroKernelImpl#toJson here.
+        if (childCount <= 0 || depth < 0) {
+            return;
+        }
 
-        Iterator<Node> entries = node.getChildNodeEntries(offset, maxChildNodes);
-        while (entries.hasNext()) {
-            Node child = entries.next();
-            int numSiblings = 0;
-            if (maxChildNodes != -1 && ++numSiblings > maxChildNodes) {
-                break;
-            }
-            String childName = PathUtils.getName(child.getPath());
-            builder.key(childName);
-            if ((depth == -1) || (currentDepth < depth)) {
-                toJson(builder, child, depth, currentDepth + 1, offset, maxChildNodes,
-                        inclVirtualProps, filter);
-            } else {
-                builder.object();
-                builder.endObject();
+        if (filter != null) {
+            NameFilter childFilter = filter.getChildNodeFilter();
+            if (childFilter != null && !childFilter.containsWildcard()) {
+                // Optimization for large child node lists:
+                // no need to iterate over the entire child node list if the filter
+                // does not include wildcards
+                int count = maxChildNodes == -1 ? Integer.MAX_VALUE : maxChildNodes;
+                for (String name : childFilter.getInclusionPatterns()) {
+                    NodeState child = node.getChildNode(name);
+                    if (child != null) {
+                        boolean incl = true;
+                        for (String exclName : childFilter.getExclusionPatterns()) {
+                            if (name.equals(exclName)) {
+                                incl = false;
+                                break;
+                            }
+                        }
+                        if (incl) {
+                            if (count-- <= 0) {
+                                break;
+                            }
+                            builder.key(name).object();
+                            if (depth > 0) {
+                                toJson(builder, child, depth - 1, 0, maxChildNodes, inclVirtualProps, filter);
+                            }
+                            builder.endObject();
+                        }
+                    }
+                }
+                return;
             }
         }
 
-        builder.endObject();
+        int count = maxChildNodes;
+        if (count != -1 && filter != null && filter.getChildNodeFilter() != null) {
+            // Specific maxChildNodes limit and child node filter
+            count = -1;
+        }
+        int numSiblings = 0;
+        for (ChildNode entry : node.getChildNodeEntries(offset, count)) {
+
+            if (filter == null || filter.includeNode(entry.getName())) {
+                if (maxChildNodes != -1 && ++numSiblings > maxChildNodes) {
+                    break;
+                }
+                builder.key(entry.getName()).object();
+                if (depth > 0) {
+                    toJson(builder, entry.getNode(), depth - 1, 0, maxChildNodes, inclVirtualProps, filter);
+                }
+                builder.endObject();
+            }
+        }
     }
 }

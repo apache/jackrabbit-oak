@@ -18,13 +18,11 @@ package org.apache.jackrabbit.oak.plugins.value;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Calendar;
 import java.util.List;
-
 import javax.jcr.Binary;
 import javax.jcr.Node;
 import javax.jcr.PropertyType;
@@ -35,34 +33,38 @@ import javax.jcr.ValueFormatException;
 
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.Blob;
-import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.api.BlobFactory;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.apache.jackrabbit.oak.plugins.memory.BinaryPropertyState;
+import org.apache.jackrabbit.oak.plugins.memory.BooleanPropertyState;
+import org.apache.jackrabbit.oak.plugins.memory.DecimalPropertyState;
+import org.apache.jackrabbit.oak.plugins.memory.DoublePropertyState;
+import org.apache.jackrabbit.oak.plugins.memory.GenericPropertyState;
+import org.apache.jackrabbit.oak.plugins.memory.LongPropertyState;
+import org.apache.jackrabbit.oak.plugins.memory.StringPropertyState;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.util.ISO8601;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Implementation of {@link ValueFactory} interface.
  */
 public class ValueFactoryImpl implements ValueFactory {
-    private static final Logger log = LoggerFactory.getLogger(ValueFactoryImpl.class);
 
-    private final ContentSession contentSession;
+    private final BlobFactory blobFactory;
     private final NamePathMapper namePathMapper;
 
     /**
      * Creates a new instance of {@code ValueFactory}.
      *
+     * @param blobFactory The factory for creation of binary values
      * @param namePathMapper The name/path mapping used for converting JCR names/paths to
      * the internal representation.
      */
-    public ValueFactoryImpl(ContentSession session, NamePathMapper namePathMapper) {
-        this.contentSession = session;
+    public ValueFactoryImpl(BlobFactory blobFactory, NamePathMapper namePathMapper) {
+        this.blobFactory = blobFactory;
         this.namePathMapper = namePathMapper;
     }
 
@@ -109,13 +111,13 @@ public class ValueFactoryImpl implements ValueFactory {
 
     @Override
     public Value createValue(String value) {
-        return new ValueImpl(PropertyStates.stringProperty("", value), namePathMapper);
+        return new ValueImpl(StringPropertyState.stringProperty("", value), namePathMapper);
     }
 
     @Override
     public Value createValue(InputStream value) {
         try {
-            return createValueImpl(value);
+            return createBinaryValue(value);
         } catch (IOException e) {
             return new ErrorValue(e, PropertyType.BINARY);
         }
@@ -124,14 +126,12 @@ public class ValueFactoryImpl implements ValueFactory {
     @Override
     public Value createValue(Binary value) {
         try {
-            ValueImpl binaryValue = null;
             if (value instanceof BinaryImpl) {
-                binaryValue = ((BinaryImpl) value).getBinaryValue();
+                // No need to create the value again if we have it already underlying the binary
+                return ((BinaryImpl) value).getBinaryValue();
+            } else {
+                return createBinaryValue(value.getStream());
             }
-            // No need to create the value again if we have it already underlying the binary
-            return binaryValue == null
-                ? createValueImpl(value.getStream())
-                : binaryValue;
         } catch (RepositoryException e) {
             return new ErrorValue(e, PropertyType.BINARY);
         } catch (IOException e) {
@@ -141,23 +141,22 @@ public class ValueFactoryImpl implements ValueFactory {
 
     @Override
     public Value createValue(long value) {
-        return new ValueImpl(PropertyStates.longProperty("", value), namePathMapper);
+        return new ValueImpl(LongPropertyState.createLongProperty("", value), namePathMapper);
     }
 
     @Override
     public Value createValue(double value) {
-        return new ValueImpl(PropertyStates.doubleProperty("", value), namePathMapper);
+        return new ValueImpl(DoublePropertyState.doubleProperty("", value), namePathMapper);
     }
 
     @Override
     public Value createValue(Calendar value) {
-        String dateStr = ISO8601.format(value);
-        return new ValueImpl(PropertyStates.dateProperty("", dateStr), namePathMapper);
+        return new ValueImpl(LongPropertyState.createDateProperty("", value), namePathMapper);
     }
 
     @Override
     public Value createValue(boolean value) {
-        return new ValueImpl(PropertyStates.booleanProperty("", value), namePathMapper);
+        return new ValueImpl(BooleanPropertyState.booleanProperty("", value), namePathMapper);
     }
 
     @Override
@@ -168,29 +167,27 @@ public class ValueFactoryImpl implements ValueFactory {
     @Override
     public Value createValue(Node value, boolean weak) throws RepositoryException {
         return weak
-            ? new ValueImpl(PropertyStates.weakreferenceProperty("", value.getUUID()), namePathMapper)
-            : new ValueImpl(PropertyStates.referenceProperty("", value.getUUID()), namePathMapper);
+            ? new ValueImpl(GenericPropertyState.weakreferenceProperty("", value.getUUID()), namePathMapper)
+            : new ValueImpl(GenericPropertyState.referenceProperty("", value.getUUID()), namePathMapper);
     }
 
     @Override
     public Value createValue(BigDecimal value) {
-        return new ValueImpl(PropertyStates.decimalProperty("", value), namePathMapper);
+        return new ValueImpl(DecimalPropertyState.decimalProperty("", value), namePathMapper);
     }
 
     @Override
     public Value createValue(String value, int type) throws ValueFormatException {
         if (value == null) {
-            throw new ValueFormatException();
+            throw new ValueFormatException("null");
         }
 
         try {
-            PropertyState pv;
             switch (type) {
                 case PropertyType.STRING:
                     return createValue(value);
                 case PropertyType.BINARY:
-                    pv = PropertyStates.binaryProperty("", value.getBytes("UTF-8"));
-                    break;
+                    return new ValueImpl(BinaryPropertyState.binaryProperty("", value), namePathMapper);
                 case PropertyType.LONG:
                     return createValue(Conversions.convert(value).toLong());
                 case PropertyType.DOUBLE:
@@ -199,8 +196,7 @@ public class ValueFactoryImpl implements ValueFactory {
                     if (ISO8601.parse(value) == null) {
                         throw new ValueFormatException("Invalid date " + value);
                     }
-                    pv = PropertyStates.dateProperty("", value);
-                    break;
+                    return new ValueImpl(LongPropertyState.createDateProperty("", value), namePathMapper);
                 case PropertyType.BOOLEAN:
                     return createValue(Conversions.convert(value).toBoolean());
                 case PropertyType.NAME:
@@ -208,8 +204,7 @@ public class ValueFactoryImpl implements ValueFactory {
                     if (oakName == null) {
                         throw new ValueFormatException("Invalid name: " + value);
                     }
-                    pv = PropertyStates.nameProperty("", oakName);
-                    break;
+                    return new ValueImpl(GenericPropertyState.nameProperty("", oakName), namePathMapper);
                 case PropertyType.PATH:
                     String oakValue = value;
                     if (value.startsWith("[") && value.endsWith("]")) {
@@ -220,35 +215,25 @@ public class ValueFactoryImpl implements ValueFactory {
                     if (oakValue == null) {
                         throw new ValueFormatException("Invalid path: " + value);
                     }
-                    pv = PropertyStates.pathProperty("", oakValue);
-                    break;
+                    return new ValueImpl(GenericPropertyState.pathProperty("", oakValue), namePathMapper);
                 case PropertyType.REFERENCE:
                     if (!IdentifierManager.isValidUUID(value)) {
                         throw new ValueFormatException("Invalid reference value " + value);
                     }
-                    pv = PropertyStates.referenceProperty("", value);
-                    break;
+                    return new ValueImpl(GenericPropertyState.referenceProperty("", value), namePathMapper);
                 case PropertyType.WEAKREFERENCE:
                     if (!IdentifierManager.isValidUUID(value)) {
                         throw new ValueFormatException("Invalid weak reference value " + value);
                     }
-                    pv = PropertyStates.weakreferenceProperty("", value);
-                    break;
+                    return new ValueImpl(GenericPropertyState.weakreferenceProperty("", value), namePathMapper);
                 case PropertyType.URI:
                     new URI(value);
-                    pv = PropertyStates.uriProperty("", value);
-                    break;
+                    return new ValueImpl(GenericPropertyState.uriProperty("", value), namePathMapper);
                 case PropertyType.DECIMAL:
                     return createValue(Conversions.convert(value).toDecimal());
                 default:
                     throw new ValueFormatException("Invalid type: " + type);
             }
-
-            return new ValueImpl(pv, namePathMapper);
-        } catch (UnsupportedEncodingException e) {
-            throw new ValueFormatException("Encoding UTF-8 not supported (this should not happen!)", e);
-        } catch (IOException e) {
-            throw new ValueFormatException(e);
         } catch (NumberFormatException e) {
             throw new ValueFormatException("Invalid value " + value + " for type " + PropertyType.nameFromValue(type), e);
         } catch (URISyntaxException e) {
@@ -259,16 +244,15 @@ public class ValueFactoryImpl implements ValueFactory {
     @Override
     public Binary createBinary(InputStream stream) throws RepositoryException {
         try {
-            return new BinaryImpl(createValueImpl(stream));
-        }
-        catch (IOException e) {
+            return new BinaryImpl(createBinaryValue(stream));
+        } catch (IOException e) {
             throw new RepositoryException(e);
         }
     }
 
-    private ValueImpl createValueImpl(InputStream value) throws IOException {
-        Blob blob = contentSession.createBlob(value);
-        return new ValueImpl(PropertyStates.binaryProperty("", blob), namePathMapper);
+    private ValueImpl createBinaryValue(InputStream value) throws IOException {
+        Blob blob = blobFactory.createBlob(value);
+        return new ValueImpl(BinaryPropertyState.binaryProperty("", blob), namePathMapper);
     }
 
     //------------------------------------------------------------< ErrorValue >---

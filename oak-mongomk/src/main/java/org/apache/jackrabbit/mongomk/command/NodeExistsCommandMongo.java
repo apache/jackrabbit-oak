@@ -16,17 +16,16 @@
  */
 package org.apache.jackrabbit.mongomk.command;
 
-import org.apache.jackrabbit.mongomk.api.command.AbstractCommand;
+import org.apache.jackrabbit.mongomk.api.command.DefaultCommand;
 import org.apache.jackrabbit.mongomk.api.model.Node;
 import org.apache.jackrabbit.mongomk.impl.MongoConnection;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 
 /**
- * A {@code Command} for determine whether a node exists from {@code MongoDB}.
+ * {@code Command} for {@code MongoMicroKernel#nodeExists(String, String)}
  */
-public class NodeExistsCommandMongo extends AbstractCommand<Boolean> {
+public class NodeExistsCommandMongo extends DefaultCommand<Boolean> {
 
-    private final MongoConnection mongoConnection;
     private final Long revisionId;
 
     private String branchId;
@@ -42,7 +41,7 @@ public class NodeExistsCommandMongo extends AbstractCommand<Boolean> {
      */
     public NodeExistsCommandMongo(MongoConnection mongoConnection, String path,
             Long revisionId) {
-        this.mongoConnection = mongoConnection;
+        super(mongoConnection);
         this.path = path;
         this.revisionId = revisionId;
     }
@@ -62,9 +61,13 @@ public class NodeExistsCommandMongo extends AbstractCommand<Boolean> {
             return true;
         }
 
-        // Check that all the paths up to the parent are valid.
+        // Check that all the paths up to the root actually exist.
+        return pathExists();
+    }
+
+    private boolean pathExists() throws Exception {
         while (!PathUtils.denotesRoot(path)) {
-            readParentNode();
+            readParentNode(revisionId, branchId);
             if (parentNode == null || !childExists()) {
                 return false;
             }
@@ -74,7 +77,7 @@ public class NodeExistsCommandMongo extends AbstractCommand<Boolean> {
         return true;
     }
 
-    private void readParentNode() throws Exception {
+    private void readParentNode(Long revisionId, String branchId) throws Exception {
         String parentPath = PathUtils.getParentPath(path);
         GetNodesCommandMongo command = new GetNodesCommandMongo(mongoConnection,
                 parentPath, revisionId);

@@ -57,7 +57,7 @@ class AuthorizableIterator implements Iterator {
         return new AuthorizableIterator(Iterators.filter(it, Predicates.<Object>notNull()), size);
     }
 
-    AuthorizableIterator(Iterator<Authorizable> authorizables, long size) {
+    private AuthorizableIterator(Iterator<Authorizable> authorizables, long size) {
         this.authorizables = authorizables;
         this.size = size;
     }

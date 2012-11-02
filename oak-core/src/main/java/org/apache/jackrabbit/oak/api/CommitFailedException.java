@@ -65,7 +65,7 @@ public class CommitFailedException extends Exception {
             throw e;
         }
         else {
-            throw new RepositoryException(cause);
+            throw new RepositoryException(this);
         }
     }
 }

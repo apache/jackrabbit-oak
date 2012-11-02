@@ -24,7 +24,6 @@ import java.util.List;
 import org.apache.jackrabbit.mongomk.BaseMongoTest;
 import org.apache.jackrabbit.mongomk.model.CommitMongo;
 import org.apache.jackrabbit.mongomk.query.FetchCommitsQuery;
-import org.apache.jackrabbit.mongomk.scenario.SimpleNodeScenario;
 import org.junit.Test;
 
 public class FetchValidCommitsQueryTest extends BaseMongoTest {
@@ -99,10 +98,8 @@ public class FetchValidCommitsQueryTest extends BaseMongoTest {
         int numberOfChildren = 2;
         scenario.addChildrenToA(numberOfChildren);
 
-        int maxEntries = 0;
         FetchCommitsQuery query = new FetchCommitsQuery(mongoConnection,
                 0L, Long.MAX_VALUE);
-        query.setMaxEntries(maxEntries);
         List<CommitMongo> commits = query.execute();
         assertEquals(SIMPLE_SCENARIO_COMMITS + numberOfChildren, commits.size());
     }

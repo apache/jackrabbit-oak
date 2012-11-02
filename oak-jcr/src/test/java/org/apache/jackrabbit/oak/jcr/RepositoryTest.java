@@ -27,7 +27,6 @@ import java.util.Calendar;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
@@ -180,7 +179,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
         assertTrue(same.isSame(node));
     }
 
-    @Ignore // FIXME OAK-369
+    @Ignore("OAK-369")
     @Test
     public void getNode3() throws RepositoryException {
         Node node = getNode("/foo");
@@ -206,7 +205,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
         assertTrue(node.isSame(node2));
     }
 
-    @Ignore //OAK-343
+    @Ignore("OAK-343")
     @Test
     public void getNodeByUUID() throws RepositoryException {
         Node node = getNode("/foo").addNode("boo");
@@ -1374,6 +1373,31 @@ public class RepositoryTest extends AbstractRepositoryTest {
     }
 
     @Test
+    public void moveReferenceable() throws RepositoryException {
+        Session session = getAdminSession();
+
+        Node node = getNode(TEST_PATH);
+        node.addNode("source").addNode("node").addMixin("mix:referenceable");
+        node.addNode("target");
+        session.save();
+
+        Node sourceNode = session.getNode(TEST_PATH + "/source/node");
+        session.refresh(true);
+        session.move(TEST_PATH + "/source/node", TEST_PATH + "/target/moved");
+        assertEquals("/test_node/target/moved", sourceNode.getPath());
+
+        assertFalse(node.hasNode("source/node"));
+        assertTrue(node.hasNode("source"));
+        assertTrue(node.hasNode("target/moved"));
+
+        session.save();
+
+        assertFalse(node.hasNode("source/node"));
+        assertTrue(node.hasNode("source"));
+        assertTrue(node.hasNode("target/moved"));
+    }
+
+    @Test
     public void workspaceMove() throws RepositoryException {
         Session session = getAdminSession();
 
@@ -1856,26 +1880,6 @@ public class RepositoryTest extends AbstractRepositoryTest {
         assertTrue(n2.hasProperty("p2"));
         assertFalse(c2.hasProperty("pc1"));
         assertTrue(c2.hasProperty("pc2"));
-    }
-
-    @Test
-    public void testUniqueness() throws RepositoryException {
-        Session session = getAdminSession();
-
-        Node node = getNode("/foo");
-        node.addMixin("mix:referenceable");
-        node.setProperty("jcr:uuid", UUID.randomUUID().toString());
-        session.save();
-
-        Node node2 = node.addNode("foo2");
-        node2.addMixin("mix:referenceable");
-        node2.setProperty("jcr:uuid", node.getProperty("jcr:uuid").getValue());
-        try {
-            session.save();
-            fail();
-        } catch (RepositoryException e) {
-            // expected
-        }
     }
 
     //------------------------------------------------------------< private >---

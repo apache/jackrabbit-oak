@@ -17,9 +17,6 @@
 package org.apache.jackrabbit.oak.api;
 
 import java.io.Closeable;
-import java.io.IOException;
-import java.io.InputStream;
-
 import javax.annotation.Nonnull;
 
 /**
@@ -84,13 +81,4 @@ public interface ContentSession extends Closeable {
      */
     @Nonnull
     Root getLatestRoot();
-
-    /**
-     * Create a {@link Blob} from the given input stream. The input stream
-     * is closed after this method returns.
-     * @param inputStream  The input stream for the {@code Blob}
-     * @return  The {@code Blob} representing {@code inputStream}
-     * @throws IOException  If an error occurs while reading from the stream
-     */
-    Blob createBlob(InputStream inputStream) throws IOException;
 }

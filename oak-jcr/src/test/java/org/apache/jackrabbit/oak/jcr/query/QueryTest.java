@@ -46,7 +46,11 @@ public class QueryTest extends AbstractRepositoryTest {
         Session session = getAdminSession();
         Node hello = session.getRootNode().addNode("hello");
         hello.setProperty("id",  "1");
-        hello.setProperty("text",  "hello world");
+        hello.setProperty("text",  "hello_world");
+        session.save();
+        Node hello2 = session.getRootNode().addNode("hello2");
+        hello2.setProperty("id",  "2");
+        hello2.setProperty("text",  "hello world");
         session.save();
 
         ValueFactory vf = session.getValueFactory();
@@ -61,7 +65,7 @@ public class QueryTest extends AbstractRepositoryTest {
         RowIterator it = r.getRows();
         assertTrue(it.hasNext());
         Row row = it.nextRow();
-        assertEquals("hello world", row.getValue("text").getString());
+        assertEquals("hello_world", row.getValue("text").getString());
         String[] columns = r.getColumnNames();
         assertEquals(1, columns.length);
         assertEquals("text", columns[0]);
@@ -71,19 +75,24 @@ public class QueryTest extends AbstractRepositoryTest {
         NodeIterator nodeIt = r.getNodes();
         assertTrue(nodeIt.hasNext());
         Node n = nodeIt.nextNode();
-        assertEquals("hello world", n.getProperty("text").getString());
+        assertEquals("hello_world", n.getProperty("text").getString());
         assertFalse(it.hasNext());
 
         // SQL
 
-        q = qm.createQuery("select text from [nt:base] where id = 1", Query.SQL);
+        q = qm.createQuery("select text from [nt:base] where text like 'hello\\_world' escape '\\'", Query.SQL);
         r = q.execute();
         columns = r.getColumnNames();
         assertEquals(3, columns.length);
         assertEquals("text", columns[0]);
         assertEquals("jcr:path", columns[1]);
         assertEquals("jcr:score", columns[2]);
-
+        nodeIt = r.getNodes();
+        assertTrue(nodeIt.hasNext());
+        n = nodeIt.nextNode();
+        assertEquals("hello_world", n.getProperty("text").getString());
+        assertFalse(nodeIt.hasNext());
+        
         // XPath
 
         q = qm.createQuery("//*[@id=1]", Query.XPATH);
@@ -101,7 +110,12 @@ public class QueryTest extends AbstractRepositoryTest {
         Node hello1 = session.getRootNode().addNode("hello1");
         hello1.setProperty("id",  "1");
         hello1.setProperty("data",  "x");
-        Node hello2 = session.getRootNode().addNode("hello2");
+        session.save();
+        Node hello3 = hello1.addNode("hello3");
+        hello3.setProperty("id",  "3");
+        hello3.setProperty("data",  "z");
+        session.save();
+        Node hello2 = hello3.addNode("hello2");
         hello2.setProperty("id",  "2");
         hello2.setProperty("data",  "y");
         session.save();
@@ -109,15 +123,15 @@ public class QueryTest extends AbstractRepositoryTest {
         QueryManager qm = session.getWorkspace().getQueryManager();
         Query q = qm.createQuery("select id from [nt:base] where data >= $data order by id", Query.JCR_SQL2);
         q.bindValue("data", vf.createValue("x"));
-        for (int i = -1; i < 4; i++) {
+        for (int i = -1; i < 5; i++) {
             QueryResult r = q.execute();
             RowIterator it = r.getRows();
-            assertEquals(2, r.getRows().getSize());
-            assertEquals(2, r.getNodes().getSize());
+            assertEquals(3, r.getRows().getSize());
+            assertEquals(3, r.getNodes().getSize());
             Row row;
             try {
                 it.skip(i);
-                assertTrue(i >= 0 && i <= 2);
+                assertTrue(i >= 0 && i <= 3);
             } catch (IllegalArgumentException e) {
                 assertEquals(-1, i);
             } catch (NoSuchElementException e) {
@@ -133,7 +147,52 @@ public class QueryTest extends AbstractRepositoryTest {
                 row = it.nextRow();
                 assertEquals("2", row.getValue("id").getString());
             }
+            if (i <= 2) {
+                assertTrue(it.hasNext());
+                row = it.nextRow();
+                assertEquals("3", row.getValue("id").getString());
+            }
             assertFalse(it.hasNext());
+        }
+    }
+    
+    @Test
+    public void limit() throws RepositoryException {
+        Session session = getAdminSession();
+        Node hello1 = session.getRootNode().addNode("hello1");
+        hello1.setProperty("id",  "1");
+        hello1.setProperty("data",  "x");
+        session.save();
+        Node hello3 = session.getRootNode().addNode("hello3");
+        hello3.setProperty("id",  "3");
+        hello3.setProperty("data",  "z");
+        session.save();
+        Node hello2 = session.getRootNode().addNode("hello2");
+        hello2.setProperty("id",  "2");
+        hello2.setProperty("data",  "y");
+        session.save();
+        ValueFactory vf = session.getValueFactory();
+        QueryManager qm = session.getWorkspace().getQueryManager();
+        Query q = qm.createQuery("select id from [nt:base] where data >= $data order by id", Query.JCR_SQL2);
+        q.bindValue("data", vf.createValue("x"));
+        for (int limit = 0; limit < 5; limit++) {
+            q.setLimit(limit);
+            for (int offset = 0; offset < 3; offset++) {
+                q.setOffset(offset);
+                QueryResult r = q.execute();
+                RowIterator it = r.getRows();
+                int l = Math.min(Math.max(0, 3 - offset), limit);
+                assertEquals(l, r.getRows().getSize());
+                assertEquals(l, r.getNodes().getSize());
+                Row row;
+                
+                for (int x = offset + 1, i = 0; i < limit && x < 4; i++, x++) {
+                    assertTrue(it.hasNext());
+                    row = it.nextRow();
+                    assertEquals("" + x, row.getValue("id").getString());
+                }
+                assertFalse(it.hasNext());
+            }
         }
     }
 

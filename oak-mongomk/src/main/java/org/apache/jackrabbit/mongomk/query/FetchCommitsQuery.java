@@ -40,7 +40,7 @@ import com.mongodb.QueryBuilder;
  */
 public class FetchCommitsQuery extends AbstractQuery<List<CommitMongo>> {
 
-    private static final int LIMITLESS = 0;
+    private static final int LIMITLESS = -1;
     private static final Logger LOG = LoggerFactory.getLogger(FetchCommitsQuery.class);
 
     private long fromRevisionId = -1;
@@ -102,6 +102,9 @@ public class FetchCommitsQuery extends AbstractQuery<List<CommitMongo>> {
 
     @Override
     public List<CommitMongo> execute() {
+        if (maxEntries == 0) {
+            return Collections.emptyList();
+        }
         DBCursor dbCursor = fetchListOfValidCommits();
         return convertToCommits(dbCursor);
     }
@@ -122,7 +125,7 @@ public class FetchCommitsQuery extends AbstractQuery<List<CommitMongo>> {
 
         LOG.debug(String.format("Executing query: %s", query));
 
-        return commitCollection.find(query).limit(maxEntries);
+        return maxEntries > 0? commitCollection.find(query).limit(maxEntries) : commitCollection.find(query);
     }
 
     private List<CommitMongo> convertToCommits(DBCursor dbCursor) {

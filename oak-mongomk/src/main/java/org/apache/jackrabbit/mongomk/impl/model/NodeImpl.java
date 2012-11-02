@@ -93,6 +93,10 @@ public class NodeImpl implements Node {
         return new RangeIterator<Node>(childEntries.values().iterator(), offset, count);
     }
 
+    public void removeChildNodeEntry(String name) {
+        childEntries.remove(name);
+    }
+
     public void addProperty(String key, Object value) {
         properties.put(key, value);
     }

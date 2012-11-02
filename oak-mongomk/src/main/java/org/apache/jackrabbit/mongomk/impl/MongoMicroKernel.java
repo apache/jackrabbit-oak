@@ -21,22 +21,24 @@ import java.util.UUID;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
+import org.apache.jackrabbit.mk.blobs.BlobStore;
 import org.apache.jackrabbit.mk.json.JsopBuilder;
 import org.apache.jackrabbit.mk.util.NodeFilter;
-import org.apache.jackrabbit.mongomk.api.BlobStore;
 import org.apache.jackrabbit.mongomk.api.NodeStore;
 import org.apache.jackrabbit.mongomk.api.model.Commit;
 import org.apache.jackrabbit.mongomk.api.model.Node;
 import org.apache.jackrabbit.mongomk.impl.json.JsonUtil;
 import org.apache.jackrabbit.mongomk.impl.model.CommitBuilder;
 import org.apache.jackrabbit.mongomk.impl.model.CommitImpl;
+import org.apache.jackrabbit.mongomk.impl.model.tree.MongoNodeState;
 import org.apache.jackrabbit.mongomk.util.MongoUtil;
 
 /**
  * The {@code MongoDB} implementation of the {@link MicroKernel}.
  *
  * <p>
- * This class will transform and delegate to instances of {@link NodeStore} and {@link BlobStore}.
+ * This class will transform and delegate to instances of {@link NodeStore} and
+ * {@link BlobStore}.
  * </p>
  */
 public class MongoMicroKernel implements MicroKernel {
@@ -60,8 +62,8 @@ public class MongoMicroKernel implements MicroKernel {
         String revId = trunkRevisionId == null ? getHeadRevision() : trunkRevisionId;
 
         try {
-            CommitImpl commit = (CommitImpl)CommitBuilder.build(MongoUtil.INITIAL_COMMIT_PATH,
-                    MongoUtil.INITIAL_COMMIT_DIFF, revId, MongoUtil.INITIAL_COMMIT_MESSAGE);
+            CommitImpl commit = (CommitImpl)CommitBuilder.build("",
+                    "", revId, MongoUtil.INITIAL_COMMIT_MESSAGE);
             commit.setBranchId(UUID.randomUUID().toString());
             return nodeStore.commit(commit);
         } catch (Exception e) {
@@ -71,16 +73,12 @@ public class MongoMicroKernel implements MicroKernel {
 
     @Override
     public String commit(String path, String jsonDiff, String revisionId, String message) throws MicroKernelException {
-        String newRevisionId = null;
-
         try {
             Commit commit = CommitBuilder.build(path, jsonDiff, revisionId, message);
-            newRevisionId = nodeStore.commit(commit);
+            return nodeStore.commit(commit);
         } catch (Exception e) {
             throw new MicroKernelException(e);
         }
-
-        return newRevisionId;
     }
 
     @Override
@@ -94,36 +92,29 @@ public class MongoMicroKernel implements MicroKernel {
     }
 
     @Override
-    public long getChildNodeCount(String path, String revisionId) throws MicroKernelException {
-        long childNodeCount = 0L;
-
+    public long getChildNodeCount(String path, String revisionId)
+            throws MicroKernelException {
+        Node node;
         try {
-            String revId = null;
-            if (revisionId != null) {
-                revId = new String(revisionId);
-            }
-            Node rootOfPath = nodeStore.getNodes(path, revId, 0, 0, -1, null);
-            if (rootOfPath != null) {
-                childNodeCount = rootOfPath.getChildNodeCount();
-            }
+            node = nodeStore.getNodes(path, revisionId, 0, 0, -1, null);
         } catch (Exception e) {
             throw new MicroKernelException(e);
         }
-
-        return childNodeCount;
+        if (node != null) {
+            return node.getChildNodeCount();
+        } else {
+            throw new MicroKernelException("Path " + path + " not found in revision "
+                    + revisionId);
+        }
     }
 
     @Override
     public String getHeadRevision() throws MicroKernelException {
-        String headRevisionId = null;
-
         try {
-            headRevisionId = nodeStore.getHeadRevision();
+            return nodeStore.getHeadRevision();
         } catch (Exception e) {
             throw new MicroKernelException(e);
         }
-
-        return headRevisionId;
     }
 
     @Override
@@ -138,15 +129,11 @@ public class MongoMicroKernel implements MicroKernel {
 
     @Override
     public long getLength(String blobId) throws MicroKernelException {
-        long length = -1;
-
         try {
-            length = blobStore.getBlobLength(blobId);
+            return blobStore.getBlobLength(blobId);
         } catch (Exception e) {
             throw new MicroKernelException(e);
         }
-
-        return length;
     }
 
     @Override
@@ -166,21 +153,27 @@ public class MongoMicroKernel implements MicroKernel {
                 return null;
             }
 
-            JsopBuilder builder = new JsopBuilder();
-            JsonUtil.toJson(builder, rootNode, depth, (int)offset, maxChildNodes, true, nodeFilter);
-            return builder.toString();
+            JsopBuilder builder = new JsopBuilder().object();
+            JsonUtil.toJson(builder, new MongoNodeState(rootNode), depth, (int)offset, maxChildNodes, true, nodeFilter);
+            return builder.endObject().toString();
         } catch (Exception e) {
             throw new MicroKernelException(e);
         }
     }
 
     @Override
-    public String getRevisionHistory(long since, int maxEntries, String path) throws MicroKernelException {
-        return nodeStore.getRevisionHistory(since, maxEntries, path);
+    public String getRevisionHistory(long since, int maxEntries, String path)
+            throws MicroKernelException {
+        try {
+            return nodeStore.getRevisionHistory(since, maxEntries, path);
+        } catch (Exception e) {
+            throw new MicroKernelException(e);
+        }
     }
 
     @Override
-    public String merge(String branchRevisionId, String message) throws MicroKernelException {
+    public String merge(String branchRevisionId, String message)
+            throws MicroKernelException {
         try {
             return nodeStore.merge(branchRevisionId, message);
         } catch (Exception e) {
@@ -190,33 +183,26 @@ public class MongoMicroKernel implements MicroKernel {
 
     @Override
     public boolean nodeExists(String path, String revisionId) throws MicroKernelException {
-        boolean exists = false;
-
         try {
-            exists = nodeStore.nodeExists(path, revisionId);
+            return nodeStore.nodeExists(path, revisionId);
         } catch (Exception e) {
             throw new MicroKernelException(e);
         }
-
-        return exists;
     }
 
     @Override
-    public int read(String blobId, long pos, byte[] buff, int off, int length) throws MicroKernelException {
-        int totalBytes = -1;
-
+    public int read(String blobId, long pos, byte[] buff, int off, int length)
+            throws MicroKernelException {
         try {
-            totalBytes = blobStore.readBlob(blobId, pos, buff, off, length);
+            return blobStore.readBlob(blobId, pos, buff, off, length);
         } catch (Exception e) {
             throw new MicroKernelException(e);
         }
-
-        return totalBytes;
     }
 
     @Override
-    public String waitForCommit(String oldHeadRevisionId, long timeout) throws MicroKernelException,
-            InterruptedException {
+    public String waitForCommit(String oldHeadRevisionId, long timeout)
+            throws MicroKernelException, InterruptedException {
         try {
             return nodeStore.waitForCommit(oldHeadRevisionId, timeout);
         } catch (Exception e) {
@@ -226,14 +212,10 @@ public class MongoMicroKernel implements MicroKernel {
 
     @Override
     public String write(InputStream in) throws MicroKernelException {
-        String blobId = null;
-
         try {
-            blobId = blobStore.writeBlob(in);
+            return blobStore.writeBlob(in);
         } catch (Exception e) {
             throw new MicroKernelException(e);
         }
-
-        return blobId;
     }
 }
