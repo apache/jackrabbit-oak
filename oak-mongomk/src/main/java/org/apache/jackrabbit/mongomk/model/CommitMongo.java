@@ -22,23 +22,21 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.jackrabbit.mongomk.api.instruction.Instruction;
+import org.apache.jackrabbit.mongomk.api.instruction.Instruction.AddNodeInstruction;
 import org.apache.jackrabbit.mongomk.api.model.Commit;
-import org.apache.jackrabbit.mongomk.api.model.Instruction;
-import org.apache.jackrabbit.mongomk.api.model.Instruction.AddNodeInstruction;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 
 import com.mongodb.BasicDBObject;
 
 /**
  * The {@code MongoDB} representation of a commit.
- *
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
  */
-@SuppressWarnings("javadoc")
 public class CommitMongo extends BasicDBObject {
 
     public static final String KEY_AFFECTED_PATH = "affPaths";
     public static final String KEY_BASE_REVISION_ID = "baseRevId";
+    public static final String KEY_BRANCH_ID = "branchId";
     public static final String KEY_DIFF = "diff";
     public static final String KEY_FAILED = "failed";
     public static final String KEY_MESSAGE = "msg";
@@ -62,6 +60,11 @@ public class CommitMongo extends BasicDBObject {
         Long revisionId = commit.getRevisionId();
         if (revisionId != null) {
             commitMongo.setRevisionId(revisionId);
+        }
+
+        String branchId = commit.getBranchId();
+        if (branchId != null) {
+            commitMongo.setBranchId(branchId);
         }
 
         commitMongo.setTimestamp(commit.getTimestamp());
@@ -88,63 +91,71 @@ public class CommitMongo extends BasicDBObject {
         return (List<String>) get(KEY_AFFECTED_PATH);
     }
 
-    public long getBaseRevisionId() {
-        return getLong(KEY_BASE_REVISION_ID);
-    }
-
-    public String getDiff() {
-        return getString(KEY_DIFF);
-    }
-
-    public String getMessage() {
-        return getString(KEY_MESSAGE);
-    }
-
-    public String getPath() {
-        return getString(KEY_PATH);
-    }
-
-    public long getRevisionId() {
-        return getLong(KEY_REVISION_ID);
-    }
-
-    public boolean hasFailed() {
-        return getBoolean(KEY_FAILED);
-    }
-
     public void setAffectedPaths(List<String> affectedPaths) {
         put(KEY_AFFECTED_PATH, affectedPaths);
+    }
+
+    public long getBaseRevId() {
+        return getLong(KEY_BASE_REVISION_ID);
     }
 
     public void setBaseRevId(long baseRevisionId) {
         put(KEY_BASE_REVISION_ID, baseRevisionId);
     }
 
+    public String getBranchId() {
+        return getString(KEY_BRANCH_ID);
+    }
+
+    public void setBranchId(String branchId) {
+        put(KEY_BRANCH_ID, branchId);
+    }
+
+    public String getDiff() {
+        return getString(KEY_DIFF);
+    }
+
     public void setDiff(String diff) {
         put(KEY_DIFF, diff);
     }
 
-    public void setFailed() {
-        put(KEY_FAILED, Boolean.TRUE);
+    public String getMessage() {
+        return getString(KEY_MESSAGE);
     }
 
     public void setMessage(String message) {
         put(KEY_MESSAGE, message);
     }
 
+    public String getPath() {
+        return getString(KEY_PATH);
+    }
+
     public void setPath(String path) {
         put(KEY_PATH, path);
+    }
+
+    public long getRevisionId() {
+        return getLong(KEY_REVISION_ID);
     }
 
     public void setRevisionId(long revisionId) {
         put(KEY_REVISION_ID, revisionId);
     }
 
-    public void setTimestamp(long timestamp) {
-        put(KEY_TIMESTAMP, timestamp);
+    public boolean isFailed() {
+        return getBoolean(KEY_FAILED);
+    }
+
+    public void setFailed() {
+        put(KEY_FAILED, Boolean.TRUE);
     }
 
     public Long getTimestamp() {
         return getLong(KEY_TIMESTAMP);
+    }
+
+    public void setTimestamp(long timestamp) {
+        put(KEY_TIMESTAMP, timestamp);
     }
 }

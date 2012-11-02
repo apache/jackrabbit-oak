@@ -21,11 +21,11 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.jackrabbit.mongomk.MongoConnection;
-import org.apache.jackrabbit.mongomk.NodeStoreMongo;
 import org.apache.jackrabbit.mongomk.api.BlobStore;
 import org.apache.jackrabbit.mongomk.api.NodeStore;
+import org.apache.jackrabbit.mongomk.impl.MongoConnection;
 import org.apache.jackrabbit.mongomk.impl.MongoMicroKernel;
+import org.apache.jackrabbit.mongomk.impl.NodeStoreMongo;
 import org.apache.jackrabbit.mongomk.impl.json.DefaultJsopHandler;
 import org.apache.jackrabbit.mongomk.impl.json.JsopParser;
 import org.apache.jackrabbit.mongomk.perf.RandomJsopGenerator.RandomJsop;
@@ -39,9 +39,6 @@ import com.mongodb.BasicDBObject;
 import com.mongodb.DBCollection;
 import com.mongodb.WriteConcern;
 
-/**
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
- */
 public class MicroKernelPerfClient {
 
     private static class Stats extends BasicDBObject {

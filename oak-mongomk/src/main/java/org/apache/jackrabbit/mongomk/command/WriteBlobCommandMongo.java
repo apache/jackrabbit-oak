@@ -21,7 +21,7 @@ import java.io.IOException;
 import java.io.InputStream;
 
 import org.apache.commons.codec.digest.DigestUtils;
-import org.apache.jackrabbit.mongomk.api.command.AbstractCommand;
+import org.apache.jackrabbit.mongomk.api.command.DefaultCommand;
 import org.apache.jackrabbit.mongomk.impl.MongoConnection;
 
 import com.mongodb.BasicDBObject;
@@ -29,13 +29,21 @@ import com.mongodb.gridfs.GridFS;
 import com.mongodb.gridfs.GridFSDBFile;
 import com.mongodb.gridfs.GridFSInputFile;
 
-public class WriteBlobCommandMongo extends AbstractCommand<String> {
+/**
+ * {@code Command} for {@code MongoMicroKernel#write(InputStream)}
+ */
+public class WriteBlobCommandMongo extends DefaultCommand<String> {
 
-    private final MongoConnection mongoConnection;
     private final InputStream is;
 
+    /**
+     * Constructs a {@code WriteBlobCommandMongo}
+     *
+     * @param mongoConnection Mongo connection.
+     * @param is Input stream.
+     */
     public WriteBlobCommandMongo(MongoConnection mongoConnection, InputStream is) {
-        this.mongoConnection = mongoConnection;
+        super(mongoConnection);
         this.is = is;
     }
 

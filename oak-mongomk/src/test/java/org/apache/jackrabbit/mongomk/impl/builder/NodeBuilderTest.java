@@ -22,11 +22,6 @@ import org.apache.jackrabbit.mongomk.impl.builder.NodeBuilder;
 import org.apache.jackrabbit.mongomk.impl.model.NodeImpl;
 import org.junit.Test;
 
-
-/**
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
- */
-@SuppressWarnings("javadoc")
 public class NodeBuilderTest {
 
     @Test
@@ -34,10 +29,13 @@ public class NodeBuilderTest {
         String json = "{ \"/\" : { \"a\" : { \"b\" : {} , \"c\" : {} } } }";
         Node node = NodeBuilder.build(json);
 
-        Node node_c = new NodeImpl("/a/c");
-        Node node_b = new NodeImpl("/a/b");
-        Node node_a = new NodeImpl("/a", new Node[] { node_b, node_c });
-        Node node_root = new NodeImpl("/", new Node[] { node_a });
+        NodeImpl node_c = new NodeImpl("/a/c");
+        NodeImpl node_b = new NodeImpl("/a/b");
+        NodeImpl node_a = new NodeImpl("/a");
+        node_a.addChildNodeEntry(node_b);
+        node_a.addChildNodeEntry(node_c);
+        NodeImpl node_root = new NodeImpl("/");
+        node_root.addChildNodeEntry(node_a);
 
         NodeAssert.assertDeepEquals(node, node_root);
     }
@@ -47,13 +45,19 @@ public class NodeBuilderTest {
         String json = "{ \"/#1\" : { \"a#1\" : { \"b#2\" : {} , \"c#2\" : {} } } }";
         Node node = NodeBuilder.build(json);
 
-        Node node_c = new NodeImpl("/a/c");
+        NodeImpl node_c = new NodeImpl("/a/c");
         node_c.setRevisionId(2L);
-        Node node_b = new NodeImpl("/a/b");
+
+        NodeImpl node_b = new NodeImpl("/a/b");
         node_b.setRevisionId(2L);
-        Node node_a = new NodeImpl("/a", new Node[] { node_b, node_c });
+
+        NodeImpl node_a = new NodeImpl("/a");
+        node_a.addChildNodeEntry(node_b);
+        node_a.addChildNodeEntry(node_c);
         node_a.setRevisionId(1L);
-        Node node_root = new NodeImpl("/", new Node[] { node_a });
+
+        NodeImpl node_root = new NodeImpl("/");
+        node_root.addChildNodeEntry(node_a);
         node_root.setRevisionId(1L);
 
         NodeAssert.assertDeepEquals(node, node_root);

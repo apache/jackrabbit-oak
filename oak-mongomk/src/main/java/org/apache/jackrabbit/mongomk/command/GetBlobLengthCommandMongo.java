@@ -16,20 +16,28 @@
  */
 package org.apache.jackrabbit.mongomk.command;
 
-import org.apache.jackrabbit.mongomk.api.command.AbstractCommand;
+import org.apache.jackrabbit.mongomk.api.command.DefaultCommand;
 import org.apache.jackrabbit.mongomk.impl.MongoConnection;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.gridfs.GridFS;
 import com.mongodb.gridfs.GridFSDBFile;
 
-public class GetBlobLengthCommandMongo extends AbstractCommand<Long> {
+/**
+ * {@code Command} for {@code MongoMicroKernel#getLength(String)}
+ */
+public class GetBlobLengthCommandMongo extends DefaultCommand<Long> {
 
-    private final MongoConnection mongoConnection;
     private final String blobId;
 
+    /**
+     * Constructs the command.
+     *
+     * @param mongoConnection Mongo connection.
+     * @param blobId Blob id.
+     */
     public GetBlobLengthCommandMongo(MongoConnection mongoConnection, String blobId) {
-        this.mongoConnection = mongoConnection;
+        super(mongoConnection);
         this.blobId = blobId;
     }
 
@@ -38,7 +46,7 @@ public class GetBlobLengthCommandMongo extends AbstractCommand<Long> {
         GridFS gridFS = mongoConnection.getGridFS();
         GridFSDBFile gridFSDBFile = gridFS.findOne(new BasicDBObject("md5", blobId));
         if (gridFSDBFile == null) {
-            throw new Exception("Blob does not exiss");
+            throw new Exception("Blob does not exist");
         }
         return gridFSDBFile.getLength();
     }

@@ -26,13 +26,10 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 
-
 /**
- * Base class for {@code MongoDB} tests.
- *
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
+ * Base class for {@code MongoDB} tests that only need a Mongo connection rather
+ * than the full MongoMK.
  */
-@SuppressWarnings("javadoc")
 public class BaseMongoTest {
 
     public static MongoConnection mongoConnection;

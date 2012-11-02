@@ -21,10 +21,7 @@ import org.apache.jackrabbit.mongomk.impl.MongoConnection;
 /**
  * An abstract base class for queries performed with {@code MongoDB}.
  *
- * @param <T>
- *            The result type of the query.
- *
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
+ * @param <T> The result type of the query.
  */
 public abstract class AbstractQuery<T> {
 
@@ -34,8 +31,7 @@ public abstract class AbstractQuery<T> {
     /**
      * Constructs a new {@code AbstractQuery}.
      *
-     * @param mongoConnection
-     *            The {@link MongoConnection}.
+     * @param mongoConnection The mongo connection.
      */
     protected AbstractQuery(MongoConnection mongoConnection) {
         this.mongoConnection = mongoConnection;
@@ -45,8 +41,7 @@ public abstract class AbstractQuery<T> {
      * Executes this query.
      *
      * @return The result of the query.
-     * @throws Exception
-     *             If an error occurred while executing the query.
+     * @throws Exception If an error occurred while executing the query.
      */
     public abstract T execute() throws Exception;
 }

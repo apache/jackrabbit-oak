@@ -16,18 +16,14 @@
  */
 package org.apache.jackrabbit.mongomk.command;
 
-import org.apache.jackrabbit.mongomk.api.command.AbstractCommand;
+import org.apache.jackrabbit.mongomk.api.command.DefaultCommand;
 import org.apache.jackrabbit.mongomk.impl.MongoConnection;
-import org.apache.jackrabbit.mongomk.query.FetchHeadRevisionQuery;
+import org.apache.jackrabbit.mongomk.query.FetchHeadRevisionIdQuery;
 
 /**
- * A {@code Command} for getting the head revision from {@code MongoDB}.
- *
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
+ * {@code Command} for {@code MongoMicroKernel#getHeadRevision()}
  */
-public class GetHeadRevisionCommandMongo extends AbstractCommand<Long> {
-
-    private final MongoConnection mongoConnection;
+public class GetHeadRevisionCommandMongo extends DefaultCommand<Long> {
 
     /**
      * Constructs a new {@code GetHeadRevisionCommandMongo}.
@@ -35,11 +31,11 @@ public class GetHeadRevisionCommandMongo extends AbstractCommand<Long> {
      * @param mongoConnection The {@link MongoConnection}.
      */
     public GetHeadRevisionCommandMongo(MongoConnection mongoConnection) {
-        this.mongoConnection = mongoConnection;
+        super(mongoConnection);
     }
 
     @Override
     public Long execute() throws Exception {
-        return new FetchHeadRevisionQuery(mongoConnection).execute();
+        return new FetchHeadRevisionIdQuery(mongoConnection).execute();
     }
 }

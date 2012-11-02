@@ -19,11 +19,11 @@ package org.apache.jackrabbit.mongomk.perf;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.apache.jackrabbit.mongomk.MongoConnection;
-import org.apache.jackrabbit.mongomk.NodeStoreMongo;
 import org.apache.jackrabbit.mongomk.api.BlobStore;
 import org.apache.jackrabbit.mongomk.api.NodeStore;
+import org.apache.jackrabbit.mongomk.impl.MongoConnection;
 import org.apache.jackrabbit.mongomk.impl.MongoMicroKernel;
+import org.apache.jackrabbit.mongomk.impl.NodeStoreMongo;
 import org.apache.jackrabbit.mongomk.impl.json.DefaultJsopHandler;
 import org.apache.jackrabbit.mongomk.impl.json.JsopParser;
 import org.apache.jackrabbit.mongomk.model.CommitMongo;
@@ -38,9 +38,6 @@ import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 import com.mongodb.QueryBuilder;
 
-/**
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
- */
 public class MicroKernelPerfMaster {
 
     private class ContinousHandler extends DefaultJsopHandler {
@@ -136,7 +133,7 @@ public class MicroKernelPerfMaster {
         while (true) {
             List<CommitMongo> commitMongos = this.waitForCommit();
             for (CommitMongo commitMongo : commitMongos) {
-                if (commitMongo.hasFailed()) {
+                if (commitMongo.isFailed()) {
                     LOG.info(String.format("Skipping commit %d because it failed", commitMongo.getRevisionId()));
                     this.lastRevId = commitMongo.getRevisionId();
                 } else {
@@ -166,7 +163,7 @@ public class MicroKernelPerfMaster {
     }
 
     private void verifyCommitOrder(CommitMongo commitMongo) throws Exception {
-        long baseRevId = commitMongo.getBaseRevisionId();
+        long baseRevId = commitMongo.getBaseRevId();
         long revId = commitMongo.getRevisionId();
         if (baseRevId != this.lastCommitRevId) {
             throw new Exception(String.format(

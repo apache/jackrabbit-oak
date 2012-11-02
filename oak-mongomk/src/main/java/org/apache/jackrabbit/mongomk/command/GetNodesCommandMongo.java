@@ -17,57 +17,73 @@
 package org.apache.jackrabbit.mongomk.command;
 
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
-import java.util.Set;
 
-import org.apache.jackrabbit.mongomk.api.command.AbstractCommand;
+import org.apache.jackrabbit.mongomk.api.command.DefaultCommand;
 import org.apache.jackrabbit.mongomk.api.model.Node;
+import org.apache.jackrabbit.mongomk.command.exception.InconsistentNodeHierarchyException;
 import org.apache.jackrabbit.mongomk.impl.MongoConnection;
 import org.apache.jackrabbit.mongomk.impl.model.NodeImpl;
 import org.apache.jackrabbit.mongomk.model.CommitMongo;
 import org.apache.jackrabbit.mongomk.model.NodeMongo;
-import org.apache.jackrabbit.mongomk.query.FetchNodesByPathAndDepthQuery;
-import org.apache.jackrabbit.mongomk.query.FetchValidCommitsQuery;
+import org.apache.jackrabbit.mongomk.query.FetchCommitQuery;
+import org.apache.jackrabbit.mongomk.query.FetchCommitsQuery;
+import org.apache.jackrabbit.mongomk.query.FetchNodesQuery;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * A {@code Command} for getting nodes from {@code MongoDB}.
- *
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
+ * {@code Command} for {@code MongoMicroKernel#getNodes(String, String, int, long, int, String)}
  */
-public class GetNodesCommandMongo extends AbstractCommand<Node> {
+public class GetNodesCommandMongo extends DefaultCommand<Node> {
 
     private static final Logger LOG = LoggerFactory.getLogger(GetNodesCommandMongo.class);
 
-    private final MongoConnection mongoConnection;
     private final String path;
-    private final int depth;
 
+    private String branchId;
+    private int depth = FetchNodesQuery.LIMITLESS_DEPTH;
     private Long revisionId;
     private List<CommitMongo> lastCommits;
     private List<NodeMongo> nodeMongos;
 
     private Map<String, NodeMongo> pathAndNodeMap;
     private Map<String, Long> problematicNodes;
-    private Node rootOfPath;
+    private Node rootNode;
 
     /**
      * Constructs a new {@code GetNodesCommandMongo}.
      *
      * @param mongoConnection The {@link MongoConnection}.
      * @param path The root path of the nodes to get.
-     * @param revisionId The revision id or null.
-     * @param depth The depth.
+     * @param revisionId The revision id or null for head revision.
      */
     public GetNodesCommandMongo(MongoConnection mongoConnection, String path,
-            Long revisionId, int depth) {
-        this.mongoConnection = mongoConnection;
+            Long revisionId) {
+        super(mongoConnection);
         this.path = path;
         this.revisionId = revisionId;
+    }
+
+    /**
+     * Sets the branchId for the command.
+     *
+     * @param branchId Branch id.
+     */
+    public void setBranchId(String branchId) {
+        this.branchId = branchId;
+    }
+
+    /**
+     * Sets the depth for the command.
+     *
+     * @param depth The depth for the command or -1 for limitless depth.
+     */
+    public void setDepth(int depth) {
         this.depth = depth;
     }
 
@@ -76,18 +92,18 @@ public class GetNodesCommandMongo extends AbstractCommand<Node> {
         ensureRevisionId();
         readLastCommits();
         deriveProblematicNodes();
+        readRootNode();
+        return rootNode;
+    }
 
+    private void readRootNode() throws InconsistentNodeHierarchyException {
         readNodesByPath();
         createPathAndNodeMap();
         boolean verified = verifyProblematicNodes() && verifyNodeHierarchy();
-
         if (!verified) {
             throw new InconsistentNodeHierarchyException();
         }
-
-        this.buildNodeStructure();
-
-        return rootOfPath;
+        buildNodeStructure();
     }
 
     @Override
@@ -102,19 +118,22 @@ public class GetNodesCommandMongo extends AbstractCommand<Node> {
 
     private void buildNodeStructure() {
         NodeMongo nodeMongoRootOfPath = pathAndNodeMap.get(path);
-        rootOfPath = this.buildNodeStructure(nodeMongoRootOfPath);
+        rootNode = buildNodeStructure(nodeMongoRootOfPath);
     }
 
     private NodeImpl buildNodeStructure(NodeMongo nodeMongo) {
+        if (nodeMongo == null) {
+            return null;
+        }
+
         NodeImpl node = NodeMongo.toNode(nodeMongo);
-        Set<Node> children = node.getChildren();
-        if (children != null) {
-            for (Node child : children) {
-                NodeMongo nodeMongoChild = pathAndNodeMap.get(child.getPath());
-                if (nodeMongoChild != null) {
-                    NodeImpl nodeChild = this.buildNodeStructure(nodeMongoChild);
-                    node.addChild(nodeChild);
-                }
+
+        for (Iterator<Node> it = node.getChildNodeEntries(0, -1); it.hasNext(); ) {
+            Node child = it.next();
+            NodeMongo nodeMongoChild = pathAndNodeMap.get(child.getPath());
+            if (nodeMongoChild != null) {
+                NodeImpl nodeChild = buildNodeStructure(nodeMongoChild);
+                node.addChildNodeEntry(nodeChild);
             }
         }
 
@@ -145,32 +164,22 @@ public class GetNodesCommandMongo extends AbstractCommand<Node> {
     private void ensureRevisionId() throws Exception {
         if (revisionId == null) {
             revisionId = new GetHeadRevisionCommandMongo(mongoConnection).execute();
+        } else {
+            // Ensure that commit with revision id exists.
+            new FetchCommitQuery(mongoConnection, revisionId).execute();
         }
     }
 
     private void readLastCommits() throws Exception {
-        lastCommits = new FetchValidCommitsQuery(mongoConnection, revisionId).execute();
-
-        // TODO Move this into the Query which should throw the exception in case the commit doesn't exist
-        if (revisionId != null) {
-            boolean revisionExists = false;
-            for (CommitMongo commitMongo : lastCommits) {
-                if (commitMongo.getRevisionId() == revisionId) {
-                    revisionExists = true;
-
-                    break;
-                }
-            }
-
-            if (!revisionExists) {
-                throw new Exception(String.format("Revision %d could not be found", revisionId));
-            }
-        }
+        lastCommits = new FetchCommitsQuery(mongoConnection, revisionId).execute();
     }
 
     private void readNodesByPath() {
-        FetchNodesByPathAndDepthQuery query = new FetchNodesByPathAndDepthQuery(mongoConnection,
-                path, revisionId, depth);
+        FetchNodesQuery query = new FetchNodesQuery(mongoConnection,
+                path, revisionId);
+        query.setBranchId(branchId);
+        // FIXME - This does not work for depth > 3449.
+        //query.setDepth(depth);
         nodeMongos = query.execute();
     }
 
@@ -189,6 +198,10 @@ public class GetNodesCommandMongo extends AbstractCommand<Node> {
 
     private boolean verifyNodeHierarchyRec(String path, int currentDepth) {
         boolean verified = false;
+
+        if (pathAndNodeMap.isEmpty()) {
+            return true;
+        }
 
         NodeMongo nodeMongo = pathAndNodeMap.get(path);
         if (nodeMongo != null) {

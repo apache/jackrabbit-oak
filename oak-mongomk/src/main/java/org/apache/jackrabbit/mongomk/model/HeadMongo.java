@@ -21,10 +21,7 @@ import com.mongodb.DBObject;
 
 /**
  * The {@code MongoDB} representation of the head revision.
- *
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
  */
-@SuppressWarnings("javadoc")
 public class HeadMongo extends BasicDBObject {
 
     public static final String KEY_HEAD_REVISION_ID = "headRevId";
@@ -32,9 +29,11 @@ public class HeadMongo extends BasicDBObject {
     private static final long serialVersionUID = 3541425042129003691L;
 
     public static HeadMongo fromDBObject(DBObject dbObject) {
+        if (dbObject == null) {
+            return null;
+        }
         HeadMongo headMongo = new HeadMongo();
         headMongo.putAll(dbObject);
-
         return headMongo;
     }
 

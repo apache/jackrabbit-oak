@@ -16,23 +16,19 @@
  */
 package org.apache.jackrabbit.mongomk.command;
 
-import java.util.Set;
-
-import org.apache.jackrabbit.mongomk.api.command.AbstractCommand;
+import org.apache.jackrabbit.mongomk.api.command.DefaultCommand;
 import org.apache.jackrabbit.mongomk.api.model.Node;
 import org.apache.jackrabbit.mongomk.impl.MongoConnection;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 
 /**
- * A {@code Command} for determine whether a node exists from {@code MongoDB}.
- *
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
+ * {@code Command} for {@code MongoMicroKernel#nodeExists(String, String)}
  */
-public class NodeExistsCommandMongo extends AbstractCommand<Boolean> {
+public class NodeExistsCommandMongo extends DefaultCommand<Boolean> {
 
-    private final MongoConnection mongoConnection;
     private final Long revisionId;
 
+    private String branchId;
     private Node parentNode;
     private String path;
 
@@ -45,9 +41,18 @@ public class NodeExistsCommandMongo extends AbstractCommand<Boolean> {
      */
     public NodeExistsCommandMongo(MongoConnection mongoConnection, String path,
             Long revisionId) {
-        this.mongoConnection = mongoConnection;
+        super(mongoConnection);
         this.path = path;
         this.revisionId = revisionId;
+    }
+
+    /**
+     * Sets the branchId for the command.
+     *
+     * @param branchId Branch id.
+     */
+    public void setBranchId(String branchId) {
+        this.branchId = branchId;
     }
 
     @Override
@@ -56,10 +61,14 @@ public class NodeExistsCommandMongo extends AbstractCommand<Boolean> {
             return true;
         }
 
-        // Check that all the paths up to the parent are valid.
+        // Check that all the paths up to the root actually exist.
+        return pathExists();
+    }
+
+    private boolean pathExists() throws Exception {
         while (!PathUtils.denotesRoot(path)) {
-            readParentNode();
-            if (!childExists()) {
+            readParentNode(revisionId, branchId);
+            if (parentNode == null || !childExists()) {
                 return false;
             }
             path = PathUtils.getParentPath(path);
@@ -68,30 +77,16 @@ public class NodeExistsCommandMongo extends AbstractCommand<Boolean> {
         return true;
     }
 
-    private void readParentNode() throws Exception {
+    private void readParentNode(Long revisionId, String branchId) throws Exception {
         String parentPath = PathUtils.getParentPath(path);
-        // TODO - This used to be FetchNodeByPathQuery but changed to GetNodesCommandMongo to make
-        // sure nodes are in a valid commit etc. Check if GetNodesCommandMongo is really needed.
-        GetNodesCommandMongo command = new GetNodesCommandMongo(mongoConnection, parentPath, revisionId, -1);
+        GetNodesCommandMongo command = new GetNodesCommandMongo(mongoConnection,
+                parentPath, revisionId);
+        command.setBranchId(branchId);
         parentNode = command.execute();
     }
 
     private boolean childExists() {
-        if (parentNode == null) {
-            return false;
-        }
-
-        Set<Node> children = parentNode.getChildren();
-        if (children == null || children.isEmpty()) {
-            return false;
-        }
-
-        for (Node child : children) {
-            if (child.getName().equals(PathUtils.getName(path))) {
-                return true;
-            }
-        }
-
-        return false;
+        String childName = PathUtils.getName(path);
+        return parentNode.getChildNodeEntry(childName) != null;
     }
 }

@@ -27,8 +27,6 @@ import com.mongodb.gridfs.GridFS;
 
 /**
  * The {@code MongoConnection} contains connection properties for the {@code MongoDB}.
- *
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
  */
 public class MongoConnection {
 

@@ -27,9 +27,7 @@ import com.mongodb.WriteConcern;
 import com.mongodb.WriteResult;
 
 /**
- * An query for saving a list of nodes.
- *
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
+ * A query for saving a list of nodes.
  */
 public class SaveNodesQuery extends AbstractQuery<Boolean> {
 
@@ -38,14 +36,11 @@ public class SaveNodesQuery extends AbstractQuery<Boolean> {
     /**
      * Constructs a new {@code SaveNodesQuery}.
      *
-     * @param mongoConnection
-     *            The {@link MongoConnection}.
-     * @param nodeMongos
-     *            The list of {@link NodeMongo}s.
+     * @param mongoConnection The {@link MongoConnection}.
+     * @param nodeMongos The list of {@link NodeMongo}s.
      */
     public SaveNodesQuery(MongoConnection mongoConnection, Collection<NodeMongo> nodeMongos) {
         super(mongoConnection);
-
         this.nodeMongos = nodeMongos;
     }
 
@@ -57,7 +52,6 @@ public class SaveNodesQuery extends AbstractQuery<Boolean> {
         if ((writeResult != null) && (writeResult.getError() != null)) {
             throw new Exception(String.format("Insertion wasn't successful: %s", writeResult));
         }
-
         return Boolean.TRUE;
     }
 }

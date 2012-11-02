@@ -23,9 +23,7 @@ import com.mongodb.DBCollection;
 import com.mongodb.WriteResult;
 
 /**
- * An query for saving a commit.
- *
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
+ * A query for saving a commit.
  */
 public class SaveCommitQuery extends AbstractQuery<Boolean> {
 
@@ -34,14 +32,11 @@ public class SaveCommitQuery extends AbstractQuery<Boolean> {
     /**
      * Constructs a new {@code SaveCommitQuery}.
      *
-     * @param mongoConnection
-     *            The {@link MongoConnection}.
-     * @param commitMongo
-     *            The {@link CommitMongo} to save.
+     * @param mongoConnection The {@link MongoConnection}.
+     * @param commitMongo The {@link CommitMongo} to save.
      */
     public SaveCommitQuery(MongoConnection mongoConnection, CommitMongo commitMongo) {
         super(mongoConnection);
-
         this.commitMongo = commitMongo;
     }
 
@@ -52,7 +47,6 @@ public class SaveCommitQuery extends AbstractQuery<Boolean> {
         if (writeResult.getError() != null) {
             throw new Exception(String.format("Insertion wasn't successful: %s", writeResult));
         }
-
         return Boolean.TRUE;
     }
 }
