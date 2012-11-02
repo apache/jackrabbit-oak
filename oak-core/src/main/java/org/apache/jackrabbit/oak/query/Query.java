@@ -53,6 +53,8 @@ import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Represents a parsed query. Lifecycle: use the constructor to create a new
@@ -71,6 +73,8 @@ public class Query {
      * The "jcr:score" pseudo-property.
      */
     public static final String JCR_SCORE = "jcr:score";
+
+    private static final Logger LOG = LoggerFactory.getLogger(QueryEngineImpl.class);
 
     final SourceImpl source;
     final ConstraintImpl constraint;
@@ -308,6 +312,9 @@ public class Query {
                     null);
             it = Arrays.asList(r).iterator();
         } else {
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("plan: " + source.getPlan(root));
+            }
             if (orderings == null) {
                 // can apply limit and offset directly
                 it = new RowIterator(root, limit, offset);

@@ -136,5 +136,10 @@ public class PropertyIndex implements PIndex, PropertyIndexConstants {
     public boolean isUnique() {
         return tree.isUnique();
     }
+    
+    @Override
+    public String toString() {
+        return getIndexNodeName();
+    }
 
 }

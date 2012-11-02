@@ -69,5 +69,10 @@ public class CompositeQueryIndexProvider implements QueryIndexProvider {
         }
         return indexes;
     }
+    
+    @Override
+    public String toString() {
+        return getClass().getName() + ": " + providers.toString();
+    }
 
 }

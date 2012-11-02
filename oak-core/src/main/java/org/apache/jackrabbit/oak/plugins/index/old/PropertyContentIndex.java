@@ -112,5 +112,10 @@ public class PropertyContentIndex implements QueryIndex {
             return false;
         }
     }
+    
+    @Override
+    public String toString() {
+        return index.toString();
+    }
 
 }
