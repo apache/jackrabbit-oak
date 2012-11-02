@@ -250,6 +250,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
         if (writeState != null) {
             return writeState.snapshot();
         } else {
+            // FIXME this assertion might fail when getNodeState() is called on a removed node.
             assert baseState != null; // guaranteed by read()
             return baseState;
         }
