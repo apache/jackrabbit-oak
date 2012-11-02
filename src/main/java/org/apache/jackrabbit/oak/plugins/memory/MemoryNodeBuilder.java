@@ -265,7 +265,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
         if (this == root) {
             baseState = checkNotNull(newBase);
             writeState = new MutableNodeState(baseState);
-            revision = 0;
+            revision += 2;  // Make sure we are ahead of the revisions of all other builders root at this builder
         } else {
             throw new IllegalStateException("Cannot reset a non-root builder");
         }
