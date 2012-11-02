@@ -23,56 +23,67 @@
 # * new tests are typically be added on top, after the syntax docs
 # * use ascii character only
 
-commit / + "parents": { "p0": {"id": "0"}, "p1": {"id": "1"}, "p2": {"id": "2"}}
-commit / + "children": { "c1": {"p": "1"}, "c2": {"p": "1"}, "c3": {"p": "2"}, "c4": {"p": "3"}}
+commit / + "testRoot": { }
+commit /testRoot + "parents": { "p0": {"id": "0"}, "p1": {"id": "1"}, "p2": {"id": "2"}}
+commit /testRoot + "children": { "c1": {"p": "1"}, "c2": {"p": "1"}, "c3": {"p": "2"}, "c4": {"p": "3"}}
 
-measure select * from [nt:base] as c right outer join [nt:base] as p on p.id = c.p where p.id is not null and not isdescendantnode(p, '/jcr:system')
-c, 669
-p, 223
-query, 4
+select * from [nt:base] as c right outer join [nt:base] as p on p.id = c.p where p.id is not null and isdescendantnode(p, '/testRoot') and isdescendantnode(c, '/testRoot')
+/testRoot/children/c1, /testRoot/parents/p1
+/testRoot/children/c2, /testRoot/parents/p1
+/testRoot/children/c3, /testRoot/parents/p2
 
-measure select * from [nt:base] as p left outer join [nt:base] as c on p.id = c.p where p.id is not null
-c, 669
-p, 223
-query, 4
-
-measure select * from [nt:base] as p left outer join [nt:base] as c on p.id = c.p where p.id is not null and c.p is null
-c, 669
-p, 223
-query, 1
-
-measure select * from [nt:base] as p left outer join [nt:base] as c on p.id = c.p where p.id is not null and c.p is not null
-c, 669
-p, 223
+measure select * from [nt:base] as c right outer join [nt:base] as p on p.id = c.p where p.id is not null and isdescendantnode(p, '/testRoot') and isdescendantnode(c, '/testRoot')
+c, 30
+p, 10
 query, 3
 
-measure select * from [nt:base] as p inner join [nt:base] as c on p.id = c.p
-c, 669
-p, 223
+select * from [nt:base] as p left outer join [nt:base] as c on p.id = c.p where p.id is not null and isdescendantnode(p, '/testRoot') and isdescendantnode(c, '/testRoot')
+/testRoot/parents/p1, /testRoot/children/c1
+/testRoot/parents/p1, /testRoot/children/c2
+/testRoot/parents/p2, /testRoot/children/c3
+
+measure select * from [nt:base] as p left outer join [nt:base] as c on p.id = c.p where p.id is not null and isdescendantnode(p, '/testRoot') and isdescendantnode(c, '/testRoot')
+c, 30
+p, 10
 query, 3
 
-measure select * from [nt:base] as c right outer join [nt:base] as p on p.id = c.p where p.id is not null and not isdescendantnode(p, '/jcr:system')
-c, 669
-p, 223
-query, 4
+measure select * from [nt:base] as p left outer join [nt:base] as c on p.id = c.p where p.id is not null and c.p is null and isdescendantnode(p, '/testRoot') and isdescendantnode(c, '/testRoot')
+c, 30
+p, 10
+query, 0
 
-measure select * from [nt:base] as p left outer join [nt:base] as c on p.id = c.p where p.id is not null
-c, 669
-p, 223
-query, 4
-
-measure select * from [nt:base] as p left outer join [nt:base] as c on p.id = c.p where p.id is not null and c.p is null
-c, 669
-p, 223
-query, 1
-
-measure select * from [nt:base] as p left outer join [nt:base] as c on p.id = c.p where p.id is not null and c.p is not null
-c, 669
-p, 223
+measure select * from [nt:base] as p left outer join [nt:base] as c on p.id = c.p where p.id is not null and c.p is not null and isdescendantnode(p, '/testRoot') and isdescendantnode(c, '/testRoot')
+c, 30
+p, 10
 query, 3
 
-measure select * from [nt:base] as p inner join [nt:base] as c on p.id = c.p
-c, 669
-p, 223
+measure select * from [nt:base] as p inner join [nt:base] as c on p.id = c.p where isdescendantnode(p, '/testRoot') and isdescendantnode(c, '/testRoot')
+c, 30
+p, 10
+query, 3
+
+measure select * from [nt:base] as c right outer join [nt:base] as p on p.id = c.p where p.id is not null and isdescendantnode(p, '/testRoot') and isdescendantnode(c, '/testRoot')
+c, 30
+p, 10
+query, 3
+
+measure select * from [nt:base] as p left outer join [nt:base] as c on p.id = c.p where p.id is not null and isdescendantnode(p, '/testRoot') and isdescendantnode(c, '/testRoot')
+c, 30
+p, 10
+query, 3
+
+measure select * from [nt:base] as p left outer join [nt:base] as c on p.id = c.p where p.id is not null and c.p is null and isdescendantnode(p, '/testRoot') and isdescendantnode(c, '/testRoot')
+c, 30
+p, 10
+query, 0
+
+measure select * from [nt:base] as p left outer join [nt:base] as c on p.id = c.p where p.id is not null and c.p is not null and isdescendantnode(p, '/testRoot') and isdescendantnode(c, '/testRoot')
+c, 30
+p, 10
+query, 3
+
+measure select * from [nt:base] as p inner join [nt:base] as c on p.id = c.p where isdescendantnode(p, '/testRoot') and isdescendantnode(c, '/testRoot')
+c, 30
+p, 10
 query, 3
 
