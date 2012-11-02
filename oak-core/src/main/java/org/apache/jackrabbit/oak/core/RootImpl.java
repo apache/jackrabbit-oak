@@ -22,9 +22,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
+
 import javax.annotation.Nonnull;
 import javax.security.auth.Subject;
 
@@ -84,29 +83,9 @@ public class RootImpl implements Root {
      */
     private int modCount;
 
-    /**
-     * Listeners which needs to be notified as soon as {@link #purgePendingChanges()}
-     * is called. Listeners are removed from this list after being called. If further
-     * notifications are required, they need to explicitly re-register.
-     *
-     * The {@link TreeImpl} instances us this mechanism to dispose of its associated
-     * {@link NodeBuilder} on purge. Keeping a reference on those {@code TreeImpl}
-     * instances {@code NodeBuilder} (i.e. those which are modified) prevents them
-     * from being prematurely garbage collected.
-     */
-    private List<PurgeListener> purgePurgeListeners = new ArrayList<PurgeListener>();
-
     private volatile ConflictHandler conflictHandler = DefaultConflictHandler.OURS;
 
     private final QueryIndexProvider indexProvider;
-
-    /**
-     * Purge listener.
-     * @see #purgePurgeListeners
-     */
-    public interface PurgeListener {
-        void purged();
-    }
 
     /**
      * New instance bases on a given {@link NodeStore} and a workspace
@@ -175,6 +154,7 @@ public class RootImpl implements Root {
         purgePendingChanges();
         source.moveTo(destParent, destName);
         boolean success = branch.move(sourcePath, destPath);
+        reset();
         if (success) {
             getTree(getParentPath(sourcePath)).updateChildOrder();
             getTree(getParentPath(destPath)).updateChildOrder();
@@ -187,6 +167,7 @@ public class RootImpl implements Root {
         checkLive();
         purgePendingChanges();
         boolean success = branch.copy(sourcePath, destPath);
+        reset();
         if (success) {
             getTree(getParentPath(destPath)).updateChildOrder();
         }
@@ -328,16 +309,6 @@ public class RootImpl implements Root {
         return branch.getRoot().builder();
     }
 
-    /**
-     * Add a {@code PurgeListener} to this instance. Listeners are automatically
-     * unregistered after having been called. If further notifications are required,
-     * they need to explicitly re-register.
-     * @param purgeListener  listener
-     */
-    void addListener(PurgeListener purgeListener) {
-        purgePurgeListeners.add(purgeListener);
-    }
-
     // TODO better way to determine purge limit. See OAK-175
     void updated() {
         if (++modCount > PURGE_LIMIT) {
@@ -354,19 +325,17 @@ public class RootImpl implements Root {
 
     /**
      * Purge all pending changes to the underlying {@link NodeStoreBranch}.
-     * All registered {@link PurgeListener}s are notified.
      */
     private void purgePendingChanges() {
         branch.setRoot(rootTree.getNodeState());
-        notifyListeners();
+        reset();
     }
 
-    private void notifyListeners() {
-        List<PurgeListener> purgeListeners = this.purgePurgeListeners;
-        this.purgePurgeListeners = new ArrayList<PurgeListener>();
-
-        for (PurgeListener purgeListener : purgeListeners) {
-            purgeListener.purged();
-        }
+    /**
+     * Reset the root builder to the branch's current root state
+     */
+    private void reset() {
+        rootTree.getNodeBuilder().reset(branch.getRoot());
     }
+
 }
