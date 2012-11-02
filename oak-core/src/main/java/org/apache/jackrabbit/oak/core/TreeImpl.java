@@ -35,7 +35,6 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.core.RootImpl.PurgeListener;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryPropertyBuilder;
 import org.apache.jackrabbit.oak.plugins.memory.MultiStringPropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -48,7 +47,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 
-public class TreeImpl implements Tree, PurgeListener {
+public class TreeImpl implements Tree {
 
     /** Internal and hidden property that contains the child order */
     static final String OAK_CHILD_ORDER = ":childOrder";
@@ -83,7 +82,6 @@ public class TreeImpl implements Tree, PurgeListener {
             protected synchronized NodeBuilder getNodeBuilder() {
                 if (nodeBuilder == null) {
                     nodeBuilder = root.createRootBuilder();
-                    root.addListener(this);
                 }
                 return nodeBuilder;
             }
@@ -389,13 +387,6 @@ public class TreeImpl implements Tree, PurgeListener {
         return new NodeLocation(this);
     }
 
-    //--------------------------------------------------< RootImpl.Listener >---
-
-    @Override
-    public void purged() {
-        nodeBuilder = null;
-    }
-
     //----------------------------------------------------------< protected >---
 
     @CheckForNull
@@ -414,7 +405,6 @@ public class TreeImpl implements Tree, PurgeListener {
     protected synchronized NodeBuilder getNodeBuilder() {
         if (nodeBuilder == null) {
             nodeBuilder = parent.getNodeBuilder().child(name);
-            root.addListener(this);
         }
         return nodeBuilder;
     }
