@@ -54,7 +54,7 @@ public class PropInfo {
     /**
      * Hint indicating whether the property is multi- or single-value
      */
-    public enum MultipleStatus { UNKNOWN, SINGLE, MULTIPLE }
+    public enum MultipleStatus { UNKNOWN, MULTIPLE }
     private MultipleStatus multipleStatus;
 
     /**
@@ -108,7 +108,7 @@ public class PropInfo {
         }
     }
 
-    public String getString() {
+    public String getName() {
         return name;
     }
 
@@ -116,8 +116,22 @@ public class PropInfo {
         return type;
     }
 
+    public TextValue getTextValue() throws RepositoryException {
+        if (multipleStatus == MultipleStatus.MULTIPLE) {
+            throw new RepositoryException("TODO");
+        }
+        return values[0];
+    }
+
     public TextValue[] getTextValues() {
         return values;
+    }
+
+    public Value getValue(Type targetType, NamePathMapper namePathMapper) throws RepositoryException {
+        if (multipleStatus == MultipleStatus.MULTIPLE) {
+            throw new RepositoryException("TODO");
+        }
+        return values[0].getValue(targetType, namePathMapper);
     }
 
     public Value[] getValues(Type targetType, NamePathMapper namePathMapper) throws RepositoryException {
