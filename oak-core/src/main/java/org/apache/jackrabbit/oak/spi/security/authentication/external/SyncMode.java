@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external;
 
+import org.apache.jackrabbit.util.Text;
+
 /**
  * SyncMode... TODO: define sync-modes
  */
@@ -26,8 +28,9 @@ public class SyncMode {
     public static final int MODE_CREATE_GROUPS = 2;
     public static final int MODE_UPDATE = 4;
 
-    public static final String CREATE_USER_NAME = "createUser";
-    public static final String CREATE_GROUP_NAME = "createGroup";
+    public static final String NO_SYNC = "";
+    public static final String CREATE_USER = "createUser";
+    public static final String CREATE_GROUP = "createGroup";
     public static final String UPDATE = "update";
 
     public static final SyncMode DEFAULT_SYNC = new SyncMode(MODE_CREATE_USER|MODE_CREATE_GROUPS|MODE_UPDATE);
@@ -42,15 +45,27 @@ public class SyncMode {
         return (this.mode & mode) == mode;
     }
 
+    public static SyncMode fromObject(Object smValue) {
+        if (smValue instanceof SyncMode) {
+            return (SyncMode) smValue;
+        } else if (smValue instanceof String[]) {
+            return fromStrings((String[]) smValue);
+        } else {
+            return fromStrings(Text.explode(smValue.toString(), ',', false));
+        }
+    }
+
     public static SyncMode fromString(String name) {
         int mode;
-        if (CREATE_USER_NAME.equals(name)) {
+        if (CREATE_USER.equals(name)) {
             mode = MODE_CREATE_USER;
-        } else if (CREATE_GROUP_NAME.equals(name)) {
+        } else if (CREATE_GROUP.equals(name)) {
             mode = MODE_CREATE_GROUPS;
         } else if (UPDATE.equals(name)) {
             mode = MODE_UPDATE;
-        } else {
+        } else if (name.isEmpty()) {
+            mode = MODE_NO_SYNC;
+        }else {
             throw new IllegalArgumentException("invalid sync mode name " + name);
         }
         return fromInt(mode);

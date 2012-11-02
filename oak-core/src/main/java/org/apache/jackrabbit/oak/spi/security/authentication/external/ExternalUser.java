@@ -27,6 +27,8 @@ public interface ExternalUser {
 
     String getId();
 
+    String getPassword();
+
     Principal getPrincipal();
 
     String getPath();
