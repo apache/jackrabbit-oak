@@ -40,7 +40,7 @@ public class DefaultCommandExecutor implements CommandExecutor {
             } catch (Exception e) {
                 needsRetry = command.needsRetry(e);
 
-                if (!needsRetry) {
+                if (!needsRetry || currentRetry >= numOfRetries) {
                     throw e;
                 }
             }

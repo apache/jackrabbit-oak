@@ -56,7 +56,7 @@ public class NodeStoreMongo implements NodeStore {
     @Override
     public String commit(Commit commit) throws Exception {
         Command<Long> command = new CommitCommandMongo(mongoConnection, commit);
-        long revisionId = commandExecutor.execute(command);
+        Long revisionId = commandExecutor.execute(command);
         return MongoUtil.fromMongoRepresentation(revisionId);
     }
 

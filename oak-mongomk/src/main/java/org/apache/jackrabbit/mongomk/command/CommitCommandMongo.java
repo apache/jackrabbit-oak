@@ -31,6 +31,7 @@ import org.apache.jackrabbit.mongomk.model.CommitCommandInstructionVisitor;
 import org.apache.jackrabbit.mongomk.model.CommitMongo;
 import org.apache.jackrabbit.mongomk.model.HeadMongo;
 import org.apache.jackrabbit.mongomk.model.NodeMongo;
+import org.apache.jackrabbit.mongomk.model.NotFoundException;
 import org.apache.jackrabbit.mongomk.query.FetchCommitQuery;
 import org.apache.jackrabbit.mongomk.query.FetchNodesForPathsQuery;
 import org.apache.jackrabbit.mongomk.query.ReadAndIncHeadRevisionQuery;
@@ -109,7 +110,9 @@ public class CommitCommandMongo extends DefaultCommand<Long> {
 
     @Override
     public boolean needsRetry(Exception e) {
-        return e instanceof ConflictingCommitException;
+        // In createMongoNodes step, sometimes add operations could end up with
+        // not found exceptions in high concurrency situations.
+        return e instanceof ConflictingCommitException || e instanceof NotFoundException;
     }
 
     /**
