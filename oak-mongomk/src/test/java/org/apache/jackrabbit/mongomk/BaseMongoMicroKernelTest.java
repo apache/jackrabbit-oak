@@ -48,6 +48,15 @@ public class BaseMongoMicroKernelTest extends BaseMongoTest {
         mk = new MongoMicroKernel(nodeStore, blobStore);
     }
 
+    protected JSONObject getObjectArrayEntry(JSONArray array, int pos) {
+        assertTrue(pos >= 0 && pos < array.size());
+        Object entry = array.get(pos);
+        if (entry instanceof JSONObject) {
+            return (JSONObject) entry;
+        }
+        throw new AssertionError("failed to resolve JSONObject array entry at pos " + pos + ": " + entry);
+    }
+
     protected JSONArray parseJSONArray(String json) throws AssertionError {
         JSONParser parser = new JSONParser();
         try {
@@ -97,6 +106,14 @@ public class BaseMongoMicroKernelTest extends BaseMongoTest {
         String nodes = mk.getNodes(path, rev, -1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
         JSONObject obj = parseJSONObject(nodes);
         assertPropertyValue(obj, property, value);
+    }
+
+    protected void assertPropertyExists(JSONObject obj, String relPath, Class type)
+            throws AssertionError {
+        Object val = resolveValue(obj, relPath);
+        assertNotNull("not found: " + relPath, val);
+
+        assertTrue(type.isInstance(val));
     }
 
     protected void assertPropertyExists(JSONObject obj, String relPath)
