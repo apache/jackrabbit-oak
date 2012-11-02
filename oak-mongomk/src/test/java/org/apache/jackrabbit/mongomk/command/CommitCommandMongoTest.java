@@ -16,19 +16,19 @@
  */
 package org.apache.jackrabbit.mongomk.command;
 
-import org.apache.jackrabbit.mongomk.BaseMongoTest;
+import org.apache.jackrabbit.mongomk.BaseMongoMicroKernelTest;
 import org.apache.jackrabbit.mongomk.MongoAssert;
 import org.apache.jackrabbit.mongomk.api.model.Commit;
+import org.apache.jackrabbit.mongomk.impl.SimpleNodeScenario;
 import org.apache.jackrabbit.mongomk.impl.builder.NodeBuilder;
 import org.apache.jackrabbit.mongomk.impl.model.CommitBuilder;
-import org.apache.jackrabbit.mongomk.scenario.SimpleNodeScenario;
 import org.junit.Assert;
 import org.junit.Test;
 
 /**
  * Tests for {@code CommitCommandMongo}
  */
-public class CommitCommandMongoTest extends BaseMongoTest {
+public class CommitCommandMongoTest extends BaseMongoMicroKernelTest {
 
     @Test
     public void initialCommit() throws Exception {
@@ -41,44 +41,38 @@ public class CommitCommandMongoTest extends BaseMongoTest {
                 "{ \"/#%1$s\" : { \"a#%1$s\" : { \"b#%1$s\" : {} , \"c#%1$s\" : {} } } }", revisionId)));
 
         MongoAssert.assertCommitExists(commit);
-        MongoAssert.assertCommitContainsAffectedPaths(commit.getRevisionId(), "/", "/a", "/a/b", "/a/c");
+        MongoAssert.assertCommitContainsAffectedPaths(commit.getRevisionId().toString(),
+                "/", "/a", "/a/b", "/a/c");
         MongoAssert.assertHeadRevision(1);
         MongoAssert.assertNextRevision(2);
     }
 
     @Test
-    public void commitContainsAllAffectedNodes() throws Exception {
-        SimpleNodeScenario scenario = new SimpleNodeScenario(mongoConnection);
-        Long firstRevisionId = scenario.create();
-        Long secondRevisionId = scenario.update_A_and_add_D_and_E();
-        MongoAssert.assertCommitContainsAffectedPaths(firstRevisionId, "/", "/a", "/a/b", "/a/c");
-        MongoAssert.assertCommitContainsAffectedPaths(secondRevisionId, "/a", "/a/b", "/a/d", "/a/b/e");
+    public void ontainsAllAffectedNodes() throws Exception {
+        SimpleNodeScenario scenario = new SimpleNodeScenario(mk);
+        String rev1 = scenario.create();
+        String rev2 = scenario.update_A_and_add_D_and_E();
+        MongoAssert.assertCommitContainsAffectedPaths(rev1, "/", "/a", "/a/b", "/a/c");
+        MongoAssert.assertCommitContainsAffectedPaths(rev2, "/a", "/a/b", "/a/d", "/a/b/e");
     }
 
     @Test
     public void noOtherNodesTouched() throws Exception {
-        Commit commit = CommitBuilder.build("/", "+\"a\" : {}"
-                + "+\"b\" : {}"
-                + "+\"c\" : {}", null);
-        CommitCommandMongo command = new CommitCommandMongo(mongoConnection, commit);
-        Long firstRevisionId = command.execute();
+        String rev1 = mk.commit("/", "+\"a\" : {} +\"b\" : {} +\"c\" : {}", null, null);
+        String rev2 = mk.commit("/a", "+\"d\": {} +\"e\" : {}", null, null);
 
-        commit = CommitBuilder.build("/a", "+\"d\": {} +\"e\" : {}", null);
-        command = new CommitCommandMongo(mongoConnection, commit);
-        Long secondRevisionId = command.execute();
+        MongoAssert.assertNodeRevisionId("/", rev1, true);
+        MongoAssert.assertNodeRevisionId("/a", rev1, true);
+        MongoAssert.assertNodeRevisionId("/b", rev1, true);
+        MongoAssert.assertNodeRevisionId("/c", rev1, true);
+        MongoAssert.assertNodeRevisionId("/a/d", rev1, false);
+        MongoAssert.assertNodeRevisionId("/a/e", rev1, false);
 
-        MongoAssert.assertNodeRevisionId("/", firstRevisionId, true);
-        MongoAssert.assertNodeRevisionId("/a", firstRevisionId, true);
-        MongoAssert.assertNodeRevisionId("/b", firstRevisionId, true);
-        MongoAssert.assertNodeRevisionId("/c", firstRevisionId, true);
-        MongoAssert.assertNodeRevisionId("/a/d", firstRevisionId, false);
-        MongoAssert.assertNodeRevisionId("/a/e", firstRevisionId, false);
-
-        MongoAssert.assertNodeRevisionId("/", secondRevisionId, false);
-        MongoAssert.assertNodeRevisionId("/a", secondRevisionId, true);
-        MongoAssert.assertNodeRevisionId("/b", secondRevisionId, false);
-        MongoAssert.assertNodeRevisionId("/c", secondRevisionId, false);
-        MongoAssert.assertNodeRevisionId("/a/d", secondRevisionId, true);
-        MongoAssert.assertNodeRevisionId("/a/e", secondRevisionId, true);
+        MongoAssert.assertNodeRevisionId("/", rev2, false);
+        MongoAssert.assertNodeRevisionId("/a", rev2, true);
+        MongoAssert.assertNodeRevisionId("/b", rev2, false);
+        MongoAssert.assertNodeRevisionId("/c", rev2, false);
+        MongoAssert.assertNodeRevisionId("/a/d", rev2, true);
+        MongoAssert.assertNodeRevisionId("/a/e", rev2, true);
     }
 }

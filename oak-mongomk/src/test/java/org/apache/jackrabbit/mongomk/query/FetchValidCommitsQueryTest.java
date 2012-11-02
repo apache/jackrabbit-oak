@@ -24,7 +24,6 @@ import java.util.List;
 import org.apache.jackrabbit.mongomk.BaseMongoTest;
 import org.apache.jackrabbit.mongomk.model.CommitMongo;
 import org.apache.jackrabbit.mongomk.query.FetchCommitsQuery;
-import org.apache.jackrabbit.mongomk.scenario.SimpleNodeScenario;
 import org.junit.Test;
 
 public class FetchValidCommitsQueryTest extends BaseMongoTest {
