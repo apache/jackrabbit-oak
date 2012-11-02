@@ -78,8 +78,13 @@ public class NodeUtil {
         return mapper.getJcrName(tree.getName());
     }
 
+    @CheckForNull
     public NodeUtil getParent() {
         return new NodeUtil(tree.getParent(), mapper);
+    }
+
+    public boolean isRoot() {
+        return tree.isRoot();
     }
 
     public boolean hasChild(String name) {
@@ -100,6 +105,7 @@ public class NodeUtil {
         return childUtil;
     }
 
+    @Nonnull
     public NodeUtil getOrAddChild(String name, String primaryTypeName) {
         NodeUtil child = getChild(name);
         return (child != null) ? child : addChild(name, primaryTypeName);
@@ -123,6 +129,7 @@ public class NodeUtil {
         tree.setProperty(name, value);
     }
 
+    @CheckForNull
     public String getString(String name, String defaultValue) {
         PropertyState property = tree.getProperty(name);
         if (property != null && !property.isArray()) {
@@ -136,6 +143,7 @@ public class NodeUtil {
         tree.setProperty(name, value);
     }
 
+    @CheckForNull
     public String[] getStrings(String name) {
         PropertyState property = tree.getProperty(name);
         if (property == null) {
@@ -149,10 +157,12 @@ public class NodeUtil {
         tree.setProperty(name, Arrays.asList(values), STRINGS);
     }
 
+    @CheckForNull
     public String getName(String name) {
         return getName(name, null);
     }
 
+    @CheckForNull
     public String getName(String name, String defaultValue) {
         PropertyState property = tree.getProperty(name);
         if (property != null && !property.isArray()) {
@@ -167,6 +177,7 @@ public class NodeUtil {
         tree.setProperty(name, oakName, NAME);
     }
 
+    @CheckForNull
     public String[] getNames(String name, String... defaultValues) {
         String[] strings = getStrings(name);
         if (strings == null) {
@@ -201,6 +212,7 @@ public class NodeUtil {
         tree.setProperty(name, value);
     }
 
+    @Nonnull
     public List<NodeUtil> getNodes(String namePrefix) {
         List<NodeUtil> nodes = Lists.newArrayList();
         for (Tree child : tree.getChildren()) {
@@ -224,6 +236,7 @@ public class NodeUtil {
         tree.setProperty(name, Arrays.asList(values), STRINGS);
     }
 
+    @CheckForNull
     public Value[] getValues(String name, ValueFactory vf) {
         PropertyState property = tree.getProperty(name);
         if (property != null) {
@@ -242,6 +255,7 @@ public class NodeUtil {
         }
     }
 
+    @Nonnull
     private String getOakName(String jcrName) {
         String oakName = mapper.getOakName(jcrName);
         if (oakName == null) {
