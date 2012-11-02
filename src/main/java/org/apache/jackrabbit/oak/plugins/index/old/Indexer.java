@@ -116,15 +116,15 @@ public class Indexer implements PropertyIndexConstants, BTreeHelper {
         readRevision = revision;
         boolean exists = mk.nodeExists(indexRootNode, revision);
         createNodes(INDEX_CONTENT);
-            if (exists) {
+        if (exists) {
             String node = mk.getNodes(indexRootNode, revision, 1, 0, Integer.MAX_VALUE, null);
             JsopTokenizer t = new JsopTokenizer(node);
             NodeMap map = new NodeMap();
             t.read('{');
             NodeImpl n = NodeImpl.parse(map, t, 0);
-            String rev = JsopTokenizer.decodeQuoted(n.getNode(INDEX_CONTENT).getProperty("rev"));
+            String rev = n.getNode(INDEX_CONTENT).getProperty("rev");
             if (rev != null) {
-                readRevision = rev;
+                readRevision = JsopTokenizer.decodeQuoted(rev);
             }
             for (int i = 0; i < n.getChildNodeCount(); i++) {
                 String k = n.getChildNodeName(i);
@@ -608,22 +608,22 @@ public class Indexer implements PropertyIndexConstants, BTreeHelper {
 
     private void buildIndex(PIndex index) {
         // TODO index: add ability to start / stop / restart indexing; log the progress
-        addRecursive(index, "/");
+        addRecursive(index, "/", mk.getHeadRevision());
     }
 
-    private void addRecursive(PIndex index, String path) {
+    private void addRecursive(PIndex index, String path, String revision) {
         if (isInIndex(path)) {
             return;
         }
         // TODO add: support large child node lists
-        String node = mk.getNodes(path, readRevision, 0, 0, Integer.MAX_VALUE, null);
+        String node = mk.getNodes(path, revision, 0, 0, Integer.MAX_VALUE, null);
         JsopTokenizer t = new JsopTokenizer(node);
         NodeMap map = new NodeMap();
         t.read('{');
         NodeImpl n = NodeImpl.parse(map, t, 0, path);
         index.addOrRemoveNode(n, true);
         for (Iterator<String> it = n.getChildNodeNames(Integer.MAX_VALUE); it.hasNext();) {
-            addRecursive(index, PathUtils.concat(path, it.next()));
+            addRecursive(index, PathUtils.concat(path, it.next()), revision);
         }
         if (needFlush()) {
             flushBuffer();
