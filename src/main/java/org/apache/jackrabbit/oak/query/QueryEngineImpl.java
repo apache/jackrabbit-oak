@@ -30,6 +30,8 @@ import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The query engine implementation.
@@ -40,6 +42,8 @@ public class QueryEngineImpl {
     static final String SQL = "sql";
     static final String XPATH = "xpath";
     static final String JQOM = "JCR-JQOM";
+
+    private static final Logger LOG = LoggerFactory.getLogger(QueryEngineImpl.class);
 
     private final NodeState root;
     private final QueryIndexProvider indexProvider;
@@ -68,6 +72,9 @@ public class QueryEngineImpl {
 
     private Query parseQuery(String statement, String language) throws ParseException {
         Query q;
+        if (LOG.isDebugEnabled()) {
+            LOG.debug(language + ": " + statement);
+        }
         if (SQL2.equals(language) || JQOM.equals(language)) {
             SQL2Parser parser = new SQL2Parser();
             q = parser.parse(statement);
@@ -79,6 +86,9 @@ public class QueryEngineImpl {
             XPathToSQL2Converter converter = new XPathToSQL2Converter();
             String sql2 = converter.convert(statement);
             SQL2Parser parser = new SQL2Parser();
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("XPath > SQL2: " + sql2);
+            }
             try {
                 q = parser.parse(sql2);
             } catch (ParseException e) {
@@ -114,12 +124,18 @@ public class QueryEngineImpl {
         double bestCost = Double.MAX_VALUE;
         for (QueryIndex index : getIndexes()) {
             double cost = index.getCost(filter, root);
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("cost for " + index + " is " + cost);
+            }            
             if (cost < bestCost) {
                 bestCost = cost;
                 best = index;
             }
         }
         if (best == null) {
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("no indexes found - using TraversingIndex; indexProvider: " + indexProvider);
+            }
             best = new TraversingIndex();
         }
         return best;
