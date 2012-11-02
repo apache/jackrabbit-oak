@@ -57,11 +57,11 @@ abstract class AuthorizableBaseProvider implements UserConstants {
         }
     }
 
-    String getContentID(String authorizableId) {
-        return IdentifierManager.generateUUID(authorizableId.toLowerCase());
-    }
-
     String getContentID(Tree authorizableTree) {
         return identifierManager.getIdentifier(authorizableTree);
+    }
+
+    static String getContentID(String authorizableId) {
+        return IdentifierManager.generateUUID(authorizableId.toLowerCase());
     }
 }

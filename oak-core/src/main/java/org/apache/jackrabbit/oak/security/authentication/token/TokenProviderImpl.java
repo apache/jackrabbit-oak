@@ -26,7 +26,9 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.Credentials;
@@ -44,6 +46,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
+import org.apache.jackrabbit.oak.plugins.name.NamespaceConstants;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenInfo;
@@ -86,10 +89,11 @@ public class TokenProviderImpl implements TokenProvider {
      * trigger the generation of a new token.
      */
     private static final String TOKEN_ATTRIBUTE = ".token";
-    private static final String TOKEN_ATTRIBUTE_EXPIRY = TOKEN_ATTRIBUTE + ".exp";
-    private static final String TOKEN_ATTRIBUTE_KEY = TOKEN_ATTRIBUTE + ".key";
+    private static final String TOKEN_ATTRIBUTE_EXPIRY = "rep:token.exp";
+    private static final String TOKEN_ATTRIBUTE_KEY = "rep:token.key";
     private static final String TOKENS_NODE_NAME = ".tokens";
     private static final String TOKENS_NT_NAME = JcrConstants.NT_UNSTRUCTURED;
+    private static final String TOKEN_NT_NAME = "rep:Token";
 
     /**
      * Default expiration time in ms for login tokens is 2 hours.
@@ -97,6 +101,13 @@ public class TokenProviderImpl implements TokenProvider {
     private static final long DEFAULT_TOKEN_EXPIRATION = 2 * 3600 * 1000;
     private static final int DEFAULT_KEY_SIZE = 8;
     private static final char DELIM = '_';
+
+    private static final Set<String> RESERVED_ATTRIBUTES = new HashSet(2);
+    static {
+        RESERVED_ATTRIBUTES.add(TOKEN_ATTRIBUTE);
+        RESERVED_ATTRIBUTES.add(TOKEN_ATTRIBUTE_EXPIRY);
+        RESERVED_ATTRIBUTES.add(TOKEN_ATTRIBUTE_KEY);
+    }
 
     private final Root root;
     private final ConfigurationParameters options;
@@ -162,7 +173,8 @@ public class TokenProviderImpl implements TokenProvider {
                 creation.setTimeInMillis(creationTime);
                 String tokenName = Text.replace(ISO8601.format(creation), ":", ".");
 
-                NodeUtil tokenNode = tokenParent.addChild(tokenName, TOKENS_NT_NAME);
+                NodeUtil tokenNode = tokenParent.addChild(tokenName, TOKEN_NT_NAME);
+                tokenNode.setString(JcrConstants.JCR_UUID, IdentifierManager.generateUUID());
 
                 String key = generateKey(options.getConfigValue(PARAM_TOKEN_LENGTH, DEFAULT_KEY_SIZE));
                 String nodeId = identifierManager.getIdentifier(tokenNode.getTree());
@@ -174,13 +186,12 @@ public class TokenProviderImpl implements TokenProvider {
                 tokenNode.setDate(TOKEN_ATTRIBUTE_EXPIRY, expirationTime);
 
                 for (String name : attributes.keySet()) {
-                    if (!TOKEN_ATTRIBUTE.equals(name)) {
+                    if (!RESERVED_ATTRIBUTES.contains(name)) {
                         String attr = attributes.get(name).toString();
                         tokenNode.setString(name, attr);
                     }
                 }
                 root.commit();
-
 
                 return new TokenInfoImpl(tokenNode, token, userId);
             } else {
@@ -203,8 +214,8 @@ public class TokenProviderImpl implements TokenProvider {
     @Override
     public TokenInfo getTokenInfo(String token) {
         int pos = token.indexOf(DELIM);
-        String tokenPath = (pos == -1) ? token : token.substring(0, pos);
-        Tree tokenTree = root.getTree(tokenPath);
+        String nodeId = (pos == -1) ? token : token.substring(0, pos);
+        Tree tokenTree = identifierManager.getTree(nodeId);
         String userId = getUserId(tokenTree);
         if (tokenTree == null || userId == null) {
             return null;
@@ -235,6 +246,11 @@ public class TokenProviderImpl implements TokenProvider {
         if (tokenTree != null) {
             NodeUtil tokenNode = new NodeUtil(tokenTree);
             long expTime = getExpirationTime(tokenNode, 0);
+            if (tokenInfo.isExpired(loginTime)) {
+                log.debug("Attempt to reset an expired token.");
+                return false;
+            }
+
             if (expTime - loginTime <= tokenExpiration/2) {
                 long expirationTime = loginTime + tokenExpiration;
                 try {
@@ -343,7 +359,7 @@ public class TokenProviderImpl implements TokenProvider {
             for (PropertyState propertyState : tokenNode.getTree().getProperties()) {
                 String name = propertyState.getName();
                 String value = propertyState.getValue(STRING);
-                if (TOKEN_ATTRIBUTE_KEY.equals(name) || TOKEN_ATTRIBUTE_EXPIRY.equals(name)) {
+                if (RESERVED_ATTRIBUTES.contains(name)) {
                     continue;
                 }
                 if (isMandatoryAttribute(name)) {
@@ -436,7 +452,7 @@ public class TokenProviderImpl implements TokenProvider {
          */
         private static boolean isInfoAttribute(String propertyName) {
             String prefix = Text.getNamespacePrefix(propertyName);
-            return !"jcr".equals(prefix) && !"rep".equals(prefix);
+            return !NamespaceConstants.RESERVED_PREFIXES.contains(prefix);
         }
     }
 }

@@ -127,8 +127,7 @@ public class NodeDelegate extends ItemDelegate {
      */
     @CheckForNull
     public NodeDelegate getChild(String relPath) throws InvalidItemStateException {
-        TreeLocation childLocation = getChildLocation(relPath);
-        return create(sessionDelegate, childLocation);
+        return create(sessionDelegate, getChildLocation(relPath));
     }
 
     /**
@@ -235,7 +234,7 @@ public class NodeDelegate extends ItemDelegate {
     Tree getTree() throws InvalidItemStateException {
         Tree tree = getLocation().getTree();
         if (tree == null) {
-            throw new InvalidItemStateException("Node is stale");
+            throw new InvalidItemStateException();
         }
         return tree;
     }

@@ -110,20 +110,6 @@ public class RootImplTest {
         assertTrue(tree.getChild("y").hasChild("xx"));
     }
 
-    @Test
-    public void move2() {
-        Root root = session.getLatestRoot();
-        Tree r = root.getTree("/");
-        Tree x = r.getChild("x");
-        Tree y = r.getChild("y");
-
-        assertFalse(y.hasChild("x"));
-        assertEquals("", x.getParent().getName());
-        root.move("/x", "/y/x");
-        assertTrue(y.hasChild("x"));
-        assertEquals("y", x.getParent().getName());
-    }
-
     /**
      * Regression test for OAK-208
      */

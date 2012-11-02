@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.jcr;
 
 import java.io.InputStream;
 import java.math.BigDecimal;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
@@ -74,8 +73,8 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
+import org.apache.jackrabbit.oak.plugins.nodetype.DefinitionProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
-import org.apache.jackrabbit.oak.plugins.nodetype.RootNodeDefinition;
 import org.apache.jackrabbit.oak.util.TODO;
 import org.apache.jackrabbit.value.ValueHelper;
 import org.slf4j.Logger;
@@ -246,8 +245,17 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
                     throw new ItemExistsException(relPath);
                 }
 
-                // TODO retrieve matching nt from effective definition based on name-matching.
-                String ntName = primaryNodeTypeName == null ? NodeType.NT_UNSTRUCTURED : primaryNodeTypeName;
+                String ntName = primaryNodeTypeName;
+                if (ntName == null) {
+                    DefinitionProvider dp = sessionDelegate.getDefinitionProvider();
+                    try {
+                        ntName = dp.getDefinition(new NodeImpl(parent),
+                                PathUtils.getName(relPath)).getDefaultPrimaryTypeName();
+                    } catch (RepositoryException e) {
+                        throw new ConstraintViolationException(
+                                "no matching child node definition found for " + relPath);
+                    }
+                }
 
                 // TODO: figure out the right place for this check
                 NodeTypeManager ntm = sessionDelegate.getNodeTypeManager();
@@ -954,47 +962,10 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
     @Nonnull
     public NodeDefinition getDefinition() throws RepositoryException {
         if (getDepth() == 0) {
-            return new RootNodeDefinition(dlg.sessionDelegate.getNodeTypeManager());
+            return dlg.sessionDelegate.getDefinitionProvider().getRootDefinition();
+        } else {
+            return dlg.sessionDelegate.getDefinitionProvider().getDefinition(getParent(), this);
         }
-
-        String name = getName();
-        List<NodeDefinition> residualDefs = new ArrayList<NodeDefinition>();
-        // TODO: This may need to be optimized
-        for (NodeType nt : getAllNodeTypes(getParent())) {
-            for (NodeDefinition def : nt.getDeclaredChildNodeDefinitions()) {
-                String defName = def.getName();
-                if (name.equals(defName)) {
-                    boolean match = true;
-                    for (String type : def.getRequiredPrimaryTypeNames()) {
-                        if (!isNodeType(type)) {
-                            match = false;
-                        }
-                    }
-                    if (match) {
-                        return def;
-                    }
-                } else if ("*".equals(defName)) {
-                    residualDefs.add(def);
-                }
-            }
-        }
-
-        for (NodeDefinition def : residualDefs) {
-            String defName = def.getName();
-            if ("*".equals(defName)) {
-                boolean match = true;
-                for (String type : def.getRequiredPrimaryTypeNames()) {
-                    if (!isNodeType(type)) {
-                        match = false;
-                    }
-                }
-                if (match) {
-                    return def;
-                }
-            }
-        }
-
-        throw new RepositoryException("No matching node definition found for " + this);
     }
 
     @Override
@@ -1359,7 +1330,7 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
     }
 
     private void autoCreateItems() throws RepositoryException {
-        Iterable<NodeType> types = getAllNodeTypes(this);
+        Iterable<NodeType> types = dlg.sessionDelegate.getEffectiveNodeTypeProvider().getEffectiveNodeTypes(this);
         for (NodeType nt : types) {
             for (PropertyDefinition pd : nt.getPropertyDefinitions()) {
                 if (pd.isAutoCreated() && dlg.getProperty(pd.getName()) == null) {
@@ -1442,7 +1413,7 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
         addNode(definition.getName(), definition.getDefaultPrimaryTypeName());
     }
 
-    // TODO: hack to filter for a subset of supported mixins for now
+    // FIXME: hack to filter for a subset of supported mixins for now
     // this allows only harmless mixin types so that other code like addMixin gets test coverage
     private boolean isSupportedMixinName(String mixinName) throws RepositoryException {
         String oakName = sessionDelegate.getOakPathOrThrow(mixinName);
@@ -1489,18 +1460,23 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
         return sessionDelegate.perform(new SessionOperation<Property>() {
             @Override
             public Property perform() throws RepositoryException {
+                String oakName = sessionDelegate.getOakPathOrThrow(jcrName);
                 if (value == null) {
-                    Property property = getProperty(jcrName);
-                    property.remove();
-                    return property;
+                    if (hasProperty(jcrName)) {
+                        Property property = getProperty(jcrName);
+                        property.remove();
+                        return property;
+                    } else {
+                        // Return a property instance which throws on access. See OAK-395
+                        return new PropertyImpl(new PropertyDelegate(
+                                sessionDelegate, dlg.getLocation().getChild(oakName)));
+                    }
                 } else {
-                    String oakName = sessionDelegate.getOakPathOrThrow(jcrName);
-
                     PropertyDefinition definition;
                     if (hasProperty(jcrName)) {
                         definition = getProperty(jcrName).getDefinition();
                     } else {
-                        definition = getPropertyDefinition(NodeImpl.this, oakName, false, type, exactTypeMatch);
+                        definition = dlg.sessionDelegate.getDefinitionProvider().getDefinition(NodeImpl.this, oakName, false, type, exactTypeMatch);
                     }
                     checkProtected(definition);
                     if (definition.isMultiple()) {
@@ -1524,18 +1500,22 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
         return sessionDelegate.perform(new SessionOperation<Property>() {
             @Override
             public Property perform() throws RepositoryException {
+                String oakName = sessionDelegate.getOakPathOrThrow(jcrName);
                 if (values == null) {
-                    Property p = getProperty(jcrName);
-                    p.remove();
-                    return p;
+                    if (hasProperty(jcrName)) {
+                        Property property = getProperty(jcrName);
+                        property.remove();
+                        return property;
+                    } else {
+                        return new PropertyImpl(new PropertyDelegate(
+                                sessionDelegate, dlg.getLocation().getChild(oakName)));
+                    }
                 } else {
-                    String oakName = sessionDelegate.getOakPathOrThrow(jcrName);
-
                     PropertyDefinition definition;
                     if (hasProperty(jcrName)) {
                         definition = getProperty(jcrName).getDefinition();
                     } else {
-                        definition = getPropertyDefinition(NodeImpl.this, oakName, true, type, exactTypeMatch);
+                        definition = dlg.sessionDelegate.getDefinitionProvider().getDefinition(NodeImpl.this, oakName, true, type, exactTypeMatch);
                     }
                     checkProtected(definition);
                     if (!definition.isMultiple()) {

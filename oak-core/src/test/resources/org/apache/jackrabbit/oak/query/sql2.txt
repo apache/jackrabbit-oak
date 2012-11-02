@@ -121,6 +121,7 @@ select * from [nt:base] as x where isdescendantnode(x, '/') and not isdescendant
 /jcr:system
 /oak:index
 /oak:index/authorizableId
+/oak:index/members
 /oak:index/primaryType
 /oak:index/principalName
 /oak:index/test-index
@@ -214,6 +215,7 @@ select * from [nt:base] where not isdescendantnode('/jcr:system')
 /jcr:system
 /oak:index
 /oak:index/authorizableId
+/oak:index/members
 /oak:index/primaryType
 /oak:index/principalName
 /oak:index/test-index
@@ -246,6 +248,7 @@ select * from [nt:base] where not (id = '1' or x = '2') and not isdescendantnode
 /jcr:system
 /oak:index
 /oak:index/authorizableId
+/oak:index/members
 /oak:index/primaryType
 /oak:index/principalName
 /oak:index/test-index
@@ -266,6 +269,7 @@ select * from [nt:base] where x is null and not isdescendantnode('/jcr:system')
 /jcr:system
 /oak:index
 /oak:index/authorizableId
+/oak:index/members
 /oak:index/primaryType
 /oak:index/principalName
 /oak:index/test-index

@@ -38,17 +38,19 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import com.google.common.base.Charsets;
 import com.google.common.collect.Sets;
 
+import static org.apache.jackrabbit.oak.commons.PathUtils.isAbsolute;
+
 /**
  * Provides a QueryIndex that does lookups against a property index
  * 
  * <p>
- * To define a property index on a subtree you have to add an <code>oak:index<code> node.
+ * To define a property index on a subtree you have to add an <code>oak:index</code> node.
  * 
  * Under it follows the index definition node that:
  * <ul>
  * <li>must be of type <code>oak:queryIndexDefinition</code></li>
  * <li>must have the <code>type</code> property set to <b><code>property</code></b></li>
- * <li>contains the <code>propertyNames<code> property that indicates what property will be stored in the index</li>
+ * <li>contains the <code>propertyNames</code> property that indicates what property will be stored in the index</li>
  * </ul>
  * </p>
  * <p>
@@ -57,11 +59,11 @@ import com.google.common.collect.Sets;
  * </p>
  * 
  * <p>
- * Note: <code>propertyNames<code> can be a list of properties, and it is optional.in case it is missing, the node name will be used as a property name reference value
+ * Note: <code>propertyNames</code> can be a list of properties, and it is optional.in case it is missing, the node name will be used as a property name reference value
  * </p>
  * 
  * <p>
- * Note: <code>reindex<code> is a property that when set to <code>true</code>, triggers a full content reindex.
+ * Note: <code>reindex</code> is a property that when set to <code>true</code>, triggers a full content reindex.
  * </p>
  * 
  * <pre>
@@ -110,8 +112,9 @@ public class PropertyIndex implements QueryIndex {
     }
 
     @Override
-    public double getCost(Filter filter) {
-        return 1.0; // FIXME: proper cost calculation
+    public double getCost(Filter filter, NodeState root) {
+        // TODO: proper cost calculation
+        return 1.0;
     }
 
     @Override
@@ -168,7 +171,7 @@ public class PropertyIndex implements QueryIndex {
         @Override
         public IndexRow currentRow() {
             // TODO support jcr:score and possibly rep:exceprt
-            return new IndexRowImpl(path);
+            return new IndexRowImpl(isAbsolute(path) ? path : "/" + path);
         }
 
     }

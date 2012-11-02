@@ -46,7 +46,7 @@ public class PrefixContentIndex implements QueryIndex {
     }
 
     @Override
-    public double getCost(Filter filter) {
+    public double getCost(Filter filter, NodeState root) {
         if (getPropertyTypeRestriction(filter) != null) {
             return 100;
         }

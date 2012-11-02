@@ -16,11 +16,17 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.callback;
 
+import java.util.Collections;
 import javax.annotation.CheckForNull;
+import javax.security.auth.Subject;
 import javax.security.auth.callback.Callback;
 
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.core.RootImpl;
+import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
+import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlProvider;
+import org.apache.jackrabbit.oak.spi.security.authorization.OpenAccessControlProvider;
+import org.apache.jackrabbit.oak.spi.security.principal.SystemPrincipal;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 /**
@@ -31,11 +37,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
  */
 public class RepositoryCallback implements Callback {
 
-    // TODO: base on a system-ContentSession that was passed to this
-    // TODO: callback handler in order have the appropriate set of indexes,
-    // TODO: valiators, commit-hooks etc...
-
     private NodeStore nodeStore;
+    private QueryIndexProvider indexProvider;
     private String workspaceName;
 
     public String getWorkspaceName() {
@@ -45,13 +48,19 @@ public class RepositoryCallback implements Callback {
     @CheckForNull
     public Root getRoot() {
         if (nodeStore != null) {
-            return new RootImpl(nodeStore);
+            Subject subject = new Subject(true, Collections.singleton(SystemPrincipal.INSTANCE), Collections.<Object>emptySet(), Collections.<Object>emptySet());
+            AccessControlProvider acProvider = new OpenAccessControlProvider();
+            return new RootImpl(nodeStore, workspaceName, subject, acProvider, indexProvider);
         }
         return null;
     }
 
     public void setNodeStore(NodeStore nodeStore) {
         this.nodeStore = nodeStore;
+    }
+
+    public void setIndexProvider(QueryIndexProvider indexProvider) {
+        this.indexProvider = indexProvider;
     }
 
     public void setWorkspaceName(String workspaceName) {

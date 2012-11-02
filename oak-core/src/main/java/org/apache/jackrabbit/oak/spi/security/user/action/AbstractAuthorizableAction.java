@@ -22,6 +22,7 @@ import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 
 /**
  * Abstract implementation of the {@code AuthorizableAction} interface that
@@ -33,40 +34,40 @@ public abstract class AbstractAuthorizableAction implements AuthorizableAction {
     /**
      * Doesn't perform any action.
      *
-     * @see AuthorizableAction#onCreate(org.apache.jackrabbit.api.security.user.Group, Root)
+     * @see AuthorizableAction#onCreate(org.apache.jackrabbit.api.security.user.Group, org.apache.jackrabbit.oak.api.Root, org.apache.jackrabbit.oak.namepath.NamePathMapper)
      */
     @Override
-    public void onCreate(Group group, Root root) throws RepositoryException {
+    public void onCreate(Group group, Root root, NamePathMapper namePathMapper) throws RepositoryException {
         // nothing to do
     }
 
     /**
      * Doesn't perform any action.
      *
-     * @see AuthorizableAction#onCreate(org.apache.jackrabbit.api.security.user.User, String, Root)
+     * @see AuthorizableAction#onCreate(org.apache.jackrabbit.api.security.user.User, String, org.apache.jackrabbit.oak.api.Root, org.apache.jackrabbit.oak.namepath.NamePathMapper)
      */
     @Override
-    public void onCreate(User user, String password, Root root) throws RepositoryException {
+    public void onCreate(User user, String password, Root root, NamePathMapper namePathMapper) throws RepositoryException {
         // nothing to do
     }
 
     /**
      * Doesn't perform any action.
      *
-     * @see AuthorizableAction#onRemove(org.apache.jackrabbit.api.security.user.Authorizable, Root)
+     * @see AuthorizableAction#onRemove(org.apache.jackrabbit.api.security.user.Authorizable, org.apache.jackrabbit.oak.api.Root, org.apache.jackrabbit.oak.namepath.NamePathMapper)
      */
     @Override
-    public void onRemove(Authorizable authorizable, Root root) throws RepositoryException {
+    public void onRemove(Authorizable authorizable, Root root, NamePathMapper namePathMapper) throws RepositoryException {
         // nothing to do
     }
 
     /**
      * Doesn't perform any action.
      *
-     * @see AuthorizableAction#onPasswordChange(org.apache.jackrabbit.api.security.user.User, String, Root)
+     * @see AuthorizableAction#onPasswordChange(org.apache.jackrabbit.api.security.user.User, String, org.apache.jackrabbit.oak.api.Root, org.apache.jackrabbit.oak.namepath.NamePathMapper)
      */
     @Override
-    public void onPasswordChange(User user, String newPassword, Root root) throws RepositoryException {
+    public void onPasswordChange(User user, String newPassword, Root root, NamePathMapper namePathMapper) throws RepositoryException {
         // nothing to do
     }
 }

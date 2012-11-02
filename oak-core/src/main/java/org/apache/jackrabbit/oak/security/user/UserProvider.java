@@ -160,29 +160,28 @@ class UserProvider extends AuthorizableBaseProvider {
         userPath = config.getConfigValue(PARAM_USER_PATH, DEFAULT_USER_PATH);
     }
 
-    //-------------------------------------------------------< UserProvider >---
     @Nonnull
-    public Tree createUser(String userID, String intermediateJcrPath) throws RepositoryException {
+    Tree createUser(String userID, String intermediateJcrPath) throws RepositoryException {
         return createAuthorizableNode(userID, false, intermediateJcrPath);
     }
 
     @Nonnull
-    public Tree createGroup(String groupID, String intermediateJcrPath) throws RepositoryException {
+    Tree createGroup(String groupID, String intermediateJcrPath) throws RepositoryException {
         return createAuthorizableNode(groupID, true, intermediateJcrPath);
     }
 
     @CheckForNull
-    public Tree getAuthorizable(String authorizableId) {
+    Tree getAuthorizable(String authorizableId) {
         return getByID(authorizableId, AuthorizableType.AUTHORIZABLE);
     }
 
     @CheckForNull
-    public Tree getAuthorizableByPath(String authorizableOakPath) {
+    Tree getAuthorizableByPath(String authorizableOakPath) {
         return getByPath(authorizableOakPath);
     }
 
     @CheckForNull
-    public Tree getAuthorizableByPrincipal(Principal principal) {
+    Tree getAuthorizableByPrincipal(Principal principal) {
         if (principal instanceof TreeBasedPrincipal) {
             return root.getTree(((TreeBasedPrincipal) principal).getOakPath());
         }
@@ -197,7 +196,7 @@ class UserProvider extends AuthorizableBaseProvider {
             Result result = root.getQueryEngine().executeQuery(stmt.toString(),
                     Query.JCR_SQL2, 1, 0,
                     Collections.singletonMap("principalName", PropertyValues.newString(principal.getName())),
-                    root, new NamePathMapper.Default());
+                    new NamePathMapper.Default());
 
             Iterator<? extends ResultRow> rows = result.getRows().iterator();
             if (rows.hasNext()) {
@@ -212,7 +211,7 @@ class UserProvider extends AuthorizableBaseProvider {
     }
 
     @CheckForNull
-    public String getAuthorizableId(Tree authorizableTree) {
+    static String getAuthorizableId(Tree authorizableTree) {
         checkNotNull(authorizableTree);
         if (UserUtility.isType(authorizableTree, AuthorizableType.AUTHORIZABLE)) {
             PropertyState idProp = authorizableTree.getProperty(UserConstants.REP_AUTHORIZABLE_ID);

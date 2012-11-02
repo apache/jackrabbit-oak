@@ -58,7 +58,7 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 public class RootImpl implements Root {
 
     /**
-     * Number of {@link #purge()} calls for which changes are kept in memory.
+     * Number of {@link #updated} calls for which changes are kept in memory.
      */
     private static final int PURGE_LIMIT = 100;
 
@@ -79,7 +79,7 @@ public class RootImpl implements Root {
     private TreeImpl rootTree;
 
     /**
-     * Number of {@link #purge()} occurred so since the lase
+     * Number of {@link #updated} occurred so since the lase
      * purge.
      */
     private int modCount;
@@ -130,9 +130,9 @@ public class RootImpl implements Root {
         refresh();
     }
 
+    // TODO: review if this constructor really makes sense and cannot be replaced.
     public RootImpl(NodeStore store) {
         this.store = checkNotNull(store);
-        // TODO review again (see also comment in RepositoryCallback)
         this.subject = new Subject(true, Collections.singleton(SystemPrincipal.INSTANCE), Collections.<Object>emptySet(), Collections.<Object>emptySet());
         this.accProvider = new OpenAccessControlProvider();
         this.indexProvider = new CompositeQueryIndexProvider();
@@ -288,7 +288,17 @@ public class RootImpl implements Root {
     @Override
     public SessionQueryEngine getQueryEngine() {
         checkLive();
-        return new SessionQueryEngineImpl(store, indexProvider);
+        return new SessionQueryEngineImpl(indexProvider) {
+            @Override
+            protected NodeState getRootNodeState() {
+                return rootTree.getNodeState();
+            }
+
+            @Override
+            protected Root getRoot() {
+                return RootImpl.this;
+            }
+        };
     }
 
     @Nonnull
@@ -329,7 +339,7 @@ public class RootImpl implements Root {
     }
 
     // TODO better way to determine purge limit. See OAK-175
-    void purge() {
+    void updated() {
         if (++modCount > PURGE_LIMIT) {
             modCount = 0;
             purgePendingChanges();

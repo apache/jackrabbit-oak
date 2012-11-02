@@ -72,22 +72,24 @@ import org.slf4j.LoggerFactory;
  *     <li>{@link ImpersonationCredentials}</li>
  * </ul>
  *
- * The {@link Credentials} obtained during the {@link #login()} are added to
- * the shared state and - upon successful {@link #commit()} to the {@link Subject}.
+ * The {@link Credentials} obtained during the {@code #login()} are added to
+ * the shared state and - upon successful {@code #commit()} to the {@code Subject}.
  *
  * <h3>Principals</h3>
- *
- * TODO
- * - principal lookup -> principal provider
- * - principal resolution based on credentials
+ * Upon successful login the principals associated with the user are calculated
+ * (see also {@link AbstractLoginModule#getPrincipals(String)}. These principals
+ * are finally added to the subject during {@code #commit()}.
  *
  * <h3>Impersonation</h3>
- *
- * TODO
- *
- *
- *
- *
+ * Impersonation such as defined by {@link javax.jcr.Session#impersonate(javax.jcr.Credentials)}
+ * is covered by this login module by the means of {@link ImpersonationCredentials}.
+ * Impersonation will succeed if the {@link ImpersonationCredentials#getBaseCredentials() base credentials}
+ * refer to a valid user that has not been disabled. If the authenticating
+ * subject is not allowed to impersonate the specified user, the login attempt
+ * will fail with {@code LoginException}.<p/>
+ * Please note, that a user will always be allowed to impersonate him/herself
+ * irrespective of the impersonation definitions exposed by
+ * {@link org.apache.jackrabbit.api.security.user.User#getImpersonation()}
  */
 public final class LoginModuleImpl extends AbstractLoginModule {
 
@@ -116,7 +118,7 @@ public final class LoginModuleImpl extends AbstractLoginModule {
             return false;
         }
 
-        Authentication authentication = new UserAuthentication(userId, getUserManager(), getPrincipalProvider());
+        Authentication authentication = new UserAuthentication(userId, getUserManager());
         boolean success = authentication.authenticate(credentials);
         if (success) {
             principals = getPrincipals(userId);

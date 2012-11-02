@@ -18,8 +18,6 @@ package org.apache.jackrabbit.oak.plugins.nodetype;
 
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Service;
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.ReadOnlyTree;
 import org.apache.jackrabbit.oak.namepath.NameMapperImpl;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -28,39 +26,16 @@ import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
-
 @Component
 @Service(ValidatorProvider.class)
 public class TypeValidatorProvider implements ValidatorProvider {
 
     @Override
     public Validator getRootValidator(NodeState before, final NodeState after) {
-        ReadOnlyNodeTypeManager ntm = new ReadOnlyNodeTypeManager() {
-            private final Tree types = getTypes(after);
-
-            @Override
-            protected Tree getTypes() {
-                return types;
-            }
-
-            private Tree getTypes(NodeState after) {
-                Tree tree = new ReadOnlyTree(after);
-                for (String name : PathUtils.elements(NODE_TYPES_PATH)) {
-                    if (tree == null) {
-                        break;
-                    }
-                    else {
-                        tree = tree.getChild(name);
-                    }
-                }
-                return tree;
-            }
-        };
-
-        Tree root = new ReadOnlyTree(after);
+        ReadOnlyNodeTypeManager ntm = new ValidatingNodeTypeManager(after);
+        ReadOnlyTree root = new ReadOnlyTree(after);
         final NamePathMapper mapper = new NamePathMapperImpl(new NameMapperImpl(root));
-        return new TypeValidator(ntm, new ReadOnlyTree(after), mapper);
+        return new TypeValidator(ntm, root, mapper);
     }
 
 }

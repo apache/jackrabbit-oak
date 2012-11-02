@@ -20,43 +20,62 @@ import java.text.ParseException;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.SessionQueryEngine;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
  * The query engine implementation bound to a session.
  */
-public class SessionQueryEngineImpl implements SessionQueryEngine {
+public abstract class SessionQueryEngineImpl implements SessionQueryEngine {
 
-    private final QueryEngineImpl queryEngine;
+    private final QueryIndexProvider indexProvider;
 
-    public SessionQueryEngineImpl(NodeStore store,
-            QueryIndexProvider indexProvider) {
-        this.queryEngine = new QueryEngineImpl(store, indexProvider);
+    public SessionQueryEngineImpl(QueryIndexProvider indexProvider) {
+        this.indexProvider = indexProvider;
     }
+
+    /**
+     * The implementing class must return the current root {@link NodeState}
+     * associated with the {@link ContentSession}.
+     *
+     * @return the current root {@link NodeState}.
+     */
+    protected abstract NodeState getRootNodeState();
+
+    /**
+     * The implementing class must return the root associated with the
+     * {@link ContentSession}.
+     *
+     * @return the root associated with the {@link ContentSession}.
+     */
+    protected abstract Root getRoot();
 
     @Override
     public List<String> getSupportedQueryLanguages() {
-        return queryEngine.getSupportedQueryLanguages();
+        return createQueryEngine().getSupportedQueryLanguages();
     }
 
     @Override
     public List<String> getBindVariableNames(String statement, String language)
             throws ParseException {
-        return queryEngine.getBindVariableNames(statement, language);
+        return createQueryEngine().getBindVariableNames(statement, language);
     }
 
     @Override
     public Result executeQuery(String statement, String language, long limit,
-            long offset, Map<String, ? extends PropertyValue> bindings, Root root,
+            long offset, Map<String, ? extends PropertyValue> bindings,
             NamePathMapper namePathMapper) throws ParseException {
-        return queryEngine.executeQuery(statement, language, limit, offset,
-                bindings, root, namePathMapper);
+        return createQueryEngine().executeQuery(statement, language, limit,
+                offset, bindings, getRoot(), namePathMapper);
     }
 
+    private QueryEngineImpl createQueryEngine() {
+        return new QueryEngineImpl(getRootNodeState(), indexProvider);
+    }
 }

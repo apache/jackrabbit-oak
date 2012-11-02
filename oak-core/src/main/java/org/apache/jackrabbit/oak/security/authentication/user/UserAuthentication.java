@@ -31,7 +31,6 @@ import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.security.user.CredentialsImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.Authentication;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
-import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtility;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -63,12 +62,10 @@ class UserAuthentication implements Authentication {
 
     private final String userId;
     private final UserManager userManager;
-    private final PrincipalProvider principalProvider;
 
-    UserAuthentication(String userId, UserManager userManager, PrincipalProvider principalProvider) {
+    UserAuthentication(String userId, UserManager userManager) {
         this.userId = userId;
         this.userManager = userManager;
-        this.principalProvider = principalProvider;
     }
 
     @Override
@@ -77,7 +74,7 @@ class UserAuthentication implements Authentication {
             return false;
         }
 
-        boolean success;
+        boolean success = false;
         try {
             Authorizable authorizable = userManager.getAuthorizable(userId);
             if (authorizable == null || authorizable.isGroup()) {
@@ -92,15 +89,14 @@ class UserAuthentication implements Authentication {
             if (credentials instanceof SimpleCredentials) {
                 SimpleCredentials creds = (SimpleCredentials) credentials;
                 Credentials userCreds = user.getCredentials();
-                if (userCreds instanceof CredentialsImpl) {
+                if (userId.equals(creds.getUserID()) && userCreds instanceof CredentialsImpl) {
                     success = PasswordUtility.isSame(((CredentialsImpl) userCreds).getPasswordHash(), creds.getPassword());
-                } else {
-                    success = false;
                 }
                 checkSuccess(success, "UserId/Password mismatch.");
             } else if (credentials instanceof ImpersonationCredentials) {
-                AuthInfo info = ((ImpersonationCredentials) credentials).getImpersonatorInfo();
-                success = impersonate(info, user);
+                ImpersonationCredentials ipCreds = (ImpersonationCredentials) credentials;
+                AuthInfo info = ipCreds.getImpersonatorInfo();
+                success = equalUserId(ipCreds) && impersonate(info, user);
                 checkSuccess(success, "Impersonation not allowed.");
             } else {
                 // guest login is allowed if an anonymous user exists in the content (see get user above)
@@ -119,10 +115,21 @@ class UserAuthentication implements Authentication {
         }
     }
 
+    private boolean equalUserId(ImpersonationCredentials creds) {
+        Credentials base = creds.getBaseCredentials();
+        return (base instanceof SimpleCredentials) && userId.equals(((SimpleCredentials) base).getUserID());
+    }
+
     private boolean impersonate(AuthInfo info, User user) {
-        Subject subject = new Subject(true, info.getPrincipals(), Collections.emptySet(), Collections.emptySet());
         try {
-            return user.getImpersonation().allows(subject);
+            if (info.getUserID().equals(user.getID())) {
+                log.debug("User " + info.getUserID() + " wants to impersonate himself -> success.");
+                return true;
+            } else {
+                log.debug("User " + info.getUserID() + " wants to impersonate " + user.getID());
+                Subject subject = new Subject(true, info.getPrincipals(), Collections.emptySet(), Collections.emptySet());
+                return user.getImpersonation().allows(subject);
+            }
         } catch (RepositoryException e) {
             log.debug("Error while validating impersonation", e.getMessage());
         }

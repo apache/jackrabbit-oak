@@ -1049,6 +1049,19 @@ public class RepositoryTest extends AbstractRepositoryTest {
     }
 
     @Test
+    public void accessRemovedProperty() throws RepositoryException {
+        Node foo = getNode("/foo");
+        Property p = foo.setProperty("name", "value");
+        p.remove();
+        try {
+            p.getPath();
+            fail("Expected InvalidItemStateException");
+        }
+        catch (InvalidItemStateException expected) {
+        }
+    }
+
+    @Test
     public void getReferences() throws RepositoryException {
         Session session = getAdminSession();
         Node referee = getNode("/foo");
@@ -1356,10 +1369,8 @@ public class RepositoryTest extends AbstractRepositoryTest {
         node.addNode("target");
         session.save();
 
-        Node sourceNode = session.getNode(TEST_PATH + "/source/node");
         session.refresh(true);
         session.move(TEST_PATH + "/source/node", TEST_PATH + "/target/moved");
-        assertEquals("/test_node/target/moved", sourceNode.getPath());
 
         assertFalse(node.hasNode("source/node"));
         assertTrue(node.hasNode("source"));
@@ -1381,10 +1392,8 @@ public class RepositoryTest extends AbstractRepositoryTest {
         node.addNode("target");
         session.save();
 
-        Node sourceNode = session.getNode(TEST_PATH + "/source/node");
         session.refresh(true);
         session.move(TEST_PATH + "/source/node", TEST_PATH + "/target/moved");
-        assertEquals("/test_node/target/moved", sourceNode.getPath());
 
         assertFalse(node.hasNode("source/node"));
         assertTrue(node.hasNode("source"));

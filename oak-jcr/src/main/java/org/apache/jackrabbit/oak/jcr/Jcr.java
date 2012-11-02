@@ -16,11 +16,8 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-
 import javax.annotation.Nonnull;
 import javax.jcr.Repository;
 
@@ -38,6 +35,7 @@ import org.apache.jackrabbit.oak.plugins.name.NameValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.DefaultTypeEditor;
 import org.apache.jackrabbit.oak.plugins.nodetype.InitialContent;
+import org.apache.jackrabbit.oak.plugins.nodetype.RegistrationValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypeValidatorProvider;
 import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
@@ -47,6 +45,8 @@ import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 public class Jcr {
 
@@ -69,6 +69,7 @@ public class Jcr {
         with(new NameValidatorProvider());
         with(new NamespaceValidatorProvider());
         with(new TypeValidatorProvider());
+        with(new RegistrationValidatorProvider());
         with(new ConflictValidatorProvider());
 
         with(new IndexHookManager(
