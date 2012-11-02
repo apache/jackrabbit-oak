@@ -19,7 +19,7 @@ package org.apache.jackrabbit.mongomk.performance.write;
 import java.io.InputStream;
 import java.util.Properties;
 
-import org.apache.jackrabbit.mongomk.api.BlobStore;
+import org.apache.jackrabbit.mk.blobs.BlobStore;
 import org.apache.jackrabbit.mongomk.api.NodeStore;
 import org.apache.jackrabbit.mongomk.impl.MongoConnection;
 import org.apache.jackrabbit.mongomk.impl.MongoMicroKernel;

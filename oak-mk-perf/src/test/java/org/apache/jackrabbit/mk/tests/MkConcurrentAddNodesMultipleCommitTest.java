@@ -39,8 +39,8 @@ public class MkConcurrentAddNodesMultipleCommitTest extends
         ConcurrentMicroKernelTestBase {
 
     // nodes for each worker
-    int nodesNumber = 20;
-    int numberOfNodesPerCommit = 3;
+    int nodesNumber = 100;
+    int numberOfNodesPerCommit = 10;
 
     /**
      * @Rule public CatchAllExceptionsRule catchAllExceptionsRule = new
@@ -73,7 +73,7 @@ public class MkConcurrentAddNodesMultipleCommitTest extends
 
     @Test
     public void testConcurentWritingPyramid1() throws InterruptedException {
-        int children = 3;
+        int children = 15;
         ArrayList<GenericWriteTask> tasks = new ArrayList<GenericWriteTask>();
         String diff;
         for (int i = 0; i < mkNumber; i++) {
