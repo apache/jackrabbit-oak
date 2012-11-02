@@ -658,7 +658,7 @@ public class TreeImpl implements Tree, PurgeListener {
             String name = PathUtils.getName(relPath);
             PropertyState property = child.internalGetProperty(name);
             if (property != null) {
-                return new PropertyLocation(new NodeLocation(child), property);
+                return new PropertyLocation(new NodeLocation(child), name);
             }
             else {
                 child = child.internalGetChild(name);
@@ -691,11 +691,11 @@ public class TreeImpl implements Tree, PurgeListener {
 
     public class PropertyLocation implements TreeLocation {
         private final NodeLocation parent;
-        private final PropertyState property;
+        private final String name;
 
-        private PropertyLocation(NodeLocation parent, PropertyState property) {
+        private PropertyLocation(NodeLocation parent, String name) {
             this.parent = checkNotNull(parent);
-            this.property = checkNotNull(property);
+            this.name = checkNotNull(name);
         }
 
         @Override
@@ -710,7 +710,7 @@ public class TreeImpl implements Tree, PurgeListener {
 
         @Override
         public String getPath() {
-            return PathUtils.concat(parent.getPath(), property.getName());
+            return PathUtils.concat(parent.getPath(), name);
         }
 
         @Override
@@ -720,6 +720,7 @@ public class TreeImpl implements Tree, PurgeListener {
 
         @Override
         public PropertyState getProperty() {
+            PropertyState property = parent.tree.internalGetProperty(name);
             return canRead(property)
                 ? property
                 : null;
@@ -727,7 +728,7 @@ public class TreeImpl implements Tree, PurgeListener {
 
         @Override
         public Status getStatus() {
-            return parent.tree.getPropertyStatus(property.getName());
+            return parent.tree.getPropertyStatus(name);
         }
 
         /**
@@ -743,7 +744,7 @@ public class TreeImpl implements Tree, PurgeListener {
          * @return  {@code true} on success false otherwise
          */
         public boolean remove() {
-            parent.tree.removeProperty(property.getName());
+            parent.tree.removeProperty(name);
             return true;
         }
     }
