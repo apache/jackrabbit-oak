@@ -9,7 +9,7 @@ import org.junit.Test;
 
 /**
  * FIXME - Look into these tests and see if we want to fix them somehow.
- * 
+ *
  * Tests for MongoMicroKernel limits.
  */
 public class MongoMKLimitsTest extends BaseMongoMicroKernelTest {
@@ -42,10 +42,9 @@ public class MongoMKLimitsTest extends BaseMongoMicroKernelTest {
     /**
      * This currently fails due to 16MB DBObject size limitation from Mongo
      * database.
-     * 
-     * @throws Exception
      */
     @Test
+    @Ignore
     public void overMaxBSONLimit() throws Exception {
         String path = "/";
         String baseNodeName = "N";
