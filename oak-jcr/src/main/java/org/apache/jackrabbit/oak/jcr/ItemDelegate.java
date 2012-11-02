@@ -38,9 +38,17 @@ public abstract class ItemDelegate {
     /** The underlying {@link org.apache.jackrabbit.oak.api.TreeLocation} of this item. */
     private TreeLocation location;
 
+    /**
+     * Revision on which this item is based. The underlying state of the item
+     * is re-resolved whenever the revision of the session does not match this
+     * revision.
+     */
+    private int revision;
+
     ItemDelegate(SessionDelegate sessionDelegate, TreeLocation location) {
         this.sessionDelegate = checkNotNull(sessionDelegate);
         this.location = checkNotNull(location);
+        this.revision = sessionDelegate.getRevision();
     }
 
     /**
@@ -76,7 +84,8 @@ public abstract class ItemDelegate {
      * @return  {@code true} iff stale
      */
     public boolean isStale() {
-        return getLocationOrNull() == NullLocation.INSTANCE;
+        Status status = getLocationOrNull().getStatus();
+        return status == Status.REMOVED || status == null;
     }
 
     /**
@@ -125,12 +134,15 @@ public abstract class ItemDelegate {
 
     /**
      * The underlying {@link org.apache.jackrabbit.oak.api.TreeLocation} of this item.
+     * The location is only re-resolved when the revision of this item does not match
+     * the revision of the session.
      * @return  tree location of the underlying item or {@code null} if stale.
      */
     @CheckForNull
     private synchronized TreeLocation getLocationOrNull() {
-        if (location != NullLocation.INSTANCE) {
+        if (location != NullLocation.INSTANCE && sessionDelegate.getRevision() != revision) {
             location = sessionDelegate.getLocation(location.getPath());
+            revision = sessionDelegate.getRevision();
         }
         return location;
     }
