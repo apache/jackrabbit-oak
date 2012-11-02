@@ -30,6 +30,7 @@ import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableAction;
+import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 
 /**
  * UserConfigurationImpl... TODO
@@ -45,6 +46,7 @@ public class UserConfigurationImpl extends SecurityConfiguration.Default impleme
         this.securityProvider = securityProvider;
     }
 
+    //----------------------------------------------< SecurityConfiguration >---
     @Nonnull
     @Override
     public ConfigurationParameters getConfigurationParameters() {
@@ -57,6 +59,13 @@ public class UserConfigurationImpl extends SecurityConfiguration.Default impleme
         return Collections.singletonList(vp);
     }
 
+    @Nonnull
+    @Override
+    public List<ProtectedItemImporter> getProtectedItemImporters() {
+        return Collections.<ProtectedItemImporter>singletonList(new UserImporter(config));
+    }
+
+    //--------------------------------------------------< UserConfiguration >---
     @Nonnull
     @Override
     public List<AuthorizableAction> getAuthorizableActions() {

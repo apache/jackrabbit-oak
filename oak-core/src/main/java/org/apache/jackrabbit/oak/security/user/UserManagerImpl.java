@@ -343,8 +343,18 @@ public class UserManagerImpl implements UserManager {
     }
 
     @Nonnull
+    SecurityProvider getSecurityProvider() {
+        return securityProvider;
+    }
+
+    @Nonnull
     ConfigurationParameters getConfig() {
         return config;
+    }
+
+    @CheckForNull
+    Session getSession() {
+        return session;
     }
 
     @CheckForNull
@@ -378,7 +388,7 @@ public class UserManagerImpl implements UserManager {
         }
     }
 
-    private void setPrincipal(Tree authorizableTree, Principal principal) {
+    void setPrincipal(Tree authorizableTree, Principal principal) {
         checkNotNull(principal);
         authorizableTree.setProperty(UserConstants.REP_PRINCIPAL_NAME, principal.getName());
     }
@@ -405,7 +415,7 @@ public class UserManagerImpl implements UserManager {
         }
     }
 
-    private UserQueryManager getQueryManager() throws RepositoryException {
+    private UserQueryManager getQueryManager() {
         if (queryManager == null) {
             queryManager = new UserQueryManager(this, root);
         }

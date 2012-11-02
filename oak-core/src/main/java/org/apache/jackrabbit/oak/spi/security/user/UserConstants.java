@@ -26,6 +26,7 @@ public interface UserConstants {
     String NT_REP_USER = "rep:User";
     String NT_REP_GROUP = "rep:Group";
     String NT_REP_MEMBERS = "rep:Members";
+    String MIX_REP_IMPERSONATABLE = "rep:Impersonatable";
     String REP_PRINCIPAL_NAME = "rep:principalName";
     String REP_AUTHORIZABLE_ID = "rep:authorizableId";
     String REP_PASSWORD = "rep:password";

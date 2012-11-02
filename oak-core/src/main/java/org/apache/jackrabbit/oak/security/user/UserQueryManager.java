@@ -60,7 +60,7 @@ class UserQueryManager {
     private final String groupRoot;
     private final String authorizableRoot;
 
-    UserQueryManager(UserManagerImpl userManager, Root root) throws RepositoryException {
+    UserQueryManager(UserManagerImpl userManager, Root root) {
         this.userManager = userManager;
         this.root = root;
 
