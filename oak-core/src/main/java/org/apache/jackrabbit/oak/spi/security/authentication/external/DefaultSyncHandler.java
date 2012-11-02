@@ -21,9 +21,11 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import javax.annotation.CheckForNull;
+import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
+import javax.jcr.ValueFormatException;
 
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -109,7 +111,7 @@ public class DefaultSyncHandler implements SyncHandler {
     @CheckForNull
     private User createUser(ExternalUser externalUser) throws RepositoryException, SyncException {
         if (mode.contains(SyncMode.MODE_CREATE_USER)) {
-            User user = userManager.createUser(externalUser.getId(), null, externalUser.getPrincipal(), externalUser.getPath());
+            User user = userManager.createUser(externalUser.getId(), externalUser.getPassword(), externalUser.getPrincipal(), externalUser.getPath());
             syncAuthorizable(externalUser, user);
             return user;
         } else {
@@ -157,24 +159,46 @@ public class DefaultSyncHandler implements SyncHandler {
             Object prop = properties.get(key);
             if (prop instanceof Collection) {
                 Value[] values = createValues((Collection) prop);
-                authorizable.setProperty(key, values);
+                if (values != null) {
+                    authorizable.setProperty(key, values);
+                }
             } else {
                 Value value = createValue(prop);
-                authorizable.setProperty(key, value);
+                if (value != null) {
+                    authorizable.setProperty(key, value);
+                }
             }
         }
     }
 
-    private Value createValue(Object propValue) {
-        // TODO
-        return null;
+    @CheckForNull
+    private Value createValue(Object propValue) throws ValueFormatException {
+        int type = getType(propValue);
+        if (type == PropertyType.UNDEFINED) {
+            return null;
+        } else {
+            return valueFactory.createValue(propValue.toString(), type);
+        }
     }
 
-    private Value[] createValues(Collection<?> propValues) {
+    @CheckForNull
+    private Value[] createValues(Collection<?> propValues) throws ValueFormatException {
         List<Value> values = new ArrayList<Value>();
         for (Object obj : propValues) {
-            values.add(createValue(obj));
+            Value v = createValue(obj);
+            if (v != null) {
+                values.add(v);
+            }
         }
         return values.toArray(new Value[values.size()]);
+    }
+
+    private static int getType(Object propValue) {
+        // TODO: add proper type detection
+        if (propValue == null) {
+            return PropertyType.UNDEFINED;
+        } else {
+            return PropertyType.STRING;
+        }
     }
 }

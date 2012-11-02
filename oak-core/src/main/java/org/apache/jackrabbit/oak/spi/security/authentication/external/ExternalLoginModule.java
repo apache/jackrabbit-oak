@@ -24,7 +24,6 @@ import javax.security.auth.login.LoginException;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.security.authentication.AbstractLoginModule;
-import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -66,19 +65,22 @@ public abstract class ExternalLoginModule extends AbstractLoginModule {
      * @throws SyncException
      */
     protected SyncHandler getSyncHandler() throws SyncException {
-        String shClass = options.getConfigValue(PARAM_SYNC_HANDLER, DEFAULT_SYNC_HANDLER);
-        Object syncHandler;
-        try {
-            // FIXME this will create problems within OSGi environment
-            syncHandler = Class.forName(shClass).newInstance();
-        } catch (Exception e) {
-            throw new SyncException("Error while getting SyncHandler:", e);
-        }
-
-        if (syncHandler instanceof SyncHandler) {
+        Object syncHandler = options.getConfigValue(PARAM_SYNC_HANDLER, null);
+        if (syncHandler == null) {
+            return new DefaultSyncHandler();
+        } else if (syncHandler instanceof SyncHandler) {
             return (SyncHandler) syncHandler;
         } else {
-            throw new SyncException("Invalid SyncHandler class configured: " + syncHandler.getClass().getName());
+            try {
+                Object sh = Class.forName(syncHandler.toString()).newInstance();
+                if (sh instanceof SyncHandler) {
+                    return (SyncHandler) sh;
+                } else {
+                    throw new SyncException("Invalid SyncHandler configuration: " + sh);
+                }
+            } catch (Exception e) {
+                throw new SyncException("Error while getting SyncHandler:", e);
+            }
         }
     }
 
@@ -115,12 +117,12 @@ public abstract class ExternalLoginModule extends AbstractLoginModule {
         try {
             SyncHandler handler = getSyncHandler();
             Root root = getRoot();
-            String smValue = options.getConfigValue(PARAM_SYNC_MODE, null);
+            Object smValue = options.getConfigValue(PARAM_SYNC_MODE, null);
             SyncMode syncMode;
             if (smValue == null) {
                 syncMode = DEFAULT_SYNC_MODE;
             } else {
-                syncMode = SyncMode.fromStrings(Text.explode(smValue, ',', false));
+                syncMode = SyncMode.fromObject(smValue);
             }
             if (handler.initialize(getUserManager(), root, syncMode, options)) {
                 handler.sync(getExternalUser());

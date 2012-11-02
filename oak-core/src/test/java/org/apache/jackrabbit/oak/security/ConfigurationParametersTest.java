@@ -103,6 +103,16 @@ public class ConfigurationParametersTest {
         assertEquals("1000", options.getConfigValue("Int3", "1000"));
     }
 
+    @Test
+    public void testNullValue() {
+        ConfigurationParameters options = new ConfigurationParameters(Collections.singletonMap("test", null));
+
+        assertNull(options.getConfigValue("test", null));
+        assertEquals("value", options.getConfigValue("test", "value"));
+        TestObject testObject = new TestObject("t");
+        assertEquals(testObject, options.getConfigValue("test", testObject));
+    }
+
 
 
     private class TestObject {
