@@ -52,6 +52,21 @@ public class NotImpl extends ConstraintImpl {
 
     @Override
     public void restrict(FilterImpl f) {
+        if (f.getSelector().outerJoin) {
+            // we need to be careful with the condition 
+            // "NOT (property IS NOT NULL)"
+            // (which is the same as 
+            // "property IS NULL") because
+            // this might cause an index to ignore
+            // the join condition "property = x"
+            // for example in:
+            // "select * from a left outer join b on a.x = b.y
+            // where not b.y is not null"
+            // must not result in the index to check for
+            // "b.y is null", because that would alter the
+            // result
+            return;
+        }
         // ignore
         // TODO convert NOT conditions
     }
