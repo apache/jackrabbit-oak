@@ -55,6 +55,10 @@ public class ConfigurationParameters {
     //--------------------------------------------------------< private >---
     @SuppressWarnings("unchecked")
     private static <T> T convert(Object configProperty, T defaultValue) {
+        if (configProperty == null) {
+            return defaultValue;
+        }
+
         T value;
         String str = configProperty.toString();
         Class targetClass = (defaultValue == null) ? configProperty.getClass() : defaultValue.getClass();

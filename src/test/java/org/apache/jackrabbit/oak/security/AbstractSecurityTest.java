@@ -66,6 +66,7 @@ public abstract class AbstractSecurityTest {
         }
         return securityProvider;
     }
+
     protected Configuration getConfiguration() {
         return new OakConfiguration();
     }
