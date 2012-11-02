@@ -81,6 +81,7 @@ public class SessionDelegate {
     private PrivilegeManager privilegeManager;
     private boolean isAlive = true;
     private int sessionOpCount;
+    private int revision;
 
     SessionDelegate(
             Repository repository, ScheduledExecutorService executor,
@@ -131,6 +132,16 @@ public class SessionDelegate {
         // observation events have actually been delivered
         return autoRefresh ||
                 (sessionOpCount <= 1 && observationManager != null && observationManager.hasEvents());
+    }
+
+    /**
+     * Revision of this session. The revision is incremented each time a session is refreshed or saved.
+     * This allows items to determine whether they need to re-resolve their underlying state when the
+     * revision on which an item is based does not match the revision of the session any more.
+     * @return  the current revision of this session
+     */
+    int getRevision() {
+        return revision;
     }
 
     public boolean isAlive() {
@@ -229,6 +240,7 @@ public class SessionDelegate {
     public void save() throws RepositoryException {
         try {
             root.commit();
+            revision++;
         } catch (CommitFailedException e) {
             e.throwRepositoryException();
         }
@@ -240,6 +252,7 @@ public class SessionDelegate {
         } else {
             root.refresh();
         }
+        revision++;
         // TODO: improve
         if (privilegeManager != null && privilegeManager instanceof PrivilegeManagerImpl) {
             ((PrivilegeManagerImpl) privilegeManager).refresh();
