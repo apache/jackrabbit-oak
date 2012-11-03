@@ -494,10 +494,7 @@ public class TreeImpl implements Tree {
             return true;
         }
         try {
-            if (nodeBuilder != null) {
-                nodeBuilder.getNodeState();
-            }
-            return false;
+            return getNodeBuilder().getNodeState() == null;
         }
         catch (IllegalStateException e) {
             return true;
