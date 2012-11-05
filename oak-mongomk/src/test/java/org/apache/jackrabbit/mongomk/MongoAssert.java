@@ -26,7 +26,7 @@ import org.apache.jackrabbit.mongomk.api.model.Commit;
 import org.apache.jackrabbit.mongomk.api.model.Node;
 import org.apache.jackrabbit.mongomk.impl.MongoConnection;
 import org.apache.jackrabbit.mongomk.model.CommitMongo;
-import org.apache.jackrabbit.mongomk.model.HeadMongo;
+import org.apache.jackrabbit.mongomk.model.SyncMongo;
 import org.apache.jackrabbit.mongomk.model.NodeMongo;
 import org.apache.jackrabbit.mongomk.util.MongoUtil;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -66,14 +66,14 @@ public class MongoAssert {
     }
 
     public static void assertHeadRevision(long revisionId) {
-        DBCollection headCollection = mongoConnection.getHeadCollection();
-        HeadMongo result = (HeadMongo) headCollection.findOne();
+        DBCollection headCollection = mongoConnection.getSyncCollection();
+        SyncMongo result = (SyncMongo) headCollection.findOne();
         Assert.assertEquals(revisionId, result.getHeadRevisionId());
     }
 
     public static void assertNextRevision(long revisionId) {
-        DBCollection headCollection = mongoConnection.getHeadCollection();
-        HeadMongo result = (HeadMongo) headCollection.findOne();
+        DBCollection headCollection = mongoConnection.getSyncCollection();
+        SyncMongo result = (SyncMongo) headCollection.findOne();
         Assert.assertEquals(revisionId, result.getNextRevisionId());
     }
 

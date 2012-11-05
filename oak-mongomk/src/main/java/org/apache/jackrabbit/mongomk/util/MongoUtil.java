@@ -25,7 +25,7 @@ import org.apache.jackrabbit.mongomk.api.model.Node;
 import org.apache.jackrabbit.mongomk.impl.MongoConnection;
 import org.apache.jackrabbit.mongomk.impl.model.tree.MongoNodeState;
 import org.apache.jackrabbit.mongomk.model.CommitMongo;
-import org.apache.jackrabbit.mongomk.model.HeadMongo;
+import org.apache.jackrabbit.mongomk.model.SyncMongo;
 import org.apache.jackrabbit.mongomk.model.NodeMongo;
 
 import com.mongodb.BasicDBObject;
@@ -44,25 +44,10 @@ public class MongoUtil {
     public static final String INITIAL_COMMIT_PATH = "";
     public static final String INITIAL_COMMIT_DIFF = "+\"/\" : {}";
 
-    public static void clearCommitCollection(MongoConnection mongoConnection) {
-        DBCollection commitCollection = mongoConnection.getCommitCollection();
-        commitCollection.drop();
-    }
-
     public static void clearDatabase(MongoConnection mongoConnection) {
         clearNodeCollection(mongoConnection);
         clearCommitCollection(mongoConnection);
-        clearHeadCollection(mongoConnection);
-    }
-
-    public static void clearHeadCollection(MongoConnection mongoConnection) {
-        DBCollection headCollection = mongoConnection.getHeadCollection();
-        headCollection.drop();
-    }
-
-    public static void clearNodeCollection(MongoConnection mongoConnection) {
-        DBCollection nodeCollection = mongoConnection.getNodeCollection();
-        nodeCollection.drop();
+        clearSyncCollection(mongoConnection);
     }
 
     public static void initCommitCollection(MongoConnection mongoConnection) {
@@ -84,10 +69,9 @@ public class MongoUtil {
 
     public static void initDatabase(MongoConnection mongoConnection) {
         clearDatabase(mongoConnection);
-
         initNodeCollection(mongoConnection);
         initCommitCollection(mongoConnection);
-        initHeadCollection(mongoConnection);
+        initSyncCollection(mongoConnection);
     }
 
     public static void bootstrap(MongoConnection mongoConnection){
@@ -98,14 +82,14 @@ public class MongoUtil {
         if(!db.collectionExists(MongoConnection.COLLECTION_COMMITS)){
             initCommitCollection(mongoConnection);
         }
-        if(!db.collectionExists(MongoConnection.COLLECTION_HEAD)){
-            initHeadCollection(mongoConnection);
+        if(!db.collectionExists(MongoConnection.COLLECTION_SYNC)){
+            initSyncCollection(mongoConnection);
         }
     }
 
-    public static void initHeadCollection(MongoConnection mongoConnection) {
-        DBCollection headCollection = mongoConnection.getHeadCollection();
-        HeadMongo headMongo = new HeadMongo();
+    public static void initSyncCollection(MongoConnection mongoConnection) {
+        DBCollection headCollection = mongoConnection.getSyncCollection();
+        SyncMongo headMongo = new SyncMongo();
         headMongo.setHeadRevisionId(0L);
         headMongo.setNextRevisionId(1L);
         headCollection.insert(headMongo);
@@ -150,5 +134,17 @@ public class MongoUtil {
 
     public static boolean isFiltered(String path) {
         return !"/".equals(path);
+    }
+
+    private static void clearCommitCollection(MongoConnection mongoConnection) {
+        mongoConnection.getCommitCollection().drop();
+    }
+
+    private static void clearNodeCollection(MongoConnection mongoConnection) {
+        mongoConnection.getNodeCollection().drop();
+    }
+
+    private static void clearSyncCollection(MongoConnection mongoConnection) {
+        mongoConnection.getSyncCollection().drop();
     }
 }

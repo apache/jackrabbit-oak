@@ -17,7 +17,7 @@
 package org.apache.jackrabbit.mongomk.query;
 
 import org.apache.jackrabbit.mongomk.impl.MongoConnection;
-import org.apache.jackrabbit.mongomk.model.HeadMongo;
+import org.apache.jackrabbit.mongomk.model.SyncMongo;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBCollection;
@@ -26,7 +26,7 @@ import com.mongodb.DBObject;
 /**
  * An query for reading and incrementing the head revision id.
  */
-public class ReadAndIncHeadRevisionQuery extends AbstractQuery<HeadMongo> {
+public class ReadAndIncHeadRevisionQuery extends AbstractQuery<SyncMongo> {
 
     /**
      * Constructs a new {@code ReadAndIncHeadRevisionQuery}.
@@ -39,17 +39,17 @@ public class ReadAndIncHeadRevisionQuery extends AbstractQuery<HeadMongo> {
     }
 
     @Override
-    public HeadMongo execute() throws Exception {
+    public SyncMongo execute() throws Exception {
         DBObject query = new BasicDBObject();
-        DBObject inc = new BasicDBObject(HeadMongo.KEY_NEXT_REVISION_ID, 1L);
+        DBObject inc = new BasicDBObject(SyncMongo.KEY_NEXT_REVISION_ID, 1L);
         DBObject update = new BasicDBObject("$inc", inc);
-        DBCollection headCollection = mongoConnection.getHeadCollection();
+        DBCollection headCollection = mongoConnection.getSyncCollection();
 
         DBObject dbObject = headCollection.findAndModify(query, null, null, false, update, true, false);
         // Not sure why but sometimes dbObject is null. Simply retry for now.
         while (dbObject == null) {
             dbObject = headCollection.findAndModify(query, null, null, false, update, true, false);
         }
-        return HeadMongo.fromDBObject(dbObject);
+        return SyncMongo.fromDBObject(dbObject);
     }
 }

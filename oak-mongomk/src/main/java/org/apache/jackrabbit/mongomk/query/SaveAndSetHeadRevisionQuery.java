@@ -17,7 +17,7 @@
 package org.apache.jackrabbit.mongomk.query;
 
 import org.apache.jackrabbit.mongomk.impl.MongoConnection;
-import org.apache.jackrabbit.mongomk.model.HeadMongo;
+import org.apache.jackrabbit.mongomk.model.SyncMongo;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBCollection;
@@ -27,7 +27,7 @@ import com.mongodb.QueryBuilder;
 /**
  * An query for saving and setting the head revision id.
  */
-public class SaveAndSetHeadRevisionQuery extends AbstractQuery<HeadMongo> {
+public class SaveAndSetHeadRevisionQuery extends AbstractQuery<SyncMongo> {
 
     private final long newHeadRevision;
     private final long oldHeadRevision;
@@ -47,11 +47,11 @@ public class SaveAndSetHeadRevisionQuery extends AbstractQuery<HeadMongo> {
     }
 
     @Override
-    public HeadMongo execute() throws Exception {
-        DBCollection headCollection = mongoConnection.getHeadCollection();
-        DBObject query = QueryBuilder.start(HeadMongo.KEY_HEAD_REVISION_ID).is(oldHeadRevision).get();
-        DBObject update = new BasicDBObject("$set", new BasicDBObject(HeadMongo.KEY_HEAD_REVISION_ID, newHeadRevision));
+    public SyncMongo execute() throws Exception {
+        DBCollection headCollection = mongoConnection.getSyncCollection();
+        DBObject query = QueryBuilder.start(SyncMongo.KEY_HEAD_REVISION_ID).is(oldHeadRevision).get();
+        DBObject update = new BasicDBObject("$set", new BasicDBObject(SyncMongo.KEY_HEAD_REVISION_ID, newHeadRevision));
         DBObject dbObject = headCollection.findAndModify(query, null, null, false, update, true, false);
-        return HeadMongo.fromDBObject(dbObject);
+        return SyncMongo.fromDBObject(dbObject);
     }
 }

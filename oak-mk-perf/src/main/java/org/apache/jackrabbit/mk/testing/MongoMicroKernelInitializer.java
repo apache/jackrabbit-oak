@@ -20,7 +20,6 @@ import java.util.ArrayList;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.blobs.BlobStore;
-import org.apache.jackrabbit.mk.util.BlobStoreFS;
 import org.apache.jackrabbit.mk.util.Configuration;
 import org.apache.jackrabbit.mk.util.MongoClearCollections;
 import org.apache.jackrabbit.mongomk.api.NodeStore;
@@ -53,7 +52,7 @@ public class MongoMicroKernelInitializer implements MicroKernelInitializer {
         MongoClearCollections.clearAllCollections(mongoConnection);
         MongoUtil.initNodeCollection(mongoConnection);
         MongoUtil.initCommitCollection(mongoConnection);
-        MongoUtil.initHeadCollection(mongoConnection);
+        MongoUtil.initSyncCollection(mongoConnection);
         mongoConnection = new MongoConnection(conf.getHost(),
                 conf.getMongoPort(), "admin");
         // set the shard key

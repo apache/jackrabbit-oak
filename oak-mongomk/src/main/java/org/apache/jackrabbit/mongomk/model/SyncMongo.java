@@ -20,23 +20,21 @@ import com.mongodb.BasicDBObject;
 import com.mongodb.DBObject;
 
 /**
- * FIXME - This should be renamed to SyncMongo.
- *
  * The {@code MongoDB} representation of the head revision.
  */
-public class HeadMongo extends BasicDBObject {
+public class SyncMongo extends BasicDBObject {
 
     public static final String KEY_HEAD_REVISION_ID = "headRevId";
     public static final String KEY_NEXT_REVISION_ID = "nextRevId";
     private static final long serialVersionUID = 3541425042129003691L;
 
-    public static HeadMongo fromDBObject(DBObject dbObject) {
+    public static SyncMongo fromDBObject(DBObject dbObject) {
         if (dbObject == null) {
             return null;
         }
-        HeadMongo headMongo = new HeadMongo();
-        headMongo.putAll(dbObject);
-        return headMongo;
+        SyncMongo syncMongo = new SyncMongo();
+        syncMongo.putAll(dbObject);
+        return syncMongo;
     }
 
     public long getHeadRevisionId() {

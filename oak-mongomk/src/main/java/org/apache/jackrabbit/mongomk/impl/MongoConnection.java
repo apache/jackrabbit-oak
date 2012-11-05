@@ -17,7 +17,7 @@
 package org.apache.jackrabbit.mongomk.impl;
 
 import org.apache.jackrabbit.mongomk.model.CommitMongo;
-import org.apache.jackrabbit.mongomk.model.HeadMongo;
+import org.apache.jackrabbit.mongomk.model.SyncMongo;
 import org.apache.jackrabbit.mongomk.model.NodeMongo;
 
 import com.mongodb.DB;
@@ -31,8 +31,9 @@ import com.mongodb.gridfs.GridFS;
 public class MongoConnection {
 
     public static final String COLLECTION_COMMITS = "commits";
-    public static final String COLLECTION_HEAD = "head";
+    public static final String COLLECTION_SYNC = "sync";
     public static final String COLLECTION_NODES = "nodes";
+
     private final DB db;
     private final GridFS gridFS;
     private final Mongo mongo;
@@ -90,14 +91,14 @@ public class MongoConnection {
     }
 
     /**
-     * Returns the head {@link DBCollection}.
+     * Returns the sync {@link DBCollection}.
      *
-     * @return The head {@link DBCollection}.
+     * @return The sync {@link DBCollection}.
      */
-    public DBCollection getHeadCollection() {
-        DBCollection headCollection = db.getCollection(COLLECTION_HEAD);
-        headCollection.setObjectClass(HeadMongo.class);
-        return headCollection;
+    public DBCollection getSyncCollection() {
+        DBCollection syncCollection = db.getCollection(COLLECTION_SYNC);
+        syncCollection.setObjectClass(SyncMongo.class);
+        return syncCollection;
     }
 
     /**

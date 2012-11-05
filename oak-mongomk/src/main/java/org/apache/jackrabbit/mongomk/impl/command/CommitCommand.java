@@ -28,7 +28,7 @@ import org.apache.jackrabbit.mongomk.command.exception.ConflictingCommitExceptio
 import org.apache.jackrabbit.mongomk.impl.MongoConnection;
 import org.apache.jackrabbit.mongomk.model.CommitCommandInstructionVisitor;
 import org.apache.jackrabbit.mongomk.model.CommitMongo;
-import org.apache.jackrabbit.mongomk.model.HeadMongo;
+import org.apache.jackrabbit.mongomk.model.SyncMongo;
 import org.apache.jackrabbit.mongomk.model.NodeMongo;
 import org.apache.jackrabbit.mongomk.model.NotFoundException;
 import org.apache.jackrabbit.mongomk.query.FetchCommitQuery;
@@ -58,7 +58,7 @@ public class CommitCommand extends DefaultCommand<Long> {
     private Set<String> affectedPaths;
     private CommitMongo commitMongo;
     private List<NodeMongo> existingNodes;
-    private HeadMongo headMongo;
+    private SyncMongo syncMongo;
     private Set<NodeMongo> nodeMongos;
     private Long revisionId;
     private String branchId;
@@ -124,9 +124,9 @@ public class CommitCommand extends DefaultCommand<Long> {
      * @throws Exception If an exception happens.
      */
     protected boolean saveAndSetHeadRevision() throws Exception {
-        HeadMongo headMongo = new SaveAndSetHeadRevisionQuery(mongoConnection,
-                this.headMongo.getHeadRevisionId(), revisionId).execute();
-        if (headMongo == null) {
+        SyncMongo syncMongo = new SaveAndSetHeadRevisionQuery(mongoConnection,
+                this.syncMongo.getHeadRevisionId(), revisionId).execute();
+        if (syncMongo == null) {
             logger.warn(String.format("Encounterd a conflicting update, thus can't commit"
                     + " revision %s and will be retried with new revision", revisionId));
             return false;
@@ -142,7 +142,7 @@ public class CommitCommand extends DefaultCommand<Long> {
         commitMongo = CommitMongo.fromCommit(commit);
         commitMongo.setRevisionId(revisionId);
         commitMongo.setAffectedPaths(new LinkedList<String>(affectedPaths));
-        commitMongo.setBaseRevId(headMongo.getHeadRevisionId());
+        commitMongo.setBaseRevId(syncMongo.getHeadRevisionId());
         if (commitMongo.getBranchId() == null && branchId != null) {
             commitMongo.setBranchId(branchId);
         }
@@ -150,7 +150,7 @@ public class CommitCommand extends DefaultCommand<Long> {
 
     private void createMongoNodes() throws Exception {
         CommitCommandInstructionVisitor visitor = new CommitCommandInstructionVisitor(
-                mongoConnection, headMongo.getHeadRevisionId());
+                mongoConnection, syncMongo.getHeadRevisionId());
         visitor.setBranchId(branchId);
 
         for (Instruction instruction : commit.getInstructions()) {
@@ -170,7 +170,7 @@ public class CommitCommand extends DefaultCommand<Long> {
     }
 
     private void createRevision() {
-        revisionId = headMongo.getNextRevisionId() - 1;
+        revisionId = syncMongo.getNextRevisionId() - 1;
     }
 
     private void markAsFailed() throws Exception {
@@ -288,7 +288,7 @@ public class CommitCommand extends DefaultCommand<Long> {
     }
 
     private void readAndIncHeadRevision() throws Exception {
-        headMongo = new ReadAndIncHeadRevisionQuery(mongoConnection).execute();
+        syncMongo = new ReadAndIncHeadRevisionQuery(mongoConnection).execute();
     }
 
     private void readExistingNodes() {
@@ -298,7 +298,7 @@ public class CommitCommand extends DefaultCommand<Long> {
         }
 
         FetchNodesForPathsQuery query = new FetchNodesForPathsQuery(mongoConnection,
-                paths, headMongo.getHeadRevisionId());
+                paths, syncMongo.getHeadRevisionId());
         query.setBranchId(branchId);
         existingNodes = query.execute();
     }

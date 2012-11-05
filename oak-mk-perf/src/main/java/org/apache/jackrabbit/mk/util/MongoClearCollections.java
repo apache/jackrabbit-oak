@@ -29,8 +29,8 @@ public class MongoClearCollections {
      * 
      * @param mongoConnection
      */
-    public static void clearHeadCollection(MongoConnection mongoConnection) {
-        mongoConnection.getHeadCollection().remove(new BasicDBObject());
+    public static void clearSyncCollection(MongoConnection mongoConnection) {
+        mongoConnection.getSyncCollection().remove(new BasicDBObject());
     }
 
     /**
@@ -41,6 +41,6 @@ public class MongoClearCollections {
     public static void clearAllCollections(MongoConnection mongoConnection) {
         clearNodesCollection(mongoConnection);
         clearCommitsCollection(mongoConnection);
-        clearHeadCollection(mongoConnection);
+        clearSyncCollection(mongoConnection);
     }
 }

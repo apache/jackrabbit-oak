@@ -18,7 +18,7 @@ package org.apache.jackrabbit.mongomk.query;
 
 import org.apache.jackrabbit.mongomk.impl.MongoConnection;
 import org.apache.jackrabbit.mongomk.model.CommitMongo;
-import org.apache.jackrabbit.mongomk.model.HeadMongo;
+import org.apache.jackrabbit.mongomk.model.SyncMongo;
 
 import com.mongodb.DBCollection;
 
@@ -50,9 +50,9 @@ public class FetchHeadRevisionIdQuery extends AbstractQuery<Long> {
 
     @Override
     public Long execute() throws Exception {
-        DBCollection headCollection = mongoConnection.getHeadCollection();
-        HeadMongo headMongo = (HeadMongo)headCollection.findOne();
-        long headRevisionId = headMongo.getHeadRevisionId();
+        DBCollection headCollection = mongoConnection.getSyncCollection();
+        SyncMongo syncMongo = (SyncMongo)headCollection.findOne();
+        long headRevisionId = syncMongo.getHeadRevisionId();
         if (includeBranchCommits) {
             return headRevisionId;
         }
