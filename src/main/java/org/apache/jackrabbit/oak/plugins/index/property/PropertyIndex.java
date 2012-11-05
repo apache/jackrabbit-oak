@@ -138,7 +138,7 @@ public class PropertyIndex implements QueryIndex {
         if (paths != null) {
             return new PathCursor(paths);
         } else {
-            return new TraversingCursor(filter, root);
+            return new TraversingCursor("?", filter, root);
         }
     }
 

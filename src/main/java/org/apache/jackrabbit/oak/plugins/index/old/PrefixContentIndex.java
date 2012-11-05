@@ -134,5 +134,10 @@ public class PrefixContentIndex implements QueryIndex {
             return false;
         }
     }
+    
+    @Override
+    public String toString() {
+        return index.toString();
+    }
 
 }

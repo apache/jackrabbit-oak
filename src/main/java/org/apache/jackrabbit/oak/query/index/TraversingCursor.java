@@ -26,6 +26,9 @@ import org.apache.jackrabbit.oak.spi.query.Filter.PathRestriction;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Queues;
 
@@ -34,6 +37,10 @@ import com.google.common.collect.Queues;
  */
 public class TraversingCursor implements Cursor {
 
+    private static final Logger LOG = LoggerFactory.getLogger(TraversingIndex.class);
+
+    private final String statement;
+    
     private final Filter filter;
 
     private final Deque<Iterator<? extends ChildNodeEntry>> nodeIterators =
@@ -42,8 +49,11 @@ public class TraversingCursor implements Cursor {
     private String parentPath;
 
     private String currentPath;
+    
+    private long readCount;
 
-    public TraversingCursor(Filter filter, NodeState root) {
+    public TraversingCursor(String statement, Filter filter, NodeState root) {
+        this.statement = statement;
         this.filter = filter;
 
         String path = filter.getPath();
@@ -100,6 +110,12 @@ public class TraversingCursor implements Cursor {
             Iterator<? extends ChildNodeEntry> iterator = nodeIterators.getLast();
             if (iterator.hasNext()) {
                 ChildNodeEntry entry = iterator.next();
+                
+                readCount++;
+                if (readCount % 100 == 0) {
+                    LOG.warn("Traversed " + readCount + " nodes with filter " + filter + " for query " + statement + "; consider creating an index or changing the query");
+                }
+                
                 NodeState node = entry.getNodeState();
 
                 String name = entry.getName();
