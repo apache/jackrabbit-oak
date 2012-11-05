@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.mongomk.impl;
 
+import org.apache.jackrabbit.mongomk.action.FetchCommitAction;
 import org.apache.jackrabbit.mongomk.api.NodeStore;
 import org.apache.jackrabbit.mongomk.api.command.Command;
 import org.apache.jackrabbit.mongomk.api.command.CommandExecutor;
@@ -32,7 +33,6 @@ import org.apache.jackrabbit.mongomk.impl.command.MergeCommand;
 import org.apache.jackrabbit.mongomk.impl.command.NodeExistsCommand;
 import org.apache.jackrabbit.mongomk.impl.command.WaitForCommitCommand;
 import org.apache.jackrabbit.mongomk.model.CommitMongo;
-import org.apache.jackrabbit.mongomk.query.FetchCommitQuery;
 import org.apache.jackrabbit.mongomk.util.MongoUtil;
 
 /**
@@ -130,8 +130,8 @@ public class NodeStoreMongo implements NodeStore {
             return null;
         }
 
-        FetchCommitQuery query = new FetchCommitQuery(mongoConnection, MongoUtil.toMongoRepresentation(revisionId));
-        CommitMongo baseCommit = query.execute();
+        CommitMongo baseCommit = new FetchCommitAction(mongoConnection,
+                MongoUtil.toMongoRepresentation(revisionId)).execute();
         return baseCommit.getBranchId();
     }
 }

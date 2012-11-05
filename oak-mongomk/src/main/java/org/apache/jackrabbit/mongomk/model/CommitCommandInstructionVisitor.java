@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.jackrabbit.mongomk.action.FetchNodesAction;
 import org.apache.jackrabbit.mongomk.api.instruction.Instruction.AddNodeInstruction;
 import org.apache.jackrabbit.mongomk.api.instruction.Instruction.CopyNodeInstruction;
 import org.apache.jackrabbit.mongomk.api.instruction.Instruction.MoveNodeInstruction;
@@ -29,7 +30,6 @@ import org.apache.jackrabbit.mongomk.api.instruction.Instruction.SetPropertyInst
 import org.apache.jackrabbit.mongomk.api.instruction.InstructionVisitor;
 import org.apache.jackrabbit.mongomk.impl.MongoConnection;
 import org.apache.jackrabbit.mongomk.impl.command.NodeExistsCommand;
-import org.apache.jackrabbit.mongomk.query.FetchNodesQuery;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 
 /**
@@ -149,7 +149,7 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
         }
 
         // First, copy the existing nodes.
-        List<NodeMongo> nodesToCopy = new FetchNodesQuery(mongoConnection,
+        List<NodeMongo> nodesToCopy = new FetchNodesAction(mongoConnection,
                 srcPath, headRevisionId).execute();
         for (NodeMongo nodeMongo : nodesToCopy) {
             String oldPath = nodeMongo.getPath();
@@ -197,7 +197,7 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
         }
 
         // First, copy the existing nodes.
-        List<NodeMongo> nodesToCopy = new FetchNodesQuery(mongoConnection,
+        List<NodeMongo> nodesToCopy = new FetchNodesAction(mongoConnection,
                 srcPath, headRevisionId).execute();
         for (NodeMongo nodeMongo : nodesToCopy) {
             String oldPath = nodeMongo.getPath();
@@ -256,7 +256,7 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
         }
 
         // Fetch the node without its descendants.
-        FetchNodesQuery query = new FetchNodesQuery(mongoConnection,
+        FetchNodesAction query = new FetchNodesAction(mongoConnection,
                 path, headRevisionId);
         query.setBranchId(branchId);
         query.setFetchDescendants(false);

@@ -5,6 +5,9 @@ import java.util.Map;
 
 import org.apache.jackrabbit.mk.model.tree.DiffBuilder;
 import org.apache.jackrabbit.mk.model.tree.NodeState;
+import org.apache.jackrabbit.mongomk.action.FetchBranchBaseRevisionIdAction;
+import org.apache.jackrabbit.mongomk.action.FetchCommitAction;
+import org.apache.jackrabbit.mongomk.action.FetchHeadRevisionIdAction;
 import org.apache.jackrabbit.mongomk.api.command.Command;
 import org.apache.jackrabbit.mongomk.api.model.Commit;
 import org.apache.jackrabbit.mongomk.api.model.Node;
@@ -16,9 +19,6 @@ import org.apache.jackrabbit.mongomk.impl.model.tree.MongoNodeDelta.Conflict;
 import org.apache.jackrabbit.mongomk.impl.model.tree.MongoNodeState;
 import org.apache.jackrabbit.mongomk.impl.model.tree.MongoNodeStore;
 import org.apache.jackrabbit.mongomk.model.CommitMongo;
-import org.apache.jackrabbit.mongomk.query.FetchBranchBaseRevisionIdQuery;
-import org.apache.jackrabbit.mongomk.query.FetchCommitQuery;
-import org.apache.jackrabbit.mongomk.query.FetchHeadRevisionIdQuery;
 import org.apache.jackrabbit.mongomk.util.MongoUtil;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.slf4j.Logger;
@@ -50,9 +50,8 @@ public class MergeCommand extends DefaultCommand<String> {
 
     @Override
     public String execute() throws Exception {
-        FetchCommitQuery query = new FetchCommitQuery(mongoConnection,
-                MongoUtil.toMongoRepresentation(branchRevisionId));
-        CommitMongo commit = query.execute();
+        CommitMongo commit = new FetchCommitAction(mongoConnection,
+                MongoUtil.toMongoRepresentation(branchRevisionId)).execute();
         String branchId = commit.getBranchId();
         if (branchId == null) {
             throw new Exception("Can only merge a private branch commit");
@@ -60,14 +59,14 @@ public class MergeCommand extends DefaultCommand<String> {
 
         long rootNodeId = commit.getRevisionId();
 
-        FetchHeadRevisionIdQuery query2 = new FetchHeadRevisionIdQuery(mongoConnection);
+        FetchHeadRevisionIdAction query2 = new FetchHeadRevisionIdAction(mongoConnection);
         query2.includeBranchCommits(false);
         long currentHead = query2.execute();
 
         Node ourRoot = getNode("/", rootNodeId, branchId);
 
-        FetchBranchBaseRevisionIdQuery branchQuery = new FetchBranchBaseRevisionIdQuery(mongoConnection, branchId);
-        long branchRootId = branchQuery.execute();
+        FetchBranchBaseRevisionIdAction branchAction = new FetchBranchBaseRevisionIdAction(mongoConnection, branchId);
+        long branchRootId = branchAction.execute();
 
         // Merge nodes from head to branch.
         ourRoot = mergeNodes(ourRoot, currentHead, branchRootId);

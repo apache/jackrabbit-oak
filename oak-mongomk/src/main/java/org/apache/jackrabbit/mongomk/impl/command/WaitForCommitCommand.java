@@ -1,7 +1,7 @@
 package org.apache.jackrabbit.mongomk.impl.command;
 
+import org.apache.jackrabbit.mongomk.action.FetchHeadRevisionIdAction;
 import org.apache.jackrabbit.mongomk.impl.MongoConnection;
-import org.apache.jackrabbit.mongomk.query.FetchHeadRevisionIdQuery;
 import org.apache.jackrabbit.mongomk.util.MongoUtil;
 
 /**
@@ -54,7 +54,7 @@ public class WaitForCommitCommand extends DefaultCommand<Long> {
     }
 
     private long getHeadRevision() throws Exception {
-        FetchHeadRevisionIdQuery query = new FetchHeadRevisionIdQuery(mongoConnection);
+        FetchHeadRevisionIdAction query = new FetchHeadRevisionIdAction(mongoConnection);
         query.includeBranchCommits(false);
         return query.execute();
     }

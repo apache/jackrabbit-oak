@@ -5,12 +5,12 @@ import java.util.List;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.json.JsopBuilder;
 import org.apache.jackrabbit.mk.model.tree.DiffBuilder;
+import org.apache.jackrabbit.mongomk.action.FetchCommitsAction;
+import org.apache.jackrabbit.mongomk.action.FetchHeadRevisionIdAction;
 import org.apache.jackrabbit.mongomk.api.model.Node;
 import org.apache.jackrabbit.mongomk.impl.MongoConnection;
 import org.apache.jackrabbit.mongomk.impl.model.tree.MongoNodeStore;
 import org.apache.jackrabbit.mongomk.model.CommitMongo;
-import org.apache.jackrabbit.mongomk.query.FetchCommitsQuery;
-import org.apache.jackrabbit.mongomk.query.FetchHeadRevisionIdQuery;
 import org.apache.jackrabbit.mongomk.util.MongoUtil;
 
 /**
@@ -46,7 +46,7 @@ public class GetJournalCommand extends DefaultCommand<String> {
         long fromRevision = MongoUtil.toMongoRepresentation(fromRevisionId);
         long toRevision;
         if (toRevisionId == null) {
-            FetchHeadRevisionIdQuery query = new FetchHeadRevisionIdQuery(mongoConnection);
+            FetchHeadRevisionIdAction query = new FetchHeadRevisionIdAction(mongoConnection);
             query.includeBranchCommits(true);
             toRevision = query.execute();
         } else {
@@ -112,7 +112,7 @@ public class GetJournalCommand extends DefaultCommand<String> {
     }
 
     private List<CommitMongo> getCommits(long fromRevisionId, long toRevisionId) {
-        FetchCommitsQuery query = new FetchCommitsQuery(mongoConnection, fromRevisionId,
+        FetchCommitsAction query = new FetchCommitsAction(mongoConnection, fromRevisionId,
                 toRevisionId);
         return query.execute();
     }

@@ -2,12 +2,12 @@ package org.apache.jackrabbit.mongomk.impl.command;
 
 import org.apache.jackrabbit.mk.model.tree.DiffBuilder;
 import org.apache.jackrabbit.mk.model.tree.NodeState;
+import org.apache.jackrabbit.mongomk.action.FetchCommitAction;
+import org.apache.jackrabbit.mongomk.action.FetchHeadRevisionIdAction;
 import org.apache.jackrabbit.mongomk.api.model.Node;
 import org.apache.jackrabbit.mongomk.impl.MongoConnection;
 import org.apache.jackrabbit.mongomk.impl.model.tree.MongoNodeStore;
 import org.apache.jackrabbit.mongomk.model.CommitMongo;
-import org.apache.jackrabbit.mongomk.query.FetchCommitQuery;
-import org.apache.jackrabbit.mongomk.query.FetchHeadRevisionIdQuery;
 import org.apache.jackrabbit.mongomk.util.MongoUtil;
 
 /**
@@ -46,7 +46,7 @@ public class DiffCommand extends DefaultCommand<String> {
 
         long fromRevisionId, toRevisionId;
         if (fromRevision == null || toRevision == null) {
-            FetchHeadRevisionIdQuery query = new FetchHeadRevisionIdQuery(mongoConnection);
+            FetchHeadRevisionIdAction query = new FetchHeadRevisionIdAction(mongoConnection);
             query.includeBranchCommits(true);
             long head = query.execute();
             fromRevisionId = fromRevision == null? head : MongoUtil.toMongoRepresentation(fromRevision);
@@ -61,7 +61,7 @@ public class DiffCommand extends DefaultCommand<String> {
         }
 
         if ("/".equals(path)) {
-            CommitMongo toCommit = new FetchCommitQuery(mongoConnection, toRevisionId).execute();
+            CommitMongo toCommit = new FetchCommitAction(mongoConnection, toRevisionId).execute();
             if (toCommit.getBaseRevId() == fromRevisionId) {
                 // Specified range spans a single commit:
                 // use diff stored in commit instead of building it dynamically

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mongomk.query;
+package org.apache.jackrabbit.mongomk.action;
 
 import org.apache.jackrabbit.mongomk.impl.MongoConnection;
 import org.apache.jackrabbit.mongomk.model.CommitMongo;
@@ -26,19 +26,19 @@ import com.mongodb.DBObject;
 import com.mongodb.QueryBuilder;
 
 /**
- * A query for fetching the base (trunk) revision id that the branch is based on.
+ * An action for fetching the base (trunk) revision id that the branch is based on.
  */
-public class FetchBranchBaseRevisionIdQuery extends AbstractQuery<Long> {
+public class FetchBranchBaseRevisionIdAction extends AbstractAction<Long> {
 
     private final String branchId;
 
     /**
-     * Constructs a new {@code FetchHeadBranchRevisionIdQuery}.
+     * Constructs a new {@code FetchBranchBaseRevisionIdAction}.
      *
      * @param mongoConnection The {@link MongoConnection}.
      * @param branchId The branch id. It should not be null.
      */
-    public FetchBranchBaseRevisionIdQuery(MongoConnection mongoConnection, String branchId) {
+    public FetchBranchBaseRevisionIdAction(MongoConnection mongoConnection, String branchId) {
         super(mongoConnection);
         this.branchId = branchId;
     }

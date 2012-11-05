@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mongomk.query;
+package org.apache.jackrabbit.mongomk.action;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -29,6 +29,8 @@ import org.slf4j.LoggerFactory;
 import com.mongodb.DBCursor;
 
 /**
+ * FIXME - Should this be part of a base FetchNodes class?
+ *
  * Utility class for queries.
  */
 public class QueryUtils {

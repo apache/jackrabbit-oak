@@ -14,36 +14,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mongomk.query;
+package org.apache.jackrabbit.mongomk.action;
 
 import org.apache.jackrabbit.mongomk.impl.MongoConnection;
 
 /**
- * FIXME - Rename this to AbstractAction and rename all queries in actions.
- *
- * An abstract base class for queries performed with {@code MongoDB}.
+ * An abstract base class for actions performed against {@code MongoDB}.
  *
  * @param <T> The result type of the query.
  */
-public abstract class AbstractQuery<T> {
+public abstract class AbstractAction<T> {
 
     /** The {@link MongoConnection}. */
     protected MongoConnection mongoConnection;
 
     /**
-     * Constructs a new {@code AbstractQuery}.
+     * Constructs a new {@code AbstractAction}.
      *
      * @param mongoConnection The mongo connection.
      */
-    protected AbstractQuery(MongoConnection mongoConnection) {
+    protected AbstractAction(MongoConnection mongoConnection) {
         this.mongoConnection = mongoConnection;
     }
 
     /**
-     * Executes this query.
+     * Executes this action.
      *
-     * @return The result of the query.
-     * @throws Exception If an error occurred while executing the query.
+     * @return The result of the action.
+     * @throws Exception If an error occurred while executing the action.
      */
     public abstract T execute() throws Exception;
 }

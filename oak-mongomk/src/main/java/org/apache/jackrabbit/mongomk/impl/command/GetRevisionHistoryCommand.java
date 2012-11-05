@@ -6,11 +6,11 @@ import java.util.List;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.json.JsopBuilder;
 import org.apache.jackrabbit.mk.model.tree.DiffBuilder;
+import org.apache.jackrabbit.mongomk.action.FetchCommitsAction;
 import org.apache.jackrabbit.mongomk.api.model.Node;
 import org.apache.jackrabbit.mongomk.impl.MongoConnection;
 import org.apache.jackrabbit.mongomk.impl.model.tree.MongoNodeStore;
 import org.apache.jackrabbit.mongomk.model.CommitMongo;
-import org.apache.jackrabbit.mongomk.query.FetchCommitsQuery;
 import org.apache.jackrabbit.mongomk.util.MongoUtil;
 
 /**
@@ -45,11 +45,11 @@ public class GetRevisionHistoryCommand extends DefaultCommand<String> {
         path = MongoUtil.adjustPath(path);
         maxEntries = maxEntries < 0 ? Integer.MAX_VALUE : maxEntries;
 
-        FetchCommitsQuery query = new FetchCommitsQuery(mongoConnection);
-        query.setMaxEntries(maxEntries);
-        query.includeBranchCommits(false);
+        FetchCommitsAction action = new FetchCommitsAction(mongoConnection);
+        action.setMaxEntries(maxEntries);
+        action.includeBranchCommits(false);
 
-        List<CommitMongo> commits = query.execute();
+        List<CommitMongo> commits = action.execute();
         List<CommitMongo> history = new ArrayList<CommitMongo>();
         for (int i = commits.size() - 1; i >= 0; i--) {
             CommitMongo commit = commits.get(i);

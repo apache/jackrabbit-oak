@@ -22,15 +22,15 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 
+import org.apache.jackrabbit.mongomk.action.FetchCommitAction;
+import org.apache.jackrabbit.mongomk.action.FetchCommitsAction;
+import org.apache.jackrabbit.mongomk.action.FetchNodesAction;
 import org.apache.jackrabbit.mongomk.api.model.Node;
 import org.apache.jackrabbit.mongomk.command.exception.InconsistentNodeHierarchyException;
 import org.apache.jackrabbit.mongomk.impl.MongoConnection;
 import org.apache.jackrabbit.mongomk.impl.model.NodeImpl;
 import org.apache.jackrabbit.mongomk.model.CommitMongo;
 import org.apache.jackrabbit.mongomk.model.NodeMongo;
-import org.apache.jackrabbit.mongomk.query.FetchCommitQuery;
-import org.apache.jackrabbit.mongomk.query.FetchCommitsQuery;
-import org.apache.jackrabbit.mongomk.query.FetchNodesQuery;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,7 +45,7 @@ public class GetNodesCommand extends DefaultCommand<Node> {
     private final String path;
 
     private String branchId;
-    private int depth = FetchNodesQuery.LIMITLESS_DEPTH;
+    private int depth = FetchNodesAction.LIMITLESS_DEPTH;
     private Long revisionId;
     private List<CommitMongo> lastCommits;
     private List<NodeMongo> nodeMongos;
@@ -165,16 +165,16 @@ public class GetNodesCommand extends DefaultCommand<Node> {
             revisionId = new GetHeadRevisionCommand(mongoConnection).execute();
         } else {
             // Ensure that commit with revision id exists.
-            new FetchCommitQuery(mongoConnection, revisionId).execute();
+            new FetchCommitAction(mongoConnection, revisionId).execute();
         }
     }
 
     private void readLastCommits() throws Exception {
-        lastCommits = new FetchCommitsQuery(mongoConnection, revisionId).execute();
+        lastCommits = new FetchCommitsAction(mongoConnection, revisionId).execute();
     }
 
     private void readNodesByPath() {
-        FetchNodesQuery query = new FetchNodesQuery(mongoConnection,
+        FetchNodesAction query = new FetchNodesAction(mongoConnection,
                 path, revisionId);
         query.setBranchId(branchId);
         // FIXME - This does not work for depth > 3449.

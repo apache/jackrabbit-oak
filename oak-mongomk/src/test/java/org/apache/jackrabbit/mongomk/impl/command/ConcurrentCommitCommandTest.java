@@ -29,6 +29,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import org.apache.jackrabbit.mongomk.BaseMongoTest;
+import org.apache.jackrabbit.mongomk.action.FetchCommitsAction;
 import org.apache.jackrabbit.mongomk.api.command.CommandExecutor;
 import org.apache.jackrabbit.mongomk.api.model.Commit;
 import org.apache.jackrabbit.mongomk.api.model.Node;
@@ -37,7 +38,6 @@ import org.apache.jackrabbit.mongomk.impl.command.DefaultCommandExecutor;
 import org.apache.jackrabbit.mongomk.impl.command.GetNodesCommand;
 import org.apache.jackrabbit.mongomk.impl.model.CommitBuilder;
 import org.apache.jackrabbit.mongomk.model.CommitMongo;
-import org.apache.jackrabbit.mongomk.query.FetchCommitsQuery;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.junit.Test;
 
@@ -136,8 +136,7 @@ public class ConcurrentCommitCommandTest extends BaseMongoTest {
         }
 
         // Assert number of successful commits.
-        FetchCommitsQuery query = new FetchCommitsQuery(mongoConnection);
-        List<CommitMongo> commits = query.execute();
+        List<CommitMongo> commits = new FetchCommitsAction(mongoConnection).execute();
         assertEquals(numOfConcurrentThreads + 1, commits.size());
     }
 }

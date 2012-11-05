@@ -22,6 +22,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.jackrabbit.mongomk.action.FetchCommitAction;
+import org.apache.jackrabbit.mongomk.action.FetchNodesForPathsAction;
+import org.apache.jackrabbit.mongomk.action.ReadAndIncHeadRevisionAction;
+import org.apache.jackrabbit.mongomk.action.SaveAndSetHeadRevisionAction;
+import org.apache.jackrabbit.mongomk.action.SaveCommitAction;
+import org.apache.jackrabbit.mongomk.action.SaveNodesAction;
 import org.apache.jackrabbit.mongomk.api.instruction.Instruction;
 import org.apache.jackrabbit.mongomk.api.model.Commit;
 import org.apache.jackrabbit.mongomk.command.exception.ConflictingCommitException;
@@ -31,12 +37,6 @@ import org.apache.jackrabbit.mongomk.model.CommitMongo;
 import org.apache.jackrabbit.mongomk.model.SyncMongo;
 import org.apache.jackrabbit.mongomk.model.NodeMongo;
 import org.apache.jackrabbit.mongomk.model.NotFoundException;
-import org.apache.jackrabbit.mongomk.query.FetchCommitQuery;
-import org.apache.jackrabbit.mongomk.query.FetchNodesForPathsQuery;
-import org.apache.jackrabbit.mongomk.query.ReadAndIncHeadRevisionQuery;
-import org.apache.jackrabbit.mongomk.query.SaveAndSetHeadRevisionQuery;
-import org.apache.jackrabbit.mongomk.query.SaveCommitQuery;
-import org.apache.jackrabbit.mongomk.query.SaveNodesQuery;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -124,7 +124,7 @@ public class CommitCommand extends DefaultCommand<Long> {
      * @throws Exception If an exception happens.
      */
     protected boolean saveAndSetHeadRevision() throws Exception {
-        SyncMongo syncMongo = new SaveAndSetHeadRevisionQuery(mongoConnection,
+        SyncMongo syncMongo = new SaveAndSetHeadRevisionAction(mongoConnection,
                 this.syncMongo.getHeadRevisionId(), revisionId).execute();
         if (syncMongo == null) {
             logger.warn(String.format("Encounterd a conflicting update, thus can't commit"
@@ -282,13 +282,12 @@ public class CommitCommand extends DefaultCommand<Long> {
             return;
         }
 
-        FetchCommitQuery query = new FetchCommitQuery(mongoConnection, baseRevisionId);
-        CommitMongo baseCommit = query.execute();
+        CommitMongo baseCommit = new FetchCommitAction(mongoConnection, baseRevisionId).execute();
         branchId = baseCommit.getBranchId();
     }
 
     private void readAndIncHeadRevision() throws Exception {
-        syncMongo = new ReadAndIncHeadRevisionQuery(mongoConnection).execute();
+        syncMongo = new ReadAndIncHeadRevisionAction(mongoConnection).execute();
     }
 
     private void readExistingNodes() {
@@ -297,17 +296,17 @@ public class CommitCommand extends DefaultCommand<Long> {
             paths.add(nodeMongo.getPath());
         }
 
-        FetchNodesForPathsQuery query = new FetchNodesForPathsQuery(mongoConnection,
+        FetchNodesForPathsAction query = new FetchNodesForPathsAction(mongoConnection,
                 paths, syncMongo.getHeadRevisionId());
         query.setBranchId(branchId);
         existingNodes = query.execute();
     }
 
     private void saveCommit() throws Exception {
-        new SaveCommitQuery(mongoConnection, commitMongo).execute();
+        new SaveCommitAction(mongoConnection, commitMongo).execute();
     }
 
     private void saveNodes() throws Exception {
-        new SaveNodesQuery(mongoConnection, nodeMongos).execute();
+        new SaveNodesAction(mongoConnection, nodeMongos).execute();
     }
 }
