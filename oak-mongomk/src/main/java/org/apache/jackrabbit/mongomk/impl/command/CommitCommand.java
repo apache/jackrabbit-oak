@@ -104,7 +104,7 @@ public class CommitCommand extends BaseCommand<Long> {
 
     @Override
     public int getNumOfRetries() {
-        return 10;
+        return 20;
     }
 
     @Override
@@ -116,7 +116,8 @@ public class CommitCommand extends BaseCommand<Long> {
 
     /**
      * FIXME - Currently this assumes a conflict if there's an update but it
-     * should really check the affected paths before assuming a conflict.
+     * should really check the affected paths before assuming a conflict. When
+     * this is fixed, lower the number of retries.
      *
      * This is protected for testing purposed only.
      *
