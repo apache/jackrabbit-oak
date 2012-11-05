@@ -1,4 +1,4 @@
-package org.apache.jackrabbit.mongomk.command;
+package org.apache.jackrabbit.mongomk.impl.command;
 
 import java.io.InputStream;
 import java.util.Properties;

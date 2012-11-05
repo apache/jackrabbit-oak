@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mongomk.command;
+package org.apache.jackrabbit.mongomk.impl.command;
 
 import org.apache.jackrabbit.mongomk.BaseMongoMicroKernelTest;
 import org.apache.jackrabbit.mongomk.MongoAssert;
@@ -29,7 +29,7 @@ import org.junit.Test;
 /**
  * Tests for {@code CommitCommandMongo}
  */
-public class CommitCommandMongoTest extends BaseMongoMicroKernelTest {
+public class CommitCommandTest extends BaseMongoMicroKernelTest {
 
     @Test
     public void initialCommit() throws Exception {

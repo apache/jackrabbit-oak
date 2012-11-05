@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mongomk.command;
+package org.apache.jackrabbit.mongomk.impl.command;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -41,7 +41,7 @@ import org.apache.jackrabbit.mongomk.query.FetchCommitsQuery;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.junit.Test;
 
-public class ConcurrentCommitCommandMongoTest extends BaseMongoTest {
+public class ConcurrentCommitCommandTest extends BaseMongoTest {
 
     @Test
     public void testConflictingConcurrentUpdate() throws Exception {
