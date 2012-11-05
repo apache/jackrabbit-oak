@@ -20,7 +20,6 @@ import java.io.InputStream;
 import java.util.Properties;
 
 import org.apache.jackrabbit.mongomk.impl.MongoConnection;
-import org.apache.jackrabbit.mongomk.util.MongoUtil;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -42,7 +41,7 @@ public class BaseMongoTest {
 
     @AfterClass
     public static void tearDownAfterClass() throws Exception {
-        dropDefaultDatabase();
+        mongoConnection.getDB().dropDatabase();
     }
 
     private static void createDefaultMongoConnection() throws Exception {
@@ -57,17 +56,13 @@ public class BaseMongoTest {
         mongoConnection = new MongoConnection(host, port, database);
     }
 
-    private static void dropDefaultDatabase() {
-        mongoConnection.getDB().dropDatabase();
-    }
-
     @Before
     public void setUp() throws Exception {
-        MongoUtil.initDatabase(mongoConnection);
+        mongoConnection.initializeDB(true);
     }
 
     @After
     public void tearDown() throws Exception {
-        MongoUtil.clearDatabase(mongoConnection);
+        mongoConnection.clearDB();
     }
 }

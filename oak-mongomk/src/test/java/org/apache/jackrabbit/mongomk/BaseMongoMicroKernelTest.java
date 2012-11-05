@@ -108,7 +108,7 @@ public class BaseMongoMicroKernelTest extends BaseMongoTest {
         assertPropertyValue(obj, property, value);
     }
 
-    protected void assertPropertyExists(JSONObject obj, String relPath, Class type)
+    protected void assertPropertyExists(JSONObject obj, String relPath, Class<?> type)
             throws AssertionError {
         Object val = resolveValue(obj, relPath);
         assertNotNull("not found: " + relPath, val);

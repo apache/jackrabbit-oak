@@ -19,6 +19,9 @@
 
 package org.apache.jackrabbit.mongomk.osgi;
 
+import java.util.Map;
+import java.util.Properties;
+
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.ConfigurationPolicy;
@@ -28,16 +31,12 @@ import org.apache.jackrabbit.mongomk.impl.BlobStoreMongo;
 import org.apache.jackrabbit.mongomk.impl.MongoConnection;
 import org.apache.jackrabbit.mongomk.impl.MongoMicroKernel;
 import org.apache.jackrabbit.mongomk.impl.NodeStoreMongo;
-import org.apache.jackrabbit.mongomk.util.MongoUtil;
 import org.apache.sling.commons.osgi.PropertiesUtil;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.component.annotations.Deactivate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.Map;
-import java.util.Properties;
 
 
 @Component(metatype = true,
@@ -75,8 +74,8 @@ public class MongoMicroKernelService {
                 new Object[] {host, port, db});
         connection = new MongoConnection(host, port, db);
 
-        MongoUtil.bootstrap(connection);
-        logger.info("Connected to database {}", connection.getDB());
+        connection.initializeDB(false);
+        logger.info("Connected to database {}", db);
 
         NodeStoreMongo nodeStore = new NodeStoreMongo(connection);
         BlobStoreMongo blobStore = new BlobStoreMongo(connection);

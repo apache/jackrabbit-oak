@@ -31,7 +31,6 @@ import org.apache.jackrabbit.mongomk.impl.json.JsonUtil;
 import org.apache.jackrabbit.mongomk.impl.model.CommitBuilder;
 import org.apache.jackrabbit.mongomk.impl.model.CommitImpl;
 import org.apache.jackrabbit.mongomk.impl.model.tree.MongoNodeState;
-import org.apache.jackrabbit.mongomk.util.MongoUtil;
 
 /**
  * The {@code MongoDB} implementation of the {@link MicroKernel}.
@@ -63,7 +62,7 @@ public class MongoMicroKernel implements MicroKernel {
 
         try {
             CommitImpl commit = (CommitImpl)CommitBuilder.build("",
-                    "", revId, MongoUtil.INITIAL_COMMIT_MESSAGE);
+                    "", revId, MongoConnection.INITIAL_COMMIT_MESSAGE);
             commit.setBranchId(UUID.randomUUID().toString());
             return nodeStore.commit(commit);
         } catch (Exception e) {
