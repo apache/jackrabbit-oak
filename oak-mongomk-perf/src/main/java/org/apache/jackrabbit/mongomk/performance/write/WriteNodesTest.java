@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.mongomk.performance.write;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.mongomk.util.MongoUtil;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -25,23 +24,20 @@ import org.junit.Test;
 /**
  * Measures the time needed for creating different tree node structures.Only one
  * mongoMk is used for writing operation.
- * 
- * @author rogoz
- * 
  */
 public class WriteNodesTest extends MultipleNodesTestBase {
 	static MicroKernel mk;
-	
+
 	@BeforeClass
 	public static void init() throws Exception {
 		readConfig();
 		initMongo();
 		mk=initMicroKernel();
 	}
-	
+
 	@Before
 	public void cleanDatabase() {
-		MongoUtil.initDatabase(mongoConnection);
+	    mongoConnection.initializeDB(true);
 	}
 
 	/**
@@ -62,7 +58,7 @@ public class WriteNodesTest extends MultipleNodesTestBase {
 		int nodesNumber = 10000;
 		TestUtil.insertNode(mk, "/", 0, 10, nodesNumber, "N");
 	}
-	
+
 	/**
 	 * Creates 10000 nodes, all of them having 100 children nodes.
 	 */

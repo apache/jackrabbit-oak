@@ -21,13 +21,11 @@ import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.apache.jackrabbit.mongomk.api.instruction.Instruction;
 import org.apache.jackrabbit.mongomk.api.model.Commit;
-import org.apache.jackrabbit.mongomk.api.model.Instruction;
 
 /**
  * Implementation of {@link Commit}.
- *
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
  */
 public class CommitImpl implements Commit {
 
@@ -37,6 +35,8 @@ public class CommitImpl implements Commit {
     private final String path;
     private final long timestamp;
 
+    private Long baseRevisionId;
+    private String branchId;
     private Long revisionId;
 
     /**
@@ -50,7 +50,7 @@ public class CommitImpl implements Commit {
         this.path = path;
         this.diff = diff;
         this.message = message;
-        this.instructions = new LinkedList<Instruction>();
+        instructions = new LinkedList<Instruction>();
         timestamp = new Date().getTime();
     }
 
@@ -63,30 +63,55 @@ public class CommitImpl implements Commit {
         instructions.add(instruction);
     }
 
+    @Override
+    public Long getBaseRevisionId() {
+        return baseRevisionId;
+    }
+
+    public void setBaseRevisionId(Long baseRevisionId) {
+        this.baseRevisionId = baseRevisionId;
+    }
+
+    @Override
+    public String getBranchId() {
+        return branchId;
+    }
+
+    public void setBranchId(String branchId) {
+        this.branchId = branchId;
+    }
+
+    @Override
     public String getDiff() {
         return diff;
     }
 
+    @Override
     public List<Instruction> getInstructions() {
         return Collections.unmodifiableList(instructions);
     }
 
+    @Override
     public String getMessage() {
         return message;
     }
 
+    @Override
     public String getPath() {
         return path;
     }
 
+    @Override
     public Long getRevisionId() {
         return revisionId;
     }
 
+    @Override
     public void setRevisionId(Long revisionId) {
         this.revisionId = revisionId;
     }
 
+    @Override
     public long getTimestamp() {
         return timestamp;
     }

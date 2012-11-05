@@ -19,15 +19,15 @@ package org.apache.jackrabbit.mongomk.perf;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.apache.jackrabbit.mongomk.MongoConnection;
-import org.apache.jackrabbit.mongomk.NodeStoreMongo;
-import org.apache.jackrabbit.mongomk.api.BlobStore;
+import org.apache.jackrabbit.mk.blobs.BlobStore;
 import org.apache.jackrabbit.mongomk.api.NodeStore;
+import org.apache.jackrabbit.mongomk.impl.MongoConnection;
 import org.apache.jackrabbit.mongomk.impl.MongoMicroKernel;
+import org.apache.jackrabbit.mongomk.impl.NodeStoreMongo;
 import org.apache.jackrabbit.mongomk.impl.json.DefaultJsopHandler;
 import org.apache.jackrabbit.mongomk.impl.json.JsopParser;
 import org.apache.jackrabbit.mongomk.model.CommitMongo;
-import org.apache.jackrabbit.mongomk.model.HeadMongo;
+import org.apache.jackrabbit.mongomk.model.SyncMongo;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.log4j.Logger;
 import org.json.JSONArray;
@@ -38,9 +38,6 @@ import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 import com.mongodb.QueryBuilder;
 
-/**
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
- */
 public class MicroKernelPerfMaster {
 
     private class ContinousHandler extends DefaultJsopHandler {
@@ -65,7 +62,7 @@ public class MicroKernelPerfMaster {
         }
 
         @Override
-        public void propertyAdded(String path, String key, Object value) {
+        public void propertySet(String path, String key, Object value) {
             try {
                 if (!PathUtils.denotesRoot(key)) {
                     JSONObject element = this.getObjectByPath(path);
@@ -136,7 +133,7 @@ public class MicroKernelPerfMaster {
         while (true) {
             List<CommitMongo> commitMongos = this.waitForCommit();
             for (CommitMongo commitMongo : commitMongos) {
-                if (commitMongo.hasFailed()) {
+                if (commitMongo.isFailed()) {
                     LOG.info(String.format("Skipping commit %d because it failed", commitMongo.getRevisionId()));
                     this.lastRevId = commitMongo.getRevisionId();
                 } else {
@@ -166,7 +163,7 @@ public class MicroKernelPerfMaster {
     }
 
     private void verifyCommitOrder(CommitMongo commitMongo) throws Exception {
-        long baseRevId = commitMongo.getBaseRevisionId();
+        long baseRevId = commitMongo.getBaseRevId();
         long revId = commitMongo.getRevisionId();
         if (baseRevId != this.lastCommitRevId) {
             throw new Exception(String.format(
@@ -226,12 +223,12 @@ public class MicroKernelPerfMaster {
         while (true) {
             LOG.debug("Waiting for commit...");
 
-            DBCollection headCollection = this.mongoConnection.getHeadCollection();
-            HeadMongo headMongo = (HeadMongo) headCollection.findOne();
-            if (this.lastHeadRevId < headMongo.getHeadRevisionId()) {
+            DBCollection headCollection = this.mongoConnection.getSyncCollection();
+            SyncMongo syncMongo = (SyncMongo) headCollection.findOne();
+            if (this.lastHeadRevId < syncMongo.getHeadRevisionId()) {
                 DBCollection commitCollection = this.mongoConnection.getCommitCollection();
                 DBObject query = QueryBuilder.start(CommitMongo.KEY_REVISION_ID).greaterThan(this.lastRevId)
-                        .and(CommitMongo.KEY_REVISION_ID).lessThanEquals(headMongo.getHeadRevisionId()).get();
+                        .and(CommitMongo.KEY_REVISION_ID).lessThanEquals(syncMongo.getHeadRevisionId()).get();
                 DBObject sort = QueryBuilder.start(CommitMongo.KEY_REVISION_ID).is(1).get();
                 DBCursor dbCursor = commitCollection.find(query).sort(sort);
                 while (dbCursor.hasNext()) {
@@ -243,7 +240,7 @@ public class MicroKernelPerfMaster {
 
                     break;
                 }
-                this.lastHeadRevId = headMongo.getHeadRevisionId();
+                this.lastHeadRevId = syncMongo.getHeadRevisionId();
             }
             try {
                 Thread.sleep(2000);

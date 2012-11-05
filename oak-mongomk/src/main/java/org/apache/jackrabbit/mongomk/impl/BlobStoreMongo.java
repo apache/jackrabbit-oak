@@ -18,13 +18,13 @@ package org.apache.jackrabbit.mongomk.impl;
 
 import java.io.InputStream;
 
-import org.apache.jackrabbit.mongomk.api.BlobStore;
+import org.apache.jackrabbit.mk.blobs.BlobStore;
 import org.apache.jackrabbit.mongomk.api.command.Command;
 import org.apache.jackrabbit.mongomk.api.command.CommandExecutor;
-import org.apache.jackrabbit.mongomk.command.GetBlobLengthCommandMongo;
-import org.apache.jackrabbit.mongomk.command.ReadBlobCommandMongo;
-import org.apache.jackrabbit.mongomk.command.WriteBlobCommandMongo;
-import org.apache.jackrabbit.mongomk.impl.command.CommandExecutorImpl;
+import org.apache.jackrabbit.mongomk.impl.command.DefaultCommandExecutor;
+import org.apache.jackrabbit.mongomk.impl.command.GetBlobLengthCommand;
+import org.apache.jackrabbit.mongomk.impl.command.ReadBlobCommand;
+import org.apache.jackrabbit.mongomk.impl.command.WriteBlobCommand;
 
 public class BlobStoreMongo implements BlobStore {
 
@@ -33,24 +33,24 @@ public class BlobStoreMongo implements BlobStore {
 
     public BlobStoreMongo(MongoConnection mongoConnection) {
         this.mongoConnection = mongoConnection;
-        this.commandExecutor = new CommandExecutorImpl();
+        commandExecutor = new DefaultCommandExecutor();
     }
 
     @Override
     public long getBlobLength(String blobId) throws Exception {
-        Command<Long> command = new GetBlobLengthCommandMongo(mongoConnection, blobId);
+        Command<Long> command = new GetBlobLengthCommand(mongoConnection, blobId);
         return commandExecutor.execute(command);
     }
 
     @Override
     public int readBlob(String blobId, long blobOffset, byte[] buffer, int bufferOffset, int length) throws Exception {
-        Command<Integer> command = new ReadBlobCommandMongo(mongoConnection, blobId, blobOffset, buffer, bufferOffset, length);
+        Command<Integer> command = new ReadBlobCommand(mongoConnection, blobId, blobOffset, buffer, bufferOffset, length);
         return commandExecutor.execute(command);
     }
 
     @Override
     public String writeBlob(InputStream is) throws Exception {
-        Command<String> command = new WriteBlobCommandMongo(mongoConnection, is);
+        Command<String> command = new WriteBlobCommand(mongoConnection, is);
         return commandExecutor.execute(command);
     }
 }

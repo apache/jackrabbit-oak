@@ -34,8 +34,6 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
  * <p>
  * The underlying token parser is the {@link JsopTokenizer}.
  * </p>
- *
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
  */
 public class JsopParser {
 
@@ -121,21 +119,16 @@ public class JsopParser {
                         tokenizer.setPos(pos);
                         tokenizer.read();
                         parseOpAdded(path);
-                    } else { // Property.
+                    }
+                    else { // Property.
                         String valueAsString = tokenizer.readRawValue().trim();
-                        Object value = JsonUtil.convertJsonValue(valueAsString);
-                        defaultHandler.propertyAdded(path, propName, value);
+                        Object value = JsonUtil.toJsonValue(valueAsString);
+                        defaultHandler.propertySet(path, propName, value);
                     }
                 } while (tokenizer.matches(','));
 
                 tokenizer.read('}'); // explicitly close the bracket
             }
-        } else { // Property.
-            String parentPath = PathUtils.denotesRoot(path) ? "" : PathUtils.getParentPath(path);
-            String propName = PathUtils.denotesRoot(path) ? "/" : PathUtils.getName(path);
-            String valueAsString = tokenizer.readRawValue().trim();
-            Object value = JsonUtil.convertJsonValue(valueAsString);
-            defaultHandler.propertyAdded(parentPath, propName, value);
         }
     }
 
@@ -192,7 +185,7 @@ public class JsopParser {
         }
         String parentPath = PathUtils.getParentPath(targetPath);
         String propName = PathUtils.getName(targetPath);
-        defaultHandler.propertySet(parentPath, propName, JsonUtil.convertJsonValue(value));
+        defaultHandler.propertySet(parentPath, propName, JsonUtil.toJsonValue(value));
     }
 
     private void parseOpRemoved() throws Exception {

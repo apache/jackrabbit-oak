@@ -25,10 +25,6 @@ import org.apache.jackrabbit.mongomk.impl.json.JsopParser;
 import org.junit.Assert;
 import org.junit.Test;
 
-/**
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
- */
-@SuppressWarnings("javadoc")
 public class JsopParserTest {
 
     private static class CountingHandler extends DefaultJsopHandler {
@@ -204,7 +200,6 @@ public class JsopParserTest {
         private final List<NodeMoved> nodesCopied;
         private final List<NodeMoved> nodesMoved;
         private final List<Node> nodesRemoved;
-        private final List<Property> propertiesAdded;
         private final List<Property> propertiesSet;
 
         CountingHandler() {
@@ -212,7 +207,6 @@ public class JsopParserTest {
             this.nodesCopied = new LinkedList<NodeMoved>();
             this.nodesMoved = new LinkedList<NodeMoved>();
             this.nodesRemoved = new LinkedList<Node>();
-            this.propertiesAdded = new LinkedList<Property>();
             this.propertiesSet = new LinkedList<Property>();
         }
 
@@ -262,10 +256,6 @@ public class JsopParserTest {
             Assert.assertEquals(num, this.propertiesSet.size());
         }
 
-        public void assertPropertiesAdded(int num) {
-            Assert.assertEquals(num, this.propertiesAdded.size());
-        }
-
         @Override
         public void nodeAdded(String path, String name) {
             this.nodesAdded.add(new Node(path, name));
@@ -287,11 +277,6 @@ public class JsopParserTest {
         }
 
         @Override
-        public void propertyAdded(String path, String key, Object value) {
-            this.propertiesAdded.add(new Property(path, key, value));
-        }
-
-        @Override
         public void propertySet(String path, String key, Object value) {
             this.propertiesSet.add(new Property(path, key, value));
         }
@@ -301,16 +286,6 @@ public class JsopParserTest {
 
             int firstIndex = this.nodesAdded.indexOf(expected);
             int lastIndex = this.nodesAdded.lastIndexOf(expected);
-
-            Assert.assertTrue(firstIndex != -1);
-            Assert.assertEquals(firstIndex, lastIndex);
-        }
-
-        void assertPropertyAdded(String path, String key, Object value) {
-            Property expected = new Property(path, key, value);
-
-            int firstIndex = this.propertiesAdded.indexOf(expected);
-            int lastIndex = this.propertiesAdded.lastIndexOf(expected);
 
             Assert.assertTrue(firstIndex != -1);
             Assert.assertEquals(firstIndex, lastIndex);
@@ -349,10 +324,10 @@ public class JsopParserTest {
         countingHandler.assertNodeAdded("/a/b", "d");
         countingHandler.assertNodeAdded("/a", "c");
 
-        countingHandler.assertPropertiesAdded(3);
-        countingHandler.assertPropertyAdded("/a", "integer", 123);
-        countingHandler.assertPropertyAdded("/a/b", "double", 123.456);
-        countingHandler.assertPropertyAdded("/a/c", "string", "string");
+        countingHandler.assertNoOfPropertiesSet(3);
+        countingHandler.assertPropertySet("/a", "integer", 123);
+        countingHandler.assertPropertySet("/a/b", "double", 123.456);
+        countingHandler.assertPropertySet("/a/c", "string", "string");
     }
 
     @Test
@@ -373,10 +348,10 @@ public class JsopParserTest {
         countingHandler.assertNodeAdded("/a", "b");
         countingHandler.assertNodeAdded("/a", "c");
 
-        countingHandler.assertPropertiesAdded(3);
-        countingHandler.assertPropertyAdded("/a", "int", Integer.valueOf(1));
-        countingHandler.assertPropertyAdded("/a/b", "string", "foo");
-        countingHandler.assertPropertyAdded("/a/c", "bool", Boolean.TRUE);
+        countingHandler.assertNoOfPropertiesSet(3);
+        countingHandler.assertPropertySet("/a", "int", Integer.valueOf(1));
+        countingHandler.assertPropertySet("/a/b", "string", "foo");
+        countingHandler.assertPropertySet("/a/c", "bool", Boolean.TRUE);
     }
 
     @Test
@@ -397,10 +372,10 @@ public class JsopParserTest {
 
         countingHandler.assetNoOfNodesAdded(6);
 
-        countingHandler.assertPropertiesAdded(3);
-        countingHandler.assertPropertyAdded("/a", "int", Integer.valueOf(1));
-        countingHandler.assertPropertyAdded("/a/b", "string", "foo");
-        countingHandler.assertPropertyAdded("/a/c", "bool", Boolean.TRUE);
+        countingHandler.assertNoOfPropertiesSet(3);
+        countingHandler.assertPropertySet("/a", "int", Integer.valueOf(1));
+        countingHandler.assertPropertySet("/a/b", "string", "foo");
+        countingHandler.assertPropertySet("/a/c", "bool", Boolean.TRUE);
     }
 
     @Test
@@ -413,8 +388,8 @@ public class JsopParserTest {
 
         jsopParser.parse();
 
-        countingHandler.assertPropertiesAdded(1);
-        countingHandler.assertPropertyAdded(
+        countingHandler.assertNoOfPropertiesSet(1);
+        countingHandler.assertPropertySet(
                 "/a",
                 "array_complex",
                 Arrays.asList(new Object[] { 123, 123.456, true, false, null, "string",
@@ -435,8 +410,8 @@ public class JsopParserTest {
         countingHandler.assetNoOfNodesAdded(1);
         countingHandler.assertNodeAdded("", "/");
 
-        countingHandler.assertPropertiesAdded(1);
-        countingHandler.assertPropertyAdded("/", "int", Integer.valueOf(1));
+        countingHandler.assertNoOfPropertiesSet(1);
+        countingHandler.assertPropertySet("/", "int", Integer.valueOf(1));
     }
 
     @Test
@@ -470,14 +445,14 @@ public class JsopParserTest {
 
         jsopParser.parse();
 
-        countingHandler.assertPropertiesAdded(7);
-        countingHandler.assertPropertyAdded("/a", "integer", 123);
-        countingHandler.assertPropertyAdded("/a", "double", 123.456);
-        countingHandler.assertPropertyAdded("/a", "true", true);
-        countingHandler.assertPropertyAdded("/a", "false", false);
-        countingHandler.assertPropertyAdded("/a", "null", null);
-        countingHandler.assertPropertyAdded("/a", "string", "string");
-        countingHandler.assertPropertyAdded("/a", "array", Arrays.asList(new Object[] { 1, 2, 3, 4, 5 }));
+        countingHandler.assertNoOfPropertiesSet(7);
+        countingHandler.assertPropertySet("/a", "integer", 123);
+        countingHandler.assertPropertySet("/a", "double", 123.456);
+        countingHandler.assertPropertySet("/a", "true", true);
+        countingHandler.assertPropertySet("/a", "false", false);
+        countingHandler.assertPropertySet("/a", "null", null);
+        countingHandler.assertPropertySet("/a", "string", "string");
+        countingHandler.assertPropertySet("/a", "array", Arrays.asList(new Object[] { 1, 2, 3, 4, 5 }));
     }
 
     @Test
@@ -537,7 +512,6 @@ public class JsopParserTest {
         jsopParser.parse();
 
         countingHandler.assertNoOfPropertiesSet(1);
-        // TODO - Is this correct?
         countingHandler.assertPropertySet("/", "a", "b");
     }
 }

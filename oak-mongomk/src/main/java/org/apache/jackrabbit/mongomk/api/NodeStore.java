@@ -17,37 +17,52 @@
 package org.apache.jackrabbit.mongomk.api;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
+import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mongomk.api.model.Commit;
 import org.apache.jackrabbit.mongomk.api.model.Node;
 
 /**
- * The <code>NodeStore</code> interface deals with all node related operations of the {@link MicroKernel}.
+ * The <code>NodeStore</code> interface deals with all node related operations
+ * of the {@code MicroKernel}.
  *
  * <p>
- * Since binary storage and node storage most likely use different backend technologies two separate interfaces for
- * these operations are provided.
+ * Since binary storage and node storage most likely use different back-end
+ * technologies two separate interfaces for these operations are provided.
  * </p>
  *
  * <p>
- * This interface is not only a partly {@code MicroKernel} but also provides a different layer of abstraction by
- * converting the {@link String} parameters into higher level objects to ease the development for implementors of the
+ * This interface is not only a partly {@code MicroKernel} but also provides a
+ * different layer of abstraction by converting the {@link String} parameters
+ * into higher level objects to ease the development for implementors of the
  * {@code MicroKernel}.
  * </p>
  *
- * @see BlobStore
- *
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
+ * @see {@code BlobStore}
  */
 public interface NodeStore {
 
     /**
      * @see MicroKernel#commit(String, String, String, String)
      *
-     * @param commit The {@link Commit} object to store in the backend.
+     * @param commit The {@link Commit} object to store in the back-end.
      * @return The revision id of this commit.
      * @throws Exception If an error occurred while committing.
      */
     String commit(Commit commit) throws Exception;
+
+    /**
+     * @see MicroKernel#diff(String, String, String, int)
+     *
+     * @param fromRevisionId a revision id, if {@code null} the current head revision is assumed
+     * @param toRevisionId another revision id, if {@code null} the current head revision is assumed
+     * @param path optional path filter; if {@code null} or {@code ""}.
+     * The default ({@code "/"}) will be assumed, i.e. no filter will be applied
+     * @param depth Depth limit; if {@code -1} no limit will be applied
+     * @return JSON diff representation of the changes
+     * @throws MicroKernelException if any of the specified revisions doesn't exist or if another error occurs
+     */
+    String diff(String fromRevisionId, String toRevisionId, String path, int depth)
+            throws Exception;
 
     /**
      * @see MicroKernel#getHeadRevision()
@@ -66,8 +81,10 @@ public interface NodeStore {
      * @param path optional path filter; if {@code null} or {@code ""}
      * the default ({@code "/"}) will be assumed, i.e. no filter will be applied
      * @return a chronological list of revisions in JSON format
+     * @throws Exception if an error occurred while getting the journal.
      */
-    String getJournal(String fromRevisionId, String toRevisionId, String path);
+    String getJournal(String fromRevisionId, String toRevisionId, String path)
+            throws Exception;
 
     /**
      * @see MicroKernel#getRevisionHistory(long, int, String)
@@ -77,8 +94,9 @@ public interface NodeStore {
      * @param path optional path filter; if {@code null} or {@code ""} the default
      *  ({@code "/"}) will be assumed, i.e. no filter will be applied
      * @return a list of revisions in chronological order in JSON format.
+     * @throws Exception if an error occurred while getting the revision history.
      */
-    String getRevisionHistory(long since, int maxEntries, String path);
+    String getRevisionHistory(long since, int maxEntries, String path) throws Exception;;
 
     /**
      * @see MicroKernel#getNodes(String, String, int, long, int, String)
@@ -97,6 +115,16 @@ public interface NodeStore {
             String filter) throws Exception;
 
     /**
+     * @see MicroKernel#merge(String, String)
+     *
+     * @param branchRevisionId Branch revision id to merge.
+     * @param message Merge message.
+     * @return The revision id after merge.
+     * @throws Exception If an error occurred while merging.
+     */
+    String merge(String branchRevisionId, String message) throws Exception;
+
+    /**
      * @see MicroKernel#nodeExists(String, String)
      *
      * @param path The path of the node to test.
@@ -112,7 +140,7 @@ public interface NodeStore {
      * @param oldHeadRevisionId id of earlier head revision
      * @param timeout the maximum time to wait in milliseconds
      * @return the id of the head revision
-     * @throws InterruptedException if the thread was interrupted
+     * @throws Exception if an error occurred while waiting.
      */
-    String waitForCommit(String oldHeadRevisionId, long timeout) throws InterruptedException;
+    String waitForCommit(String oldHeadRevisionId, long timeout) throws Exception;
 }

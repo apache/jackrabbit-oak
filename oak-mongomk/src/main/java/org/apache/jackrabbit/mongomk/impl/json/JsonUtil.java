@@ -16,104 +16,31 @@
  */
 package org.apache.jackrabbit.mongomk.impl.json;
 
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.jackrabbit.mk.json.JsopBuilder;
+import org.apache.jackrabbit.mk.model.tree.ChildNode;
+import org.apache.jackrabbit.mk.model.tree.NodeState;
+import org.apache.jackrabbit.mk.model.tree.PropertyState;
+import org.apache.jackrabbit.mk.util.NameFilter;
 import org.apache.jackrabbit.mk.util.NodeFilter;
-import org.apache.jackrabbit.mongomk.api.model.Node;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-
 /**
- * FIXME - [Mete] This should really merge with MicroKernelImpl#toJson.
- *
- * <a href="http://en.wikipedia.org/wiki/JavaScript_Object_Notation">JSON</a> related utility classes.
- *
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
+ * JSON related utility class.
  */
 public class JsonUtil {
 
-    public static Object convertJsonValue(String jsonValue) throws Exception {
+    public static Object toJsonValue(String jsonValue) throws Exception {
         if (jsonValue == null) {
             return null;
         }
 
-        String dummyJson = "{dummy : " + jsonValue + "}";
-        JSONObject jsonObject = new JSONObject(dummyJson);
-        Object dummyObject = jsonObject.get("dummy");
-        return convertJsonValue(dummyObject);
-    }
-
-    public static String convertToJson(Node node, int depth, int offset, int maxChildNodes,
-            boolean inclVirtualProps, NodeFilter filter) {
-        JsopBuilder builder = new JsopBuilder();
-        convertToJson(builder, node, depth, 0, offset, maxChildNodes, inclVirtualProps, filter);
-        return builder.toString();
-    }
-
-    static void convertToJson(JsopBuilder builder, Node node, int depth, int currentDepth,
-            int offset, int maxChildNodes, boolean inclVirtualProps,  NodeFilter filter) {
-        builder.object();
-
-        Map<String, Object> properties = node.getProperties();
-        if (properties != null) {
-            for (Map.Entry<String, Object> entry : properties.entrySet()) {
-                String key = entry.getKey();
-                if (filter == null || filter.includeProperty(key)) {
-                    Object value = entry.getValue();
-                    builder.key(key);
-                    if (value instanceof String) {
-                        builder.value(value.toString());
-                    } else {
-                        builder.encodedValue(value.toString());
-                    }
-                }
-            }
-        }
-
-        long childCount = node.getChildCount();
-        if (inclVirtualProps) {
-            if (filter == null || filter.includeProperty(":childNodeCount")) {
-                // :childNodeCount is by default always included
-                // unless it is explicitly excluded in the filter
-                builder.key(":childNodeCount").value(childCount);
-            }
-            // FIXME [Mete] See if :hash is still being used.
-            /*check whether :hash has been explicitly included
-            if (filter != null) {
-                NameFilter nf = filter.getPropertyFilter();
-                if (nf != null
-                        && nf.getInclusionPatterns().contains(":hash")
-                        && !nf.getExclusionPatterns().contains(":hash")) {
-                    builder.key(":hash").value(rep.getRevisionStore().getId(node).toString());
-                }
-            }
-            */
-        }
-
-        // FIXME [Mete] There's still some more work here.
-        Iterator<Node> entries = node.getChildEntries(offset, maxChildNodes);
-        while (entries.hasNext()) {
-            Node child = entries.next();
-            int numSiblings = 0;
-            if (maxChildNodes != -1 && ++numSiblings > maxChildNodes) {
-                break;
-            }
-            builder.key(child.getName());
-            if ((depth == -1) || (currentDepth < depth)) {
-                convertToJson(builder, child, depth, currentDepth + 1, offset,
-                        maxChildNodes, inclVirtualProps, filter);
-            } else {
-                builder.object();
-                builder.endObject();
-            }
-        }
-
-        builder.endObject();
+        JSONObject jsonObject = new JSONObject("{dummy : " + jsonValue + "}");
+        Object obj = jsonObject.get("dummy");
+        return convertJsonValue(obj);
     }
 
     private static Object convertJsonValue(Object jsonObject) throws Exception {
@@ -135,7 +62,81 @@ public class JsonUtil {
         return jsonObject;
     }
 
-    private JsonUtil() {
-        // no instantiation
+    // Most of this method borrowed from MicroKernelImpl#toJson. It'd be nice if
+    // this somehow consolidated with MicroKernelImpl#toJson.
+    public static void toJson(JsopBuilder builder, NodeState node, int depth,
+            int offset, int maxChildNodes, boolean inclVirtualProps, NodeFilter filter) {
+
+        for (PropertyState property : node.getProperties()) {
+            if (filter == null || filter.includeProperty(property.getName())) {
+                builder.key(property.getName()).encodedValue(property.getEncodedValue());
+            }
+        }
+
+        long childCount = node.getChildNodeCount();
+        if (inclVirtualProps) {
+            if (filter == null || filter.includeProperty(":childNodeCount")) {
+                // :childNodeCount is by default always included
+                // unless it is explicitly excluded in the filter
+                builder.key(":childNodeCount").value(childCount);
+            }
+        }
+
+        if (childCount <= 0 || depth < 0) {
+            return;
+        }
+
+        if (filter != null) {
+            NameFilter childFilter = filter.getChildNodeFilter();
+            if (childFilter != null && !childFilter.containsWildcard()) {
+                // Optimization for large child node lists:
+                // no need to iterate over the entire child node list if the filter
+                // does not include wildcards
+                int count = maxChildNodes == -1 ? Integer.MAX_VALUE : maxChildNodes;
+                for (String name : childFilter.getInclusionPatterns()) {
+                    NodeState child = node.getChildNode(name);
+                    if (child != null) {
+                        boolean incl = true;
+                        for (String exclName : childFilter.getExclusionPatterns()) {
+                            if (name.equals(exclName)) {
+                                incl = false;
+                                break;
+                            }
+                        }
+                        if (incl) {
+                            if (count-- <= 0) {
+                                break;
+                            }
+                            builder.key(name).object();
+                            if (depth > 0) {
+                                toJson(builder, child, depth - 1, 0, maxChildNodes, inclVirtualProps, filter);
+                            }
+                            builder.endObject();
+                        }
+                    }
+                }
+                return;
+            }
+        }
+
+        int count = maxChildNodes;
+        if (count != -1 && filter != null && filter.getChildNodeFilter() != null) {
+            // Specific maxChildNodes limit and child node filter
+            count = -1;
+        }
+        int numSiblings = 0;
+        for (ChildNode entry : node.getChildNodeEntries(offset, count)) {
+
+            if (filter == null || filter.includeNode(entry.getName())) {
+                if (maxChildNodes != -1 && ++numSiblings > maxChildNodes) {
+                    break;
+                }
+                builder.key(entry.getName()).object();
+                if (depth > 0) {
+                    toJson(builder, entry.getNode(), depth - 1, 0, maxChildNodes, inclVirtualProps, filter);
+                }
+                builder.endObject();
+            }
+        }
     }
 }
