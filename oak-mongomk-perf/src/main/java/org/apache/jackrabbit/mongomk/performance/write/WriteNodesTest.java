@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.mongomk.performance.write;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.mongomk.util.MongoUtil;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -38,7 +37,7 @@ public class WriteNodesTest extends MultipleNodesTestBase {
 
 	@Before
 	public void cleanDatabase() {
-		MongoUtil.initDatabase(mongoConnection);
+	    mongoConnection.initializeDB(true);
 	}
 
 	/**
