@@ -64,7 +64,7 @@ public class TraversingIndexTest {
 
     @Test
     public void traverse() throws Exception {
-        TraversingIndex t = new TraversingIndex();
+        TraversingIndex t = new TraversingIndex("?");
 
         String head = mk.getHeadRevision();
         head = mk.commit("/", "+ \"parents\": { \"p0\": {\"id\": \"0\"}, \"p1\": {\"id\": \"1\"}, \"p2\": {\"id\": \"2\"}}", head, "");

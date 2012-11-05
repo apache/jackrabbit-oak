@@ -134,7 +134,7 @@ public class SQL2Parser {
         if (!currentToken.isEmpty()) {
             throw getSyntaxError("<end>");
         }
-        Query q = new Query(source, constraint, orderings, columnArray);
+        Query q = new Query(statement, source, constraint, orderings, columnArray);
         q.setExplain(explain);
         q.setMeasure(measure);
         try {

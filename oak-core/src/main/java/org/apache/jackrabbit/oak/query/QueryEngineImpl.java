@@ -119,14 +119,14 @@ public class QueryEngineImpl {
         return q.executeQuery(this.root);
     }
 
-    public QueryIndex getBestIndex(Filter filter) {
+    public QueryIndex getBestIndex(Query query, Filter filter) {
         QueryIndex best = null;
         double bestCost = Double.MAX_VALUE;
         for (QueryIndex index : getIndexes()) {
             double cost = index.getCost(filter, root);
             if (LOG.isDebugEnabled()) {
                 LOG.debug("cost for " + index + " is " + cost);
-            }            
+            }
             if (cost < bestCost) {
                 bestCost = cost;
                 best = index;
@@ -136,7 +136,7 @@ public class QueryEngineImpl {
             if (LOG.isDebugEnabled()) {
                 LOG.debug("no indexes found - using TraversingIndex; indexProvider: " + indexProvider);
             }
-            best = new TraversingIndex();
+            best = new TraversingIndex(query.getStatement());
         }
         return best;
     }
