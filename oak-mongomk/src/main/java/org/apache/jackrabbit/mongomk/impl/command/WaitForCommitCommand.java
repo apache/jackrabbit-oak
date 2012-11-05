@@ -1,7 +1,7 @@
 package org.apache.jackrabbit.mongomk.impl.command;
 
-import org.apache.jackrabbit.mongomk.action.FetchHeadRevisionIdAction;
 import org.apache.jackrabbit.mongomk.impl.MongoConnection;
+import org.apache.jackrabbit.mongomk.impl.action.FetchHeadRevisionIdAction;
 import org.apache.jackrabbit.mongomk.util.MongoUtil;
 
 /**

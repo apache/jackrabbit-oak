@@ -14,27 +14,39 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mongomk.impl.command;
+package org.apache.jackrabbit.mongomk.impl.action;
 
 import org.apache.jackrabbit.mongomk.impl.MongoConnection;
-import org.apache.jackrabbit.mongomk.impl.action.FetchHeadRevisionIdAction;
+import org.apache.jackrabbit.mongomk.impl.model.CommitMongo;
+
+import com.mongodb.DBCollection;
+import com.mongodb.WriteResult;
 
 /**
- * {@code Command} for {@code MongoMicroKernel#getHeadRevision()}
+ * An action for saving a commit.
  */
-public class GetHeadRevisionCommand extends BaseCommand<Long> {
+public class SaveCommitAction extends BaseAction<Boolean> {
+
+    private final CommitMongo commitMongo;
 
     /**
-     * Constructs a new {@code GetHeadRevisionCommandMongo}.
+     * Constructs a new {@code SaveCommitAction}.
      *
      * @param mongoConnection The {@link MongoConnection}.
+     * @param commitMongo The {@link CommitMongo} to save.
      */
-    public GetHeadRevisionCommand(MongoConnection mongoConnection) {
+    public SaveCommitAction(MongoConnection mongoConnection, CommitMongo commitMongo) {
         super(mongoConnection);
+        this.commitMongo = commitMongo;
     }
 
     @Override
-    public Long execute() throws Exception {
-        return new FetchHeadRevisionIdAction(mongoConnection).execute();
+    public Boolean execute() throws Exception {
+        DBCollection commitCollection = mongoConnection.getCommitCollection();
+        WriteResult writeResult = commitCollection.insert(commitMongo);
+        if (writeResult.getError() != null) {
+            throw new Exception(String.format("Insertion wasn't successful: %s", writeResult));
+        }
+        return Boolean.TRUE;
     }
 }

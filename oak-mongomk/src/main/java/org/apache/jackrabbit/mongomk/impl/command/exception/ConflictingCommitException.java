@@ -6,7 +6,7 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,25 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mongomk.model;
+package org.apache.jackrabbit.mongomk.impl.command.exception;
 
-public class NotFoundException extends RuntimeException {
+public class ConflictingCommitException extends Exception {
 
-    private static final long serialVersionUID = 267748774351258035L;
+    private static final long serialVersionUID = -5827664000083665577L;
 
-    public NotFoundException() {
+    public ConflictingCommitException() {
         super();
     }
 
-    public NotFoundException(String message) {
+    public ConflictingCommitException(String message) {
         super(message);
     }
 
-    public NotFoundException(String message, Throwable cause) {
-        super(message, cause);
+    public ConflictingCommitException(Throwable t) {
+        super(t);
     }
 
-    public NotFoundException(Throwable cause) {
-        super(cause);
+    public ConflictingCommitException(String message, Throwable t) {
+        super(message, t);
     }
 }

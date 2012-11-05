@@ -14,33 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mongomk.action;
+package org.apache.jackrabbit.mongomk.impl.command.exception;
 
-import org.apache.jackrabbit.mongomk.impl.MongoConnection;
+public class InconsistentNodeHierarchyException extends Exception {
 
-/**
- * An abstract base class for actions performed against {@code MongoDB}.
- *
- * @param <T> The result type of the query.
- */
-public abstract class BaseAction<T> {
+    private static final long serialVersionUID = 6361719178625761034L;
 
-    protected MongoConnection mongoConnection;
-
-    /**
-     * Constructs a new {@code AbstractAction}.
-     *
-     * @param mongoConnection The mongo connection.
-     */
-    public BaseAction(MongoConnection mongoConnection) {
-        this.mongoConnection = mongoConnection;
-    }
-
-    /**
-     * Executes this action.
-     *
-     * @return The result of the action.
-     * @throws Exception If an error occurred while executing the action.
-     */
-    public abstract T execute() throws Exception;
 }

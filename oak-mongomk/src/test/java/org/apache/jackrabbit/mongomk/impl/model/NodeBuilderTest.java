@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mongomk.impl.builder;
+package org.apache.jackrabbit.mongomk.impl.model;
 
 import org.apache.jackrabbit.mongomk.api.model.Node;
 import org.apache.jackrabbit.mongomk.impl.NodeAssert;
-import org.apache.jackrabbit.mongomk.impl.builder.NodeBuilder;
+import org.apache.jackrabbit.mongomk.impl.model.NodeBuilder;
 import org.apache.jackrabbit.mongomk.impl.model.NodeImpl;
 import org.junit.Test;
 

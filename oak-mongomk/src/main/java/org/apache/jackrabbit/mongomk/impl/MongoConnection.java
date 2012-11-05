@@ -18,9 +18,9 @@ package org.apache.jackrabbit.mongomk.impl;
 
 import java.util.Arrays;
 
-import org.apache.jackrabbit.mongomk.model.CommitMongo;
-import org.apache.jackrabbit.mongomk.model.SyncMongo;
-import org.apache.jackrabbit.mongomk.model.NodeMongo;
+import org.apache.jackrabbit.mongomk.impl.model.CommitMongo;
+import org.apache.jackrabbit.mongomk.impl.model.NodeMongo;
+import org.apache.jackrabbit.mongomk.impl.model.SyncMongo;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;

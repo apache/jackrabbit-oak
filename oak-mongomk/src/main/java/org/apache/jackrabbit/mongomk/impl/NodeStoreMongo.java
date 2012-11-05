@@ -16,12 +16,12 @@
  */
 package org.apache.jackrabbit.mongomk.impl;
 
-import org.apache.jackrabbit.mongomk.action.FetchCommitAction;
 import org.apache.jackrabbit.mongomk.api.NodeStore;
 import org.apache.jackrabbit.mongomk.api.command.Command;
 import org.apache.jackrabbit.mongomk.api.command.CommandExecutor;
 import org.apache.jackrabbit.mongomk.api.model.Commit;
 import org.apache.jackrabbit.mongomk.api.model.Node;
+import org.apache.jackrabbit.mongomk.impl.action.FetchCommitAction;
 import org.apache.jackrabbit.mongomk.impl.command.CommitCommand;
 import org.apache.jackrabbit.mongomk.impl.command.DefaultCommandExecutor;
 import org.apache.jackrabbit.mongomk.impl.command.DiffCommand;
@@ -32,7 +32,7 @@ import org.apache.jackrabbit.mongomk.impl.command.GetRevisionHistoryCommand;
 import org.apache.jackrabbit.mongomk.impl.command.MergeCommand;
 import org.apache.jackrabbit.mongomk.impl.command.NodeExistsCommand;
 import org.apache.jackrabbit.mongomk.impl.command.WaitForCommitCommand;
-import org.apache.jackrabbit.mongomk.model.CommitMongo;
+import org.apache.jackrabbit.mongomk.impl.model.CommitMongo;
 import org.apache.jackrabbit.mongomk.util.MongoUtil;
 
 /**

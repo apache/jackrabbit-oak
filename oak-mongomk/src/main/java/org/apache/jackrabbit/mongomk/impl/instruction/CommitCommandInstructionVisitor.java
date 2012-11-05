@@ -14,14 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mongomk.model;
+package org.apache.jackrabbit.mongomk.impl.instruction;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.apache.jackrabbit.mongomk.action.FetchNodesAction;
 import org.apache.jackrabbit.mongomk.api.instruction.Instruction.AddNodeInstruction;
 import org.apache.jackrabbit.mongomk.api.instruction.Instruction.CopyNodeInstruction;
 import org.apache.jackrabbit.mongomk.api.instruction.Instruction.MoveNodeInstruction;
@@ -29,7 +28,10 @@ import org.apache.jackrabbit.mongomk.api.instruction.Instruction.RemoveNodeInstr
 import org.apache.jackrabbit.mongomk.api.instruction.Instruction.SetPropertyInstruction;
 import org.apache.jackrabbit.mongomk.api.instruction.InstructionVisitor;
 import org.apache.jackrabbit.mongomk.impl.MongoConnection;
+import org.apache.jackrabbit.mongomk.impl.action.FetchNodesAction;
 import org.apache.jackrabbit.mongomk.impl.command.NodeExistsCommand;
+import org.apache.jackrabbit.mongomk.impl.exception.NotFoundException;
+import org.apache.jackrabbit.mongomk.impl.model.NodeMongo;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 
 /**
