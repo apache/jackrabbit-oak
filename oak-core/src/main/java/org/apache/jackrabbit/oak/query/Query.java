@@ -77,6 +77,7 @@ public class Query {
     private static final Logger LOG = LoggerFactory.getLogger(QueryEngineImpl.class);
 
     final SourceImpl source;
+    final String statement;
     final ConstraintImpl constraint;
     final HashMap<String, PropertyValue> bindVariableMap = new HashMap<String, PropertyValue>();
     final HashMap<String, Integer> selectorIndexes = new HashMap<String, Integer>();
@@ -93,8 +94,9 @@ public class Query {
     private Root root;
     private NamePathMapper namePathMapper;
 
-    Query(SourceImpl source, ConstraintImpl constraint, OrderingImpl[] orderings,
+    Query(String statement, SourceImpl source, ConstraintImpl constraint, OrderingImpl[] orderings,
           ColumnImpl[] columns) {
+        this.statement = statement;
         this.source = source;
         this.constraint = constraint;
         this.orderings = orderings;
@@ -566,7 +568,7 @@ public class Query {
     }
 
     public QueryIndex getBestIndex(Filter filter) {
-        return queryEngine.getBestIndex(filter);
+        return queryEngine.getBestIndex(this, filter);
     }
 
     public void setRoot(Root root) {
@@ -615,6 +617,10 @@ public class Query {
 
     public long getSize() {
         return size;
+    }
+
+    public String getStatement() {
+        return statement;
     }
 
 }
