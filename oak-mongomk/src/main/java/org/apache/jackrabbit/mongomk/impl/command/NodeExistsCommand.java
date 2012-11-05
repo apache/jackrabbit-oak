@@ -23,7 +23,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 /**
  * {@code Command} for {@code MongoMicroKernel#nodeExists(String, String)}
  */
-public class NodeExistsCommand extends DefaultCommand<Boolean> {
+public class NodeExistsCommand extends BaseCommand<Boolean> {
 
     private final Long revisionId;
 

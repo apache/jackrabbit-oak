@@ -25,7 +25,7 @@ import com.mongodb.DBCollection;
 /**
  * An action for fetching the head revision.
  */
-public class FetchHeadRevisionIdAction extends AbstractAction<Long> {
+public class FetchHeadRevisionIdAction extends BaseAction<Long> {
 
     private boolean includeBranchCommits = true;
 

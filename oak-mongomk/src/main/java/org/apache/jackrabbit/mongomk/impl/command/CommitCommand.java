@@ -49,7 +49,7 @@ import com.mongodb.WriteResult;
 /**
  * {@code Command} for {@code MongoMicroKernel#commit(String, String, String, String)}
  */
-public class CommitCommand extends DefaultCommand<Long> {
+public class CommitCommand extends BaseCommand<Long> {
 
     private static final Logger logger = LoggerFactory.getLogger(CommitCommand.class);
 

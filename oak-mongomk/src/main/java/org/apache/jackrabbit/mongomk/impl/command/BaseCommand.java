@@ -14,29 +14,41 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mongomk.impl.instruction;
+package org.apache.jackrabbit.mongomk.impl.command;
 
-import org.apache.jackrabbit.mongomk.api.instruction.InstructionVisitor;
-import org.apache.jackrabbit.mongomk.api.instruction.Instruction.AddNodeInstruction;
-import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.mongomk.api.command.Command;
+import org.apache.jackrabbit.mongomk.impl.MongoConnection;
 
 /**
- * Implementation of the add node operation => "+" STRING ":" (OBJECT).
+ * Base {@code Command} implementation.
+ *
+ * @param <T> The result type of the {@code Command}.
  */
-public class AddNodeInstructionImpl extends BaseInstruction implements AddNodeInstruction {
+public abstract class BaseCommand<T> implements Command<T> {
+
+    protected final MongoConnection mongoConnection;
 
     /**
-     * Constructs a new {@code AddNodeInstruction}.
+     * Constructs a default command with the supplied connection.
      *
-     * @param parentPath The parent path.
-     * @param name The name.
+     * @param mongoConnection The mongo connection.
      */
-    public AddNodeInstructionImpl(String parentPath, String name) {
-        super(PathUtils.concat(parentPath, name));
+    public BaseCommand(MongoConnection mongoConnection) {
+        this.mongoConnection = mongoConnection;
     }
 
     @Override
-    public void accept(InstructionVisitor visitor) {
-        visitor.visit(this);
+    public int getNumOfRetries() {
+        return 0;
+    }
+
+    @Override
+    public boolean needsRetry(Exception e) {
+        return false;
+    }
+
+    @Override
+    public boolean needsRetry(T result) {
+        return false;
     }
 }

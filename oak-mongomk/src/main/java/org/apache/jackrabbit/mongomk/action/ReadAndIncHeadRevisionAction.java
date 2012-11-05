@@ -26,7 +26,7 @@ import com.mongodb.DBObject;
 /**
  * An action for reading and incrementing the head revision id.
  */
-public class ReadAndIncHeadRevisionAction extends AbstractAction<SyncMongo> {
+public class ReadAndIncHeadRevisionAction extends BaseAction<SyncMongo> {
 
     /**
      * Constructs a new {@code ReadAndIncHeadRevisionQuery}.

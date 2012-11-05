@@ -38,7 +38,7 @@ import org.slf4j.LoggerFactory;
 /**
  * {@code Command} for {@code MongoMicroKernel#getNodes(String, String, int, long, int, String)}
  */
-public class GetNodesCommand extends DefaultCommand<Node> {
+public class GetNodesCommand extends BaseCommand<Node> {
 
     private static final Logger LOG = LoggerFactory.getLogger(GetNodesCommand.class);
 

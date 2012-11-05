@@ -16,7 +16,7 @@ import org.apache.jackrabbit.mongomk.util.MongoUtil;
 /**
  * A {@code Command} for {@code MongoMicroKernel#getRevisionHistory(long, int, String)}
  */
-public class GetRevisionHistoryCommand extends DefaultCommand<String> {
+public class GetRevisionHistoryCommand extends BaseCommand<String> {
 
     private final long since;
 

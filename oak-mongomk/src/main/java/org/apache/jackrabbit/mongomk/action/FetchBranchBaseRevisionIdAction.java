@@ -28,7 +28,7 @@ import com.mongodb.QueryBuilder;
 /**
  * An action for fetching the base (trunk) revision id that the branch is based on.
  */
-public class FetchBranchBaseRevisionIdAction extends AbstractAction<Long> {
+public class FetchBranchBaseRevisionIdAction extends BaseAction<Long> {
 
     private final String branchId;
 

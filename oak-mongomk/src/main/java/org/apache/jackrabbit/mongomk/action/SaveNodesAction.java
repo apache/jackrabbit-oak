@@ -29,7 +29,7 @@ import com.mongodb.WriteResult;
 /**
  * An action for saving a list of nodes.
  */
-public class SaveNodesAction extends AbstractAction<Boolean> {
+public class SaveNodesAction extends BaseAction<Boolean> {
 
     private final Collection<NodeMongo> nodeMongos;
 

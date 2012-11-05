@@ -21,29 +21,22 @@ import org.apache.jackrabbit.mongomk.api.instruction.Instruction.RemoveNodeInstr
 import org.apache.jackrabbit.oak.commons.PathUtils;
 
 /**
- * Implementation of {@code RemoveNodeInstruction}.
+ * Implementation for the remove node operation => "-" STRING
  */
-public class RemoveNodeInstructionImpl implements RemoveNodeInstruction {
-
-    private final String path;
+public class RemoveNodeInstructionImpl extends BaseInstruction implements RemoveNodeInstruction {
 
     /**
-     * Constructs a new {@code RemoveNodeInstructionImpl}.
+     * Constructs a new {@code RemoveNodeInstruction}.
      *
      * @param parentPath The parent path.
      * @param name The name
      */
     public RemoveNodeInstructionImpl(String parentPath, String name) {
-        path = PathUtils.concat(parentPath, name);
+        super(PathUtils.concat(parentPath, name));
     }
 
     @Override
     public void accept(InstructionVisitor visitor) {
         visitor.visit(this);
-    }
-
-    @Override
-    public String getPath() {
-        return path;
     }
 }

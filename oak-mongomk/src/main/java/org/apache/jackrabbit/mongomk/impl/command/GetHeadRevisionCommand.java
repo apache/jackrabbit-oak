@@ -22,7 +22,7 @@ import org.apache.jackrabbit.mongomk.impl.MongoConnection;
 /**
  * {@code Command} for {@code MongoMicroKernel#getHeadRevision()}
  */
-public class GetHeadRevisionCommand extends DefaultCommand<Long> {
+public class GetHeadRevisionCommand extends BaseCommand<Long> {
 
     /**
      * Constructs a new {@code GetHeadRevisionCommandMongo}.

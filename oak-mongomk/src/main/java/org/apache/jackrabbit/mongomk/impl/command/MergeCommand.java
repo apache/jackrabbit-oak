@@ -27,7 +27,7 @@ import org.slf4j.LoggerFactory;
 /**
  * A {@code Command} for {@code MongoMicroKernel#merge(String, String)}
  */
-public class MergeCommand extends DefaultCommand<String> {
+public class MergeCommand extends BaseCommand<String> {
 
     private static final Logger LOG = LoggerFactory.getLogger(MergeCommand.class);
 

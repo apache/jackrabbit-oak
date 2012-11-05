@@ -40,7 +40,7 @@ import com.mongodb.QueryBuilder;
 /**
  * An action for fetching nodes.
  */
-public class FetchNodesAction extends AbstractAction<List<NodeMongo>> {
+public class FetchNodesAction extends BaseAction<List<NodeMongo>> {
 
     public static final int LIMITLESS_DEPTH = -1;
     private static final Logger LOG = LoggerFactory.getLogger(FetchNodesAction.class);

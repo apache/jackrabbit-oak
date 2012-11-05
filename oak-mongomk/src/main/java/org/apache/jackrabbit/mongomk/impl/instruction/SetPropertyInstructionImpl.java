@@ -20,23 +20,22 @@ import org.apache.jackrabbit.mongomk.api.instruction.InstructionVisitor;
 import org.apache.jackrabbit.mongomk.api.instruction.Instruction.SetPropertyInstruction;
 
 /**
- * Implementation of {@code SetPropertyInstruction}.
+ * Implementation for the set property operation => "^" STRING ":" ATOM | ARRAY
  */
-public class SetPropertyInstructionImpl implements SetPropertyInstruction {
+public class SetPropertyInstructionImpl extends BaseInstruction implements SetPropertyInstruction {
 
     private final String key;
-    private final String path;
     private final Object value;
 
     /**
-     * Constructs a new {@code SetPropertyInstructionImpl}.
+     * Constructs a new {@code SetPropertyInstruction}.
      *
      * @param path The path.
      * @param key The key.
      * @param value The value.
      */
     public SetPropertyInstructionImpl(String path, String key, Object value) {
-        this.path = path;
+        super(path);
         this.key = key;
         this.value = value;
     }
@@ -46,17 +45,20 @@ public class SetPropertyInstructionImpl implements SetPropertyInstruction {
         visitor.visit(this);
     }
 
-    @Override
+    /**
+     * Returns the name of the property.
+     *
+     * @return The name of the property.
+     */
     public String getKey() {
         return key;
     }
 
-    @Override
-    public String getPath() {
-        return path;
-    }
-
-    @Override
+    /**
+     * Returns the value of the property.
+     *
+     * @return The value of the property.
+     */
     public Object getValue() {
         return value;
     }

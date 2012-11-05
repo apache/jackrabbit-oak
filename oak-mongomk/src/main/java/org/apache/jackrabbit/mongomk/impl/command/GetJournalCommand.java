@@ -16,7 +16,7 @@ import org.apache.jackrabbit.mongomk.util.MongoUtil;
 /**
  * A {@code Command} for {@code MongoMicroKernel#getJournal(String, String, String)}
  */
-public class GetJournalCommand extends DefaultCommand<String> {
+public class GetJournalCommand extends BaseCommand<String> {
 
     private final String fromRevisionId;
     private final String toRevisionId;

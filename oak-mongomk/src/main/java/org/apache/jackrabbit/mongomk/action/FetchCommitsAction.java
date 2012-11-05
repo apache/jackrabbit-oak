@@ -38,7 +38,7 @@ import com.mongodb.QueryBuilder;
 /**
  * An action for fetching valid commits.
  */
-public class FetchCommitsAction extends AbstractAction<List<CommitMongo>> {
+public class FetchCommitsAction extends BaseAction<List<CommitMongo>> {
 
     private static final int LIMITLESS = -1;
     private static final Logger LOG = LoggerFactory.getLogger(FetchCommitsAction.class);

@@ -13,7 +13,7 @@ import org.apache.jackrabbit.mongomk.util.MongoUtil;
 /**
  * A {@code Command} for {@code MongoMicroKernel#diff(String, String, String, int)}
  */
-public class DiffCommand extends DefaultCommand<String> {
+public class DiffCommand extends BaseCommand<String> {
 
     private final String fromRevision;
     private final String toRevision;

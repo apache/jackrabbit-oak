@@ -30,7 +30,7 @@ import com.mongodb.gridfs.GridFSDBFile;
  * FIXME - Reading from large blobs with small increments is slow in this implementation.
  * See if this could be improved with some kind of cache mechanism.
  */
-public class ReadBlobCommand extends DefaultCommand<Integer> {
+public class ReadBlobCommand extends BaseCommand<Integer> {
 
     private final String blobId;
     private final long blobOffset;

@@ -7,7 +7,7 @@ import org.apache.jackrabbit.mongomk.util.MongoUtil;
 /**
  * A {@code Command} for {@code MongoMicroKernel#waitForCommit(String, long)}
  */
-public class WaitForCommitCommand extends DefaultCommand<Long> {
+public class WaitForCommitCommand extends BaseCommand<Long> {
 
     private static final long WAIT_FOR_COMMIT_POLL_MILLIS = 1000;
 

@@ -14,34 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mongomk.action;
+package org.apache.jackrabbit.mongomk.impl.instruction;
 
-import org.apache.jackrabbit.mongomk.impl.MongoConnection;
+import org.apache.jackrabbit.mongomk.api.instruction.Instruction;
 
 /**
- * An abstract base class for actions performed against {@code MongoDB}.
- *
- * @param <T> The result type of the query.
+ * Base instruction implementation.
  */
-public abstract class AbstractAction<T> {
+public abstract class BaseInstruction implements Instruction {
 
-    /** The {@link MongoConnection}. */
-    protected MongoConnection mongoConnection;
+    protected final String path;
 
-    /**
-     * Constructs a new {@code AbstractAction}.
-     *
-     * @param mongoConnection The mongo connection.
-     */
-    protected AbstractAction(MongoConnection mongoConnection) {
-        this.mongoConnection = mongoConnection;
+    public BaseInstruction(String path) {
+        this.path = path;
     }
 
-    /**
-     * Executes this action.
-     *
-     * @return The result of the action.
-     * @throws Exception If an error occurred while executing the action.
-     */
-    public abstract T execute() throws Exception;
+    @Override
+    public String getPath() {
+        return path;
+    }
 }

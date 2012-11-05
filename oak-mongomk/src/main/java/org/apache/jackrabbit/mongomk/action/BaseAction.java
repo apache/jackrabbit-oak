@@ -14,41 +14,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mongomk.impl.command;
+package org.apache.jackrabbit.mongomk.action;
 
-import org.apache.jackrabbit.mongomk.api.command.Command;
 import org.apache.jackrabbit.mongomk.impl.MongoConnection;
 
 /**
- * Default implementation of {@code Command}.
+ * An abstract base class for actions performed against {@code MongoDB}.
  *
- * @param <T> The result type of the {@code Command}.
+ * @param <T> The result type of the query.
  */
-public abstract class DefaultCommand<T> implements Command<T> {
+public abstract class BaseAction<T> {
 
-    protected final MongoConnection mongoConnection;
+    protected MongoConnection mongoConnection;
 
     /**
-     * Constructs a default command with the supplied connection.
+     * Constructs a new {@code AbstractAction}.
      *
      * @param mongoConnection The mongo connection.
      */
-    public DefaultCommand(MongoConnection mongoConnection) {
+    public BaseAction(MongoConnection mongoConnection) {
         this.mongoConnection = mongoConnection;
     }
 
-    @Override
-    public int getNumOfRetries() {
-        return 0;
-    }
-
-    @Override
-    public boolean needsRetry(Exception e) {
-        return false;
-    }
-
-    @Override
-    public boolean needsRetry(T result) {
-        return false;
-    }
+    /**
+     * Executes this action.
+     *
+     * @return The result of the action.
+     * @throws Exception If an error occurred while executing the action.
+     */
+    public abstract T execute() throws Exception;
 }

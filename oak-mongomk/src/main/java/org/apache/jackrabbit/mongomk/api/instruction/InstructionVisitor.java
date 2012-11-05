@@ -32,8 +32,7 @@ public interface InstructionVisitor {
     /**
      * Visits a {@code AddNodeInstruction}.
      *
-     * @param instruction
-     *            The instruction.
+     * @param instruction The instruction.
      */
     void visit(AddNodeInstruction instruction);
 

@@ -20,23 +20,22 @@ import org.apache.jackrabbit.mongomk.api.instruction.InstructionVisitor;
 import org.apache.jackrabbit.mongomk.api.instruction.Instruction.CopyNodeInstruction;
 
 /**
- * Implementation of {@code CopyNodeInstruction}.
+ * Implementation of the copy node operation => "*" STRING ":" STRING
  */
-public class CopyNodeInstructionImpl implements CopyNodeInstruction {
+public class CopyNodeInstructionImpl extends BaseInstruction implements CopyNodeInstruction {
 
     private final String destPath;
-    private final String path;
     private final String sourcePath;
 
     /**
-     * Constructs a new {@code CopyNodeInstructionImpl}.
+     * Constructs a new {@code CopyNodeInstruction}.
      *
      * @param path The path.
      * @param sourcePath The source path.
      * @param destPath The destination path.
      */
     public CopyNodeInstructionImpl(String path, String sourcePath, String destPath) {
-        this.path = path;
+        super(path);
         this.sourcePath = sourcePath;
         this.destPath = destPath;
     }
@@ -46,17 +45,20 @@ public class CopyNodeInstructionImpl implements CopyNodeInstruction {
         visitor.visit(this);
     }
 
-    @Override
+    /**
+     * Returns the destination path.
+     *
+     * @return The destination path.
+     */
     public String getDestPath() {
         return destPath;
     }
 
-    @Override
-    public String getPath() {
-        return path;
-    }
-
-    @Override
+    /**
+     * Returns the source path.
+     *
+     * @return The source path.
+     */
     public String getSourcePath() {
         return sourcePath;
     }

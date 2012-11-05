@@ -25,7 +25,7 @@ import com.mongodb.gridfs.GridFSDBFile;
 /**
  * {@code Command} for {@code MongoMicroKernel#getLength(String)}
  */
-public class GetBlobLengthCommand extends DefaultCommand<Long> {
+public class GetBlobLengthCommand extends BaseCommand<Long> {
 
     private final String blobId;
 

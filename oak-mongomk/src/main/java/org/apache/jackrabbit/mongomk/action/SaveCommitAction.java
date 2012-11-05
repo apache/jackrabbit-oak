@@ -25,7 +25,7 @@ import com.mongodb.WriteResult;
 /**
  * An action for saving a commit.
  */
-public class SaveCommitAction extends AbstractAction<Boolean> {
+public class SaveCommitAction extends BaseAction<Boolean> {
 
     private final CommitMongo commitMongo;
 

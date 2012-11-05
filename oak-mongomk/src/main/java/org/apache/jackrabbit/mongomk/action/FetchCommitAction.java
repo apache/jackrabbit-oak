@@ -29,7 +29,7 @@ import com.mongodb.QueryBuilder;
  * An action for fetching a commit. An exception is thrown if a commit with the
  * revision id does not exist.
  */
-public class FetchCommitAction extends AbstractAction<CommitMongo> {
+public class FetchCommitAction extends BaseAction<CommitMongo> {
 
     private static final Logger LOG = LoggerFactory.getLogger(FetchCommitAction.class);
 

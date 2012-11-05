@@ -27,7 +27,7 @@ import com.mongodb.QueryBuilder;
 /**
  * An action for saving and setting the head revision id.
  */
-public class SaveAndSetHeadRevisionAction extends AbstractAction<SyncMongo> {
+public class SaveAndSetHeadRevisionAction extends BaseAction<SyncMongo> {
 
     private final long newHeadRevision;
     private final long oldHeadRevision;
