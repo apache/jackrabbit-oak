@@ -38,9 +38,9 @@ import org.slf4j.LoggerFactory;
 /**
  * {@code Command} for {@code MongoMicroKernel#getNodes(String, String, int, long, int, String)}
  */
-public class GetNodesCommandMongo extends DefaultCommand<Node> {
+public class GetNodesCommand extends DefaultCommand<Node> {
 
-    private static final Logger LOG = LoggerFactory.getLogger(GetNodesCommandMongo.class);
+    private static final Logger LOG = LoggerFactory.getLogger(GetNodesCommand.class);
 
     private final String path;
 
@@ -61,7 +61,7 @@ public class GetNodesCommandMongo extends DefaultCommand<Node> {
      * @param path The root path of the nodes to get.
      * @param revisionId The revision id or null for head revision.
      */
-    public GetNodesCommandMongo(MongoConnection mongoConnection, String path,
+    public GetNodesCommand(MongoConnection mongoConnection, String path,
             Long revisionId) {
         super(mongoConnection);
         this.path = path;
@@ -162,7 +162,7 @@ public class GetNodesCommandMongo extends DefaultCommand<Node> {
 
     private void ensureRevisionId() throws Exception {
         if (revisionId == null) {
-            revisionId = new GetHeadRevisionCommandMongo(mongoConnection).execute();
+            revisionId = new GetHeadRevisionCommand(mongoConnection).execute();
         } else {
             // Ensure that commit with revision id exists.
             new FetchCommitQuery(mongoConnection, revisionId).execute();

@@ -31,7 +31,7 @@ import com.mongodb.gridfs.GridFSInputFile;
 /**
  * {@code Command} for {@code MongoMicroKernel#write(InputStream)}
  */
-public class WriteBlobCommandMongo extends DefaultCommand<String> {
+public class WriteBlobCommand extends DefaultCommand<String> {
 
     private final InputStream is;
 
@@ -41,7 +41,7 @@ public class WriteBlobCommandMongo extends DefaultCommand<String> {
      * @param mongoConnection Mongo connection.
      * @param is Input stream.
      */
-    public WriteBlobCommandMongo(MongoConnection mongoConnection, InputStream is) {
+    public WriteBlobCommand(MongoConnection mongoConnection, InputStream is) {
         super(mongoConnection);
         this.is = is;
     }

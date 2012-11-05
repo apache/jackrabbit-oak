@@ -23,7 +23,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 /**
  * {@code Command} for {@code MongoMicroKernel#nodeExists(String, String)}
  */
-public class NodeExistsCommandMongo extends DefaultCommand<Boolean> {
+public class NodeExistsCommand extends DefaultCommand<Boolean> {
 
     private final Long revisionId;
 
@@ -38,7 +38,7 @@ public class NodeExistsCommandMongo extends DefaultCommand<Boolean> {
      * @param path The root path of the nodes to get.
      * @param revisionId The revision id or null.
      */
-    public NodeExistsCommandMongo(MongoConnection mongoConnection, String path,
+    public NodeExistsCommand(MongoConnection mongoConnection, String path,
             Long revisionId) {
         super(mongoConnection);
         this.path = path;
@@ -78,7 +78,7 @@ public class NodeExistsCommandMongo extends DefaultCommand<Boolean> {
 
     private void readParentNode(Long revisionId, String branchId) throws Exception {
         String parentPath = PathUtils.getParentPath(path);
-        GetNodesCommandMongo command = new GetNodesCommandMongo(mongoConnection,
+        GetNodesCommand command = new GetNodesCommand(mongoConnection,
                 parentPath, revisionId);
         command.setBranchId(branchId);
         parentNode = command.execute();

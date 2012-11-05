@@ -7,7 +7,7 @@ import org.apache.jackrabbit.mongomk.util.MongoUtil;
 /**
  * A {@code Command} for {@code MongoMicroKernel#waitForCommit(String, long)}
  */
-public class WaitForCommitCommandMongo extends DefaultCommand<Long> {
+public class WaitForCommitCommand extends DefaultCommand<Long> {
 
     private static final long WAIT_FOR_COMMIT_POLL_MILLIS = 1000;
 
@@ -21,7 +21,7 @@ public class WaitForCommitCommandMongo extends DefaultCommand<Long> {
      * @param oldHeadRevisionId Id of earlier head revision
      * @param timeout The maximum time to wait in milliseconds
      */
-    public WaitForCommitCommandMongo(MongoConnection mongoConnection, String oldHeadRevisionId,
+    public WaitForCommitCommand(MongoConnection mongoConnection, String oldHeadRevisionId,
             long timeout) {
         super(mongoConnection);
         this.oldHeadRevisionId = oldHeadRevisionId;

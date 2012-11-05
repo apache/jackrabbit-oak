@@ -16,7 +16,7 @@ import org.apache.jackrabbit.mongomk.util.MongoUtil;
 /**
  * A {@code Command} for {@code MongoMicroKernel#getJournal(String, String, String)}
  */
-public class GetJournalCommandMongo extends DefaultCommand<String> {
+public class GetJournalCommand extends DefaultCommand<String> {
 
     private final String fromRevisionId;
     private final String toRevisionId;
@@ -31,7 +31,7 @@ public class GetJournalCommandMongo extends DefaultCommand<String> {
      * @param toRevisionId To revision.
      * @param path Path.
      */
-    public GetJournalCommandMongo(MongoConnection mongoConnection, String fromRevisionId,
+    public GetJournalCommand(MongoConnection mongoConnection, String fromRevisionId,
             String toRevisionId, String path) {
         super(mongoConnection);
         this.fromRevisionId = fromRevisionId;
@@ -118,7 +118,7 @@ public class GetJournalCommandMongo extends DefaultCommand<String> {
     }
 
     private Node getNode(String path, long revisionId) throws Exception {
-        GetNodesCommandMongo command = new GetNodesCommandMongo(mongoConnection,
+        GetNodesCommand command = new GetNodesCommand(mongoConnection,
                 path, revisionId);
         return command.execute();
     }

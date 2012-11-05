@@ -24,7 +24,7 @@ import org.apache.jackrabbit.mongomk.api.model.Commit;
 import org.apache.jackrabbit.mongomk.api.model.Node;
 import org.apache.jackrabbit.mongomk.impl.NodeAssert;
 import org.apache.jackrabbit.mongomk.impl.builder.NodeBuilder;
-import org.apache.jackrabbit.mongomk.impl.command.CommitCommandMongo;
+import org.apache.jackrabbit.mongomk.impl.command.CommitCommand;
 import org.apache.jackrabbit.mongomk.impl.model.CommitBuilder;
 import org.apache.jackrabbit.mongomk.model.CommitMongo;
 import org.apache.jackrabbit.mongomk.model.NodeMongo;
@@ -179,7 +179,7 @@ public class FetchNodesQueryTest extends BaseMongoTest {
 
     private Long addNode(String nodeName) throws Exception {
         Commit commit = CommitBuilder.build("/", "+\"" + nodeName + "\" : {}", "Add /" + nodeName);
-        CommitCommandMongo command = new CommitCommandMongo(mongoConnection, commit);
+        CommitCommand command = new CommitCommand(mongoConnection, commit);
         return command.execute();
     }
 

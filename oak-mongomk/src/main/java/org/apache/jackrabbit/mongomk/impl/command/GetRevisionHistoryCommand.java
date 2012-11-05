@@ -16,7 +16,7 @@ import org.apache.jackrabbit.mongomk.util.MongoUtil;
 /**
  * A {@code Command} for {@code MongoMicroKernel#getRevisionHistory(long, int, String)}
  */
-public class GetRevisionHistoryCommandMongo extends DefaultCommand<String> {
+public class GetRevisionHistoryCommand extends DefaultCommand<String> {
 
     private final long since;
 
@@ -32,7 +32,7 @@ public class GetRevisionHistoryCommandMongo extends DefaultCommand<String> {
      * @param path optional path filter; if {@code null} or {@code ""} the
      * default ({@code "/"}) will be assumed, i.e. no filter will be applied
      */
-    public GetRevisionHistoryCommandMongo(MongoConnection mongoConnection,
+    public GetRevisionHistoryCommand(MongoConnection mongoConnection,
             long since, int maxEntries, String path) {
         super(mongoConnection);
         this.since = since;
@@ -84,7 +84,7 @@ public class GetRevisionHistoryCommandMongo extends DefaultCommand<String> {
     }
 
     private Node getNode(String path, long revisionId) throws Exception {
-        GetNodesCommandMongo command = new GetNodesCommandMongo(mongoConnection,
+        GetNodesCommand command = new GetNodesCommand(mongoConnection,
                 path, revisionId);
         return command.execute();
     }

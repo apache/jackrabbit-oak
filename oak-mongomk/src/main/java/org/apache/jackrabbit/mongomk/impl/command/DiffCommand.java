@@ -13,7 +13,7 @@ import org.apache.jackrabbit.mongomk.util.MongoUtil;
 /**
  * A {@code Command} for {@code MongoMicroKernel#diff(String, String, String, int)}
  */
-public class DiffCommandMongo extends DefaultCommand<String> {
+public class DiffCommand extends DefaultCommand<String> {
 
     private final String fromRevision;
     private final String toRevision;
@@ -30,7 +30,7 @@ public class DiffCommandMongo extends DefaultCommand<String> {
      * @param path Path.
      * @param depth Depth.
      */
-    public DiffCommandMongo(MongoConnection mongoConnection, String fromRevision,
+    public DiffCommand(MongoConnection mongoConnection, String fromRevision,
             String toRevision, String path, int depth) {
         super(mongoConnection);
         this.fromRevision = fromRevision;
@@ -83,7 +83,7 @@ public class DiffCommandMongo extends DefaultCommand<String> {
     }
 
     private Node getNode(String path, long revisionId) throws Exception {
-        GetNodesCommandMongo command = new GetNodesCommandMongo(mongoConnection,
+        GetNodesCommand command = new GetNodesCommand(mongoConnection,
                 path, revisionId);
         return command.execute();
     }

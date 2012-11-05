@@ -21,7 +21,7 @@ import org.apache.jackrabbit.mongomk.MongoAssert;
 import org.apache.jackrabbit.mongomk.api.model.Commit;
 import org.apache.jackrabbit.mongomk.impl.SimpleNodeScenario;
 import org.apache.jackrabbit.mongomk.impl.builder.NodeBuilder;
-import org.apache.jackrabbit.mongomk.impl.command.CommitCommandMongo;
+import org.apache.jackrabbit.mongomk.impl.command.CommitCommand;
 import org.apache.jackrabbit.mongomk.impl.model.CommitBuilder;
 import org.junit.Assert;
 import org.junit.Test;
@@ -34,7 +34,7 @@ public class CommitCommandMongoTest extends BaseMongoMicroKernelTest {
     @Test
     public void initialCommit() throws Exception {
         Commit commit = CommitBuilder.build("/", "+\"a\" : { \"b\" : {} , \"c\" : {} }", null);
-        CommitCommandMongo command = new CommitCommandMongo(mongoConnection, commit);
+        CommitCommand command = new CommitCommand(mongoConnection, commit);
         Long revisionId = command.execute();
 
         Assert.assertNotNull(revisionId);

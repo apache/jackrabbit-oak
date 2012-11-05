@@ -27,9 +27,9 @@ import org.slf4j.LoggerFactory;
 /**
  * A {@code Command} for {@code MongoMicroKernel#merge(String, String)}
  */
-public class MergeCommandMongo extends DefaultCommand<String> {
+public class MergeCommand extends DefaultCommand<String> {
 
-    private static final Logger LOG = LoggerFactory.getLogger(MergeCommandMongo.class);
+    private static final Logger LOG = LoggerFactory.getLogger(MergeCommand.class);
 
     private final String branchRevisionId;
     private final String message;
@@ -41,7 +41,7 @@ public class MergeCommandMongo extends DefaultCommand<String> {
      * @param branchRevisionId Branch revision id.
      * @param message Merge message.
      */
-    public MergeCommandMongo(MongoConnection mongoConnection, String branchRevisionId,
+    public MergeCommand(MongoConnection mongoConnection, String branchRevisionId,
             String message) {
         super(mongoConnection);
         this.branchRevisionId = branchRevisionId;
@@ -87,7 +87,7 @@ public class MergeCommandMongo extends DefaultCommand<String> {
         Commit newCommit = CommitBuilder.build("", diff,
                 MongoUtil.fromMongoRepresentation(currentHead), message);
 
-        Command<Long> command = new CommitCommandMongo(mongoConnection, newCommit);
+        Command<Long> command = new CommitCommand(mongoConnection, newCommit);
         long revision = command.execute();
         return MongoUtil.fromMongoRepresentation(revision);
     }
@@ -182,7 +182,7 @@ public class MergeCommandMongo extends DefaultCommand<String> {
     }
 
     private Node getNode(String path, long revisionId, String branchId) throws Exception {
-        GetNodesCommandMongo command = new GetNodesCommandMongo(mongoConnection,
+        GetNodesCommand command = new GetNodesCommand(mongoConnection,
                 path, revisionId);
         command.setBranchId(branchId);
         return command.execute();

@@ -22,14 +22,14 @@ import org.apache.jackrabbit.mongomk.query.FetchHeadRevisionIdQuery;
 /**
  * {@code Command} for {@code MongoMicroKernel#getHeadRevision()}
  */
-public class GetHeadRevisionCommandMongo extends DefaultCommand<Long> {
+public class GetHeadRevisionCommand extends DefaultCommand<Long> {
 
     /**
      * Constructs a new {@code GetHeadRevisionCommandMongo}.
      *
      * @param mongoConnection The {@link MongoConnection}.
      */
-    public GetHeadRevisionCommandMongo(MongoConnection mongoConnection) {
+    public GetHeadRevisionCommand(MongoConnection mongoConnection) {
         super(mongoConnection);
     }
 

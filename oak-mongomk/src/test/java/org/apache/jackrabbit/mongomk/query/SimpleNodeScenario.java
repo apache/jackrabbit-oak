@@ -18,7 +18,7 @@ package org.apache.jackrabbit.mongomk.query;
 
 import org.apache.jackrabbit.mongomk.api.model.Commit;
 import org.apache.jackrabbit.mongomk.impl.MongoConnection;
-import org.apache.jackrabbit.mongomk.impl.command.CommitCommandMongo;
+import org.apache.jackrabbit.mongomk.impl.command.CommitCommand;
 import org.apache.jackrabbit.mongomk.impl.model.CommitBuilder;
 
 /**
@@ -51,7 +51,7 @@ public class SimpleNodeScenario {
         Commit commit = CommitBuilder.build("/",
                 "+\"a\" : { \"int\" : 1 , \"b\" : { \"string\" : \"foo\" } , \"c\" : { \"bool\" : true } }",
                 "This is the simple node scenario with nodes /, /a, /a/b, /a/c");
-        CommitCommandMongo command = new CommitCommandMongo(mongoConnection, commit);
+        CommitCommand command = new CommitCommand(mongoConnection, commit);
         return command.execute();
     }
 
@@ -59,7 +59,7 @@ public class SimpleNodeScenario {
         Long revisionId = null;
         for (int i = 1; i <= count; i++) {
             Commit commit = CommitBuilder.build("/a", "+\"child" + i + "\" : {}", "Add child" + i);
-            CommitCommandMongo command = new CommitCommandMongo(mongoConnection, commit);
+            CommitCommand command = new CommitCommand(mongoConnection, commit);
             revisionId = command.execute();
         }
         return revisionId;
@@ -67,13 +67,13 @@ public class SimpleNodeScenario {
 
     public Long delete_A() throws Exception {
         Commit commit = CommitBuilder.build("/", "-\"a\"", "This is a commit with deleted /a");
-        CommitCommandMongo command = new CommitCommandMongo(mongoConnection, commit);
+        CommitCommand command = new CommitCommand(mongoConnection, commit);
         return command.execute();
     }
 
     public Long delete_B() throws Exception {
         Commit commit = CommitBuilder.build("/a", "-\"b\"", "This is a commit with deleted /a/b");
-        CommitCommandMongo command = new CommitCommandMongo(mongoConnection, commit);
+        CommitCommand command = new CommitCommand(mongoConnection, commit);
         return command.execute();
     }
 
@@ -86,7 +86,7 @@ public class SimpleNodeScenario {
         diff.append("^\"a/b/e/array\" : [ 123, null, 123.456, \"for:bar\", true ]");
         Commit commit = CommitBuilder.build("/", diff.toString(),
                 "This is a commit with updated /a and added /a/d and /a/b/e");
-        CommitCommandMongo command = new CommitCommandMongo(mongoConnection, commit);
+        CommitCommand command = new CommitCommand(mongoConnection, commit);
         return command.execute();
     }
 }

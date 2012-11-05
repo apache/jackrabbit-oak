@@ -32,9 +32,9 @@ import org.apache.jackrabbit.mongomk.BaseMongoTest;
 import org.apache.jackrabbit.mongomk.api.command.CommandExecutor;
 import org.apache.jackrabbit.mongomk.api.model.Commit;
 import org.apache.jackrabbit.mongomk.api.model.Node;
-import org.apache.jackrabbit.mongomk.impl.command.CommitCommandMongo;
+import org.apache.jackrabbit.mongomk.impl.command.CommitCommand;
 import org.apache.jackrabbit.mongomk.impl.command.DefaultCommandExecutor;
-import org.apache.jackrabbit.mongomk.impl.command.GetNodesCommandMongo;
+import org.apache.jackrabbit.mongomk.impl.command.GetNodesCommand;
 import org.apache.jackrabbit.mongomk.impl.model.CommitBuilder;
 import org.apache.jackrabbit.mongomk.model.CommitMongo;
 import org.apache.jackrabbit.mongomk.query.FetchCommitsQuery;
@@ -49,11 +49,11 @@ public class ConcurrentCommitCommandMongoTest extends BaseMongoTest {
         final Object waitLock = new Object();
 
         // create the commands
-        List<CommitCommandMongo> commands = new ArrayList<CommitCommandMongo>(numOfConcurrentThreads);
+        List<CommitCommand> commands = new ArrayList<CommitCommand>(numOfConcurrentThreads);
         for (int i = 0; i < numOfConcurrentThreads; ++i) {
             Commit commit = CommitBuilder.build("/", "+\"" + i + "\" : {}",
                     "This is a concurrent commit");
-            CommitCommandMongo command = new CommitCommandMongo(mongoConnection, commit) {
+            CommitCommand command = new CommitCommand(mongoConnection, commit) {
                 @Override
                 protected boolean saveAndSetHeadRevision() throws Exception {
                     try {
@@ -76,7 +76,7 @@ public class ConcurrentCommitCommandMongoTest extends BaseMongoTest {
         ExecutorService executorService = Executors.newFixedThreadPool(numOfConcurrentThreads);
         final List<Long> revisionIds = new LinkedList<Long>();
         for (int i = 0; i < numOfConcurrentThreads; ++i) {
-            final CommitCommandMongo command = commands.get(i);
+            final CommitCommand command = commands.get(i);
             Runnable runnable = new Runnable() {
 
                 @Override
@@ -111,7 +111,7 @@ public class ConcurrentCommitCommandMongoTest extends BaseMongoTest {
         List<String> lastChildren = new LinkedList<String>();
         for (int i = 0; i < numOfConcurrentThreads; ++i) {
             Long revisionId = revisionIds.get(i);
-            GetNodesCommandMongo command2 = new GetNodesCommandMongo(mongoConnection,
+            GetNodesCommand command2 = new GetNodesCommand(mongoConnection,
                     "/", revisionId);
             Node root = command2.execute();
 

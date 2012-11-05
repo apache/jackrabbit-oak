@@ -49,9 +49,9 @@ import com.mongodb.WriteResult;
 /**
  * {@code Command} for {@code MongoMicroKernel#commit(String, String, String, String)}
  */
-public class CommitCommandMongo extends DefaultCommand<Long> {
+public class CommitCommand extends DefaultCommand<Long> {
 
-    private static final Logger logger = LoggerFactory.getLogger(CommitCommandMongo.class);
+    private static final Logger logger = LoggerFactory.getLogger(CommitCommand.class);
 
     private final Commit commit;
 
@@ -69,7 +69,7 @@ public class CommitCommandMongo extends DefaultCommand<Long> {
      * @param mongoConnection {@link MongoConnection}
      * @param commit {@link Commit}
      */
-    public CommitCommandMongo(MongoConnection mongoConnection, Commit commit) {
+    public CommitCommand(MongoConnection mongoConnection, Commit commit) {
         super(mongoConnection);
         this.commit = commit;
     }

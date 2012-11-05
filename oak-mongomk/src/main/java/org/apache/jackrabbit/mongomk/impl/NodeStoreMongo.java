@@ -21,16 +21,16 @@ import org.apache.jackrabbit.mongomk.api.command.Command;
 import org.apache.jackrabbit.mongomk.api.command.CommandExecutor;
 import org.apache.jackrabbit.mongomk.api.model.Commit;
 import org.apache.jackrabbit.mongomk.api.model.Node;
-import org.apache.jackrabbit.mongomk.impl.command.CommitCommandMongo;
+import org.apache.jackrabbit.mongomk.impl.command.CommitCommand;
 import org.apache.jackrabbit.mongomk.impl.command.DefaultCommandExecutor;
-import org.apache.jackrabbit.mongomk.impl.command.DiffCommandMongo;
-import org.apache.jackrabbit.mongomk.impl.command.GetHeadRevisionCommandMongo;
-import org.apache.jackrabbit.mongomk.impl.command.GetJournalCommandMongo;
-import org.apache.jackrabbit.mongomk.impl.command.GetNodesCommandMongo;
-import org.apache.jackrabbit.mongomk.impl.command.GetRevisionHistoryCommandMongo;
-import org.apache.jackrabbit.mongomk.impl.command.MergeCommandMongo;
-import org.apache.jackrabbit.mongomk.impl.command.NodeExistsCommandMongo;
-import org.apache.jackrabbit.mongomk.impl.command.WaitForCommitCommandMongo;
+import org.apache.jackrabbit.mongomk.impl.command.DiffCommand;
+import org.apache.jackrabbit.mongomk.impl.command.GetHeadRevisionCommand;
+import org.apache.jackrabbit.mongomk.impl.command.GetJournalCommand;
+import org.apache.jackrabbit.mongomk.impl.command.GetNodesCommand;
+import org.apache.jackrabbit.mongomk.impl.command.GetRevisionHistoryCommand;
+import org.apache.jackrabbit.mongomk.impl.command.MergeCommand;
+import org.apache.jackrabbit.mongomk.impl.command.NodeExistsCommand;
+import org.apache.jackrabbit.mongomk.impl.command.WaitForCommitCommand;
 import org.apache.jackrabbit.mongomk.model.CommitMongo;
 import org.apache.jackrabbit.mongomk.query.FetchCommitQuery;
 import org.apache.jackrabbit.mongomk.util.MongoUtil;
@@ -55,7 +55,7 @@ public class NodeStoreMongo implements NodeStore {
 
     @Override
     public String commit(Commit commit) throws Exception {
-        Command<Long> command = new CommitCommandMongo(mongoConnection, commit);
+        Command<Long> command = new CommitCommand(mongoConnection, commit);
         Long revisionId = commandExecutor.execute(command);
         return MongoUtil.fromMongoRepresentation(revisionId);
     }
@@ -63,14 +63,14 @@ public class NodeStoreMongo implements NodeStore {
     @Override
     public String diff(String fromRevision, String toRevision, String path, int depth)
             throws Exception {
-        Command<String> command = new DiffCommandMongo(mongoConnection,
+        Command<String> command = new DiffCommand(mongoConnection,
                 fromRevision, toRevision, path, depth);
         return commandExecutor.execute(command);
     }
 
     @Override
     public String getHeadRevision() throws Exception {
-        GetHeadRevisionCommandMongo command = new GetHeadRevisionCommandMongo(mongoConnection);
+        GetHeadRevisionCommand command = new GetHeadRevisionCommand(mongoConnection);
         long revisionId = commandExecutor.execute(command);
         return MongoUtil.fromMongoRepresentation(revisionId);
     }
@@ -78,7 +78,7 @@ public class NodeStoreMongo implements NodeStore {
     @Override
     public Node getNodes(String path, String revisionId, int depth, long offset,
             int maxChildNodes, String filter) throws Exception {
-        GetNodesCommandMongo command = new GetNodesCommandMongo(mongoConnection, path,
+        GetNodesCommand command = new GetNodesCommand(mongoConnection, path,
                 MongoUtil.toMongoRepresentation(revisionId));
         command.setBranchId(getBranchId(revisionId));
         command.setDepth(depth);
@@ -87,14 +87,14 @@ public class NodeStoreMongo implements NodeStore {
 
     @Override
     public String merge(String branchRevisionId, String message) throws Exception {
-        MergeCommandMongo command = new MergeCommandMongo(mongoConnection,
+        MergeCommand command = new MergeCommand(mongoConnection,
                 branchRevisionId, message);
         return commandExecutor.execute(command);
     }
 
     @Override
     public boolean nodeExists(String path, String revisionId) throws Exception {
-        NodeExistsCommandMongo command = new NodeExistsCommandMongo(mongoConnection, path,
+        NodeExistsCommand command = new NodeExistsCommand(mongoConnection, path,
                 MongoUtil.toMongoRepresentation(revisionId));
         String branchId = getBranchId(revisionId);
         command.setBranchId(branchId);
@@ -104,7 +104,7 @@ public class NodeStoreMongo implements NodeStore {
     @Override
     public String getJournal(String fromRevisionId, String toRevisionId, String path)
             throws Exception {
-        GetJournalCommandMongo command = new GetJournalCommandMongo(mongoConnection,
+        GetJournalCommand command = new GetJournalCommand(mongoConnection,
                 fromRevisionId, toRevisionId, path);
         return commandExecutor.execute(command);
     }
@@ -112,14 +112,14 @@ public class NodeStoreMongo implements NodeStore {
     @Override
     public String getRevisionHistory(long since, int maxEntries, String path)
             throws Exception {
-        GetRevisionHistoryCommandMongo command = new GetRevisionHistoryCommandMongo(mongoConnection,
+        GetRevisionHistoryCommand command = new GetRevisionHistoryCommand(mongoConnection,
                 since, maxEntries, path);
         return commandExecutor.execute(command);
     }
 
     @Override
     public String waitForCommit(String oldHeadRevisionId, long timeout) throws Exception {
-        WaitForCommitCommandMongo command = new WaitForCommitCommandMongo(mongoConnection,
+        WaitForCommitCommand command = new WaitForCommitCommand(mongoConnection,
                 oldHeadRevisionId, timeout);
         long revisionId = commandExecutor.execute(command);
         return MongoUtil.fromMongoRepresentation(revisionId);
