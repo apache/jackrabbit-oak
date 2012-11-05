@@ -16,17 +16,28 @@
  */
 package org.apache.jackrabbit.oak.run;
 
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
 import java.util.concurrent.Executors;
 
 import javax.jcr.Repository;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.mk.api.MicroKernel;
+import org.apache.jackrabbit.mk.blobs.BlobStore;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
+import org.apache.jackrabbit.mongomk.api.NodeStore;
+import org.apache.jackrabbit.mongomk.impl.BlobStoreMongo;
+import org.apache.jackrabbit.mongomk.impl.MongoConnection;
+import org.apache.jackrabbit.mongomk.impl.MongoMicroKernel;
+import org.apache.jackrabbit.mongomk.impl.NodeStoreMongo;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.http.OakServlet;
+import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.jcr.RepositoryImpl;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.index.CompositeIndexHookProvider;
@@ -72,6 +83,34 @@ public class Main {
         }
     }
 
+    private static MongoConnection createDefaultMongoConnection() throws Exception {
+        // defaults
+    	String host = "localhost";
+    	int port = 27017;
+    	String database = "MongoMicroKernel";
+    	String configFile = "config.cfg";
+    	
+    	// try config file
+    	InputStream is = null;
+    	try {
+    		is = new FileInputStream(configFile);
+    		Properties properties = new Properties();
+    		properties.load(is);
+
+    		host = properties.getProperty("host");
+    		port = Integer.parseInt(properties.getProperty("port"));
+    		database = properties.getProperty("db");
+    	} catch (FileNotFoundException e) {
+    		System.out.println("Config file '"+configFile+"' not found, using defaults.");
+    	} catch (IOException e) {
+    		System.out.println("Error while reading '"+configFile+"', using defaults: " + e.getMessage());
+    		
+      	} finally {
+      		IOUtils.closeQuietly(is);
+      	}
+        return new MongoConnection(host, port, database);
+    }
+    
     private static void printProductInfo() {
         String version = null;
 
@@ -108,7 +147,7 @@ public class Main {
 
         private final MicroKernel[] kernels;
 
-        public HttpServer(String uri, String[] args) {
+        public HttpServer(String uri, String[] args) throws Exception {
             int port = java.net.URI.create(uri).getPort();
             if (port == -1) {
                 // use default
@@ -124,10 +163,23 @@ public class Main {
                 kernels = new MicroKernel[] { new MicroKernelImpl() };
                 addServlets(kernels[0], "");
             } else if (args.length == 1) {
-                System.out.println("Starting a standalone repository");
-                System.out.println(uri + " -> " + args[0]);
-                kernels = new MicroKernel[] { new MicroKernelImpl(args[0]) };
-                addServlets(kernels[0], "");
+            	System.out.println("Starting a standalone repository");
+            	if (args[0].startsWith("mongodb")) {
+            		MongoConnection mongoConnection = createDefaultMongoConnection();
+
+            		mongoConnection.initializeDB(true);
+	                System.out.println(uri + " -> mongodb microkernel " + args[0]);
+
+	                NodeStore nodeStore = new NodeStoreMongo(mongoConnection);
+	                BlobStore blobStore = new BlobStoreMongo(mongoConnection);
+	                
+	                kernels = new MicroKernel[] { new MongoMicroKernel(nodeStore, blobStore) };
+            		
+            	} else {
+	                System.out.println(uri + " -> h2 database " + args[0]);
+	                kernels = new MicroKernel[] { new MicroKernelImpl(args[0]) };
+            	}
+            	addServlets(kernels[0], "");
             } else {
                 System.out.println("Starting a clustered repository");
                 kernels = new MicroKernel[args.length];
@@ -167,8 +219,9 @@ public class Main {
                     new ServletHolder(new OakServlet(repository));
             context.addServlet(oak, path + "/*");
 
-            final Repository jcrRepository = new RepositoryImpl(
-                    repository, Executors.newScheduledThreadPool(1), securityProvider);
+            final Repository jcrRepository = new Jcr(kernel).createRepository(); 
+            		//new RepositoryImpl(
+                    //repository, Executors.newScheduledThreadPool(1), securityProvider);
 
             ServletHolder webdav =
                     new ServletHolder(new SimpleWebdavServlet() {
