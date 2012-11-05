@@ -21,6 +21,7 @@ import org.apache.jackrabbit.mongomk.MongoAssert;
 import org.apache.jackrabbit.mongomk.api.model.Commit;
 import org.apache.jackrabbit.mongomk.impl.SimpleNodeScenario;
 import org.apache.jackrabbit.mongomk.impl.builder.NodeBuilder;
+import org.apache.jackrabbit.mongomk.impl.command.CommitCommandMongo;
 import org.apache.jackrabbit.mongomk.impl.model.CommitBuilder;
 import org.junit.Assert;
 import org.junit.Test;

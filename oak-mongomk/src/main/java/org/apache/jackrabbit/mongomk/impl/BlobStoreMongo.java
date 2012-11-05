@@ -21,10 +21,10 @@ import java.io.InputStream;
 import org.apache.jackrabbit.mk.blobs.BlobStore;
 import org.apache.jackrabbit.mongomk.api.command.Command;
 import org.apache.jackrabbit.mongomk.api.command.CommandExecutor;
-import org.apache.jackrabbit.mongomk.command.GetBlobLengthCommandMongo;
-import org.apache.jackrabbit.mongomk.command.ReadBlobCommandMongo;
-import org.apache.jackrabbit.mongomk.command.WriteBlobCommandMongo;
 import org.apache.jackrabbit.mongomk.impl.command.DefaultCommandExecutor;
+import org.apache.jackrabbit.mongomk.impl.command.GetBlobLengthCommandMongo;
+import org.apache.jackrabbit.mongomk.impl.command.ReadBlobCommandMongo;
+import org.apache.jackrabbit.mongomk.impl.command.WriteBlobCommandMongo;
 
 public class BlobStoreMongo implements BlobStore {
 

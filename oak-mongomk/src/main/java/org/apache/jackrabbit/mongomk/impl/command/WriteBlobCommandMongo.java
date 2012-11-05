@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mongomk.command;
+package org.apache.jackrabbit.mongomk.impl.command;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;
@@ -22,7 +22,6 @@ import java.io.InputStream;
 
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.jackrabbit.mongomk.impl.MongoConnection;
-import org.apache.jackrabbit.mongomk.impl.command.DefaultCommand;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.gridfs.GridFS;

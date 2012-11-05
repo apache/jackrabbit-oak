@@ -27,8 +27,8 @@ import org.apache.jackrabbit.mongomk.api.instruction.Instruction.MoveNodeInstruc
 import org.apache.jackrabbit.mongomk.api.instruction.Instruction.RemoveNodeInstruction;
 import org.apache.jackrabbit.mongomk.api.instruction.Instruction.SetPropertyInstruction;
 import org.apache.jackrabbit.mongomk.api.instruction.InstructionVisitor;
-import org.apache.jackrabbit.mongomk.command.NodeExistsCommandMongo;
 import org.apache.jackrabbit.mongomk.impl.MongoConnection;
+import org.apache.jackrabbit.mongomk.impl.command.NodeExistsCommandMongo;
 import org.apache.jackrabbit.mongomk.query.FetchNodesQuery;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 

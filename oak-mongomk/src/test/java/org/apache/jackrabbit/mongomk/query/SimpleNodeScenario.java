@@ -17,8 +17,8 @@
 package org.apache.jackrabbit.mongomk.query;
 
 import org.apache.jackrabbit.mongomk.api.model.Commit;
-import org.apache.jackrabbit.mongomk.command.CommitCommandMongo;
 import org.apache.jackrabbit.mongomk.impl.MongoConnection;
+import org.apache.jackrabbit.mongomk.impl.command.CommitCommandMongo;
 import org.apache.jackrabbit.mongomk.impl.model.CommitBuilder;
 
 /**

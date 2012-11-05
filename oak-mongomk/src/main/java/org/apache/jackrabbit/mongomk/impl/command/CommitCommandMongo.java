@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mongomk.command;
+package org.apache.jackrabbit.mongomk.impl.command;
 
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -26,7 +26,6 @@ import org.apache.jackrabbit.mongomk.api.instruction.Instruction;
 import org.apache.jackrabbit.mongomk.api.model.Commit;
 import org.apache.jackrabbit.mongomk.command.exception.ConflictingCommitException;
 import org.apache.jackrabbit.mongomk.impl.MongoConnection;
-import org.apache.jackrabbit.mongomk.impl.command.DefaultCommand;
 import org.apache.jackrabbit.mongomk.model.CommitCommandInstructionVisitor;
 import org.apache.jackrabbit.mongomk.model.CommitMongo;
 import org.apache.jackrabbit.mongomk.model.HeadMongo;
@@ -48,9 +47,6 @@ import com.mongodb.QueryBuilder;
 import com.mongodb.WriteResult;
 
 /**
- * FIXME - Move this whole package to mongomk.impl.command and remove trailing
- * Mongo from all names.
- *
  * {@code Command} for {@code MongoMicroKernel#commit(String, String, String, String)}
  */
 public class CommitCommandMongo extends DefaultCommand<Long> {
