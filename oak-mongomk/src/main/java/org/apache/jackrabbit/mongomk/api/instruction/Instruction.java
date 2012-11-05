@@ -18,6 +18,9 @@ package org.apache.jackrabbit.mongomk.api.instruction;
 
 
 /**
+ * FIXME - Remove other interfaces and renamed AddNodeInstructionImpl into
+ * AddNodeInstruction etc.
+ *
  * An {@code Instruction} is an abstraction of a single
  * <a href="http://wiki.apache.org/jackrabbit/Jsop">JSOP</a> operation.
  *

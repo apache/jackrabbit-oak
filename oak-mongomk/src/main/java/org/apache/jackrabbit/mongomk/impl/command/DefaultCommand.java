@@ -14,36 +14,41 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mongomk.query;
+package org.apache.jackrabbit.mongomk.impl.command;
 
+import org.apache.jackrabbit.mongomk.api.command.Command;
 import org.apache.jackrabbit.mongomk.impl.MongoConnection;
 
 /**
- * FIXME - Rename this to AbstractAction and rename all queries in actions.
+ * Default implementation of {@code Command}.
  *
- * An abstract base class for queries performed with {@code MongoDB}.
- *
- * @param <T> The result type of the query.
+ * @param <T> The result type of the {@code Command}.
  */
-public abstract class AbstractQuery<T> {
+public abstract class DefaultCommand<T> implements Command<T> {
 
-    /** The {@link MongoConnection}. */
-    protected MongoConnection mongoConnection;
+    protected final MongoConnection mongoConnection;
 
     /**
-     * Constructs a new {@code AbstractQuery}.
+     * Constructs a default command with the supplied connection.
      *
      * @param mongoConnection The mongo connection.
      */
-    protected AbstractQuery(MongoConnection mongoConnection) {
+    public DefaultCommand(MongoConnection mongoConnection) {
         this.mongoConnection = mongoConnection;
     }
 
-    /**
-     * Executes this query.
-     *
-     * @return The result of the query.
-     * @throws Exception If an error occurred while executing the query.
-     */
-    public abstract T execute() throws Exception;
+    @Override
+    public int getNumOfRetries() {
+        return 0;
+    }
+
+    @Override
+    public boolean needsRetry(Exception e) {
+        return false;
+    }
+
+    @Override
+    public boolean needsRetry(T result) {
+        return false;
+    }
 }

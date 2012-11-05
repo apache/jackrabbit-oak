@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.mongomk.command;
 
-import org.apache.jackrabbit.mongomk.api.command.DefaultCommand;
 import org.apache.jackrabbit.mongomk.impl.MongoConnection;
+import org.apache.jackrabbit.mongomk.impl.command.DefaultCommand;
 import org.apache.jackrabbit.mongomk.query.FetchHeadRevisionIdQuery;
 
 /**

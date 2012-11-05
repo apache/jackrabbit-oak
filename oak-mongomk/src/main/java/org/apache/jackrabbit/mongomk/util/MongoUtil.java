@@ -33,6 +33,8 @@ import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
 
 /**
+ * FIXME - This should really be part of MongoConnection class.
+ *
  * Utility class for preparing the {@code MongoDB} environment and other MongoMK
  * specific utility functionality.
  */

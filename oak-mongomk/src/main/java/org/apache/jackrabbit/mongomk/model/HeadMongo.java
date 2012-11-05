@@ -20,6 +20,8 @@ import com.mongodb.BasicDBObject;
 import com.mongodb.DBObject;
 
 /**
+ * FIXME - This should be renamed to SyncMongo.
+ *
  * The {@code MongoDB} representation of the head revision.
  */
 public class HeadMongo extends BasicDBObject {

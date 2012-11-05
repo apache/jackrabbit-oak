@@ -22,11 +22,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.jackrabbit.mongomk.api.command.DefaultCommand;
 import org.apache.jackrabbit.mongomk.api.instruction.Instruction;
 import org.apache.jackrabbit.mongomk.api.model.Commit;
 import org.apache.jackrabbit.mongomk.command.exception.ConflictingCommitException;
 import org.apache.jackrabbit.mongomk.impl.MongoConnection;
+import org.apache.jackrabbit.mongomk.impl.command.DefaultCommand;
 import org.apache.jackrabbit.mongomk.model.CommitCommandInstructionVisitor;
 import org.apache.jackrabbit.mongomk.model.CommitMongo;
 import org.apache.jackrabbit.mongomk.model.HeadMongo;
@@ -48,6 +48,9 @@ import com.mongodb.QueryBuilder;
 import com.mongodb.WriteResult;
 
 /**
+ * FIXME - Move this whole package to mongomk.impl.command and remove trailing
+ * Mongo from all names.
+ *
  * {@code Command} for {@code MongoMicroKernel#commit(String, String, String, String)}
  */
 public class CommitCommandMongo extends DefaultCommand<Long> {
@@ -116,6 +119,9 @@ public class CommitCommandMongo extends DefaultCommand<Long> {
     }
 
     /**
+     * FIXME - Currently this assumes a conflict if there's an update but it
+     * should really check the affected paths before assuming a conflict.
+     *
      * This is protected for testing purposed only.
      *
      * @return True if the operation was successful.
