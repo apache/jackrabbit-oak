@@ -16,7 +16,13 @@
  */
 package org.apache.jackrabbit.mongomk.action;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 import org.apache.jackrabbit.mongomk.impl.MongoConnection;
@@ -32,36 +38,54 @@ import com.mongodb.DBObject;
 import com.mongodb.QueryBuilder;
 
 /**
- * An action for fetching node and its descendants (if fetchDescendants is enabled)
- * under a single path and less than or equal to revision id. Optional branch id
- * can be used to limit the nodes under a certain branch and optional depth can
- * be used to limit the depth of returned nodes (when fetchDescendants is enabled).
+ * An action for fetching nodes.
  */
 public class FetchNodesAction extends AbstractAction<List<NodeMongo>> {
 
     public static final int LIMITLESS_DEPTH = -1;
     private static final Logger LOG = LoggerFactory.getLogger(FetchNodesAction.class);
 
-    private final String path;
+    private final Set<String> paths;
     private final long revisionId;
 
     private String branchId;
     private int depth = LIMITLESS_DEPTH;
-    private boolean fetchDescendants = true;
+    private boolean fetchDescendants;
 
     /**
-     * Constructs a new {@code FetchNodesAction}.
+     * Constructs a new {@code FetchNodesAction} to fetch a node and optionally
+     * its descendants under the specified path.
      *
      * @param mongoConnection The {@link MongoConnection}.
      * @param path The path.
+     * @param fetchDescendants Determines whether the descendants of the path
+     * will be fetched as well.
      * @param revisionId The revision id.
      */
     public FetchNodesAction(MongoConnection mongoConnection, String path,
-            long revisionId) {
+            boolean fetchDescendants, long revisionId) {
         super(mongoConnection);
-        this.path = path;
+        paths = new HashSet<String>();
+        paths.add(path);
+        this.fetchDescendants = fetchDescendants;
         this.revisionId = revisionId;
     }
+
+    /**
+     * Constructs a new {@code FetchNodesAction} to fetch nodes with the exact
+     * specified paths.
+     *
+     * @param mongoConnection The {@link MongoConnection}.
+     * @param path The exact paths to fetch nodes for.
+     * @param revisionId The revision id.
+     */
+    public FetchNodesAction(MongoConnection mongoConnection,  Set<String> paths,
+            long revisionId) {
+        super(mongoConnection);
+        this.paths = paths;
+        this.revisionId = revisionId;
+    }
+
 
     /**
      * Sets the branchId for the query.
@@ -81,30 +105,28 @@ public class FetchNodesAction extends AbstractAction<List<NodeMongo>> {
         this.depth = depth;
     }
 
-    /**
-     * Determines whether all the descendants of the path will be fetched.
-     *
-     * @param fetchDescendants
-     */
-    public void setFetchDescendants(boolean fetchDescendants) {
-        this.fetchDescendants = fetchDescendants;
-    }
-
     @Override
     public List<NodeMongo> execute() {
+        if (paths.isEmpty()) {
+            return Collections.emptyList();
+        }
         DBCursor dbCursor = performQuery();
-        FetchCommitsAction query = new FetchCommitsAction(mongoConnection, revisionId);
-        List<CommitMongo> validCommits = query.execute();
-        return QueryUtils.getMostRecentValidNodes(dbCursor, validCommits);
+        List<CommitMongo> validCommits = new FetchCommitsAction(mongoConnection, revisionId).execute();
+        return getMostRecentValidNodes(dbCursor, validCommits);
     }
 
     private DBCursor performQuery() {
         QueryBuilder queryBuilder = QueryBuilder.start(NodeMongo.KEY_PATH);
-        if (fetchDescendants) {
-            Pattern pattern = createPrefixRegExp();
-            queryBuilder = queryBuilder.regex(pattern);
+        if (paths.size() > 1) {
+            queryBuilder = queryBuilder.in(paths);
         } else {
-            queryBuilder = queryBuilder.is(path);
+            String path = paths.toArray(new String[0])[0];
+            if (fetchDescendants) {
+                Pattern pattern = createPrefixRegExp(path);
+                queryBuilder = queryBuilder.regex(pattern);
+            } else {
+                queryBuilder = queryBuilder.is(path);
+            }
         }
 
         if (revisionId > 0) {
@@ -134,7 +156,7 @@ public class FetchNodesAction extends AbstractAction<List<NodeMongo>> {
         return nodeCollection.find(query);
     }
 
-    private Pattern createPrefixRegExp() {
+    private Pattern createPrefixRegExp(String path) {
         StringBuilder sb = new StringBuilder();
 
         if (depth < 0) {
@@ -156,5 +178,52 @@ public class FetchNodesAction extends AbstractAction<List<NodeMongo>> {
         }
 
         return Pattern.compile(sb.toString());
+    }
+
+    private List<NodeMongo> getMostRecentValidNodes(DBCursor dbCursor,
+            List<CommitMongo> validCommits) {
+        List<Long> validRevisions = extractRevisionIds(validCommits);
+        Map<String, NodeMongo> nodeMongos = new HashMap<String, NodeMongo>();
+
+        while (dbCursor.hasNext()) {
+            NodeMongo nodeMongo = (NodeMongo) dbCursor.next();
+
+            String path = nodeMongo.getPath();
+            long revisionId = nodeMongo.getRevisionId();
+
+            LOG.debug(String.format("Converting node %s (%d)", path, revisionId));
+
+            if (!validRevisions.contains(revisionId)) {
+                LOG.debug(String.format("Node will not be converted as it is not a valid commit %s (%d)",
+                        path, revisionId));
+                continue;
+            }
+
+            NodeMongo existingNodeMongo = nodeMongos.get(path);
+            if (existingNodeMongo != null) {
+                long existingRevId = existingNodeMongo.getRevisionId();
+
+                if (revisionId > existingRevId) {
+                    nodeMongos.put(path, nodeMongo);
+                    LOG.debug(String.format("Converted nodes was put into map and replaced %s (%d)", path, revisionId));
+                } else {
+                    LOG.debug(String.format("Converted nodes was not put into map because a newer version"
+                            + " is available %s (%d)", path, revisionId));
+                }
+            } else {
+                nodeMongos.put(path, nodeMongo);
+                LOG.debug("Converted node was put into map");
+            }
+        }
+
+        return new ArrayList<NodeMongo>(nodeMongos.values());
+    }
+
+    private List<Long> extractRevisionIds(List<CommitMongo> validCommits) {
+        List<Long> validRevisions = new ArrayList<Long>(validCommits.size());
+        for (CommitMongo commitMongo : validCommits) {
+            validRevisions.add(commitMongo.getRevisionId());
+        }
+        return validRevisions;
     }
 }

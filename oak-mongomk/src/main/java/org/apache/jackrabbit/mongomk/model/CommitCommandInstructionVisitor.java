@@ -150,7 +150,7 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
 
         // First, copy the existing nodes.
         List<NodeMongo> nodesToCopy = new FetchNodesAction(mongoConnection,
-                srcPath, headRevisionId).execute();
+                srcPath, true, headRevisionId).execute();
         for (NodeMongo nodeMongo : nodesToCopy) {
             String oldPath = nodeMongo.getPath();
             String oldPathRel = PathUtils.relativize(srcPath, oldPath);
@@ -198,7 +198,7 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
 
         // First, copy the existing nodes.
         List<NodeMongo> nodesToCopy = new FetchNodesAction(mongoConnection,
-                srcPath, headRevisionId).execute();
+                srcPath, true, headRevisionId).execute();
         for (NodeMongo nodeMongo : nodesToCopy) {
             String oldPath = nodeMongo.getPath();
             String oldPathRel = PathUtils.relativize(srcPath, oldPath);
@@ -257,9 +257,8 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
 
         // Fetch the node without its descendants.
         FetchNodesAction query = new FetchNodesAction(mongoConnection,
-                path, headRevisionId);
+                path, false /*fetchDescendants*/, headRevisionId);
         query.setBranchId(branchId);
-        query.setFetchDescendants(false);
         List<NodeMongo> nodes = query.execute();
 
         if (!nodes.isEmpty()) {

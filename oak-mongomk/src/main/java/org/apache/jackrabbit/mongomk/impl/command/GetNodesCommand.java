@@ -175,7 +175,7 @@ public class GetNodesCommand extends DefaultCommand<Node> {
 
     private void readNodesByPath() {
         FetchNodesAction query = new FetchNodesAction(mongoConnection,
-                path, revisionId);
+                path, true, revisionId);
         query.setBranchId(branchId);
         // FIXME - This does not work for depth > 3449.
         //query.setDepth(depth);

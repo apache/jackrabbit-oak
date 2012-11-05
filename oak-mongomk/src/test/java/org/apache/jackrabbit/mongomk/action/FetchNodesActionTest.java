@@ -16,8 +16,11 @@
  */
 package org.apache.jackrabbit.mongomk.action;
 
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.jackrabbit.mongomk.BaseMongoTest;
 import org.apache.jackrabbit.mongomk.action.FetchNodesAction;
@@ -39,7 +42,7 @@ import com.mongodb.QueryBuilder;
 public class FetchNodesActionTest extends BaseMongoTest {
 
     @Test
-    public void fetchWithInvalidFirstRevision() throws Exception {
+    public void invalidFirstRevision() throws Exception {
         Long revisionId1 = addNode("a");
         Long revisionId2 = addNode("b");
         Long revisionId3 = addNode("c");
@@ -48,17 +51,17 @@ public class FetchNodesActionTest extends BaseMongoTest {
         updateBaseRevisionId(revisionId2, 0L);
 
         FetchNodesAction query = new FetchNodesAction(mongoConnection,
-                "/", revisionId3);
+                "/", true, revisionId3);
         List<Node> actuals = NodeMongo.toNode(query.execute());
 
-        //String json = String.format("{\"/#%1$s\" : { \"a#%2$s\" : {}, \"b#%3$s\" : {}, \"c#%1$s\" : {} }}", revisionId3, revisionId1, revisionId2);
-        String json = String.format("{\"/#%2$s\" : { \"b#%1$s\" : {}, \"c#%2$s\" : {} }}", revisionId2, revisionId3);
+        String json = String.format("{\"/#%2$s\" : { \"b#%1$s\" : {}, \"c#%2$s\" : {} }}",
+                revisionId2, revisionId3);
         Iterator<Node> expecteds = NodeBuilder.build(json).getChildNodeEntries(0, -1);
         NodeAssert.assertEquals(expecteds, actuals);
     }
 
     @Test
-    public void fetchWithInvalidLastRevision() throws Exception {
+    public void invalidLastRevision() throws Exception {
         Long revisionId1 = addNode("a");
         Long revisionId2 = addNode("b");
         Long revisionId3 = addNode("c");
@@ -66,17 +69,17 @@ public class FetchNodesActionTest extends BaseMongoTest {
         invalidateCommit(revisionId3);
 
         FetchNodesAction query = new FetchNodesAction(mongoConnection,
-                "/", revisionId3);
+                "/", true, revisionId3);
         List<Node> actuals = NodeMongo.toNode(query.execute());
 
-        //String json = String.format("{\"/#%1$s\" : { \"a#%2$s\" : {}, \"b#%3$s\" : {}, \"c#%1$s\" : {} }}", revisionId3, revisionId1, revisionId2);
-        String json = String.format("{\"/#%2$s\" : { \"a#%1$s\" : {}, \"b#%2$s\" : {} }}", revisionId1, revisionId2);
+        String json = String.format("{\"/#%2$s\" : { \"a#%1$s\" : {}, \"b#%2$s\" : {} }}",
+                revisionId1, revisionId2);
         Iterator<Node> expecteds = NodeBuilder.build(json).getChildNodeEntries(0, -1);
         NodeAssert.assertEquals(expecteds, actuals);
     }
 
     @Test
-    public void fetchWithInvalidMiddleRevision() throws Exception {
+    public void invalidMiddleRevision() throws Exception {
         Long revisionId1 = addNode("a");
         Long revisionId2 = addNode("b");
         Long revisionId3 = addNode("c");
@@ -85,95 +88,95 @@ public class FetchNodesActionTest extends BaseMongoTest {
         updateBaseRevisionId(revisionId3, revisionId1);
 
         FetchNodesAction query = new FetchNodesAction(mongoConnection,
-                "/", revisionId3);
+                "/", true, revisionId3);
         List<Node> actuals = NodeMongo.toNode(query.execute());
 
-        String json = String.format("{\"/#%2$s\" : { \"a#%1$s\" : {}, \"c#%2$s\" : {} }}", revisionId1, revisionId3);
+        String json = String.format("{\"/#%2$s\" : { \"a#%1$s\" : {}, \"c#%2$s\" : {} }}",
+                revisionId1, revisionId3);
         Iterator<Node> expecteds = NodeBuilder.build(json).getChildNodeEntries(0, -1);
         NodeAssert.assertEquals(expecteds, actuals);
     }
 
+    // FIXME - Revisit this test.
     @Test
-    public void simpleFetchRootAndAllDepths() throws Exception {
+    public void fetchRootAndAllDepths() throws Exception {
         SimpleNodeScenario scenario = new SimpleNodeScenario(mongoConnection);
         Long firstRevisionId = scenario.create();
         Long secondRevisionId = scenario.update_A_and_add_D_and_E();
 
         FetchNodesAction query = new FetchNodesAction(mongoConnection,
-                "/", firstRevisionId);
+                "/", true, firstRevisionId);
         query.setDepth(0);
         List<NodeMongo> result = query.execute();
         List<Node> actuals = NodeMongo.toNode(result);
-        Node expected = NodeBuilder.build(String.format("{ \"/#%1$s\" : {} }", firstRevisionId));
+        String json = String.format("{ \"/#%1$s\" : {} }", firstRevisionId);
+        Node expected = NodeBuilder.build(json);
         Iterator<Node> expecteds = expected.getChildNodeEntries(0, -1);
         NodeAssert.assertEquals(expecteds, actuals);
 
-        query = new FetchNodesAction(mongoConnection, "/", secondRevisionId);
+        query = new FetchNodesAction(mongoConnection, "/", true, secondRevisionId);
         query.setDepth(0);
         result = query.execute();
         actuals = NodeMongo.toNode(result);
-        expected = NodeBuilder.build(String.format("{ \"/#%1$s\" : {} }", firstRevisionId));
+        json = String.format("{ \"/#%1$s\" : {} }", firstRevisionId);
+        expected = NodeBuilder.build(json);
         expecteds = expected.getChildNodeEntries(0, -1);
         NodeAssert.assertEquals(expecteds, actuals);
 
-        query = new FetchNodesAction(mongoConnection, "/", firstRevisionId);
+        query = new FetchNodesAction(mongoConnection, "/", true, firstRevisionId);
         query.setDepth(1);
         result = query.execute();
         actuals = NodeMongo.toNode(result);
-        expected = NodeBuilder.build(String.format("{ \"/#%1$s\" : { \"a#%1$s\" : { \"int\" : 1 } } }",
-                firstRevisionId));
+        json = String.format("{ \"/#%1$s\" : { \"a#%1$s\" : { \"int\" : 1 } } }", firstRevisionId);
+        expected = NodeBuilder.build(json);
         expecteds = expected.getChildNodeEntries(0, -1);
         NodeAssert.assertEquals(expecteds, actuals);
 
-        query = new FetchNodesAction(mongoConnection, "/", secondRevisionId);
+        query = new FetchNodesAction(mongoConnection, "/", true, secondRevisionId);
         query.setDepth(1);
         result = query.execute();
         actuals = NodeMongo.toNode(result);
-        expected = NodeBuilder.build(String.format(
-                "{ \"/#%1$s\" : { \"a#%2$s\" : { \"int\" : 1 , \"double\" : 0.123 } } }", firstRevisionId,
-                secondRevisionId));
+        json = String.format("{ \"/#%1$s\" : { \"a#%2$s\" : { \"int\" : 1 , \"double\" : 0.123 } } }",
+                firstRevisionId, secondRevisionId);
+        expected = NodeBuilder.build(json);
         expecteds = expected.getChildNodeEntries(0, -1);
         NodeAssert.assertEquals(expecteds, actuals);
 
-        query = new FetchNodesAction(mongoConnection, "/", firstRevisionId);
+        query = new FetchNodesAction(mongoConnection, "/", true, firstRevisionId);
         query.setDepth(2);
         result = query.execute();
         actuals = NodeMongo.toNode(result);
-        expected = NodeBuilder
-                .build(String
-                        .format("{ \"/#%1$s\" : { \"a#%1$s\" : { \"int\" : 1, \"b#%1$s\" : { \"string\" : \"foo\" } , \"c#%1$s\" : { \"bool\" : true } } } }",
-                                firstRevisionId));
+        json = String.format("{ \"/#%1$s\" : { \"a#%1$s\" : { \"int\" : 1, \"b#%1$s\" : { \"string\" : \"foo\" } , \"c#%1$s\" : { \"bool\" : true } } } }",
+                firstRevisionId);
+        expected = NodeBuilder.build(json);
         expecteds = expected.getChildNodeEntries(0, -1);
         NodeAssert.assertEquals(expecteds, actuals);
 
-        query = new FetchNodesAction(mongoConnection, "/", secondRevisionId);
+        query = new FetchNodesAction(mongoConnection, "/", true, secondRevisionId);
         query.setDepth(2);
         result = query.execute();
         actuals = NodeMongo.toNode(result);
-        expected = NodeBuilder
-                .build(String
-                        .format("{ \"/#%1$s\" : { \"a#%2$s\" : { \"int\" : 1 , \"double\" : 0.123 , \"b#%2$s\" : { \"string\" : \"foo\" } , \"c#%1$s\" : { \"bool\" : true }, \"d#%2$s\" : { \"null\" : null } } } }",
-                                firstRevisionId, secondRevisionId));
+        json = String.format("{ \"/#%1$s\" : { \"a#%2$s\" : { \"int\" : 1 , \"double\" : 0.123 , \"b#%2$s\" : { \"string\" : \"foo\" } , \"c#%1$s\" : { \"bool\" : true }, \"d#%2$s\" : { \"null\" : null } } } }",
+                firstRevisionId, secondRevisionId);
+        expected = NodeBuilder.build(json);
         expecteds = expected.getChildNodeEntries(0, -1);
         NodeAssert.assertEquals(expecteds, actuals);
 
-        query = new FetchNodesAction(mongoConnection, "/", firstRevisionId);
+        query = new FetchNodesAction(mongoConnection, "/", true, firstRevisionId);
         result = query.execute();
         actuals = NodeMongo.toNode(result);
-        expected = NodeBuilder
-                .build(String
-                        .format("{ \"/#%1$s\" : { \"a#%1$s\" : { \"int\" : 1 , \"b#%1$s\" : { \"string\" : \"foo\" } , \"c#%1$s\" : { \"bool\" : true } } } }",
-                                firstRevisionId));
+        json = String.format("{ \"/#%1$s\" : { \"a#%1$s\" : { \"int\" : 1 , \"b#%1$s\" : { \"string\" : \"foo\" } , \"c#%1$s\" : { \"bool\" : true } } } }",
+                firstRevisionId);
+        expected = NodeBuilder.build(json);
         expecteds = expected.getChildNodeEntries(0, -1);
         NodeAssert.assertEquals(expecteds, actuals);
 
-        query = new FetchNodesAction(mongoConnection, "/", secondRevisionId);
+        query = new FetchNodesAction(mongoConnection, "/", true, secondRevisionId);
         result = query.execute();
         actuals = NodeMongo.toNode(result);
-        expected = NodeBuilder
-                .build(String
-                        .format("{ \"/#%1$s\" : { \"a#%2$s\" : { \"int\" : 1 , \"double\" : 0.123 , \"b#%2$s\" : { \"string\" : \"foo\", \"e#%2$s\" : { \"array\" : [ 123, null, 123.456, \"for:bar\", true ] } } , \"c#%1$s\" : { \"bool\" : true }, \"d#%2$s\" : { \"null\" : null } } } }",
-                                firstRevisionId, secondRevisionId));
+        json = String.format("{ \"/#%1$s\" : { \"a#%2$s\" : { \"int\" : 1 , \"double\" : 0.123 , \"b#%2$s\" : { \"string\" : \"foo\", \"e#%2$s\" : { \"array\" : [ 123, null, 123.456, \"for:bar\", true ] } } , \"c#%1$s\" : { \"bool\" : true }, \"d#%2$s\" : { \"null\" : null } } } }",
+                firstRevisionId, secondRevisionId);
+        expected = NodeBuilder.build(json);
         expecteds = expected.getChildNodeEntries(0, -1);
         NodeAssert.assertEquals(expecteds, actuals);
     }
@@ -182,6 +185,65 @@ public class FetchNodesActionTest extends BaseMongoTest {
         Commit commit = CommitBuilder.build("/", "+\"" + nodeName + "\" : {}", "Add /" + nodeName);
         CommitCommand command = new CommitCommand(mongoConnection, commit);
         return command.execute();
+    }
+
+    @Test
+    public void fetchWithCertainPathsOneRevision() throws Exception {
+        SimpleNodeScenario scenario = new SimpleNodeScenario(mongoConnection);
+        Long revisionId = scenario.create();
+
+        FetchNodesAction query = new FetchNodesAction(mongoConnection,
+                getPathSet("/a", "/a/b", "/a/c", "not_existing"), revisionId);
+        List<NodeMongo> nodeMongos = query.execute();
+        List<Node> actuals = NodeMongo.toNode(nodeMongos);
+        String json = String.format("{ \"/#%1$s\" : { \"a#%1$s\" : { \"int\" : 1 , \"b#%1$s\" : { \"string\" : \"foo\" } , \"c#%1$s\" : { \"bool\" : true } } } }",
+                revisionId);
+        Node expected = NodeBuilder.build(json);
+        Iterator<Node> expecteds = expected.getChildNodeEntries(0, -1);
+        NodeAssert.assertEquals(expecteds, actuals);
+
+        query = new FetchNodesAction(mongoConnection,
+                getPathSet("/a", "not_existing"), revisionId);
+        nodeMongos = query.execute();
+        actuals = NodeMongo.toNode(nodeMongos);
+        json = String.format("{ \"/#%1$s\" : { \"a#%1$s\" : { \"int\" : 1 } } }",
+                revisionId);
+        expected = NodeBuilder.build(json);
+        expecteds = expected.getChildNodeEntries(0, -1);
+        NodeAssert.assertEquals(expecteds, actuals);
+    }
+
+    @Test
+    public void fetchWithCertainPathsTwoRevisions() throws Exception {
+        SimpleNodeScenario scenario = new SimpleNodeScenario(mongoConnection);
+        Long firstRevisionId = scenario.create();
+        Long secondRevisionId = scenario.update_A_and_add_D_and_E();
+
+        FetchNodesAction query = new FetchNodesAction(mongoConnection,
+                getPathSet("/a", "/a/b", "/a/c", "/a/d", "/a/b/e", "not_existing"),
+                firstRevisionId);
+        List<NodeMongo> nodeMongos = query.execute();
+        List<Node> actuals = NodeMongo.toNode(nodeMongos);
+        String json = String.format("{ \"/#%1$s\" : { \"a#%1$s\" : { \"int\" : 1 , \"b#%1$s\" : { \"string\" : \"foo\" } , \"c#%1$s\" : { \"bool\" : true } } } }",
+                firstRevisionId);
+        Node expected = NodeBuilder.build(json);
+        Iterator<Node> expecteds = expected.getChildNodeEntries(0, -1);
+        NodeAssert.assertEquals(expecteds, actuals);
+
+        query = new FetchNodesAction(mongoConnection,
+                getPathSet("/a", "/a/b", "/a/c", "/a/d", "/a/b/e", "not_existing"),
+                secondRevisionId);
+        nodeMongos = query.execute();
+        actuals = NodeMongo.toNode(nodeMongos);
+        json = String.format("{ \"/#%1$s\" : { \"a#%2$s\" : { \"int\" : 1 , \"double\" : 0.123 , \"b#%2$s\" : { \"string\" : \"foo\" , \"e#%2$s\" : { \"array\" : [ 123, null, 123.456, \"for:bar\", true ] } } , \"c#%1$s\" : { \"bool\" : true }, \"d#%2$s\" : { \"null\" : null } } } }",
+                firstRevisionId, secondRevisionId);
+        expected = NodeBuilder.build(json);
+        expecteds = expected.getChildNodeEntries(0, -1);
+        NodeAssert.assertEquals(expecteds, actuals);
+    }
+
+    private Set<String> getPathSet(String... paths) {
+        return new HashSet<String>(Arrays.asList(paths));
     }
 
     private void invalidateCommit(Long revisionId) {
