@@ -191,8 +191,13 @@ public class PasswordValidationActionTest extends AbstractSecurityTest {
 
                 @Nonnull
                 @Override
-                public List<AuthorizableAction> getAuthorizableActions() {
-                    return Arrays.asList(actions);
+                public AuthorizableActionProvider getAuthorizableActionProvider() {
+                    return new AuthorizableActionProvider() {
+                        @Override
+                        public List<AuthorizableAction> getAuthorizableActions() {
+                            return Arrays.asList(actions);
+                        }
+                    };
                 }
             };
         }

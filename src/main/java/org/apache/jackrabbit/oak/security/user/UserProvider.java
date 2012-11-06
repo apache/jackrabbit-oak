@@ -270,16 +270,7 @@ class UserProvider extends AuthorizableBaseProvider {
 
         // verification of hierarchy and node types is delegated to UserValidator upon commit
         String folderPath = getFolderPath(authorizableId, intermediatePath, authRoot);
-        String[] segmts = Text.explode(folderPath, '/', false);
-        for (String segment : segmts) {
-            if (".".equals(segment)) {
-                // nothing to do
-            } else if ("..".equals(segment)) {
-                folder = folder.getParent();
-            } else {
-                folder = folder.getOrAddChild(segment, NT_REP_AUTHORIZABLE_FOLDER);
-            }
-        }
+        folder = folder.getOrAddTree(folderPath, NT_REP_AUTHORIZABLE_FOLDER);
 
         // test for colliding folder child node.
         while (folder.hasChild(nodeName)) {

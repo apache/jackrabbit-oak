@@ -20,7 +20,6 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.List;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
@@ -32,11 +31,14 @@ import com.google.common.collect.Lists;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.value.Conversions;
+import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -110,6 +112,32 @@ public class NodeUtil {
     public NodeUtil getOrAddChild(String name, String primaryTypeName) {
         NodeUtil child = getChild(name);
         return (child != null) ? child : addChild(name, primaryTypeName);
+    }
+
+    @Nonnull
+    public NodeUtil getOrAddTree(String relativePath, String primaryTypeName) {
+        if (relativePath.indexOf('/') == -1) {
+            return getOrAddChild(relativePath, primaryTypeName);
+        } else {
+            TreeLocation location = LocationUtil.getTreeLocation(tree.getLocation(), relativePath);
+            if (location.getTree() == null) {
+                NodeUtil target = this;
+                for (String segment : Text.explode(relativePath, '/')) {
+                    if (PathUtils.denotesCurrent(segment)) {
+                        continue;
+                    } else if (PathUtils.denotesParent(segment)) {
+                        target = target.getParent();
+                    } else if (target.hasChild(segment)) {
+                        target = target.getChild(segment);
+                    } else {
+                        target = target.addChild(segment, primaryTypeName);
+                    }
+                }
+                return target;
+            } else {
+                return new NodeUtil(location.getTree());
+            }
+        }
     }
 
     public boolean hasPrimaryNodeTypeName(String ntName) {

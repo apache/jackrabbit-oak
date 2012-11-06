@@ -40,12 +40,15 @@ import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.Impersonation;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
+import org.apache.jackrabbit.oak.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.TreeBasedPrincipal;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.xml.NodeInfo;
@@ -59,6 +62,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 
 /**
  * {@code UserImporter} implements both {@code ode>ProtectedPropertyImporter}
@@ -389,6 +393,11 @@ public class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImp
         return identifierManager;
     }
 
+    @Nonnull
+    private PrincipalProvider getPrincipalProvider() throws RepositoryException {
+        return userManager.getPrincipalProvider();
+    }
+
     private void checkInitialized() {
         if (!initialized) {
             throw new IllegalStateException("Not initialized");
@@ -421,9 +430,10 @@ public class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImp
     /**
      * Handling the import behavior
      *
-     * @param msg
-     * @throws RepositoryException
-     * @throws javax.jcr.nodetype.ConstraintViolationException
+     * @param msg The message to log a warning in case of {@link ImportBehavior#IGNORE}
+     * or {@link ImportBehavior#BESTEFFORT}
+     * @throws javax.jcr.nodetype.ConstraintViolationException If the import
+     * behavior is {@link ImportBehavior#ABORT}.
      */
     private void handleFailure(String msg) throws ConstraintViolationException{
         switch(importBehavior){
@@ -527,7 +537,7 @@ public class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImp
 
                 MembershipProvider membershipProvider = userManager.getMembershipProvider();
                 for (Membership.Member member : nonExisting) {
-                    membershipProvider.addMember(groupTree, member.contentId);
+                    membershipProvider.addMember(groupTree, member.name, member.contentId);
                 }
             }
         }
@@ -578,36 +588,43 @@ public class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImp
                 toRemove.put(princ.getName(), princ);
             }
 
-            List<Principal> toAdd = new ArrayList<Principal>();
+            List<String> toAdd = new ArrayList<String>();
             for (final String principalName : principalNames) {
                 if (toRemove.remove(principalName) == null) {
                     // add it to the list of new impersonators to be added.
-                    toAdd.add(new Principal() {
-                        public String getName() {
-                            return principalName;
-                        }
-                    });
+                    toAdd.add(principalName);
                 } // else: no need to revoke impersonation for the given principal.
             }
 
             // 2. adjust set of impersonators
-            boolean bestEffort = false;
-            for (Principal princ : toRemove.values()) {
-                if (!imp.revokeImpersonation(princ)) {
-                    handleFailure("Failed to revoke impersonation for " + princ.getName() + " on " + a);
-                    bestEffort = true;
+            for (Principal princicpal : toRemove.values()) {
+                if (!imp.revokeImpersonation(princicpal)) {
+                    String principalName = princicpal.getName();
+                    handleFailure("Failed to revoke impersonation for " + principalName + " on " + a);
                 }
             }
-            for (Principal princ : toAdd) {
-                if (!imp.grantImpersonation(princ)) {
-                    handleFailure("Failed to grant impersonation for " + princ.getName() + " on " + a);
-                    bestEffort = true;
+            List<String> nonExisting = new ArrayList<String>();
+            for (String principalName : toAdd) {
+                if (!imp.grantImpersonation(new PrincipalImpl(principalName))) {
+                    handleFailure("Failed to grant impersonation for " + principalName + " on " + a);
+                    if (importBehavior == ImportBehavior.BESTEFFORT &&
+                            getPrincipalProvider().getPrincipal(principalName) == null) {
+                        log.info("ImportBehavior.BESTEFFORT: Remember non-existing impersonator for special processing.");
+                        nonExisting.add(principalName);
+                    }
                 }
             }
 
-            if (bestEffort) {
+            if (!nonExisting.isEmpty()) {
                 Tree userTree = root.getTree(a.getPath());
-                userTree.setProperty(UserConstants.REP_PRINCIPAL_NAME, principalNames, Type.STRINGS);
+                // copy over all existing impersonators to the nonExisting list
+                PropertyState impersonators = userTree.getProperty(UserConstants.REP_PRINCIPAL_NAME);
+                for (String existing : impersonators.getValue(STRINGS)) {
+                    nonExisting.add(existing);
+                }
+                // and write back the complete list including those principal
+                // names that are unknown to principal provider.
+                userTree.setProperty(UserConstants.REP_PRINCIPAL_NAME, nonExisting, Type.STRINGS);
             }
         }
     }

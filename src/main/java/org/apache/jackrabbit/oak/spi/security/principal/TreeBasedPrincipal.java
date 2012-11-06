@@ -16,39 +16,25 @@
  */
 package org.apache.jackrabbit.oak.spi.security.principal;
 
-import java.security.Principal;
-
 import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
-import org.apache.jackrabbit.api.security.principal.JackrabbitPrincipal;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.PathMapper;
+import org.apache.jackrabbit.oak.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 
 /**
  * TreeBasedPrincipal...
  */
-public class TreeBasedPrincipal implements ItemBasedPrincipal {
+public class TreeBasedPrincipal extends PrincipalImpl implements ItemBasedPrincipal {
 
-    /**
-     * logger instance
-     */
-    private static final Logger log = LoggerFactory.getLogger(TreeBasedPrincipal.class);
-
-    private final String principalName;
     private final String path;
     private final PathMapper pathMapper;
 
     public TreeBasedPrincipal(Tree tree, PathMapper pathMapper) {
-        PropertyState prop = tree.getProperty(UserConstants.REP_PRINCIPAL_NAME);
-        if (prop == null) {
-            throw new IllegalArgumentException("Tree doesn't have rep:principalName property");
-        }
-        this.principalName = prop.getValue(STRING);
+        super(getPrincipalName(tree));
         this.pathMapper = pathMapper;
         this.path = tree.getPath();
     }
@@ -58,7 +44,7 @@ public class TreeBasedPrincipal implements ItemBasedPrincipal {
     }
 
     public TreeBasedPrincipal(String principalName, String oakPath, PathMapper pathMapper) {
-        this.principalName = principalName;
+        super(principalName);
         this.pathMapper = pathMapper;
         this.path = oakPath;
     }
@@ -73,44 +59,12 @@ public class TreeBasedPrincipal implements ItemBasedPrincipal {
         return pathMapper.getJcrPath(path);
     }
 
-    //----------------------------------------------------------< Principal >---
-    @Override
-    public String getName() {
-        return principalName;
-    }
-
-    //-------------------------------------------------------------< Object >---
-    /**
-     * Two principals are equal, if their names are.
-     * @see Object#equals(Object)
-     */
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj) {
-            return true;
+    //--------------------------------------------------------------------------
+    private static String getPrincipalName(Tree tree) {
+        PropertyState prop = tree.getProperty(UserConstants.REP_PRINCIPAL_NAME);
+        if (prop == null) {
+            throw new IllegalArgumentException("Tree doesn't have rep:principalName property");
         }
-        if (obj instanceof JackrabbitPrincipal) {
-            return principalName.equals(((Principal) obj).getName());
-        }
-        return false;
-    }
-
-    /**
-     * @return the hash code of the principals name.
-     * @see Object#hashCode()
-     */
-    @Override
-    public int hashCode() {
-        return principalName.hashCode();
-    }
-
-    /**
-     * @see Object#toString()
-     */
-    @Override
-    public String toString() {
-        StringBuilder sb = new StringBuilder();
-        sb.append(getClass().getName()).append(':').append(principalName);
-        return sb.toString();
+        return prop.getValue(STRING);
     }
 }

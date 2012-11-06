@@ -60,13 +60,8 @@ public class PrincipalProviderImpl implements PrincipalProvider {
 
     //--------------------------------------------------< PrincipalProvider >---
     @Override
-    public Principal getPrincipal(final String principalName) {
-        Authorizable authorizable = getAuthorizable(new Principal() {
-            @Override
-            public String getName() {
-                return principalName;
-            }
-        });
+    public Principal getPrincipal(String principalName) {
+        Authorizable authorizable = getAuthorizable(new PrincipalImpl(principalName));
         if (authorizable != null) {
             try {
                 return authorizable.getPrincipal();
