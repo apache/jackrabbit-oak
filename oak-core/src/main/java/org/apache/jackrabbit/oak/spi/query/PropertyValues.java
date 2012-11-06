@@ -36,6 +36,7 @@ import org.apache.jackrabbit.oak.plugins.memory.DecimalPropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.DoublePropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.GenericPropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.LongPropertyState;
+import org.apache.jackrabbit.oak.plugins.memory.MultiGenericPropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.MultiStringPropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.StringPropertyState;
 
@@ -104,6 +105,11 @@ public final class PropertyValues {
     @Nonnull
     public static PropertyValue newName(String value) {
         return new PropertyStateValue(GenericPropertyState.nameProperty("", value));
+    }
+
+    @Nonnull
+    public static PropertyValue newName(Iterable<String> value) {
+        return new PropertyStateValue(MultiGenericPropertyState.nameProperty("", value));
     }
 
     @Nonnull

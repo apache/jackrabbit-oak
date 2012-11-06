@@ -19,26 +19,20 @@ package org.apache.jackrabbit.oak.plugins.index.property;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.query.index.IndexRowImpl;
-import org.apache.jackrabbit.oak.query.index.TraversingCursor;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
+import org.apache.jackrabbit.oak.spi.query.Cursors;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
-import org.apache.jackrabbit.oak.spi.query.IndexRow;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import com.google.common.base.Charsets;
 import com.google.common.collect.Sets;
-
-import static org.apache.jackrabbit.oak.commons.PathUtils.isAbsolute;
 
 /**
  * Provides a QueryIndex that does lookups against a property index
@@ -113,8 +107,16 @@ public class PropertyIndex implements QueryIndex {
 
     @Override
     public double getCost(Filter filter, NodeState root) {
-        // TODO: proper cost calculation
-        return 1.0;
+        PropertyIndexLookup lookup = new PropertyIndexLookup(root);
+        for (PropertyRestriction pr : filter.getPropertyRestrictions()) {
+            if (pr.firstIncluding && pr.lastIncluding
+                    && pr.first.equals(pr.last) // TODO: range queries
+                    && lookup.isIndexed(pr.propertyName, "/")) { // TODO: path
+                return lookup.getCost(pr.propertyName, pr.first);
+            }
+        }
+        // not an appropriate index
+        return Double.MAX_VALUE;
     }
 
     @Override
@@ -136,9 +138,9 @@ public class PropertyIndex implements QueryIndex {
         }
 
         if (paths != null) {
-            return new PathCursor(paths);
+            return Cursors.newPathCursor(paths);
         } else {
-            return new TraversingCursor("?", filter, root);
+            return Cursors.newTraversingCursor("?", filter, root);
         }
     }
 
@@ -146,34 +148,4 @@ public class PropertyIndex implements QueryIndex {
     public String getPlan(Filter filter, NodeState root) {
         return "oak:index"; // TODO: better plans
     }
-
-    private static class PathCursor implements Cursor {
-
-        private final Iterator<String> iterator;
-
-        private String path;
-
-        public PathCursor(Collection<String> paths) {
-            this.iterator = paths.iterator();
-        }
-
-        @Override
-        public boolean next() {
-            if (iterator.hasNext()) {
-                path = iterator.next();
-                return true;
-            } else {
-                path = null;
-                return false;
-            }
-        }
-
-        @Override
-        public IndexRow currentRow() {
-            // TODO support jcr:score and possibly rep:exceprt
-            return new IndexRowImpl(isAbsolute(path) ? path : "/" + path);
-        }
-
-    }
-
 }

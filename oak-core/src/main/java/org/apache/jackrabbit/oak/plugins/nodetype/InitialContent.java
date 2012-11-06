@@ -18,14 +18,18 @@ package org.apache.jackrabbit.oak.plugins.nodetype;
 
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Service;
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.core.RootImpl;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
+
+import com.google.common.collect.ImmutableList;
 
 /**
  * {@code InitialContent} implements a {@link RepositoryInitializer} and
@@ -96,11 +100,14 @@ public class InitialContent implements RepositoryInitializer {
                 .setProperty("propertyNames", "jcr:uuid")
                 .setProperty("reindex", true)
                 .setProperty("unique", true);
-            index.child("primaryType")
+            index.child("nodetype")
                 .setProperty("jcr:primaryType", "oak:queryIndexDefinition", Type.NAME)
                 .setProperty("type", "property")
                 .setProperty("reindex", true)
-                .setProperty("propertyNames", "jcr:primaryType");
+                .setProperty(PropertyStates.createProperty(
+                        "propertyNames",
+                        ImmutableList.of(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.JCR_MIXINTYPES),
+                        Type.STRINGS));
             // FIXME: user-mgt related unique properties (rep:authorizableId, rep:principalName) are implementation detail and not generic for repo
             // FIXME OAK-396: rep:principalName only needs to be unique if defined with user/group nodes -> add defining nt-info to uniqueness constraint otherwise ac-editing will fail.
             index.child("authorizableId")
