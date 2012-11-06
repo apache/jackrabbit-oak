@@ -209,6 +209,9 @@ public class MemoryNodeBuilder implements NodeBuilder {
                     parent.writeState.nodes.put(name, writeState);
                 }
             }
+        } else if (parent != null) {
+            // make sure that all revision numbers up to the root gets updated
+            parent.write(newRevision);
         }
         revision = newRevision;
         return writeState;
@@ -266,7 +269,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
         if (this == root) {
             baseState = checkNotNull(newBase);
             writeState = new MutableNodeState(baseState);
-            revision += 2;  // Make sure we are ahead of the revisions of all other builders root at this builder
+            revision++;
         } else {
             throw new IllegalStateException("Cannot reset a non-root builder");
         }
