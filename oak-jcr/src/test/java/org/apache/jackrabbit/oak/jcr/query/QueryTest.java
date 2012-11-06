@@ -21,7 +21,13 @@ package org.apache.jackrabbit.oak.jcr.query;
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertTrue;
 import static org.junit.Assert.assertFalse;
+
+import java.io.ByteArrayInputStream;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.NoSuchElementException;
+import java.util.Set;
+
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
 import javax.jcr.RepositoryException;
@@ -32,6 +38,9 @@ import javax.jcr.query.QueryManager;
 import javax.jcr.query.QueryResult;
 import javax.jcr.query.Row;
 import javax.jcr.query.RowIterator;
+
+import org.apache.jackrabbit.commons.JcrUtils;
+import org.apache.jackrabbit.commons.iterator.RowIterable;
 import org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest;
 import org.junit.Test;
 
@@ -196,4 +205,24 @@ public class QueryTest extends AbstractRepositoryTest {
         }
     }
 
+    @Test
+    public void nodeTypeConstraint() throws Exception {
+        Session session = getAdminSession();
+        Node root = session.getRootNode();
+        Node folder1 = root.addNode("folder1", "nt:folder");
+        Node folder2 = root.addNode("folder2", "nt:folder");
+        JcrUtils.putFile(folder1, "file", "text/plain",
+                new ByteArrayInputStream("foo bar".getBytes("UTF-8")));
+        folder2.addNode("folder3", "nt:folder");
+        session.save();
+
+        QueryManager qm = session.getWorkspace().getQueryManager();
+        Query q = qm.createQuery("//element(*, nt:folder)", Query.XPATH);
+        Set<String> paths = new HashSet<String>();
+        for (Row r : new RowIterable(q.execute().getRows())) {
+            paths.add(r.getPath());
+        }
+        assertEquals(new HashSet<String>(Arrays.asList("/folder1", "/folder2", "/folder2/folder3")),
+                paths);
+    }
 }
