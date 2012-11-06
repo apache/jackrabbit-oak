@@ -125,7 +125,7 @@ public class QueryEngineImpl {
         for (QueryIndex index : getIndexes()) {
             double cost = index.getCost(filter, root);
             if (LOG.isDebugEnabled()) {
-                LOG.debug("cost for " + index + " is " + cost);
+                LOG.debug("cost for " + index.getIndexName() + " is " + cost);
             }
             if (cost < bestCost) {
                 bestCost = cost;

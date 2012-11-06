@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.spi.query;
 
 import java.util.Collection;
 
+import javax.annotation.CheckForNull;
 import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
@@ -65,6 +66,10 @@ public interface Filter {
      */
     String getPath();
 
+    /**
+     * @return the node type restriction or <code>null</code> if none is set.
+     */
+    @CheckForNull
     String getNodeType();
 
     /**

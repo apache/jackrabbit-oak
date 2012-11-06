@@ -158,6 +158,23 @@ public class PropertyIndexLookup {
         return paths;
     }
 
+    public double getCost(String name, PropertyValue value) {
+        double cost = 0.0;
+        NodeState state = getIndexDefinitionNode(name);
+        if (state != null && state.getChildNode(":index") != null) {
+            state = state.getChildNode(":index");
+            for (String p : PropertyIndex.encode(value)) {
+                PropertyState property = state.getProperty(p);
+                if (property != null) {
+                    cost += property.count();
+                }
+            }
+        } else {
+            cost = Double.MAX_VALUE;
+        }
+        return cost;
+    }
+
     @Nullable
     private NodeState getIndexDefinitionNode(String name) {
         NodeState state = root.getChildNode(INDEX_DEFINITIONS_NAME);
@@ -175,5 +192,4 @@ public class PropertyIndexLookup {
         }
         return null;
     }
-
 }

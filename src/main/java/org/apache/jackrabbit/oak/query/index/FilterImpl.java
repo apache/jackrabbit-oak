@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map.Entry;
 
+import javax.annotation.CheckForNull;
 import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
@@ -98,6 +99,7 @@ public class FilterImpl implements Filter {
     }
 
     @Override
+    @CheckForNull
     public String getNodeType() {
         return nodeType;
     }

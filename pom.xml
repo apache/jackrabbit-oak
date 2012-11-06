@@ -50,6 +50,7 @@
                 org.apache.jackrabbit.oak.plugins.identifier,
                 org.apache.jackrabbit.oak.plugins.index,
                 org.apache.jackrabbit.oak.plugins.index.lucene,
+                org.apache.jackrabbit.oak.plugins.index.nodetype,
                 org.apache.jackrabbit.oak.plugins.index.property,
                 org.apache.jackrabbit.oak.plugins.memory,
                 org.apache.jackrabbit.oak.plugins.name,
