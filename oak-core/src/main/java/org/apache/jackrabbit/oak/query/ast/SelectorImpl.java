@@ -164,6 +164,7 @@ public class SelectorImpl extends SourceImpl {
             }
             return true;
         }
+        cursor = null;
         return false;
     }
 
