@@ -252,29 +252,21 @@ public final class PropertyStates {
     public static <T> PropertyState createProperty(String name, T value) {
         if (value instanceof String) {
             return StringPropertyState.stringProperty(name, (String) value);
-        }
-        else if (value instanceof Blob) {
-            return  BinaryPropertyState.binaryProperty(name, (Blob) value);
-        }
-        else if (value instanceof byte[]) {
+        } else if (value instanceof Blob) {
+            return BinaryPropertyState.binaryProperty(name, (Blob) value);
+        } else if (value instanceof byte[]) {
             return BinaryPropertyState.binaryProperty(name, (byte[]) value);
-        }
-        else if (value instanceof Long) {
+        } else if (value instanceof Long) {
             return LongPropertyState.createLongProperty(name, (Long) value);
-        }
-        else if (value instanceof Integer) {
+        } else if (value instanceof Integer) {
             return LongPropertyState.createLongProperty(name, (long) (Integer) value);
-        }
-        else if (value instanceof Double) {
+        } else if (value instanceof Double) {
             return DoublePropertyState.doubleProperty(name, (Double) value);
-        }
-        else if (value instanceof Boolean) {
+        } else if (value instanceof Boolean) {
             return BooleanPropertyState.booleanProperty(name, (Boolean) value);
-        }
-        else if (value instanceof BigDecimal) {
+        } else if (value instanceof BigDecimal) {
             return DecimalPropertyState.decimalProperty(name, (BigDecimal) value);
-        }
-        else {
+        } else {
             throw new IllegalArgumentException("Can't infer type of value of class '" + value.getClass() + '\'');
         }
     }
