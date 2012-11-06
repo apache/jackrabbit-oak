@@ -39,8 +39,11 @@ public class DescendantNodeImpl extends ConstraintImpl {
     @Override
     public boolean evaluate() {
         String p = selector.currentPath();
+        if (p == null) {
+            return false;
+        }
         String path = getAbsolutePath(ancestorPath);
-        if (p == null || path == null) {
+        if (path == null) {
             return false;
         }
         return PathUtils.isAncestor(path, p);
