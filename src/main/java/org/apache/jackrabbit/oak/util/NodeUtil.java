@@ -114,6 +114,9 @@ public class NodeUtil {
         return (child != null) ? child : addChild(name, primaryTypeName);
     }
 
+    /**
+     * FIXME: workaround for OAK-426
+     */
     @Nonnull
     public NodeUtil getOrAddTree(String relativePath, String primaryTypeName) {
         if (relativePath.indexOf('/') == -1) {
