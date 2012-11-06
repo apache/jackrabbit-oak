@@ -121,6 +121,8 @@ public class Cursors {
 
         private long readCount;
 
+        private boolean closed;
+
         public TraversingCursor(String statement, Filter filter, NodeState root) {
             this.statement = statement;
             this.filter = filter;
@@ -170,6 +172,9 @@ public class Cursors {
 
         @Override
         public IndexRow currentRow() {
+            if (closed) {
+                throw new IllegalStateException("This cursor is closed");
+            }
             return new IndexRowImpl(currentPath);
         }
 
@@ -204,6 +209,7 @@ public class Cursors {
                 }
             }
             currentPath = null;
+            closed = true;
             return false;
         }
 
