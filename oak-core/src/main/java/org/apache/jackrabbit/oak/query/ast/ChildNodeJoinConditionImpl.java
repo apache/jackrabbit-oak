@@ -64,13 +64,17 @@ public class ChildNodeJoinConditionImpl extends JoinConditionImpl {
 
     @Override
     public void restrict(FilterImpl f) {
-        String p = parentSelector.currentPath();
-        String c = childSelector.currentPath();
-        if (f.getSelector() == parentSelector && c != null) {
-            f.restrictPath(PathUtils.getParentPath(c), Filter.PathRestriction.EXACT);
+        if (f.getSelector() == parentSelector) {
+            String c = childSelector.currentPath();
+            if (c != null) {
+                f.restrictPath(PathUtils.getParentPath(c), Filter.PathRestriction.EXACT);
+            }
         }
-        if (f.getSelector() == childSelector && p != null) {
-            f.restrictPath(p, Filter.PathRestriction.DIRECT_CHILDREN);
+        if (f.getSelector() == childSelector) {
+            String p = parentSelector.currentPath();
+            if (p != null) {
+                f.restrictPath(p, Filter.PathRestriction.DIRECT_CHILDREN);
+            }
         }
     }
 
