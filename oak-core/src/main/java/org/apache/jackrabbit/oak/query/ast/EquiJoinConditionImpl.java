@@ -95,18 +95,22 @@ public class EquiJoinConditionImpl extends JoinConditionImpl {
 
     @Override
     public void restrict(FilterImpl f) {
-        PropertyValue p1 = selector1.currentProperty(property1Name);
-        PropertyValue p2 = selector2.currentProperty(property2Name);
-        if (f.getSelector() == selector1 && p2 != null) {
-            if (!p2.isArray()) {
-                // TODO support join on multi-valued properties
-                f.restrictProperty(property1Name, Operator.EQUAL, p2);
+        if (f.getSelector() == selector1) {
+            PropertyValue p2 = selector2.currentProperty(property2Name);
+            if (p2 != null) {
+                if (!p2.isArray()) {
+                    // TODO support join on multi-valued properties
+                    f.restrictProperty(property1Name, Operator.EQUAL, p2);
+                }
             }
         }
-        if (f.getSelector() == selector2 && p1 != null) {
-            if (!p1.isArray()) {
-                // TODO support join on multi-valued properties
-                f.restrictProperty(property2Name, Operator.EQUAL, p1);
+        if (f.getSelector() == selector2) {
+            PropertyValue p1 = selector1.currentProperty(property1Name);
+            if (p1 != null) {
+                if (!p1.isArray()) {
+                    // TODO support join on multi-valued properties
+                    f.restrictProperty(property2Name, Operator.EQUAL, p1);
+                }
             }
         }
     }
