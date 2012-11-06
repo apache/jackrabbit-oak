@@ -614,7 +614,7 @@ public class TreeImpl implements Tree {
         return !isDirty[0];
     }
 
-    //------------------------------------------------------------< TreeLocation >---
+    //-------------------------------------------------------< TreeLocation >---
 
     public class NodeLocation implements TreeLocation {
         private final TreeImpl tree;
