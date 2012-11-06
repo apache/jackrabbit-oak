@@ -182,14 +182,14 @@ class MembershipProvider extends AuthorizableBaseProvider {
     }
 
     boolean addMember(Tree groupTree, Tree newMemberTree) {
-        return addMember(groupTree, getContentID(newMemberTree));
+        return addMember(groupTree, newMemberTree.getName(), getContentID(newMemberTree));
     }
 
-    boolean addMember(Tree groupTree, String memberContentId) {
+    boolean addMember(Tree groupTree, String treeName, String memberContentId) {
         if (useMemberNode(groupTree)) {
             NodeUtil groupNode = new NodeUtil(groupTree);
             NodeUtil membersNode = groupNode.getOrAddChild(REP_MEMBERS, NT_REP_MEMBERS);
-            // TODO: add implementation
+            // TODO: add implementation that allows to index group members
             throw new UnsupportedOperationException("not implemented: addMember with member-node hierarchy");
         } else {
             PropertyState property = groupTree.getProperty(REP_MEMBERS);

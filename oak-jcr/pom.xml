@@ -243,10 +243,11 @@
       org.apache.jackrabbit.test.api.observation.LockingTest#testAddLockToNode
       org.apache.jackrabbit.test.api.observation.LockingTest#testRemoveLockFromNode
       org.apache.jackrabbit.oak.jcr.security.user.EveryoneGroupTest#testMembers                    <!-- findAuthorizables not yet implemented -->
-      org.apache.jackrabbit.oak.jcr.security.user.UserManagerTest#testFindAuthorizableByAddedProperty    <!-- OAK-343 -->
-      org.apache.jackrabbit.oak.jcr.security.user.UserManagerTest#testFindAuthorizableByRelativePath     <!-- OAK-343 -->
-      org.apache.jackrabbit.oak.jcr.security.user.UserManagerTest#testFindUser                     <!-- findAuthorizables not yet implemented -->
-      org.apache.jackrabbit.oak.jcr.security.user.UserManagerTest#testFindGroup                    <!-- findAuthorizables not yet implemented -->
+      org.apache.jackrabbit.oak.jcr.security.user.FindAuthorizablesTest#testFindAuthorizableByAddedProperty    <!-- OAK-343 -->
+      org.apache.jackrabbit.oak.jcr.security.user.FindAuthorizablesTest#testFindAuthorizableByRelativePath     <!-- OAK-343 -->
+      org.apache.jackrabbit.oak.jcr.security.user.FindAuthorizablesTest#testFindUser                     <!-- findAuthorizables not yet implemented -->
+      org.apache.jackrabbit.oak.jcr.security.user.FindAuthorizablesTest#testFindGroup                    <!-- findAuthorizables not yet implemented -->
+      org.apache.jackrabbit.oak.jcr.security.user.FindAuthorizablesTest#testFindAuthorizable             <!-- findAuthorizables not yet implemented -->
       org.apache.jackrabbit.oak.jcr.security.user.UserQueryTest                                          <!-- OAK-343 -->
       org.apache.jackrabbit.oak.jcr.security.user.UserManagerTest#testGetNewAuthorizable                 <!-- OAK-343 -->
       org.apache.jackrabbit.oak.jcr.security.user.UserManagerTest#testCreateGroupWithExistingPrincipal2  <!-- OAK-343 -->
@@ -257,7 +258,7 @@
       org.apache.jackrabbit.oak.jcr.security.user.GroupTest#testInheritedMembers                         <!-- OAK-343 -->
       org.apache.jackrabbit.oak.jcr.security.user.GroupTest#testCyclicGroups                             <!-- OAK-343 -->
       org.apache.jackrabbit.oak.jcr.security.user.AuthorizableTest#testRemoveListedAuthorizable          <!-- OAK-343 -->
-      org.apache.jackrabbit.oak.jcr.security.user.AuthorizableTest#testSetPropertyInvalidRelativePath    <!-- OAK-369 -->
+      org.apache.jackrabbit.oak.jcr.security.user.AuthorizablePropertyTest#testSetPropertyInvalidRelativePath    <!-- OAK-369 -->
       org.apache.jackrabbit.oak.jcr.security.principal.PrincipalManagerTest#testGetPrincipals            <!-- principal search missing -->
       org.apache.jackrabbit.oak.jcr.security.principal.PrincipalManagerTest#testGetGroupPrincipals       <!-- principal search missing -->
       org.apache.jackrabbit.oak.jcr.security.principal.PrincipalManagerTest#testGetAllPrincipals         <!-- principal search missing -->

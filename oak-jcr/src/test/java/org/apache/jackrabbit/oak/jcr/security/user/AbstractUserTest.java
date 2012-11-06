@@ -30,6 +30,7 @@ import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.oak.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.test.AbstractJCRTest;
 import org.apache.jackrabbit.test.NotExecutableException;
 import org.junit.After;
@@ -113,14 +114,8 @@ public abstract class AbstractUserTest extends AbstractJCRTest {
         return getTestPrincipal(pn);
     }
 
-    protected Principal getTestPrincipal(final String name) throws RepositoryException {
-        return new Principal() {
-
-            @Override
-            public String getName() {
-                return name;
-            }
-        };
+    protected Principal getTestPrincipal(String name) throws RepositoryException {
+        return new PrincipalImpl(name);
     }
 
     protected User getTestUser(Session session) throws NotExecutableException, RepositoryException {

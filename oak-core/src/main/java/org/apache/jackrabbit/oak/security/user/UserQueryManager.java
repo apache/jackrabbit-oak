@@ -17,9 +17,7 @@
 package org.apache.jackrabbit.oak.security.user;
 
 import java.text.ParseException;
-import java.util.Collections;
 import java.util.Iterator;
-import java.util.Map;
 import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 
@@ -28,14 +26,12 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Query;
-import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.SessionQueryEngine;
 import org.apache.jackrabbit.oak.security.user.query.XPathQueryBuilder;
 import org.apache.jackrabbit.oak.security.user.query.XPathQueryEvaluator;
-import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.util.ISO9075;
@@ -110,11 +106,11 @@ class UserQueryManager {
     @Nonnull
     Iterator<Authorizable> findAuthorizables(String relPath, String value,
                                              boolean exact, AuthorizableType type) throws RepositoryException {
+        // TODO: replace XPATH
         String statement = buildXPathStatement(relPath, value, exact, type);
         SessionQueryEngine queryEngine = root.getQueryEngine();
         try {
-            Map<String,PropertyValue> bindings = (value != null) ? Collections.singletonMap("propValue", PropertyValues.newString(value)) : null;
-            Result result = queryEngine.executeQuery(statement, javax.jcr.query.Query.XPATH, Long.MAX_VALUE, 0, bindings, userManager.getNamePathMapper());
+            Result result = queryEngine.executeQuery(statement, javax.jcr.query.Query.XPATH, Long.MAX_VALUE, 0, null, userManager.getNamePathMapper());
             return Iterators.filter(Iterators.transform(result.getRows().iterator(), new ResultRowToAuthorizable()), Predicates.<Object>notNull());
         } catch (ParseException e) {
             throw new RepositoryException(e);

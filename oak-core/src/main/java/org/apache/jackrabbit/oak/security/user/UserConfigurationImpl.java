@@ -29,7 +29,8 @@ import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
-import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableAction;
+import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableActionProvider;
+import org.apache.jackrabbit.oak.spi.security.user.action.DefaultAuthorizableActionProvider;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 
 /**
@@ -68,9 +69,9 @@ public class UserConfigurationImpl extends SecurityConfiguration.Default impleme
     //--------------------------------------------------< UserConfiguration >---
     @Nonnull
     @Override
-    public List<AuthorizableAction> getAuthorizableActions() {
+    public AuthorizableActionProvider getAuthorizableActionProvider() {
         // TODO: create authorizable actions from configuration
-        return Collections.emptyList();
+        return DefaultAuthorizableActionProvider.INSTANCE;
     }
 
     @Override
