@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.commons;
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;
-
 import javax.annotation.Nonnull;
 
 /**
@@ -49,6 +48,22 @@ public class PathUtils {
 
     private static boolean denotesRootPath(String path) {
         return "/".equals(path);
+    }
+
+    /**
+     * @param element The path segment to check for being the current element
+     * @return {@code true} if the specified element equals "."; {@code false} otherwise.
+     */
+    public static boolean denotesCurrent(String element) {
+        return ".".equals(element);
+    }
+
+    /**
+     * @param element The path segment to check for being the parent element
+     * @return {@code true} if the specified element equals ".."; {@code false} otherwise.
+     */
+    public static boolean denotesParent(String element) {
+        return "..".equals(element);
     }
 
     /**

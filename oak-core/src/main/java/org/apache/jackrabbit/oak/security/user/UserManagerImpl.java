@@ -37,6 +37,7 @@ import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
@@ -82,7 +83,7 @@ public class UserManagerImpl implements UserManager {
         this.config = uc.getConfigurationParameters();
         this.userProvider = new UserProvider(root, config);
         this.membershipProvider = new MembershipProvider(root, config);
-        this.authorizableActions = uc.getAuthorizableActions();
+        this.authorizableActions = uc.getAuthorizableActionProvider().getAuthorizableActions();
     }
 
     //--------------------------------------------------------< UserManager >---
@@ -131,14 +132,9 @@ public class UserManagerImpl implements UserManager {
     }
 
     @Override
-    public User createUser(final String userID, String password) throws RepositoryException {
-        Principal principal = new Principal() {
-            @Override
-            public String getName() {
-                return userID;
-            }
-        };
-        return createUser(userID, password, principal, null);
+    public User createUser(final String userId, String password) throws RepositoryException {
+        Principal principal = new PrincipalImpl(userId);
+        return createUser(userId, password, principal, null);
     }
 
     @Override
@@ -164,14 +160,9 @@ public class UserManagerImpl implements UserManager {
     }
 
     @Override
-    public Group createGroup(final String groupID) throws RepositoryException {
-        Principal principal = new Principal() {
-            @Override
-            public String getName() {
-                return groupID;
-            }
-        };
-        return createGroup(groupID, principal, null);
+    public Group createGroup(String groupId) throws RepositoryException {
+        Principal principal = new PrincipalImpl(groupId);
+        return createGroup(groupId, principal, null);
     }
 
     @Override

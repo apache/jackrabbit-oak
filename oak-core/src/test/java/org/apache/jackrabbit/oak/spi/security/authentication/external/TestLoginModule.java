@@ -26,6 +26,8 @@ import javax.jcr.Credentials;
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.login.LoginException;
 
+import org.apache.jackrabbit.oak.security.principal.PrincipalImpl;
+
 /**
  * ExternalLoginModuleImpl... TODO
  */
@@ -100,12 +102,7 @@ public class TestLoginModule extends ExternalLoginModule {
 
         @Override
         public Principal getPrincipal() {
-            return new Principal() {
-                @Override
-                public String getName() {
-                    return userId;
-                }
-            };
+            return new PrincipalImpl(userId);
         }
 
         @Override

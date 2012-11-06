@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.security.user;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import javax.annotation.Nonnull;
@@ -28,6 +29,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.util.LocationUtil;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceConstants;
 import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
@@ -58,8 +60,10 @@ class OakAuthorizableProperties implements AuthorizableProperties {
 
     @Override
     public Iterator<String> getNames(String relPath) throws RepositoryException {
+        checkRelativePath(relPath);
+
         Tree tree = getTree();
-        Tree n = tree.getLocation().getChild(relPath).getTree();
+        Tree n = getLocation(tree, relPath).getTree();
         if (n != null && Text.isDescendantOrEqual(tree.getPath(), n.getPath())) {
             List<String> l = new ArrayList<String>();
             for (PropertyState property : n.getProperties()) {
@@ -78,8 +82,10 @@ class OakAuthorizableProperties implements AuthorizableProperties {
      */
     @Override
     public boolean hasProperty(String relPath) throws RepositoryException {
+        checkRelativePath(relPath);
+
         Tree tree = getTree();
-        TreeLocation propertyLocation = getPropertyLocation(tree, relPath);
+        TreeLocation propertyLocation = getLocation(tree, relPath);
         return propertyLocation.getProperty() != null && isAuthorizableProperty(tree, propertyLocation, true);
     }
 
@@ -88,9 +94,11 @@ class OakAuthorizableProperties implements AuthorizableProperties {
      */
     @Override
     public Value[] getProperty(String relPath) throws RepositoryException {
+        checkRelativePath(relPath);
+
         Tree tree = getTree();
         Value[] values = null;
-        TreeLocation propertyLocation = getPropertyLocation(tree, relPath);
+        TreeLocation propertyLocation = getLocation(tree, relPath);
         PropertyState property = propertyLocation.getProperty();
         if (property != null) {
             if (isAuthorizableProperty(tree, propertyLocation, true)) {
@@ -110,9 +118,14 @@ class OakAuthorizableProperties implements AuthorizableProperties {
      */
     @Override
     public void setProperty(String relPath, Value value) throws RepositoryException {
-        String name = Text.getName(relPath);
-        String intermediate = (relPath.equals(name)) ? null : Text.getRelativeParent(relPath, 1);
+        checkRelativePath(relPath);
 
+        String name = Text.getName(relPath);
+        if (!isAuthorizableProperty(name)) {
+            throw new RepositoryException("Attempt to set an protected property " + name);
+        }
+
+        String intermediate = (relPath.equals(name)) ? null : Text.getRelativeParent(relPath, 1);
         Tree n = getOrCreateTargetTree(intermediate);
         // check if the property has already been created as multi valued
         // property before -> in this case remove in order to avoid
@@ -132,9 +145,14 @@ class OakAuthorizableProperties implements AuthorizableProperties {
      */
     @Override
     public void setProperty(String relPath, Value[] values) throws RepositoryException {
-        String name = Text.getName(relPath);
-        String intermediate = (relPath.equals(name)) ? null : Text.getRelativeParent(relPath, 1);
+        checkRelativePath(relPath);
 
+        String name = Text.getName(relPath);
+        if (!isAuthorizableProperty(name)) {
+            throw new RepositoryException("Attempt to set an protected property " + name);
+        }
+
+        String intermediate = (relPath.equals(name)) ? null : Text.getRelativeParent(relPath, 1);
         Tree n = getOrCreateTargetTree(intermediate);
         // check if the property has already been created as single valued
         // property before -> in this case remove in order to avoid
@@ -145,7 +163,7 @@ class OakAuthorizableProperties implements AuthorizableProperties {
                 n.removeProperty(name);
             }
         }
-        PropertyState propertyState = PropertyStates.createProperty(name, values);
+        PropertyState propertyState = PropertyStates.createProperty(name, Arrays.asList(values));
         n.setProperty(propertyState);
     }
 
@@ -154,6 +172,8 @@ class OakAuthorizableProperties implements AuthorizableProperties {
      */
     @Override
     public boolean removeProperty(String relPath) throws RepositoryException {
+        checkRelativePath(relPath);
+
         Tree node = getTree();
         TreeLocation propertyLocation = node.getLocation().getChild(relPath);
         PropertyState property = propertyLocation.getProperty();
@@ -170,10 +190,6 @@ class OakAuthorizableProperties implements AuthorizableProperties {
 
     private Tree getTree() {
         return userProvider.getAuthorizable(id);
-    }
-
-    private String getJcrName(String oakName) {
-        return namePathMapper.getJcrName(oakName);
     }
 
     /**
@@ -204,7 +220,11 @@ class OakAuthorizableProperties implements AuthorizableProperties {
     private boolean isAuthorizableProperty(Tree authorizableTree, PropertyState property) throws RepositoryException {
         // FIXME: add proper check for protection and declaring nt of the
         // FIXME: property using nt functionality provided by nt-plugins
-        String prefix = Text.getNamespacePrefix(property.getName());
+        return isAuthorizableProperty(property.getName());
+    }
+
+    private boolean isAuthorizableProperty(String propertyName) {
+        String prefix = Text.getNamespacePrefix(propertyName);
         return !NamespaceConstants.RESERVED_PREFIXES.contains(prefix);
     }
 
@@ -220,38 +240,39 @@ class OakAuthorizableProperties implements AuthorizableProperties {
      */
     @Nonnull
     private Tree getOrCreateTargetTree(String relPath) throws RepositoryException {
-        Tree n;
-        Tree node = getTree();
+        Tree targetTree;
+        Tree userTree = getTree();
         if (relPath != null) {
-            String userPath = node.getPath();
-            n = node.getLocation().getChild(relPath).getTree();
-            if (n != null) {
-                if (!Text.isDescendantOrEqual(userPath, n.getPath())) {
+            String userPath = userTree.getPath();
+            targetTree = getLocation(userTree, relPath).getTree();
+            if (targetTree != null) {
+                if (!Text.isDescendantOrEqual(userPath, targetTree.getPath())) {
                     throw new RepositoryException("Relative path " + relPath + " outside of scope of " + this);
                 }
             } else {
-                n = node;
-                for (String segment : Text.explode(relPath, '/')) {
-                    if (n.hasChild(segment)) {
-                        n = n.getChild(segment);
-                    } else {
-                        if (Text.isDescendantOrEqual(userPath, n.getPath())) {
-                            NodeUtil util = new NodeUtil(n, namePathMapper);
-                            n = util.addChild(segment, JcrConstants.NT_UNSTRUCTURED).getTree();
-                        } else {
-                            throw new RepositoryException("Relative path " + relPath + " outside of scope of " + this);
-                        }
-                    }
+                targetTree = new NodeUtil(userTree).getOrAddTree(relPath, JcrConstants.NT_UNSTRUCTURED).getTree();
+                if (!Text.isDescendantOrEqual(userPath, targetTree.getPath())) {
+                    throw new RepositoryException("Relative path " + relPath + " outside of scope of " + this);
                 }
             }
         } else {
-            n = node;
+            targetTree = userTree;
         }
-        return n;
+        return targetTree;
     }
 
     @Nonnull
-    private TreeLocation getPropertyLocation(Tree tree, String relativePath) {
-        return tree.getLocation().getChild(relativePath);
+    private TreeLocation getLocation(Tree tree, String relativePath) {
+        TreeLocation target = LocationUtil.getTreeLocation(tree.getLocation(), relativePath);
+        return target;
+    }
+
+    private static void checkRelativePath(String relativePath) throws RepositoryException {
+        if (relativePath == null) {
+            throw new RepositoryException("Relative path expected. Found null.");
+        }
+        if ('/' == relativePath.charAt(0)) {
+            throw new RepositoryException("Relative path expected. Found " + relativePath);
+        }
     }
 }

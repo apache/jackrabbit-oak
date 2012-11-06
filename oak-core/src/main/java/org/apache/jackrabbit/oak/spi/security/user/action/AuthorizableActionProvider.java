@@ -14,28 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.spi.security.user;
+package org.apache.jackrabbit.oak.spi.security.user.action;
 
-import javax.annotation.Nonnull;
-import javax.jcr.Session;
-
-import org.apache.jackrabbit.api.security.user.UserManager;
-import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
-import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableActionProvider;
+import java.util.List;
 
 /**
- * UserContext... TODO
+ * {@code AuthorizableActionProvider} is used to provide {@code AuthorizableAction}s
+ * for each instance of {@code UserManager}.
  */
-public interface UserConfiguration extends SecurityConfiguration {
+public interface AuthorizableActionProvider {
 
-    @Nonnull
-    AuthorizableActionProvider getAuthorizableActionProvider();
-
-    @Nonnull
-    UserManager getUserManager(Root root, NamePathMapper namePathMapper, Session session);
-
-    @Nonnull
-    UserManager getUserManager(Root root, NamePathMapper namePathMapper);
+    List<AuthorizableAction> getAuthorizableActions();
 }

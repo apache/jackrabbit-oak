@@ -30,6 +30,7 @@ import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalIteratorAdapter;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
@@ -72,12 +73,7 @@ class ImpersonationImpl implements Impersonation, UserConstants {
                 Principal p = principalProvider.getPrincipal(pName);
                 if (p == null) {
                     log.debug("Impersonator " + pName + " does not correspond to a known Principal.");
-                    p = new Principal() {
-                        @Override
-                        public String getName() {
-                            return pName;
-                        }
-                    };
+                    p = new PrincipalImpl(pName);
                 }
                 s.add(p);
 

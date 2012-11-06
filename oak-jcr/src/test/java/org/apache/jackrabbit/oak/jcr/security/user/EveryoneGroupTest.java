@@ -24,6 +24,7 @@ import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
+import org.apache.jackrabbit.oak.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.test.NotExecutableException;
 import org.junit.Test;
@@ -73,11 +74,7 @@ public class EveryoneGroupTest extends AbstractUserTest {
         java.security.acl.Group gr = (java.security.acl.Group) everyonePrincipal;
         assertFalse(gr.isMember(everyonePrincipal));
         assertTrue(gr.isMember(getTestUser(superuser).getPrincipal()));
-        assertTrue(gr.isMember(new Principal() {
-            public String getName() {
-                return "test";
-            }
-        }));
+        assertTrue(gr.isMember(new PrincipalImpl("test")));
     }
 
     @Test
