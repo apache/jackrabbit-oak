@@ -53,6 +53,7 @@ public interface PrivilegeConstants {
     String JCR_ALL = "jcr:all";
 
     String REP_PRIVILEGE_MANAGEMENT = "rep:privilegeManagement";
+    String REP_USER_MANAGEMENT = "rep:userManagement";
     String REP_WRITE = "rep:write";
     String REP_READ_NODES = "rep:readNodes";
     String REP_READ_PROPERTIES = "rep:readProperties";
@@ -67,7 +68,7 @@ public interface PrivilegeConstants {
             JCR_READ_ACCESS_CONTROL, JCR_MODIFY_ACCESS_CONTROL, JCR_NODE_TYPE_MANAGEMENT,
             JCR_VERSION_MANAGEMENT, JCR_LOCK_MANAGEMENT, JCR_LIFECYCLE_MANAGEMENT,
             JCR_RETENTION_MANAGEMENT, JCR_WORKSPACE_MANAGEMENT, JCR_NODE_TYPE_DEFINITION_MANAGEMENT,
-            JCR_NAMESPACE_MANAGEMENT, REP_PRIVILEGE_MANAGEMENT};
+            JCR_NAMESPACE_MANAGEMENT, REP_PRIVILEGE_MANAGEMENT, REP_USER_MANAGEMENT};
 
     String[] AGGR_PRIVILEGES = new String[] {
             JCR_READ, JCR_MODIFY_PROPERTIES, JCR_WRITE, REP_WRITE
