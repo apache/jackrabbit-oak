@@ -626,7 +626,7 @@ public class TreeImpl implements Tree {
         @Override
         public TreeLocation getParent() {
             return tree.parent == null
-                ? NullLocation.INSTANCE
+                ? TreeLocation.NULL
                 : new NodeLocation(tree.parent);
         }
 
@@ -642,7 +642,7 @@ public class TreeImpl implements Tree {
             for (String name : PathUtils.elements(parentPath)) {
                 child = child.internalGetChild(name);
                 if (child == null) {
-                    return NullLocation.INSTANCE;
+                    return TreeLocation.NULL;
                 }
             }
 
@@ -654,7 +654,7 @@ public class TreeImpl implements Tree {
             else {
                 child = child.internalGetChild(name);
                 return child == null
-                    ? NullLocation.INSTANCE
+                    ? TreeLocation.NULL
                     : new NodeLocation(child);
             }
         }
@@ -696,7 +696,7 @@ public class TreeImpl implements Tree {
 
         @Override
         public TreeLocation getChild(String relPath) {
-            return NullLocation.INSTANCE;
+            return TreeLocation.NULL;
         }
 
         @Override
@@ -737,43 +737,6 @@ public class TreeImpl implements Tree {
         public boolean remove() {
             parent.tree.removeProperty(name);
             return true;
-        }
-    }
-
-    public static class NullLocation implements TreeLocation {
-        public static final NullLocation INSTANCE = new NullLocation();
-
-        private NullLocation() {
-        }
-
-        @Override
-        public TreeLocation getParent() {
-            return this;
-        }
-
-        @Override
-        public TreeLocation getChild(String relPath) {
-            return this;
-        }
-
-        @Override
-        public String getPath() {
-            return null;
-        }
-
-        @Override
-        public Tree getTree() {
-            return null;
-        }
-
-        @Override
-        public PropertyState getProperty() {
-            return null;
-        }
-
-        @Override
-        public Status getStatus() {
-            return null;
         }
     }
 
