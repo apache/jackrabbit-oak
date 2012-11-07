@@ -210,10 +210,9 @@ class MergingNodeStateDiff implements NodeStateDiff {
         }
         PropertyState childOrder = target.getProperty(TreeImpl.OAK_CHILD_ORDER);
         if (childOrder != null) {
-            PropertyBuilder<String> builder = MemoryPropertyBuilder.create(
-                    Type.STRING, childOrder);
+            PropertyBuilder<String> builder = MemoryPropertyBuilder.copy(Type.STRING, childOrder);
             builder.addValue(name);
-            target.setProperty(builder.getPropertyState(true));
+            target.setProperty(builder.getPropertyState());
         }
         for (ChildNodeEntry entry : state.getChildNodeEntries()) {
             addChild(child, entry.getName(), entry.getNodeState());
@@ -224,15 +223,14 @@ class MergingNodeStateDiff implements NodeStateDiff {
         target.removeNode(name);
         PropertyState childOrder = target.getProperty(TreeImpl.OAK_CHILD_ORDER);
         if (childOrder != null) {
-            PropertyBuilder<String> builder = MemoryPropertyBuilder.create(
-                    Type.STRING, childOrder);
+            PropertyBuilder<String> builder = MemoryPropertyBuilder.copy(Type.STRING, childOrder);
             builder.removeValue(name);
-            target.setProperty(builder.getPropertyState(true));
+            target.setProperty(builder.getPropertyState());
         }
     }
 
     /**
-     * <code>ChildOrderConflictHandler</code> ignores conflicts on the
+     * {@code ChildOrderConflictHandler} ignores conflicts on the
      * {@link TreeImpl#OAK_CHILD_ORDER} property. All other conflicts are forwarded
      * to the wrapped handler.
      */

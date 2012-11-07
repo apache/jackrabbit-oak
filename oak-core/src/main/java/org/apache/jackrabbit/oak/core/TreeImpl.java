@@ -268,9 +268,9 @@ public class TreeImpl implements Tree {
             getNodeBuilder().child(name);
             if (hasOrderableChildren()) {
                 getNodeBuilder().setProperty(
-                        MemoryPropertyBuilder.create(Type.STRING, internalGetProperty(OAK_CHILD_ORDER))
+                        MemoryPropertyBuilder.copy(Type.STRING, internalGetProperty(OAK_CHILD_ORDER))
                                 .addValue(name)
-                                .getPropertyState(true));
+                                .getPropertyState());
             }
             root.updated();
         }
@@ -292,9 +292,9 @@ public class TreeImpl implements Tree {
             builder.removeNode(name);
             if (parent.hasOrderableChildren()) {
                 builder.setProperty(
-                        MemoryPropertyBuilder.create(Type.STRING, parent.internalGetProperty(OAK_CHILD_ORDER))
+                        MemoryPropertyBuilder.copy(Type.STRING, parent.internalGetProperty(OAK_CHILD_ORDER))
                                 .removeValue(name)
-                                .getPropertyState(true)
+                                .getPropertyState()
                 );
             }
             root.updated();
@@ -470,10 +470,10 @@ public class TreeImpl implements Tree {
         for (String name : getNodeBuilder().getChildNodeNames()) {
             names.add(name);
         }
-        PropertyBuilder<String> builder = MemoryPropertyBuilder.create(
+        PropertyBuilder<String> builder = MemoryPropertyBuilder.array(
                 Type.STRING, OAK_CHILD_ORDER);
         builder.setValues(names);
-        getNodeBuilder().setProperty(builder.getPropertyState(true));
+        getNodeBuilder().setProperty(builder.getPropertyState());
     }
 
     //------------------------------------------------------------< private >---

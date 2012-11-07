@@ -66,7 +66,7 @@ public interface PropertyBuilder<T> {
     int count();
 
     /**
-     * @return  {@code true} iff {@code count() != 1}
+     * @return  {@code true} this is a builder for an array property.
      */
     boolean isArray();
 
@@ -78,31 +78,18 @@ public interface PropertyBuilder<T> {
 
     /**
      * Returns an immutable property state that matches the current state of
-     * the builder. The {@code asArray} flag can be used to coerce a property
-     * state with a single value into a multi valued property state.
-     * Equivalent to {@code getPropertyState(false)}
+     * the builder.
      *
      * @return immutable property state
-     * @throws IllegalStateException  If the name of the property is not set
+     * @throws IllegalStateException  If the name of the property is not set or
+     * {@code !(isArray() || count() == 1)}.
      */
     @Nonnull
     PropertyState getPropertyState();
 
     /**
-     * Returns an immutable property state that matches the current state of
-     * the builder. The {@code asArray} flag can be used to coerce a property
-     * state with a single value into a multi valued property state.
-     *
-     * @param asArray  If {@code true} the builder creates a multi valued property state
-     * @return immutable property state
-     * @throws IllegalStateException  If the name of the property is not set
-     */
-    @Nonnull
-    PropertyState getPropertyState(boolean asArray);
-
-    /**
      * Clone {@code property} to the property state being built. After
-     * this call {@code getPropertyState(property.isArray()).equals(property)} will hold.
+     * this call {@code getPropertyState().equals(property)} will hold.
      * @param property  the property to clone
      * @return  {@code this}
      */
@@ -116,6 +103,20 @@ public interface PropertyBuilder<T> {
      */
     @Nonnull
     PropertyBuilder<T> setName(String name);
+
+    /**
+     * Make this build an array property.
+     * @return
+     */
+    @Nonnull
+    PropertyBuilder<T> setArray();
+
+    /**
+     * Make this build a scalar property.
+     * @return
+     */
+    @Nonnull
+    PropertyBuilder<T> setScalar();
 
     /**
      * Set the value of the property state clearing all previously set values.
