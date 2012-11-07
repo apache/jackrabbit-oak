@@ -223,11 +223,21 @@ public class MemoryPropertyBuilder<T> implements PropertyBuilder<T> {
             setName(property.getName());
             if (property.isArray()) {
                 isArray = true;
-                setValues((Iterable<T>) property.getValue(type.getArrayType()));
+                if (type == Type.DATE) {
+                    setValues((Iterable<T>) property.getValue(Type.STRINGS));
+                }
+                else {
+                    setValues((Iterable<T>) property.getValue(type.getArrayType()));
+                }
             }
             else {
                 isArray = false;
-                setValue(property.getValue(type));
+                if (type == Type.DATE) {
+                    setValue((T) property.getValue(Type.STRING));
+                }
+                else {
+                    setValue(property.getValue(type));
+                }
             }
         }
         return this;
