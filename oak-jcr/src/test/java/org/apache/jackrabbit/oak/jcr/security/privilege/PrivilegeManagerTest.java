@@ -115,6 +115,7 @@ public class PrivilegeManagerTest extends AbstractPrivilegeTest {
         assertTrue(aggr.remove(privilegeManager.getPrivilege(PrivilegeConstants.JCR_NODE_TYPE_DEFINITION_MANAGEMENT)));
         assertTrue(aggr.remove(privilegeManager.getPrivilege(PrivilegeConstants.JCR_WORKSPACE_MANAGEMENT)));
         assertTrue(aggr.remove(privilegeManager.getPrivilege(PrivilegeConstants.REP_PRIVILEGE_MANAGEMENT)));
+        assertTrue(aggr.remove(privilegeManager.getPrivilege(PrivilegeConstants.REP_USER_MANAGEMENT)));
 
         // there may be no privileges left
         assertTrue(aggr.isEmpty());
