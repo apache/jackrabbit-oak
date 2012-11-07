@@ -89,7 +89,7 @@ class PropertyIndexUpdate {
             Set<String> paths = entry.getValue();
             PropertyState property = index.getProperty(encoded);
             if (property != null) {
-                PropertyBuilder<String> builder = MemoryPropertyBuilder.create(Type.STRING, encoded);
+                PropertyBuilder<String> builder = MemoryPropertyBuilder.array(Type.STRING, encoded);
                 for (String value : property.getValue(Type.STRINGS)) {
                     if (!paths.contains(value)) {
                         builder.addValue(value);
@@ -98,7 +98,7 @@ class PropertyIndexUpdate {
                 if (builder.isEmpty()) {
                     index.removeProperty(encoded);
                 } else {
-                    index.setProperty(builder.getPropertyState(true));
+                    index.setProperty(builder.getPropertyState());
                 }
             }
         }
@@ -107,7 +107,7 @@ class PropertyIndexUpdate {
             String encoded = entry.getKey();
             Set<String> paths = entry.getValue();
             PropertyState property = index.getProperty(encoded);
-            PropertyBuilder<String> builder = MemoryPropertyBuilder.create(Type.STRING)
+            PropertyBuilder<String> builder = MemoryPropertyBuilder.array(Type.STRING)
                     .setName(encoded)
                     .assignFrom(property);
             for (String path : paths) {
@@ -121,7 +121,7 @@ class PropertyIndexUpdate {
                 throw new CommitFailedException(
                         "Uniqueness constraint violated");
             } else {
-                index.setProperty(builder.getPropertyState(true));
+                index.setProperty(builder.getPropertyState());
             }
         }
     }

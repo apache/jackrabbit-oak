@@ -194,14 +194,14 @@ class MembershipProvider extends AuthorizableBaseProvider {
         } else {
             PropertyState property = groupTree.getProperty(REP_MEMBERS);
             PropertyBuilder<String> propertyBuilder = property == null
-                ? MemoryPropertyBuilder.create(WEAKREFERENCE, REP_MEMBERS)
-                : MemoryPropertyBuilder.create(WEAKREFERENCE, property);
+                ? MemoryPropertyBuilder.array(WEAKREFERENCE, REP_MEMBERS)
+                : MemoryPropertyBuilder.copy(WEAKREFERENCE, property);
             if (propertyBuilder.hasValue(memberContentId)) {
                 return false;
             } else {
                 propertyBuilder.addValue(memberContentId);
             }
-            groupTree.setProperty(propertyBuilder.getPropertyState(true));
+            groupTree.setProperty(propertyBuilder.getPropertyState());
         }
         return true;
     }
@@ -218,14 +218,14 @@ class MembershipProvider extends AuthorizableBaseProvider {
             // FIXME: remove usage of MemoryPropertyBuilder (OAK-372)
             PropertyState property = groupTree.getProperty(REP_MEMBERS);
             PropertyBuilder<String> propertyBuilder = property == null
-                ? MemoryPropertyBuilder.create(WEAKREFERENCE, REP_MEMBERS)
-                : MemoryPropertyBuilder.create(WEAKREFERENCE, property);
+                ? MemoryPropertyBuilder.array(WEAKREFERENCE, REP_MEMBERS)
+                : MemoryPropertyBuilder.copy(WEAKREFERENCE, property);
             if (propertyBuilder.hasValue(toRemove)) {
                 propertyBuilder.removeValue(toRemove);
                 if (propertyBuilder.isEmpty()) {
                     groupTree.removeProperty(REP_MEMBERS);
                 } else {
-                    groupTree.setProperty(propertyBuilder.getPropertyState(true));
+                    groupTree.setProperty(propertyBuilder.getPropertyState());
                 }
                 return true;
             }
