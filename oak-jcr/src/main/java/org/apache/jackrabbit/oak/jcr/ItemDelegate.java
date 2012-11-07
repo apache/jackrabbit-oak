@@ -24,7 +24,6 @@ import javax.jcr.InvalidItemStateException;
 import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.core.TreeImpl.NullLocation;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -118,7 +117,7 @@ public abstract class ItemDelegate {
     @Nonnull
     public TreeLocation getLocation() throws InvalidItemStateException {
         TreeLocation location = getLocationOrNull();
-        if (location == NullLocation.INSTANCE) {
+        if (location == TreeLocation.NULL) {
             throw new InvalidItemStateException("Item is stale");
         }
         return location;
@@ -140,7 +139,7 @@ public abstract class ItemDelegate {
      */
     @CheckForNull
     private synchronized TreeLocation getLocationOrNull() {
-        if (location != NullLocation.INSTANCE && sessionDelegate.getRevision() != revision) {
+        if (location != TreeLocation.NULL && sessionDelegate.getRevision() != revision) {
             location = sessionDelegate.getLocation(location.getPath());
             revision = sessionDelegate.getRevision();
         }

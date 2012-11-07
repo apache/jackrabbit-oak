@@ -37,6 +37,61 @@ import org.apache.jackrabbit.oak.api.Tree.Status;
 public interface TreeLocation {
 
     /**
+     * This {@code TreeLocation} refers to an invalid location in a tree. That is
+     * to a location where no item resides.
+     */
+    TreeLocation NULL = new TreeLocation() {
+
+        /**
+         * @return  {@code NULL}
+         */
+        @Override
+        public TreeLocation getParent() {
+            return NULL;
+        }
+
+        /**
+         * @return  {@code NULL}
+         */
+        @Override
+        public TreeLocation getChild(String relPath) {
+            return NULL;
+        }
+
+        /**
+         * @return  {@code null}
+         */
+        @Override
+        public String getPath() {
+            return null;
+        }
+
+        /**
+         * @return  {@code null}
+         */
+        @Override
+        public Tree getTree() {
+            return null;
+        }
+
+        /**
+         * @return  {@code null}
+         */
+        @Override
+        public PropertyState getProperty() {
+            return null;
+        }
+
+        /**
+         * @return  {@code null}
+         */
+        @Override
+        public Status getStatus() {
+            return null;
+        }
+    };
+
+    /**
      * Navigate to the parent
      * @return  a {@code TreeLocation} for the parent of this location.
      */
