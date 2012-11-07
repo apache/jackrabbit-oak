@@ -39,6 +39,7 @@ public class MemoryPropertyBuilder<T> implements PropertyBuilder<T> {
     private final Type<T> type;
 
     private String name;
+    private boolean isArray;
     private List<T> values = Lists.newArrayList();
 
     /**
@@ -53,13 +54,55 @@ public class MemoryPropertyBuilder<T> implements PropertyBuilder<T> {
     }
 
     /**
-     * Create a new instance for building {@code PropertyState} instances
+     * Create a new instance for building scalar {@code PropertyState} instances
      * of the given {@code type}.
      * @param type  type of the {@code PropertyState} instances to be built.
      * @return {@code PropertyBuilder} for {@code type}
      */
-    public static <T> PropertyBuilder<T> create(Type<T> type) {
+    public static <T> PropertyBuilder<T> scalar(Type<T> type) {
         return new MemoryPropertyBuilder<T>(type);
+    }
+
+    /**
+     * Create a new instance for building array {@code PropertyState} instances
+     * of the given {@code type}.
+     * @param type  type of the {@code PropertyState} instances to be built.
+     * @return {@code PropertyBuilder} for {@code type}
+     */
+    public static <T> PropertyBuilder<T> array(Type<T> type) {
+        return new MemoryPropertyBuilder<T>(type).setArray();
+    }
+
+    /**
+     * Create a new instance for building scalar {@code PropertyState} instances
+     * of the given {@code type}. The builder is initialised with the
+     * given {@code name}.
+     * Equivalent to
+     * <pre>
+     *     MemoryPropertyBuilder.create(type).setName(name);
+     * </pre>
+     * @param type  type of the {@code PropertyState} instances to be built.
+     * @param name  initial name
+     * @return {@code PropertyBuilder} for {@code type}
+     */
+    public static <T> PropertyBuilder<T> scalar(Type<T> type, String name) {
+        return scalar(type).setName(name);
+    }
+
+    /**
+     * Create a new instance for building array {@code PropertyState} instances
+     * of the given {@code type}. The builder is initialised with the
+     * given {@code name}.
+     * Equivalent to
+     * <pre>
+     *     MemoryPropertyBuilder.create(type).setName(name).setArray();
+     * </pre>
+     * @param type  type of the {@code PropertyState} instances to be built.
+     * @param name  initial name
+     * @return {@code PropertyBuilder} for {@code type}
+     */
+    public static <T> PropertyBuilder<T> array(Type<T> type, String name) {
+        return scalar(type).setName(name).setArray();
     }
 
     /**
@@ -74,24 +117,8 @@ public class MemoryPropertyBuilder<T> implements PropertyBuilder<T> {
      * @param property  initial name and values
      * @return {@code PropertyBuilder} for {@code type}
      */
-    public static <T> PropertyBuilder<T> create(Type<T> type, PropertyState property) {
-        return create(type).assignFrom(property);
-    }
-
-    /**
-     * Create a new instance for building {@code PropertyState} instances
-     * of the given {@code type}. The builder is initialised with the
-     * given {@code name}.
-     * Equivalent to
-     * <pre>
-     *     MemoryPropertyBuilder.create(type).setName(name);
-     * </pre>
-     * @param type  type of the {@code PropertyState} instances to be built.
-     * @param name  initial name
-     * @return {@code PropertyBuilder} for {@code type}
-     */
-    public static <T> PropertyBuilder<T> create(Type<T> type, String name) {
-        return create(type).setName(name);
+    public static <T> PropertyBuilder<T> copy(Type<T> type, PropertyState property) {
+        return scalar(type).assignFrom(property);
     }
 
     @Override
@@ -127,7 +154,7 @@ public class MemoryPropertyBuilder<T> implements PropertyBuilder<T> {
 
     @Override
     public boolean isArray() {
-        return count() != 1;
+        return isArray;
     }
 
     @Override
@@ -135,21 +162,17 @@ public class MemoryPropertyBuilder<T> implements PropertyBuilder<T> {
         return count() == 0;
     }
 
-    @Nonnull
-    @Override
-    public PropertyState getPropertyState() {
-        return getPropertyState(false);
-    }
-
     @SuppressWarnings("unchecked")
     @Nonnull
     @Override
-    public PropertyState getPropertyState(boolean asArray) {
+    public PropertyState getPropertyState() {
         checkState(name != null, "Property has no name");
+        checkState(isArray() || values.size() == 1, "Property has multiple values");
+
         if (values.isEmpty()) {
             return EmptyPropertyState.emptyProperty(name, Type.fromTag(type.tag(), true));
         }
-        else if (isArray() || asArray) {
+        else if (isArray()) {
             switch (type.tag()) {
                 case PropertyType.STRING:
                     return MultiStringPropertyState.stringProperty(name, (Iterable<String>) values);
@@ -199,9 +222,11 @@ public class MemoryPropertyBuilder<T> implements PropertyBuilder<T> {
         if (property != null) {
             setName(property.getName());
             if (property.isArray()) {
+                isArray = true;
                 setValues((Iterable<T>) property.getValue(type.getArrayType()));
             }
             else {
+                isArray = false;
                 setValue(property.getValue(type));
             }
         }
@@ -212,6 +237,20 @@ public class MemoryPropertyBuilder<T> implements PropertyBuilder<T> {
     @Override
     public PropertyBuilder<T> setName(String name) {
         this.name = name;
+        return this;
+    }
+
+    @Nonnull
+    @Override
+    public PropertyBuilder<T> setArray() {
+        isArray = true;
+        return this;
+    }
+
+    @Nonnull
+    @Override
+    public PropertyBuilder<T> setScalar() {
+        isArray = false;
         return this;
     }
 
