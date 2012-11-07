@@ -73,6 +73,29 @@ public class MemoryPropertyBuilderTest {
     }
 
     @Test
+    public void testDateProperty() {
+        PropertyBuilder<String> builder = MemoryPropertyBuilder.array(Type.DATE);
+        String date1 = "1970-01-01T00:00:00.000Z";
+        String date2 = "1971-01-01T00:00:00.000Z";
+        builder.setName("foo")
+                .addValue(date1)
+                .addValue(date2);
+        assertEquals(MultiLongPropertyState.createDateProperty("foo", Arrays.asList(date1, date2)),
+                builder.getPropertyState());
+
+        builder.setScalar();
+        try {
+            builder.getPropertyState();
+        }
+        catch (IllegalStateException expected) {
+        }
+
+        builder.removeValue(date1);
+        assertEquals(LongPropertyState.createDateProperty("foo", date2),
+                builder.getPropertyState());
+    }
+
+    @Test
     public void testAssignFromLong() {
         PropertyState source = LongPropertyState.createLongProperty("foo", 42L);
         PropertyBuilder<String> builder = MemoryPropertyBuilder.scalar(Type.STRING);
@@ -88,6 +111,15 @@ public class MemoryPropertyBuilderTest {
         builder.assignFrom(source);
         assertEquals(LongPropertyState.createLongProperty("foo", 42L),
                 builder.getPropertyState());
+    }
+
+    @Test
+    public void testAssignFromDate() {
+        String date = "1970-01-01T00:00:00.000Z";
+        PropertyState source = LongPropertyState.createDateProperty("foo", date);
+        PropertyBuilder<String> builder = MemoryPropertyBuilder.scalar(Type.DATE);
+        builder.assignFrom(source);
+        assertEquals(source, builder.getPropertyState());
     }
 
     @Test(expected = NumberFormatException.class)
@@ -113,6 +145,16 @@ public class MemoryPropertyBuilderTest {
         builder.assignFrom(source);
         assertEquals(MultiLongPropertyState.createLongProperty("foo", Arrays.asList(1L, 2L, 3L)),
                 builder.getPropertyState());
+    }
+
+    @Test
+    public void testAssignFromDates() {
+        String date1 = "1970-01-01T00:00:00.000Z";
+        String date2 = "1971-01-01T00:00:00.000Z";
+        PropertyState source = MultiLongPropertyState.createDateProperty("foo", Arrays.asList(date1, date2));
+        PropertyBuilder<String> builder = MemoryPropertyBuilder.scalar(Type.DATE);
+        builder.assignFrom(source);
+        assertEquals(source, builder.getPropertyState());
     }
 
     @Test
