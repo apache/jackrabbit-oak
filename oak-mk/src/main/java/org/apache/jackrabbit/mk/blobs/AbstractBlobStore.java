@@ -218,6 +218,17 @@ public abstract class AbstractBlobStore implements BlobStore, Cache.Backend<Abst
         in.close();
     }
 
+    /**
+     * Store a block of data.
+     * 
+     * @param digest the content hash
+     * @param level the indirection level (0 is for user data, 1 is a list of
+     *            digests that point to user data, 2 is a list of digests that
+     *            point to digests, and so on). This parameter is for
+     *            informational use only, and it is not required to store it
+     *            unless that's easy to achieve
+     * @param data the data to be stored
+     */
     protected abstract void storeBlock(byte[] digest, int level, byte[] data) throws Exception;
 
     public abstract void startMark() throws Exception;
@@ -420,6 +431,14 @@ public abstract class AbstractBlobStore implements BlobStore, Cache.Backend<Abst
 
         public String toString() {
             return StringUtils.convertBytesToHex(digest) + "@" + pos;
+        }
+        
+        public byte[] getDigest() {
+            return digest;
+        }
+        
+        public long getPos() {
+            return pos;
         }
 
     }
