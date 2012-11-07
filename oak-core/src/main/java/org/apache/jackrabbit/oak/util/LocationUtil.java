@@ -20,7 +20,6 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.core.TreeImpl;
 import org.apache.jackrabbit.util.Text;
 
 /**
@@ -32,7 +31,7 @@ public class LocationUtil {
     public static TreeLocation getTreeLocation(TreeLocation parentLocation, String relativePath) {
         TreeLocation targetLocation = parentLocation;
         String[] segments = Text.explode(relativePath, '/', false);
-        for (int i = 0; i < segments.length && targetLocation != TreeImpl.NullLocation.INSTANCE; i++) {
+        for (int i = 0; i < segments.length && targetLocation != TreeLocation.NULL; i++) {
             String segment = segments[i];
             if (PathUtils.denotesCurrent(segment)) {
                 continue;
