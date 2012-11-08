@@ -46,10 +46,23 @@ public interface NodeBuilder {
     @CheckForNull
     NodeState getBaseState();
 
+    /**
+     * Check whether this builder represents a new node, which is not present in the base state.
+     * @return  {@code true} for a new node
+     */
     boolean isNew();
 
+    /**
+     * Check whether this builder represents a removed node, which is present in the base state.
+     * @return  {@code true} for a removed node
+     */
     boolean isRemoved();
 
+    /**
+     * Check whether this builder represents a modified node, which has either modified properties
+     * or removed or added child nodes.
+     * @return  {@code true} for a modified node
+     */
     boolean isModified();
 
     /**
