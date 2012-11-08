@@ -39,7 +39,6 @@ import org.apache.jackrabbit.oak.plugins.memory.MemoryPropertyBuilder;
 import org.apache.jackrabbit.oak.plugins.memory.MultiStringPropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.PropertyBuilder;
 
@@ -140,7 +139,7 @@ public class TreeImpl implements Tree {
         root.checkLive();
         Status nodeStatus = getStatus();
         if (nodeStatus == Status.NEW) {
-                return (hasProperty(name)) ? Status.NEW : null;
+            return (hasProperty(name)) ? Status.NEW : null;
         } else if (nodeStatus == Status.REMOVED) {
             return Status.REMOVED; // FIXME not correct if no property existed with that name
         } else {
@@ -150,7 +149,8 @@ public class TreeImpl implements Tree {
                 return null;
             }
 
-            PropertyState base = getBaseState().getProperty(name);
+            NodeState parentBase = getBaseState();
+            PropertyState base = parentBase == null ? null : parentBase.getProperty(name);
             if (head == null) {
                 return (base == null) ? null : Status.REMOVED;
             } else {
@@ -200,26 +200,30 @@ public class TreeImpl implements Tree {
         }
     }
 
+    // FIXME rely on underlying mechanism to determine whether a node has been removed. (OAK-417)
+    private boolean isRemoved() {
+        try {
+            return getNodeBuilder().isRemoved();
+        } catch (IllegalStateException e) {
+            return true;
+        }
+    }
+
     @Override
     public Status getStatus() {
         root.checkLive();
+
         if (isRemoved()) {
             return Status.REMOVED;
         }
 
-        NodeState baseState = getBaseState();
-        if (baseState == null) {
-            // Did not exist before, so its NEW
+        NodeBuilder builder = getNodeBuilder();
+        if (builder.isNew()) {
             return Status.NEW;
+        } else if (builder.isModified()) {
+            return Status.MODIFIED;
         } else {
-            // Did exit it before. So...
-            if (isSame(baseState, getNodeState())) {
-                // ...it's EXISTING if it hasn't changed
-                return Status.EXISTING;
-            } else {
-                // ...and MODIFIED otherwise.
-                return Status.MODIFIED;
-            }
+            return Status.EXISTING;
         }
     }
 
@@ -488,19 +492,6 @@ public class TreeImpl implements Tree {
         return getNodeBuilder().getProperty(propertyName);
     }
 
-    // FIXME rely on underlying mechanism to determine whether a node has been removed. (OAK-417)
-    private boolean isRemoved() {
-        if (parent != null && parent.isRemoved()) {
-            return true;
-        }
-        try {
-            return getNodeBuilder().getNodeState() == null;
-        }
-        catch (IllegalStateException e) {
-            return true;
-        }
-    }
-
     private void buildPath(StringBuilder sb) {
         if (!isRoot()) {
             parent.buildPath(sb);
@@ -575,43 +566,6 @@ public class TreeImpl implements Tree {
             getNodeBuilder().setProperty(
                     MultiStringPropertyState.stringProperty(OAK_CHILD_ORDER, getNodeBuilder().getChildNodeNames()));
         }
-    }
-
-    private static boolean isSame(NodeState state1, NodeState state2) {
-        final boolean[] isDirty = {false};
-        state2.compareAgainstBaseState(state1, new NodeStateDiff() {
-            @Override
-            public void propertyAdded(PropertyState after) {
-                isDirty[0] = true;
-            }
-
-            @Override
-            public void propertyChanged(PropertyState before, PropertyState after) {
-                isDirty[0] = true;
-            }
-
-            @Override
-            public void propertyDeleted(PropertyState before) {
-                isDirty[0] = true;
-            }
-
-            @Override
-            public void childNodeAdded(String name, NodeState after) {
-                isDirty[0] = true;
-            }
-
-            @Override
-            public void childNodeChanged(String name, NodeState before, NodeState after) {
-                // cut transitivity here
-            }
-
-            @Override
-            public void childNodeDeleted(String name, NodeState before) {
-                isDirty[0] = true;
-            }
-        });
-
-        return !isDirty[0];
     }
 
     //-------------------------------------------------------< TreeLocation >---
