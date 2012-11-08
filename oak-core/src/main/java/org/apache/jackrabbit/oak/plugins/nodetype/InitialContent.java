@@ -56,40 +56,6 @@ public class InitialContent implements RepositoryInitializer {
                 .setProperty("jcr:primaryType", "rep:nodeTypes", Type.NAME);
             system.child("jcr:activities")
                 .setProperty("jcr:primaryType", "rep:Activities", Type.NAME);
-            system.child("rep:privileges")
-                .setProperty("jcr:primaryType", "rep:Privileges", Type.NAME);
-
-            NodeBuilder security = root.child("rep:security");
-            security.setProperty(
-                    "jcr:primaryType", "rep:AuthorizableFolder", Type.NAME);
-
-            NodeBuilder authorizables = security.child("rep:authorizables");
-            authorizables.setProperty(
-                    "jcr:primaryType", "rep:AuthorizableFolder", Type.NAME);
-
-            NodeBuilder users = authorizables.child("rep:users");
-            users.setProperty(
-                    "jcr:primaryType", "rep:AuthorizableFolder", Type.NAME);
-
-            NodeBuilder a = users.child("a");
-            a.setProperty("jcr:primaryType", "rep:AuthorizableFolder", Type.NAME);
-
-            a.child("ad")
-                .setProperty("jcr:primaryType", "rep:AuthorizableFolder", Type.NAME)
-                .child("admin")
-                .setProperty("jcr:primaryType", "rep:User", Type.NAME)
-                .setProperty("jcr:uuid", "21232f29-7a57-35a7-8389-4a0e4a801fc3")
-                .setProperty("rep:principalName", "admin")
-                .setProperty("rep:authorizableId", "admin")
-                .setProperty("rep:password", "{SHA-256}9e515755e95513ce-1000-0696716f8baf8890a35eda1b9f2d5a4e727d1c7e1c062f03180dcc2a20f61f3b");
-
-            a.child("an")
-                .setProperty("jcr:primaryType", "rep:AuthorizableFolder", Type.NAME)
-                .child("anonymous")
-                .setProperty("jcr:primaryType", "rep:User", Type.NAME)
-                .setProperty("jcr:uuid", "294de355-7d9d-30b3-92d8-a1e6aab028cf")
-                .setProperty("rep:principalName", "anonymous")
-                .setProperty("rep:authorizableId", "anonymous");
         }
 
         if (!root.hasChildNode("oak:index")) {

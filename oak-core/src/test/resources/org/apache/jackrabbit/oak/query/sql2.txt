@@ -142,7 +142,6 @@ select * from [nt:base] as p inner join [nt:base] as p2 on ischildnode(p2, p) wh
 /, /jcr:system
 /, /oak:index
 /, /parents
-/, /rep:security
 
 select * from [nt:base] as p inner join [nt:base] as p2 on isdescendantnode(p2, p) where p.[jcr:path] = '/parents'
 /parents, /parents/p0
