@@ -99,25 +99,21 @@ public class EveryonePrincipalTest extends AbstractSecurityTest {
 
         @Override
         public boolean addMember(Principal principal) {
-            // TODO
             return false;
         }
 
         @Override
         public boolean removeMember(Principal principal) {
-            // TODO
             return false;
         }
 
         @Override
         public boolean isMember(Principal principal) {
-            // TODO
             return false;
         }
 
         @Override
         public Enumeration<? extends Principal> members() {
-            // TODO
             return null;
         }
     }
