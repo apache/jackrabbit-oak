@@ -200,13 +200,17 @@ public class TreeImpl implements Tree {
         }
     }
 
-    // FIXME rely on underlying mechanism to determine whether a node has been removed. (OAK-417)
     private boolean isRemoved() {
-        try {
-            return getNodeBuilder().isRemoved();
-        } catch (IllegalStateException e) {
+        if (isRoot()) {
+            return false;
+        }
+        if (parent.nodeBuilder == null) {
+            return false;
+        }
+        if (parent.nodeBuilder.isRemoved()) {
             return true;
         }
+        return getNodeBuilder().isRemoved();
     }
 
     @Override
