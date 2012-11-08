@@ -25,6 +25,7 @@ import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
+import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
@@ -52,6 +53,12 @@ public class UserConfigurationImpl extends SecurityConfiguration.Default impleme
     @Override
     public ConfigurationParameters getConfigurationParameters() {
         return config;
+    }
+
+    @Nonnull
+    @Override
+    public RepositoryInitializer getRepositoryInitializer() {
+        return new UserInitializer(securityProvider);
     }
 
     @Override
