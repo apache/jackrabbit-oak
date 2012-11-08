@@ -65,8 +65,7 @@ public class PrefixContentIndex implements QueryIndex {
             if (restriction.propertyType == PropertyType.UNDEFINED) {
                 continue;
             }
-            String code = TypeCodes.getCodeForType(restriction.propertyType);
-            String prefix = code + ":";
+            String prefix = TypeCodes.encode(restriction.propertyType, "");
             if (prefix.equals(index.getPrefix())) {
                 return restriction;
             }
