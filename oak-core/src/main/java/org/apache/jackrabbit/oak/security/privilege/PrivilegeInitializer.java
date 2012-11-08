@@ -20,7 +20,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.JcrConstants;
@@ -66,23 +65,25 @@ class PrivilegeInitializer implements RepositoryInitializer, PrivilegeConstants 
         NodeBuilder system = root.child(JcrConstants.JCR_SYSTEM);
         system.setProperty(JcrConstants.JCR_PRIMARYTYPE, NodeTypeConstants.NT_REP_SYSTEM, Type.NAME);
 
-        NodeBuilder privileges = system.child(REP_PRIVILEGES);
-        privileges.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_PRIVILEGES, Type.NAME);
+        if (!system.hasChildNode(REP_PRIVILEGES)) {
+            NodeBuilder privileges = system.child(REP_PRIVILEGES);
+            privileges.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_PRIVILEGES, Type.NAME);
 
-        try {
-            branch.setRoot(root.getNodeState());
-            branch.merge();
-        } catch (CommitFailedException e) {
-            log.error("Failed to initialize privilege content ", e);
-            throw new RuntimeException(e);
-        }
+            try {
+                branch.setRoot(root.getNodeState());
+                branch.merge();
+            } catch (CommitFailedException e) {
+                log.error("Failed to initialize privilege content ", e);
+                throw new RuntimeException(e);
+            }
 
-        PrivilegeDefinitionWriter writer = new PrivilegeDefinitionWriter(new RootImpl(store));
-        try {
-            writer.writeDefinitions(getBuiltInDefinitions());
-        } catch (RepositoryException e) {
-            log.error("Failed to register built-in privileges", e);
-            throw new RuntimeException(e);
+            PrivilegeDefinitionWriter writer = new PrivilegeDefinitionWriter(new RootImpl(store));
+            try {
+                writer.writeDefinitions(getBuiltInDefinitions());
+            } catch (RepositoryException e) {
+                log.error("Failed to register built-in privileges", e);
+                throw new RuntimeException(e);
+            }
         }
     }
 
