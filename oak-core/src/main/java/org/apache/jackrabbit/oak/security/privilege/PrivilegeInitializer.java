@@ -39,8 +39,8 @@ import org.slf4j.LoggerFactory;
 
 /**
  * {@code RepositoryInitializer} that asserts the existence and node type of
- * the /jcr:system/jcr:privileges node that is used to store privilege definitons.
- * In addition it writes all built-in privilege defintions except jcr:all to
+ * the /jcr:system/jcr:privileges node that is used to store privilege definitions.
+ * In addition it writes all built-in privilege definitions except jcr:all to
  * the repository.
  */
 class PrivilegeInitializer implements RepositoryInitializer, PrivilegeConstants {
