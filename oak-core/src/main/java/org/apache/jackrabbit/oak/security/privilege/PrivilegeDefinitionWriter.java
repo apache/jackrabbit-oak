@@ -26,18 +26,12 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeDefinition;
 import org.apache.jackrabbit.oak.util.NodeUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
- * PrivilegeDefinitionWriter... TODO
+ * PrivilegeDefinitionWriter is responsible for writing privilege definitions
+ * to the repository without applying any validation checks.
  */
 class PrivilegeDefinitionWriter implements PrivilegeConstants {
-
-    /**
-     * logger instance
-     */
-    private static final Logger log = LoggerFactory.getLogger(PrivilegeDefinitionWriter.class);
 
     private final Root root;
 

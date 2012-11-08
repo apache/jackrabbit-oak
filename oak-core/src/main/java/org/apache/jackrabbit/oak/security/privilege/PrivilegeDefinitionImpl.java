@@ -24,7 +24,7 @@ import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeDefinition;
 
 /**
- * PrivilegeDefinitionImpl... TODO
+ * Default implementation of the {@code PrivilegeDefinition} interface.
  */
 class PrivilegeDefinitionImpl implements PrivilegeDefinition {
 
