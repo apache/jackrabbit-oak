@@ -35,7 +35,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * PrivilegeManagerImpl... TODO
+ * {@code PrivilegeManager} implementation operating on the specified
+ * {@code PrivilegeDefinitionProvider}.
  */
 public class PrivilegeManagerImpl implements PrivilegeManager {
 
@@ -78,7 +79,7 @@ public class PrivilegeManagerImpl implements PrivilegeManager {
     public Privilege registerPrivilege(String privilegeName, boolean isAbstract,
                                        String[] declaredAggregateNames) throws RepositoryException {
         if (root.hasPendingChanges()) {
-            throw new InvalidItemStateException("Session has pending changes.");
+            throw new InvalidItemStateException("Attempt to register a new privilege while there are pending changes.");
         }
         if (privilegeName == null || privilegeName.isEmpty()) {
             throw new RepositoryException("Invalid privilege name " + privilegeName);
