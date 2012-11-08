@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.memory;
 
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import javax.annotation.Nonnull;
 
@@ -246,6 +247,51 @@ public class MemoryNodeBuilder implements NodeBuilder {
     }
 
     //--------------------------------------------------------< NodeBuilder >---
+
+    @Override
+    public boolean isNew() {
+        return this != root && parent.isNew(name);
+    }
+
+    private boolean isNew(String name) {
+        return (getBaseState() == null || !getBaseState().hasChildNode(name)) && hasChildNode(name);
+    }
+
+    @Override
+    public boolean isRemoved() {
+        return this != root && (parent.isRemoved() || parent.isRemoved(name));
+    }
+
+    private boolean isRemoved(String name) {
+        return getBaseState() != null && getBaseState().hasChildNode(name) && !hasChildNode(name);
+    }
+
+    @Override
+    public boolean isModified() {
+        if (writeState == null) {
+            return false;
+        }
+        else {
+            for (Entry<String, MutableNodeState> n : writeState.nodes.entrySet()) {
+                if (n.getValue() == null) {
+                    return true;
+                }
+                if (!getBaseState().hasChildNode(n.getKey())) {
+                    return true;
+                }
+            }
+            for (Entry<String, PropertyState> p : writeState.properties.entrySet()) {
+                PropertyState pState = p.getValue();
+                if (pState == null) {
+                    return true;
+                }
+                if (!pState.equals(getBaseState().getProperty(p.getKey()))) {
+                    return true;
+                }
+            }
+            return false;
+        }
+    }
 
     @Override
     public NodeState getNodeState() {

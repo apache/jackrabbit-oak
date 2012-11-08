@@ -46,6 +46,12 @@ public interface NodeBuilder {
     @CheckForNull
     NodeState getBaseState();
 
+    boolean isNew();
+
+    boolean isRemoved();
+
+    boolean isModified();
+
     /**
      * Replaces the base state of this builder and throws away all changes.
      * The effect of this method is equivalent to replacing this builder
