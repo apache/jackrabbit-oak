@@ -53,7 +53,8 @@ import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstant
 
 
 /**
- * Reads privilege definitions without applying any validation.
+ * Reads privilege definitions from the repository content without applying
+ * any validation.
  */
 class PrivilegeDefinitionReader {
 
