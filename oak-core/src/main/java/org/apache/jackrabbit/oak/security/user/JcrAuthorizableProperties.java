@@ -36,13 +36,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * JcrAuthorizableProperty... TODO
+ * JCR level implementation of the internal {@code AuthorizableProperties}
+ * interface. It will be used whenever a {@code Session} is associated
+ * with a user manager and thus a JCR item operations can be used to retrieve
+ * the authorizable properties.
  */
 class JcrAuthorizableProperties implements AuthorizableProperties, UserConstants {
 
-    /**
-     * logger instance
-     */
     private static final Logger log = LoggerFactory.getLogger(JcrAuthorizableProperties.class);
 
     private final Node authorizableNode;
@@ -53,6 +53,7 @@ class JcrAuthorizableProperties implements AuthorizableProperties, UserConstants
         this.namePathMapper = namePathMapper;
     }
 
+    //---------------------------------------------< AuthorizableProperties >---
     @Override
     public Iterator<String> getNames(String relPath) throws RepositoryException {
         Node node = getNode();
@@ -160,6 +161,8 @@ class JcrAuthorizableProperties implements AuthorizableProperties, UserConstants
         // no such property or wasn't a property of this authorizable.
         return false;
     }
+
+    //------------------------------------------------------------< private >---
 
     private Node getNode() {
         return authorizableNode;
