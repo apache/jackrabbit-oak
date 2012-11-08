@@ -19,45 +19,55 @@ package org.apache.jackrabbit.mk.testing;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.util.Chronometer;
 import org.apache.jackrabbit.mk.util.Configuration;
-import org.apache.jackrabbit.mk.util.MkConfigProvider;
+import org.apache.jackrabbit.mk.util.MicroKernelConfigProvider;
 import org.junit.Before;
 import org.junit.BeforeClass;
 
-
 /**
- * Base class for tests that are using only one microkernel instance.
- * @author rogoz
+ * The test base class for tests that are using only one microkernel instance.
+ *
+ *
  *
  */
 public class MicroKernelTestBase {
 
-	static Initializator initializator;
-	public MicroKernel mk;
-	public static Configuration conf;
-	public Chronometer chronometer;
+    static MicroKernelInitializer initializator;
+    public MicroKernel mk;
+    public static Configuration conf;
+    public Chronometer chronometer;
 
-	/**
-	 * Creates a microkernel collection with only one microkernel.
-	 * 
-	 * @throws Exception
-	 */
-	@BeforeClass
-	public static void beforeSuite() throws Exception {
-		
-		String mktype = System.getProperty("mk.type");
-		initializator = (mktype == null || mktype.equals("oak")) ? new OakMkinitializator()
-				: new SCMkInitializator();
-	/*	initializator = new SCMkInitializator(); */
-		System.out.println("Tests will run against ***"+initializator.getType()+"***");
-		conf = MkConfigProvider.readConfig();
-	}
+    /**
+     * Loads the corresponding microkernel initialization class and the
+     * microkernel configuration.The method searches for the <b>mk.type</b>
+     * system property in order to initialize the proper microkernel.By default,
+     * the oak microkernel will be instantiated.
+     *
+     * @throws Exception
+     */
+    @BeforeClass
+    public static void beforeSuite() throws Exception {
 
-	@Before
-	public void beforeTest() throws Exception {
+        // FIXME - Add back
+        initializator = new OakMicroKernelInitializer();
+        //String mktype = System.getProperty("mk.type");
+        //initializator = (mktype == null || mktype.equals("oakmk")) ? new OakMicroKernelInitializer()
+        //        : new MongoMicroKernelInitializer();
+        System.out.println("Tests will run against ***"
+                + initializator.getType() + "***");
+        conf = MicroKernelConfigProvider.readConfig();
+    }
 
-		mk = (new MkCollection(initializator, conf, 1)).getMicroKernels()
-				.get(0);
-		chronometer = new Chronometer();
-	}
+    /**
+     * Creates a microkernel collection with only one microkernel.
+     *
+     * @throws Exception
+     */
+    @Before
+    public void beforeTest() throws Exception {
+
+        mk = (new MicroKernelCollection(initializator, conf, 1))
+                .getMicroKernels().get(0);
+        chronometer = new Chronometer();
+    }
 
 }

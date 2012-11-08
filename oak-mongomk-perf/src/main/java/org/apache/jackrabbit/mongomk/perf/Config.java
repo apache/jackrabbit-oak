@@ -18,9 +18,6 @@ package org.apache.jackrabbit.mongomk.perf;
 
 import java.util.Properties;
 
-/**
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
- */
 public class Config {
 
     private static final String MASTER_HOST = "master.host";

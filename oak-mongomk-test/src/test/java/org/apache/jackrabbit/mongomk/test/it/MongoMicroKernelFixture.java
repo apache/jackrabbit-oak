@@ -20,23 +20,20 @@ import java.io.InputStream;
 import java.util.Properties;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
+import org.apache.jackrabbit.mk.blobs.BlobStore;
 import org.apache.jackrabbit.mk.test.MicroKernelFixture;
-import org.apache.jackrabbit.mongomk.api.BlobStore;
-import org.apache.jackrabbit.mongomk.api.NodeStore;
-import org.apache.jackrabbit.mongomk.impl.BlobStoreMongo;
 import org.apache.jackrabbit.mongomk.impl.MongoConnection;
 import org.apache.jackrabbit.mongomk.impl.MongoMicroKernel;
-import org.apache.jackrabbit.mongomk.impl.NodeStoreMongo;
-import org.apache.jackrabbit.mongomk.util.MongoUtil;
+import org.apache.jackrabbit.mongomk.impl.MongoNodeStore;
+import org.apache.jackrabbit.mongomk.impl.blob.MongoBlobStore;
+import org.apache.jackrabbit.mongomk.impl.blob.MongoGridFSBlobStore;
 import org.junit.Assert;
 
+import com.mongodb.DB;
 
-/**
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
- */
 public class MongoMicroKernelFixture implements MicroKernelFixture {
 
-    private static MongoConnection mongoConnection = createMongoConnection();
+    private static MongoConnection mongoConnection;
 
     private static MongoConnection createMongoConnection() {
         try {
@@ -57,11 +54,14 @@ public class MongoMicroKernelFixture implements MicroKernelFixture {
     @Override
     public void setUpCluster(MicroKernel[] cluster) {
         try {
-            MongoUtil.initDatabase(mongoConnection);
-            NodeStore nodeStore = new NodeStoreMongo(mongoConnection);
-            BlobStore blobStore = new BlobStoreMongo(mongoConnection);
+            mongoConnection = createMongoConnection();
+            DB db = mongoConnection.getDB();
+            dropCollections(db);
 
-            MicroKernel mk = new MongoMicroKernel(nodeStore, blobStore);
+            MongoNodeStore nodeStore = new MongoNodeStore(db);
+            BlobStore blobStore = new MongoGridFSBlobStore(db);
+            MicroKernel mk = new MongoMicroKernel(mongoConnection, nodeStore, blobStore);
+
             for (int i = 0; i < cluster.length; i++) {
                 cluster[i] = mk;
             }
@@ -77,9 +77,17 @@ public class MongoMicroKernelFixture implements MicroKernelFixture {
     @Override
     public void tearDownCluster(MicroKernel[] cluster) {
         try {
-            MongoUtil.clearDatabase(mongoConnection);
+            DB db = mongoConnection.getDB();
+            dropCollections(db);
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    private void dropCollections(DB db) {
+        db.getCollection(MongoBlobStore.COLLECTION_BLOBS).drop();
+        db.getCollection(MongoNodeStore.COLLECTION_COMMITS).drop();
+        db.getCollection(MongoNodeStore.COLLECTION_NODES).drop();
+        db.getCollection(MongoNodeStore.COLLECTION_SYNC).drop();
     }
 }

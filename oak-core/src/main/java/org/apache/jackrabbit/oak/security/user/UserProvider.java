@@ -193,7 +193,6 @@ class UserProvider extends AuthorizableBaseProvider {
             StringBuilder stmt = new StringBuilder();
             stmt.append("SELECT * FROM [").append(UserConstants.NT_REP_AUTHORIZABLE).append(']');
             stmt.append("WHERE [").append(UserConstants.REP_PRINCIPAL_NAME).append("] = $principalName");
-
             Result result = root.getQueryEngine().executeQuery(stmt.toString(),
                     Query.JCR_SQL2, 1, 0,
                     Collections.singletonMap("principalName", PropertyValues.newString(principal.getName())),
