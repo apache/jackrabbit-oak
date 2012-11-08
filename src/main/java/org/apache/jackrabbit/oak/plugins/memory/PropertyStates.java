@@ -288,9 +288,10 @@ public final class PropertyStates {
             return BooleanPropertyState.booleanProperty(name, false);
         } else if (reader.matches(JsopReader.STRING)) {
             String jsonString = reader.getToken();
-            if (TypeCodes.startsWithCode(jsonString)) {
-                int type = TypeCodes.getTypeForCode(jsonString.substring(0, 3));
-                String value = jsonString.substring(4);
+            int split = TypeCodes.split(jsonString);
+            if (split != -1) {
+                int type = TypeCodes.decodeType(split, jsonString);
+                String value = TypeCodes.decodeName(split, jsonString);
                 if (type == PropertyType.BINARY) {
                     return  BinaryPropertyState.binaryProperty(name, new KernelBlob(value, kernel));
                 } else {
@@ -327,9 +328,10 @@ public final class PropertyStates {
                 values.add(false);
             } else if (reader.matches(JsopReader.STRING)) {
                 String jsonString = reader.getToken();
-                if (TypeCodes.startsWithCode(jsonString)) {
-                    type = TypeCodes.getTypeForCode(jsonString.substring(0, 3));
-                    String value = jsonString.substring(4);
+                int split = TypeCodes.split(jsonString);
+                if (split != -1) {
+                    type = TypeCodes.decodeType(split, jsonString);
+                    String value = TypeCodes.decodeName(split, jsonString);
                     if (type == PropertyType.BINARY) {
                         values.add(new KernelBlob(value, kernel));
                     } else if(type == PropertyType.DOUBLE) {

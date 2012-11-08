@@ -22,6 +22,8 @@ import java.util.Map;
 
 import javax.jcr.PropertyType;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 /**
  * TypeCodes maps between {@code Type} and the code used to prefix
  * its json serialisation.
@@ -41,34 +43,63 @@ public class TypeCodes {
     private TypeCodes() { }
 
     /**
-     * Returns {@code true} if the specified JSON String represents a value
-     * serialization that is prefixed with a type code.
-     *
-     * @param jsonString The JSON String representation of the value of a {@code PropertyState}
-     * @return {@code true} if the {@code jsonString} starts with a type
-     * code; {@code false} otherwise.
+     * Encodes the given {@code propertyName} of the given {@code propertyType} into
+     * a json string, which is prefixed with a type code.
+     * @param propertyType  type of the property
+     * @param propertyName  name of the property
+     * @return  type code prefixed json string
      */
-    public static boolean startsWithCode(String jsonString) {
-        return jsonString.length() >= 4 && jsonString.charAt(3) == ':';
+    public static String encode(int propertyType, String propertyName) {
+        String typeCode = checkNotNull(TYPE2CODE.get(propertyType));
+        return typeCode + ':' + propertyName;
     }
 
     /**
-     * Get the type code for the given property type.
-     *
-     * @param propertyType the property type
-     * @return the type code
+     * Splits a {@code jsonString}, which is prefixed with a type code
+     * at the location where the prefix ends.
+     * @param jsonString  json string to split
+     * @return  the location where the prefix ends or -1 if no prefix is present
      */
-    public static String getCodeForType(int propertyType) {
-        return TYPE2CODE.get(propertyType);
+    public static int split(String jsonString) {
+        if (jsonString.length() >= 4 && jsonString.charAt(3) == ':') {
+            return 3;
+        }
+        else {
+            return -1;
+        }
     }
 
     /**
-     * Get the property type for the given type code.
-     * @param code  the type code
-     * @return  the property type.
+     * Decode the type encoded into {@code jsonString} given its split.
+     * @param split  split of the json string
+     * @param jsonString  json string
+     * @return  decoded type. {@code PropertyType.UNDEFINED} if none or split is not within {@code jsonString}.
      */
-    public static int getTypeForCode(String code) {
-        return CODE2TYPE.get(code);
+    public static int decodeType(int split, String jsonString) {
+        if (split == -1 || split > jsonString.length()) {
+            return PropertyType.UNDEFINED;
+        }
+        else {
+            Integer type = CODE2TYPE.get(jsonString.substring(0, split));
+            return type == null
+                ? PropertyType.UNDEFINED
+                : type;
+        }
+    }
+
+    /**
+     * Decode the property name encoded into a {@code jsonString} given its split.
+     * @param split  split of the json string
+     * @param jsonString  json string
+     * @return  decoded property name. Or {@code jsonString} if split is not with {@code jsonString}.
+     */
+    public static String decodeName(int split, String jsonString) {
+        if (split == -1 || split >= jsonString.length()) {
+            return jsonString;
+        }
+        else {
+            return jsonString.substring(split + 1);
+        }
     }
 
 }
