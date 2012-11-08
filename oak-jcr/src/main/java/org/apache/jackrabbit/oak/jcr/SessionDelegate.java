@@ -51,7 +51,6 @@ import org.apache.jackrabbit.oak.plugins.nodetype.DefinitionProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.EffectiveNodeTypeProvider;
 import org.apache.jackrabbit.oak.plugins.observation.ObservationManagerImpl;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
-import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeManagerImpl;
 import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -253,10 +252,6 @@ public class SessionDelegate {
             root.refresh();
         }
         revision++;
-        // TODO: improve
-        if (privilegeManager != null && privilegeManager instanceof PrivilegeManagerImpl) {
-            ((PrivilegeManagerImpl) privilegeManager).refresh();
-        }
     }
 
     /**

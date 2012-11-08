@@ -22,6 +22,8 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
+import org.apache.jackrabbit.oak.spi.lifecycle.CompositeInitializer;
+import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 
 /**
@@ -31,6 +33,9 @@ public interface SecurityConfiguration {
 
     @Nonnull
     ConfigurationParameters getConfigurationParameters();
+
+    @Nonnull
+    RepositoryInitializer getRepositoryInitializer();
 
     @Nonnull
     List<ValidatorProvider> getValidatorProviders();
@@ -50,6 +55,12 @@ public interface SecurityConfiguration {
         @Override
         public ConfigurationParameters getConfigurationParameters() {
             return ConfigurationParameters.EMPTY;
+        }
+
+        @Nonnull
+        @Override
+        public RepositoryInitializer getRepositoryInitializer() {
+            return new CompositeInitializer(Collections.<RepositoryInitializer>emptyList());
         }
 
         @Nonnull
