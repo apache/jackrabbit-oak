@@ -42,7 +42,7 @@ public class PrivilegeMigrator {
      * @throws RepositoryException
      */
     public void migrateCustomPrivileges() throws RepositoryException {
-        PrivilegeRegistry pr = new PrivilegeRegistry(contentSession, contentSession.getLatestRoot());
+        PrivilegeDefinitionProviderImpl pr = new PrivilegeDefinitionProviderImpl(contentSession, contentSession.getLatestRoot());
         InputStream stream = null;
         // TODO: order custom privileges such that validation succeeds.
         // FIXME: user proper path to jr2 custom privileges stored in fs

@@ -17,21 +17,14 @@
 package org.apache.jackrabbit.oak.spi.security.privilege;
 
 import java.util.Set;
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 
-import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
-
 /**
- * PrivilegeProvider... TODO
+ * PrivilegeDefinitionProvider... TODO
  */
-public interface PrivilegeProvider {
-
-    /**
-     * Refresh this privilege provider.
-     */
-    void refresh();
+public interface PrivilegeDefinitionProvider {
 
     /**
      * Returns all privilege definitions accessible to this provider.
@@ -49,7 +42,7 @@ public interface PrivilegeProvider {
      * @return The privilege definition with the given name or {@code null} if
      * no such definition exists.
      */
-    @Nullable
+    @CheckForNull
     PrivilegeDefinition getPrivilegeDefinition(String name);
 
     /**
@@ -63,5 +56,6 @@ public interface PrivilegeProvider {
      * @return The new definition.
      * @throws RepositoryException If the definition could not be registered.
      */
+    @Nonnull
     PrivilegeDefinition registerDefinition(String privilegeName, boolean isAbstract, Set<String> declaredAggregateNames) throws RepositoryException;
 }

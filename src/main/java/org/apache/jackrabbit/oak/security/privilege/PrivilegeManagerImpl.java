@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.spi.security.privilege;
+package org.apache.jackrabbit.oak.security.privilege;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -29,6 +29,8 @@ import javax.jcr.security.Privilege;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeDefinition;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeDefinitionProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,17 +47,12 @@ public class PrivilegeManagerImpl implements PrivilegeManager {
     private final Root root;
     private final NamePathMapper namePathMapper;
 
-    private final PrivilegeProvider provider;
+    private final PrivilegeDefinitionProvider provider;
 
-    public PrivilegeManagerImpl(Root root, PrivilegeProvider provider, NamePathMapper namePathMapper) {
+    public PrivilegeManagerImpl(Root root, PrivilegeDefinitionProvider provider, NamePathMapper namePathMapper) {
         this.root = root;
         this.namePathMapper = namePathMapper;
         this.provider = provider;
-    }
-
-    // TODO: review
-    public void refresh() {
-        provider.refresh();
     }
 
     @Override

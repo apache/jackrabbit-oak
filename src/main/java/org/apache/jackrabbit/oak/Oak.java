@@ -164,12 +164,9 @@ public class Oak {
     @Nonnull
     public Oak with(@Nonnull SecurityProvider securityProvider) {
         this.securityProvider = securityProvider;
-        try {
-            for (SecurityConfiguration sc : securityProvider.getSecurityConfigurations()) {
-                validatorProviders.addAll(sc.getValidatorProviders());
-            }
-        } catch (UnsupportedOperationException e) {
-            log.info(e.getMessage());
+        for (SecurityConfiguration sc : securityProvider.getSecurityConfigurations()) {
+            validatorProviders.addAll(sc.getValidatorProviders());
+            initializers.add(sc.getRepositoryInitializer());
         }
         return this;
     }
