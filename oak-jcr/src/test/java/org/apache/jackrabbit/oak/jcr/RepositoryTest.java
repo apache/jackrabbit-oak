@@ -179,7 +179,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
         assertTrue(same.isSame(node));
     }
 
-    @Ignore("OAK-369")
+    @Ignore("OAK-369") // FIXME: OAK-369
     @Test
     public void getNode3() throws RepositoryException {
         Node node = getNode("/foo");
@@ -187,6 +187,15 @@ public class RepositoryTest extends AbstractRepositoryTest {
         assertNotNull(root);
         assertEquals("", root.getName());
         assertTrue("/".equals(root.getPath()));
+    }
+
+    @Ignore("OAK-369") // FIXME: OAK-369
+    @Test
+    public void testAddNode() throws RepositoryException {
+        Node node = getNode("/foo");
+        // add a node with '..' should fail...
+        Node invalid = node.addNode("..");
+        assertTrue(node.getParent().isSame(node.getNode("..")));
     }
 
     @Test
@@ -205,7 +214,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
         assertTrue(node.isSame(node2));
     }
 
-    @Ignore("OAK-343")
+    @Ignore("OAK-343") // FIXME: OAK-343
     @Test
     public void getNodeByUUID() throws RepositoryException {
         Node node = getNode("/foo").addNode("boo");
