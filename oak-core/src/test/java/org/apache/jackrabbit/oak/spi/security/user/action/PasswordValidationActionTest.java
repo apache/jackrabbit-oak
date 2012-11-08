@@ -31,7 +31,6 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.security.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.security.user.UserConfigurationImpl;
-import org.apache.jackrabbit.oak.security.user.UserManagerImpl;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
@@ -63,9 +62,10 @@ public class PasswordValidationActionTest extends AbstractSecurityTest {
 
         root = admin.getLatestRoot();
 
-        userManager = new UserManagerImpl(null, root, NamePathMapper.DEFAULT, getSecurityProvider());
+        userManager = getSecurityProvider().getUserConfiguration().getUserManager(root, NamePathMapper.DEFAULT);
         user = (User) userManager.getAuthorizable(admin.getAuthInfo().getUserID());
 
+        testAction.reset();
         pwAction.setConstraint("^.*(?=.{8,})(?=.*[a-z])(?=.*[A-Z]).*");
 
     }
@@ -164,6 +164,11 @@ public class PasswordValidationActionTest extends AbstractSecurityTest {
 
         private int onCreateCalled = 0;
         private int onPasswordChangeCalled = 0;
+
+        void reset() {
+            onCreateCalled = 0;
+            onPasswordChangeCalled = 0;
+        }
 
         @Override
         public void onCreate(User user, String password, Root root, NamePathMapper namePathMapper) throws RepositoryException {
