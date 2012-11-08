@@ -23,7 +23,7 @@ import org.apache.jackrabbit.api.security.principal.JackrabbitPrincipal;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
- * PrincipalImpl TODO
+ * Default implementation of the {@code JackrabbitPrincipal} interface.
  */
 public class PrincipalImpl implements JackrabbitPrincipal {
 
