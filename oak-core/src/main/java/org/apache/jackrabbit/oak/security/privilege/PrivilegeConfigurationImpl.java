@@ -25,10 +25,10 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
+import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
-import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeManagerImpl;
-import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeProvider;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeDefinitionProvider;
 
 /**
  * PrivilegeConfigurationImpl... TODO
@@ -36,14 +36,20 @@ import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeProvider;
 public class PrivilegeConfigurationImpl extends SecurityConfiguration.Default implements PrivilegeConfiguration {
 
     @Override
-    public PrivilegeProvider getPrivilegeProvider(ContentSession contentSession, Root root) {
-        return new PrivilegeRegistry(contentSession, root);
+    public PrivilegeDefinitionProvider getPrivilegeDefinitionProvider(ContentSession contentSession, Root root) {
+        return new PrivilegeDefinitionProviderImpl(contentSession, root);
     }
 
     @Nonnull
     @Override
     public PrivilegeManager getPrivilegeManager(ContentSession contentSession, Root root, NamePathMapper namePathMapper) {
-        return new PrivilegeManagerImpl(root, getPrivilegeProvider(contentSession, root), namePathMapper);
+        return new PrivilegeManagerImpl(root, getPrivilegeDefinitionProvider(contentSession, root), namePathMapper);
+    }
+
+    @Nonnull
+    @Override
+    public RepositoryInitializer getRepositoryInitializer() {
+        return new PrivilegeInitializer();
     }
 
     @Override

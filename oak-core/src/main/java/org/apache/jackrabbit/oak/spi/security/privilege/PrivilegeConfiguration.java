@@ -30,7 +30,7 @@ import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 public interface PrivilegeConfiguration extends SecurityConfiguration {
 
     @Nonnull
-    PrivilegeProvider getPrivilegeProvider(ContentSession contentSession, Root root);
+    PrivilegeDefinitionProvider getPrivilegeDefinitionProvider(ContentSession contentSession, Root root);
 
     @Nonnull
     PrivilegeManager getPrivilegeManager(ContentSession contentSession, Root root, NamePathMapper namePathMapper);

@@ -59,7 +59,7 @@ public class PrivilegeManagerTest extends AbstractPrivilegeTest {
         set.addAll(Arrays.asList(all.getAggregatePrivileges()));
 
         for (Privilege p : registered) {
-            assertTrue(set.remove(p));
+            assertTrue(p.getName(), set.remove(p));
         }
         assertTrue(set.isEmpty());
     }

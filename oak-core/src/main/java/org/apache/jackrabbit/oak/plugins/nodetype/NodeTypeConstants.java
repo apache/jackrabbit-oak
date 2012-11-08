@@ -33,6 +33,12 @@ public interface NodeTypeConstants extends JcrConstants {
     String JCR_AVAILABLE_QUERY_OPERATORS = "jcr:availableQueryOperators";
 
     /**
+     * Constants for built-in repository defined node type names
+     */
+    String NT_REP_ROOT = "rep:root";
+    String NT_REP_SYSTEM = "rep:system";
+
+    /**
      * Additinal name constants not present in JcrConstants
      */
     String JCR_CREATEDBY = "jcr:createdBy";

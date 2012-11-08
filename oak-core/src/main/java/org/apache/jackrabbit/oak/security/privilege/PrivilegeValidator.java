@@ -52,7 +52,7 @@ class PrivilegeValidator implements PrivilegeConstants, Validator {
 
         if (privilegesBefore != null) {
             reader = new PrivilegeDefinitionReader(privilegesBefore);
-            definitions = PrivilegeRegistry.getAllDefinitions(reader);
+            definitions = reader.readDefinitions();
         } else {
             reader = null;
             definitions = null;

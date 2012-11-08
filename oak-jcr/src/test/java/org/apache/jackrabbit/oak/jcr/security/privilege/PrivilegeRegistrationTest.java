@@ -146,6 +146,15 @@ public class PrivilegeRegistrationTest extends AbstractPrivilegeTest {
                 // success
             }
         }
+
+        for (String builtInName : builtIns.keySet()) {
+            try {
+                privilegeManager.registerPrivilege(builtInName, true, builtIns.get(builtInName));
+                fail("Privilege name " +builtInName+ " already in use -> Exception expected");
+            } catch (RepositoryException e) {
+                // success
+            }
+        }
     }
 
     @Test
