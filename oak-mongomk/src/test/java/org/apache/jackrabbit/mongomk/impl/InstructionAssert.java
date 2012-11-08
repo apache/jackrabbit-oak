@@ -18,29 +18,16 @@ package org.apache.jackrabbit.mongomk.impl;
 
 import static junit.framework.Assert.assertEquals;
 
-import org.apache.jackrabbit.mongomk.api.model.Instruction.AddNodeInstruction;
-import org.apache.jackrabbit.mongomk.api.model.Instruction.AddPropertyInstruction;
-import org.apache.jackrabbit.mongomk.api.model.Instruction.CopyNodeInstruction;
-import org.apache.jackrabbit.mongomk.api.model.Instruction.MoveNodeInstruction;
-import org.apache.jackrabbit.mongomk.api.model.Instruction.RemoveNodeInstruction;
-import org.apache.jackrabbit.mongomk.api.model.Instruction.SetPropertyInstruction;
+import org.apache.jackrabbit.mongomk.api.instruction.Instruction.AddNodeInstruction;
+import org.apache.jackrabbit.mongomk.api.instruction.Instruction.CopyNodeInstruction;
+import org.apache.jackrabbit.mongomk.api.instruction.Instruction.MoveNodeInstruction;
+import org.apache.jackrabbit.mongomk.api.instruction.Instruction.RemoveNodeInstruction;
+import org.apache.jackrabbit.mongomk.api.instruction.Instruction.SetPropertyInstruction;
 
-
-/**
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
- */
-@SuppressWarnings("javadoc")
 public class InstructionAssert {
 
     public static void assertAddNodeInstruction(AddNodeInstruction instruction, String path) {
         assertEquals(path, instruction.getPath());
-    }
-
-    public static void assertAddPropertyInstruction(AddPropertyInstruction instruction, String path, String key,
-            Object value) {
-        assertEquals(path, instruction.getPath());
-        assertEquals(key, instruction.getKey());
-        assertEquals(value, instruction.getValue());
     }
 
     public static void assertCopyNodeInstruction(CopyNodeInstruction instruction, String path, String sourcePath,
@@ -66,9 +53,5 @@ public class InstructionAssert {
         assertEquals(path, instruction.getPath());
         assertEquals(key, instruction.getKey());
         assertEquals(value, instruction.getValue());
-    }
-
-    private InstructionAssert() {
-        // no instantiation
     }
 }

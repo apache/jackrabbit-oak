@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.mk.tests;
 
-import org.apache.jackrabbit.mk.util.MKOperation;
+import org.apache.jackrabbit.mk.util.MicroKernelOperation;
 import org.apache.jackrabbit.mk.testing.MicroKernelTestBase;
 import org.apache.jackrabbit.mk.util.Committer;
 import org.junit.BeforeClass;
@@ -24,66 +24,68 @@ import org.junit.Test;
 
 /**
  * Measure the time needed for writing the same node structure in one or
- * multiple commit steps .
- * 
- * @author rogoz
- * 
+ * multiple commit steps.
+ * <p>
+ * Tree structure:
+ * <p>
+ * Number of nodes per <b>level</b> =100^(<b>level</b>).
+ * <p>
+ * Each node has 100 children.
  */
 public class MkAddNodesMultipleCommitsTest extends MicroKernelTestBase {
 
-	static String diff;
-	static int nodesNumber = 10000;
-	static String nodeNamePrefix = "N";
+    static String diff;
+    static int nodesNumber = 1000;
+    static String nodeNamePrefix = "N";
 
-	@BeforeClass
-	public static void prepareDiff() {
-		diff = MKOperation.buildPyramidDiff("/", 0, 100, nodesNumber,
-				nodeNamePrefix, new StringBuilder()).toString();
-	}
+    @BeforeClass
+    public static void prepareDiff() {
+        diff = MicroKernelOperation.buildPyramidDiff("/", 0, 10, nodesNumber,
+                nodeNamePrefix, new StringBuilder()).toString();
+    }
 
-	@Test
-	public void testWriteNodesAllNodes1Commit() {
+    @Test
+    public void testWriteNodesAllNodes1Commit() {
 
-		Committer commiter = new Committer();
-		chronometer.start();
-		commiter.addNodes(mk, diff, 0);
-		chronometer.stop();
-		System.out.println("Total time for testWriteNodesAllNodes1Commit is "
-				+ chronometer.getSeconds());
-	}
+        Committer commiter = new Committer();
+        chronometer.start();
+        commiter.addNodes(mk, diff, 0);
+        chronometer.stop();
+        System.out.println("Total time for testWriteNodesAllNodes1Commit is "
+                + chronometer.getSeconds());
+    }
 
-	@Test
-	public void testWriteNodes1NodePerCommit() {
+    @Test
+    public void testWriteNodes1NodePerCommit() {
 
-		Committer commiter = new Committer();
-		chronometer.start();
-		commiter.addNodes(mk, diff, 1);
-		chronometer.stop();
-		System.out.println("Total time for testWriteNodes1NodePerCommit is "
-				+ chronometer.getSeconds());
-	}
+        Committer commiter = new Committer();
+        chronometer.start();
+        commiter.addNodes(mk, diff, 1);
+        chronometer.stop();
+        System.out.println("Total time for testWriteNodes1NodePerCommit is "
+                + chronometer.getSeconds());
+    }
 
-	@Test
-	public void testWriteNodes50NodesPerCommit() {
+    @Test
+    public void testWriteNodes50NodesPerCommit() {
 
-		Committer commiter = new Committer();
-		chronometer.start();
-		commiter.addNodes(mk, diff, 50);
-		chronometer.stop();
-		System.out.println("Total time for testWriteNodes50NodesPerCommit is "
-				+ chronometer.getSeconds());
-	}
+        Committer commiter = new Committer();
+        chronometer.start();
+        commiter.addNodes(mk, diff, 50);
+        chronometer.stop();
+        System.out.println("Total time for testWriteNodes50NodesPerCommit is "
+                + chronometer.getSeconds());
+    }
 
-	@Test
-	public void testWriteNodes1000NodesPerCommit() {
+    @Test
+    public void testWriteNodes1000NodesPerCommit() {
 
-		Committer commiter = new Committer();
-		chronometer.start();
-		commiter.addNodes(mk, diff, 1000);
-		chronometer.stop();
-		System.out
-				.println("Total time for testWriteNodes1000NodesPerCommit is "
-						+ chronometer.getSeconds());
-	}
-
+        Committer commiter = new Committer();
+        chronometer.start();
+        commiter.addNodes(mk, diff, 10);
+        chronometer.stop();
+        System.out
+                .println("Total time for testWriteNodes1000NodesPerCommit is "
+                        + chronometer.getSeconds());
+    }
 }

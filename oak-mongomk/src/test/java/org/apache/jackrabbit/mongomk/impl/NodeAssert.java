@@ -17,45 +17,54 @@
 package org.apache.jackrabbit.mongomk.impl;
 
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.Map;
-import java.util.Set;
-
-import org.apache.jackrabbit.mongomk.api.model.Node;
 
 import junit.framework.Assert;
 
+import org.apache.jackrabbit.mongomk.api.model.Node;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 
-/**
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
- */
-@SuppressWarnings("javadoc")
 public class NodeAssert {
 
     public static void assertDeepEquals(Node expected, Node actual) {
         assertEquals(expected, actual);
 
-        Set<Node> expectedChildren = expected.getChildren();
-        Set<Node> actualChildren = actual.getChildren();
+        int expectedCount = expected.getChildNodeCount();
+        int actualCount = actual.getChildNodeCount();
+        Assert.assertEquals(expectedCount, actualCount);
 
-        if (expectedChildren == null) {
-            Assert.assertNull(actualChildren);
-        } else {
-            Assert.assertNotNull(actualChildren);
-            Assert.assertEquals(expectedChildren.size(), actualChildren.size());
-
-            for (Node expectedChild : expectedChildren) {
-                boolean valid = false;
-                for (Node actualChild : actualChildren) {
-                    if (expectedChild.getName().equals(actualChild.getName())) {
-                        assertDeepEquals(expectedChild, actualChild);
-                        valid = true;
-
-                        break;
-                    }
+        for (Iterator<Node> it = expected.getChildNodeEntries(0, -1); it.hasNext(); ) {
+            Node expectedChild = it.next();
+            String expectedChildName = PathUtils.getName(expectedChild.getPath());
+            boolean valid = false;
+            for (Iterator<Node> it2 = actual.getChildNodeEntries(0, -1); it2.hasNext(); ) {
+                Node actualChild = it2.next();
+                String actualChildName = PathUtils.getName(actualChild.getPath());
+                if (expectedChildName.equals(actualChildName)) {
+                    assertDeepEquals(expectedChild, actualChild);
+                    valid = true;
+                    break;
                 }
-
-                Assert.assertTrue(valid);
             }
+
+            Assert.assertTrue(valid);
+        }
+    }
+
+    public static void assertEquals(Iterator<Node> expecteds, Collection<Node> actuals) {
+        for (Iterator<Node> iter1 = expecteds; iter1.hasNext();) {
+            Node expected = iter1.next();
+            boolean valid = false;
+            for (Iterator<Node> iter2 = actuals.iterator(); iter2.hasNext();) {
+                Node actual = iter2.next();
+                if (expected.getPath().equals(actual.getPath())) {
+                    assertEquals(expected, actual);
+                    valid = true;
+                    break;
+                }
+            }
+            Assert.assertTrue(valid);
         }
     }
 
@@ -78,7 +87,6 @@ public class NodeAssert {
     }
 
     public static void assertEquals(Node expected, Node actual) {
-        Assert.assertEquals(expected.getName(), actual.getName());
         Assert.assertEquals(expected.getPath(), actual.getPath());
 
         Long expectedRevisionId = expected.getRevisionId();
@@ -95,8 +103,8 @@ public class NodeAssert {
             Assert.assertEquals(expectedRevisionId, actualRevisionId);
         }
 
-        Map<String, Object> expectedProperties = expected.getProperties();
-        Map<String, Object> actualProperties = actual.getProperties();
+        Map<String, String> expectedProperties = expected.getProperties();
+        Map<String, String> actualProperties = actual.getProperties();
 
         if (expectedProperties == null) {
             Assert.assertNull(actualProperties);
@@ -109,9 +117,5 @@ public class NodeAssert {
         if ((actualProperties != null) && (expectedProperties != null)) {
             Assert.assertEquals(expectedProperties, actualProperties);
         }
-    }
-
-    private NodeAssert() {
-        // no instantiation
     }
 }

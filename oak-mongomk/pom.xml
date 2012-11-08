@@ -46,7 +46,10 @@
                             org.apache.jackrabbit.mongomk.*
                         </Private-Package>
                         <Export-Package>
-                            org.apache.jackrabbit.mongomk.api.*
+                            org.apache.jackrabbit.mongomk.api.*,
+                            org.apache.jackrabbit.mk.model.*,
+                            org.apache.jackrabbit.mk.store.*,
+                            org.apache.jackrabbit.mk.persistence.*
                         </Export-Package>
                         <Embed-Dependency>
                             org.apache.sling.commons.osgi;inline=org/apache/sling/commons/osgi/PropertiesUtil.class
@@ -141,6 +144,11 @@
         <artifactId>logback-classic</artifactId>
         <version>1.0.1</version>
         <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.googlecode.json-simple</groupId>
+      <artifactId>json-simple</artifactId>
+      <version>1.1</version>
     </dependency>
 
   </dependencies>

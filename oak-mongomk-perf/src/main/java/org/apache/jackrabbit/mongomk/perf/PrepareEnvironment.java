@@ -16,14 +16,9 @@
  */
 package org.apache.jackrabbit.mongomk.perf;
 
-import org.apache.jackrabbit.mongomk.MongoConnection;
-import org.apache.jackrabbit.mongomk.util.MongoUtil;
+import org.apache.jackrabbit.mongomk.impl.MongoConnection;
 import org.apache.log4j.Logger;
 
-
-/**
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
- */
 public class PrepareEnvironment {
 
     private static final Logger LOG = Logger.getLogger(PrepareEnvironment.class);
@@ -33,18 +28,16 @@ public class PrepareEnvironment {
 
     public PrepareEnvironment(Config config) throws Exception {
         this.config = config;
-
-        this.initMongo();
+        initMongo();
     }
 
     public void start() {
         LOG.info("Preparing environment");
-
-        MongoUtil.initDatabase(this.mongoConnection);
+        //mongoConnection.initializeDB(true);
     }
 
     private void initMongo() throws Exception {
-        this.mongoConnection = new MongoConnection(this.config.getMongoHost(), this.config.getMongoPort(),
-                this.config.getMongoDatabase());
+        mongoConnection = new MongoConnection(config.getMongoHost(), config.getMongoPort(),
+                config.getMongoDatabase());
     }
 }

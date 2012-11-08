@@ -18,51 +18,59 @@ package org.apache.jackrabbit.mongomk.api.model;
 
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Set;
+
+import org.apache.jackrabbit.mk.model.NodeDiffHandler;
 
 /**
  * A higher level object representing a node.
- *
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
  */
 public interface Node {
 
     /**
+     * Returns the descendant node entry (descendant)
+     *
+     * @param name Name of the descendant.
+     * @return Descendant node.
+     */
+    Node getChildNodeEntry(String name);
+
+    /**
+     *
      * Returns the total number of children of this node.
      *
      * <p>
-     * <strong>This is not necessarily equal to the number of children returned by {@link #getChildren()} since this
-     * {@code Node} might be created with only a subset of children.</strong>
+     * <strong>This is not necessarily equal to the number of children returned by
+     * {@link #getChildren()} since this {@code Node} might be created with only
+     * a subset of children.</strong>
      * </p>
      *
      * @return The total number of children.
      */
-    long getChildCount();
+    int getChildNodeCount();
 
     /**
-     * Returns the children this {@code Node} was created with.
+     * Returns the children iterator for the supplied offset and count.
      *
-     * @return The children.
+     * @param offset The offset to return the children from.
+     * @param count The number of children to return.
+     * @return Iterator with child entries.
      */
-    Set<Node> getChildren(); // TODO Replace Set with Collection
-
-    // TODO - [Mete] Document.
-    Iterator<Node> getChildEntries(int offset, int count);
-
-    /**
-     * Returns the descendants (children, children of the children, etc) this {@code Node} was created with.
-     *
-     * @param includeThis Flag indicating whether this {@code Node} should be included in the list.
-     * @return The descendants.
-     */
-    Set<Node> getDescendants(boolean includeThis);
+    Iterator<Node> getChildNodeEntries(int offset, int count);
 
     /**
-     * Returns the name of this {@code Node}.
+     * Returns the properties this {@code Node} was created with.
      *
-     * @return The name.
+     * @return The properties.
      */
-    String getName();
+    Map<String, String> getProperties();
+
+    /**
+     * Diffs this node with the other node and calls the passed in diff handler.
+     *
+     * @param otherNode Other node.
+     * @param nodeDiffHandler Diff handler.
+     */
+    void diff(Node otherNode, NodeDiffHandler nodeDiffHandler);
 
     /**
      * Returns the path of this {@code Node}.
@@ -72,29 +80,11 @@ public interface Node {
     String getPath();
 
     /**
-     * Returns the properties this {@code Node} was created with.
-     *
-     * @return The properties.
-     */
-    Map<String, Object> getProperties();
-
-    /**
      * Returns the revision id of this node if known already, else this will return {@code null}.
      * The revision id will be determined only after the commit has been successfully
      * performed or the node has been read as part of an existing revision.
      *
-     * @see #setRevisionId(Long)
-     *
      * @return The revision id of this commit or {@code null}.
      */
     Long getRevisionId();
-
-    /**
-     * Sets the revision id of this node.
-     *
-     * @see #getRevisionId()
-     *
-     * @param revisionId The revision id to set.
-     */
-    void setRevisionId(Long revisionId);
 }

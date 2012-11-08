@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.mongomk.performance.write;
 
 import org.apache.jackrabbit.mongomk.impl.MongoMicroKernel;
-import org.apache.jackrabbit.mongomk.util.MongoUtil;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -25,102 +24,101 @@ import org.junit.Test;
 
 /**
  * Writing tests with multiple Mks.
- * @author rogoz
- *
  */
 public class MultipleMksWriteNodesTest extends MultipleNodesTestBase {
 
-	static int mkNumber = 5;
-	static long nodesNumber=2000;
-	static SimpleWriter[] sWorker = new SimpleWriter[mkNumber];
-	static AdvanceWriter[] aWorker = new AdvanceWriter[mkNumber];
+    static int mkNumber = 5;
+    static long nodesNumber=2000;
+    static SimpleWriter[] sWorker = new SimpleWriter[mkNumber];
+    static AdvanceWriter[] aWorker = new AdvanceWriter[mkNumber];
 
-	@BeforeClass
-	public static void init() throws Exception {
-		readConfig();
-		initMongo();
-		for (int i = 0; i < mkNumber; i++) {
-			MongoMicroKernel mk = initMicroKernel();
-			sWorker[i] = new SimpleWriter("Thread " + i, mk,nodesNumber);
-			aWorker[i] = new AdvanceWriter("Thread " + i, mk,nodesNumber);
-		}
-	}
+    @BeforeClass
+    public static void init() throws Exception {
+        readConfig();
+        initMongo();
+        for (int i = 0; i < mkNumber; i++) {
+            MongoMicroKernel mk = initMicroKernel();
+            sWorker[i] = new SimpleWriter("Thread " + i, mk,nodesNumber);
+            aWorker[i] = new AdvanceWriter("Thread " + i, mk,nodesNumber);
+        }
+    }
 
-	@Before
-	public void cleanDatabase() {
-		MongoUtil.initDatabase(mongoConnection);
-	}
+    @Before
+    public void cleanDatabase() {
+        // FIXME
+        //mongoConnection.initializeDB(true);
+    }
 
-	/**
-	 * Each worker creates 2000 nodes on the same level.
-	 * 5 workers x 2000 nodes=10000 nodes
-	 * @throws InterruptedException
-	 */
-	@Test
-	public void testWriteSameLine() throws InterruptedException {
+    /**
+     * Each worker creates 2000 nodes on the same level.
+     * 5 workers x 2000 nodes=10000 nodes
+     * @throws InterruptedException
+     */
+    @Test
+    public void testWriteSameLine() throws InterruptedException {
 
-		for (int i = 0; i < mkNumber; i++) {
-			sWorker[i].start();
+        for (int i = 0; i < mkNumber; i++) {
+            sWorker[i].start();
 
-		}
-		for (int i = 0; i < mkNumber; i++) {
-			sWorker[i].join();
-		}
-	}
+        }
+        for (int i = 0; i < mkNumber; i++) {
+            sWorker[i].join();
+        }
+    }
 
-	/**
-	 * Each worker is creating a pyramid containing 2000 nodes.
-	 * 5 workers x 2000 nodes=10000 nodes
-	 * 
-	 * @throws InterruptedException
-	 */
-	@Test
-	public void testWritePyramid() throws InterruptedException {
+    /**
+     * Each worker is creating a pyramid containing 2000 nodes.
+     * 5 workers x 2000 nodes=10000 nodes
+     *
+     * @throws InterruptedException
+     */
+    @Test
+    public void testWritePyramid() throws InterruptedException {
 
-		for (int i = 0; i < mkNumber; i++) {
-			aWorker[i].start();
+        for (int i = 0; i < mkNumber; i++) {
+            aWorker[i].start();
 
-		}
-		for (int i = 0; i < mkNumber; i++) {
-			aWorker[i].join();
-		}
-	}
+        }
+        for (int i = 0; i < mkNumber; i++) {
+            aWorker[i].join();
+        }
+    }
 
 }
 
 class SimpleWriter extends Thread {
 
-	MongoMicroKernel mk;
+    MongoMicroKernel mk;
 
-	long nodesNumber;
+    long nodesNumber;
 
-	public SimpleWriter(String str, MongoMicroKernel mk, long nodesNumber) {
-		super(str);
-		this.mk = mk;
-		this.nodesNumber = nodesNumber;
-	}
+    public SimpleWriter(String str, MongoMicroKernel mk, long nodesNumber) {
+        super(str);
+        this.mk = mk;
+        this.nodesNumber = nodesNumber;
+    }
 
-	public void run() {
-		for (int i = 0; i < nodesNumber; i++) {
-			TestUtil.createNode(mk, "/", getId() + "No" + i);
-		}
-	}
+    public void run() {
+        for (int i = 0; i < nodesNumber; i++) {
+            TestUtil.createNode(mk, "/", getId() + "No" + i);
+        }
+    }
 }
 
 class AdvanceWriter extends Thread {
 
-	MongoMicroKernel mk;
-	long nodesNumber;
+    MongoMicroKernel mk;
+    long nodesNumber;
 
-	public AdvanceWriter(String str, MongoMicroKernel mk, long nodesNumber) {
-		super(str);
-		this.mk = mk;
-		this.nodesNumber = nodesNumber;
-	}
+    public AdvanceWriter(String str, MongoMicroKernel mk, long nodesNumber) {
+        super(str);
+        this.mk = mk;
+        this.nodesNumber = nodesNumber;
+    }
 
-	public void run() {
+    public void run() {
 
-		TestUtil.insertNode(mk, "/", 0, 50, nodesNumber, "T" + getId());
+        TestUtil.insertNode(mk, "/", 0, 50, nodesNumber, "T" + getId());
 
-	}
+    }
 }

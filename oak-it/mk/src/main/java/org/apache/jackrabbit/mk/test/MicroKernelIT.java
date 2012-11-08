@@ -1238,12 +1238,12 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
 
     @Test
     public void testSmallBlob() {
-        testBlobs(1234, 8 * 1024);
+        testBlobs(1024, 1024);
     }
 
     @Test
     public void testMediumBlob() {
-        testBlobs(1234567, 8 * 1024);
+        testBlobs(1024 * 1024, 8 * 1024);
     }
 
     @Test

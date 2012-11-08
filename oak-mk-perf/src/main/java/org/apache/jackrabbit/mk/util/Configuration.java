@@ -20,39 +20,36 @@ import java.util.Properties;
 
 public class Configuration {
 
-	    
-	    private static final String MK_TYPE="mk.type";
-	    private static final String HOST = "hostname";
-	    private static final String MONGO_PORT = "mongo.port";
-	    private static final String STORAGE_PATH = "storage.path";
-	    private static final String DATABASE="mongo.database";
-	    
-	    private final Properties properties;
+    private static final String MK_TYPE = "mk.type";
+    private static final String HOST = "hostname";
+    private static final String MONGO_PORT = "mongo.port";
+    private static final String STORAGE_PATH = "storage.path";
+    private static final String DATABASE = "mongo.database";
 
-	    public Configuration(Properties properties) {
-	        this.properties = properties;
-	    }
+    private final Properties properties;
 
-	    public String getMkType() {
-	        return properties.getProperty(MK_TYPE);
-	    }
+    public Configuration(Properties properties) {
+        this.properties = properties;
+    }
 
-	    public String getHost() {
-	        return properties.getProperty(HOST);
-	    }
+    public String getMkType() {
+        return properties.getProperty(MK_TYPE);
+    }
 
-	    public int getMongoPort() {
-	        return Integer.parseInt(properties.getProperty(MONGO_PORT));
-	    }
-	    
-	    public String getStoragePath() {
-	        return properties.getProperty(STORAGE_PATH);
-	    }
+    public String getHost() {
+        return properties.getProperty(HOST);
+    }
 
-		public String getMongoDatabase() {
-			
-			return properties.getProperty(DATABASE);
-		}
+    public int getMongoPort() {
+        return Integer.parseInt(properties.getProperty(MONGO_PORT));
+    }
+
+    public String getStoragePath() {
+        return properties.getProperty(STORAGE_PATH);
+    }
+
+    public String getMongoDatabase() {
+
+        return properties.getProperty(DATABASE);
+    }
 }
-
-

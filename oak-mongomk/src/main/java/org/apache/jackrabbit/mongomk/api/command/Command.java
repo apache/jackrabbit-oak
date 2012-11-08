@@ -16,39 +16,34 @@
  */
 package org.apache.jackrabbit.mongomk.api.command;
 
-import org.apache.jackrabbit.mk.api.MicroKernel;
 
 /**
- * The {@code Command} framework provides an way to encapsulate specific actions of the {@link MicroKernel}.
+ * The {@code Command} framework provides an way to encapsulate specific actions
+ * of the {code MicroKernel}.
  *
  * <p>
- * It adds some functionality for retries and other non business logic related actions (i.e. logging, performance
- * tracking, etc).
+ * It adds some functionality for retries and other non business logic related
+ * actions (i.e. logging, performance tracking, etc).
  * </p>
  *
  * @see <a href="http://en.wikipedia.org/wiki/Command_pattern">Command Pattern</a>
  * @see CommandExecutor
  *
- * @param <T>
- *            The result type of the {@code Command}.
- *
- * @author <a href="mailto:pmarx@adobe.com>Philipp Marx</a>
+ * @param <T> The result type of the {@code Command}.
  */
 public interface Command<T> {
-
-    // TODO Add postExecute and preExecute; Maybe add AOP but only if Granite moves to OSGi 4.3
 
     /**
      * Executes the {@code Command} and returns its result.
      *
      * @return The result.
-     * @throws Exception
-     *             If an error occurred while executing.
+     * @throws Exception If an error occurred while executing.
      */
     T execute() throws Exception;
 
     /**
-     * Returns the number of retries this {@code Command} should be retried in case of an error or false result.
+     * Returns the number of retries this {@code Command} should be retried in
+     * case of an error or false result.
      *
      * <p>
      * The number of reties is evaluated in the following way:
@@ -58,8 +53,8 @@ public interface Command<T> {
      * </p>
      *
      * <p>
-     * In order to determine whether the {@code Command} should be retired on of {@link #needsRetry(Exception)} or
-     * {@link #needsRetry(Object)} will be called.
+     * In order to determine whether the {@code Command} should be retired on
+     * {@link #needsRetry(Exception)} or {@link #needsRetry(Object)} will be called.
      * </p>
      *
      * @see #needsRetry(Exception)
@@ -70,8 +65,8 @@ public interface Command<T> {
     int getNumOfRetries();
 
     /**
-     * Will be called in case of an {@link Exception} during the execution and a given number of retries which has not
-     * exceeded.
+     * Will be called in case of an {@link Exception} during the execution and
+     * a given number of retries which has not exceeded.
      *
      * @param e The Exception which was thrown.
      * @return {@code true} if a retry should be performed, else {@code false}.
@@ -79,7 +74,8 @@ public interface Command<T> {
     boolean needsRetry(Exception e);
 
     /**
-     * Will be called in case of a successful execution and a given number of retries which has not exceeded.
+     * Will be called in case of a successful execution and a given number of
+     * retries which has not exceeded.
      *
      * <p>
      * This gives the implementor a chance to retry a false result.
