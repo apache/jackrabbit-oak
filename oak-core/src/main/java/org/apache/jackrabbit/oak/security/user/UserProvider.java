@@ -131,11 +131,23 @@ import static org.apache.jackrabbit.oak.api.Type.STRING;
  *
  * <h2>User and Group Access</h2>
  * <h3>By ID</h3>
- * TODO
+ * Accessing authorizables by ID is achieved by calculating the ContentId
+ * associated with that user/group and using {@link org.apache.jackrabbit.oak.api.SessionQueryEngine}
+ * to find the corresponding {@code Tree}. The result is validated to really
+ * represent a user/group tree.
+ *
  * <h3>By Path</h3>
- * TODO
- * <h3>By Principal Name</h3>
- * TODO
+ * Access by path consists of a simple lookup by path such as exposed by
+ * {@link Root#getTree(String)}. The resulting tree is validated to really
+ * represent a user/group tree.
+ *
+ * <h3>By Principal</h3>
+ * If the principal instance passed to {@link #getAuthorizableByPrincipal(java.security.Principal)}
+ * is a {@code TreeBasedPrincipal} the lookup is equivalent to
+ * {@link #getAuthorizableByPath(String)}. Otherwise the user/group is search
+ * for using {@link org.apache.jackrabbit.oak.api.SessionQueryEngine} looking
+ * for a property {@link UserConstants#REP_PRINCIPAL_NAME} that matches the
+ * name of the specified principal.
  */
 class UserProvider extends AuthorizableBaseProvider {
 
@@ -193,6 +205,7 @@ class UserProvider extends AuthorizableBaseProvider {
             StringBuilder stmt = new StringBuilder();
             stmt.append("SELECT * FROM [").append(UserConstants.NT_REP_AUTHORIZABLE).append(']');
             stmt.append("WHERE [").append(UserConstants.REP_PRINCIPAL_NAME).append("] = $principalName");
+
             Result result = root.getQueryEngine().executeQuery(stmt.toString(),
                     Query.JCR_SQL2, 1, 0,
                     Collections.singletonMap("principalName", PropertyValues.newString(principal.getName())),
