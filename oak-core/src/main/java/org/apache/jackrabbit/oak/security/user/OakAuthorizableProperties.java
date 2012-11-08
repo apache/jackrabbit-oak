@@ -39,13 +39,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * OakAuthorizableProperty... TODO
+ * Oak level implementation of the internal {@code AuthorizableProperties} that
+ * is used in those cases where no {@code Session} is associated with the
+ * {@code UserManager} and only OAK API methods can be used to read and
+ * modify authorizable properties.
  */
 class OakAuthorizableProperties implements AuthorizableProperties {
 
-    /**
-     * logger instance
-     */
     private static final Logger log = LoggerFactory.getLogger(OakAuthorizableProperties.class);
 
     private final UserProvider userProvider;
@@ -58,6 +58,7 @@ class OakAuthorizableProperties implements AuthorizableProperties {
         this.namePathMapper = namePathMapper;
     }
 
+    //---------------------------------------------< AuthorizableProperties >---
     @Override
     public Iterator<String> getNames(String relPath) throws RepositoryException {
         checkRelativePath(relPath);
@@ -188,6 +189,8 @@ class OakAuthorizableProperties implements AuthorizableProperties {
         return false;
     }
 
+    //------------------------------------------------------------< private >---
+
     private Tree getTree() {
         return userProvider.getAuthorizable(id);
     }
@@ -205,9 +208,8 @@ class OakAuthorizableProperties implements AuthorizableProperties {
      * @return {@code true} if the given property is defined
      * by the rep:authorizable node type or one of it's sub-node types;
      * {@code false} otherwise.
-     * @throws RepositoryException If the property definition cannot be retrieved.
      */
-    private boolean isAuthorizableProperty(Tree authorizableTree, TreeLocation propertyLocation, boolean verifyAncestor) throws RepositoryException {
+    private boolean isAuthorizableProperty(Tree authorizableTree, TreeLocation propertyLocation, boolean verifyAncestor) {
         if (verifyAncestor && !Text.isDescendant(authorizableTree.getPath(), propertyLocation.getPath())) {
                 log.debug("Attempt to access property outside of authorizable scope.");
                 return false;
@@ -217,7 +219,7 @@ class OakAuthorizableProperties implements AuthorizableProperties {
 
     }
 
-    private boolean isAuthorizableProperty(Tree authorizableTree, PropertyState property) throws RepositoryException {
+    private boolean isAuthorizableProperty(Tree authorizableTree, PropertyState property) {
         // FIXME: add proper check for protection and declaring nt of the
         // FIXME: property using nt functionality provided by nt-plugins
         return isAuthorizableProperty(property.getName());
