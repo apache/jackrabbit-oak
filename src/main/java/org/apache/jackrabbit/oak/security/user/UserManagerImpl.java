@@ -296,7 +296,7 @@ public class UserManagerImpl implements UserManager {
     Tree getAuthorizableTree(String id) {
         Tree tree = userProvider.getAuthorizable(id);
         if (tree == null) {
-            throw new IllegalStateException("Authorizable not associated with an existing tree");
+            throw new IllegalStateException("Authorizable not associated with an existing tree (WAITING FOR OAK-343 TO BE FIXED)");
         }
         return tree;
     }
