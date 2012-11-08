@@ -38,6 +38,21 @@ public class ReadOnlyBuilder implements NodeBuilder {
     }
 
     @Override
+    public boolean isNew() {
+        return false;
+    }
+
+    @Override
+    public boolean isRemoved() {
+        return false;
+    }
+
+    @Override
+    public boolean isModified() {
+        return false;
+    }
+
+    @Override
     public NodeState getNodeState() {
         return state;
     }
