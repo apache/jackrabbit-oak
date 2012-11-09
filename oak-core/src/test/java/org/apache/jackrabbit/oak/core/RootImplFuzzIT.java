@@ -21,8 +21,6 @@ package org.apache.jackrabbit.oak.core;
 import java.util.Iterator;
 import java.util.Random;
 
-import javax.security.auth.Subject;
-
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -30,8 +28,6 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.RootImplFuzzIT.Operation.Rebase;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
-import org.apache.jackrabbit.oak.security.authorization.AccessControlProviderImpl;
-import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
 import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -77,14 +73,12 @@ public class RootImplFuzzIT {
         MicroKernel mk1 = new MicroKernelImpl("./target/mk1/" + random.nextInt());
         store1 = new KernelNodeStore(mk1);
         mk1.commit("", "+\"/root\":{}", mk1.getHeadRevision(), "");
-        root1 = new RootImpl(store1, null, new Subject(),
-                new AccessControlProviderImpl(), new CompositeQueryIndexProvider());
+        root1 = new RootImpl(store1);
 
         MicroKernel mk2 = new MicroKernelImpl("./target/mk2/" + random.nextInt());
         store2 = new KernelNodeStore(mk2);
         mk2.commit("", "+\"/root\":{}", mk2.getHeadRevision(), "");
-        root2 = new RootImpl(store2, null, new Subject(),
-                new AccessControlProviderImpl(), new CompositeQueryIndexProvider());
+        root2 = new RootImpl(store2);
     }
 
     @Test
