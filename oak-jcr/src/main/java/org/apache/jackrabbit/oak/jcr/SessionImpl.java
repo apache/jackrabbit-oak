@@ -360,11 +360,11 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
         String oakPath = dlg.getOakPathOrNull(absPath);
         if (oakPath == null) {
             // TODO should we throw an exception here?
-            return TODO.dummyImplementation().returnValue(false);
+            return TODO.unimplemented().returnValue(false);
         }
 
         // TODO implement hasPermission
-        return TODO.dummyImplementation().returnValue(true);
+        return TODO.unimplemented().returnValue(true);
     }
 
     /**
@@ -389,7 +389,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     @Nonnull
     public AccessControlManager getAccessControlManager()
             throws RepositoryException {
-        return TODO.dummyImplementation().returnValue(new AccessControlManager() {
+        return TODO.unimplemented().returnValue(new AccessControlManager() {
             @Override
             public void setPolicy(String absPath, AccessControlPolicy policy) {
                 throw new AccessControlException(policy.toString());
