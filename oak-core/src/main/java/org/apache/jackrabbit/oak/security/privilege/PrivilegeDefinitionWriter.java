@@ -43,7 +43,7 @@ class PrivilegeDefinitionWriter implements PrivilegeConstants {
         writeDefinitions(Collections.singleton(definition));
     }
 
-    void writeDefinitions(Set<PrivilegeDefinition> definitions) throws RepositoryException {
+    void writeDefinitions(Iterable<PrivilegeDefinition> definitions) throws RepositoryException {
         try {
             // make sure the privileges path is defined
             Tree privilegesTree = root.getTree(PRIVILEGES_PATH);
