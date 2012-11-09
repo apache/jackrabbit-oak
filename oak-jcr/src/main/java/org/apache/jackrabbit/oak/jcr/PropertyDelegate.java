@@ -96,9 +96,14 @@ public class PropertyDelegate extends ItemDelegate {
 
     @Nonnull
     private PropertyState getPropertyState() throws InvalidItemStateException {
-        return getPropertyLocation().getProperty();  // Not null
+        PropertyState property = getPropertyLocation().getProperty();
+        if (property == null) {
+            throw new InvalidItemStateException();
+        }
+        return property;
     }
 
+    @Nonnull
     private PropertyLocation getPropertyLocation() throws InvalidItemStateException {
         TreeLocation location = getLocation();
         if (!(location instanceof PropertyLocation)) {
