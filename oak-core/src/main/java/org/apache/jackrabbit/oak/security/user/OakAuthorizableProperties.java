@@ -222,7 +222,7 @@ class OakAuthorizableProperties implements AuthorizableProperties {
     private boolean isAuthorizableProperty(Tree authorizableTree, PropertyState property) {
         // FIXME: add proper check for protection and declaring nt of the
         // FIXME: property using nt functionality provided by nt-plugins
-        return isAuthorizableProperty(property.getName());
+        return property != null && isAuthorizableProperty(property.getName());
     }
 
     private boolean isAuthorizableProperty(String propertyName) {
