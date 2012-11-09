@@ -17,11 +17,21 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.standard.StandardAnalyzer;
+import org.apache.lucene.util.Version;
+import org.apache.tika.Tika;
 
 public interface LuceneIndexConstants extends IndexConstants {
 
     String TYPE_LUCENE = "lucene";
 
     String INDEX_DATA_CHILD_NAME = ":data";
+
+    Version VERSION = Version.LUCENE_40;
+
+    Analyzer ANALYZER = new StandardAnalyzer(VERSION);
+
+    Tika TIKA = new Tika();
 
 }

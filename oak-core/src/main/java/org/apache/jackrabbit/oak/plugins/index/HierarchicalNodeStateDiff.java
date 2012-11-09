@@ -16,24 +16,17 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
-import java.io.Closeable;
+import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 
-import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-
-/**
- * Represents the content of a QueryIndex as well as a mechanism for keeping
- * this content up to date.
- * 
- */
-public interface IndexHook extends HierarchicalNodeStateDiff<IndexHook>,
-        Closeable {
+public interface HierarchicalNodeStateDiff<T extends HierarchicalNodeStateDiff<T>>
+        extends NodeStateDiff {
 
     /**
-     * Applies the changes to the index content
+     * Generates a child HierarchicalNodeStateDiff, based on the current
+     * NodeStateDiff
      */
-    void apply() throws CommitFailedException;
+    T child(String name);
 
-    void reindex(NodeBuilder state) throws CommitFailedException;
+    String getPath();
 
 }

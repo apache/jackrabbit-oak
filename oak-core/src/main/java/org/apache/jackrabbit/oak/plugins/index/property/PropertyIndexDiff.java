@@ -17,31 +17,37 @@
 package org.apache.jackrabbit.oak.plugins.index.property;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
-import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.property.PropertyIndex.TYPE;
 
+import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.index.IndexHook;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 
 /**
- * {@link NodeStateDiff} implementation that extracts changes for the
- * {@link PropertyIndexHook} to be applied on the {@link PropertyIndex}
+ * {@link IndexHook} implementation that is responsible for keeping the
+ * {@link PropertyIndex} up to date
  * 
- * @see PropertyIndexHook
+ * @see PropertyIndex
+ * @see PropertyIndexLookup
  * 
  */
-class PropertyIndexDiff implements NodeStateDiff {
+class PropertyIndexDiff implements IndexHook {
 
     private final PropertyIndexDiff parent;
 
@@ -63,25 +69,25 @@ class PropertyIndexDiff implements NodeStateDiff {
         this.path = path;
         this.updates = updates;
 
-        if (node != null && isIndexNodeType(node.getProperty(JCR_PRIMARYTYPE))) {
-            update(node, name);
-        }
         if (node != null && node.hasChildNode(INDEX_DEFINITIONS_NAME)) {
             NodeBuilder index = node.child(INDEX_DEFINITIONS_NAME);
             for (String indexName : index.getChildNodeNames()) {
-                update(index.child(indexName), indexName);
+                NodeBuilder child = index.child(indexName);
+                if (isIndexNode(child)) {
+                    update(child, indexName);
+                }
             }
         }
     }
 
-    public PropertyIndexDiff(
-            NodeBuilder root, Map<String, List<PropertyIndexUpdate>> updates) {
-        this(null, root, null, "/", updates);
-    }
-
-    public PropertyIndexDiff(PropertyIndexDiff parent, String name) {
+    private PropertyIndexDiff(PropertyIndexDiff parent, String name) {
         this(parent, getChildNode(parent.node, name),
                 name, null, parent.updates);
+    }
+
+    public PropertyIndexDiff(NodeBuilder root) {
+        this(null, root, null, "/",
+                new HashMap<String, List<PropertyIndexUpdate>>());
     }
 
     private static NodeBuilder getChildNode(NodeBuilder node, String name) {
@@ -92,7 +98,7 @@ class PropertyIndexDiff implements NodeStateDiff {
         }
     }
 
-    private String getPath() {
+    public String getPath() {
         if (path == null) { // => parent != null
             path = concat(parent.getPath(), name);
         }
@@ -118,13 +124,30 @@ class PropertyIndexDiff implements NodeStateDiff {
                 list = Lists.newArrayList();
                 this.updates.put(pname, list);
             }
-            list.add(new PropertyIndexUpdate(getPath(), builder));
+            boolean exists = false;
+            for (PropertyIndexUpdate piu : list) {
+                if (piu.getPath().equals(getPath())) {
+                    exists = true;
+                    break;
+                }
+            }
+            if (!exists) {
+                list.add(new PropertyIndexUpdate(getPath(), builder));
+            }
         }
     }
 
-    private boolean isIndexNodeType(PropertyState ps) {
-        return ps != null && !ps.isArray()
+    private static boolean isIndexNode(NodeBuilder node) {
+        PropertyState ps = node.getProperty(JCR_PRIMARYTYPE);
+        boolean isNodeType = ps != null && !ps.isArray()
                 && ps.getValue(Type.STRING).equals(INDEX_DEFINITIONS_NODE_TYPE);
+        if (!isNodeType) {
+            return false;
+        }
+        PropertyState type = node.getProperty(TYPE_PROPERTY_NAME);
+        boolean isIndexType = type != null && !type.isArray()
+                && type.getValue(Type.STRING).equals(TYPE);
+        return isIndexType;
     }
 
     //-----------------------------------------------------< NodeStateDiff >--
@@ -160,7 +183,7 @@ class PropertyIndexDiff implements NodeStateDiff {
     public void childNodeChanged(
             String name, NodeState before, NodeState after) {
         if (!NodeStateUtils.isHidden(name)) {
-            after.compareAgainstBaseState(before, new PropertyIndexDiff(this, name));
+            after.compareAgainstBaseState(before, child(name));
         }
     }
 
@@ -169,4 +192,41 @@ class PropertyIndexDiff implements NodeStateDiff {
         childNodeChanged(name, before, MemoryNodeState.EMPTY_NODE);
     }
 
+    // -----------------------------------------------------< IndexHook >--
+
+    @Override
+    public void apply() throws CommitFailedException {
+        for (List<PropertyIndexUpdate> updateList : updates.values()) {
+            for (PropertyIndexUpdate update : updateList) {
+                update.apply();
+            }
+        }
+    }
+
+    @Override
+    public void reindex(NodeBuilder state) throws CommitFailedException {
+        boolean reindex = false;
+        for (List<PropertyIndexUpdate> updateList : updates.values()) {
+            for (PropertyIndexUpdate update : updateList) {
+                if (update.getAndResetReindexFlag()) {
+                    reindex = true;
+                }
+            }
+        }
+        if (reindex) {
+            state.getNodeState().compareAgainstBaseState(
+                    MemoryNodeState.EMPTY_NODE,
+                    new PropertyIndexDiff(null, state, null, "/", updates));
+        }
+    }
+
+    @Override
+    public IndexHook child(String name) {
+        return new PropertyIndexDiff(this, name);
+    }
+
+    @Override
+    public void close() throws IOException {
+        updates.clear();
+    }
 }

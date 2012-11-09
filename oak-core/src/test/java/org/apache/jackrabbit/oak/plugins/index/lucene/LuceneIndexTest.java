@@ -50,9 +50,9 @@ public class LuceneIndexTest implements LuceneIndexConstants {
         builder.setProperty("foo", "bar");
         NodeState after = builder.getNodeState();
 
-        IndexHook l = new LuceneHook(builder);
-        after.compareAgainstBaseState(before, l.preProcess());
-        l.postProcess();
+        IndexHook l = new LuceneIndexDiff(builder);
+        after.compareAgainstBaseState(before, l);
+        l.apply();
         l.close();
 
         IndexDefinition testDef = new IndexDefinitionImpl("lucene",

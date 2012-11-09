@@ -79,6 +79,8 @@ import com.google.common.collect.Sets;
  */
 public class PropertyIndex implements QueryIndex {
 
+    public static final String TYPE = "property";
+
     private static final int MAX_STRING_LENGTH = 100; // TODO: configurable
 
     static List<String> encode(PropertyValue value) {

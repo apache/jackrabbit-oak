@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.property;
 
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -54,6 +56,10 @@ class PropertyIndexUpdate {
         this.remove = Maps.newHashMap();
     }
 
+    String getPath() {
+        return path;
+    }
+
     public void insert(String path, PropertyState value) {
         Preconditions.checkArgument(path.startsWith(this.path));
         putValues(insert, path.substring(this.path.length()), value);
@@ -77,6 +83,14 @@ class PropertyIndexUpdate {
                 paths.add(path);
             }
         }
+    }
+
+    boolean getAndResetReindexFlag() {
+        boolean reindex = node.getProperty(REINDEX_PROPERTY_NAME) != null
+                && node.getProperty(REINDEX_PROPERTY_NAME).getValue(
+                        Type.BOOLEAN);
+        node.setProperty(REINDEX_PROPERTY_NAME, false);
+        return reindex;
     }
 
     public void apply() throws CommitFailedException {

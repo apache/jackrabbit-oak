@@ -18,110 +18,215 @@ package org.apache.jackrabbit.oak.plugins.index;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertFalse;
 
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.index.IndexHookManager.IndexDefDiff;
+import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexHookProvider;
+import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexLookup;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
-import com.google.common.collect.Lists;
+import com.google.common.collect.ImmutableSet;
 
 public class IndexHookManagerTest {
 
+    /**
+     * Simple Test
+     * <ul>
+     * <li>Add an index definition</li>
+     * <li>Add some content</li>
+     * <li>Search & verify</li>
+     * </ul>
+     * 
+     */
     @Test
     public void test() throws Exception {
         NodeState root = MemoryNodeState.EMPTY_NODE;
 
         NodeBuilder builder = root.builder();
-        // this index is on the current update branch, it should be seen by the
-        // diff
+
         builder.child("oak:index")
-                .child("existing")
+                .child("rootIndex")
+                .setProperty("propertyNames", "foo")
+                .setProperty("type", "property")
                 .setProperty(JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE,
                         Type.NAME);
-        // this index is NOT the current update branch, it should NOT be seen by
-        // the diff
         builder.child("newchild")
                 .child("other")
                 .child("oak:index")
-                .child("existing2")
+                .child("subIndex")
+                .setProperty("propertyNames", "foo")
+                .setProperty("type", "property")
                 .setProperty(JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE,
                         Type.NAME);
 
         NodeState before = builder.getNodeState();
-        // Add index definition
+        // Add nodes
+        builder.child("testRoot").setProperty("foo", "abc");
+        builder.child("newchild").child("other").child("testChild")
+                .setProperty("foo", "xyz");
+
+        NodeState after = builder.getNodeState();
+
+        IndexHookManager im = new IndexHookManager(
+                new CompositeIndexHookProvider(new PropertyIndexHookProvider()));
+        NodeState indexed = im.processCommit(before, after);
+
+        // first check that the index content nodes exist
+        checkPathExists(indexed, "oak:index", "rootIndex", ":index");
+        checkPathExists(indexed, "newchild", "other", "oak:index", "subIndex",
+                ":index");
+
+        PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
+        assertEquals(ImmutableSet.of("testRoot"), lookup.find("foo", "abc"));
+
+        PropertyIndexLookup lookupChild = new PropertyIndexLookup(indexed
+                .getChildNode("newchild").getChildNode("other"));
+        assertEquals(ImmutableSet.of("testChild"),
+                lookupChild.find("foo", "xyz"));
+        assertEquals(ImmutableSet.of(), lookupChild.find("foo", "abc"));
+
+    }
+
+    /**
+     * Reindex Test
+     * <ul>
+     * <li>Add some content</li>
+     * <li>Add an index definition with the reindex flag set</li>
+     * <li>Search & verify</li>
+     * </ul>
+     */
+    @Test
+    public void testReindex() throws Exception {
+        NodeState root = MemoryNodeState.EMPTY_NODE;
+
+        NodeBuilder builder = root.builder();
+
+        builder.child("testRoot").setProperty("foo", "abc");
+        NodeState before = builder.getNodeState();
+
         builder.child("oak:index")
-                .child("foo")
-                .setProperty(JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE,
-                        Type.NAME);
-        builder.child("test")
-                .child("other")
-                .child("oak:index")
-                .child("index2")
+                .child("rootIndex")
+                .setProperty("propertyNames", "foo")
+                .setProperty("type", "property")
+                .setProperty(REINDEX_PROPERTY_NAME, true)
                 .setProperty(JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE,
                         Type.NAME);
         NodeState after = builder.getNodeState();
 
-        // <path>, <state>
-        Map<String, NodeBuilder> defs = new HashMap<String, NodeBuilder>();
-        IndexDefDiff diff = new IndexDefDiff(builder, defs);
-        after.compareAgainstBaseState(before, diff);
+        IndexHookManager im = new IndexHookManager(
+                new CompositeIndexHookProvider(new PropertyIndexHookProvider()));
+        NodeState indexed = im.processCommit(before, after);
 
-        List<String> reindex = Lists.newArrayList("/oak:index/foo",
-                "/test/other/oak:index/index2");
-        List<String> updates = Lists.newArrayList("/oak:index/existing");
+        // first check that the index content nodes exist
+        NodeState ns = checkPathExists(indexed, "oak:index", "rootIndex");
+        checkPathExists(ns, ":index");
+        PropertyState ps = ns.getProperty(REINDEX_PROPERTY_NAME);
+        assertNotNull(ps);
+        assertFalse(ps.getValue(Type.BOOLEAN).booleanValue());
 
-        Iterator<String> iterator = defs.keySet().iterator();
-        while (iterator.hasNext()) {
-            String path = iterator.next();
-            if (IndexHookManager.getAndResetReindex(defs.get(path))) {
-                assertTrue("Missing " + path + " from reindex list",
-                        reindex.remove(path));
-            } else {
-                assertTrue("Missing " + path + " from updates list",
-                        updates.remove(path));
-            }
-            iterator.remove();
-        }
-        assertTrue(reindex.isEmpty());
-        assertTrue(updates.isEmpty());
-        assertTrue(defs.isEmpty());
+        // next, lookup
+        PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
+        assertEquals(ImmutableSet.of("testRoot"), lookup.find("foo", "abc"));
     }
 
+    /**
+     * Reindex Test
+     * <ul>
+     * <li>Add some content</li>
+     * <li>Add an index definition with no reindex flag</li>
+     * <li>Search & verify</li>
+     * </ul>
+     */
     @Test
-    public void testReindexFlag() throws Exception {
+    public void testReindex2() throws Exception {
         NodeState root = MemoryNodeState.EMPTY_NODE;
 
         NodeBuilder builder = root.builder();
+
+        builder.child("testRoot").setProperty("foo", "abc");
+        NodeState before = builder.getNodeState();
+
         builder.child("oak:index")
-                .child("reindexed")
+                .child("rootIndex")
+                .setProperty("propertyNames", "foo")
+                .setProperty("type", "property")
                 .setProperty(JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE,
-                        Type.NAME)
-                .setProperty(IndexConstants.REINDEX_PROPERTY_NAME, true);
-        NodeState state = builder.getNodeState();
+                        Type.NAME);
+        NodeState after = builder.getNodeState();
 
-        // <path>, <state>
-        Map<String, NodeBuilder> defs = new HashMap<String, NodeBuilder>();
-        IndexDefDiff diff = new IndexDefDiff(builder, defs);
-        state.compareAgainstBaseState(state, diff);
+        IndexHookManager im = new IndexHookManager(
+                new CompositeIndexHookProvider(new PropertyIndexHookProvider()));
+        NodeState indexed = im.processCommit(before, after);
 
-        List<String> reindex = Lists.newArrayList("/oak:index/reindexed");
-        Iterator<String> iterator = defs.keySet().iterator();
-        while (iterator.hasNext()) {
-            String path = iterator.next();
-            assertTrue("Missing " + path + " from reindex list",
-                    reindex.remove(path));
-            iterator.remove();
-        }
-        assertTrue(reindex.isEmpty());
-        assertTrue(defs.isEmpty());
+        // first check that the index content nodes exist
+        NodeState ns = checkPathExists(indexed, "oak:index", "rootIndex");
+        checkPathExists(ns, ":index");
+        PropertyState ps = ns.getProperty(REINDEX_PROPERTY_NAME);
+        assertNotNull(ps);
+        assertFalse(ps.getValue(Type.BOOLEAN).booleanValue());
+
+        // next, lookup
+        PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
+        assertEquals(ImmutableSet.of("testRoot"), lookup.find("foo", "abc"));
     }
+
+    /**
+     * Reindex Test
+     * <ul>
+     * <li>Add some content & an index definition</li>
+     * <li>Update the index def by setting the reindex flag to true</li>
+     * <li>Search & verify</li>
+     * </ul>
+     */
+    @Test
+    public void testReindex3() throws Exception {
+        NodeState root = MemoryNodeState.EMPTY_NODE;
+
+        NodeBuilder builder = root.builder();
+
+        builder.child("testRoot").setProperty("foo", "abc");
+        builder.child("oak:index")
+                .child("rootIndex")
+                .setProperty("propertyNames", "foo")
+                .setProperty("type", "property")
+                .setProperty(JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE,
+                        Type.NAME);
+        NodeState before = builder.getNodeState();
+        builder.child("oak:index").child("rootIndex")
+                .setProperty(REINDEX_PROPERTY_NAME, true);
+        NodeState after = builder.getNodeState();
+
+        IndexHookManager im = new IndexHookManager(
+                new CompositeIndexHookProvider(new PropertyIndexHookProvider()));
+        NodeState indexed = im.processCommit(before, after);
+
+        // first check that the index content nodes exist
+        NodeState ns = checkPathExists(indexed, "oak:index", "rootIndex");
+        checkPathExists(ns, ":index");
+        PropertyState ps = ns.getProperty(REINDEX_PROPERTY_NAME);
+        assertNotNull(ps);
+        assertFalse(ps.getValue(Type.BOOLEAN).booleanValue());
+
+        // next, lookup
+        PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
+        assertEquals(ImmutableSet.of("testRoot"), lookup.find("foo", "abc"));
+    }
+
+    private static NodeState checkPathExists(NodeState state, String... verify) {
+        NodeState c = state;
+        for (String p : verify) {
+            assertTrue(c.hasChildNode(p));
+            c = c.getChildNode(p);
+        }
+        return c;
+    }
+
 }

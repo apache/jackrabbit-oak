@@ -35,11 +35,19 @@ public interface IndexHookProvider {
      * <code>type</code> param is of an unknown value, the provider is expected
      * to return an empty list.
      * 
+     * <p>
+     * The <code>builder</code> must point to the repository content node, not
+     * the index content node. Each <code>IndexHook</code> implementation will
+     * have to drill down to its specific index content, and possibly deal with
+     * multiple indexes of the same type.
+     * </p>
+     * 
      * @param type
      *            the index type
      * @param builder
-     *            the node state builder that will be used for updates
-     * @return a list of index hooks
+     *            the node state builder of the content node that will be used
+     *            for updates
+     * @return a list of index hooks of the given type
      */
     @Nonnull
     List<? extends IndexHook> getIndexHooks(String type, NodeBuilder builder);
