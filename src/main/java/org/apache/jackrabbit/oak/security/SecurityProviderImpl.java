@@ -29,7 +29,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.security.authentication.LoginContextProviderImpl;
 import org.apache.jackrabbit.oak.security.authentication.token.TokenProviderImpl;
-import org.apache.jackrabbit.oak.security.authorization.AccessControlProviderImpl;
+import org.apache.jackrabbit.oak.security.authorization.AccessControlConfigurationImpl;
 import org.apache.jackrabbit.oak.security.principal.PrincipalManagerImpl;
 import org.apache.jackrabbit.oak.security.principal.PrincipalProviderImpl;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeConfigurationImpl;
@@ -41,7 +41,7 @@ import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginContextProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
-import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlProvider;
+import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
@@ -106,8 +106,8 @@ public class SecurityProviderImpl implements SecurityProvider {
 
     @Nonnull
     @Override
-    public AccessControlProvider getAccessControlProvider() {
-        return new AccessControlProviderImpl();
+    public AccessControlConfiguration getAccessControlProvider() {
+        return new AccessControlConfigurationImpl();
     }
 
     @Nonnull

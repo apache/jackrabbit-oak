@@ -24,8 +24,8 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginContextProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.OpenLoginContextProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
-import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlProvider;
-import org.apache.jackrabbit.oak.spi.security.authorization.OpenAccessControlProvider;
+import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfiguration;
+import org.apache.jackrabbit.oak.spi.security.authorization.OpenAccessControlConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
@@ -56,8 +56,8 @@ public class OpenSecurityProvider implements SecurityProvider {
 
     @Nonnull
     @Override
-    public AccessControlProvider getAccessControlProvider() {
-        return new OpenAccessControlProvider();
+    public AccessControlConfiguration getAccessControlProvider() {
+        return new OpenAccessControlConfiguration();
     }
 
     @Nonnull
