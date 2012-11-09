@@ -39,9 +39,9 @@ import org.apache.jackrabbit.oak.spi.commit.ConflictHandler;
 import org.apache.jackrabbit.oak.spi.observation.ChangeExtractor;
 import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
-import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlProvider;
+import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.CompiledPermissions;
-import org.apache.jackrabbit.oak.spi.security.authorization.OpenAccessControlProvider;
+import org.apache.jackrabbit.oak.spi.security.authorization.OpenAccessControlConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.SystemPrincipal;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -69,7 +69,7 @@ public class RootImpl implements Root {
     /**
      * The access control context provider.
      */
-    private final AccessControlProvider accProvider;
+    private final AccessControlConfiguration accConfiguration;
 
     /** Current branch this root operates on */
     private NodeStoreBranch branch;
@@ -93,18 +93,18 @@ public class RootImpl implements Root {
      * @param store         node store
      * @param workspaceName name of the workspace
      * @param subject       the subject.
-     * @param accProvider   the access control context provider.
+     * @param accConfiguration   the access control context provider.
      * @param indexProvider the query index provider.
      */
     @SuppressWarnings("UnusedParameters")
     public RootImpl(NodeStore store,
                     String workspaceName,
                     Subject subject,
-                    AccessControlProvider accProvider,
+                    AccessControlConfiguration accConfiguration,
                     QueryIndexProvider indexProvider) {
         this.store = checkNotNull(store);
         this.subject = checkNotNull(subject);
-        this.accProvider = checkNotNull(accProvider);
+        this.accConfiguration = checkNotNull(accConfiguration);
         this.indexProvider = indexProvider;
         refresh();
     }
@@ -113,7 +113,7 @@ public class RootImpl implements Root {
     public RootImpl(NodeStore store) {
         this.store = checkNotNull(store);
         this.subject = new Subject(true, Collections.singleton(SystemPrincipal.INSTANCE), Collections.<Object>emptySet(), Collections.<Object>emptySet());
-        this.accProvider = new OpenAccessControlProvider();
+        this.accConfiguration = new OpenAccessControlConfiguration();
         this.indexProvider = new CompositeQueryIndexProvider();
         refresh();
     }
@@ -318,7 +318,7 @@ public class RootImpl implements Root {
     }
 
     CompiledPermissions getPermissions() {
-        return accProvider.getAccessControlContext(subject).getPermissions();
+        return accConfiguration.getAccessControlContext(subject).getPermissions();
     }
 
     //------------------------------------------------------------< private >---

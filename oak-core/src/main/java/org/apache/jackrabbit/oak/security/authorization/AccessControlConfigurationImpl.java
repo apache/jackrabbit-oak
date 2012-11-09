@@ -19,18 +19,26 @@ package org.apache.jackrabbit.oak.security.authorization;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import javax.annotation.Nonnull;
+import javax.jcr.security.AccessControlManager;
 import javax.security.auth.Subject;
 
+import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
+import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlContext;
-import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlProvider;
 
 /**
- * {@code AccessControlProviderImpl} is a default implementation and
- * creates {@link AccessControlContextImpl} for a given set of principals.
+ * {@code AccessControlConfigurationImpl} ... TODO
  */
-public class AccessControlProviderImpl extends SecurityConfiguration.Default implements AccessControlProvider {
+public class AccessControlConfigurationImpl extends SecurityConfiguration.Default implements AccessControlConfiguration {
+
+    @Override
+    public AccessControlManager getAccessControlManager(Root root, NamePathMapper namePathMapper) {
+        throw new UnsupportedOperationException("not yet implemented");
+    }
 
     @Override
     public AccessControlContext getAccessControlContext(Subject subject) {
@@ -40,7 +48,7 @@ public class AccessControlProviderImpl extends SecurityConfiguration.Default imp
     @Override
     public List<ValidatorProvider> getValidatorProviders() {
         List<ValidatorProvider> vps = new ArrayList<ValidatorProvider>();
-        vps.add(new PermissionValidatorProvider());
+        vps.add(new PermissionValidatorProvider(this));
         vps.add(new AccessControlValidatorProvider());
         return Collections.unmodifiableList(vps);
     }

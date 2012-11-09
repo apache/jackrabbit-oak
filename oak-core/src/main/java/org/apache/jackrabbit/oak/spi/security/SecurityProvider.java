@@ -22,7 +22,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginContextProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
-import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlProvider;
+import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
@@ -44,7 +44,7 @@ public interface SecurityProvider {
     TokenProvider getTokenProvider(Root root);
 
     @Nonnull
-    AccessControlProvider getAccessControlProvider();
+    AccessControlConfiguration getAccessControlProvider();
 
     @Nonnull
     PrivilegeConfiguration getPrivilegeConfiguration();

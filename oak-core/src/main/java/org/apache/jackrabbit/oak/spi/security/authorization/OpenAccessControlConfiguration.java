@@ -16,14 +16,32 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization;
 
+import javax.jcr.security.AccessControlManager;
 import javax.security.auth.Subject;
 
+import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 
 /**
- * {@code AccessControlContextProvider}...
+ * This class implements an {@link AccessControlConfiguration} which grants
+ * full access to any {@link Subject} passed to {@link #getAccessControlContext(Subject)}.
  */
-public interface AccessControlProvider extends SecurityConfiguration {
+public class OpenAccessControlConfiguration extends SecurityConfiguration.Default
+        implements AccessControlConfiguration {
 
-    public AccessControlContext getAccessControlContext(Subject subject);
+    @Override
+    public AccessControlManager getAccessControlManager(Root root, NamePathMapper namePathMapper) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public AccessControlContext getAccessControlContext(Subject subject) {
+        return new AccessControlContext() {
+            @Override
+            public CompiledPermissions getPermissions() {
+                return AllPermissions.getInstance();
+            }
+        };
+    }
 }

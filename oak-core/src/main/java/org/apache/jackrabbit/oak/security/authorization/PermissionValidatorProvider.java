@@ -24,6 +24,7 @@ import javax.security.auth.Subject;
 import org.apache.jackrabbit.oak.core.ReadOnlyTree;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
+import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlContext;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.util.NodeUtil;
@@ -32,6 +33,12 @@ import org.apache.jackrabbit.oak.util.NodeUtil;
  * PermissionValidatorProvider... TODO
  */
 public class PermissionValidatorProvider implements ValidatorProvider {
+
+    private final AccessControlConfiguration accessControlConfiguration;
+
+    PermissionValidatorProvider(AccessControlConfiguration accessControlConfiguration) {
+        this.accessControlConfiguration = accessControlConfiguration;
+    }
 
     @Nonnull
     @Override
@@ -42,9 +49,7 @@ public class PermissionValidatorProvider implements ValidatorProvider {
             subject = new Subject();
         }
 
-        // FIXME: should use same provider as in ContentRepositoryImpl
-        AccessControlContext context = new AccessControlProviderImpl()
-                .getAccessControlContext(subject);
+        AccessControlContext context = accessControlConfiguration.getAccessControlContext(subject);
 
         NodeUtil rootBefore = new NodeUtil(new ReadOnlyTree(before));
         NodeUtil rootAfter = new NodeUtil(new ReadOnlyTree(after));

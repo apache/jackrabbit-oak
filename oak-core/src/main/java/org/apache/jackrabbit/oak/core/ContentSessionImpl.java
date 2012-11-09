@@ -27,7 +27,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.commit.ConflictHandler;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginContext;
-import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlProvider;
+import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfiguration;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,7 +42,7 @@ class ContentSessionImpl implements ContentSession {
     private static final Logger log = LoggerFactory.getLogger(ContentSessionImpl.class);
 
     private final LoginContext loginContext;
-    private final AccessControlProvider accProvider;
+    private final AccessControlConfiguration accConfiguration;
     private final String workspaceName;
     private final NodeStore store;
     private final ConflictHandler conflictHandler;
@@ -51,11 +51,11 @@ class ContentSessionImpl implements ContentSession {
     private volatile boolean live = true;
 
     public ContentSessionImpl(LoginContext loginContext,
-            AccessControlProvider accProvider, String workspaceName,
+            AccessControlConfiguration accConfiguration, String workspaceName,
             NodeStore store, ConflictHandler conflictHandler,
             QueryIndexProvider indexProvider) {
         this.loginContext = loginContext;
-        this.accProvider = accProvider;
+        this.accConfiguration = accConfiguration;
         this.workspaceName = workspaceName;
         this.store = store;
         this.conflictHandler = conflictHandler;
@@ -88,7 +88,7 @@ class ContentSessionImpl implements ContentSession {
     @Override
     public Root getLatestRoot() {
         checkLive();
-        RootImpl root = new RootImpl(store, workspaceName, loginContext.getSubject(), accProvider, indexProvider) {
+        RootImpl root = new RootImpl(store, workspaceName, loginContext.getSubject(), accConfiguration, indexProvider) {
             @Override
             protected void checkLive() {
                 ContentSessionImpl.this.checkLive();
