@@ -16,63 +16,37 @@
  */
 package org.apache.jackrabbit.oak.security.privilege;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.NamespaceException;
 import javax.jcr.RepositoryException;
-import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
 
-import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
+import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeDefinition;
-import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeDefinitionProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * {@code PrivilegeManager} implementation operating on the specified
- * {@code PrivilegeDefinitionProvider}.
+ * {@code PrivilegeManager} implementation reading from and storing privileges
+ * into the repository.
  */
-public class PrivilegeManagerImpl implements PrivilegeManager {
+public class PrivilegeManagerImpl extends ReadOnlyPrivilegeManager {
 
     /**
      * logger instance
      */
     private static final Logger log = LoggerFactory.getLogger(PrivilegeManagerImpl.class);
 
-    private final Root root;
-    private final NamePathMapper namePathMapper;
+    private final ContentSession contentSession;
 
-    private final PrivilegeDefinitionProvider provider;
-
-    public PrivilegeManagerImpl(Root root, PrivilegeDefinitionProvider provider, NamePathMapper namePathMapper) {
-        this.root = root;
-        this.namePathMapper = namePathMapper;
-        this.provider = provider;
-    }
-
-    @Override
-    public Privilege[] getRegisteredPrivileges() throws RepositoryException {
-        Set<Privilege> privileges = new HashSet<Privilege>();
-        for (PrivilegeDefinition def : provider.getPrivilegeDefinitions()) {
-            privileges.add(new PrivilegeImpl(def));
-        }
-        return privileges.toArray(new Privilege[privileges.size()]);
-    }
-
-    @Override
-    public Privilege getPrivilege(String privilegeName) throws RepositoryException {
-        PrivilegeDefinition def = provider.getPrivilegeDefinition(getOakName(privilegeName));
-        if (def == null) {
-            throw new AccessControlException("No such privilege " + privilegeName);
-        } else {
-            return new PrivilegeImpl(def);
-        }
+    public PrivilegeManagerImpl(Root root, NamePathMapper namePathMapper, ContentSession contentSession) {
+        super(root, namePathMapper);
+        this.contentSession = contentSession;
     }
 
     @Override
@@ -89,16 +63,16 @@ public class PrivilegeManagerImpl implements PrivilegeManager {
             throw new NamespaceException("Invalid privilege name " + privilegeName);
         }
 
-        PrivilegeDefinition def = provider.registerDefinition(oakName, isAbstract, getOakNames(declaredAggregateNames));
-        return new PrivilegeImpl(def);
+        PrivilegeDefinition definition = new PrivilegeDefinitionImpl(oakName, isAbstract, getOakNames(declaredAggregateNames));
+        PrivilegeDefinitionWriter writer = new PrivilegeDefinitionWriter(contentSession.getLatestRoot());
+        writer.writeDefinition(definition);
+
+        // refresh the current root to make sure the definition is visible
+        root.refresh();
+        return getPrivilege(definition);
     }
 
     //------------------------------------------------------------< private >---
-
-    private String getOakName(String jcrName) {
-        return namePathMapper.getOakName(jcrName);
-    }
-
     private Set<String> getOakNames(String[] jcrNames) throws RepositoryException {
         Set<String> oakNames;
         if (jcrNames == null || jcrNames.length == 0) {
@@ -114,84 +88,5 @@ public class PrivilegeManagerImpl implements PrivilegeManager {
             }
         }
         return oakNames;
-    }
-
-    //--------------------------------------------------------------------------
-    /**
-     * Privilege implementation based on a {@link PrivilegeDefinition}.
-     */
-    private class PrivilegeImpl implements Privilege {
-
-        private final PrivilegeDefinition definition;
-
-        private PrivilegeImpl(PrivilegeDefinition definition) {
-            this.definition = definition;
-        }
-
-        //------------------------------------------------------< Privilege >---
-        @Override
-        public String getName() {
-            return getOakName(definition.getName());
-        }
-
-        @Override
-        public boolean isAbstract() {
-            return definition.isAbstract();
-        }
-
-        @Override
-        public boolean isAggregate() {
-            return !definition.getDeclaredAggregateNames().isEmpty();
-        }
-
-        @Override
-        public Privilege[] getDeclaredAggregatePrivileges() {
-            Set<String> declaredAggregateNames = definition.getDeclaredAggregateNames();
-            Set<Privilege> declaredAggregates = new HashSet<Privilege>(declaredAggregateNames.size());
-            for (String pName : declaredAggregateNames) {
-                try {
-                    declaredAggregates.add(getPrivilege(pName));
-                } catch (RepositoryException e) {
-                    log.warn("Error while retrieving privilege "+ pName +" contained in " + getName(), e.getMessage());
-                }
-            }
-            return declaredAggregates.toArray(new Privilege[declaredAggregates.size()]);
-        }
-
-        @Override
-        public Privilege[] getAggregatePrivileges() {
-            Set<Privilege> aggr = new HashSet<Privilege>();
-            for (Privilege decl : getDeclaredAggregatePrivileges()) {
-                aggr.add(decl);
-                if (decl.isAggregate()) {
-                    // TODO: defensive check to prevent circular aggregation that might occur with inconsistent repositories
-                    aggr.addAll(Arrays.asList(decl.getAggregatePrivileges()));
-                }
-            }
-            return aggr.toArray(new Privilege[aggr.size()]);
-        }
-
-        //---------------------------------------------------------< Object >---
-        @Override
-        public int hashCode() {
-            return definition.hashCode();
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (o == this) {
-                return true;
-            }
-            if (o instanceof PrivilegeImpl) {
-                return definition.equals(((PrivilegeImpl) o).definition);
-            } else {
-                return false;
-            }
-        }
-
-        @Override
-        public String toString() {
-            return "Privilege " + definition.getName();
-        }
     }
 }

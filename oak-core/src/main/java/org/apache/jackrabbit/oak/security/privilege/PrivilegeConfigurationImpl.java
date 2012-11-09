@@ -28,22 +28,22 @@ import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
-import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeDefinitionProvider;
 
 /**
  * PrivilegeConfigurationImpl... TODO
  */
 public class PrivilegeConfigurationImpl extends SecurityConfiguration.Default implements PrivilegeConfiguration {
 
+    @Nonnull
     @Override
-    public PrivilegeDefinitionProvider getPrivilegeDefinitionProvider(ContentSession contentSession, Root root) {
-        return new PrivilegeDefinitionProviderImpl(contentSession, root);
+    public PrivilegeManager getPrivilegeManager(Root root, NamePathMapper namePathMapper) {
+        return new ReadOnlyPrivilegeManager(root, namePathMapper);
     }
 
     @Nonnull
     @Override
     public PrivilegeManager getPrivilegeManager(ContentSession contentSession, Root root, NamePathMapper namePathMapper) {
-        return new PrivilegeManagerImpl(root, getPrivilegeDefinitionProvider(contentSession, root), namePathMapper);
+        return new PrivilegeManagerImpl(root, namePathMapper, contentSession);
     }
 
     @Nonnull
@@ -52,6 +52,7 @@ public class PrivilegeConfigurationImpl extends SecurityConfiguration.Default im
         return new PrivilegeInitializer();
     }
 
+    @Nonnull
     @Override
     public List<ValidatorProvider> getValidatorProviders() {
         ValidatorProvider vp = new PrivilegeValidatorProvider();
