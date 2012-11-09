@@ -272,11 +272,12 @@ public class MemoryNodeBuilder implements NodeBuilder {
             return false;
         }
         else {
+            NodeState baseState = getBaseState();
             for (Entry<String, MutableNodeState> n : writeState.nodes.entrySet()) {
                 if (n.getValue() == null) {
                     return true;
                 }
-                if (!getBaseState().hasChildNode(n.getKey())) {
+                if (baseState != null && !baseState.hasChildNode(n.getKey())) {
                     return true;
                 }
             }
@@ -285,7 +286,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
                 if (pState == null) {
                     return true;
                 }
-                if (!pState.equals(getBaseState().getProperty(p.getKey()))) {
+                if (baseState != null && !pState.equals(baseState.getProperty(p.getKey()))) {
                     return true;
                 }
             }
