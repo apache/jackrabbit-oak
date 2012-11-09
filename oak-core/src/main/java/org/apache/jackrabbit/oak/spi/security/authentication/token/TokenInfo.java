@@ -22,23 +22,60 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
 
 /**
- * TokenInfo... TODO
+ * The {@code TokenInfo} provides data associated with a login token and
+ * basic methods to verify the validity of token credentials at given
+ * point in time.
  */
 public interface TokenInfo {
 
+    /**
+     * Returns the ID of the user associated with this token info object.
+     *
+     * @return the ID of the user.
+     */
     @Nonnull
     String getUserId();
 
+    /**
+     * Returns the login token.
+     *
+     * @return the login token.
+     */
     @Nonnull
     String getToken();
 
+    /**
+     * Returns {@code true} if the token has already expired; {@code false} otherwise.
+     *
+     * @param loginTime The login time used to calculate the expiration status.
+     * @return {@code true} if the token has already expired; {@code false} otherwise.
+     */
     boolean isExpired(long loginTime);
 
+    /**
+     * Returns {@code true} if the specified credentials can be successfully
+     * validated against the information stored in this instance.
+     *
+     * @param tokenCredentials The credentials to validate.
+     * @return {@code true} if the specified credentials can be successfully
+     * validated against the information stored in this instance; {@code false}
+     * otherwise.
+     */
     boolean matches(TokenCredentials tokenCredentials);
 
+    /**
+     * Returns the private attributes stored with this info object.
+     *
+     * @return the private attributes stored with this info object.
+     */
     @Nonnull
     Map<String, String> getPrivateAttributes();
 
+    /**
+     * Returns the public attributes stored with this info object.
+     *
+     * @return the public attributes stored with this info object.
+     */
     @Nonnull
     Map<String, String> getPublicAttributes();
 }
