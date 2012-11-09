@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.property;
 
+import static org.apache.jackrabbit.oak.plugins.index.property.PropertyIndex.TYPE;
+
 import java.util.List;
 
 import org.apache.felix.scr.annotations.Component;
@@ -29,7 +31,7 @@ import com.google.common.collect.ImmutableList;
 /**
  * Service that provides PropertyIndex based IndexHooks
  * 
- * @see PropertyIndexHook
+ * @see PropertyIndexDiff
  * @see IndexHookProvider
  * 
  */
@@ -37,13 +39,11 @@ import com.google.common.collect.ImmutableList;
 @Service(IndexHookProvider.class)
 public class PropertyIndexHookProvider implements IndexHookProvider {
 
-    private static final String TYPE = "property";
-
     @Override
     public List<? extends IndexHook> getIndexHooks(String type,
             NodeBuilder builder) {
         if (TYPE.equals(type)) {
-            return ImmutableList.of(new PropertyIndexHook(builder));
+            return ImmutableList.of(new PropertyIndexDiff(builder));
         }
         return ImmutableList.of();
     }
