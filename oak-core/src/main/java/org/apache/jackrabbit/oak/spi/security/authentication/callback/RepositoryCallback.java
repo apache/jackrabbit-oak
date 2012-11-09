@@ -24,8 +24,8 @@ import javax.security.auth.callback.Callback;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.core.RootImpl;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
-import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlProvider;
-import org.apache.jackrabbit.oak.spi.security.authorization.OpenAccessControlProvider;
+import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfiguration;
+import org.apache.jackrabbit.oak.spi.security.authorization.OpenAccessControlConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.SystemPrincipal;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
@@ -49,8 +49,8 @@ public class RepositoryCallback implements Callback {
     public Root getRoot() {
         if (nodeStore != null) {
             Subject subject = new Subject(true, Collections.singleton(SystemPrincipal.INSTANCE), Collections.<Object>emptySet(), Collections.<Object>emptySet());
-            AccessControlProvider acProvider = new OpenAccessControlProvider();
-            return new RootImpl(nodeStore, workspaceName, subject, acProvider, indexProvider);
+            AccessControlConfiguration acConfiguration = new OpenAccessControlConfiguration();
+            return new RootImpl(nodeStore, workspaceName, subject, acConfiguration, indexProvider);
         }
         return null;
     }
