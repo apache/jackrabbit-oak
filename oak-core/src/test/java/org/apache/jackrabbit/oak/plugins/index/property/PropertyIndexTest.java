@@ -40,6 +40,7 @@ public class PropertyIndexTest {
         NodeBuilder builder = root.builder();
         builder.child("oak:index").child("foo")
                 .setProperty("jcr:primaryType", "oak:queryIndexDefinition", Type.NAME)
+                .setProperty("type", "property")
                 .setProperty("propertyNames", "foo");
         NodeState before = builder.getNodeState();
 
@@ -63,9 +64,9 @@ public class PropertyIndexTest {
         withoutIndex = System.nanoTime() - withoutIndex;
 
         // ... then see how adding an index affects the code
-        IndexHook p = new PropertyIndexHook(builder);
-        after.compareAgainstBaseState(before, p.preProcess());
-        p.postProcess();
+        IndexHook p = new PropertyIndexDiff(builder);
+        after.compareAgainstBaseState(before, p);
+        p.apply();
         p.close();
 
         lookup = new PropertyIndexLookup(builder.getNodeState());
@@ -88,6 +89,7 @@ public class PropertyIndexTest {
         NodeBuilder builder = root.builder();
         builder.child("oak:index").child("fooIndex")
                 .setProperty("jcr:primaryType", "oak:queryIndexDefinition", Type.NAME)
+                .setProperty("type", "property")
                 .setProperty("propertyNames", Arrays.asList("foo", "extrafoo"), Type.STRINGS);
         NodeState before = builder.getNodeState();
 
@@ -113,9 +115,9 @@ public class PropertyIndexTest {
         withoutIndex = System.nanoTime() - withoutIndex;
 
         // ... then see how adding an index affects the code
-        IndexHook p = new PropertyIndexHook(builder);
-        after.compareAgainstBaseState(before, p.preProcess());
-        p.postProcess();
+        IndexHook p = new PropertyIndexDiff(builder);
+        after.compareAgainstBaseState(before, p);
+        p.apply();
         p.close();
 
         lookup = new PropertyIndexLookup(builder.getNodeState());

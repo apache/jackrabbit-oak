@@ -29,9 +29,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import com.google.common.collect.ImmutableList;
 
 /**
- * Service that provides Lucene based IndexHooks
+ * Service that provides Lucene based {@link IndexHook}s
  * 
- * @see LuceneHook
+ * @see LuceneIndexDiff
  * @see IndexHookProvider
  * 
  */
@@ -43,7 +43,7 @@ public class LuceneIndexHookProvider implements IndexHookProvider {
     public List<? extends IndexHook> getIndexHooks(String type,
             NodeBuilder builder) {
         if (TYPE_LUCENE.equals(type)) {
-            return ImmutableList.of(new LuceneHook(builder));
+            return ImmutableList.of(new LuceneIndexDiff(builder));
         }
         return ImmutableList.of();
     }

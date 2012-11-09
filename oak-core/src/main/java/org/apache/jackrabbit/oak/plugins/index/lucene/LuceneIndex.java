@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 import javax.annotation.CheckForNull;
 import javax.jcr.RepositoryException;
@@ -35,11 +34,10 @@ import org.apache.jackrabbit.oak.core.ReadOnlyTree;
 import org.apache.jackrabbit.oak.plugins.index.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
-import org.apache.jackrabbit.oak.query.index.IndexRowImpl;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
+import org.apache.jackrabbit.oak.spi.query.Cursors;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
-import org.apache.jackrabbit.oak.spi.query.IndexRow;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -137,7 +135,7 @@ public class LuceneIndex implements QueryIndex, LuceneIndexConstants {
         }
         if (!builder.hasChildNode(INDEX_DATA_CHILD_NAME)) {
             // index not initialized yet
-            return new PathCursor(Collections.<String> emptySet());
+            return Cursors.newPathCursor(Collections.<String> emptySet());
         }
         builder = builder.child(INDEX_DATA_CHILD_NAME);
 
@@ -167,7 +165,7 @@ public class LuceneIndex implements QueryIndex, LuceneIndexConstants {
                     }
                     LOG.debug("query via {} took {} ms.", this,
                             System.currentTimeMillis() - s);
-                    return new PathCursor(paths);
+                    return Cursors.newPathCursor(paths);
                 } finally {
                     reader.close();
                 }
@@ -176,7 +174,7 @@ public class LuceneIndex implements QueryIndex, LuceneIndexConstants {
             }
         } catch (IOException e) {
             e.printStackTrace();
-            return new PathCursor(Collections.<String> emptySet());
+            return Cursors.newPathCursor(Collections.<String> emptySet());
         }
     }
 
@@ -202,7 +200,7 @@ public class LuceneIndex implements QueryIndex, LuceneIndexConstants {
             qs.add(new PrefixQuery(newPathTerm(path)));
             break;
         case DIRECT_CHILDREN:
-            // FIXME
+            // FIXME OAK-420
             if (!path.endsWith("/")) {
                 path += "/";
             }
@@ -356,38 +354,6 @@ public class LuceneIndex implements QueryIndex, LuceneIndexConstants {
             name = NodeTypeConstants.JCR_MIXINTYPES;
         }
         return new TermQuery(new Term(name, type.getName()));
-    }
-
-    /**
-     * A cursor over the resulting paths.
-     */
-    private static class PathCursor implements Cursor {
-
-        private final Iterator<String> iterator;
-
-        private String path;
-
-        public PathCursor(Collection<String> paths) {
-            this.iterator = paths.iterator();
-        }
-
-        @Override
-        public boolean next() {
-            if (iterator.hasNext()) {
-                path = iterator.next();
-                return true;
-            } else {
-                path = null;
-                return false;
-            }
-        }
-
-        @Override
-        public IndexRow currentRow() {
-            // TODO support jcr:score and possibly rep:exceprt
-            return new IndexRowImpl(path);
-        }
-
     }
 
     @Override
