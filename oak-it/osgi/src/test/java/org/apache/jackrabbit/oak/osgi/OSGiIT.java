@@ -59,6 +59,7 @@ public class OSGiIT {
                 bundle(new File(base, "oak-mk.jar").toURI().toURL().toString()),
                 bundle(new File(base, "oak-mk-remote.jar").toURI().toURL().toString()),
                 bundle(new File(base, "oak-core.jar").toURI().toURL().toString()),
+                bundle(new File(base, "oak-lucene.jar").toURI().toURL().toString()),
                 bundle(new File(base, "oak-jcr.jar").toURI().toURL().toString()));
     }
 

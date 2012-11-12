@@ -38,6 +38,7 @@
         <include>org.apache.jackrabbit:oak-mk-remote</include>
         <include>org.apache.jackrabbit:oak-core</include>
         <include>org.apache.jackrabbit:oak-jcr</include>
+        <include>org.apache.jackrabbit:oak-lucene</include>
       </includes>
     </dependencySet>
   </dependencySets>
