@@ -138,7 +138,11 @@ class PropertyDefinitionImpl extends ItemDefinitionImpl
     @Override
     public String[] getValueConstraints() {
         // TODO: namespace mapping?
-        return node.getStrings("jcr:valueConstraints");
+        String[] constraints = node.getStrings("jcr:valueConstraints");
+        if (constraints == null) {
+            constraints = new String[0];
+        }
+        return constraints;
     }
 
     @Override
