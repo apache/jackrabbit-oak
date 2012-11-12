@@ -49,7 +49,6 @@
                 org.apache.jackrabbit.oak.plugins.commit,
                 org.apache.jackrabbit.oak.plugins.identifier,
                 org.apache.jackrabbit.oak.plugins.index,
-                org.apache.jackrabbit.oak.plugins.index.lucene,
                 org.apache.jackrabbit.oak.plugins.index.nodetype,
                 org.apache.jackrabbit.oak.plugins.index.property,
                 org.apache.jackrabbit.oak.plugins.memory,
@@ -171,26 +170,6 @@
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>jackrabbit-jcr-commons</artifactId>
       <version>${jackrabbit.version}</version>
-    </dependency>
-
-    <!-- Optional Lucene dependency -->
-    <dependency>
-      <groupId>org.apache.lucene</groupId>
-      <artifactId>lucene-core</artifactId>
-      <version>4.0.0</version>
-      <optional>true</optional>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.lucene</groupId>
-      <artifactId>lucene-analyzers-common</artifactId>
-      <version>4.0.0</version>
-      <optional>true</optional>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.tika</groupId>
-      <artifactId>tika-core</artifactId>
-      <version>1.2</version>
-      <optional>true</optional>
     </dependency>
 
     <!-- Logging -->
