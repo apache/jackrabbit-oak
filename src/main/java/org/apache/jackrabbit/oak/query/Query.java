@@ -324,27 +324,32 @@ public class Query {
                 // read and order first; skip and limit afterwards
                 it = new RowIterator(root, Long.MAX_VALUE, 0);
             }
-            long resultCount = 0;
+            long readCount = 0;
             if (orderings != null) {
                 // TODO "order by" is not necessary if the used index returns
                 // rows in the same order
+                    
+                // avoid overflow (both offset and limit could be Long.MAX_VALUE)
+                int keep = (int) (Math.min(Integer.MAX_VALUE, offset) + 
+                        Math.min(Integer.MAX_VALUE, limit));
+                
                 ArrayList<ResultRowImpl> list = new ArrayList<ResultRowImpl>();
                 while (it.hasNext()) {
+                    readCount++;
                     ResultRowImpl r = it.next();
                     list.add(r);
+                    // from time to time, sort and truncate
+                    // this should results in O(n*log(2*keep)) operations,
+                    // which is close to the optimum O(n*log(keep))
+                    if (list.size() > keep * 2) {
+                        // remove tail entries right now, to save memory
+                        Collections.sort(list);
+                        keepFirst(list, keep);
+                    }
                 }
                 Collections.sort(list);
-                // if limit is set, possibly remove the tailing entries
-                // for list size 10, offset 2, limit 5: remove 3
-                resultCount = list.size();
-                // avoid overflow (both offset and limit could be Long.MAX_VALUE)
-                long keep = Math.min(list.size(), offset) + Math.min(list.size(), limit);
-                while (list.size() > keep) {
-                    // remove tail entries right now, to save memory (don't copy)
-                    // remove the entries starting at the end, 
-                    // to avoid n^2 performance
-                    list.remove(list.size() - 1);
-                }
+                keepFirst(list, keep);
+                
                 it = list.iterator();
                 // skip the head (this is more efficient than removing
                 // if there are many entries)
@@ -354,7 +359,7 @@ public class Query {
                 size = list.size() - offset;
             } else if (measure) {
                 while (it.hasNext()) {
-                    resultCount++;
+                    readCount++;
                     it.next();
                 }
             }
@@ -368,7 +373,7 @@ public class Query {
                         new String[0],
                         new PropertyValue[] {
                                 PropertyValues.newString("query"),
-                                PropertyValues.newLong(resultCount)
+                                PropertyValues.newLong(readCount)
                             },
                         null);
                 list.add(r);
@@ -386,6 +391,20 @@ public class Query {
             }
         }
         return it;
+    }
+    
+    /**
+     * Truncate a list.
+     * 
+     * @param list the list
+     * @param keep the maximum number of entries to keep
+     */
+    private static void keepFirst(ArrayList<ResultRowImpl> list, int keep) {
+        while (list.size() > keep) {
+            // remove the entries starting at the end, 
+            // to avoid n^2 performance
+            list.remove(list.size() - 1);
+        }        
     }
 
     public int compareRows(PropertyValue[] orderValues,
