@@ -121,6 +121,12 @@
       <artifactId>junit</artifactId>
       <scope>test</scope>
     </dependency>
+        <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-core</artifactId>
+      <version>${project.version}</version>
+      <classifier>tests</classifier>
+    </dependency>
     <dependency>
         <groupId>ch.qos.logback</groupId>
         <artifactId>logback-classic</artifactId>
