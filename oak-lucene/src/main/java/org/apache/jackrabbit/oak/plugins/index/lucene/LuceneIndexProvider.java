@@ -23,6 +23,8 @@ import java.util.List;
 
 import javax.annotation.Nonnull;
 
+import org.apache.felix.scr.annotations.Component;
+import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.plugins.index.IndexDefinition;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
@@ -36,6 +38,8 @@ import org.slf4j.LoggerFactory;
  * @see LuceneIndex
  * 
  */
+@Component
+@Service(QueryIndexProvider.class)
 public class LuceneIndexProvider implements QueryIndexProvider,
         LuceneIndexConstants {
 
