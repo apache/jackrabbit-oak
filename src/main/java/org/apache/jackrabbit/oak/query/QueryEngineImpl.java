@@ -136,7 +136,7 @@ public class QueryEngineImpl {
             if (LOG.isDebugEnabled()) {
                 LOG.debug("no indexes found - using TraversingIndex; indexProvider: " + indexProvider);
             }
-            best = new TraversingIndex(query.getStatement());
+            best = new TraversingIndex();
         }
         return best;
     }

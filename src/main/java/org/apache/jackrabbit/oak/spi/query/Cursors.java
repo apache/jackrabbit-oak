@@ -57,16 +57,13 @@ public class Cursors {
      * Returns a traversing cursor based on the path restriction in the given
      * {@link Filter}.
      *
-     * @param statement the query statement. This string is only used for
-     *                  logging purposes.
      * @param filter    the filter.
      * @param root      the root {@link NodeState}.
      * @return the {@link Cursor}.
      */
-    public static Cursor newTraversingCursor(String statement,
-                                             Filter filter,
+    public static Cursor newTraversingCursor(Filter filter,
                                              NodeState root) {
-        return new TraversingCursor(statement, filter, root);
+        return new TraversingCursor(filter, root);
     }
 
     /**
@@ -108,8 +105,6 @@ public class Cursors {
 
         private static final Logger LOG = LoggerFactory.getLogger(TraversingIndex.class);
 
-        private final String statement;
-
         private final Filter filter;
 
         private final Deque<Iterator<? extends ChildNodeEntry>> nodeIterators =
@@ -123,8 +118,7 @@ public class Cursors {
 
         private boolean closed;
 
-        public TraversingCursor(String statement, Filter filter, NodeState root) {
-            this.statement = statement;
+        public TraversingCursor(Filter filter, NodeState root) {
             this.filter = filter;
 
             String path = filter.getPath();
@@ -187,7 +181,7 @@ public class Cursors {
 
                     readCount++;
                     if (readCount % 100 == 0) {
-                        LOG.warn("Traversed " + readCount + " nodes with filter " + filter + " for query " + statement + "; consider creating an index or changing the query");
+                        LOG.warn("Traversed " + readCount + " nodes with filter " + filter + "; consider creating an index or changing the query");
                     }
 
                     NodeState node = entry.getNodeState();
