@@ -142,7 +142,7 @@ public class PropertyIndex implements QueryIndex {
         if (paths != null) {
             return Cursors.newPathCursor(paths);
         } else {
-            return Cursors.newTraversingCursor("?", filter, root);
+            return Cursors.newTraversingCursor(filter, root);
         }
     }
 

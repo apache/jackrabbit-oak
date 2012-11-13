@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map.Entry;
 
 import javax.annotation.CheckForNull;
+import javax.annotation.Nullable;
 import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
@@ -42,6 +43,8 @@ public class FilterImpl implements Filter {
      * The selector this filter applies to.
      */
     private final SelectorImpl selector;
+    
+    private final String queryStatement;
 
     /**
      * Whether the filter is always false.
@@ -75,8 +78,9 @@ public class FilterImpl implements Filter {
 
     // TODO support "order by"
 
-    public FilterImpl(SelectorImpl selector) {
+    public FilterImpl(SelectorImpl selector, String queryStatement) {
         this.selector = selector;
+        this.queryStatement = queryStatement;
     }
 
     /**
@@ -254,6 +258,9 @@ public class FilterImpl implements Filter {
     @Override
     public String toString() {
         StringBuilder buff = new StringBuilder();
+        if (queryStatement != null) {
+            buff.append("query ").append(queryStatement).append('\n');
+        }
         if (alwaysFalse) {
             return "(always false)";
         }
@@ -375,6 +382,12 @@ public class FilterImpl implements Filter {
 
     public void restrictFulltextCondition(String condition) {
         fulltextConditions.add(condition);
+    }
+
+    @Override
+    @Nullable
+    public String getQueryStatement() {
+        return queryStatement;
     }
 
 }

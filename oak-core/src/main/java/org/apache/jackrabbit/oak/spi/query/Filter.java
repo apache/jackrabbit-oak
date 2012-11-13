@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.spi.query;
 import java.util.Collection;
 
 import javax.annotation.CheckForNull;
+import javax.annotation.Nullable;
 import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
@@ -67,10 +68,21 @@ public interface Filter {
     String getPath();
 
     /**
+     * Get the node type.
+     * 
      * @return the node type restriction or <code>null</code> if none is set.
      */
     @CheckForNull
     String getNodeType();
+    
+    /**
+     * Get the complete query statement. The statement should only be used for
+     * logging purposes.
+     * 
+     * @return the query statement (possibly null)
+     */
+    @Nullable
+    String getQueryStatement();
 
     /**
      * A restriction for a property.

@@ -64,12 +64,12 @@ public class TraversingIndexTest {
 
     @Test
     public void traverse() throws Exception {
-        TraversingIndex t = new TraversingIndex("?");
+        TraversingIndex t = new TraversingIndex();
 
         String head = mk.getHeadRevision();
         head = mk.commit("/", "+ \"parents\": { \"p0\": {\"id\": \"0\"}, \"p1\": {\"id\": \"1\"}, \"p2\": {\"id\": \"2\"}}", head, "");
         head = mk.commit("/", "+ \"children\": { \"c1\": {\"p\": \"1\"}, \"c2\": {\"p\": \"1\"}, \"c3\": {\"p\": \"2\"}, \"c4\": {\"p\": \"3\"}}", head, "");
-        FilterImpl f = new FilterImpl(null);
+        FilterImpl f = new FilterImpl(null, null);
 
         f.setPath("/");
         List<String> paths = new ArrayList<String>();

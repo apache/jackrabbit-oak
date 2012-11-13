@@ -42,7 +42,7 @@ public class FilterTest {
         PropertyValue one = PropertyValues.newString("1");
         PropertyValue two = PropertyValues.newString("2");
 
-        FilterImpl f = new FilterImpl(null);
+        FilterImpl f = new FilterImpl(null, null);
         assertTrue(null == f.getPropertyRestriction("x"));
         f.restrictProperty("x", Operator.LESS_OR_EQUAL, two);
         assertEquals("..2]", f.getPropertyRestriction("x").toString());
@@ -55,7 +55,7 @@ public class FilterTest {
         f.restrictProperty("x", Operator.EQUAL, two);
         assertTrue(f.isAlwaysFalse());
 
-        f = new FilterImpl(null);
+        f = new FilterImpl(null, null);
         f.restrictProperty("x", Operator.EQUAL, one);
         assertEquals("[1..1]", f.getPropertyRestriction("x").toString());
         f.restrictProperty("x", Operator.EQUAL, one);
@@ -67,13 +67,13 @@ public class FilterTest {
         f.restrictProperty("x", Operator.GREATER_THAN, one);
         assertTrue(f.isAlwaysFalse());
 
-        f = new FilterImpl(null);
+        f = new FilterImpl(null, null);
         f.restrictProperty("x", Operator.EQUAL, one);
         assertEquals("[1..1]", f.getPropertyRestriction("x").toString());
         f.restrictProperty("x", Operator.LESS_THAN, one);
         assertTrue(f.isAlwaysFalse());
 
-        f = new FilterImpl(null);
+        f = new FilterImpl(null, null);
         f.restrictProperty("x", Operator.NOT_EQUAL, null);
         assertEquals("..", f.getPropertyRestriction("x").toString());
         f.restrictProperty("x", Operator.LESS_THAN, one);
@@ -108,11 +108,11 @@ public class FilterTest {
                     .nextInt(Filter.PathRestriction.values().length)];
             Filter.PathRestriction r2 = Filter.PathRestriction.values()[r
                     .nextInt(Filter.PathRestriction.values().length)];
-            FilterImpl f1 = new FilterImpl(null);
+            FilterImpl f1 = new FilterImpl(null, null);
             f1.restrictPath(p1, r1);
-            FilterImpl f2 = new FilterImpl(null);
+            FilterImpl f2 = new FilterImpl(null, null);
             f2.restrictPath(p2, r2);
-            FilterImpl fc = new FilterImpl(null);
+            FilterImpl fc = new FilterImpl(null, null);
             fc.restrictPath(p1, r1);
             fc.restrictPath(p2, r2);
             int tooMany = 0;
@@ -122,7 +122,7 @@ public class FilterTest {
                 if (expected == got) {
                     // good
                 } else if (expected && !got) {
-                    fc = new FilterImpl(null);
+                    fc = new FilterImpl(null, null);
                     fc.restrictPath(p1, r1);
                     fc.restrictPath(p2, r2);
                     fail("not matched: " + p1 + "/" + r1.name() + " && " + p2
@@ -141,7 +141,7 @@ public class FilterTest {
 
     @Test
     public void pathRestrictions() throws Exception {
-        FilterImpl f = new FilterImpl(null);
+        FilterImpl f = new FilterImpl(null, null);
         assertEquals("/", f.getPath());
         assertEquals(Filter.PathRestriction.ALL_CHILDREN,
                 f.getPathRestriction());
@@ -150,7 +150,7 @@ public class FilterTest {
         f.restrictPath("/test2", Filter.PathRestriction.ALL_CHILDREN);
         assertTrue(f.isAlwaysFalse());
 
-        f = new FilterImpl(null);
+        f = new FilterImpl(null, null);
         f.restrictPath("/test", Filter.PathRestriction.ALL_CHILDREN);
         assertEquals("/test", f.getPath());
         assertEquals(Filter.PathRestriction.ALL_CHILDREN,
@@ -163,7 +163,7 @@ public class FilterTest {
         assertEquals("/test/x/y", f.getPath());
         assertEquals(Filter.PathRestriction.PARENT, f.getPathRestriction());
 
-        f = new FilterImpl(null);
+        f = new FilterImpl(null, null);
         f.restrictPath("/test", Filter.PathRestriction.DIRECT_CHILDREN);
         f.restrictPath("/test/x/y", Filter.PathRestriction.PARENT);
         assertEquals("/test/x/y", f.getPath());
@@ -171,7 +171,7 @@ public class FilterTest {
         f.restrictPath("/test/y", Filter.PathRestriction.DIRECT_CHILDREN);
         assertTrue(f.isAlwaysFalse());
 
-        f = new FilterImpl(null);
+        f = new FilterImpl(null, null);
         f.restrictPath("/test/x/y", Filter.PathRestriction.PARENT);
         f.restrictPath("/test/x", Filter.PathRestriction.EXACT);
         assertEquals("/test/x", f.getPath());
@@ -179,12 +179,12 @@ public class FilterTest {
         f.restrictPath("/test/y", Filter.PathRestriction.EXACT);
         assertTrue(f.isAlwaysFalse());
 
-        f = new FilterImpl(null);
+        f = new FilterImpl(null, null);
         f.restrictPath("/test", Filter.PathRestriction.ALL_CHILDREN);
         f.restrictPath("/test", Filter.PathRestriction.PARENT);
         assertTrue(f.isAlwaysFalse());
 
-        f = new FilterImpl(null);
+        f = new FilterImpl(null, null);
         f.restrictPath("/test/x", Filter.PathRestriction.PARENT);
         f.restrictPath("/test", Filter.PathRestriction.ALL_CHILDREN);
         assertEquals("/test/x", f.getPath());
@@ -192,23 +192,23 @@ public class FilterTest {
         f.restrictPath("/test/x", Filter.PathRestriction.ALL_CHILDREN);
         assertTrue(f.isAlwaysFalse());
 
-        f = new FilterImpl(null);
+        f = new FilterImpl(null, null);
         f.restrictPath("/test", Filter.PathRestriction.ALL_CHILDREN);
         f.restrictPath("/test", Filter.PathRestriction.EXACT);
         assertTrue(f.isAlwaysFalse());
 
-        f = new FilterImpl(null);
+        f = new FilterImpl(null, null);
         f.restrictPath("/test", Filter.PathRestriction.DIRECT_CHILDREN);
         f.restrictPath("/test/x", Filter.PathRestriction.EXACT);
         assertEquals("/test/x", f.getPath());
         assertEquals(Filter.PathRestriction.EXACT, f.getPathRestriction());
 
-        f = new FilterImpl(null);
+        f = new FilterImpl(null, null);
         f.restrictPath("/test", Filter.PathRestriction.DIRECT_CHILDREN);
         f.restrictPath("/test/x/y", Filter.PathRestriction.EXACT);
         assertTrue(f.isAlwaysFalse());
 
-        f = new FilterImpl(null);
+        f = new FilterImpl(null, null);
         f.restrictPath("/test/x", Filter.PathRestriction.PARENT);
         f.restrictPath("/", Filter.PathRestriction.ALL_CHILDREN);
         assertEquals("/test/x", f.getPath());
@@ -216,7 +216,7 @@ public class FilterTest {
         f.restrictPath("/test/y", Filter.PathRestriction.EXACT);
         assertTrue(f.isAlwaysFalse());
 
-        f = new FilterImpl(null);
+        f = new FilterImpl(null, null);
         f.restrictPath("/test", Filter.PathRestriction.DIRECT_CHILDREN);
         assertEquals("/test", f.getPath());
         assertEquals(Filter.PathRestriction.DIRECT_CHILDREN,
@@ -235,7 +235,7 @@ public class FilterTest {
         f.restrictPath("/test2", Filter.PathRestriction.ALL_CHILDREN);
         assertTrue(f.isAlwaysFalse());
 
-        f = new FilterImpl(null);
+        f = new FilterImpl(null, null);
         f.restrictPath("/test/x", Filter.PathRestriction.EXACT);
         assertEquals("/test/x", f.getPath());
         assertEquals(Filter.PathRestriction.EXACT, f.getPathRestriction());
@@ -245,7 +245,7 @@ public class FilterTest {
         f.restrictPath("/test/y", Filter.PathRestriction.DIRECT_CHILDREN);
         assertTrue(f.isAlwaysFalse());
 
-        f = new FilterImpl(null);
+        f = new FilterImpl(null, null);
         f.restrictPath("/test/x/y", Filter.PathRestriction.PARENT);
         assertEquals("/test/x/y", f.getPath());
         assertEquals(Filter.PathRestriction.PARENT, f.getPathRestriction());

@@ -121,7 +121,7 @@ public class SelectorImpl extends SourceImpl {
     }
 
     private Filter createFilter() {
-        FilterImpl f = new FilterImpl(this);
+        FilterImpl f = new FilterImpl(this, query.getStatement());
         f.setNodeType(nodeTypeName);
         if (joinCondition != null) {
             joinCondition.restrict(f);

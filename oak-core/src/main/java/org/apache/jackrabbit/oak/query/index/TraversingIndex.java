@@ -29,16 +29,10 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * An index that traverses over a given subtree.
  */
 public class TraversingIndex implements QueryIndex {
-    
-    private final String statement;
-    
-    public TraversingIndex(String statement) {
-        this.statement = statement;
-    }
 
     @Override
     public Cursor query(Filter filter, NodeState root) {
-        return Cursors.newTraversingCursor(statement, filter, root);
+        return Cursors.newTraversingCursor(filter, root);
     }
 
     @Override
