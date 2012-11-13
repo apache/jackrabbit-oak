@@ -16,14 +16,12 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import java.security.AccessControlException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-
 import javax.annotation.Nonnull;
 import javax.jcr.AccessDeniedException;
 import javax.jcr.Credentials;
@@ -40,6 +38,7 @@ import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.ValueFactory;
 import javax.jcr.Workspace;
 import javax.jcr.retention.RetentionManager;
+import javax.jcr.security.AccessControlException;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.AccessControlPolicyIterator;
@@ -391,11 +390,11 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
             throws RepositoryException {
         return TODO.unimplemented().returnValue(new AccessControlManager() {
             @Override
-            public void setPolicy(String absPath, AccessControlPolicy policy) {
+            public void setPolicy(String absPath, AccessControlPolicy policy) throws AccessControlException {
                 throw new AccessControlException(policy.toString());
             }
             @Override
-            public void removePolicy(String absPath, AccessControlPolicy policy) {
+            public void removePolicy(String absPath, AccessControlPolicy policy) throws AccessControlException {
                 throw new AccessControlException(policy.toString());
             }
             @Override
