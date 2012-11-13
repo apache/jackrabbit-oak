@@ -58,7 +58,7 @@ public class LuceneIndexTest implements LuceneIndexConstants {
         IndexDefinition testDef = new IndexDefinitionImpl("lucene",
                 TYPE_LUCENE, "/oak:index/lucene");
         QueryIndex queryIndex = new LuceneIndex(testDef);
-        FilterImpl filter = new FilterImpl(null);
+        FilterImpl filter = new FilterImpl(null, null);
         filter.restrictPath("/", Filter.PathRestriction.EXACT);
         filter.restrictProperty("foo", Operator.EQUAL,
                 PropertyValues.newString("bar"));

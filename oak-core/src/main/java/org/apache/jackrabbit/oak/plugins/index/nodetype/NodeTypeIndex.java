@@ -28,7 +28,6 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.ReadOnlyTree;
-import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexLookup;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
@@ -68,7 +67,7 @@ class NodeTypeIndex implements QueryIndex, JcrConstants {
     public Cursor query(Filter filter, NodeState root) {
         NodeTypeIndexLookup lookup = new NodeTypeIndexLookup(root);
         if (!hasNodeTypeRestriction(filter) || !lookup.isIndexed(filter.getPath())) {
-            return Cursors.newTraversingCursor("?", filter, root);
+            return Cursors.newTraversingCursor(filter, root);
         }
         return Cursors.newPathCursor(lookup.find(
                 resolveNodeType(root, filter.getNodeType())));
@@ -97,7 +96,7 @@ class NodeTypeIndex implements QueryIndex, JcrConstants {
         Set<String> ntNames = Sets.newHashSet();
         try {
             NodeType nt = ntMgr.getNodeType(nodeType);
-            for (NodeTypeIterator types = nt.getSubtypes(); types.hasNext(); ) {
+            for (NodeTypeIterator types = nt.getSubtypes(); types.hasNext();) {
                 ntNames.add(types.nextNodeType().getName());
             }
             ntNames.add(nodeType);

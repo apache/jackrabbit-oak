@@ -75,7 +75,7 @@ public class NodeTypeIndexTest {
 
         NodeState rootState = store.getRoot();
         NodeTypeIndex index = new NodeTypeIndex();
-        FilterImpl filter = new FilterImpl(null);
+        FilterImpl filter = new FilterImpl(null, null);
 
         filter.setNodeType(JcrConstants.NT_FOLDER);
         // note on cost: this is currently twice the number of matches
