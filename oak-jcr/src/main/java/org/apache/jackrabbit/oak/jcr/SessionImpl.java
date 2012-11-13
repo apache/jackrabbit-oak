@@ -400,8 +400,8 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
             }
             @Override
             public Privilege privilegeFromName(String privilegeName)
-                    throws AccessControlException {
-                throw new AccessControlException(privilegeName);
+                    throws AccessControlException, RepositoryException {
+                return dlg.getPrivilegeManager().getPrivilege(privilegeName);
             }
             @Override
             public boolean hasPrivileges(String absPath, Privilege[] privileges) {
