@@ -16,12 +16,6 @@
  */
 package org.apache.jackrabbit.oak.osgi;
 
-import static junit.framework.Assert.assertNotNull;
-import static junit.framework.Assert.assertTrue;
-import static org.ops4j.pax.exam.CoreOptions.bundle;
-import static org.ops4j.pax.exam.CoreOptions.junitBundles;
-import static org.ops4j.pax.exam.CoreOptions.mavenBundle;
-
 import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -32,6 +26,7 @@ import javax.jcr.Repository;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.api.ContentRepository;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.ops4j.pax.exam.CoreOptions;
@@ -39,7 +34,14 @@ import org.ops4j.pax.exam.Option;
 import org.ops4j.pax.exam.junit.Configuration;
 import org.ops4j.pax.exam.junit.JUnit4TestRunner;
 
+import static junit.framework.Assert.assertNotNull;
+import static junit.framework.Assert.assertTrue;
+import static org.ops4j.pax.exam.CoreOptions.bundle;
+import static org.ops4j.pax.exam.CoreOptions.junitBundles;
+import static org.ops4j.pax.exam.CoreOptions.mavenBundle;
+
 @RunWith(JUnit4TestRunner.class)
+@Ignore("OAK-438")  // FIXME OAK-438
 public class OSGiIT {
 
     private final File TARGET = new File("target");
