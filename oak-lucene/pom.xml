@@ -39,11 +39,9 @@
         <artifactId>maven-bundle-plugin</artifactId>
         <configuration>
           <instructions>
-            <Export-Package>
-                org.apache.jackrabbit.oak.plugins.index.lucene
-            </Export-Package>
-            <Embed-Transitive>true</Embed-Transitive>
-            <Embed-Dependency>lucene-*;scope=compile</Embed-Dependency>
+            <!-- TODO: Should only provide services, not export packages  -->
+            <Export-Package>org.apache.jackrabbit.oak.plugins.index.lucene</Export-Package>
+            <Embed-Dependency>lucene-*;inline=true</Embed-Dependency>
           </instructions>
         </configuration>
       </plugin>
@@ -82,22 +80,24 @@
       <artifactId>oak-core</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <dependency>
+      <groupId>org.apache.tika</groupId>
+      <artifactId>tika-core</artifactId>
+      <version>1.2</version>
+    </dependency>
 
-    <!-- Optional Lucene dependency -->
+    <!-- Embedded non-OSGi Lucene dependencies -->
     <dependency>
       <groupId>org.apache.lucene</groupId>
       <artifactId>lucene-core</artifactId>
       <version>4.0.0</version>
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>org.apache.lucene</groupId>
       <artifactId>lucene-analyzers-common</artifactId>
       <version>4.0.0</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.tika</groupId>
-      <artifactId>tika-core</artifactId>
-      <version>1.2</version>
+      <scope>provided</scope>
     </dependency>
 
     <!-- Logging -->
