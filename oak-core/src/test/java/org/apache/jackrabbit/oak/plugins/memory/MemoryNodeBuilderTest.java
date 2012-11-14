@@ -16,10 +16,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
+import java.util.Collections;
+
 import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static junit.framework.Assert.assertEquals;
@@ -38,7 +41,9 @@ public class MemoryNodeBuilderTest {
                     "b", LongPropertyState.createLongProperty("b", 2L),
                     "c", LongPropertyState.createLongProperty("c", 3L)),
             ImmutableMap.of(
-                    "x", MemoryNodeState.EMPTY_NODE,
+                    "x", new MemoryNodeState(
+                        Collections.<String, PropertyState>emptyMap(),
+                        Collections.singletonMap("q", MemoryNodeState.EMPTY_NODE)),
                     "y", MemoryNodeState.EMPTY_NODE,
                     "z", MemoryNodeState.EMPTY_NODE));
 
@@ -112,6 +117,18 @@ public class MemoryNodeBuilderTest {
 
         root.child("x");
         assertEquals(0, child.getChildNodeCount()); // reconnect!
+    }
+
+    @Test
+    @Ignore("OAK-447")  // FIXME OAK-447
+    public void testAddRemovedNodeAgain() {
+        NodeBuilder root = new MemoryNodeBuilder(BASE);
+
+        root.removeNode("x");
+        NodeBuilder x = root.child("x");
+
+        x.child("q");
+        assertTrue(x.hasChildNode("q"));
     }
 
     @Test
