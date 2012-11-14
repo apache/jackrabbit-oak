@@ -66,12 +66,43 @@ public abstract class AbstractBlobStore implements BlobStore, Cache.Backend<Abst
 
     protected static final String HASH_ALGORITHM = "SHA-256";
 
+    /**
+     * The prefix for small blocks, where the data is encoded in the id.
+     */
     protected static final int TYPE_DATA = 0;
-    protected static final int TYPE_HASH = 1;
-    protected static final int TYPE_HASH_COMPRESSED = 2;
     
+    /**
+     * The prefix for stored blocks, where the hash code is the id.
+     */
+    protected static final int TYPE_HASH = 1;
+    
+    /**
+     * The prefix for stored blocks, where the stored data contains the list of
+     * hashes (indirect hash).
+     */
+   protected static final int TYPE_HASH_COMPRESSED = 2;
+    
+    /**
+     * The minimum block size. Smaller blocks may not be stored, as the hash
+     * code would be larger than the stored data itself.
+     */
     protected static final int BLOCK_SIZE_LIMIT = 48;
 
+    /**
+     * The weak map of data store ids that are still in use. For ids that are
+     * still referenced in memory, the stored blocks will not be deleted when
+     * running garbage collection. This should prevent that binaries are removed
+     * before the reference was written to the MicroKernel (before there is a
+     * persistent reference).
+     * <p>
+     * Please note this will not prevent binaries to be deleted if they are only
+     * referenced from within another JVM (when the MicroKernel API is remoted).
+     * <p>
+     * Instead of this map, it might be better to use a fixed timeout. In this
+     * case, the creation / modification time should be persisted, so that it
+     * survives restarts. Or, as an alternative, the storage backends could be
+     * segmented (young generation / old generation).
+     */
     protected Map<String, WeakReference<String>> inUse =
         Collections.synchronizedMap(new WeakHashMap<String, WeakReference<String>>());
 
@@ -87,32 +118,62 @@ public abstract class AbstractBlobStore implements BlobStore, Cache.Backend<Abst
      */
     private int blockSize = 2 * 1024 * 1024;
 
+    /**
+     * A very small cache of the last used blocks.
+     */
     private Cache<AbstractBlobStore.BlockId, Data> cache = Cache.newInstance(this, 8 * 1024 * 1024);
 
+    /**
+     * Set the minimum block size (smaller blocks are inlined in the id, larger
+     * blocks are stored).
+     * 
+     * @param x the minimum block size
+     */
     public void setBlockSizeMin(int x) {
         validateBlockSize(x);
         this.blockSizeMin = x;
     }
 
+    /**
+     * Get the minimum block size.
+     * 
+     * @return the minimum block size
+     */
     public long getBlockSizeMin() {
         return blockSizeMin;
     }
 
+    /**
+     * Set the maximum block size (larger binaries are split into blocks of this
+     * size).
+     * 
+     * @param x the maximum block size
+     */
     public void setBlockSize(int x) {
         validateBlockSize(x);
         this.blockSize = x;
     }
     
+    /**
+     * Get the maximum block size.
+     * 
+     * @return the maximum block size
+     */
+    public int getBlockSize() {
+        return blockSize;
+    }
+    
+    /**
+     * Validate that the block size is larger than the lenght of a hash code.
+     * 
+     * @param x the size
+     */
     private static void validateBlockSize(int x) {
         if (x < BLOCK_SIZE_LIMIT) {
             throw new IllegalArgumentException(
                     "The minimum size must be bigger " + 
                     "than a content hash itself; limit = " + BLOCK_SIZE_LIMIT);
         }
-    }
-
-    public int getBlockSize() {
-        return blockSize;
     }
 
     /**
@@ -137,6 +198,12 @@ public abstract class AbstractBlobStore implements BlobStore, Cache.Backend<Abst
         }
     }
 
+    /**
+     * Write a binary, possibly splitting it into blocks and storing them.
+     * 
+     * @param in the input stream
+     * @return the data store id
+     */
     public String writeBlob(InputStream in) throws Exception {
         try {
             ByteArrayOutputStream idStream = new ByteArrayOutputStream();
@@ -155,18 +222,40 @@ public abstract class AbstractBlobStore implements BlobStore, Cache.Backend<Abst
         }
     }
 
+    /**
+     * Mark the data store id as 'current in use'.
+     * 
+     * @param blobId the id
+     */
     protected void usesBlobId(String blobId) {
         inUse.put(blobId, new WeakReference<String>(blobId));
     }
 
+    /**
+     * Clear the in-used map. This method is used for testing.
+     */
     public void clearInUse() {
         inUse.clear();
     }
 
+    /**
+     * Clear the cache to free up memory.
+     */
     public void clearCache() {
         cache.clear();
     }
 
+    /**
+     * Store a binary, possibly splitting it into blocks, and store the block
+     * ids in the id stream.
+     * 
+     * @param in the stream
+     * @param idStream the stream of block ids
+     * @param level the indirection level (0 if the binary is user data, 1 if
+     *            the data is a list of digests)
+     * @param totalLength the total length (if the data is a list of block ids)
+     * @throws Exception if storing failed
+     */
     private void convertBlobToId(InputStream in, ByteArrayOutputStream idStream, int level, long totalLength) throws Exception {
         byte[] block = new byte[blockSize];
         int count = 0;
@@ -231,14 +320,35 @@ public abstract class AbstractBlobStore implements BlobStore, Cache.Backend<Abst
      */
     protected abstract void storeBlock(byte[] digest, int level, byte[] data) throws Exception;
 
+    /**
+     * Start the mark phase of the data store garbage collection.
+     */
     public abstract void startMark() throws Exception;
 
+    /**
+     * Start the sweep phase of the data store garbage collection.
+     * 
+     * @return the number of removed blocks.
+     */
     public abstract int sweep() throws Exception;
 
+    /**
+     * Whether the mark phase has been started.
+     * 
+     * @return true if it was started
+     */
     protected abstract boolean isMarkEnabled();
 
+    /**
+     * Mark a block as 'in use'. This method is called in the mark phase.
+     * 
+     * @param id the block id
+     */
     protected abstract void mark(BlockId id) throws Exception;
 
+    /**
+     * Mark all blocks that are in the in-use map.
+     */
     protected void markInUse() throws Exception {
         for (String id : new ArrayList<String>(inUse.keySet())) {
             mark(id);
@@ -297,11 +407,27 @@ public abstract class AbstractBlobStore implements BlobStore, Cache.Backend<Abst
         }
     }
 
+    /**
+     * Read the block with the given digest. This method should not be
+     * overwritten by a subclass as it caches the data.
+     * 
+     * @param digest the digest
+     * @param pos the position within the block (usually 0)
+     * @return a byte array with the data (the byte array is not modified by the
+     *         caller, but might be cached)
+     */
     private byte[] readBlock(byte[] digest, long pos) throws Exception {
         BlockId id = new BlockId(digest, pos);
         return cache.get(id).data;
     }
 
+    /**
+     * Load a block from the backend. This method is called from the cache if
+     * the block is not in memory.
+     * 
+     * @param id the block id
+     * @return the data
+     */
     public Data load(BlockId id) {
         byte[] data;
         try {
@@ -356,6 +482,11 @@ public abstract class AbstractBlobStore implements BlobStore, Cache.Backend<Abst
         return totalLength;
     }
 
+    /**
+     * Mark a binary as 'in use'.
+     * 
+     * @param blobId the blob id
+     */
     protected void mark(String blobId) throws IOException {
         try {
             byte[] id = StringUtils.convertHexToBytes(blobId);
@@ -404,8 +535,8 @@ public abstract class AbstractBlobStore implements BlobStore, Cache.Backend<Abst
      */
     public static class BlockId {
 
-        final byte[] digest;
-        final long pos;
+        private final byte[] digest;
+        private final long pos;
 
         BlockId(byte[] digest, long pos) {
             this.digest = digest;
@@ -433,10 +564,20 @@ public abstract class AbstractBlobStore implements BlobStore, Cache.Backend<Abst
             return StringUtils.convertBytesToHex(digest) + "@" + pos;
         }
         
+        /**
+         * Get the digest (hash code).
+         * 
+         * @return the digest
+         */
         public byte[] getDigest() {
             return digest;
         }
         
+        /**
+         * Get the starting position within the block (usually 0).
+         * 
+         * @return the position
+         */
         public long getPos() {
             return pos;
         }
@@ -444,7 +585,8 @@ public abstract class AbstractBlobStore implements BlobStore, Cache.Backend<Abst
     }
 
     /**
-     * The data for a block.
+     * The data for a block. This class is only used within this class and the
+     * cache.
      */
     public static class Data implements Cache.Value {
 
