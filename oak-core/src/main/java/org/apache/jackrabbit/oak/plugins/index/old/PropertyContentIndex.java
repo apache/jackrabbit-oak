@@ -92,25 +92,21 @@ public class PropertyContentIndex implements QueryIndex {
 
         private final Iterator<String> it;
 
-        private String currentPath;
-
         public ContentCursor(Iterator<String> it) {
             this.it = it;
         }
-
+        
         @Override
-        public IndexRow currentRow() {
-            return new IndexRowImpl(currentPath);
+        public IndexRow next() {
+            String path = it.next();
+            return new IndexRowImpl(path);
         }
-
+        
         @Override
-        public boolean next() {
-            if (it.hasNext()) {
-                currentPath = it.next();
-                return true;
-            }
-            return false;
+        public boolean hasNext() {
+            return it.hasNext();
         }
+        
     }
     
     @Override

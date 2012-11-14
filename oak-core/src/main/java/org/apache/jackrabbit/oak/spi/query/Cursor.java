@@ -24,14 +24,7 @@ package org.apache.jackrabbit.oak.spi.query;
 public interface Cursor {
 
     /**
-     * Skip to the next node if one is available.
-     *
-     * @return true if another row is available
-     */
-    boolean next();
-
-    /**
-     * The current row within this index.
+     * The next row within this index.
      * <p>
      * The row may only contains the path, if a path is available. It may also
      * (or just) contain so-called "pseudo-properties" such as "jcr:score" and
@@ -53,6 +46,8 @@ public interface Cursor {
      * 
      * @return the row
      */
-    IndexRow currentRow();
+    IndexRow next();
+    
+    boolean hasNext();
 
 }

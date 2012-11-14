@@ -100,8 +100,8 @@ public class NodeTypeIndexTest {
         Set<String> expected = Sets.newHashSet();
         expected.addAll(Arrays.asList(matches));
         Set<String> actual = Sets.newHashSet();
-        while (cursor.next()) {
-            actual.add(cursor.currentRow().getPath());
+        while (cursor.hasNext()) {
+            actual.add(cursor.next().getPath());
         }
         assertEquals(expected, actual);
     }
