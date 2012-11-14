@@ -27,6 +27,7 @@ import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.IndexRow;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
+import org.apache.jackrabbit.oak.spi.query.Cursors.AbstractCursor;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
@@ -88,7 +89,7 @@ public class PropertyContentIndex implements QueryIndex {
     /**
      * The cursor to for this index.
      */
-    static class ContentCursor implements Cursor {
+    static class ContentCursor extends AbstractCursor {
 
         private final Iterator<String> it;
 
