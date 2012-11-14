@@ -104,7 +104,7 @@ public class DbBlobStore extends AbstractBlobStore {
             PreparedStatement prep = conn.prepareStatement(
                     "select data from datastore_data where id = ?");
             try {
-                String id = StringUtils.convertBytesToHex(blockId.getDigest());
+                String id = StringUtils.convertBytesToHex(blockId.digest);
                 prep.setString(1, id);
                 ResultSet rs = prep.executeQuery();
                 if (!rs.next()) {
@@ -112,15 +112,15 @@ public class DbBlobStore extends AbstractBlobStore {
                 }
                 byte[] data = rs.getBytes(1);
                 // System.out.println("    read block " + id + " blockLen: " + data.length + " [0]: " + data[0]);
-                if (blockId.getPos() == 0) {
+                if (blockId.pos == 0) {
                     return data;
                 }
-                int len = (int) (data.length - blockId.getPos());
+                int len = (int) (data.length - blockId.pos);
                 if (len < 0) {
                     return new byte[0];
                 }
                 byte[] d2 = new byte[len];
-                System.arraycopy(data, (int) blockId.getPos(), d2, 0, len);
+                System.arraycopy(data, (int) blockId.pos, d2, 0, len);
                 return d2;
             } finally {
                 prep.close();
@@ -148,7 +148,7 @@ public class DbBlobStore extends AbstractBlobStore {
         }
         Connection conn = cp.getConnection();
         try {
-            String id = StringUtils.convertBytesToHex(blockId.getDigest());
+            String id = StringUtils.convertBytesToHex(blockId.digest);
             PreparedStatement prep = conn.prepareStatement(
                     "update datastore_meta set lastMod = ? where id = ? and lastMod < ?");
             prep.setLong(1, System.currentTimeMillis());
