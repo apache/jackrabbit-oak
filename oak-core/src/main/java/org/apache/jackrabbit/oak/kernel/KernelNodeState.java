@@ -27,6 +27,7 @@ import java.util.Map.Entry;
 import java.util.concurrent.ExecutionException;
 
 import javax.annotation.Nonnull;
+import javax.jcr.PropertyType;
 
 import com.google.common.base.Function;
 import com.google.common.cache.LoadingCache;
@@ -37,7 +38,12 @@ import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.json.JsopReader;
 import org.apache.jackrabbit.mk.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.memory.BinaryPropertyState;
+import org.apache.jackrabbit.oak.plugins.memory.BooleanPropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
+import org.apache.jackrabbit.oak.plugins.memory.StringPropertyState;
+import org.apache.jackrabbit.oak.plugins.value.Conversions;
 import org.apache.jackrabbit.oak.spi.state.AbstractChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -46,8 +52,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.readArrayProperty;
-import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.readProperty;
+import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 
 /**
  * Basic {@link NodeState} implementation based on the {@link MicroKernel}
@@ -106,13 +111,13 @@ public final class KernelNodeState extends AbstractNodeState {
             properties = new LinkedHashMap<String, PropertyState>();
             childPaths = new LinkedHashMap<String, String>();
             do {
-                String name = reader.readString();
+                String name = StringCache.get(reader.readString());
                 reader.read(':');
                 if (":childNodeCount".equals(name)) {
                     childNodeCount =
                             Long.valueOf(reader.read(JsopReader.NUMBER));
                 } else if (":hash".equals(name)) {
-                    hash = reader.read(JsopReader.STRING);
+                    hash = new String(reader.read(JsopReader.STRING));
                 } else if (reader.matches('{')) {
                     reader.read('}');
                     String childPath = path + '/' + name;
@@ -121,9 +126,9 @@ public final class KernelNodeState extends AbstractNodeState {
                     }
                     childPaths.put(name, childPath);
                 } else if (reader.matches('[')) {
-                    properties.put(name, readArrayProperty(name, reader, kernel));
+                    properties.put(name, readArrayProperty(name, reader));
                 } else {
-                    properties.put(name, readProperty(name, reader, kernel));
+                    properties.put(name, readProperty(name, reader));
                 }
             } while (reader.matches(','));
             reader.read('}');
@@ -296,7 +301,7 @@ public final class KernelNodeState extends AbstractNodeState {
                 JsopReader reader = new JsopTokenizer(json);
                 reader.read('{');
                 do {
-                    String name = reader.readString();
+                    String name = StringCache.get(reader.readString());
                     reader.read(':');
                     if (reader.matches('{')) {
                         reader.read('}');
@@ -379,6 +384,88 @@ public final class KernelNodeState extends AbstractNodeState {
             }
         }
 
+    }
+
+    /**
+     * Read a {@code PropertyState} from a {@link JsopReader}
+     * @param name  The name of the property state
+     * @param reader  The reader
+     * @return new property state
+     */
+    private PropertyState readProperty(String name, JsopReader reader) {
+        if (reader.matches(JsopReader.NUMBER)) {
+            String number = reader.getToken();
+            return createProperty(name, number, PropertyType.LONG);
+        } else if (reader.matches(JsopReader.TRUE)) {
+            return BooleanPropertyState.booleanProperty(name, true);
+        } else if (reader.matches(JsopReader.FALSE)) {
+            return BooleanPropertyState.booleanProperty(name, false);
+        } else if (reader.matches(JsopReader.STRING)) {
+            String jsonString = reader.getToken();
+            int split = TypeCodes.split(jsonString);
+            if (split != -1) {
+                int type = TypeCodes.decodeType(split, jsonString);
+                String value = TypeCodes.decodeName(split, jsonString);
+                if (type == PropertyType.BINARY) {
+                    return  BinaryPropertyState.binaryProperty(
+                            name, new KernelBlob(new String(value), kernel));
+                } else {
+                    return createProperty(name, StringCache.get(value), type);
+                }
+            } else {
+                return StringPropertyState.stringProperty(
+                        name, StringCache.get(jsonString));
+            }
+        } else {
+            throw new IllegalArgumentException("Unexpected token: " + reader.getToken());
+        }
+    }
+
+    /**
+     * Read a multi valued {@code PropertyState} from a {@link JsopReader}
+     * @param name  The name of the property state
+     * @param reader  The reader
+     * @return new property state
+     */
+    private PropertyState readArrayProperty(String name, JsopReader reader) {
+        int type = PropertyType.STRING;
+        List<Object> values = Lists.newArrayList();
+        while (!reader.matches(']')) {
+            if (reader.matches(JsopReader.NUMBER)) {
+                String number = reader.getToken();
+                type = PropertyType.LONG;
+                values.add(Conversions.convert(number).toLong());
+            } else if (reader.matches(JsopReader.TRUE)) {
+                type = PropertyType.BOOLEAN;
+                values.add(true);
+            } else if (reader.matches(JsopReader.FALSE)) {
+                type = PropertyType.BOOLEAN;
+                values.add(false);
+            } else if (reader.matches(JsopReader.STRING)) {
+                String jsonString = reader.getToken();
+                int split = TypeCodes.split(jsonString);
+                if (split != -1) {
+                    type = TypeCodes.decodeType(split, jsonString);
+                    String value = TypeCodes.decodeName(split, jsonString);
+                    if (type == PropertyType.BINARY) {
+                        values.add(new KernelBlob(new String(value), kernel));
+                    } else if(type == PropertyType.DOUBLE) {
+                        values.add(Conversions.convert(value).toDouble());
+                    } else if(type == PropertyType.DECIMAL) {
+                        values.add(Conversions.convert(value).toDecimal());
+                    } else {
+                        values.add(StringCache.get(value));
+                    }
+                } else {
+                    type = PropertyType.STRING;
+                    values.add(StringCache.get(jsonString));
+                }
+            } else {
+                throw new IllegalArgumentException("Unexpected token: " + reader.getToken());
+            }
+            reader.matches(',');
+        }
+        return createProperty(name, values, Type.fromTag(type, true));
     }
 
 }
