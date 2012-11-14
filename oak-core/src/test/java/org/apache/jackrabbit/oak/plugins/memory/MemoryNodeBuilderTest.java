@@ -156,4 +156,12 @@ public class MemoryNodeBuilderTest {
         assertFalse(x.hasChildNode("y"));
     }
 
+    @Test
+    @Ignore("OAK-448")  // FIXME: OAK-448
+    public void testUnmodifiedEqualsBase() {
+        NodeBuilder root = new MemoryNodeBuilder(BASE);
+        NodeBuilder x = root.child("x");
+        assertEquals(x.getBaseState(), x.getNodeState());
+    }
+
 }
