@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.Map.Entry;
 
-import javax.jcr.GuestCredentials;
 import javax.jcr.NoSuchWorkspaceException;
 import javax.security.auth.login.LoginException;
 import javax.servlet.ServletException;
@@ -37,6 +36,7 @@ import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.tika.mime.MediaType;
 
 public class OakServlet extends HttpServlet {
@@ -64,12 +64,28 @@ public class OakServlet extends HttpServlet {
             HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         try {
-            ContentSession session = repository.login(new GuestCredentials(), null);
+            ContentSession session = repository.login(null, null);
             try {
                 Root root = session.getLatestRoot();
-                Tree tree = root.getTree(request.getPathInfo());
                 request.setAttribute("root", root);
+
+                // Find the longest part of the given path that matches
+                // an existing node. The tail part might be used when
+                // creating new nodes or when exposing virtual resources.
+                // Note that we need to traverse the path in reverse
+                // direction as some parent nodes may be read-protected.
+                String head = request.getPathInfo();
+                String tail = "";
+                Tree tree = root.getTree(head);
+                while (tree == null) {
+                    int slash = head.lastIndexOf('/');
+                    tail = head.substring(slash) + tail;
+                    head = head.substring(0, slash - 1);
+                    tree = root.getTree(tail);
+                }
                 request.setAttribute("tree", tree);
+                request.setAttribute("path", tail);
+
                 super.service(request, response);
             } finally {
                 session.close();
@@ -88,8 +104,15 @@ public class OakServlet extends HttpServlet {
         AcceptHeader accept = new AcceptHeader(request.getHeader("Accept"));
         Representation representation = accept.resolve(REPRESENTATIONS);
 
-        Tree tree = (Tree) request.getAttribute("tree");
-        representation.render(tree, response);
+        String path = (String) request.getAttribute("path");
+        if (path.isEmpty()) {
+            Tree tree = (Tree) request.getAttribute("tree");
+            representation.render(tree, response);
+        } else {
+            // There was an extra path component that didn't match
+            // any existing nodes, so for now we just send a 404 response.
+            response.sendError(HttpServletResponse.SC_NOT_FOUND);
+        }
     }
 
     @Override
@@ -99,6 +122,12 @@ public class OakServlet extends HttpServlet {
         try {
             Root root = (Root) request.getAttribute("root");
             Tree tree = (Tree) request.getAttribute("tree");
+            String path = (String) request.getAttribute("path");
+
+            for (String name : PathUtils.elements(path)) {
+                tree = tree.addChild(name);
+            }
+
             ObjectMapper mapper = new ObjectMapper();
             JsonNode node = mapper.readTree(request.getInputStream());
             if (node.isObject()) {
