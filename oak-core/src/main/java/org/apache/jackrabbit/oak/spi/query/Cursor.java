@@ -18,10 +18,12 @@
  */
 package org.apache.jackrabbit.oak.spi.query;
 
+import java.util.Iterator;
+
 /**
  * A cursor to read a number of nodes sequentially.
  */
-public interface Cursor {
+public interface Cursor extends Iterator<IndexRow> {
 
     /**
      * The next row within this index.
@@ -46,8 +48,7 @@ public interface Cursor {
      * 
      * @return the row
      */
+    @Override
     IndexRow next();
     
-    boolean hasNext();
-
 }
