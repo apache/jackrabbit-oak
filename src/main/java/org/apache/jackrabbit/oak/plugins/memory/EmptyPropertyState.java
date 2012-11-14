@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.api.Type.BINARIES;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
@@ -44,8 +45,8 @@ public abstract class EmptyPropertyState implements PropertyState {
      * Create a new property state with the given {@code name}
      * @param name  The name of the property state.
      */
-    protected EmptyPropertyState(String name) {
-        this.name = name;
+    protected EmptyPropertyState(@Nonnull String name) {
+        this.name = checkNotNull(name);
     }
 
     /**

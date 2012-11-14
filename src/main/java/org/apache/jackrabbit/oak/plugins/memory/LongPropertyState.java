@@ -18,7 +18,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.plugins.value.Conversions.convert;
+
 import java.util.Calendar;
+
+import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -29,7 +34,7 @@ public class LongPropertyState extends SinglePropertyState<Long> {
     private final long value;
     private final Type<?> type;
 
-    public LongPropertyState(String name, long value, Type<?> type) {
+    public LongPropertyState(@Nonnull String name, long value, Type<?> type) {
         super(name);
         this.value = value;
         this.type = type;
@@ -41,7 +46,8 @@ public class LongPropertyState extends SinglePropertyState<Long> {
      * @param value  The value of the property state
      * @return  The new property state of type {@link Type#LONG}
      */
-    public static PropertyState createLongProperty(String name, long value) {
+    public static PropertyState createLongProperty(
+            @Nonnull String name, long value) {
         return new LongPropertyState(name, value, Type.LONG);
     }
 
@@ -51,7 +57,8 @@ public class LongPropertyState extends SinglePropertyState<Long> {
      * @param value  The value of the property state
      * @return  The new property state of type {@link Type#DATE}
      */
-    public static PropertyState createDateProperty(String name, long value) {
+    public static PropertyState createDateProperty(
+            @Nonnull String name, long value) {
         return new LongPropertyState(name, value, Type.DATE);
     }
 
@@ -61,8 +68,10 @@ public class LongPropertyState extends SinglePropertyState<Long> {
      * @param value  The value of the property state
      * @return  The new property state of type {@link Type#DATE}
      */
-    public static PropertyState createDateProperty(String name, Calendar value) {
-        return new LongPropertyState(name, Conversions.convert(value).toLong(), Type.DATE);
+    public static PropertyState createDateProperty(
+            @Nonnull String name, @Nonnull Calendar value) {
+        return new LongPropertyState(
+                name, convert(checkNotNull(value)).toLong(), Type.DATE);
     }
 
     /**
@@ -72,8 +81,10 @@ public class LongPropertyState extends SinglePropertyState<Long> {
      * @return  The new property state of type {@link Type#DATE}
      * @throws IllegalArgumentException if {@code value} is not a parseable to a date.
      */
-    public static PropertyState createDateProperty(String name, String value) {
-        return createDateProperty(name, Conversions.convert(value).toCalendar());
+    public static PropertyState createDateProperty(
+            @Nonnull String name, @Nonnull String value) {
+        return createDateProperty(
+                name, convert(checkNotNull(value)).toCalendar());
     }
 
     @Override
@@ -84,7 +95,7 @@ public class LongPropertyState extends SinglePropertyState<Long> {
     @Override
     public Converter getConverter() {
         if (type == Type.DATE) {
-            return Conversions.convert(Conversions.convert(value).toCalendar());
+            return convert(convert(value).toCalendar());
         }
         else {
             return Conversions.convert(value);
