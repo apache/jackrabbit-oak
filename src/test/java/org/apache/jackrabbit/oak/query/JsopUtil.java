@@ -16,11 +16,25 @@
  */
 package org.apache.jackrabbit.oak.query;
 
+import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
+
+import java.util.List;
+
+import javax.jcr.PropertyType;
+
+import org.apache.jackrabbit.mk.json.JsopReader;
 import org.apache.jackrabbit.mk.json.JsopTokenizer;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.apache.jackrabbit.oak.kernel.TypeCodes;
+import org.apache.jackrabbit.oak.plugins.memory.BooleanPropertyState;
+import org.apache.jackrabbit.oak.plugins.memory.StringPropertyState;
+import org.apache.jackrabbit.oak.plugins.value.Conversions;
+
+import com.google.common.collect.Lists;
 
 /**
  * Utility class for working with jsop string diffs
@@ -94,10 +108,91 @@ public class JsopUtil {
                     tokenizer.read('}');
                 }
             } else if (tokenizer.matches('[')) {
-                t.setProperty(PropertyStates.readArrayProperty(key, tokenizer, null));
+                t.setProperty(readArrayProperty(key, tokenizer));
             } else {
-                t.setProperty(PropertyStates.readProperty(key, tokenizer, null));
+                t.setProperty(readProperty(key, tokenizer));
             }
         } while (tokenizer.matches(','));
     }
+
+    /**
+     * Read a {@code PropertyState} from a {@link JsopReader}
+     * @param name  The name of the property state
+     * @param reader  The reader
+     * @return new property state
+     */
+    private static PropertyState readProperty(String name, JsopReader reader) {
+        if (reader.matches(JsopReader.NUMBER)) {
+            String number = reader.getToken();
+            return createProperty(name, number, PropertyType.LONG);
+        } else if (reader.matches(JsopReader.TRUE)) {
+            return BooleanPropertyState.booleanProperty(name, true);
+        } else if (reader.matches(JsopReader.FALSE)) {
+            return BooleanPropertyState.booleanProperty(name, false);
+        } else if (reader.matches(JsopReader.STRING)) {
+            String jsonString = reader.getToken();
+            int split = TypeCodes.split(jsonString);
+            if (split != -1) {
+                int type = TypeCodes.decodeType(split, jsonString);
+                String value = TypeCodes.decodeName(split, jsonString);
+                if (type == PropertyType.BINARY) {
+                    throw new UnsupportedOperationException();
+                } else {
+                    return createProperty(name, value, type);
+                }
+            } else {
+                return StringPropertyState.stringProperty(name, jsonString);
+            }
+        } else {
+            throw new IllegalArgumentException("Unexpected token: " + reader.getToken());
+        }
+    }
+
+    /**
+     * Read a multi valued {@code PropertyState} from a {@link JsopReader}
+     * @param name  The name of the property state
+     * @param reader  The reader
+     * @return new property state
+     */
+    private static PropertyState readArrayProperty(String name, JsopReader reader) {
+        int type = PropertyType.STRING;
+        List<Object> values = Lists.newArrayList();
+        while (!reader.matches(']')) {
+            if (reader.matches(JsopReader.NUMBER)) {
+                String number = reader.getToken();
+                type = PropertyType.LONG;
+                values.add(Conversions.convert(number).toLong());
+            } else if (reader.matches(JsopReader.TRUE)) {
+                type = PropertyType.BOOLEAN;
+                values.add(true);
+            } else if (reader.matches(JsopReader.FALSE)) {
+                type = PropertyType.BOOLEAN;
+                values.add(false);
+            } else if (reader.matches(JsopReader.STRING)) {
+                String jsonString = reader.getToken();
+                int split = TypeCodes.split(jsonString);
+                if (split != -1) {
+                    type = TypeCodes.decodeType(split, jsonString);
+                    String value = TypeCodes.decodeName(split, jsonString);
+                    if (type == PropertyType.BINARY) {
+                        throw new UnsupportedOperationException();
+                    } else if(type == PropertyType.DOUBLE) {
+                        values.add(Conversions.convert(value).toDouble());
+                    } else if(type == PropertyType.DECIMAL) {
+                        values.add(Conversions.convert(value).toDecimal());
+                    } else {
+                        values.add(value);
+                    }
+                } else {
+                    type = PropertyType.STRING;
+                    values.add(jsonString);
+                }
+            } else {
+                throw new IllegalArgumentException("Unexpected token: " + reader.getToken());
+            }
+            reader.matches(',');
+        }
+        return createProperty(name, values, Type.fromTag(type, true));
+    }
+
 }
