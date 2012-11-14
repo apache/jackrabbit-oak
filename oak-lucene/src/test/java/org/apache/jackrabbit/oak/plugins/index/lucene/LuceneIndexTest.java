@@ -63,9 +63,9 @@ public class LuceneIndexTest implements LuceneIndexConstants {
         filter.restrictProperty("foo", Operator.EQUAL,
                 PropertyValues.newString("bar"));
         Cursor cursor = queryIndex.query(filter, builder.getNodeState());
-        assertTrue(cursor.next());
-        assertEquals("/", cursor.currentRow().getPath());
-        assertFalse(cursor.next());
+        assertTrue(cursor.hasNext());
+        assertEquals("/", cursor.next().getPath());
+        assertFalse(cursor.hasNext());
     }
 
 }

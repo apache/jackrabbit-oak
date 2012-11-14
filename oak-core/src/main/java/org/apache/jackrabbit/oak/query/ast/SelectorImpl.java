@@ -57,6 +57,7 @@ public class SelectorImpl extends SourceImpl {
 
     private final String nodeTypeName, selectorName;
     private Cursor cursor;
+    private IndexRow currentRow;
     private int scanCount;
     /**
      * Iterable over selected node type and its subtypes
@@ -145,9 +146,10 @@ public class SelectorImpl extends SourceImpl {
 
     @Override
     public boolean next() {
-        while (cursor != null && cursor.next()) {
+        while (cursor != null && cursor.hasNext()) {
             scanCount++;
-            Tree tree = getTree(cursor.currentRow().getPath());
+            currentRow = cursor.next();
+            Tree tree = getTree(currentRow.getPath());
             if (tree == null) {
                 continue;
             }
@@ -165,6 +167,7 @@ public class SelectorImpl extends SourceImpl {
             return true;
         }
         cursor = null;
+        currentRow = null;
         return false;
     }
 
@@ -215,7 +218,7 @@ public class SelectorImpl extends SourceImpl {
      * @return the path
      */
     public String currentPath() {
-        return cursor == null ? null : cursor.currentRow().getPath();
+        return cursor == null ? null : currentRow.getPath();
     }
 
     public PropertyValue currentProperty(String propertyName) {
@@ -234,7 +237,7 @@ public class SelectorImpl extends SourceImpl {
         if (cursor == null) {
             return null;
         }
-        IndexRow r = cursor.currentRow();
+        IndexRow r = currentRow;
         if (r == null) {
             return null;
         }

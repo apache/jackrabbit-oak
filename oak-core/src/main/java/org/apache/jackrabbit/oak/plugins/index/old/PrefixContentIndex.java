@@ -112,26 +112,22 @@ public class PrefixContentIndex implements QueryIndex {
 
         private final Iterator<String> it;
 
-        private String currentPath;
-
         public ContentCursor(Iterator<String> it) {
             this.it = it;
         }
 
         @Override
-        public IndexRow currentRow() {
-            return new IndexRowImpl(currentPath);
+        public IndexRow next() {
+            String pathAndProperty = it.next();
+            String path = PathUtils.getParentPath(pathAndProperty);
+            return new IndexRowImpl(path);
         }
-
+        
         @Override
-        public boolean next() {
-            if (it.hasNext()) {
-                String pathAndProperty = it.next();
-                currentPath = PathUtils.getParentPath(pathAndProperty);
-                return true;
-            }
-            return false;
+        public boolean hasNext() {
+            return it.hasNext();
         }
+        
     }
     
     @Override

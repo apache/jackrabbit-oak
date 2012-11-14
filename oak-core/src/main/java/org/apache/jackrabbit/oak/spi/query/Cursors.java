@@ -74,28 +74,22 @@ public class Cursors {
 
         private final Iterator<String> iterator;
 
-        private String path;
-
         public PathCursor(Iterable<String> paths) {
             this.iterator = paths.iterator();
         }
 
         @Override
-        public boolean next() {
-            if (iterator.hasNext()) {
-                path = iterator.next();
-                return true;
-            } else {
-                path = null;
-                return false;
-            }
-        }
-
-        @Override
-        public IndexRow currentRow() {
+        public IndexRow next() {
             // TODO support jcr:score and possibly rep:exceprt
+            String path = iterator.next();
             return new IndexRowImpl(isAbsolute(path) ? path : "/" + path);
         }
+        
+        @Override
+        public boolean hasNext() {
+            return iterator.hasNext();
+        }
+        
     }
 
     /**
@@ -116,6 +110,8 @@ public class Cursors {
 
         private long readCount;
 
+        private boolean init;
+        
         private boolean closed;
 
         public TraversingCursor(Filter filter, NodeState root) {
@@ -165,15 +161,29 @@ public class Cursors {
         }
 
         @Override
-        public IndexRow currentRow() {
+        public IndexRow next() {
             if (closed) {
                 throw new IllegalStateException("This cursor is closed");
             }
-            return new IndexRowImpl(currentPath);
+            if (!init) {
+                fetchNext();
+                init = true;
+            }
+            IndexRowImpl result = new IndexRowImpl(currentPath);
+            fetchNext();
+            return result;
+        }
+        
+        @Override 
+        public boolean hasNext() {
+            if (!closed && !init) {
+                fetchNext();
+                init = true;
+            }
+            return !closed;
         }
 
-        @Override
-        public boolean next() {
+        private void fetchNext() {
             while (!nodeIterators.isEmpty()) {
                 Iterator<? extends ChildNodeEntry> iterator = nodeIterators.getLast();
                 if (iterator.hasNext()) {
@@ -196,7 +206,7 @@ public class Cursors {
                         nodeIterators.addLast(node.getChildNodeEntries().iterator());
                         parentPath = currentPath;
                     }
-                    return true;
+                    return;
                 } else {
                     nodeIterators.removeLast();
                     parentPath = PathUtils.getParentPath(parentPath);
@@ -204,7 +214,6 @@ public class Cursors {
             }
             currentPath = null;
             closed = true;
-            return false;
         }
 
     }
