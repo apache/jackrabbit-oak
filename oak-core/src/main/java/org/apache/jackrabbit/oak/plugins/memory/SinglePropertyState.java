@@ -36,7 +36,7 @@ abstract class SinglePropertyState<T> extends EmptyPropertyState {
      * Create a new property state with the given {@code name}
      * @param name  The name of the property state.
      */
-    protected SinglePropertyState(String name) {
+    protected SinglePropertyState(@Nonnull String name) {
         super(name);
     }
 

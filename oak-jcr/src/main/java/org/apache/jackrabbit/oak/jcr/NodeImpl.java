@@ -1368,10 +1368,11 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
                 return getValueFactory().createValue(Calendar.getInstance());
             }
         } else if (NodeTypeConstants.JCR_CREATEDBY.equals(name)) {
+            String userID = sessionDelegate.getAuthInfo().getUserID();
             // jcr:createdBy property of a mix:created
-            if (NodeTypeConstants.MIX_CREATED.equals(declaringNT)) {
-                return getValueFactory().createValue(
-                        sessionDelegate.getAuthInfo().getUserID());
+            if (userID != null
+                    && NodeTypeConstants.MIX_CREATED.equals(declaringNT)) {
+                return getValueFactory().createValue(userID);
             }
         } else if (NodeTypeConstants.JCR_LASTMODIFIED.equals(name)) {
             // jcr:lastModified property of a mix:lastModified
@@ -1379,10 +1380,11 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
                 return getValueFactory().createValue(Calendar.getInstance());
             }
         } else if (NodeTypeConstants.JCR_LASTMODIFIEDBY.equals(name)) {
+            String userID = sessionDelegate.getAuthInfo().getUserID();
             // jcr:lastModifiedBy property of a mix:lastModified
-            if (NodeTypeConstants.MIX_LASTMODIFIED.equals(declaringNT)) {
-                return getValueFactory().createValue(
-                        sessionDelegate.getAuthInfo().getUserID());
+            if (userID != null
+                    && NodeTypeConstants.MIX_LASTMODIFIED.equals(declaringNT)) {
+                return getValueFactory().createValue(userID);
             }
         }
         // does the definition have a default value?
