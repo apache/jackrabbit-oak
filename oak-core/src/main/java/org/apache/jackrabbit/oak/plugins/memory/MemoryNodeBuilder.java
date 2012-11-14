@@ -277,7 +277,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
                 if (n.getValue() == null) {
                     return true;
                 }
-                if (baseState != null && !baseState.hasChildNode(n.getKey())) {
+                if (baseState == null || !baseState.hasChildNode(n.getKey())) {
                     return true;
                 }
             }
@@ -286,7 +286,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
                 if (pState == null) {
                     return true;
                 }
-                if (baseState != null && !pState.equals(baseState.getProperty(p.getKey()))) {
+                if (baseState == null || !pState.equals(baseState.getProperty(p.getKey()))) {
                     return true;
                 }
             }
