@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import javax.annotation.Nonnull;
 import javax.jcr.Value;
 
 import org.apache.jackrabbit.oak.api.Blob;
@@ -27,9 +30,9 @@ import org.apache.jackrabbit.oak.plugins.value.Conversions.Converter;
 public class BinaryPropertyState extends SinglePropertyState<Blob> {
     private final Blob value;
 
-    public BinaryPropertyState(String name, Blob value) {
+    public BinaryPropertyState(@Nonnull String name, @Nonnull Blob value) {
         super(name);
-        this.value = value;
+        this.value = checkNotNull(value);
     }
 
     /**
@@ -38,8 +41,10 @@ public class BinaryPropertyState extends SinglePropertyState<Blob> {
      * @param value  The value of the property state
      * @return  The new property state of type {@link Type#BINARY}
      */
-    public static PropertyState binaryProperty(String name, byte[] value) {
-        return new BinaryPropertyState(name, new ArrayBasedBlob(value));
+    public static PropertyState binaryProperty(
+            @Nonnull String name, @Nonnull byte[] value) {
+        return new BinaryPropertyState(
+                name, new ArrayBasedBlob(checkNotNull(value)));
     }
 
     /**
@@ -48,8 +53,10 @@ public class BinaryPropertyState extends SinglePropertyState<Blob> {
      * @param value  The value of the property state
      * @return  The new property state of type {@link Type#BINARY}
      */
-    public static PropertyState binaryProperty(String name, String value) {
-        return new BinaryPropertyState(name, new StringBasedBlob(value));
+    public static PropertyState binaryProperty(
+            @Nonnull String name, @Nonnull String value) {
+        return new BinaryPropertyState(
+                name, new StringBasedBlob(checkNotNull(value)));
     }
 
     /**
@@ -58,7 +65,8 @@ public class BinaryPropertyState extends SinglePropertyState<Blob> {
      * @param value  The value of the property state
      * @return  The new property state of type {@link Type#BINARY}
      */
-    public static PropertyState binaryProperty(String name, Blob value) {
+    public static PropertyState binaryProperty(
+            @Nonnull String name, @Nonnull Blob value) {
         return new BinaryPropertyState(name, value);
     }
 
@@ -68,8 +76,10 @@ public class BinaryPropertyState extends SinglePropertyState<Blob> {
      * @param value  The value of the property state
      * @return  The new property state of type {@link Type#BINARY}
      */
-    public static PropertyState binaryProperty(String name, Value value) {
-        return new BinaryPropertyState(name, new ValueBasedBlob(value));
+    public static PropertyState binaryProperty(
+            @Nonnull String name, @Nonnull Value value) {
+        return new BinaryPropertyState(
+                name, new ValueBasedBlob(checkNotNull(value)));
     }
 
     @Override

@@ -18,19 +18,22 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.value.Conversions;
 import org.apache.jackrabbit.oak.plugins.value.Conversions.Converter;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 
 public class StringPropertyState extends SinglePropertyState<String> {
     private final String value;
 
-    public StringPropertyState(String name, String value) {
+    public StringPropertyState(@Nonnull String name, @Nonnull String value) {
         super(name);
-        this.value = value;
+        this.value = checkNotNull(value);
     }
 
     /**
@@ -39,7 +42,8 @@ public class StringPropertyState extends SinglePropertyState<String> {
      * @param value  The value of the property state
      * @return  The new property state of type {@link Type#STRING}
      */
-    public static PropertyState stringProperty(String name, String value) {
+    public static PropertyState stringProperty(
+            @Nonnull String name, @Nonnull String value) {
         return new StringPropertyState(name, value);
     }
 
