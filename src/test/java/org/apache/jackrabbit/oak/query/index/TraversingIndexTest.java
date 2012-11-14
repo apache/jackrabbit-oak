@@ -74,8 +74,8 @@ public class TraversingIndexTest {
         f.setPath("/");
         List<String> paths = new ArrayList<String>();
         Cursor c = t.query(f, new KernelNodeState(mk, "/", head, cache));
-        while (c.next()) {
-            paths.add(c.currentRow().getPath());
+        while (c.hasNext()) {
+            paths.add(c.next().getPath());
         }
         Collections.sort(paths);
         assertEquals(Arrays.asList(
@@ -83,15 +83,15 @@ public class TraversingIndexTest {
                 "/children/c3", "/children/c4", "/parents",
                 "/parents/p0", "/parents/p1",  "/parents/p2"),
                 paths);
-        assertFalse(c.next());
+        assertFalse(c.hasNext());
         // endure it stays false
-        assertFalse(c.next());
+        assertFalse(c.hasNext());
 
         f.setPath("/nowhere");
         c = t.query(f, new KernelNodeState(mk, "/", head, cache));
-        assertFalse(c.next());
+        assertFalse(c.hasNext());
         // endure it stays false
-        assertFalse(c.next());
+        assertFalse(c.hasNext());
     }
 
 }
