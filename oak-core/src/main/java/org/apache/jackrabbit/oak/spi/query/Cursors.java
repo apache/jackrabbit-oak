@@ -65,12 +65,25 @@ public class Cursors {
                                              NodeState root) {
         return new TraversingCursor(filter, root);
     }
+    
+    /**
+     * A Cursor implementation where the remove method throws an
+     * UnsupportedOperationException.
+     */
+    public abstract static class AbstractCursor implements Cursor {
+        
+        @Override
+        public void remove() {
+            throw new UnsupportedOperationException();
+        }
+        
+    }
 
     /**
      * <code>PathCursor</code> implements a simple {@link Cursor} that iterates
      * over a {@link String} based path {@link Iterable}.
      */
-    private static class PathCursor implements Cursor {
+    private static class PathCursor extends AbstractCursor {
 
         private final Iterator<String> iterator;
 
@@ -95,7 +108,7 @@ public class Cursors {
     /**
      * A cursor that reads all nodes in a given subtree.
      */
-    private static class TraversingCursor implements Cursor {
+    private static class TraversingCursor extends AbstractCursor {
 
         private static final Logger LOG = LoggerFactory.getLogger(TraversingIndex.class);
 
