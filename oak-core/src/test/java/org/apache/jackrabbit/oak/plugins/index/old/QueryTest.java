@@ -23,7 +23,6 @@ import org.apache.jackrabbit.oak.plugins.nodetype.InitialContent;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -49,12 +48,6 @@ public class QueryTest extends AbstractQueryTest {
     @Test
     public void sql2Explain() throws Exception {
         test("sql2_explain.txt");
-    }
-
-    @Test
-    @Ignore("OAK-288 prevents the index from seeing updates that happened directly on the mk")
-    public void sql2() throws Exception {
-        test("sql2.txt");
     }
 
 }
