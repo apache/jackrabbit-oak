@@ -42,7 +42,7 @@ public class FileBlobStore extends AbstractBlobStore {
 
     // TODO file operations are not secure (return values not checked, no retry,...)
 
-    public FileBlobStore(String dir) throws IOException {
+    public FileBlobStore(String dir) {
         baseDir = new File(dir);
         baseDir.mkdirs();
     }
@@ -116,18 +116,18 @@ public class FileBlobStore extends AbstractBlobStore {
 
     @Override
     protected byte[] readBlockFromBackend(BlockId id) throws IOException {
-        File f = getFile(id.digest, false);
+        File f = getFile(id.getDigest(), false);
         if (!f.exists()) {
-            File old = getFile(id.digest, true);
+            File old = getFile(id.getDigest(), true);
             f.getParentFile().mkdir();
             old.renameTo(f);
-            f = getFile(id.digest, false);
+            f = getFile(id.getDigest(), false);
         }
         int length = (int) Math.min(f.length(), getBlockSize());
         byte[] data = new byte[length];
         InputStream in = new FileInputStream(f);
         try {
-            IOUtils.skipFully(in, id.pos);
+            IOUtils.skipFully(in, id.getPos());
             IOUtils.readFully(in, data, 0, length);
         } finally {
             in.close();
@@ -168,12 +168,12 @@ public class FileBlobStore extends AbstractBlobStore {
 
     @Override
     protected void mark(BlockId id) throws IOException {
-        File f = getFile(id.digest, false);
+        File f = getFile(id.getDigest(), false);
         if (!f.exists()) {
-            File old = getFile(id.digest, true);
+            File old = getFile(id.getDigest(), true);
             f.getParentFile().mkdir();
             old.renameTo(f);
-            f = getFile(id.digest, false);
+            f = getFile(id.getDigest(), false);
         }
     }
 
