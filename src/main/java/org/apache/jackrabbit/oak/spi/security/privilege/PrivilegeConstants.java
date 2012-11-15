@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.spi.security.privilege;
 
+import java.util.Map;
+
+import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.JcrConstants;
 
 /**
@@ -89,4 +92,9 @@ public interface PrivilegeConstants {
     String[] AGGR_REP_WRITE = new String[] {
             JCR_WRITE, JCR_NODE_TYPE_MANAGEMENT
     };
+
+    Map<String, String[]> AGGREGATE_PRIVILEGES = ImmutableMap.of(JCR_READ, AGGR_JCR_READ,
+            JCR_MODIFY_PROPERTIES, AGGR_JCR_MODIFY_PROPERTIES,
+            JCR_WRITE, AGGR_JCR_WRITE,
+            REP_WRITE, AGGR_REP_WRITE);
 }
