@@ -40,23 +40,25 @@ import org.apache.jackrabbit.util.Text;
  */
 class UserValidator extends DefaultValidator implements UserConstants {
 
-    private final UserValidatorProvider provider;
-
     private final NodeUtil parentBefore;
     private final NodeUtil parentAfter;
+    private final UserValidatorProvider provider;
+
+    private final AuthorizableType authorizableType;
 
     UserValidator(NodeUtil parentBefore, NodeUtil parentAfter, UserValidatorProvider provider) {
         this.parentBefore = parentBefore;
         this.parentAfter = parentAfter;
-
         this.provider = provider;
+
+        authorizableType = UserUtility.getType(parentAfter);
     }
 
     //----------------------------------------------------------< Validator >---
 
     @Override
     public void propertyAdded(PropertyState after) throws CommitFailedException {
-        if (!isAuthorizable(parentAfter)) {
+        if (authorizableType == null) {
             return;
         }
 
@@ -74,7 +76,7 @@ class UserValidator extends DefaultValidator implements UserConstants {
 
     @Override
     public void propertyChanged(PropertyState before, PropertyState after) throws CommitFailedException {
-        if (!isAuthorizable(parentAfter)) {
+        if (authorizableType == null) {
             return;
         }
 
@@ -96,7 +98,7 @@ class UserValidator extends DefaultValidator implements UserConstants {
 
     @Override
     public void propertyDeleted(PropertyState before) throws CommitFailedException {
-        if (!isAuthorizable(parentAfter)) {
+        if (authorizableType == null) {
             return;
         }
 
@@ -110,12 +112,8 @@ class UserValidator extends DefaultValidator implements UserConstants {
     @Override
     public Validator childNodeAdded(String name, NodeState after) throws CommitFailedException {
         NodeUtil node = parentAfter.getChild(name);
-        String authRoot = null;
-        if (node.hasPrimaryNodeTypeName(NT_REP_USER)) {
-            authRoot = provider.getConfig().getConfigValue(PARAM_USER_PATH, DEFAULT_USER_PATH);
-        } else if (node.hasPrimaryNodeTypeName(UserConstants.NT_REP_GROUP)) {
-            authRoot = provider.getConfig().getConfigValue(PARAM_GROUP_PATH, DEFAULT_GROUP_PATH);
-        }
+        AuthorizableType type = UserUtility.getType(node);
+        String authRoot = UserUtility.getAuthorizableRootPath(provider.getConfig(), type);
         if (authRoot != null) {
             assertHierarchy(node, authRoot);
             // assert rep:principalName is present (that should actually by covered
@@ -145,6 +143,24 @@ class UserValidator extends DefaultValidator implements UserConstants {
 
     //------------------------------------------------------------< private >---
 
+    private boolean isAdminUser(NodeUtil userNode) {
+        if (isUser(userNode)) {
+            String id = UserProvider.getAuthorizableId(userNode.getTree());
+            return id != null && UserUtility.getAdminId(provider.getConfig()).equals(id);
+        } else {
+            return false;
+        }
+    }
+
+    private boolean isValidUUID(String uuid) {
+        String id = UserProvider.getAuthorizableId(parentAfter.getTree());
+        return uuid.equals(UserProvider.getContentID(id));
+    }
+
+    private static boolean isUser(NodeUtil node) {
+        return node.hasPrimaryNodeTypeName(NT_REP_USER);
+    }
+
     /**
      * Make sure user and group nodes are located underneath the configured path
      * and that path consists of rep:authorizableFolder nodes.
@@ -153,12 +169,11 @@ class UserValidator extends DefaultValidator implements UserConstants {
      * @param pathConstraint
      * @throws CommitFailedException
      */
-    private void assertHierarchy(NodeUtil userNode, String pathConstraint) throws CommitFailedException {
+    private static void assertHierarchy(NodeUtil userNode, String pathConstraint) throws CommitFailedException {
         if (!Text.isDescendant(pathConstraint, userNode.getTree().getPath())) {
             String msg = "Attempt to create user/group outside of configured scope " + pathConstraint;
             fail(msg);
         }
-
         NodeUtil parent = userNode.getParent();
         while (!parent.getTree().isRoot()) {
             if (!parent.hasPrimaryNodeTypeName(NT_REP_AUTHORIZABLE_FOLDER)) {
@@ -168,28 +183,6 @@ class UserValidator extends DefaultValidator implements UserConstants {
             parent = parent.getParent();
         }
     }
-
-
-    // FIXME: copied from UserProvider#isAdminUser
-    private boolean isAdminUser(NodeUtil userNode) {
-        String id = (userNode.getString(REP_AUTHORIZABLE_ID, Text.unescapeIllegalJcrChars(userNode.getName())));
-        return isUser(userNode) && UserUtility.getAdminId(provider.getConfig()).equals(id);
-    }
-
-    private boolean isValidUUID(String uuid) {
-        String id = UserProvider.getAuthorizableId(parentAfter.getTree());
-        return uuid.equals(UserProvider.getContentID(id));
-    }
-
-    private static boolean isAuthorizable(NodeUtil node) {
-        return UserUtility.isType(node.getTree(), AuthorizableType.AUTHORIZABLE);
-    }
-
-    private static boolean isUser(NodeUtil node) {
-        return UserUtility.isType(node.getTree(), AuthorizableType.USER);
-    }
-
-
 
     private static void fail(String msg) throws CommitFailedException {
         Exception e = new ConstraintViolationException(msg);
