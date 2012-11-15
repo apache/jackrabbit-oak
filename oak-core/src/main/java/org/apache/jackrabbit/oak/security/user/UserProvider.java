@@ -292,7 +292,7 @@ class UserProvider extends AuthorizableBaseProvider {
                 folder = colliding;
             } else {
                 String msg = "Failed to create authorizable with id '" + authorizableId + "' : " +
-                        "Detected conflicting node of unexpected node type '" + colliding.getString(JcrConstants.JCR_PRIMARYTYPE, null) + "'.";
+                        "Detected conflicting node of unexpected node type '" + colliding.getPrimaryNodeTypeName() + "'.";
                 log.error(msg);
                 throw new ConstraintViolationException(msg);
             }

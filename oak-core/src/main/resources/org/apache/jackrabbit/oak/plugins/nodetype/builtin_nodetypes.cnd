@@ -620,7 +620,7 @@
   - rep:disabled (STRING) protected
 
 [rep:Group] > rep:Authorizable
-  + rep:members (rep:Members) = rep:Members multiple protected VERSION
+  + rep:members (rep:Members) = rep:Members multiple protected VERSION /* FIXME: SNS definition */
   - rep:members (WEAKREFERENCE) protected multiple < 'rep:Authorizable'
 
 [rep:AuthorizableFolder] > nt:hierarchyNode
@@ -629,8 +629,9 @@
 
 [rep:Members]
   orderable
-  + * (rep:Members) = rep:Members protected multiple
-  - * (WEAKREFERENCE) protected < 'rep:Authorizable'
+  + * (rep:Members) = rep:Members protected multiple /* FIXME: SNS definition */
+  - * (WEAKREFERENCE) protected < 'rep:Authorizable' /* Deprecated since OAK */
+  - rep:members (WEAKREFERENCE) protected multiple < 'rep:Authorizable'
 
 // -----------------------------------------------------------------------------
 // Privilege Management
