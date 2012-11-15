@@ -422,7 +422,9 @@ public class MemoryNodeBuilder implements NodeBuilder {
         read(); // shortcut when dealing with a read-only child node
         if (baseState != null
                 && baseState.hasChildNode(name)
-                && (writeState == null || !writeState.nodes.containsKey(name))) {
+                && (writeState == null
+                    || (writeState.base == baseState
+                        && !writeState.nodes.containsKey(name)))) {
             return createChildBuilder(name);
         }
 
