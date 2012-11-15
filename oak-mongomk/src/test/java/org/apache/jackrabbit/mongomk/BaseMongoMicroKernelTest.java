@@ -22,59 +22,32 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-import java.io.InputStream;
-import java.util.Properties;
-
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.blobs.BlobStore;
-import org.apache.jackrabbit.mongomk.impl.MongoConnection;
 import org.apache.jackrabbit.mongomk.impl.MongoMicroKernel;
 import org.apache.jackrabbit.mongomk.impl.MongoNodeStore;
-import org.apache.jackrabbit.mongomk.impl.blob.MongoBlobStore;
 import org.apache.jackrabbit.mongomk.impl.blob.MongoGridFSBlobStore;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
-import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Before;
-import org.junit.BeforeClass;
 
 import com.mongodb.DB;
 
 /**
  * Base class for {@code MongoDB} tests that need the MongoMK.
  */
-public class BaseMongoMicroKernelTest {
+public class BaseMongoMicroKernelTest extends AbstractMongoConnectionTest {
 
     public static MicroKernel mk;
-    public static MongoConnection mongoConnection;
-
-    @BeforeClass
-    public static void setUpBeforeClass() throws Exception {
-        createDefaultMongoConnection();
-    }
 
     @Before
     public void setUp() throws Exception {
         DB db = mongoConnection.getDB();
-        dropCollections(db);
-
         MongoNodeStore nodeStore = new MongoNodeStore(db);
         MongoAssert.setNodeStore(nodeStore);
         BlobStore blobStore = new MongoGridFSBlobStore(db);
         mk = new MongoMicroKernel(mongoConnection, nodeStore, blobStore);
-    }
-
-    @After
-    public void tearDown() throws Exception {
-        DB db = mongoConnection.getDB();
-        dropCollections(db);
-    }
-
-    @AfterClass
-    public static void tearDownAfterClass() throws Exception {
-        mongoConnection.getDB().dropDatabase();
     }
 
     protected MongoNodeStore getNodeStore() {
@@ -223,22 +196,4 @@ public class BaseMongoMicroKernelTest {
         return val;
     }
 
-    private static void createDefaultMongoConnection() throws Exception {
-        InputStream is = BaseMongoMicroKernelTest.class.getResourceAsStream("/config.cfg");
-        Properties properties = new Properties();
-        properties.load(is);
-
-        String host = properties.getProperty("host");
-        int port = Integer.parseInt(properties.getProperty("port"));
-        String database = properties.getProperty("db");
-
-        mongoConnection = new MongoConnection(host, port, database);
-    }
-
-    protected void dropCollections(DB db) {
-        db.getCollection(MongoBlobStore.COLLECTION_BLOBS).drop();
-        db.getCollection(MongoNodeStore.COLLECTION_COMMITS).drop();
-        db.getCollection(MongoNodeStore.COLLECTION_NODES).drop();
-        db.getCollection(MongoNodeStore.COLLECTION_SYNC).drop();
-    }
 }

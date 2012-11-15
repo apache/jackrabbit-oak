@@ -29,39 +29,27 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Properties;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.jackrabbit.mongomk.impl.MongoConnection;
+import org.apache.jackrabbit.mongomk.AbstractMongoConnectionTest;
 import org.apache.jackrabbit.mongomk.impl.blob.MongoBlobStore;
 import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
-
-import com.mongodb.DB;
 
 /**
  * Tests the {@link MongoBlobStore} implementation. It should really extend from
  * AbstractBlobStore but it cannot due to classpath issues, so instead AbstractBlobStore
  * tests are copied here as well.
  */
-public class MongoBlobStoreTest /*extends AbstractBlobStoreTest*/ {
+public class MongoBlobStoreTest extends AbstractMongoConnectionTest {
 
     protected AbstractBlobStore store;
-    private static DB db;
-
-    @BeforeClass
-    public static void setUpBeforeClass() throws Exception {
-        createDefaultMongoConnection();
-    }
 
     @Before
     public void setUp() throws Exception {
-        dropCollections();
-        MongoBlobStore blobStore = new MongoBlobStore(db);
+        MongoBlobStore blobStore = new MongoBlobStore(mongoConnection.getDB());
         blobStore.setBlockSize(128);
         blobStore.setBlockSizeMin(48);
         this.store = blobStore;
@@ -69,13 +57,7 @@ public class MongoBlobStoreTest /*extends AbstractBlobStoreTest*/ {
 
     @After
     public void tearDown() throws Exception {
-        dropCollections();
         store = null;
-    }
-
-    @AfterClass
-    public static void tearDownAfterClass() throws Exception {
-        db.dropDatabase();
     }
 
     @Test
@@ -305,23 +287,4 @@ public class MongoBlobStoreTest /*extends AbstractBlobStoreTest*/ {
         return data;
     }
 
-    private static void createDefaultMongoConnection() throws Exception {
-        InputStream is = MongoBlobStoreTest.class.getResourceAsStream("/config.cfg");
-        Properties properties = new Properties();
-        properties.load(is);
-
-        String host = properties.getProperty("host");
-        int port = Integer.parseInt(properties.getProperty("port"));
-        String database = properties.getProperty("db");
-
-        MongoConnection mongoConnection = new MongoConnection(host, port, database);
-        db = mongoConnection.getDB();
-    }
-
-    protected void dropCollections() {
-        if (db == null) {
-            return;
-        }
-        db.getCollection(MongoBlobStore.COLLECTION_BLOBS).drop();
-    }
 }

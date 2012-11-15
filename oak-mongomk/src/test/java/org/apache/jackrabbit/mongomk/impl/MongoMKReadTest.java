@@ -23,7 +23,7 @@ import junit.framework.Assert;
 
 import org.apache.jackrabbit.mk.blobs.BlobStore;
 import org.apache.jackrabbit.mk.util.MicroKernelInputStream;
-import org.apache.jackrabbit.mongomk.BaseMongoMicroKernelTest;
+import org.apache.jackrabbit.mongomk.AbstractMongoConnectionTest;
 import org.apache.jackrabbit.mongomk.impl.blob.MongoBlobStore;
 import org.junit.Before;
 import org.junit.Test;
@@ -33,17 +33,15 @@ import com.mongodb.DB;
 /**
  * Tests for {@code MongoMicroKernel#read(String, long, byte[], int, int)}
  */
-public class MongoMKReadTest extends BaseMongoMicroKernelTest {
+public class MongoMKReadTest extends AbstractMongoConnectionTest {
 
+    private MongoMicroKernel mk;
     private byte[] blob;
     private String blobId;
 
-    // Override to set the right blob store.
     @Before
     public void setUp() throws Exception {
-        super.setUp();
         DB db = mongoConnection.getDB();
-        dropCollections(db);
 
         MongoNodeStore nodeStore = new MongoNodeStore(db);
         BlobStore blobStore = new MongoBlobStore(db);

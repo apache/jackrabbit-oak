@@ -20,17 +20,13 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import java.io.InputStream;
-import java.util.Properties;
-
 import org.apache.jackrabbit.mk.api.MicroKernel;
+import org.apache.jackrabbit.mongomk.AbstractMongoConnectionTest;
 import org.apache.jackrabbit.mongomk.impl.MongoConnection;
 import org.apache.jackrabbit.mongomk.impl.MongoMicroKernel;
 import org.apache.jackrabbit.mongomk.impl.MongoNodeStore;
-import org.apache.jackrabbit.mongomk.impl.blob.MongoBlobStore;
 import org.apache.jackrabbit.mongomk.impl.blob.MongoGridFSBlobStore;
 import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -40,34 +36,47 @@ import com.mongodb.DB;
 /**
  * Tests for multi-tenancy.
  */
-public class MultiTenancyTest {
+public class MultiTenancyTest extends AbstractMongoConnectionTest {
+
+    private static final String DB2 =
+            System.getProperty("mongo.db", "MongoMKDB2");
+
+    private static MongoConnection mongoConnection2;
+    private static MongoConnection mongoConnection3;
 
     private static MicroKernel mk1;
     private static MicroKernel mk2;
     private static MicroKernel mk3;
-    private static MongoConnection mongoConnection1;
-    private static MongoConnection mongoConnection2;
-    private static MongoConnection mongoConnection3;
 
     @BeforeClass
-    public static void setUpBeforeClass() throws Exception {
-        createMongoConnections();
+    public static void createMongoConnections() throws Exception {
+        mongoConnection2 = new MongoConnection(HOST, PORT, DB2);
+        mongoConnection3 = new MongoConnection(HOST, PORT, DB);
     }
 
+
     @Before
-    public void setUp() throws Exception {
-        dropCollections();
-        setupMicroKernels();
+    public void setupMicroKernels() throws Exception {
+        mongoConnection2.getDB().dropDatabase();
+        // DB1 handled by the AbstractMongoConnectionTest
+
+        DB db = mongoConnection.getDB();
+        mk1 = new MongoMicroKernel(mongoConnection, new MongoNodeStore(db),
+                new MongoGridFSBlobStore(db));
+
+        DB db2 = mongoConnection2.getDB();
+        mk2 = new MongoMicroKernel(mongoConnection2, new MongoNodeStore(db2),
+                new MongoGridFSBlobStore(db2));
+
+        DB db3 = mongoConnection3.getDB();
+        mk3 = new MongoMicroKernel(mongoConnection3, new MongoNodeStore(db3),
+                new MongoGridFSBlobStore(db3));
     }
 
     @After
-    public void tearDown() throws Exception {
-        dropCollections();
-    }
-
-    @AfterClass
-    public static void tearDownAfterClass() throws Exception {
-        dropDatabases();
+    public void dropDatabases() throws Exception {
+        mongoConnection2.getDB().dropDatabase();
+        // DB1 handled by the AbstractMongoConnectionTest
     }
 
     /**
@@ -99,51 +108,4 @@ public class MultiTenancyTest {
         assertFalse(mk3.nodeExists("/c", null));
     }
 
-    private static void createMongoConnections() throws Exception {
-        InputStream is = MultiTenancyTest.class.getResourceAsStream("/config.cfg");
-        Properties properties = new Properties();
-        properties.load(is);
-
-        String host = properties.getProperty("host");
-        int port = Integer.parseInt(properties.getProperty("port"));
-        String db1 = properties.getProperty("db");
-        String db2 = properties.getProperty("db2");
-
-        mongoConnection1 = new MongoConnection(host, port, db1);
-        mongoConnection2 = new MongoConnection(host, port, db2);
-        mongoConnection3 = new MongoConnection(host, port, db1);
-    }
-
-    private static void dropDatabases() {
-        mongoConnection1.getDB().dropDatabase();
-        mongoConnection2.getDB().dropDatabase();
-        mongoConnection3.getDB().dropDatabase();
-    }
-
-    private void dropCollections() {
-        doDropCollections(mongoConnection1.getDB());
-        doDropCollections(mongoConnection2.getDB());
-        doDropCollections(mongoConnection3.getDB());
-    }
-
-    private void doDropCollections(DB db) {
-        db.getCollection(MongoBlobStore.COLLECTION_BLOBS).drop();
-        db.getCollection(MongoNodeStore.COLLECTION_COMMITS).drop();
-        db.getCollection(MongoNodeStore.COLLECTION_NODES).drop();
-        db.getCollection(MongoNodeStore.COLLECTION_SYNC).drop();
-    }
-
-    private void setupMicroKernels() {
-        DB db = mongoConnection1.getDB();
-        mk1 = new MongoMicroKernel(mongoConnection1, new MongoNodeStore(db),
-                new MongoGridFSBlobStore(db));
-
-        DB db2 = mongoConnection2.getDB();
-        mk2 = new MongoMicroKernel(mongoConnection2, new MongoNodeStore(db2),
-                new MongoGridFSBlobStore(db2));
-
-        DB db3 = mongoConnection1.getDB();
-        mk3 = new MongoMicroKernel(mongoConnection3, new MongoNodeStore(db3),
-                new MongoGridFSBlobStore(db3));
-    }
 }
