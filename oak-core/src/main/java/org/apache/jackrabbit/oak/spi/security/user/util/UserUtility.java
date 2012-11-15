@@ -25,6 +25,7 @@ import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.util.NodeUtil;
+import org.apache.jackrabbit.util.Text;
 
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 
@@ -70,5 +71,27 @@ public final class UserUtility implements UserConstants{
             }
         }
         return null;
+    }
+
+    @CheckForNull
+    public static String getAuthorizableRootPath(ConfigurationParameters parameters, AuthorizableType type) {
+        String path = null;
+        if (type != null) {
+            switch (type) {
+                case USER:
+                    path = parameters.getConfigValue(UserConstants.PARAM_USER_PATH, UserConstants.DEFAULT_USER_PATH);
+                    break;
+                case GROUP:
+                    path = parameters.getConfigValue(UserConstants.PARAM_GROUP_PATH, UserConstants.DEFAULT_GROUP_PATH);
+                    break;
+                default:
+                    path = parameters.getConfigValue(UserConstants.PARAM_USER_PATH, UserConstants.DEFAULT_USER_PATH);
+                    String groupRoot = parameters.getConfigValue(UserConstants.PARAM_GROUP_PATH, UserConstants.DEFAULT_GROUP_PATH);
+                    while (!Text.isDescendant(path, groupRoot)) {
+                        path = Text.getRelativeParent(path, 1);
+                    }
+            }
+        }
+        return path;
     }
 }
