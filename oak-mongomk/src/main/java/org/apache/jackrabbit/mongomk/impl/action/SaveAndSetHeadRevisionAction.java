@@ -48,10 +48,12 @@ public class SaveAndSetHeadRevisionAction extends BaseAction<MongoSync> {
 
     @Override
     public MongoSync execute() throws Exception {
-        DBCollection headCollection = nodeStore.getSyncCollection();
         DBObject query = QueryBuilder.start(MongoSync.KEY_HEAD_REVISION_ID).is(oldHeadRevision).get();
-        DBObject update = new BasicDBObject("$set", new BasicDBObject(MongoSync.KEY_HEAD_REVISION_ID, newHeadRevision));
-        DBObject dbObject = headCollection.findAndModify(query, null, null, false, update, true, false);
+        DBObject update = new BasicDBObject("$set", new BasicDBObject(MongoSync.KEY_HEAD_REVISION_ID,
+                newHeadRevision));
+        DBCollection collection = nodeStore.getSyncCollection();
+        DBObject dbObject = collection.findAndModify(query, null/*fields*/,
+                null/*sort*/, false/*remove*/, update, true/*returnNew*/, false/*upsert*/);
         return MongoSync.fromDBObject(dbObject);
     }
 }

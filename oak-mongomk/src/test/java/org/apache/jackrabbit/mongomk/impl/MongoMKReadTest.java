@@ -22,10 +22,10 @@ import java.util.Arrays;
 import junit.framework.Assert;
 
 import org.apache.jackrabbit.mk.blobs.BlobStore;
+import org.apache.jackrabbit.mk.util.MicroKernelInputStream;
 import org.apache.jackrabbit.mongomk.BaseMongoMicroKernelTest;
 import org.apache.jackrabbit.mongomk.impl.blob.MongoBlobStore;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.mongodb.DB;
@@ -52,32 +52,36 @@ public class MongoMKReadTest extends BaseMongoMicroKernelTest {
 
     @Test
     public void small() throws Exception {
-        read(1024);
+        read(1024, false);
     }
 
     @Test
     public void medium() throws Exception {
-        read(1024 * 1024);
+        read(1024 * 1024, false);
     }
 
     @Test
-    @Ignore // FIXME - Add it back when OAK-430 is fixed.
     public void large() throws Exception {
-        read(20 * 1024 * 1024);
+        // Skip range tests for large blobs for now as it's complicated with
+        // block size.
+        read(20 * 1024 * 1024, true);
     }
 
-    private void read(int blobLength) throws Exception {
+    private void read(int blobLength, boolean skipRangeTests) throws Exception {
         createAndWriteBlob(blobLength);
 
         // Complete read.
-        byte[] buffer = new byte[blob.length];
-        int totalBytes = mk.read(blobId, 0, buffer, 0, blob.length);
-        Assert.assertEquals(blob.length, totalBytes);
+        byte[] buffer = MicroKernelInputStream.readFully(mk, blobId);
+        Assert.assertEquals(blob.length, buffer.length);
         Assert.assertTrue(Arrays.equals(blob, buffer));
+
+        if (skipRangeTests) {
+            return;
+        }
 
         // Range end from end.
         buffer = new byte[blob.length / 2];
-        totalBytes = mk.read(blobId, (blob.length / 2) - 1, buffer, 0, blob.length / 2);
+        int totalBytes = mk.read(blobId, (blob.length / 2) - 1, buffer, 0, blob.length / 2);
         Assert.assertEquals(blob.length / 2, totalBytes);
         for (int i = 0; i < buffer.length; i++) {
             Assert.assertEquals(blob[((blob.length / 2) - 1) + i], buffer[i]);

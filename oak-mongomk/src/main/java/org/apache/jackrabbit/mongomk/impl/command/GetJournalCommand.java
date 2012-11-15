@@ -46,9 +46,7 @@ public class GetJournalCommand extends BaseCommand<String> {
         long fromRevision = MongoUtil.toMongoRepresentation(fromRevisionId);
         long toRevision;
         if (toRevisionId == null) {
-            FetchHeadRevisionIdAction query = new FetchHeadRevisionIdAction(nodeStore);
-            query.includeBranchCommits(true);
-            toRevision = query.execute();
+            toRevision = new FetchHeadRevisionIdAction(nodeStore).execute();
         } else {
             toRevision = MongoUtil.toMongoRepresentation(toRevisionId);
         }

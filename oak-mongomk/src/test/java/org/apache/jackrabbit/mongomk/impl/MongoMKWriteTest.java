@@ -23,11 +23,11 @@ import java.io.ByteArrayInputStream;
 import java.util.Arrays;
 
 import org.apache.jackrabbit.mk.blobs.BlobStore;
+import org.apache.jackrabbit.mk.util.MicroKernelInputStream;
 import org.apache.jackrabbit.mongomk.BaseMongoMicroKernelTest;
 import org.apache.jackrabbit.mongomk.MongoAssert;
 import org.apache.jackrabbit.mongomk.impl.blob.MongoBlobStore;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.mongodb.DB;
@@ -61,7 +61,6 @@ public class MongoMKWriteTest extends BaseMongoMicroKernelTest {
     }
 
     @Test
-    @Ignore // FIXME - Add it back when OAK-430 is fixed.
     public void large() throws Exception {
         write(20 * 1024 * 1024);
     }
@@ -71,8 +70,7 @@ public class MongoMKWriteTest extends BaseMongoMicroKernelTest {
         String blobId = mk.write(new ByteArrayInputStream(blob));
         assertNotNull(blobId);
 
-        byte[] readBlob = new byte[blobLength];
-        mk.read(blobId, 0, readBlob, 0, readBlob.length);
+        byte[] readBlob = MicroKernelInputStream.readFully(mk, blobId);
         assertTrue(Arrays.equals(blob, readBlob));
     }
 

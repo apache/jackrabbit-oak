@@ -20,6 +20,8 @@ import org.apache.jackrabbit.mk.blobs.AbstractBlobStore;
 import org.apache.jackrabbit.mk.blobs.BlobStore;
 import org.apache.jackrabbit.mk.util.StringUtils;
 import org.apache.jackrabbit.mongomk.impl.model.MongoBlob;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
@@ -31,15 +33,18 @@ import com.mongodb.WriteResult;
 /**
  * Implementation of {@link BlobStore} for the {@code MongoDB} extending from
  * {@link AbstractBlobStore}. Unlike {@link MongoGridFSBlobStore}, it saves blobs
- * into a separate collection in {@link MongoDB} instead of GridFS.
+ * into a separate collection in {@link MongoDB} instead of GridFS and it supports
+ * basic garbage collection.
  *
  * FIXME:
  * -Do we need to create commands for retry etc.?
- * -Implement GC
+ * -Not sure if this is going to work for multiple MKs talking to same MongoDB?
  */
 public class MongoBlobStore extends AbstractBlobStore {
 
     public static final String COLLECTION_BLOBS = "blobs";
+
+    private static final Logger LOG = LoggerFactory.getLogger(MongoBlobStore.class);
 
     private final DB db;
     private long minLastModified;
@@ -62,6 +67,7 @@ public class MongoBlobStore extends AbstractBlobStore {
         mongoBlob.setId(id);
         mongoBlob.setData(data);
         mongoBlob.setLevel(level);
+        mongoBlob.setLastMod(System.currentTimeMillis());
         getBlobCollection().insert(mongoBlob);
     }
 
@@ -106,22 +112,22 @@ public class MongoBlobStore extends AbstractBlobStore {
                 new BasicDBObject(MongoBlob.KEY_LAST_MOD, System.currentTimeMillis()));
         WriteResult writeResult = getBlobCollection().update(query, update);
         if (writeResult.getError() != null) {
-            // Handle
+            LOG.error("Mark failed for blob %s: %s", id, writeResult.getError());
         }
     }
 
     @Override
     public int sweep() throws Exception {
         DBObject query = getBlobQuery(null, minLastModified);
-        long beforeCount = getBlobCollection().count(query);
+        long countBefore = getBlobCollection().count(query);
         WriteResult writeResult = getBlobCollection().remove(query);
         if (writeResult.getError() != null) {
-            // Handle
+            LOG.error("Sweep failed: %s", writeResult.getError());
         }
 
-        long afterCount = getBlobCollection().count(query);
+        long countAfter = getBlobCollection().count(query);
         minLastModified = 0;
-        return (int)(beforeCount - afterCount);
+        return (int)(countBefore - countAfter);
     }
 
     private DBCollection getBlobCollection() {

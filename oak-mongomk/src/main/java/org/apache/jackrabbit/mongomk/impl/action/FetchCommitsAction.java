@@ -52,7 +52,6 @@ public class FetchCommitsAction extends BaseAction<List<MongoCommit>> {
      * Constructs a new {@link FetchCommitsAction}
      *
      * @param nodeStore Node store.
-     * @param toRevisionId To revision id.
      */
     public FetchCommitsAction(MongoNodeStore nodeStore) {
         this(nodeStore, -1L, -1L);

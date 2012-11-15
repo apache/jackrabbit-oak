@@ -253,7 +253,7 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
         } catch (Exception ignore) {}
 
         if (!exists) {
-            throw new NotFoundException(path);
+            throw new NotFoundException(path + " @rev" + headRevisionId);
         }
 
         // Fetch the node without its descendants.

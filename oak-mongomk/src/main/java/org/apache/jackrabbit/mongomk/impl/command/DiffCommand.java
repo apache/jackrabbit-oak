@@ -46,9 +46,7 @@ public class DiffCommand extends BaseCommand<String> {
 
         long fromRevisionId, toRevisionId;
         if (fromRevision == null || toRevision == null) {
-            FetchHeadRevisionIdAction query = new FetchHeadRevisionIdAction(nodeStore);
-            query.includeBranchCommits(true);
-            long head = query.execute();
+            long head = new FetchHeadRevisionIdAction(nodeStore).execute();
             fromRevisionId = fromRevision == null? head : MongoUtil.toMongoRepresentation(fromRevision);
             toRevisionId = toRevision == null ? head : MongoUtil.toMongoRepresentation(toRevision);;
         } else {

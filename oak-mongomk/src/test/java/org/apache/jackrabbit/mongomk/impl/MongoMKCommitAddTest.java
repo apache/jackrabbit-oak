@@ -110,4 +110,19 @@ public class MongoMKCommitAddTest extends BaseMongoMicroKernelTest {
             fail("Exception expected");
         } catch (Exception expected) {}
     }
+
+    @Test
+    public void setOverwritingProperty() throws Exception {
+        String rev1 = mk.commit("/", "+\"a\" : {} ^\"a/key1\" : \"value1\"", null, null);
+
+        // Commit with rev1
+        mk.commit("/", "^\"a/key1\" : \"value2\"", rev1, null);
+
+        // Commit with rev1 again (to overwrite rev2)
+        mk.commit("/", "^\"a/key1\" : \"value3\"", rev1, null);
+
+        String nodes = mk.getNodes("/", null, 1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        JSONObject obj = parseJSONObject(nodes);
+        assertPropertyValue(obj, "a/key1", "value3");
+   }
 }
