@@ -157,7 +157,6 @@ public class MemoryNodeBuilderTest {
     }
 
     @Test
-    @Ignore("OAK-448")  // FIXME: OAK-448
     public void testUnmodifiedEqualsBase() {
         NodeBuilder root = new MemoryNodeBuilder(BASE);
         NodeBuilder x = root.child("x");
