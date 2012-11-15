@@ -18,6 +18,8 @@
  */
 package org.apache.jackrabbit.oak.spi.security.user;
 
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.UserManager;
 
@@ -36,6 +38,7 @@ public enum AuthorizableType {
         this.userType = jcrUserType;
     }
 
+    @Nonnull
     public static AuthorizableType getType(int jcrUserType) {
         switch (jcrUserType) {
             case UserManager.SEARCH_TYPE_AUTHORIZABLE:
