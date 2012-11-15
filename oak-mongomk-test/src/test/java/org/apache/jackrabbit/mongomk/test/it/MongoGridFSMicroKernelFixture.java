@@ -17,14 +17,14 @@
 package org.apache.jackrabbit.mongomk.test.it;
 
 import org.apache.jackrabbit.mk.blobs.BlobStore;
-import org.apache.jackrabbit.mongomk.impl.blob.MongoBlobStore;
+import org.apache.jackrabbit.mongomk.impl.blob.MongoGridFSBlobStore;
 
 import com.mongodb.DB;
 
-public class MongoMicroKernelFixture extends BaseMongoMicroKernelFixture {
+public class MongoGridFSMicroKernelFixture extends BaseMongoMicroKernelFixture {
 
     @Override
     protected BlobStore getBlobStore(DB db) {
-        return new MongoBlobStore(db);
+        return new MongoGridFSBlobStore(db);
     }
 }

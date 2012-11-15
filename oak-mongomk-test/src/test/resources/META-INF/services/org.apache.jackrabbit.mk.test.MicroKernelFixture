@@ -14,3 +14,4 @@
 # limitations under the License.
 
 org.apache.jackrabbit.mongomk.test.it.MongoMicroKernelFixture
+org.apache.jackrabbit.mongomk.test.it.MongoGridFSMicroKernelFixture

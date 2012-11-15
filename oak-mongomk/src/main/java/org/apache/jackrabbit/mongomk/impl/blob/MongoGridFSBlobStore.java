@@ -30,7 +30,8 @@ import com.mongodb.DB;
 import com.mongodb.gridfs.GridFS;
 
 /**
- * Implementation of {@link BlobStore} for the {@code MongoDB} using GridFS.
+ * Implementation of {@link BlobStore} for the {@code MongoDB} using GridFS. It
+ * does not support garbage collection at the moment.
  */
 public class MongoGridFSBlobStore implements BlobStore {
 

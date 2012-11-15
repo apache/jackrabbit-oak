@@ -37,7 +37,7 @@ public class ReadBlobCommandGridFS extends BaseCommand<Integer> {
     private final long blobOffset;
     private final byte[] buffer;
     private final int bufferOffset;
-    private final int length;
+    private int length;
 
     /**
      * Constructs a new {@code ReadBlobCommandMongo}.
@@ -68,12 +68,12 @@ public class ReadBlobCommandGridFS extends BaseCommand<Integer> {
     private int fetchBlobFromMongo() throws Exception {
         GridFSDBFile gridFile = gridFS.findOne(new BasicDBObject("md5", blobId));
         long fileLength = gridFile.getLength();
-
         long start = blobOffset;
         long end = blobOffset + length;
         if (end > fileLength) {
             end = fileLength;
         }
+        length = (int)(end - start);
 
         if (start < end) {
             InputStream is = gridFile.getInputStream();

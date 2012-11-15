@@ -39,7 +39,6 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.mongodb.DB;
@@ -196,7 +195,6 @@ public class MongoBlobStoreTest /*extends AbstractBlobStoreTest*/ {
     }
 
     @Test
-    @Ignore // FIXME - GC is not implemented in MongoBlobStore yet.
     public void testGarbageCollection() throws Exception {
         HashMap<String, byte[]> map = new HashMap<String, byte[]>();
         ArrayList<String> mem = new ArrayList<String>();
