@@ -391,5 +391,19 @@
       <scope>test</scope>
     </dependency>
 
+    <!-- TODO temporary solution to IntelliJ not finding embedded dependencies. See OAK-438 -->
+    <dependency>
+      <groupId>org.apache.lucene</groupId>
+      <artifactId>lucene-core</artifactId>
+      <version>4.0.0</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.lucene</groupId>
+      <artifactId>lucene-analyzers-common</artifactId>
+      <version>4.0.0</version>
+      <scope>test</scope>
+    </dependency>
+
   </dependencies>
 </project>
