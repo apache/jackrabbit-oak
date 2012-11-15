@@ -16,9 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.privilege;
 
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 import javax.jcr.RepositoryException;
 
@@ -48,14 +46,6 @@ class PrivilegeInitializer implements RepositoryInitializer, PrivilegeConstants 
      * logger instance
      */
     private static final Logger log = LoggerFactory.getLogger(PrivilegeInitializer.class);
-
-    private static final Map<String, String[]> AGGREGATE_PRIVILEGES = new HashMap<String,String[]>();
-    static {
-        AGGREGATE_PRIVILEGES.put(JCR_READ, AGGR_JCR_READ);
-        AGGREGATE_PRIVILEGES.put(JCR_MODIFY_PROPERTIES, AGGR_JCR_MODIFY_PROPERTIES);
-        AGGREGATE_PRIVILEGES.put(JCR_WRITE, AGGR_JCR_WRITE);
-        AGGREGATE_PRIVILEGES.put(REP_WRITE, AGGR_REP_WRITE);
-    }
 
     @Override
     public void initialize(NodeStore store) {
