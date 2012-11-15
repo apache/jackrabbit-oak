@@ -120,7 +120,6 @@ public class MemoryNodeBuilderTest {
     }
 
     @Test
-    @Ignore("OAK-447")  // FIXME OAK-447
     public void testAddRemovedNodeAgain() {
         NodeBuilder root = new MemoryNodeBuilder(BASE);
 
