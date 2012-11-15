@@ -607,7 +607,7 @@
   abstract
   + * (nt:base) = nt:unstructured VERSION
   - rep:principalName  (STRING) protected mandatory
-  - rep:authorizableId (STRING) protected
+  - rep:authorizableId (STRING) protected /* @since oak 1.0 */
   - * (UNDEFINED)
   - * (UNDEFINED) multiple
 
@@ -631,7 +631,7 @@
   orderable
   + * (rep:Members) = rep:Members protected multiple /* FIXME: SNS definition */
   - * (WEAKREFERENCE) protected < 'rep:Authorizable' /* Deprecated since OAK */
-  - rep:members (WEAKREFERENCE) protected multiple < 'rep:Authorizable'
+  - rep:members (WEAKREFERENCE) protected multiple < 'rep:Authorizable' /* @since oak 1.0 */
 
 // -----------------------------------------------------------------------------
 // Privilege Management
