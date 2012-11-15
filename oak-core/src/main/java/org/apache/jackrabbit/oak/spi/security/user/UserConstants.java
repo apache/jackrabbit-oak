@@ -16,9 +16,9 @@
  */
 package org.apache.jackrabbit.oak.spi.security.user;
 
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
+
+import com.google.common.collect.ImmutableSet;
 
 /**
  * UserConstants...
@@ -38,19 +38,19 @@ public interface UserConstants {
     String REP_MEMBERS = "rep:members";
     String REP_IMPERSONATORS = "rep:impersonators";
 
-    Collection<String> GROUP_PROPERTY_NAMES = Collections.unmodifiableList(Arrays.asList(
+    Collection<String> GROUP_PROPERTY_NAMES = ImmutableSet.of(
             REP_PRINCIPAL_NAME,
             REP_AUTHORIZABLE_ID,
             REP_MEMBERS
-    ));
+    );
 
-    Collection<String> USER_PROPERTY_NAMES = Collections.unmodifiableList(Arrays.asList(
+    Collection<String> USER_PROPERTY_NAMES = ImmutableSet.of(
             REP_PRINCIPAL_NAME,
             REP_AUTHORIZABLE_ID,
             REP_PASSWORD,
             REP_DISABLED,
             REP_IMPERSONATORS
-    ));
+    );
 
     /**
      * Configuration option defining the ID of the administrator user.
