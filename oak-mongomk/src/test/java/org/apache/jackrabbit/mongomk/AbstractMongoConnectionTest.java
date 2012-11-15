@@ -23,7 +23,6 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 
 import com.mongodb.BasicDBObject;
-import com.mongodb.DB;
 
 /**
  * Base class for test cases that need a {@link MongoConnection}
