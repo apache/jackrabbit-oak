@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.security.user.util;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.JcrConstants;
@@ -23,6 +24,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
+import org.apache.jackrabbit.oak.util.NodeUtil;
 
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 
@@ -55,5 +57,18 @@ public final class UserUtility implements UserConstants{
             }
         }
         return false;
+    }
+
+    @CheckForNull
+    public static AuthorizableType getType(NodeUtil authorizableNode) {
+        String ntName = authorizableNode.getPrimaryNodeTypeName();
+        if (ntName != null) {
+            if (UserConstants.NT_REP_GROUP.equals(ntName)) {
+                return AuthorizableType.GROUP;
+            } else if (UserConstants.NT_REP_USER.equals(ntName)) {
+                return AuthorizableType.USER;
+            }
+        }
+        return null;
     }
 }

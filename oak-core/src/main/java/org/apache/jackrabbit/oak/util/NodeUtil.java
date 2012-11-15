@@ -144,7 +144,12 @@ public class NodeUtil {
     }
 
     public boolean hasPrimaryNodeTypeName(String ntName) {
-        return ntName.equals(getString(JcrConstants.JCR_PRIMARYTYPE, null));
+        return ntName.equals(getPrimaryNodeTypeName());
+    }
+
+    @CheckForNull
+    public String getPrimaryNodeTypeName() {
+        return getString(JcrConstants.JCR_PRIMARYTYPE, null);
     }
 
     public void removeProperty(String name) {
