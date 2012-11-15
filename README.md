@@ -29,6 +29,25 @@ the above integration testing build passes without errors. If you like,
 you can enable integration tests by default by setting the
 `OAK_INTEGRATION_TESTING` environment variable.
 
+MongoDB integration
+-------------------
+
+Parts of the Oak build expects a MongoDB instance to be available for
+testing. By default a MongoDB instance running on localhost is expected,
+and the relevant tests are simply skipped if such an instance is not found.
+You can also configure the build to use custom MongoDB settings with the
+following properties (shown with their default values):
+
+    -Dmongo.host=127.0.0.1
+    -Dmongo.port=27017
+    -Dmongo.db=MongoMKDB
+    -Dmongo.db2=MongoMKDB2
+
+Note that the configured test databases will be *dropped* by the test cases.
+
+Components
+----------
+
 The build consists of the following main components:
 
   - oak-parent    - parent POM
@@ -36,10 +55,12 @@ The build consists of the following main components:
   - oak-mk-api    - MicroKernel API
   - oak-mk        - default MicroKernel implementation
   - oak-mk-remote - MicroKernel remoting
+  - oak-mongomk   - MongoDB-based MicroKernel
   - [oak-core][1] - Oak repository API and implementation
   - oak-jcr       - JCR binding for the Oak repository
   - oak-sling     - integration with Apache Sling
   - oak-http      - HTTP binding for Oak
+  - oak-lucene    - Lucene-based query index
   - oak-run       - runnable jar packaging
   - oak-it        - integration tests
     - oak-it/mk   - integration tests for MicroKernel

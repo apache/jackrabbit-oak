@@ -39,7 +39,7 @@ import com.mongodb.DB;
 public class MultiTenancyTest extends AbstractMongoConnectionTest {
 
     private static final String DB2 =
-            System.getProperty("mongo.db", "MongoMKDB2");
+            System.getProperty("mongo.db2", "MongoMKDB2");
 
     private static MongoConnection mongoConnection2;
     private static MongoConnection mongoConnection3;
