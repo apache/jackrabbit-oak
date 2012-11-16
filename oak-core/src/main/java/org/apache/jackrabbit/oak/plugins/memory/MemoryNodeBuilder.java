@@ -272,7 +272,6 @@ public class MemoryNodeBuilder implements NodeBuilder {
             return false;
         }
         else {
-            Map<String, MutableNodeState> nodes = writeState.nodes;
             for (Entry<String, MutableNodeState> n : writeState.nodes.entrySet()) {
                 if (n.getValue() == null) {
                     return true;
