@@ -74,8 +74,8 @@ public class MultiTenancyTest extends AbstractMongoConnectionTest {
     }
 
     @After
-    public void dropDatabases() throws Exception {
-        mongoConnection2.getDB().dropDatabase();
+    public void dropCollections() throws Exception {
+        dropCollections(mongoConnection2.getDB());
         // DB1 handled by the AbstractMongoConnectionTest
     }
 
