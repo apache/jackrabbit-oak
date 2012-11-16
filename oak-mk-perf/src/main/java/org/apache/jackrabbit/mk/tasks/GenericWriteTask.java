@@ -25,7 +25,7 @@ public class GenericWriteTask implements Runnable {
     Committer committer;
     String diff;
     int nodesPerCommit;
- 
+
     public GenericWriteTask(MicroKernel mk, String diff, int nodesPerCommit) {
         this.mk = mk;
         this.diff = diff;

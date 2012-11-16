@@ -14,24 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mk.tests;
+package org.apache.jackrabbit.mk.tests.perf;
 
 import org.apache.jackrabbit.mk.scenarios.ConcurrentAddNodes1Commit;
-import org.apache.jackrabbit.mk.testing.ConcurrentMicroKernelTestBase;
+import org.apache.jackrabbit.mk.testing.MongoConcurrentMicroKernelTestBase;
 import org.junit.Test;
 
-import com.cedarsoft.test.utils.CatchAllExceptionsRule;
-
-/**
- * Test class for microkernel concurrent writing.All the nodes are added in a
- * single commit.
- */
-
-public class MkConcurrentAddNodes1CommitTest extends
-        ConcurrentMicroKernelTestBase {
+public class MongoConcurrentAddNodes1CommitTest extends
+        MongoConcurrentMicroKernelTestBase {
 
     // nodes for each worker
-    int nodesNumber = 100;
+    int nodesNumber = 1000;
 
     /**
      * @Rule public CatchAllExceptionsRule catchAllExceptionsRule = new
@@ -39,21 +32,18 @@ public class MkConcurrentAddNodes1CommitTest extends
      **/
     @Test
     public void testConcurentWritingFlatStructure() throws InterruptedException {
-
         ConcurrentAddNodes1Commit.concurentWritingFlatStructure(mks, 3,
                 nodesNumber, chronometer);
     }
 
     @Test
     public void testConcurentWritingPyramid1() throws InterruptedException {
-
         ConcurrentAddNodes1Commit.concurentWritingPyramid1(mks, 3, nodesNumber,
                 chronometer);
     }
 
     @Test
     public void testConcurentWritingPyramid2() throws InterruptedException {
-
         ConcurrentAddNodes1Commit.concurentWritingPyramid2(mks, 3, nodesNumber,
                 chronometer);
     }

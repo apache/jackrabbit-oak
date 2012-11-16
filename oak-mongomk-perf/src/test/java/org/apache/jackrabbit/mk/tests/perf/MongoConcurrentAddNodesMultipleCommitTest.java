@@ -14,47 +14,39 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mk.tests;
+package org.apache.jackrabbit.mk.tests.perf;
 
-import org.apache.jackrabbit.mk.scenarios.ConcurrentAddNodes1Commit;
-import org.apache.jackrabbit.mk.testing.ConcurrentMicroKernelTestBase;
+import org.apache.jackrabbit.mk.scenarios.ConcurrentAddNodesMultipleCommits;
+import org.apache.jackrabbit.mk.testing.MongoConcurrentMicroKernelTestBase;
 import org.junit.Test;
 
-import com.cedarsoft.test.utils.CatchAllExceptionsRule;
-
-/**
- * Test class for microkernel concurrent writing.All the nodes are added in a
- * single commit.
- */
-
-public class MkConcurrentAddNodes1CommitTest extends
-        ConcurrentMicroKernelTestBase {
+public class MongoConcurrentAddNodesMultipleCommitTest extends
+        MongoConcurrentMicroKernelTestBase {
 
     // nodes for each worker
-    int nodesNumber = 100;
+    int nodesNumber = 1000;
+    int numberOfNodesPerCommit = 10;
 
     /**
      * @Rule public CatchAllExceptionsRule catchAllExceptionsRule = new
      *       CatchAllExceptionsRule();
-     **/
+     */
     @Test
     public void testConcurentWritingFlatStructure() throws InterruptedException {
-
-        ConcurrentAddNodes1Commit.concurentWritingFlatStructure(mks, 3,
-                nodesNumber, chronometer);
+        ConcurrentAddNodesMultipleCommits.concurentWritingFlatStructure(mks,
+                mkNumber, nodesNumber, numberOfNodesPerCommit, chronometer);
     }
 
     @Test
     public void testConcurentWritingPyramid1() throws InterruptedException {
+        ConcurrentAddNodesMultipleCommits.concurentWritingPyramid1(mks,
+                mkNumber, nodesNumber, numberOfNodesPerCommit, chronometer);
 
-        ConcurrentAddNodes1Commit.concurentWritingPyramid1(mks, 3, nodesNumber,
-                chronometer);
     }
 
     @Test
     public void testConcurentWritingPyramid2() throws InterruptedException {
-
-        ConcurrentAddNodes1Commit.concurentWritingPyramid2(mks, 3, nodesNumber,
-                chronometer);
+        ConcurrentAddNodesMultipleCommits.concurentWritingPyramid2(mks,
+                mkNumber, nodesNumber, numberOfNodesPerCommit, chronometer);
     }
 }

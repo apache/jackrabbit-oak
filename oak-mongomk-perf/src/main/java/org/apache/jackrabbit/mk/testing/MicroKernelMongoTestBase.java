@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.mk.testing;
 
-import java.util.ArrayList;
-
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.util.Chronometer;
 import org.apache.jackrabbit.mk.util.Configuration;
@@ -25,12 +23,12 @@ import org.apache.jackrabbit.mk.util.MicroKernelConfigProvider;
 import org.junit.Before;
 import org.junit.BeforeClass;
 
-public class ConcurrentMicroKernelTestBase {
-    public static int mkNumber = 3;
-    public ArrayList<MicroKernel> mks;
+public class MicroKernelMongoTestBase {
+
+    protected static MicroKernelInitializer initializator;
+    public MicroKernel mk;
+    public static Configuration conf;
     public Chronometer chronometer;
-    static MicroKernelInitializer initializator;
-    static Configuration conf;
 
     /**
      * Loads the corresponding microkernel initialization class and the
@@ -42,8 +40,7 @@ public class ConcurrentMicroKernelTestBase {
      */
     @BeforeClass
     public static void beforeSuite() throws Exception {
-
-        initializator = new OakMicroKernelInitializer();
+        initializator = new MongoMicroKernelInitializer();
         System.out.println("Tests will run against ***"
                 + initializator.getType() + "***");
         conf = MicroKernelConfigProvider.readConfig();
@@ -56,8 +53,8 @@ public class ConcurrentMicroKernelTestBase {
      */
     @Before
     public void beforeTest() throws Exception {
-        mks = new MicroKernelCollection(initializator, conf, mkNumber)
-                .getMicroKernels();
+        mk = (new MicroKernelCollection(initializator, conf, 1))
+                .getMicroKernels().get(0);
         chronometer = new Chronometer();
     }
 

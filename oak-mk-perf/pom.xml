@@ -1,13 +1,13 @@
 <?xml version="1.0"?>
-<!-- Licensed to the Apache Software Foundation (ASF) under one or more contributor
-    license agreements. See the NOTICE file distributed with this work for additional
-    information regarding copyright ownership. The ASF licenses this file to
-    You under the Apache License, Version 2.0 (the "License"); you may not use
-    this file except in compliance with the License. You may obtain a copy of
-    the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required
-    by applicable law or agreed to in writing, software distributed under the
-    License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS
-    OF ANY KIND, either express or implied. See the License for the specific
+<!-- Licensed to the Apache Software Foundation (ASF) under one or more contributor 
+    license agreements. See the NOTICE file distributed with this work for additional 
+    information regarding copyright ownership. The ASF licenses this file to 
+    You under the Apache License, Version 2.0 (the "License"); you may not use 
+    this file except in compliance with the License. You may obtain a copy of 
+    the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required 
+    by applicable law or agreed to in writing, software distributed under the 
+    License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS 
+    OF ANY KIND, either express or implied. See the License for the specific 
     language governing permissions and limitations under the License. -->
 
 <project
@@ -26,20 +26,6 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
     <profiles>
-        <profile>
-            <id>oakmk</id>
-            <properties>
-                <user>qe1</user>
-                <mktype>oakmk</mktype>
-            </properties>
-        </profile>
-        <profile>
-            <id>mongomk</id>
-            <properties>
-                <user>qe</user>
-                <mktype>mongomk</mktype>
-            </properties>
-        </profile>
         <profile>
             <id>local</id>
             <build>
@@ -68,11 +54,11 @@
                         <version>0.6</version>
                         <configuration>
                             <testMachine>${remotehost}</testMachine>
-                            <username>${user}</username>
+                            <username>qe1</username>
                             <password>${pass}</password>
                             <display>0</display>
                             <!--<keyFile>/home/rogoz/private-key-file</keyFile> -->
-                            <remoteFolder>/home/${user}/tests/</remoteFolder>
+                            <remoteFolder>/home/qe1/tests/</remoteFolder>
                             <pomfile>${basedir}/remotePom.xml</pomfile>
                         </configuration>
                         <executions>
@@ -119,7 +105,7 @@
             <artifactId>junit</artifactId>
 
         </dependency>
-        <!--
+        <!-- 
         <dependency>
             <groupId>org.apache.jackrabbit</groupId>
             <artifactId>oak-mongomk</artifactId>

@@ -97,7 +97,7 @@ public class CommitCommand extends BaseCommand<Long> {
 
     @Override
     public int getNumOfRetries() {
-        return 20;
+        return 100;
     }
 
     @Override

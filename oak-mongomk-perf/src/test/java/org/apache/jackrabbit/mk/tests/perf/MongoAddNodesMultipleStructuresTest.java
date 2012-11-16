@@ -14,19 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mk.tests;
+package org.apache.jackrabbit.mk.tests.perf;
 
 import org.apache.jackrabbit.mk.scenarios.MicrokernelDifferentStructures;
-import org.apache.jackrabbit.mk.testing.MicroKernelTestBase;
+import org.apache.jackrabbit.mk.testing.MicroKernelMongoTestBase;
+
 import org.junit.Test;
 
-/**
- * Measure the time needed for writing nodes in different tree structures.All
- * the nodes are added in a single commit.
- * 
- * 
- */
-public class MkAddNodesDifferentStructuresTest extends MicroKernelTestBase {
+public class MongoAddNodesMultipleStructuresTest extends
+        MicroKernelMongoTestBase {
 
     static long nodesNumber = 100;
     static String nodeNamePrefix = "N";

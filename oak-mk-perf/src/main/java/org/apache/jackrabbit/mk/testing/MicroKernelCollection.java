@@ -43,8 +43,8 @@ public class MicroKernelCollection {
     public MicroKernelCollection(MicroKernelInitializer initializator,
             Configuration conf, int size) throws Exception {
         mks = initializator.init(conf, size);
-        }
-    
+    }
+
     /**
      * Returns a microkernel collection.
      * 
