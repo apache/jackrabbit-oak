@@ -23,6 +23,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 
 import com.mongodb.BasicDBObject;
+import com.mongodb.DB;
 
 /**
  * Base class for test cases that need a {@link MongoConnection}
@@ -59,13 +60,20 @@ public class AbstractMongoConnectionTest {
 
     @Before
     public void setUpConnection() throws Exception {
-        // the database will get automatically recreated
-        mongoConnection.getDB().dropDatabase(); 
+        dropCollections(mongoConnection.getDB());
     }
 
     @After
     public void tearDownConnection() throws Exception {
-        mongoConnection.getDB().dropDatabase();
+        dropCollections(mongoConnection.getDB());
+    }
+
+    protected void dropCollections(DB db) throws Exception {
+        for (String name : db.getCollectionNames()) {
+            if (!name.startsWith("system.")) {
+                db.getCollection(name).drop();
+            }
+        }
     }
 
 }
