@@ -29,8 +29,6 @@ import org.apache.jackrabbit.mk.util.Configuration;
  */
 public class OakMicroKernelInitializer implements MicroKernelInitializer {
 
-
-
     @Override
     public ArrayList<MicroKernel> init(Configuration conf, int mksNumber)
             throws Exception {
@@ -43,11 +41,10 @@ public class OakMicroKernelInitializer implements MicroKernelInitializer {
         }
         return mks;
     }
-    
+
     public String getType() {
         // TODO Auto-generated method stub
         return "Oak Microkernel";
     }
-
 
 }

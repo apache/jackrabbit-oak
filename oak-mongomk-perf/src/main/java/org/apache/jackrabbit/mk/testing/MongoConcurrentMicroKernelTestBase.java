@@ -25,7 +25,7 @@ import org.apache.jackrabbit.mk.util.MicroKernelConfigProvider;
 import org.junit.Before;
 import org.junit.BeforeClass;
 
-public class ConcurrentMicroKernelTestBase {
+public class MongoConcurrentMicroKernelTestBase {
     public static int mkNumber = 3;
     public ArrayList<MicroKernel> mks;
     public Chronometer chronometer;
@@ -43,7 +43,7 @@ public class ConcurrentMicroKernelTestBase {
     @BeforeClass
     public static void beforeSuite() throws Exception {
 
-        initializator = new OakMicroKernelInitializer();
+        initializator = new MongoMicroKernelInitializer();
         System.out.println("Tests will run against ***"
                 + initializator.getType() + "***");
         conf = MicroKernelConfigProvider.readConfig();

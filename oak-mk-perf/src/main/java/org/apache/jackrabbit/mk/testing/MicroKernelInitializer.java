@@ -28,6 +28,8 @@ import org.apache.jackrabbit.mk.util.Configuration;
  * 
  */
 public interface MicroKernelInitializer {
-    public ArrayList<MicroKernel> init(Configuration conf,int mksNumber) throws Exception;
+    public ArrayList<MicroKernel> init(Configuration conf, int mksNumber)
+            throws Exception;
+
     public String getType();
 }

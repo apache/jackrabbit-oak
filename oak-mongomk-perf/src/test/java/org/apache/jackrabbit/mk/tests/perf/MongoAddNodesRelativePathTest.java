@@ -14,21 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mk.tests;
+package org.apache.jackrabbit.mk.tests.perf;
 
 import org.apache.jackrabbit.mk.scenarios.MicroKernelRelativePath;
-import org.apache.jackrabbit.mk.testing.MicroKernelTestBase;
+import org.apache.jackrabbit.mk.testing.MicroKernelMongoTestBase;
 import org.junit.Test;
 
-/**
- * Measure the time needed for writing nodes in different tree structures.Each
- * node is committed separately.Each node is also committed using the relative
- * path of the parent node.
- * 
- * 
- */
-
-public class MKAddNodesRelativePathTest extends MicroKernelTestBase {
+public class MongoAddNodesRelativePathTest extends MicroKernelMongoTestBase {
 
     static String nodeNamePrefix = "N";
     static int nodesNumber = 1000;

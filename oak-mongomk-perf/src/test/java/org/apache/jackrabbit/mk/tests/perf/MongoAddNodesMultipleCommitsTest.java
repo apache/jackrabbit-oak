@@ -14,31 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mk.tests;
+package org.apache.jackrabbit.mk.tests.perf;
 
-import org.apache.jackrabbit.mk.util.MicroKernelOperation;
 import org.apache.jackrabbit.mk.scenarios.MicroKernelMultipleCommits;
-import org.apache.jackrabbit.mk.testing.MicroKernelTestBase;
+import org.apache.jackrabbit.mk.testing.MicroKernelMongoTestBase;
+import org.apache.jackrabbit.mk.util.MicroKernelOperation;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
-/**
- * Measure the time needed for writing the same node structure in one or
- * multiple commit steps.
- * <p>
- * Tree structure:
- * <p>
- * Number of nodes per <b>level</b> =100^(<b>level</b>).
- * <p>
- * Each node has 100 children.
- * 
- * 
- * 
- * 
- */
-
-public class MkAddNodesMultipleCommitsTest extends MicroKernelTestBase {
-
+public class MongoAddNodesMultipleCommitsTest extends MicroKernelMongoTestBase {
     static String diff;
     static int nodesNumber = 1000;
     static String nodeNamePrefix = "N";
@@ -55,6 +40,7 @@ public class MkAddNodesMultipleCommitsTest extends MicroKernelTestBase {
                 chronometer);
     }
 
+    @Ignore
     @Test
     public void testWriteNodes1NodePerCommit() {
         MicroKernelMultipleCommits.writeNodes1NodePerCommit(mk, diff,
