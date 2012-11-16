@@ -16,20 +16,19 @@
  */
 package org.apache.jackrabbit.oak.kernel;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState.collapse;
-
 import java.util.Map;
 import java.util.Set;
 
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.json.JsopBuilder;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState.collapse;
 
 class KernelRootBuilder extends MemoryNodeBuilder {
 
@@ -37,7 +36,8 @@ class KernelRootBuilder extends MemoryNodeBuilder {
      * Number of content updates that need to happen before the updates
      * are automatically committed to a branch in the MicroKernel.
      */
-    private static final int UPDATE_LIMIT = 10000;
+    private static final int UPDATE_LIMIT =
+            Integer.getInteger("update.limit", Integer.MAX_VALUE);
 
     private final MicroKernel kernel;
 
