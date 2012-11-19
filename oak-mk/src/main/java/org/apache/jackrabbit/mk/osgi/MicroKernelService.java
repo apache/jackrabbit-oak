@@ -18,6 +18,7 @@ package org.apache.jackrabbit.mk.osgi;
 
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
+import org.apache.felix.scr.annotations.ConfigurationPolicy;
 import org.apache.felix.scr.annotations.Deactivate;
 import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Service;
@@ -25,7 +26,7 @@ import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.osgi.service.component.ComponentContext;
 
-@Component
+@Component(policy = ConfigurationPolicy.REQUIRE)
 @Service(MicroKernel.class)
 public class MicroKernelService extends MicroKernelImpl {
 
