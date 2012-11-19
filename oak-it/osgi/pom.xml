@@ -36,6 +36,15 @@
   </properties>
 
   <build>
+      <resources>
+          <resource>
+              <directory>src/test/config</directory>
+              <includes>
+                  <include>*.cfg</include>
+              </includes>
+              <targetPath>${project.build.directory}/test-config</targetPath>
+          </resource>
+      </resources>
     <plugins>
       <plugin>
         <artifactId>maven-assembly-plugin</artifactId>
@@ -125,7 +134,7 @@
     <dependency>
       <groupId>org.apache.felix</groupId>
       <artifactId>org.apache.felix.framework</artifactId>
-      <version>4.0.1</version>
+      <version>4.0.2</version>
       <scope>test</scope>
     </dependency>
     <dependency>
