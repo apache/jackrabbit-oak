@@ -27,6 +27,7 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
@@ -61,6 +62,7 @@ public class UserConfigurationImpl extends SecurityConfiguration.Default impleme
         return new UserInitializer(securityProvider);
     }
 
+    @Nonnull
     @Override
     public List<ValidatorProvider> getValidatorProviders() {
         ValidatorProvider vp = new UserValidatorProvider(getConfigurationParameters());
@@ -71,6 +73,12 @@ public class UserConfigurationImpl extends SecurityConfiguration.Default impleme
     @Override
     public List<ProtectedItemImporter> getProtectedItemImporters() {
         return Collections.<ProtectedItemImporter>singletonList(new UserImporter(config));
+    }
+
+    @Nonnull
+    @Override
+    public Context getContext() {
+        return new UserContext();
     }
 
     //--------------------------------------------------< UserConfiguration >---

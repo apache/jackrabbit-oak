@@ -1,0 +1,58 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.jackrabbit.oak.security.user;
+
+import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.spi.security.Context;
+import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
+import org.apache.jackrabbit.oak.util.NodeUtil;
+
+/**
+ * UserContext... TODO
+ */
+class UserContext implements Context {
+
+    //------------------------------------------------------------< Context >---
+    @Override
+    public boolean definesProperty(Tree parent, PropertyState property) {
+        NodeUtil node = new NodeUtil(parent);
+        String ntName = node.getName(JcrConstants.JCR_PRIMARYTYPE);
+        if (UserConstants.NT_REP_USER.equals(ntName)) {
+            return UserConstants.USER_PROPERTY_NAMES.contains(property.getName());
+        } else if (UserConstants.NT_REP_GROUP.equals(ntName)) {
+            return UserConstants.GROUP_PROPERTY_NAMES.contains(property.getName());
+        } else if (UserConstants.NT_REP_MEMBERS.equals(ntName)) {
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public boolean definesTree(Tree tree) {
+        NodeUtil node = new NodeUtil(tree);
+        String ntName = node.getName(JcrConstants.JCR_PRIMARYTYPE);
+        return UserConstants.NT_REP_GROUP.equals(ntName) || UserConstants.NT_REP_USER.equals(ntName) || UserConstants.NT_REP_MEMBERS.equals(ntName);
+    }
+
+    @Override
+    public boolean definesItems(String path) {
+        // TODO
+        return false;
+    }
+}
