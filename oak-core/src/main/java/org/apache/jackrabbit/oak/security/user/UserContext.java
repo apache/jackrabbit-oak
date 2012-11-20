@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.Context;
@@ -28,11 +27,14 @@ import org.apache.jackrabbit.oak.util.NodeUtil;
  */
 class UserContext implements Context {
 
+    static final Context INSTANCE = new UserContext();
+
+    private UserContext() {}
     //------------------------------------------------------------< Context >---
     @Override
     public boolean definesProperty(Tree parent, PropertyState property) {
         NodeUtil node = new NodeUtil(parent);
-        String ntName = node.getName(JcrConstants.JCR_PRIMARYTYPE);
+        String ntName = node.getPrimaryNodeTypeName();
         if (UserConstants.NT_REP_USER.equals(ntName)) {
             return UserConstants.USER_PROPERTY_NAMES.contains(property.getName());
         } else if (UserConstants.NT_REP_GROUP.equals(ntName)) {
@@ -46,13 +48,7 @@ class UserContext implements Context {
     @Override
     public boolean definesTree(Tree tree) {
         NodeUtil node = new NodeUtil(tree);
-        String ntName = node.getName(JcrConstants.JCR_PRIMARYTYPE);
+        String ntName = node.getPrimaryNodeTypeName();
         return UserConstants.NT_REP_GROUP.equals(ntName) || UserConstants.NT_REP_USER.equals(ntName) || UserConstants.NT_REP_MEMBERS.equals(ntName);
-    }
-
-    @Override
-    public boolean definesItems(String path) {
-        // TODO
-        return false;
     }
 }

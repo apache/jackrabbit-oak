@@ -78,7 +78,7 @@ public class UserConfigurationImpl extends SecurityConfiguration.Default impleme
     @Nonnull
     @Override
     public Context getContext() {
-        return new UserContext();
+        return UserContext.INSTANCE;
     }
 
     //--------------------------------------------------< UserConfiguration >---
