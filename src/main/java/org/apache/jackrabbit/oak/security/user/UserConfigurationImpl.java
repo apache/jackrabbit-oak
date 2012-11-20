@@ -31,6 +31,7 @@ import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
+import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableActionProvider;
 import org.apache.jackrabbit.oak.spi.security.user.action.DefaultAuthorizableActionProvider;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
@@ -43,8 +44,7 @@ public class UserConfigurationImpl extends SecurityConfiguration.Default impleme
     private final ConfigurationParameters config;
     private final SecurityProvider securityProvider;
 
-    public UserConfigurationImpl(ConfigurationParameters config,
-                                 SecurityProvider securityProvider) {
+    public UserConfigurationImpl(SecurityProvider securityProvider, ConfigurationParameters config) {
         this.config = config;
         this.securityProvider = securityProvider;
     }
@@ -85,15 +85,17 @@ public class UserConfigurationImpl extends SecurityConfiguration.Default impleme
     @Nonnull
     @Override
     public AuthorizableActionProvider getAuthorizableActionProvider() {
-        // TODO: create authorizable actions from configuration
-        return DefaultAuthorizableActionProvider.INSTANCE;
+        return config.getConfigValue(UserConstants.PARAM_AUTHORIZABLE_ACTION_PROVIDER,
+                DefaultAuthorizableActionProvider.INSTANCE);
     }
 
+    @Nonnull
     @Override
     public UserManager getUserManager(Root root, NamePathMapper namePathMapper, Session session) {
         return new UserManagerImpl(session, root, namePathMapper, securityProvider);
     }
 
+    @Nonnull
     @Override
     public UserManager getUserManager(Root root, NamePathMapper namePathMapper) {
         return new UserManagerImpl(null, root, namePathMapper, securityProvider);
