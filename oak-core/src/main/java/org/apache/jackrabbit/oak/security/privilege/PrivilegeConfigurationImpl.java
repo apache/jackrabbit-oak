@@ -53,6 +53,7 @@ public class PrivilegeConfigurationImpl extends SecurityConfiguration.Default im
         return Collections.singletonList(vp);
     }
 
+    @Nonnull
     @Override
     public Context getContext() {
         return PrivilegeContext.INSTANCE;
