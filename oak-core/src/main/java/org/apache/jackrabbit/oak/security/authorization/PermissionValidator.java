@@ -27,8 +27,6 @@ import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.security.authorization.CompiledPermissions;
 import org.apache.jackrabbit.oak.spi.security.authorization.Permissions;
-import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
-import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.apache.jackrabbit.oak.version.VersionConstants;
@@ -45,17 +43,22 @@ class PermissionValidator implements Validator {
      * - review usage of OAK_CHILD_ORDER property (in particular if the property was removed
      */
 
-    private final CompiledPermissions compiledPermissions;
-
     private final NodeUtil parentBefore;
     private final NodeUtil parentAfter;
+    private final CompiledPermissions compiledPermissions;
+    private final PermissionValidatorProvider provider;
 
-    PermissionValidator(CompiledPermissions compiledPermissions,
-                        NodeUtil parentBefore, NodeUtil parentAfter) {
+    PermissionValidator(NodeUtil parentBefore, NodeUtil parentAfter,
+                        CompiledPermissions compiledPermissions,
+                        PermissionValidatorProvider provider) {
         this.compiledPermissions = compiledPermissions;
         this.parentBefore = parentBefore;
         this.parentAfter = parentAfter;
+        this.provider = provider;
+    }
 
+    private Validator nextValidator(NodeUtil parentBefore, NodeUtil parentAfter) {
+        return new PermissionValidator(parentBefore, parentAfter, compiledPermissions, provider);
     }
 
     //----------------------------------------------------------< Validator >---
@@ -87,7 +90,7 @@ class PermissionValidator implements Validator {
 
         // TODO
 
-        return new PermissionValidator(compiledPermissions, childBefore, childAfter);
+        return nextValidator(childBefore, childAfter);
     }
 
     @Override
@@ -98,7 +101,8 @@ class PermissionValidator implements Validator {
 
     //------------------------------------------------------------< private >---
     private void checkPermissions(NodeUtil parent, PropertyState property, int defaultPermission) throws CommitFailedException {
-        String parentPath = parent.getTree().getPath();
+        Tree parentTree = parent.getTree();
+        String parentPath = parentTree.getPath();
         String name = property.getName();
 
         int permission;
@@ -111,15 +115,15 @@ class PermissionValidator implements Validator {
             permission = Permissions.NAMESPACE_MANAGEMENT;
         } else if (isNodeTypeDefinition(parentPath)) {
             permission = Permissions.NODE_TYPE_DEFINITION_MANAGEMENT;
-        } else if (isPrivilegeDefinition(parentPath)) {
-            permission = Permissions.PRIVILEGE_MANAGEMENT;
-        } else if (isAccessControl(parent)) {
-            permission = Permissions.MODIFY_ACCESS_CONTROL;
         } else if (isVersionProperty(parent, property)) {
             permission = Permissions.VERSION_MANAGEMENT;
             // FIXME: path to check for permission must be adjusted to be
             //        the one of the versionable node instead of the target parent.
-        } else if (isAuthorizableProperty(parent, property)) {
+        } else if (provider.getPrivilegeContext().definesProperty(parentTree, property)) {
+            permission = Permissions.PRIVILEGE_MANAGEMENT;
+        } else if (provider.getAccessControlContext().definesProperty(parentTree, property)) {
+            permission = Permissions.MODIFY_ACCESS_CONTROL;
+        } else if (provider.getUserContext().definesProperty(parentTree, property)) {
             permission = Permissions.USER_MANAGEMENT;
         } else {
             permission = defaultPermission;
@@ -128,28 +132,29 @@ class PermissionValidator implements Validator {
         checkPermissions(parent.getTree(), property, permission);
     }
 
-    private PermissionValidator checkPermissions(NodeUtil node, boolean isBefore, int defaultPermission) throws CommitFailedException {
-        String path = node.getTree().getPath();
+    private Validator checkPermissions(NodeUtil node, boolean isBefore, int defaultPermission) throws CommitFailedException {
+        Tree tree = node.getTree();
+        String path = tree.getPath();
         int permission;
 
         if (isNamespaceDefinition(path)) {
             permission = Permissions.NAMESPACE_MANAGEMENT;
         } else if (isNodeTypeDefinition(path)) {
             permission = Permissions.NODE_TYPE_DEFINITION_MANAGEMENT;
-        } else if (isPrivilegeDefinition(path)) {
-            permission = Permissions.PRIVILEGE_MANAGEMENT;
-        } else if (isAccessControl(node)) {
-            permission = Permissions.MODIFY_ACCESS_CONTROL;
         } else if (isVersion(node)) {
             permission = Permissions.VERSION_MANAGEMENT;
             // FIXME: path to check for permission must be adjusted to be
             // //     the one of the versionable node instead of the target node.
-        } else if (isAuthorizable(node)) {
+        } else if (provider.getPrivilegeContext().definesTree(tree)) {
+            permission = Permissions.PRIVILEGE_MANAGEMENT;
+        } else if (provider.getAccessControlContext().definesTree(tree)) {
+            permission = Permissions.MODIFY_ACCESS_CONTROL;
+        } else if (provider.getUserContext().definesTree(tree)) {
             permission = Permissions.USER_MANAGEMENT;
         } else {
             // TODO: identify specific permission depending on additional types of protection
-            // - user/group -> user management
-            // - workspace management ???
+            // TODO  - workspace management
+
             // TODO: identify renaming/move of nodes that only required MODIFY_CHILD_NODE_COLLECTION permission
             permission = defaultPermission;
         }
@@ -158,10 +163,10 @@ class PermissionValidator implements Validator {
             checkPermissions(permission);
             return null; // no need for further validation down the subtree
         } else {
-            checkPermissions(node.getTree(), permission);
+            checkPermissions(tree, permission);
             return (isBefore) ?
-                    new PermissionValidator(compiledPermissions, node, null) :
-                    new PermissionValidator(compiledPermissions, null, node);
+                    nextValidator(node, null) :
+                    nextValidator(null, node);
         }
     }
 
@@ -181,11 +186,6 @@ class PermissionValidator implements Validator {
         if (!compiledPermissions.isGranted(parent, property, permissions))    {
             throw new CommitFailedException(new AccessDeniedException());
         }
-    }
-
-    private static boolean isAccessControl(NodeUtil node) {
-        // TODO: depends on ac-model
-        return false;
     }
 
     private static boolean isVersion(NodeUtil node) {
@@ -212,26 +212,6 @@ class PermissionValidator implements Validator {
         }
     }
 
-    private static boolean isAuthorizable(NodeUtil parent) {
-        // TODO: review again: depends on configured user-mgt
-        String ntName = parent.getName(JcrConstants.JCR_PRIMARYTYPE);
-        return UserConstants.NT_REP_GROUP.equals(ntName) || UserConstants.NT_REP_USER.equals(ntName) || UserConstants.NT_REP_MEMBERS.equals(ntName);
-    }
-
-    private static boolean isAuthorizableProperty(NodeUtil parent, PropertyState property) {
-        // TODO: review again: depends on configured user-mgt
-        String ntName = parent.getName(JcrConstants.JCR_PRIMARYTYPE);
-        if (UserConstants.NT_REP_USER.equals(ntName)) {
-            return UserConstants.USER_PROPERTY_NAMES.contains(property.getName());
-        } else if (UserConstants.NT_REP_GROUP.equals(ntName)) {
-            return UserConstants.GROUP_PROPERTY_NAMES.contains(property.getName());
-        } else if (UserConstants.NT_REP_MEMBERS.equals(ntName)) {
-            return true;
-        }
-
-        return false;
-    }
-
     private static boolean isLockProperty(String name) {
         return JcrConstants.JCR_LOCKISDEEP.equals(name) || JcrConstants.JCR_LOCKOWNER.equals(name);
     }
@@ -243,10 +223,5 @@ class PermissionValidator implements Validator {
     private static boolean isNodeTypeDefinition(String path) {
         // TODO: depends on pluggable module
         return Text.isDescendant(NodeTypeConstants.NODE_TYPES_PATH, path);
-    }
-
-    private static boolean isPrivilegeDefinition(String path) {
-        // TODO: depends on pluggable module
-        return Text.isDescendant(PrivilegeConstants.PRIVILEGES_PATH, path);
     }
 }
