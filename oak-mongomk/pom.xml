@@ -34,13 +34,6 @@
   <name>Oak Mongo MicroKernel</name>
   <packaging>bundle</packaging>
 
-  <properties>
-    <mongo.host>127.0.0.1</mongo.host>
-    <mongo.port>27017</mongo.port>
-    <mongo.db>MongoMKDB</mongo.db>
-    <mongo.db2>MongoMKDB2</mongo.db2>
-  </properties>
-
     <build>
         <plugins>
             <plugin>
@@ -75,10 +68,6 @@
                         <java.util.logging.config.file>
                             src/test/resources/logging.properties
                         </java.util.logging.config.file>
-                        <mongo.host>${mongo.host}</mongo.host>
-                        <mongo.port>${mongo.port}</mongo.port>
-                        <mongo.db>${mongo.db}</mongo.db>
-                        <mongo.db2>${mongo.db2}</mongo.db2>
                     </systemPropertyVariables>
                 </configuration>
             </plugin>

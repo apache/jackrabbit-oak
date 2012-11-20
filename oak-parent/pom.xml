@@ -42,6 +42,10 @@
     </project.reporting.outputEncoding>
     <jackrabbit.version>2.5.2</jackrabbit.version>
     <guava.version>13.0.1</guava.version>
+    <mongo.host>127.0.0.1</mongo.host>
+    <mongo.port>27017</mongo.port>
+    <mongo.db>MongoMKDB</mongo.db>
+    <mongo.db2>MongoMKDB2</mongo.db2>
   </properties>
 
   <issueManagement>
@@ -113,6 +117,10 @@
             <argLine>${test.opts}</argLine>
             <systemPropertyVariables>
               <known.issues>${known.issues}</known.issues>
+              <mongo.host>${mongo.host}</mongo.host>
+              <mongo.port>${mongo.port}</mongo.port>
+              <mongo.db>${mongo.db}</mongo.db>
+              <mongo.db2>${mongo.db2}</mongo.db2>
             </systemPropertyVariables>
           </configuration>
         </plugin>
@@ -123,6 +131,10 @@
             <argLine>${test.opts}</argLine>
             <systemPropertyVariables>
               <known.issues>${known.issues}</known.issues>
+              <mongo.host>${mongo.host}</mongo.host>
+              <mongo.port>${mongo.port}</mongo.port>
+              <mongo.db>${mongo.db}</mongo.db>
+              <mongo.db2>${mongo.db2}</mongo.db2>
             </systemPropertyVariables>
           </configuration>
         </plugin>
