@@ -34,8 +34,10 @@ import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class RootImplTest {
 
@@ -216,6 +218,28 @@ public class RootImplTest {
 
         root1.rebase();
         checkEqual(root1.getTree("/"), (root2.getTree("/")));
+    }
+
+    @Test
+    public void testGetLatest() throws Exception {
+        RootImpl root = (RootImpl) session.getLatestRoot();
+        Root root2 = root.getLatest();
+        assertNotSame(root, root2);
+
+        session.close();
+        try {
+            root.getLatest();
+            fail();
+        } catch (IllegalStateException e) {
+            // success
+        }
+
+        try {
+            ((RootImpl) root2).checkLive();
+            fail();
+        } catch (IllegalStateException e) {
+            // success
+        }
     }
 
     private static void checkEqual(Tree tree1, Tree tree2) {

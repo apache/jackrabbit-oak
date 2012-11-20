@@ -21,7 +21,6 @@ import java.util.List;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
-import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
@@ -37,13 +36,7 @@ public class PrivilegeConfigurationImpl extends SecurityConfiguration.Default im
     @Nonnull
     @Override
     public PrivilegeManager getPrivilegeManager(Root root, NamePathMapper namePathMapper) {
-        return new ReadOnlyPrivilegeManager(root, namePathMapper);
-    }
-
-    @Nonnull
-    @Override
-    public PrivilegeManager getPrivilegeManager(ContentSession contentSession, Root root, NamePathMapper namePathMapper) {
-        return new PrivilegeManagerImpl(root, namePathMapper, contentSession);
+        return new PrivilegeManagerImpl(root, namePathMapper);
     }
 
     @Nonnull
