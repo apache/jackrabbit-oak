@@ -31,6 +31,7 @@ import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
+import org.apache.jackrabbit.oak.spi.state.ReadOnlyBuilder;
 
 /**
  * {@link IndexHook} implementation that is responsible for keeping the
@@ -142,8 +143,9 @@ public class LuceneIndexDiff implements IndexHook, LuceneIndexConstants {
             return;
         }
         for (LuceneIndexUpdate update : updates.values()) {
-            update.insert(concat(getPath(), name), node);
+            update.insert(concat(getPath(), name), new ReadOnlyBuilder(after));
         }
+        after.compareAgainstBaseState(MemoryNodeState.EMPTY_NODE, child(name));
     }
 
     @Override
