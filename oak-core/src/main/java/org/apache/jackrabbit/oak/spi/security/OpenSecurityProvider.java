@@ -39,7 +39,7 @@ public class OpenSecurityProvider implements SecurityProvider {
     @Nonnull
     @Override
     public Iterable<SecurityConfiguration> getSecurityConfigurations() {
-        return Collections.<SecurityConfiguration>singletonList(getAccessControlProvider());
+        return Collections.<SecurityConfiguration>singletonList(getAccessControlConfiguration());
     }
 
     @Nonnull
@@ -56,7 +56,7 @@ public class OpenSecurityProvider implements SecurityProvider {
 
     @Nonnull
     @Override
-    public AccessControlConfiguration getAccessControlProvider() {
+    public AccessControlConfiguration getAccessControlConfiguration() {
         return new OpenAccessControlConfiguration();
     }
 

@@ -44,7 +44,7 @@ public interface SecurityProvider {
     TokenProvider getTokenProvider(Root root);
 
     @Nonnull
-    AccessControlConfiguration getAccessControlProvider();
+    AccessControlConfiguration getAccessControlConfiguration();
 
     @Nonnull
     PrivilegeConfiguration getPrivilegeConfiguration();
