@@ -16,10 +16,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertTrue;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 
 import org.apache.jackrabbit.oak.plugins.index.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.IndexDefinitionImpl;
@@ -65,6 +65,45 @@ public class LuceneIndexTest implements LuceneIndexConstants {
         Cursor cursor = queryIndex.query(filter, builder.getNodeState());
         assertTrue(cursor.hasNext());
         assertEquals("/", cursor.next().getPath());
+        assertFalse(cursor.hasNext());
+    }
+
+    @Test
+    public void testLucene2() throws Exception {
+        NodeState root = MemoryNodeState.EMPTY_NODE;
+
+        NodeBuilder builder = root.builder();
+        builder.child("oak:index").child("lucene")
+                .setProperty(JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE)
+                .setProperty("type", TYPE_LUCENE);
+
+        NodeState before = builder.getNodeState();
+        builder.setProperty("foo", "bar");
+        builder.child("a").setProperty("foo", "bar");
+        builder.child("a").child("b").setProperty("foo", "bar");
+        builder.child("a").child("b").child("c").setProperty("foo", "bar");
+
+        NodeState after = builder.getNodeState();
+
+        IndexHook l = new LuceneIndexDiff(builder);
+        after.compareAgainstBaseState(before, l);
+        l.apply();
+        l.close();
+
+        IndexDefinition testDef = new IndexDefinitionImpl("lucene",
+                TYPE_LUCENE, "/oak:index/lucene");
+        QueryIndex queryIndex = new LuceneIndex(testDef);
+        FilterImpl filter = new FilterImpl(null, null);
+        // filter.restrictPath("/", Filter.PathRestriction.EXACT);
+        filter.restrictProperty("foo", Operator.EQUAL,
+                PropertyValues.newString("bar"));
+        Cursor cursor = queryIndex.query(filter, builder.getNodeState());
+
+        assertTrue(cursor.hasNext());
+        assertEquals("/", cursor.next().getPath());
+        assertEquals("/a", cursor.next().getPath());
+        assertEquals("/a/b", cursor.next().getPath());
+        assertEquals("/a/b/c", cursor.next().getPath());
         assertFalse(cursor.hasNext());
     }
 

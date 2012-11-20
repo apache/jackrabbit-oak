@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newPathField;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newPropertyField;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newPathTerm;
@@ -34,10 +33,8 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
@@ -139,7 +136,10 @@ class LuceneIndexUpdate implements Closeable, LuceneIndexConstants {
     private void deleteSubtreeWriter(IndexWriter writer, String path)
             throws IOException {
         // TODO verify the removal of the entire sub-hierarchy
-         writer.deleteDocuments(newPathTerm(path));
+        if (!path.startsWith("/")) {
+            path = "/" + path;
+        }
+        writer.deleteDocuments(newPathTerm(path));
         if (!path.endsWith("/")) {
             path += "/";
         }
@@ -148,14 +148,17 @@ class LuceneIndexUpdate implements Closeable, LuceneIndexConstants {
 
     private void addSubtreeWriter(IndexWriter writer, String path,
             NodeState state) throws IOException {
-        writer.updateDocument(newPathTerm(path), makeDocument(path, state));
-        for (ChildNodeEntry entry : state.getChildNodeEntries()) {
-            if (NodeStateUtils.isHidden(entry.getName())) {
-                continue;
-            }
-            addSubtreeWriter(writer, concat(path, entry.getName()),
-                    entry.getNodeState());
+        if (!path.startsWith("/")) {
+            path = "/" + path;
         }
+        writer.updateDocument(newPathTerm(path), makeDocument(path, state));
+        // for (ChildNodeEntry entry : state.getChildNodeEntries()) {
+        // if (NodeStateUtils.isHidden(entry.getName())) {
+        // continue;
+        // }
+        // addSubtreeWriter(writer, concat(path, entry.getName()),
+        // entry.getNodeState(), paths);
+        // }
     }
 
     private static Document makeDocument(String path, NodeState state) {
@@ -192,5 +195,11 @@ class LuceneIndexUpdate implements Closeable, LuceneIndexConstants {
     public void close() throws IOException {
         remove.clear();
         insert.clear();
+    }
+
+    @Override
+    public String toString() {
+        return "LuceneIndexUpdate [path=" + path + ", insert=" + insert
+                + ", remove=" + remove + "]";
     }
 }
