@@ -22,14 +22,10 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.core.RootImpl;
-import org.apache.jackrabbit.oak.plugins.index.IndexHookManager;
-import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexHookProvider;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
-import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 
@@ -47,8 +43,7 @@ public class InitialContent implements RepositoryInitializer {
     public void initialize(NodeStore store) {
         NodeStoreBranch branch = store.branch();
 
-        NodeState before = branch.getRoot();
-        NodeBuilder root = before.builder();
+        NodeBuilder root = branch.getRoot().builder();
         root.setProperty("jcr:primaryType", "rep:root", Type.NAME);
 
         if (!root.hasChildNode("jcr:system")) {
@@ -100,9 +95,7 @@ public class InitialContent implements RepositoryInitializer {
                 .setProperty("reindex", true);
         }
         try {
-            CommitHook hook =
-                    new IndexHookManager(new PropertyIndexHookProvider());
-            branch.setRoot(hook.processCommit(before, root.getNodeState()));
+            branch.setRoot(root.getNodeState());
             branch.merge();
         } catch (CommitFailedException e) {
             throw new RuntimeException(e); // TODO: shouldn't need the wrapper
