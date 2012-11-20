@@ -33,6 +33,7 @@ import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.TreeLocation;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 
 /**
@@ -93,7 +94,7 @@ public class NodeDelegate extends ItemDelegate {
      * no such property exists
      */
     @CheckForNull
-    public PropertyDelegate getProperty(String relPath) throws InvalidItemStateException {
+    public PropertyDelegate getProperty(String relPath) throws RepositoryException {
         TreeLocation propertyLocation = getChildLocation(relPath);
         PropertyState propertyState = propertyLocation.getProperty();
         return propertyState == null
@@ -126,7 +127,7 @@ public class NodeDelegate extends ItemDelegate {
      * no such node exists
      */
     @CheckForNull
-    public NodeDelegate getChild(String relPath) throws InvalidItemStateException {
+    public NodeDelegate getChild(String relPath) throws RepositoryException {
         return create(sessionDelegate, getChildLocation(relPath));
     }
 
@@ -241,8 +242,20 @@ public class NodeDelegate extends ItemDelegate {
 
     // -----------------------------------------------------------< private >---
 
-    private TreeLocation getChildLocation(String relPath) throws InvalidItemStateException {
-        return getLocation().getChild(relPath);
+    private TreeLocation getChildLocation(String relPath) throws RepositoryException {
+        if (PathUtils.isAbsolute(relPath)) {
+            throw new RepositoryException("Not a relative path: " + relPath);
+        }
+
+        TreeLocation loc = getLocation();
+        for (String element : PathUtils.elements(relPath)) {
+            if (PathUtils.denotesParent(element)) {
+                loc = loc.getParent();
+            } else if (!PathUtils.denotesCurrent(element)) {
+                loc = loc.getChild(element);
+            }  // else . -> skip to next element
+        }
+        return loc;
     }
 
     private Iterator<NodeDelegate> nodeDelegateIterator(

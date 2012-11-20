@@ -258,7 +258,7 @@
       org.apache.jackrabbit.oak.jcr.security.user.GroupTest#testInheritedMembers                         <!-- OAK-343 -->
       org.apache.jackrabbit.oak.jcr.security.user.GroupTest#testCyclicGroups                             <!-- OAK-343 -->
       org.apache.jackrabbit.oak.jcr.security.user.AuthorizableTest#testRemoveListedAuthorizable          <!-- OAK-343 -->
-      org.apache.jackrabbit.oak.jcr.security.user.AuthorizablePropertyTest#testSetPropertyInvalidRelativePath    <!-- OAK-369 -->
+      org.apache.jackrabbit.oak.jcr.security.user.AuthorizablePropertyTest#testSetPropertyInvalidRelativePath
       org.apache.jackrabbit.oak.jcr.security.principal.PrincipalManagerTest#testGetPrincipals            <!-- principal search missing -->
       org.apache.jackrabbit.oak.jcr.security.principal.PrincipalManagerTest#testGetGroupPrincipals       <!-- principal search missing -->
       org.apache.jackrabbit.oak.jcr.security.principal.PrincipalManagerTest#testGetAllPrincipals         <!-- principal search missing -->
