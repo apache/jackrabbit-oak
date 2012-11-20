@@ -98,11 +98,6 @@ public interface SecurityConfiguration {
                 public boolean definesTree(Tree tree) {
                     return false;
                 }
-
-                @Override
-                public boolean definesItems(String path) {
-                    return false;
-                }
             };
         }
     }
