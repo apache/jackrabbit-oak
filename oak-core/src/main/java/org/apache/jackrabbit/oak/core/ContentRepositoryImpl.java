@@ -57,6 +57,7 @@ public class ContentRepositoryImpl implements ContentRepository {
      * initialized components.
      *
      * @param nodeStore the node store this repository is based upon.
+     * @param conflictHandler The conflict handler.
      * @param indexProvider index provider
      * @param securityProvider The configured security provider or {@code null} if
      * default implementations should be used.
