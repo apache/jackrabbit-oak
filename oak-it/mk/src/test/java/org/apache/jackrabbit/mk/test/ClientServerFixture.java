@@ -31,6 +31,11 @@ public class ClientServerFixture implements MicroKernelFixture {
     private Server server;
 
     @Override
+    public boolean isAvailable() {
+        return true;
+    }
+
+    @Override
     public void setUpCluster(MicroKernel[] cluster) {
         mk = new MicroKernelImpl();
         server = new Server(mk);

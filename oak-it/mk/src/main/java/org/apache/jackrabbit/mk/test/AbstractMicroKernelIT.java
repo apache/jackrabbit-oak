@@ -57,9 +57,10 @@ public abstract class AbstractMicroKernelIT {
         Class<MicroKernelFixture> iface = MicroKernelFixture.class;
         ServiceLoader<MicroKernelFixture> loader =
                 ServiceLoader.load(iface, iface.getClassLoader());
-        
         for (MicroKernelFixture fixture : loader) {
-            fixtures.add(new Object[] { fixture });
+            if (fixture.isAvailable()) {
+                fixtures.add(new Object[] { fixture });
+            }
         }
 
         return fixtures;
@@ -108,7 +109,7 @@ public abstract class AbstractMicroKernelIT {
      * this test case.
      */
     @Before
-    public void setUp() {
+    public void setUp() throws Exception {
         fixture.setUpCluster(mks);
         mk = mks[0];
         addInitialTestContent();

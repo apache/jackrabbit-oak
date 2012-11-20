@@ -23,6 +23,11 @@ import org.apache.jackrabbit.oak.plugins.index.old.mk.simple.SimpleKernelImpl;
 public class SimpleKernelImplFixture implements MicroKernelFixture {
 
     @Override
+    public boolean isAvailable() {
+        return true;
+    }
+
+    @Override
     public void setUpCluster(MicroKernel[] cluster) {
         MicroKernel mk =
                 new SimpleKernelImpl("mem:SimpleKernelImplFixture");

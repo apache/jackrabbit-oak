@@ -25,6 +25,15 @@ import org.apache.jackrabbit.mk.api.MicroKernel;
 public interface MicroKernelFixture {
 
     /**
+     * Checks whether this fixture is currently available. For example
+     * a database-based fixture would only be available when the underlying
+     * database service is running.
+     *
+     * @return <code>true</code> iff the fixture is available
+     */
+    boolean isAvailable();
+
+    /**
      * Creates a new {@link MicroKernel} cluster with as many nodes as the
      * given array has elements. References to the cluster nodes are stored
      * in the given array. The initial state of the cluster consists of just
@@ -36,8 +45,9 @@ public interface MicroKernelFixture {
      *
      * @param cluster array to which references to all nodes of the
      *                created cluster should be stored
+     * @throws Exception if the cluster could not be set up
      */
-    void setUpCluster(MicroKernel[] cluster);
+    void setUpCluster(MicroKernel[] cluster) throws Exception;
 
     /**
      * Ensures that all content changes seen by one of the given cluster

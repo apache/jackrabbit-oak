@@ -16,33 +16,15 @@
  */
 package org.apache.jackrabbit.mk.test;
 
-import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.mk.core.MicroKernelImpl;
+import org.apache.jackrabbit.mk.blobs.BlobStore;
+import org.apache.jackrabbit.mongomk.impl.blob.MongoBlobStore;
 
-public class MicroKernelImplFixture implements MicroKernelFixture {
+import com.mongodb.DB;
 
-    @Override
-    public boolean isAvailable() {
-        return true;
-    }
+public class MongoMicroKernelFixture extends BaseMongoMicroKernelFixture {
 
     @Override
-    public void setUpCluster(MicroKernel[] cluster) {
-        MicroKernel mk = new MicroKernelImpl();
-        for (int i = 0; i < cluster.length; i++) {
-            cluster[i] = mk;
-        }
+    protected BlobStore getBlobStore(DB db) {
+        return new MongoBlobStore(db);
     }
-
-    @Override
-    public void syncMicroKernelCluster(MicroKernel... nodes) {
-    }
-
-    @Override
-    public void tearDownCluster(MicroKernel[] cluster) {
-        for (int i = 0; i < cluster.length; i++) {
-            ((MicroKernelImpl) cluster[i]).dispose();
-        }
-    }
-
 }
