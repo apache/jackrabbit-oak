@@ -88,7 +88,7 @@ public class ContentRepositoryImpl implements ContentRepository {
         LoginContext loginContext = lcProvider.getLoginContext(credentials, workspaceName);
         loginContext.login();
 
-        AccessControlConfiguration acConfiguration = securityProvider.getAccessControlProvider();
+        AccessControlConfiguration acConfiguration = securityProvider.getAccessControlConfiguration();
         return new ContentSessionImpl(loginContext, acConfiguration, workspaceName,
                 nodeStore, conflictHandler, indexProvider);
     }

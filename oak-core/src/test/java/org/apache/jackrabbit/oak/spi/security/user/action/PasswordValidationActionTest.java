@@ -192,7 +192,7 @@ public class PasswordValidationActionTest extends AbstractSecurityTest {
         @Nonnull
         @Override
         public UserConfiguration getUserConfiguration() {
-            return new UserConfigurationImpl(ConfigurationParameters.EMPTY, this) {
+            return new UserConfigurationImpl(this, ConfigurationParameters.EMPTY) {
 
                 @Nonnull
                 @Override
