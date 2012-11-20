@@ -185,12 +185,16 @@ public class RepositoryTest extends AbstractRepositoryTest {
 
     @Test
     public void hasPropertyDot() throws RepositoryException {
+        Node root = getNode("/");
+        assertFalse((root.hasProperty(".")));
         Node node = getNode("/foo");
         assertFalse((node.hasProperty(".")));
     }
 
     @Test
     public void hasPropertyDotDot() throws RepositoryException {
+        Node root = getNode("/");
+        assertFalse((root.hasProperty("..")));
         Node node = getNode("/foo");
         assertFalse((node.hasProperty("..")));
     }
@@ -204,7 +208,6 @@ public class RepositoryTest extends AbstractRepositoryTest {
         assertTrue(same.isSame(node));
     }
 
-    @Ignore("OAK-369") // FIXME: OAK-369
     @Test
     public void getNodeDotDot() throws RepositoryException {
         Node node = getNode("/foo");
@@ -212,6 +215,13 @@ public class RepositoryTest extends AbstractRepositoryTest {
         assertNotNull(root);
         assertEquals("", root.getName());
         assertTrue(root.isSame(node.getParent()));
+    }
+
+    @Test(expected = PathNotFoundException.class)
+    public void getRootGetDotDot() throws RepositoryException {
+        Node root = getNode("/");
+        assertNotNull(root);
+        root.getNode("..");
     }
 
     @Test
@@ -222,16 +232,14 @@ public class RepositoryTest extends AbstractRepositoryTest {
         assertTrue(node.hasNode("."));
     }
 
-    @Ignore("OAK-369")
     @Test
     public void hasNodeDotDot() throws RepositoryException {
         Node root = getNode("/");
         assertFalse(root.hasNode(".."));
         Node node = getNode("/foo");
-        assertTrue(node.hasNode(".."));  // FIXME OAK-369
+        assertTrue(node.hasNode(".."));
     }
 
-    @Ignore("OAK-369") // FIXME: OAK-369
     @Test(expected = ItemExistsException.class)
     public void testAddNodeDot() throws RepositoryException {
         Node node = getNode("/foo");
@@ -251,6 +259,12 @@ public class RepositoryTest extends AbstractRepositoryTest {
         assertNotNull(node);
         assertEquals("foo", node.getName());
         assertEquals("/foo", node.getPath());
+    }
+
+    @Test(expected = RepositoryException.class)
+    public void getNodeAbsolutePath() throws RepositoryException {
+        Node root = getNode("/");
+        root.getNode("/foo");
     }
 
     @Test
