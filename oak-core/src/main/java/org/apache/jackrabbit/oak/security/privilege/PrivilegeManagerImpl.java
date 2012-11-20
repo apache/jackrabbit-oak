@@ -244,7 +244,7 @@ public class PrivilegeManagerImpl implements PrivilegeManager {
 
         @Override
         public String toString() {
-            return "Privilege " + definition.getName();
+            return definition.getName();
         }
     }
 }

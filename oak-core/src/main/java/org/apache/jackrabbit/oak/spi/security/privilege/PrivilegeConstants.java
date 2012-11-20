@@ -17,8 +17,10 @@
 package org.apache.jackrabbit.oak.spi.security.privilege;
 
 import java.util.Map;
+import java.util.Set;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.JcrConstants;
 
 /**
@@ -97,4 +99,6 @@ public interface PrivilegeConstants {
             JCR_MODIFY_PROPERTIES, AGGR_JCR_MODIFY_PROPERTIES,
             JCR_WRITE, AGGR_JCR_WRITE,
             REP_WRITE, AGGR_REP_WRITE);
+
+    Set<String> PRIVILEGE_PROPERTY_NAMES = ImmutableSet.of(REP_IS_ABSTRACT, REP_AGGREGATES);
 }
