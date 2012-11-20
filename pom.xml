@@ -93,7 +93,6 @@
     <profile>
       <id>mongomk</id>
       <modules>
-        <module>oak-mongomk-test</module>
         <module>oak-mongomk-perf</module>
       </modules>
     </profile>
