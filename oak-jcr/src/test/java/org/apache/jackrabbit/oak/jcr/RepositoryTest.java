@@ -39,6 +39,7 @@ import javax.jcr.Binary;
 import javax.jcr.GuestCredentials;
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.Item;
+import javax.jcr.ItemExistsException;
 import javax.jcr.NamespaceException;
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.NoSuchWorkspaceException;
@@ -170,8 +171,33 @@ public class RepositoryTest extends AbstractRepositoryTest {
         assertEquals("/", root.getPath());
     }
 
+    @Test(expected = PathNotFoundException.class)
+    public void getPropertyDot() throws RepositoryException {
+        Node node = getNode("/foo");
+        node.getProperty(".");
+    }
+
+    @Test(expected = PathNotFoundException.class)
+    public void getPropertyDotDot() throws RepositoryException {
+        Node node = getNode("/foo");
+        node.getProperty("..");
+    }
+
+    @Ignore("OAK-369")
     @Test
-    public void getNode2() throws RepositoryException {
+    public void hasPropertyDot() throws RepositoryException {
+        Node node = getNode("/foo");
+        assertFalse((node.hasNode(".")));  // FIXME: OAK-369
+    }
+
+    @Test
+    public void hasPropertyDotDot() throws RepositoryException {
+        Node node = getNode("/foo");
+        assertFalse((node.hasNode("..")));
+    }
+
+    @Test
+    public void getNodeDot() throws RepositoryException {
         Node node = getNode("/foo");
         Node same = node.getNode(".");
         assertNotNull(same);
@@ -181,21 +207,43 @@ public class RepositoryTest extends AbstractRepositoryTest {
 
     @Ignore("OAK-369") // FIXME: OAK-369
     @Test
-    public void getNode3() throws RepositoryException {
+    public void getNodeDotDot() throws RepositoryException {
         Node node = getNode("/foo");
         Node root = node.getNode("..");
         assertNotNull(root);
         assertEquals("", root.getName());
-        assertTrue("/".equals(root.getPath()));
+        assertTrue(root.isSame(node.getParent()));
+    }
+
+    @Test
+    public void hasNodeDot() throws RepositoryException {
+        Node root = getNode("/");
+        assertTrue(root.hasNode("."));
+        Node node = getNode("/foo");
+        assertTrue(node.hasNode("."));
+    }
+
+    @Ignore("OAK-369")
+    @Test
+    public void hasNodeDotDot() throws RepositoryException {
+        Node root = getNode("/");
+        assertFalse(root.hasNode(".."));
+        Node node = getNode("/foo");
+        assertTrue(node.hasNode(".."));  // FIXME OAK-369
     }
 
     @Ignore("OAK-369") // FIXME: OAK-369
-    @Test
-    public void testAddNode() throws RepositoryException {
+    @Test(expected = ItemExistsException.class)
+    public void testAddNodeDot() throws RepositoryException {
         Node node = getNode("/foo");
         // add a node with '..' should fail...
-        Node invalid = node.addNode("..");
-        assertTrue(node.getParent().isSame(node.getNode("..")));
+        node.addNode("..");
+    }
+
+    @Test(expected = ItemExistsException.class)
+    public void testAddNodeDotDot() throws RepositoryException {
+        Node node = getNode("/foo");
+        node.addNode(".");
     }
 
     @Test
@@ -1860,8 +1908,8 @@ public class RepositoryTest extends AbstractRepositoryTest {
             };
 
             obsMgr.addEventListener(listener, Event.NODE_ADDED | Event.NODE_REMOVED | Event.NODE_MOVED |
-                Event.PROPERTY_ADDED | Event.PROPERTY_REMOVED | Event.PROPERTY_CHANGED | Event.PERSIST,
-                "/", true, null, null, false);
+                    Event.PROPERTY_ADDED | Event.PROPERTY_REMOVED | Event.PROPERTY_CHANGED | Event.PERSIST,
+                    "/", true, null, null, false);
 
             // Generate two events
             Node n = getNode(TEST_PATH);
