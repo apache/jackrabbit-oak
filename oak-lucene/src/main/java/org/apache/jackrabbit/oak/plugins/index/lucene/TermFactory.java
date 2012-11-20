@@ -39,8 +39,8 @@ public final class TermFactory {
      * @return the path term.
      */
     public static Term newPathTerm(String path) {
-        if (!"/".equals(path) && path.startsWith("/")) {
-            path = path.substring(1);
+        if (!"/".equals(path) && !path.startsWith("/")) {
+            path = "/" + path;
         }
         return new Term(FieldNames.PATH, path);
     }
