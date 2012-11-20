@@ -120,19 +120,30 @@ public interface UserConstants {
      * </ul>
      */
     String PARAM_GROUP_MEMBERSHIP_SPLIT_SIZE = "groupMembershipSplitSize";
+
     /**
      * Configuration parameter to change the default algorithm used to generate
      * password hashes.
      */
     String PARAM_PASSWORD_HASH_ALGORITHM = "passwordHashAlgorithm";
+
     /**
      * Configuration parameter to change the number of iterations used for
      * password hash generation.
      */
     String PARAM_PASSWORD_HASH_ITERATIONS = "passwordHashIterations";
+
     /**
      * Configuration parameter to change the number of iterations used for
      * password hash generation.
      */
     String PARAM_PASSWORD_SALT_SIZE = "passwordSaltSize";
+
+    /**
+     * Configuration option to define how the name of the authorizable node
+     * is generated from the ID of the new authorizable that is being created.
+     * The value is expected to be an instance of {@link AuthorizableNodeName}.
+     * By default {@link AuthorizableNodeName#DEFAULT} is used.
+     */
+    String PARAM_AUTHORIZABLE_NODE_NAME = "authorizableNodeName";
 }
