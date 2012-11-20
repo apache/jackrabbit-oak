@@ -183,17 +183,16 @@ public class RepositoryTest extends AbstractRepositoryTest {
         node.getProperty("..");
     }
 
-    @Ignore("OAK-369")
     @Test
     public void hasPropertyDot() throws RepositoryException {
         Node node = getNode("/foo");
-        assertFalse((node.hasNode(".")));  // FIXME: OAK-369
+        assertFalse((node.hasProperty(".")));
     }
 
     @Test
     public void hasPropertyDotDot() throws RepositoryException {
         Node node = getNode("/foo");
-        assertFalse((node.hasNode("..")));
+        assertFalse((node.hasProperty("..")));
     }
 
     @Test
