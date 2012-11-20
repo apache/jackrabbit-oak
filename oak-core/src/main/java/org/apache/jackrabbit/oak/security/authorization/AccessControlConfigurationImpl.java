@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.security.authorization;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import javax.annotation.Nonnull;
 import javax.jcr.security.AccessControlManager;
 import javax.security.auth.Subject;
 
@@ -27,6 +26,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlContext;
 
@@ -34,6 +34,12 @@ import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlContext
  * {@code AccessControlConfigurationImpl} ... TODO
  */
 public class AccessControlConfigurationImpl extends SecurityConfiguration.Default implements AccessControlConfiguration {
+
+    private final SecurityProvider securityProvider;
+
+    public AccessControlConfigurationImpl(SecurityProvider securityProvider) {
+        this.securityProvider = securityProvider;
+    }
 
     @Override
     public AccessControlManager getAccessControlManager(Root root, NamePathMapper namePathMapper) {
@@ -48,8 +54,8 @@ public class AccessControlConfigurationImpl extends SecurityConfiguration.Defaul
     @Override
     public List<ValidatorProvider> getValidatorProviders() {
         List<ValidatorProvider> vps = new ArrayList<ValidatorProvider>();
-        vps.add(new PermissionValidatorProvider(this));
-        vps.add(new AccessControlValidatorProvider());
+        vps.add(new PermissionValidatorProvider(securityProvider));
+        vps.add(new AccessControlValidatorProvider(securityProvider));
         return Collections.unmodifiableList(vps);
     }
 }

@@ -98,7 +98,7 @@ public class SecurityProviderImpl implements SecurityProvider {
     @Nonnull
     @Override
     public AccessControlConfiguration getAccessControlConfiguration() {
-        return new AccessControlConfigurationImpl();
+        return new AccessControlConfigurationImpl(this);
     }
 
     @Nonnull

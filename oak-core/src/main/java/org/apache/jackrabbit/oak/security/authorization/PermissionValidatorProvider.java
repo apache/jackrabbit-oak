@@ -17,13 +17,14 @@
 package org.apache.jackrabbit.oak.security.authorization;
 
 import java.security.AccessController;
-
 import javax.annotation.Nonnull;
 import javax.security.auth.Subject;
 
 import org.apache.jackrabbit.oak.core.ReadOnlyTree;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
+import org.apache.jackrabbit.oak.spi.security.Context;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlContext;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -32,14 +33,17 @@ import org.apache.jackrabbit.oak.util.NodeUtil;
 /**
  * PermissionValidatorProvider... TODO
  */
-public class PermissionValidatorProvider implements ValidatorProvider {
+class PermissionValidatorProvider implements ValidatorProvider {
 
-    private final AccessControlConfiguration accessControlConfiguration;
+    private final SecurityProvider securityProvider;
+    private final AccessControlConfiguration acConfiguration;
 
-    PermissionValidatorProvider(AccessControlConfiguration accessControlConfiguration) {
-        this.accessControlConfiguration = accessControlConfiguration;
+    PermissionValidatorProvider(SecurityProvider securityProvider) {
+        this.securityProvider = securityProvider;
+        this.acConfiguration = securityProvider.getAccessControlConfiguration();
     }
 
+    //--------------------------------------------------< ValidatorProvider >---
     @Nonnull
     @Override
     public Validator getRootValidator(NodeState before, NodeState after) {
@@ -49,10 +53,23 @@ public class PermissionValidatorProvider implements ValidatorProvider {
             subject = new Subject();
         }
 
-        AccessControlContext context = accessControlConfiguration.getAccessControlContext(subject);
+        AccessControlContext context = acConfiguration.getAccessControlContext(subject);
 
         NodeUtil rootBefore = new NodeUtil(new ReadOnlyTree(before));
         NodeUtil rootAfter = new NodeUtil(new ReadOnlyTree(after));
-        return new PermissionValidator(context.getPermissions(), rootBefore, rootAfter);
+        return new PermissionValidator(rootBefore, rootAfter, context.getPermissions(), this);
+    }
+
+    //-----------------------------------------------------------< internal >---
+    Context getUserContext() {
+        return securityProvider.getUserConfiguration().getContext();
+    }
+
+    Context getPrivilegeContext() {
+        return securityProvider.getPrivilegeConfiguration().getContext();
+    }
+
+    Context getAccessControlContext() {
+        return acConfiguration.getContext();
     }
 }
