@@ -215,8 +215,6 @@ class OakAuthorizableProperties implements AuthorizableProperties {
                 return false;
             }
         return isAuthorizableProperty(authorizableTree, propertyLocation.getProperty());
-
-
     }
 
     private boolean isAuthorizableProperty(Tree authorizableTree, PropertyState property) {
@@ -264,9 +262,8 @@ class OakAuthorizableProperties implements AuthorizableProperties {
     }
 
     @Nonnull
-    private TreeLocation getLocation(Tree tree, String relativePath) {
-        TreeLocation target = LocationUtil.getTreeLocation(tree.getLocation(), relativePath);
-        return target;
+    private static TreeLocation getLocation(Tree tree, String relativePath) {
+        return LocationUtil.getTreeLocation(tree.getLocation(), relativePath);
     }
 
     private static void checkRelativePath(String relativePath) throws RepositoryException {
