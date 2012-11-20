@@ -515,7 +515,7 @@ public class SessionDelegate {
     PrivilegeManager getPrivilegeManager() throws UnsupportedRepositoryOperationException {
         if (privilegeManager == null) {
             if (securityProvider != null) {
-                privilegeManager = securityProvider.getPrivilegeConfiguration().getPrivilegeManager(contentSession, root, getNamePathMapper());
+                privilegeManager = securityProvider.getPrivilegeConfiguration().getPrivilegeManager(root, getNamePathMapper());
             } else {
                 throw new UnsupportedRepositoryOperationException("Privilege management not supported.");
             }
