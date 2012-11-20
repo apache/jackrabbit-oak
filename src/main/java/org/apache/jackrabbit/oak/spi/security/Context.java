@@ -27,6 +27,4 @@ public interface Context {
     boolean definesProperty(Tree parent, PropertyState property);
 
     boolean definesTree(Tree tree);
-
-    boolean definesItems(String path);
 }
