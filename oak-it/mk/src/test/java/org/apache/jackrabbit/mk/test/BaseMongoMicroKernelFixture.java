@@ -36,7 +36,7 @@ public abstract class BaseMongoMicroKernelFixture implements MicroKernelFixture 
             Integer.getInteger("mongo.port", 27017);
 
     protected static final String DB =
-            System.getProperty("mongo.db", "mk-tf");
+            System.getProperty("mongo.db", "MongoMKDB");
 
     private static MongoConnection mongoConnection = null;
 
