@@ -118,6 +118,26 @@ public class RootImpl implements Root {
         refresh();
     }
 
+    /**
+     * Oak level variant of {@link org.apache.jackrabbit.oak.api.ContentSession#getLatestRoot()}
+     * to be used when no {@code ContentSession} is available.
+     *
+     * @return A new Root instance.
+     * @see org.apache.jackrabbit.oak.api.ContentSession#getLatestRoot()
+     */
+    public Root getLatest() {
+        checkLive();
+        RootImpl root = new RootImpl(store, null, subject, accConfiguration, indexProvider) {
+            protected void checkLive() {
+                RootImpl.this.checkLive();
+            }
+        };
+        if (conflictHandler != null) {
+            root.setConflictHandler(conflictHandler);
+        }
+        return root;
+    }
+
     void setConflictHandler(ConflictHandler conflictHandler) {
         this.conflictHandler = conflictHandler;
     }
