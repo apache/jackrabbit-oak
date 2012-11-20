@@ -20,6 +20,8 @@ import java.util.Collections;
 import java.util.List;
 import javax.annotation.Nonnull;
 
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.lifecycle.CompositeInitializer;
@@ -45,6 +47,9 @@ public interface SecurityConfiguration {
 
     @Nonnull
     List<ProtectedItemImporter> getProtectedItemImporters();
+
+    @Nonnull
+    Context getContext();
 
     /**
      * Default implementation that provides empty validators/parameters.
@@ -79,6 +84,26 @@ public interface SecurityConfiguration {
         @Override
         public List<ProtectedItemImporter> getProtectedItemImporters() {
             return Collections.emptyList();
+        }
+
+        @Override
+        public Context getContext() {
+            return new Context() {
+                @Override
+                public boolean definesProperty(Tree parent, PropertyState property) {
+                    return false;
+                }
+
+                @Override
+                public boolean definesTree(Tree tree) {
+                    return false;
+                }
+
+                @Override
+                public boolean definesItems(String path) {
+                    return false;
+                }
+            };
         }
     }
 
