@@ -165,7 +165,9 @@ class ReadOnlyOakDirectory extends Directory {
 
         @Override
         public void seek(long pos) throws IOException {
-            if (pos < 0 || pos >= data.length) {
+            //seek() may be called with pos == data.length
+            //see https://issues.apache.org/jira/browse/LUCENE-1196
+            if (pos < 0 || pos > data.length) {
                 throw new IOException("Invalid seek request");
             } else {
                 position = (int) pos;
