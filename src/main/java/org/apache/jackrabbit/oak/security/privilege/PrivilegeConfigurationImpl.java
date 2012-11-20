@@ -25,6 +25,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
+import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
 
@@ -50,5 +51,10 @@ public class PrivilegeConfigurationImpl extends SecurityConfiguration.Default im
     public List<ValidatorProvider> getValidatorProviders() {
         ValidatorProvider vp = new PrivilegeValidatorProvider();
         return Collections.singletonList(vp);
+    }
+
+    @Override
+    public Context getContext() {
+        return PrivilegeContext.INSTANCE;
     }
 }
