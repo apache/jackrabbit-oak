@@ -20,6 +20,7 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
@@ -29,6 +30,12 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * constraints defined by this access control implementation.
  */
 class AccessControlValidatorProvider implements ValidatorProvider {
+
+    private SecurityProvider securityProvider;
+
+    AccessControlValidatorProvider(SecurityProvider securityProvider) {
+        this.securityProvider = securityProvider;
+    }
 
     @Nonnull
     @Override
