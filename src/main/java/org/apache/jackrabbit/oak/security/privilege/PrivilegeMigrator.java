@@ -48,6 +48,9 @@ import org.xml.sax.helpers.DefaultHandler;
 /**
  * PrivilegeMigrator is a utility to migrate custom privilege definitions from
  * a jackrabbit 2 project to oak.
+ *
+ * TODO: this is an initial draft of a migration tool from jr2 custom privileges
+ * TODO: to oak. might need to be adjusted once we have defined a upgrade path (see OAK-458)
  */
 public class PrivilegeMigrator {
 
@@ -57,37 +60,25 @@ public class PrivilegeMigrator {
         this.contentSession = contentSession;
     }
 
-    public void migrateCustomPrivileges() throws RepositoryException {
+    public void migrateCustomPrivileges(InputStream privilegeStream) throws RepositoryException {
         final Root root = contentSession.getLatestRoot();
         PrivilegeDefinitionWriter writer = new PrivilegeDefinitionWriter(root);
-        InputStream stream = null;
-        // FIXME: user proper path to jr2 custom privileges stored in fs
-        // jr2 used to be:
-        // new FileSystemResource(fs, "/privileges/custom_privileges.xml").getInputStream()
-        if (stream != null) {
-            try {
-                NamespaceRegistry nsRegistry = new ReadWriteNamespaceRegistry() {
-                    @Override
-                    protected Root getWriteRoot() {
-                        return root;
-                    }
-
-                    @Override
-                    protected Tree getReadTree() {
-                        return root.getTree("/");
-                    }
-                };
-                Iterable<PrivilegeDefinition> custom = readCustomDefinitons(stream, nsRegistry);
-                writer.writeDefinitions(custom);
-            } catch (IOException e) {
-                throw new RepositoryException(e);
-            } finally {
-                try {
-                    stream.close();
-                } catch (IOException e) {
-                    // ignore.
+        try {
+            NamespaceRegistry nsRegistry = new ReadWriteNamespaceRegistry() {
+                @Override
+                protected Root getWriteRoot() {
+                    return root;
                 }
-            }
+
+                @Override
+                protected Tree getReadTree() {
+                    return root.getTree("/");
+                }
+            };
+            Iterable<PrivilegeDefinition> custom = readCustomDefinitons(privilegeStream, nsRegistry);
+            writer.writeDefinitions(custom);
+        } catch (IOException e) {
+            throw new RepositoryException(e);
         }
     }
 
