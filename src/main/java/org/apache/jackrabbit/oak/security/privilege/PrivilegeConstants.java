@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.spi.security.privilege;
+package org.apache.jackrabbit.oak.security.privilege;
 
 import java.util.Map;
 import java.util.Set;
@@ -74,10 +74,6 @@ public interface PrivilegeConstants {
             JCR_VERSION_MANAGEMENT, JCR_LOCK_MANAGEMENT, JCR_LIFECYCLE_MANAGEMENT,
             JCR_RETENTION_MANAGEMENT, JCR_WORKSPACE_MANAGEMENT, JCR_NODE_TYPE_DEFINITION_MANAGEMENT,
             JCR_NAMESPACE_MANAGEMENT, REP_PRIVILEGE_MANAGEMENT, REP_USER_MANAGEMENT};
-
-    String[] AGGR_PRIVILEGES = new String[] {
-            JCR_READ, JCR_MODIFY_PROPERTIES, JCR_WRITE, REP_WRITE
-    };
 
     String[] AGGR_JCR_READ = new String[] {
             REP_READ_NODES, REP_READ_PROPERTIES
