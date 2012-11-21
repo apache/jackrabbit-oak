@@ -75,7 +75,7 @@ public class CommitCommand extends BaseCommand<Long> {
 
     @Override
     public Long execute() throws Exception {
-        logger.debug(String.format("Trying to commit: %s", commit.getDiff()));
+        logger.debug("Trying to commit: {}", commit.getDiff());
 
         boolean success = false;
         do {
@@ -158,28 +158,29 @@ public class CommitCommand extends BaseCommand<Long> {
         for (MongoNode existingNode : existingNodes) {
             for (MongoNode committingNode : nodes) {
                 if (existingNode.getPath().equals(committingNode.getPath())) {
-                    logger.debug(String.format("Found existing node to merge: %s", existingNode.getPath()));
-                    logger.debug(String.format("Existing node: %s", existingNode));
-                    logger.debug(String.format("Committing node: %s", committingNode));
-
+                    if(logger.isDebugEnabled()){
+                        logger.debug("Found existing node to merge: {}", existingNode.getPath());
+                        logger.debug("Existing node: {}", existingNode);
+                        logger.debug("Committing node: {}", committingNode);
+                    }
                     Map<String, Object> existingProperties = existingNode.getProperties();
                     if (!existingProperties.isEmpty()) {
                         committingNode.setProperties(existingProperties);
 
-                        logger.debug(String.format("Merged properties for %s: %s", existingNode.getPath(),
-                                existingProperties));
+                        logger.debug("Merged properties for {}: {}", existingNode.getPath(),
+                                existingProperties);
                     }
 
                     List<String> existingChildren = existingNode.getChildren();
                     if (existingChildren != null) {
                         committingNode.setChildren(existingChildren);
 
-                        logger.debug(String.format("Merged children for %s: %s", existingNode.getPath(), existingChildren));
+                        logger.debug("Merged children for {}: {}", existingNode.getPath(), existingChildren);
                     }
 
                     committingNode.setBaseRevisionId(existingNode.getRevisionId());
 
-                    logger.debug(String.format("Merged node for %s: %s", existingNode.getPath(), committingNode));
+                    logger.debug("Merged node for {}: {}", existingNode.getPath(), committingNode);
 
                     break;
                 }
@@ -189,8 +190,8 @@ public class CommitCommand extends BaseCommand<Long> {
 
     private void prepareMongoNodes() {
         for (MongoNode committingNode : nodes) {
-            logger.debug(String.format("Preparing children (added and removed) of %s", committingNode.getPath()));
-            logger.debug(String.format("Committing node: %s", committingNode));
+            logger.debug("Preparing children (added and removed) of {}", committingNode.getPath());
+            logger.debug("Committing node: {}", committingNode);
 
             List<String> children = committingNode.getChildren();
             if (children == null) {
@@ -239,7 +240,7 @@ public class CommitCommand extends BaseCommand<Long> {
                 committingNode.setBranchId(branchId);
             }
 
-            logger.debug(String.format("Prepared committing node: %s", committingNode));
+            logger.debug("Prepared committing node: {}", committingNode);
         }
     }
 
