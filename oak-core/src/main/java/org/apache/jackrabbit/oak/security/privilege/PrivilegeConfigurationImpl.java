@@ -22,12 +22,14 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeDefinitionReader;
 
 /**
  * PrivilegeConfigurationImpl... TODO
@@ -38,6 +40,12 @@ public class PrivilegeConfigurationImpl extends SecurityConfiguration.Default im
     @Override
     public PrivilegeManager getPrivilegeManager(Root root, NamePathMapper namePathMapper) {
         return new PrivilegeManagerImpl(root, namePathMapper);
+    }
+
+    @Nonnull
+    @Override
+    public PrivilegeDefinitionReader getPrivilegeDefinitionReader(Tree tree) {
+        return new PrivilegeDefinitionReaderImpl(tree);
     }
 
     @Nonnull

@@ -34,8 +34,8 @@ import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.core.RootImpl;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeDefinition;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeDefinitionReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -156,7 +156,7 @@ public class PrivilegeManagerImpl implements PrivilegeManager {
 
     @Nonnull
     private PrivilegeDefinitionReader getReader() {
-        return new PrivilegeDefinitionReader(root);
+        return new PrivilegeDefinitionReaderImpl(root);
     }
 
     @Nonnull

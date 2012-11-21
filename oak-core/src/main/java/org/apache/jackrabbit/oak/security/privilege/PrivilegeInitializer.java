@@ -26,7 +26,6 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.core.RootImpl;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
-import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeDefinition;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
