@@ -52,6 +52,7 @@ abstract class QOMNode {
     }
 
     private static String quoteName(String name) {
+        name = name.replaceAll("]", "]]");
         return '[' + name + ']';
     }
 

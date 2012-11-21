@@ -23,6 +23,7 @@ import java.util.List;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.namepath.JcrPathParser;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.query.ast.AstVisitorBase;
 import org.apache.jackrabbit.oak.query.ast.BindVariableValueImpl;
@@ -604,6 +605,17 @@ public class Query {
 
     public Tree getTree(String path) {
         return root.getTree(path);
+    }
+    
+    /**
+     * Validate a path is syntactically correct.
+     * 
+     * @param path the path to validate
+     */
+    public void validatePath(String path) {
+        if (!JcrPathParser.validate(path)) {
+            throw new IllegalArgumentException("Invalid path: " + path);
+        }
     }
 
     @Override

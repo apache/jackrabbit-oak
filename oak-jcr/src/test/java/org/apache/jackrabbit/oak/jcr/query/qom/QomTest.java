@@ -387,7 +387,7 @@ public class QomTest extends AbstractRepositoryTest {
         assertEquals("selectorName", s.getSelectorName());
         assertEquals("[nodeTypeName] AS [selectorName]", s.toString());
         assertEquals("[n]", f.selector("n",  null).toString());
-           }
+    }
 
     @Test
     public void upperCase() throws RepositoryException {
@@ -419,5 +419,14 @@ public class QomTest extends AbstractRepositoryTest {
         assertEquals(o, q.getOrderings()[0]);
         assertEquals(col, q.getColumns()[0]);
     }
-
+    
+    @Test
+    public void escapedName() throws RepositoryException {
+        assertEquals("[[n]]]", f.selector("[n]",  null).toString());
+        assertEquals("[[s]]].[[p]]]", f.propertyValue("[s]", "[p]").toString());
+        assertEquals("ISSAMENODE([[s1]]], [[s2]]], [[p]]])", 
+                f.sameNodeJoinCondition("[s1]", "[s2]", "[p]").toString());        
+        assertEquals("ISSAMENODE([[s]]], [[p]]])", 
+                f.sameNode("[s]", "[p]").toString());        
+    }
 }
