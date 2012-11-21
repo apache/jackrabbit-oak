@@ -18,37 +18,38 @@ package org.apache.jackrabbit.oak.security.privilege;
 
 import java.util.HashMap;
 import java.util.Map;
-import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeDefinition;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeDefinitionReader;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 
-import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.PRIVILEGES_PATH;
-import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.REP_AGGREGATES;
-import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.REP_IS_ABSTRACT;
+import static org.apache.jackrabbit.oak.security.privilege.PrivilegeConstants.PRIVILEGES_PATH;
+import static org.apache.jackrabbit.oak.security.privilege.PrivilegeConstants.REP_AGGREGATES;
+import static org.apache.jackrabbit.oak.security.privilege.PrivilegeConstants.REP_IS_ABSTRACT;
 
 
 /**
  * Reads privilege definitions from the repository content without applying
  * any validation.
  */
-class PrivilegeDefinitionReader {
+class PrivilegeDefinitionReaderImpl implements PrivilegeDefinitionReader {
 
     private final Tree privilegesTree;
 
-    PrivilegeDefinitionReader(Tree privilegesTree) {
+    PrivilegeDefinitionReaderImpl(Tree privilegesTree) {
         this.privilegesTree = privilegesTree;
     }
 
-    PrivilegeDefinitionReader(Root root) {
+    PrivilegeDefinitionReaderImpl(Root root) {
         this(root.getTree(PRIVILEGES_PATH));
     }
 
-    @Nonnull
-    Map<String, PrivilegeDefinition> readDefinitions() {
+    //------------------------------------------< PrivilegeDefinitionReader >---
+    @Override
+    public Map<String, PrivilegeDefinition> readDefinitions() {
         Map<String, PrivilegeDefinition> definitions = new HashMap<String, PrivilegeDefinition>();
         if (privilegesTree != null) {
             for (Tree child : privilegesTree.getChildren()) {
@@ -59,12 +60,13 @@ class PrivilegeDefinitionReader {
         return definitions;
     }
 
-    @CheckForNull
-    PrivilegeDefinition readDefinition(String privilegeName) {
+    @Override
+    public PrivilegeDefinition readDefinition(String privilegeName) {
         Tree definitionTree = privilegesTree.getChild(privilegeName);
         return (definitionTree == null) ? null : readDefinition(definitionTree);
     }
 
+    //-----------------------------------------------------------< internal >---
     @Nonnull
     static PrivilegeDefinition readDefinition(Tree definitionTree) {
         NodeUtil n = new NodeUtil(definitionTree);

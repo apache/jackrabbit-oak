@@ -23,13 +23,12 @@ import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.api.JackrabbitWorkspace;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
-import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.test.AbstractJCRTest;
 
 /**
  * Base class for privilege management tests.
  */
-abstract class AbstractPrivilegeTest extends AbstractJCRTest implements PrivilegeConstants {
+abstract class AbstractPrivilegeTest extends AbstractJCRTest {
 
     static PrivilegeManager getPrivilegeManager(Session session) throws RepositoryException {
         Workspace workspace = session.getWorkspace();
@@ -53,8 +52,9 @@ abstract class AbstractPrivilegeTest extends AbstractJCRTest implements Privileg
 
     void assertPrivilege(Privilege priv, String name, boolean isAggregate, boolean isAbstract) {
         assertNotNull(priv);
-        assertEquals(name, priv.getName());
-        assertEquals(isAggregate, priv.isAggregate());
-        assertEquals(isAbstract, priv.isAbstract());
+        String privName = priv.getName();
+        assertEquals(privName, privName, name);
+        assertEquals(privName, isAggregate, priv.isAggregate());
+        assertEquals(privName,isAbstract, priv.isAbstract());
     }
 }

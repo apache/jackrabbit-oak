@@ -29,7 +29,6 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.core.ReadOnlyTree;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceConstants;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
-import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeDefinition;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.util.Text;
@@ -41,7 +40,7 @@ import org.apache.jackrabbit.util.Text;
 class PrivilegeValidator implements PrivilegeConstants, Validator {
 
     private final Map<String, PrivilegeDefinition> definitions;
-    private final PrivilegeDefinitionReader reader;
+    private final PrivilegeDefinitionReaderImpl reader;
 
     PrivilegeValidator(Tree rootBefore) {
         Tree privilegesBefore = null;
@@ -51,7 +50,7 @@ class PrivilegeValidator implements PrivilegeConstants, Validator {
         }
 
         if (privilegesBefore != null) {
-            reader = new PrivilegeDefinitionReader(privilegesBefore);
+            reader = new PrivilegeDefinitionReaderImpl(privilegesBefore);
             definitions = reader.readDefinitions();
         } else {
             reader = null;

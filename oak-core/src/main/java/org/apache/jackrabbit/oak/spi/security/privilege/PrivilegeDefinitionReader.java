@@ -16,22 +16,19 @@
  */
 package org.apache.jackrabbit.oak.spi.security.privilege;
 
+import java.util.Map;
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
-import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
-
 /**
- * PrivilegeConfiguration... TODO
+ * Reads privilege definitions from the repository content without applying
+ * any validation.
  */
-public interface PrivilegeConfiguration extends SecurityConfiguration {
+public interface PrivilegeDefinitionReader {
 
     @Nonnull
-    PrivilegeManager getPrivilegeManager(Root root, NamePathMapper namePathMapper);
+    Map<String, PrivilegeDefinition> readDefinitions();
 
-    @Nonnull
-    PrivilegeDefinitionReader getPrivilegeDefinitionReader(Tree tree);
+    @CheckForNull
+    PrivilegeDefinition readDefinition(String privilegeName);
 }

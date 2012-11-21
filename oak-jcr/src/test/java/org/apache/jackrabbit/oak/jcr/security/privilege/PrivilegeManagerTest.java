@@ -25,8 +25,9 @@ import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
 
+import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
-import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
+import org.apache.jackrabbit.oak.security.privilege.PrivilegeConstants;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -66,21 +67,20 @@ public class PrivilegeManagerTest extends AbstractPrivilegeTest {
 
     @Test
     public void testGetPrivilege() throws RepositoryException {
-        for (String privName : NON_AGGR_PRIVILEGES) {
-            Privilege p = privilegeManager.getPrivilege(privName);
-            assertPrivilege(p, privName, false, false);
-        }
+        Set<String> aggregatedPrivilegeNames = ImmutableSet.of("jcr:read",
+                "jcr:modifyProperties", "jcr:write", "rep:write", "jcr:all");
 
-        for (String privName : AGGR_PRIVILEGES) {
-            Privilege p = privilegeManager.getPrivilege(privName);
-            assertPrivilege(p, privName, true, false);
+        for (Privilege priv : privilegeManager.getRegisteredPrivileges()) {
+            String privName = priv.getName();
+            boolean isAggregate = aggregatedPrivilegeNames.contains(privName);
+            assertPrivilege(priv, privName, isAggregate, false);
         }
     }
 
     @Test
     public void testJcrAll() throws RepositoryException {
         Privilege all = privilegeManager.getPrivilege(Privilege.JCR_ALL);
-        assertPrivilege(all, JCR_ALL, true, false);
+        assertPrivilege(all, "jcr:all", true, false);
 
         List<Privilege> decl = Arrays.asList(all.getDeclaredAggregatePrivileges());
         List<Privilege> aggr = new ArrayList<Privilege>(Arrays.asList(all.getAggregatePrivileges()));
