@@ -532,4 +532,11 @@ public class SessionDelegate {
     DefinitionProvider getDefinitionProvider() throws RepositoryException {
         return (DefinitionProvider) workspace.getNodeTypeManager();
     }
+
+    void checkProtectedNodes(String... absJcrPaths) throws RepositoryException {
+        for (String absPath : absJcrPaths) {
+            NodeImpl node = (NodeImpl) session.getNode(absPath);
+            node.checkProtected();
+        }
+    }
 }

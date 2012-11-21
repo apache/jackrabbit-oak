@@ -54,6 +54,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.xml.XmlImportHandler;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
 import org.apache.jackrabbit.oak.util.TODO;
+import org.apache.jackrabbit.util.Text;
 import org.apache.jackrabbit.util.XMLChar;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -254,7 +255,8 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     public void move(final String srcAbsPath, final String destAbsPath) throws RepositoryException {
         ensureIsAlive();
 
-        // FIXME: check for protection on src-parent and dest-parent (OAK-250)
+        dlg.checkProtectedNodes(Text.getRelativeParent(srcAbsPath, 1), Text.getRelativeParent(destAbsPath, 1));
+
         dlg.perform(new SessionOperation<Void>() {
             @Override
             public Void perform() throws RepositoryException {
