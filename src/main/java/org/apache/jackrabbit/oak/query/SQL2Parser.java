@@ -43,15 +43,15 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 /**
- * The SQL2 parser can convert a JCR-SQL2 query to a query.
- * The 'old' SQL query language is also supported if
+ * The SQL2 parser can convert a JCR-SQL2 query to a query. The 'old' SQL query
+ * language (here named SQL-1) is also supported.
  */
 public class SQL2Parser {
 
     // Character types, used during the tokenizer phase
     private static final int CHAR_END = -1, CHAR_VALUE = 2, CHAR_QUOTED = 3;
     private static final int CHAR_NAME = 4, CHAR_SPECIAL_1 = 5, CHAR_SPECIAL_2 = 6;
-    private static final int CHAR_STRING = 7, CHAR_DECIMAL = 8;
+    private static final int CHAR_STRING = 7, CHAR_DECIMAL = 8, CHAR_BRACKETED = 9;
 
     // Token types
     private static final int KEYWORD = 1, IDENTIFIER = 2, PARAMETER = 3, END = 4, VALUE = 5;
@@ -182,30 +182,17 @@ public class SQL2Parser {
     }
 
     private String readName() throws ParseException {
-        if (readIf("[")) {
-            if (currentTokenType == VALUE) {
-                PropertyValue value = readString();
-                read("]");
-                return value.getValue(Type.STRING);
-            } else {
-                int level = 1;
-                StringBuilder buff = new StringBuilder();
-                while (true) {
-                    if (isToken("]")) {
-                        if (--level <= 0) {
-                            read();
-                            break;
-                        }
-                    } else if (isToken("[")) {
-                        level++;
-                    }
-                    buff.append(readAny());
-                }
-                return buff.toString();
-            }
-        } else {
-            return readAny();
+        if (currentTokenType == END) {
+            throw getSyntaxError("a token");
         }
+        String s;
+        if (currentTokenType == VALUE) {
+            s = currentValue.getValue(Type.STRING);
+        } else {
+            s = currentToken;
+        }
+        read();
+        return s;
     }
 
     private SourceImpl parseSource() throws ParseException {
@@ -778,20 +765,6 @@ public class SQL2Parser {
         read();
     }
 
-    private String readAny() throws ParseException {
-        if (currentTokenType == END) {
-            throw getSyntaxError("a token");
-        }
-        String s;
-        if (currentTokenType == VALUE) {
-            s = currentValue.getValue(Type.STRING);
-        } else {
-            s = currentToken;
-        }
-        read();
-        return s;
-    }
-
     private PropertyValue readString() throws ParseException {
         if (currentTokenType != VALUE) {
             throw getSyntaxError("string value");
@@ -836,8 +809,6 @@ public class SQL2Parser {
             case '%':
             case '?':
             case '$':
-            case '[':
-            case ']':
                 type = CHAR_SPECIAL_1;
                 break;
             case '!':
@@ -851,17 +822,28 @@ public class SQL2Parser {
             case '.':
                 type = CHAR_DECIMAL;
                 break;
+            case '[':
+                types[i] = type = CHAR_BRACKETED;
+                startLoop = i;
+                while (true) {
+                    while (command[++i] != ']') {
+                        checkRunOver(i, len, startLoop);
+                    }
+                    if (i >= len - 1 || command[i + 1] != ']') {
+                        break;
+                    }
+                    i++;
+                }
+                break;
             case '\'':
-                type = CHAR_STRING;
-                types[i] = CHAR_STRING;
+                types[i] = type = CHAR_STRING;
                 startLoop = i;
                 while (command[++i] != '\'') {
                     checkRunOver(i, len, startLoop);
                 }
                 break;
             case '\"':
-                type = CHAR_QUOTED;
-                types[i] = CHAR_QUOTED;
+                types[i] = type = CHAR_QUOTED;
                 startLoop = i;
                 while (command[++i] != '\"') {
                     checkRunOver(i, len, startLoop);
@@ -998,6 +980,11 @@ public class SQL2Parser {
                 return;
             }
             readDecimal(i - 1, i);
+            return;
+        case CHAR_BRACKETED:
+            readString(i, ']');
+            currentTokenType = IDENTIFIER;
+            currentToken = currentValue.getValue(Type.STRING);
             return;
         case CHAR_STRING:
             readString(i, '\'');

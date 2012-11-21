@@ -23,6 +23,15 @@
 # * new tests are typically be added on top, after the syntax docs
 # * use ascii character only
 
+# test spaces in identifiers
+
+commit / + "test": { "space space": { }}
+
+select * from [nt:base] where issamenode([/test/space space])
+/test/space space
+
+commit / - "test"
+
 # test multi-valued properties
 
 commit / + "test": { "a": { "name": ["Hello", "World" ] }, "b": { "name" : "Hello" }}

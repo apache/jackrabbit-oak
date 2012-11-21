@@ -40,6 +40,7 @@ abstract class AstElement {
     }
 
     protected String quote(String pathOrName) {
+        pathOrName = pathOrName.replaceAll("]", "]]");
         return '[' + pathOrName + ']';
     }
 
@@ -48,12 +49,14 @@ abstract class AstElement {
     }
 
     /**
-     * Calculate the absolute path (the path including the workspace name).
+     * Validate and normalize the path.
      *
-     * @param path the session local path
-     * @return the absolute path
+     * @param path the path to validate
+     * @return the validated and normalized path
      */
-    protected String getAbsolutePath(String path) {
+    protected String validateAndNormalizePath(String path) {
+        // TODO normalize the path (remove superfluous ".." and "." where possible)
+        query.validatePath(path);
         return path;
     }
 
