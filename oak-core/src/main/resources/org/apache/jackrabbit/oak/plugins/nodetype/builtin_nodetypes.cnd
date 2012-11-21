@@ -580,13 +580,20 @@
 [rep:ACE]
   - rep:principalName (STRING) protected mandatory
   - rep:privileges (NAME) protected mandatory multiple
-  - rep:nodePath (PATH) protected
-  - rep:glob (STRING) protected
-  - * (UNDEFINED) protected
+  - rep:nodePath (PATH) protected /* deprecated in favor of restrictions */
+  - rep:glob (STRING) protected   /* deprecated in favor of restrictions */
+  - * (UNDEFINED) protected       /* deprecated in favor of restrictions */
+  + rep:restrictions (rep:Restrictions) = rep:Restrictions protected
 
 [rep:GrantACE] > rep:ACE
 
 [rep:DenyACE] > rep:ACE
+
+/**
+ * @since oak 1.0
+ */
+[rep:Restrictions]
+  - * (UNDEFINED) protected
 
 // -----------------------------------------------------------------------------
 // Principal based AC
