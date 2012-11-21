@@ -53,7 +53,7 @@ public class FetchCommitAction extends BaseAction<MongoCommit> {
                 .and(MongoCommit.KEY_REVISION_ID).is(revisionId)
                 .get();
 
-        LOG.debug(String.format("Executing query: %s", query));
+        LOG.debug("Executing query: {}", query);
 
         DBObject dbObject = commitCollection.findOne(query);
         if (dbObject == null) {

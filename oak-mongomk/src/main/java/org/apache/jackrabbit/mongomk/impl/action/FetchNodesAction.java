@@ -75,7 +75,7 @@ public class FetchNodesAction extends BaseAction<List<MongoNode>> {
      * specified paths.
      *
      * @param nodeStore Node store.
-     * @param path The exact paths to fetch nodes for.
+     * @param paths The exact paths to fetch nodes for.
      * @param revisionId The revision id.
      */
     public FetchNodesAction(MongoNodeStore nodeStore,  Set<String> paths,
@@ -148,13 +148,14 @@ public class FetchNodesAction extends BaseAction<List<MongoNode>> {
         }
 
         DBObject query = queryBuilder.get();
-        LOG.debug(String.format("Executing query: %s", query));
+        LOG.debug("Executing query: {}", query);
 
         return nodeStore.getNodeCollection().find(query);
     }
 
     private Pattern createPrefixRegExp(String path) {
         StringBuilder sb = new StringBuilder();
+        path = Pattern.quote(path);
 
         if (depth < 0) {
             sb.append("^");
@@ -188,11 +189,11 @@ public class FetchNodesAction extends BaseAction<List<MongoNode>> {
             String path = nodeMongo.getPath();
             long revisionId = nodeMongo.getRevisionId();
 
-            LOG.debug(String.format("Converting node %s (%d)", path, revisionId));
+            LOG.debug("Converting node {} ({})", path, revisionId);
 
             if (!validRevisions.contains(revisionId)) {
-                LOG.debug(String.format("Node will not be converted as it is not a valid commit %s (%d)",
-                        path, revisionId));
+                LOG.debug("Node will not be converted as it is not a valid commit {} ({})",
+                        path, revisionId);
                 continue;
             }
 
@@ -202,10 +203,10 @@ public class FetchNodesAction extends BaseAction<List<MongoNode>> {
 
                 if (revisionId > existingRevId) {
                     nodeMongos.put(path, nodeMongo);
-                    LOG.debug(String.format("Converted nodes was put into map and replaced %s (%d)", path, revisionId));
+                    LOG.debug("Converted nodes was put into map and replaced {} ({})", path, revisionId);
                 } else {
-                    LOG.debug(String.format("Converted nodes was not put into map because a newer version"
-                            + " is available %s (%d)", path, revisionId));
+                    LOG.debug("Converted nodes was not put into map because a newer version"
+                            + " is available {} ({})", path, revisionId);
                 }
             } else {
                 nodeMongos.put(path, nodeMongo);

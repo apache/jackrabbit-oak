@@ -122,7 +122,7 @@ public class FetchCommitsAction extends BaseAction<List<MongoCommit>> {
 
         DBObject query = queryBuilder.get();
 
-        LOG.debug(String.format("Executing query: %s", query));
+        LOG.debug("Executing query: {}", query);
 
         return maxEntries > 0? commitCollection.find(query).limit(maxEntries) : commitCollection.find(query);
     }
@@ -156,8 +156,8 @@ public class FetchCommitsAction extends BaseAction<List<MongoCommit>> {
             currentRevision = baseRevision;
         }
 
-        LOG.debug(String.format("Found list of valid revisions for max revision %s: %s",
-                toRevisionId, validCommits));
+        LOG.debug("Found list of valid revisions for max revision {}: {}",
+                toRevisionId, validCommits);
 
         return validCommits;
     }
