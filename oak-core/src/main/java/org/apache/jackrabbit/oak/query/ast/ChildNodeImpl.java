@@ -66,7 +66,7 @@ public class ChildNodeImpl extends ConstraintImpl {
     @Override
     public void restrict(FilterImpl f) {
         if (selector == f.getSelector()) {
-            String path = getAbsolutePath(parentPath);
+            String path = validateAndNormalizePath(parentPath);
             f.restrictPath(path, Filter.PathRestriction.DIRECT_CHILDREN);
         }
     }
