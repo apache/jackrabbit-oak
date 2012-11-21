@@ -27,6 +27,7 @@ import javax.jcr.Repository;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.api.ContentRepository;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.ops4j.pax.exam.CoreOptions;
@@ -85,6 +86,7 @@ public class OSGiIT {
     private MicroKernel kernel;
 
     @Test
+    @Ignore("OAK-454")
     public void testMicroKernel() {
         assertNotNull(kernel);
         assertTrue(Pattern.matches("[0-9a-f]+", kernel.getHeadRevision()));
