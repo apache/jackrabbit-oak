@@ -205,7 +205,7 @@ public class Main {
             return new CompositeHook(
                     new DefaultTypeEditor(),
                     new ValidatingHook(createDefaultValidatorProvider()),
-                    new IndexHookManager(
+                    IndexHookManager.of(
                             new CompositeIndexHookProvider(
                             new PropertyIndexHookProvider(), 
                             new LuceneIndexHookProvider())));

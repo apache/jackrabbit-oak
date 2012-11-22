@@ -20,7 +20,6 @@ import java.util.UUID;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.Oak;
-import org.apache.jackrabbit.oak.plugins.index.IndexHookManager;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexHookProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.InitialContent;
 import org.apache.jackrabbit.oak.util.NodeUtil;
@@ -37,7 +36,7 @@ public class UniquePropertyTest {
     public void testUniqueness() throws CommitFailedException {
 
         Root root = new Oak()
-                .with(new IndexHookManager(new PropertyIndexHookProvider()))
+                .with(new PropertyIndexHookProvider())
                 .with(new InitialContent()).createRoot();
 
         NodeUtil node = new NodeUtil(root.getTree("/"));

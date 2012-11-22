@@ -25,7 +25,6 @@ import java.util.Iterator;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.plugins.index.IndexHookManager;
 import org.apache.jackrabbit.oak.plugins.nodetype.InitialContent;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.query.JsopUtil;
@@ -50,7 +49,7 @@ public class LuceneIndexQueryTest extends AbstractQueryTest {
         return new Oak()
             .with(new InitialContent())
             .with(new LuceneIndexProvider())
-            .with(new IndexHookManager(new LuceneIndexHookProvider()))
+            .with(new LuceneIndexHookProvider())
             .createContentRepository();
     }
 
