@@ -41,7 +41,11 @@ public class IndexHookManager implements CommitHook {
 
     private final IndexHookProvider provider;
 
-    public IndexHookManager(IndexHookProvider provider) {
+    public static final IndexHookManager of(IndexHookProvider provider) {
+        return new IndexHookManager(provider);
+    }
+
+    protected IndexHookManager(IndexHookProvider provider) {
         this.provider = provider;
     }
 

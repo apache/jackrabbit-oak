@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.plugins.index.property;
 
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
-import org.apache.jackrabbit.oak.plugins.index.IndexHookManager;
 import org.apache.jackrabbit.oak.plugins.nodetype.InitialContent;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 
@@ -33,7 +32,7 @@ public class PropertyIndexQueryTest extends AbstractQueryTest {
         return new Oak()
             .with(new InitialContent())
             .with(new PropertyIndexProvider())
-            .with(new IndexHookManager(new PropertyIndexHookProvider()))
+            .with(new PropertyIndexHookProvider())
             .createContentRepository();
     }
 

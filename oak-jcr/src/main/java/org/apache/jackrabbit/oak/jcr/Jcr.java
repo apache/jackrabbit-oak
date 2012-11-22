@@ -25,8 +25,7 @@ import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.plugins.commit.AnnotatingConflictHandler;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
-import org.apache.jackrabbit.oak.plugins.index.CompositeIndexHookProvider;
-import org.apache.jackrabbit.oak.plugins.index.IndexHookManager;
+import org.apache.jackrabbit.oak.plugins.index.IndexHookProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexHookProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
@@ -73,14 +72,13 @@ public class Jcr {
         with(new RegistrationValidatorProvider());
         with(new ConflictValidatorProvider());
 
-        with(new IndexHookManager(
-                new CompositeIndexHookProvider(
-                new PropertyIndexHookProvider(), 
-                new LuceneIndexHookProvider())));
+        with(new PropertyIndexHookProvider());
         with(new AnnotatingConflictHandler());
 
         with(new PropertyIndexProvider());
         with(new NodeTypeIndexProvider());
+
+        with(new LuceneIndexHookProvider());
         with(new LuceneIndexProvider());
     }
 
@@ -101,6 +99,12 @@ public class Jcr {
     @Nonnull
     public Jcr with(@Nonnull QueryIndexProvider provider) {
         oak.with(checkNotNull(provider));
+        return this;
+    }
+
+    @Nonnull
+    public Jcr with(@Nonnull IndexHookProvider indexHookProvider) {
+        oak.with(checkNotNull(indexHookProvider));
         return this;
     }
 
