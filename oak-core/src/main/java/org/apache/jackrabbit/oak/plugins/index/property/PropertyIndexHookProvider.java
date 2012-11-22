@@ -29,7 +29,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import com.google.common.collect.ImmutableList;
 
 /**
- * Service that provides PropertyIndex based IndexHooks
+ * Service that provides PropertyIndex based IndexHooks.
  * 
  * @see PropertyIndexDiff
  * @see IndexHookProvider
