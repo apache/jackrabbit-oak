@@ -139,11 +139,10 @@ public class PropertyIndex implements QueryIndex {
             }
         }
 
-        if (paths != null) {
-            return Cursors.newPathCursor(paths);
-        } else {
-            return Cursors.newTraversingCursor(filter, root);
+        if (paths == null) {
+            throw new IllegalStateException("Property index is used even when no index is available for filter " + filter);
         }
+        return Cursors.newPathCursor(paths);
     }
 
     @Override
