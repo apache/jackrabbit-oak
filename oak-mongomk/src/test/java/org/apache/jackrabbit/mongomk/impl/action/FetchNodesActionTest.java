@@ -33,6 +33,7 @@ import org.apache.jackrabbit.mongomk.impl.model.CommitBuilder;
 import org.apache.jackrabbit.mongomk.impl.model.MongoCommit;
 import org.apache.jackrabbit.mongomk.impl.model.MongoNode;
 import org.apache.jackrabbit.mongomk.util.NodeBuilder;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.mongodb.BasicDBObject;
@@ -100,6 +101,7 @@ public class FetchNodesActionTest extends BaseMongoMicroKernelTest {
 
     // FIXME - Revisit this test.
     @Test
+    @Ignore("OAK-459")
     public void fetchRootAndAllDepths() throws Exception {
         SimpleNodeScenario scenario = new SimpleNodeScenario(getNodeStore());
         Long firstRevisionId = scenario.create();
