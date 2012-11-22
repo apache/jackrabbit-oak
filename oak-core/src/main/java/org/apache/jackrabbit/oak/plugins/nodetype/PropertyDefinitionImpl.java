@@ -22,6 +22,7 @@ import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.PropertyDefinition;
 import javax.jcr.query.qom.QueryObjectModelConstants;
 
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -128,7 +129,7 @@ class PropertyDefinitionImpl extends ItemDefinitionImpl
     @Override
     public int getRequiredType() {
         try {
-            return valueFromName(node.getString("jcr:requiredType", TYPENAME_UNDEFINED));
+            return valueFromName(node.getString(JcrConstants.JCR_REQUIREDTYPE, TYPENAME_UNDEFINED));
         } catch (IllegalArgumentException e) {
             log.warn("Unexpected jcr:requiredType value", e);
             return UNDEFINED;
@@ -138,7 +139,7 @@ class PropertyDefinitionImpl extends ItemDefinitionImpl
     @Override
     public String[] getValueConstraints() {
         // TODO: namespace mapping?
-        String[] constraints = node.getStrings("jcr:valueConstraints");
+        String[] constraints = node.getStrings(JcrConstants.JCR_VALUECONSTRAINTS);
         if (constraints == null) {
             constraints = new String[0];
         }
@@ -148,7 +149,7 @@ class PropertyDefinitionImpl extends ItemDefinitionImpl
     @Override
     public Value[] getDefaultValues() {
         if (factory != null) {
-            return node.getValues("jcr:defaultValues", factory);
+            return node.getValues(JcrConstants.JCR_DEFAULTVALUES, factory);
         }
         else {
             log.warn("Cannot create default values: no value factory");
@@ -158,12 +159,12 @@ class PropertyDefinitionImpl extends ItemDefinitionImpl
 
     @Override
     public boolean isMultiple() {
-        return node.getBoolean("jcr:multiple");
+        return node.getBoolean(JcrConstants.JCR_MULTIPLE);
     }
 
     @Override
     public String[] getAvailableQueryOperators() {
-        String[] ops = node.getStrings("jcr:availableQueryOperators");
+        String[] ops = node.getStrings(NodeTypeConstants.JCR_AVAILABLE_QUERY_OPERATORS);
         if (ops == null) {
             ops = new String[] {
                     QueryObjectModelConstants.JCR_OPERATOR_EQUAL_TO,
@@ -179,12 +180,12 @@ class PropertyDefinitionImpl extends ItemDefinitionImpl
 
     @Override
     public boolean isFullTextSearchable() {
-        return node.getBoolean("jcr:isFullTextSearchable");
+        return node.getBoolean(NodeTypeConstants.JCR_IS_FULLTEXT_SEARCHABLE);
     }
 
     @Override
     public boolean isQueryOrderable() {
-        return node.getBoolean("jcr:isQueryOrderable");
+        return node.getBoolean(NodeTypeConstants.JCR_IS_QUERY_ORDERABLE);
     }
 
 }

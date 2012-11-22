@@ -301,6 +301,11 @@ class NodeTypeImpl implements NodeType {
         }
     }
 
+    @Override
+    public String toString() {
+        return getName();
+    }
+
     private static boolean meetsTypeConstraints(Value value, int requiredType) {
         try {
             switch (requiredType) {

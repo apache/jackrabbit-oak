@@ -24,6 +24,7 @@ import javax.jcr.nodetype.NodeDefinition;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.NodeTypeManager;
 
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,7 +53,7 @@ class NodeDefinitionImpl extends ItemDefinitionImpl implements NodeDefinition {
 
     @Override
     public String[] getRequiredPrimaryTypeNames() {
-        return node.getNames("jcr:requiredPrimaryTypes", "nt:base");
+        return node.getNames(JcrConstants.JCR_REQUIREDPRIMARYTYPES, JcrConstants.NT_BASE);
     }
 
     @Override
@@ -73,7 +74,7 @@ class NodeDefinitionImpl extends ItemDefinitionImpl implements NodeDefinition {
 
     @Override
     public String getDefaultPrimaryTypeName() {
-        return node.getName("jcr:defaultPrimaryType", null);
+        return node.getName(JcrConstants.JCR_DEFAULTPRIMARYTYPE, null);
     }
 
     @Override
@@ -92,7 +93,7 @@ class NodeDefinitionImpl extends ItemDefinitionImpl implements NodeDefinition {
 
     @Override
     public boolean allowsSameNameSiblings() {
-        return node.getBoolean("jcr:sameNameSiblings");
+        return node.getBoolean(JcrConstants.JCR_SAMENAMESIBLINGS);
     }
 
 }
