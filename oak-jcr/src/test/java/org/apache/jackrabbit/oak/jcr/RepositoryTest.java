@@ -21,6 +21,8 @@ package org.apache.jackrabbit.oak.jcr;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -65,6 +67,8 @@ import javax.jcr.observation.ObservationManager;
 
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.commons.cnd.CndImporter;
+import org.apache.jackrabbit.commons.cnd.ParseException;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -1636,6 +1640,23 @@ public class RepositoryTest extends AbstractRepositoryTest {
 
             nsReg.unregisterNamespace("foo");
         }
+    }
+
+    @Test  // Regression test for OAK-299
+    public void importNodeType() throws RepositoryException, IOException, ParseException {
+        Session session = getAdminSession();
+        NodeTypeManager manager = session.getWorkspace().getNodeTypeManager();
+        if (!manager.hasNodeType("myNodeType")) {
+            StringBuilder defs = new StringBuilder();
+            defs.append("[\"myNodeType\"]\n");
+            defs.append("  - prop1\n");
+            defs.append("  + * (nt:base) = nt:unstructured \n");
+            Reader cndReader = new InputStreamReader(new ByteArrayInputStream(defs.toString().getBytes()));
+            CndImporter.registerNodeTypes(cndReader, session);
+        }
+
+        NodeType myNodeType = manager.getNodeType("myNodeType");
+        assertTrue(myNodeType.isNodeType("nt:base"));
     }
 
     @Test
