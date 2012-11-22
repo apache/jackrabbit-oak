@@ -22,6 +22,7 @@ import java.util.HashSet;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+
 import javax.annotation.Nonnull;
 import javax.jcr.AccessDeniedException;
 import javax.jcr.Credentials;
@@ -255,11 +256,10 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     public void move(final String srcAbsPath, final String destAbsPath) throws RepositoryException {
         ensureIsAlive();
 
-        dlg.checkProtectedNodes(Text.getRelativeParent(srcAbsPath, 1), Text.getRelativeParent(destAbsPath, 1));
-
         dlg.perform(new SessionOperation<Void>() {
             @Override
             public Void perform() throws RepositoryException {
+                dlg.checkProtectedNodes(Text.getRelativeParent(srcAbsPath, 1), Text.getRelativeParent(destAbsPath, 1));
                 String oakPath = dlg.getOakPathKeepIndexOrThrowNotFound(destAbsPath);
                 String oakName = PathUtils.getName(oakPath);
                 // handle index
