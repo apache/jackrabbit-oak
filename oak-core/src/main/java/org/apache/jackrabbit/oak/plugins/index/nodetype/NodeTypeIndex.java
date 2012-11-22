@@ -67,7 +67,8 @@ class NodeTypeIndex implements QueryIndex, JcrConstants {
     public Cursor query(Filter filter, NodeState root) {
         NodeTypeIndexLookup lookup = new NodeTypeIndexLookup(root);
         if (!hasNodeTypeRestriction(filter) || !lookup.isIndexed(filter.getPath())) {
-            return Cursors.newTraversingCursor(filter, root);
+            throw new IllegalStateException(
+                    "NodeType index is used even when no index is available for filter " + filter);
         }
         return Cursors.newPathCursor(lookup.find(
                 resolveNodeType(root, filter.getNodeType())));
