@@ -169,7 +169,7 @@ public final class PropertyValues {
             }
             if (!p1.isArray() && p2.isArray()) {
                 return contains(p2.getValue(Type.STRINGS),
-                        p2.getValue(Type.STRING));
+                        p1.getValue(Type.STRING));
             }
         }
         // both arrays or both single values
