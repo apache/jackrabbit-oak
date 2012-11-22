@@ -41,7 +41,10 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 
 /**
  * {@link IndexHook} implementation that is responsible for keeping the
- * {@link PropertyIndex} up to date
+ * {@link PropertyIndex} up to date.
+ * <p>
+ * There is a tree of PropertyIndexDiff objects, each object represents the
+ * changes at a given node.
  * 
  * @see PropertyIndex
  * @see PropertyIndexLookup
@@ -49,14 +52,30 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
  */
 class PropertyIndexDiff implements IndexHook {
 
+    /**
+     * The parent (null if this is the root node).
+     */
     private final PropertyIndexDiff parent;
 
+    /**
+     * The node (never null).
+     */
     private final NodeBuilder node;
 
+    /**
+     * The node name (the path element). Null for the root node.
+     */
     private final String name;
 
+    /**
+     * The path of the changed node (built lazily).
+     */
     private String path;
 
+    /**
+     * Key: the property name. Value: the list of indexes (it is possible to
+     * have multiple indexes for the same property name).
+     */
     private final Map<String, List<PropertyIndexUpdate>> updates;
 
     private PropertyIndexDiff(
@@ -98,13 +117,21 @@ class PropertyIndexDiff implements IndexHook {
         }
     }
 
+    @Override
     public String getPath() {
-        if (path == null) { // => parent != null
+        // build the path lazily
+        if (path == null) {
             path = concat(parent.getPath(), name);
         }
         return path;
     }
 
+    /**
+     * Get all the indexes for the given property name.
+     * 
+     * @param name the property name
+     * @return the indexes
+     */
     private Iterable<PropertyIndexUpdate> getIndexes(String name) {
         List<PropertyIndexUpdate> indexes = updates.get(name);
         if (indexes != null) {
