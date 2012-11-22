@@ -28,6 +28,9 @@ import com.google.common.collect.ImmutableList;
 
 /**
  * A provider for property indexes.
+ * <p>
+ * Even if there are multiple index definitions, there is only actually one
+ * PropertyIndex instance, which is used for all indexes.
  * 
  * @see PropertyIndex
  * 

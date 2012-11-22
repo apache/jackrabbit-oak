@@ -37,16 +37,34 @@ import org.apache.jackrabbit.oak.spi.state.PropertyBuilder;
 
 /**
  * Takes care of applying the updates to the index content.
- * 
+ * <p>
+ * The changes are temporarily added to an in-memory structure, and then applied
+ * to the node.
  */
 class PropertyIndexUpdate {
 
+    /**
+     * The path of the index definition (where the index data is stored).
+     */
     private final String path;
 
+    /**
+     * The node where the index definition is stored.
+     */
     private final NodeBuilder node;
 
+    /**
+     * The set of added values / paths. The key of the map is the property value
+     * (encoded as a string), the value of the map is a set of paths that where
+     * added.
+     */
     private final Map<String, Set<String>> insert;
 
+    /**
+     * The set of removed values / paths. The key of the map is the property
+     * value (encoded as a string), the value of the map is a set of paths that
+     * were removed.
+     */
     private final Map<String, Set<String>> remove;
 
     public PropertyIndexUpdate(String path, NodeBuilder node) {
@@ -60,11 +78,23 @@ class PropertyIndexUpdate {
         return path;
     }
 
+    /**
+     * A property value was added at the given path.
+     * 
+     * @param path the path
+     * @param value the value
+     */
     public void insert(String path, PropertyState value) {
         Preconditions.checkArgument(path.startsWith(this.path));
         putValues(insert, path.substring(this.path.length()), value);
     }
 
+    /**
+     * A property value was removed at the given path.
+     * 
+     * @param path the path
+     * @param value the value
+     */
     public void remove(String path, PropertyState value) {
         Preconditions.checkArgument(path.startsWith(this.path));
         putValues(remove, path.substring(this.path.length()), value);
@@ -93,6 +123,11 @@ class PropertyIndexUpdate {
         return reindex;
     }
 
+    /**
+     * Try to apply the changes to the index content (to the ":index" node.
+     * 
+     * @throws CommitFailedException if a unique index was violated
+     */
     public void apply() throws CommitFailedException {
         boolean unique = node.getProperty("unique") != null
                 && node.getProperty("unique").getValue(Type.BOOLEAN);
