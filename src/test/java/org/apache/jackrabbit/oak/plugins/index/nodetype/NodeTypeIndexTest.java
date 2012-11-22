@@ -31,7 +31,6 @@ import org.apache.jackrabbit.oak.plugins.index.IndexHookManager;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexHookProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.InitialContent;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
-import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Cursors;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -55,7 +54,7 @@ public class NodeTypeIndexTest {
     public void setup() {
         MicroKernel mk = new MicroKernelImpl();
         store = new KernelNodeStore(mk);
-        store.setHook(new CompositeHook(new IndexHookManager(new PropertyIndexHookProvider())));
+        store.setHook(IndexHookManager.of(new PropertyIndexHookProvider()));
         // initialize node types & index definitions
         new InitialContent().initialize(store);
     }

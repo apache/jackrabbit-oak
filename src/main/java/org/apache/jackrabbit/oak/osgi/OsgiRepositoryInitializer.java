@@ -56,6 +56,7 @@ public class OsgiRepositoryInitializer
                 (RepositoryInitializer) super.addingService(reference);
         NodeStore store = this.store;
         if (store != null) {
+            //TODO index added content
             mki.initialize(store);
         }
         return mki;

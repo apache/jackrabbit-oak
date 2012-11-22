@@ -24,10 +24,10 @@ import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
-import org.apache.jackrabbit.oak.plugins.index.IndexHookManager;
 import org.apache.jackrabbit.oak.plugins.nodetype.DefaultTypeEditor;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
 import org.apache.jackrabbit.oak.spi.commit.ValidatingHook;
+import org.apache.jackrabbit.oak.spi.lifecycle.OakInitializer;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceReference;
@@ -85,14 +85,15 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer {
         Object service = context.getService(reference);
         if (service instanceof MicroKernel) {
             MicroKernel kernel = (MicroKernel) service;
-            kernelTracker.initialize(new KernelNodeStore(kernel));
+            OakInitializer.initialize(new KernelNodeStore(kernel),
+                    kernelTracker, indexHookProvider);
             Oak oak = new Oak(kernel)
                     .with(new CompositeHook(
                         // TODO: DefaultTypeEditor is JCR specific and does not belong here
                         new DefaultTypeEditor(),
-                        new ValidatingHook(validatorProvider),
-                        new IndexHookManager(indexHookProvider)))
-                    .with(indexProvider);
+                        new ValidatingHook(validatorProvider)))
+                    .with(indexProvider)
+                    .with(indexHookProvider);
             services.put(reference, context.registerService(
                     ContentRepository.class.getName(),
                     oak.createContentRepository(),

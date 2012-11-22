@@ -21,7 +21,6 @@ import javax.annotation.Nonnull;
 import javax.jcr.NoSuchWorkspaceException;
 import javax.security.auth.login.LoginException;
 
-import com.google.common.collect.Lists;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.api.ContentRepository;
@@ -29,6 +28,9 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
+import org.apache.jackrabbit.oak.plugins.index.CompositeIndexHookProvider;
+import org.apache.jackrabbit.oak.plugins.index.IndexHookManager;
+import org.apache.jackrabbit.oak.plugins.index.IndexHookProvider;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
 import org.apache.jackrabbit.oak.spi.commit.CompositeValidatorProvider;
@@ -36,6 +38,8 @@ import org.apache.jackrabbit.oak.spi.commit.ConflictHandler;
 import org.apache.jackrabbit.oak.spi.commit.ValidatingHook;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
+import org.apache.jackrabbit.oak.spi.lifecycle.CompositeInitializer;
+import org.apache.jackrabbit.oak.spi.lifecycle.OakInitializer;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
@@ -47,6 +51,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Lists.newArrayList;
 
 /**
  * Builder class for constructing {@link ContentRepository} instances with
@@ -62,13 +67,15 @@ public class Oak {
 
     private final MicroKernel kernel;
 
-    private final List<RepositoryInitializer> initializers = Lists.newArrayList();
+    private final List<RepositoryInitializer> initializers = newArrayList();
 
-    private final List<QueryIndexProvider> queryIndexProviders = Lists.newArrayList();
+    private final List<QueryIndexProvider> queryIndexProviders = newArrayList();
 
-    private final List<CommitHook> commitHooks = Lists.newArrayList();
+    private final List<IndexHookProvider> indexHookProviders = newArrayList();
 
-    private List<ValidatorProvider> validatorProviders = Lists.newArrayList();
+    private final List<CommitHook> commitHooks = newArrayList();
+
+    private List<ValidatorProvider> validatorProviders = newArrayList();
 
     // TODO: review if we really want to have the OpenSecurityProvider as default.
     private SecurityProvider securityProvider = new OpenSecurityProvider();
@@ -103,6 +110,19 @@ public class Oak {
     }
 
     /**
+     * Associates the given index hook provider with the repository to
+     * be created.
+     *
+     * @param provider index hook provider
+     * @return this builder
+     */
+    @Nonnull
+    public Oak with(@Nonnull IndexHookProvider provider) {
+        indexHookProviders.add(provider);
+        return this;
+    }
+
+    /**
      * Associates the given commit hook with the repository to be created.
      *
      * @param hook commit hook
@@ -127,7 +147,7 @@ public class Oak {
         if (!validatorProviders.isEmpty()) {
             commitHooks.add(new ValidatingHook(
                     CompositeValidatorProvider.compose(validatorProviders)));
-            validatorProviders = Lists.newArrayList();
+            validatorProviders = newArrayList();
         }
     }
 
@@ -185,9 +205,13 @@ public class Oak {
 
     public ContentRepository createContentRepository() {
         KernelNodeStore store = new KernelNodeStore(kernel);
-        for (RepositoryInitializer initializer : initializers) {
-            initializer.initialize(store);
-        }
+
+        IndexHookProvider indexHooks = CompositeIndexHookProvider
+                .compose(indexHookProviders);
+        OakInitializer.initialize(store,
+                new CompositeInitializer(initializers), indexHooks);
+
+        commitHooks.add(IndexHookManager.of(indexHooks));
 
         withValidatorHook();
         store.setHook(CompositeHook.compose(commitHooks));
