@@ -331,7 +331,8 @@ public class Query {
                 // rows in the same order
                     
                 // avoid overflow (both offset and limit could be Long.MAX_VALUE)
-                int keep = (int) (Math.min(Integer.MAX_VALUE, offset) + 
+                int keep = (int) Math.min(Integer.MAX_VALUE, 
+                        Math.min(Integer.MAX_VALUE, offset) + 
                         Math.min(Integer.MAX_VALUE, limit));
                 
                 ArrayList<ResultRowImpl> list = new ArrayList<ResultRowImpl>();
