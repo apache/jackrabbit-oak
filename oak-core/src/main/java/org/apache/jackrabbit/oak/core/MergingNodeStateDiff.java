@@ -21,7 +21,6 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictHandlerWrapper;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryPropertyBuilder;
 import org.apache.jackrabbit.oak.spi.commit.ConflictHandler;
-import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
@@ -204,18 +203,12 @@ class MergingNodeStateDiff implements NodeStateDiff {
     //-------------------------------------------------------------<private >---
 
     private static void addChild(NodeBuilder target, String name, NodeState state) {
-        NodeBuilder child = target.child(name);
-        for (PropertyState property : state.getProperties()) {
-            child.setProperty(property);
-        }
+        target.setNode(name, state);
         PropertyState childOrder = target.getProperty(TreeImpl.OAK_CHILD_ORDER);
         if (childOrder != null) {
             PropertyBuilder<String> builder = MemoryPropertyBuilder.copy(Type.STRING, childOrder);
             builder.addValue(name);
             target.setProperty(builder.getPropertyState());
-        }
-        for (ChildNodeEntry entry : state.getChildNodeEntries()) {
-            addChild(child, entry.getName(), entry.getNodeState());
         }
     }
 
