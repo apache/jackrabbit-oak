@@ -46,9 +46,8 @@ public class LuceneIndexQueryTest extends AbstractQueryTest {
 
     @Override
     protected ContentRepository createRepository() {
-        return new Oak()
-            .with(new InitialContent())
-            .with(new LuceneIndexProvider())
+        return new Oak().with(new InitialContent())
+            .with(new LowCostLuceneIndexProvider())
             .with(new LuceneIndexHookProvider())
             .createContentRepository();
     }
