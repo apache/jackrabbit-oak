@@ -18,10 +18,13 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.io.IOException;
 
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.IOContext;
 import org.apache.lucene.store.IndexOutput;
+
+import static org.apache.jackrabbit.JcrConstants.*;
 
 /**
  * A red-write implementation of the Lucene {@link Directory} (a flat list of
@@ -31,6 +34,7 @@ public class ReadWriteOakDirectory extends ReadOnlyOakDirectory {
 
     public ReadWriteOakDirectory(NodeBuilder directoryBuilder) {
         super(directoryBuilder);
+        this.directoryBuilder.setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, Type.NAME);
     }
 
     @Override
@@ -54,6 +58,8 @@ public class ReadWriteOakDirectory extends ReadOnlyOakDirectory {
             this.buffer = readFile(name);
             this.size = buffer.length;
             this.position = 0;
+            directoryBuilder.child(name).setProperty(JCR_PRIMARYTYPE,
+                    NT_UNSTRUCTURED, Type.NAME);
         }
 
         @Override
