@@ -16,25 +16,11 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import java.security.Principal;
 import java.util.Properties;
-import java.util.concurrent.Executors;
-import javax.jcr.Credentials;
-import javax.jcr.GuestCredentials;
-import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-import javax.jcr.UnsupportedRepositoryOperationException;
-import javax.security.auth.login.Configuration;
 
-import org.apache.jackrabbit.mk.core.MicroKernelImpl;
-import org.apache.jackrabbit.oak.security.OakConfiguration;
-import org.apache.jackrabbit.test.NotExecutableException;
-import org.apache.jackrabbit.test.RepositoryStub;
-
-public class OakRepositoryStub extends RepositoryStub {
-
-    private final Repository repository;
+public class OakRepositoryStub extends OakRepositoryStubBase {
 
     /**
      * Constructor as required by the JCR TCK.
@@ -45,15 +31,7 @@ public class OakRepositoryStub extends RepositoryStub {
     public OakRepositoryStub(Properties settings) throws RepositoryException {
         super(settings);
 
-        // TODO: OAK-17. workaround for missing test configuration
-        Configuration.setConfiguration(new OakConfiguration());
-
-        String dir = "target/mk-tck-" + System.currentTimeMillis();
-        repository = new Jcr(new MicroKernelImpl(dir))
-            .with(Executors.newScheduledThreadPool(1))
-            .createRepository();
-
-        Session session = repository.login(superuser);
+        Session session = getRepository().login(superuser);
         try {
             TestContentLoader loader = new TestContentLoader();
             loader.loadTestContent(session);
@@ -63,37 +41,4 @@ public class OakRepositoryStub extends RepositoryStub {
             session.logout();
         }
     }
-
-    /**
-     * Returns the configured repository instance.
-     * 
-     * @return the configured repository instance.
-     */
-    @Override
-    public synchronized Repository getRepository() {
-        return repository;
-    }
-
-    @Override
-    public Credentials getReadOnlyCredentials() {
-        return new GuestCredentials();
-    }
-
-    @Override
-    public Principal getKnownPrincipal(Session session) throws RepositoryException {
-        throw new UnsupportedRepositoryOperationException();
-    }
-
-    private static final Principal UNKNOWN_PRINCIPAL = new Principal() {
-        @Override
-        public String getName() {
-            return "an_unknown_user";
-        }
-    };
-
-    @Override
-    public Principal getUnknownPrincipal(Session session) throws RepositoryException, NotExecutableException {
-        return UNKNOWN_PRINCIPAL;
-    }
-
 }

@@ -382,7 +382,7 @@
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>jackrabbit-jcr-tests</artifactId>
       <version>${jackrabbit.version}</version>
-      <scope>test</scope>
+      <optional>true</optional>
     </dependency>
   </dependencies>
 </project>
