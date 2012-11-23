@@ -52,8 +52,12 @@ public class LuceneIndexProvider implements QueryIndexProvider,
         for (IndexDefinition child : buildIndexDefinitions(nodeState, "/",
                 TYPE_LUCENE)) {
             LOG.debug("found a lucene index definition {}", child);
-            tempIndexes.add(new LuceneIndex(child));
+            tempIndexes.add(newLuceneIndex(child));
         }
         return tempIndexes;
+    }
+
+    protected LuceneIndex newLuceneIndex(IndexDefinition child) {
+        return new LuceneIndex(child);
     }
 }
