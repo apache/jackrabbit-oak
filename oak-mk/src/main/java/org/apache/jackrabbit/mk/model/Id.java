@@ -63,6 +63,7 @@ public class Id implements Comparable<Id> {
      *
      * @param s a string representation of an {@code Id}
      * @return an {@code Id} instance
+     * @throws IllegalArgumentException if {@code s} is not a valid string representation
      */
     public static Id fromString(String s) {
         return new Id(StringUtils.convertHexToBytes(s));

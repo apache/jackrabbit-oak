@@ -368,15 +368,33 @@ public interface MicroKernel {
      *     if on the other hand the {@code :hash} values are identical the respective
      *     subtrees are identical with regard to structure and properties.
      *     {@code :hash} is <i>not</i> included by the implicit default filter.
-     *     it can be included by specifying a filter such as {@code {properties:["*", ":hash"]}}
+     *     it can be included by specifying a filter such as {@code {properties:["*", ":hash"]}}.
      *     <p>Returning the {@code :hash} property is optional. Some implementations
      *     might only return it on specific nodes or might not support it at all.
      *     If however a {@code :hash} property is returned it has to obey the contract
-     *     described above.</p></li>
+     *     described above.</p>
+     *     <p>Implementations that keep track of the child hash along with
+     *     the child node name can return the {@code :hash} value also as
+     *     a property of the child node objects, even if they'd otherwise
+     *     be empty, for example due to a depth limit. If such child hashes
+     *     are returned, the client can use them as an alternative to child
+     *     paths when accessing those nodes.</li>
+     *     <li>{@code :id} provides an implementation-specific identifier
+     *     of a node. Identifiers are like content hashes as described above,
+     *     except for the fact that two different identifiers may refer to
+     *     identical subtrees. Also {@code :id} values may be returned for
+     *     child nodes, in which case the client can use them for accessing
+     *     those nodes.
+     *     </li>
      * </ul>
      *
-     * @param path          path denoting root of node tree to be retrieved
-     * @param revisionId    revision id, if {@code null} the current head revision is assumed
+     * @param path          path denoting root of node tree to be retrieved,
+     *                      or alternatively a previously returned
+     *                      {@code :hash} or {@code :id} value; in the latter case
+     *                      the {@code revisionId} parameter is ignored.
+     * @param revisionId    revision id, if {@code null} the current head revision is assumed;
+     *                      the {@code revisionId} parameter is ignored if {@code path}
+     *                      is an identifier (i.e. a {@code :hash} or {@code :id} value).
      * @param depth         maximum depth of returned tree
      * @param offset        start position in the iteration order of child nodes (0 to start at the
      *                      beginning)
