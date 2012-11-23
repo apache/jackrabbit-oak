@@ -503,7 +503,7 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
         assertPropertyExists(obj, ":id", String.class);
         String id0 = (String) resolveValue(obj, ":id");
 
-        // get node by identifier (:hash)
+        // get node by identifier (:id)
         JSONObject obj1 = parseJSONObject(mk.getNodes(id0, null, 1, 0, -1, "{\"properties\":[\"*\",\":id\"]}"));
         assertEquals(obj, obj1);
 
