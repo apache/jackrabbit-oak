@@ -25,7 +25,7 @@ import java.util.Arrays;
  * a {@link Node} or a {@link Commit}.
  * <p/>
  * This implementation aims at minimizing the in-memory footprint
- * of an identifier instance. therefore it doesn't cash e.g. the hashCode
+ * of an identifier instance. therefore it doesn't cache e.g. the hashCode
  * or the string representation.
  * <p/>
  * <b>Important Note:</b><p/>
