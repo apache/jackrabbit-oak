@@ -123,9 +123,9 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
 
     @Override
     public NodeState merge() throws CommitFailedException {
-        NodeState oldRoot = base;
         CommitHook commitHook = store.getHook();
-        NodeState toCommit = commitHook.processCommit(oldRoot, currentRoot);
+        NodeState toCommit = commitHook.processCommit(base, currentRoot);
+        NodeState oldRoot = currentRoot;
         setRoot(toCommit);
 
         try {
@@ -144,6 +144,7 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
             }
         }
         catch (MicroKernelException e) {
+            setRoot(oldRoot);
             throw new CommitFailedException(e);
         }
     }
