@@ -456,6 +456,10 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
         assertPropertyExists(obj, ":hash", String.class);
         String hash0 = (String) resolveValue(obj, ":hash");
 
+        // get node by identifier (:hash)
+        JSONObject obj1 = parseJSONObject(mk.getNodes(hash0, null, 1, 0, -1, "{\"properties\":[\"*\",\":hash\"]}"));
+        assertEquals(obj, obj1);
+
         // modify a property and verify that the hash of the root node changed
         mk.commit("/test", "^\"booleanProp\":false", null, null);
         obj = parseJSONObject(mk.getNodes("/", null, 1, 0, -1, "{\"properties\":[\"*\",\":hash\"]}"));
@@ -477,6 +481,41 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
 
         assertFalse(hash1.equals(hash2));
         assertTrue(hash0.equals(hash2));
+    }
+
+    @Test
+    public void getNodesId() {
+        // :id must be explicitly specified in the filter
+        JSONObject obj = parseJSONObject(mk.getNodes("/", null, 1, 0, -1, null));
+        assertPropertyNotExists(obj, ":id");
+        obj = parseJSONObject(mk.getNodes("/", null, 1, 0, -1, "{\"properties\":[\"*\"]}"));
+        assertPropertyNotExists(obj, ":id");
+
+        // verify initial content with :id property
+        obj = parseJSONObject(mk.getNodes("/", null, 1, 0, -1, "{\"properties\":[\"*\",\":id\"]}"));
+        assertPropertyValue(obj, "test/booleanProp", true);
+
+        if (obj.get(":id") == null) {
+            // :id is optional, an implementation might not support it
+            return;
+        }
+
+        assertPropertyExists(obj, ":id", String.class);
+        String id0 = (String) resolveValue(obj, ":id");
+
+        // get node by identifier (:hash)
+        JSONObject obj1 = parseJSONObject(mk.getNodes(id0, null, 1, 0, -1, "{\"properties\":[\"*\",\":id\"]}"));
+        assertEquals(obj, obj1);
+
+        // modify a property and verify that the id of the root node changed
+        mk.commit("/test", "^\"booleanProp\":false", null, null);
+        obj = parseJSONObject(mk.getNodes("/", null, 1, 0, -1, "{\"properties\":[\"*\",\":id\"]}"));
+        assertPropertyValue(obj, "test/booleanProp", false);
+
+        assertPropertyExists(obj, ":id", String.class);
+        String id1 = (String) resolveValue(obj, ":id");
+
+        assertFalse(id0.equals(id1));
     }
 
     @Test

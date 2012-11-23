@@ -30,6 +30,7 @@ import org.apache.jackrabbit.mk.model.tree.ChildNode;
 import org.apache.jackrabbit.mk.model.tree.DiffBuilder;
 import org.apache.jackrabbit.mk.model.tree.NodeState;
 import org.apache.jackrabbit.mk.model.tree.PropertyState;
+import org.apache.jackrabbit.mk.store.RevisionStore;
 import org.apache.jackrabbit.mk.util.CommitGate;
 import org.apache.jackrabbit.mk.util.NameFilter;
 import org.apache.jackrabbit.mk.util.NodeFilter;
@@ -347,6 +348,11 @@ public class MicroKernelImpl implements MicroKernel {
             throw new IllegalStateException("this instance has already been disposed");
         }
 
+        Id id = null;
+        if (!path.startsWith("/")) {
+            // OAK-468: Identifier- or hash-based access in the MicroKernel
+            id = Id.fromString(path);
+        }
         Id revId = revisionId == null ? getHeadRevisionId() : Id.fromString(revisionId);
 
         NodeFilter nodeFilter = filter == null || filter.isEmpty() ? null : NodeFilter.parse(filter);
@@ -356,7 +362,13 @@ public class MicroKernelImpl implements MicroKernel {
         }
 
         try {
-            NodeState nodeState = rep.getNodeState(revId, path);
+            NodeState nodeState;
+            if (id != null) {
+                RevisionStore rs = rep.getRevisionStore();
+                nodeState = rs.getNodeState(rs.getNode(id));
+            } else {
+                nodeState = rep.getNodeState(revId, path);
+            }
             if (nodeState == null) {
                 return null;
             }
@@ -571,13 +583,19 @@ public class MicroKernelImpl implements MicroKernel {
                 // unless it is explicitly excluded in the filter
                 builder.key(":childNodeCount").value(childCount);
             }
-            // check whether :hash has been explicitly included
             if (filter != null) {
                 NameFilter nf = filter.getPropertyFilter();
-                if (nf != null
-                        && nf.getInclusionPatterns().contains(":hash")
-                        && !nf.getExclusionPatterns().contains(":hash")) {
-                    builder.key(":hash").value(rep.getRevisionStore().getId(node).toString());
+                if (nf != null) {
+                    // check whether :id has been explicitly included
+                    if (nf.getInclusionPatterns().contains(":hash")
+                            && !nf.getExclusionPatterns().contains(":hash")) {
+                        builder.key(":hash").value(rep.getRevisionStore().getId(node).toString());
+                    }
+                    // check whether :id has been explicitly included
+                    if (nf.getInclusionPatterns().contains(":id")
+                            && !nf.getExclusionPatterns().contains(":id")) {
+                        builder.key(":id").value(rep.getRevisionStore().getId(node).toString());
+                    }
                 }
             }
         }
