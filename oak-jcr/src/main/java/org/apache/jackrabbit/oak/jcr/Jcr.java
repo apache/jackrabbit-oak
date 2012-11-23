@@ -26,8 +26,6 @@ import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.plugins.commit.AnnotatingConflictHandler;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexHookProvider;
-import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexHookProvider;
-import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexHookProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexProvider;
@@ -77,9 +75,6 @@ public class Jcr {
 
         with(new PropertyIndexProvider());
         with(new NodeTypeIndexProvider());
-
-        with(new LuceneIndexHookProvider());
-        with(new LuceneIndexProvider());
     }
 
     public Jcr() {
