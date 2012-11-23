@@ -137,7 +137,7 @@ public class TokenLoginModuleTest extends AbstractSecurityTest {
     @Test
     public void testValidTokenCredentials() throws Exception {
         Root root = admin.getLatestRoot();
-        TokenProvider tp = getSecurityProvider().getTokenProvider(root);
+        TokenProvider tp = getSecurityProvider().getAuthenticationConfiguration().getTokenProvider(root);
 
         SimpleCredentials sc = (SimpleCredentials) getAdminCredentials();
         TokenInfo info = tp.createToken(sc.getUserID(), Collections.<String, Object>emptyMap());
