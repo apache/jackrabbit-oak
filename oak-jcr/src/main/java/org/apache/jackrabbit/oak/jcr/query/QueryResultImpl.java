@@ -154,11 +154,17 @@ public class QueryResultImpl implements QueryResult {
 
     @CheckForNull
     NodeImpl getNode(String path) {
+        if (path == null) {
+            return null;
+        }
         NodeDelegate d = sessionDelegate.getNode(path);
         return d == null ? null : new NodeImpl(d);
     }
 
     String getLocalPath(String path) {
+        if (path == null) {
+            return null;
+        }
         return PathUtils.concat("/", PathUtils.relativize(pathFilter, path));
     }
 

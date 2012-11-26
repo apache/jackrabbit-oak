@@ -209,12 +209,8 @@
       org.apache.jackrabbit.test.api.query.SQLJoinTest#testJoinSNS
       org.apache.jackrabbit.test.api.query.qom.ColumnTest#testExpandColumnsForNodeType
       org.apache.jackrabbit.test.api.query.qom.SelectorTest#testUnknownNodeType
-      org.apache.jackrabbit.test.api.query.qom.DescendantNodeJoinConditionTest#testInnerJoin
       org.apache.jackrabbit.test.api.query.qom.NodeNameTest#testReferenceLiteral
       org.apache.jackrabbit.test.api.query.qom.NodeNameTest#testWeakReferenceLiteral
-      org.apache.jackrabbit.test.api.query.qom.ChildNodeJoinConditionTest#testRightOuterJoin
-      org.apache.jackrabbit.test.api.query.qom.DescendantNodeJoinConditionTest#testRightOuterJoin
-      org.apache.jackrabbit.test.api.query.qom.DescendantNodeJoinConditionTest#testLeftOuterJoin
       org.apache.jackrabbit.test.api.query.qom.SameNodeJoinConditionTest#testInnerJoin
       org.apache.jackrabbit.test.api.query.qom.SameNodeJoinConditionTest#testRightOuterJoin
       org.apache.jackrabbit.test.api.query.qom.SameNodeJoinConditionTest#testLeftOuterJoin
