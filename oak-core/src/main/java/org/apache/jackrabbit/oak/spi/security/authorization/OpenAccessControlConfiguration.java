@@ -16,16 +16,20 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization;
 
+import java.security.Principal;
+import java.util.Set;
+import javax.annotation.Nonnull;
 import javax.jcr.security.AccessControlManager;
 import javax.security.auth.Subject;
 
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 /**
  * This class implements an {@link AccessControlConfiguration} which grants
- * full access to any {@link Subject} passed to {@link #getAccessControlContext(Subject)}.
+ * full access to any {@link Subject} passed to {@link AccessControlConfiguration#getCompiledPermissions(NodeStore, java.util.Set}.
  */
 public class OpenAccessControlConfiguration extends SecurityConfiguration.Default
         implements AccessControlConfiguration {
@@ -35,13 +39,9 @@ public class OpenAccessControlConfiguration extends SecurityConfiguration.Defaul
         throw new UnsupportedOperationException();
     }
 
+    @Nonnull
     @Override
-    public AccessControlContext getAccessControlContext(Subject subject) {
-        return new AccessControlContext() {
-            @Override
-            public CompiledPermissions getPermissions() {
-                return AllPermissions.getInstance();
-            }
-        };
+    public CompiledPermissions getCompiledPermissions(NodeStore nodeStore, Set<Principal> principals) {
+        return AllPermissions.getInstance();
     }
 }

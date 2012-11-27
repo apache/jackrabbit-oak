@@ -16,15 +16,35 @@
  */
 package org.apache.jackrabbit.oak.security.authorization;
 
+import java.util.Map;
+import javax.jcr.security.AccessControlException;
+
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
+import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeDefinition;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.util.NodeUtil;
 
 /**
  * AccessControlValidator... TODO
  */
-class AccessControlValidator implements Validator {
+class AccessControlValidator implements Validator, AccessControlConstants {
+
+    private final NodeUtil parentBefore;
+    private final NodeUtil parentAfter;
+    private final Map<String, PrivilegeDefinition> privilegeDefinitions;
+    private final RestrictionProvider restrictionProvider;
+
+    AccessControlValidator(NodeUtil parentBefore, NodeUtil parentAfter,
+                           Map<String, PrivilegeDefinition> privilegeDefinitions,
+                           RestrictionProvider restrictionProvider) {
+        this.parentBefore = parentBefore;
+        this.parentAfter = parentAfter;
+        this.privilegeDefinitions = privilegeDefinitions;
+        this.restrictionProvider = restrictionProvider;
+    }
 
     //----------------------------------------------------------< Validator >---
     @Override
@@ -44,19 +64,81 @@ class AccessControlValidator implements Validator {
 
     @Override
     public Validator childNodeAdded(String name, NodeState after) throws CommitFailedException {
-        // TODO validate new acl / ace
-        return null;
+        NodeUtil node = parentAfter.getChild(name);
+        if (isAccessControlEntry(node)) {
+            checkValidAccessControlEntry(node);
+            return null;
+        } else {
+            return new AccessControlValidator(null, node, privilegeDefinitions, restrictionProvider);
+        }
     }
 
     @Override
     public Validator childNodeChanged(String name, NodeState before, NodeState after) throws CommitFailedException {
-        // TODO validate acl / ace / restriction modification
-        return null;
+        NodeUtil nodeBefore = parentBefore.getChild(name);
+        NodeUtil nodeAfter = parentAfter.getChild(name);
+        if (isAccessControlEntry(nodeAfter)) {
+            checkValidAccessControlEntry(nodeAfter);
+            return null;
+        } else {
+            return new AccessControlValidator(nodeBefore, nodeAfter, privilegeDefinitions, restrictionProvider);
+        }
     }
 
     @Override
     public Validator childNodeDeleted(String name, NodeState before) throws CommitFailedException {
         // TODO validate acl / ace / restriction removal
         return null;
+    }
+
+    //------------------------------------------------------------< private >---
+    private boolean isAccessControlEntry(NodeUtil node) {
+        String ntName = node.getPrimaryNodeTypeName();
+        return NT_REP_DENY_ACE.equals(ntName) || NT_REP_GRANT_ACE.equals(ntName);
+    }
+
+    private void checkValidAccessControlEntry(NodeUtil aceNode) throws CommitFailedException {
+        checkValidPrincipal(aceNode.getString(REP_PRINCIPAL_NAME, null));
+        checkValidPrivileges(aceNode.getNames(REP_PRIVILEGES));
+        checkValidRestrictions(aceNode);
+    }
+
+    private void checkValidPrincipal(String principalName) throws CommitFailedException {
+        if (principalName == null || principalName.isEmpty()) {
+            fail("Missing principal name.");
+        }
+        // TODO
+        // if (!principalMgr.hasPrincipal(principal.getName())) {
+        //     throw new AccessControlException("Principal " + principal.getName() + " does not exist.");
+        // }
+    }
+
+    private void checkValidPrivileges(String[] privilegeNames) throws CommitFailedException {
+        if (privilegeNames == null || privilegeNames.length == 0) {
+            fail("Missing privileges.");
+        }
+        for (String privilegeName : privilegeNames) {
+            if (!privilegeDefinitions.containsKey(privilegeName)) {
+                fail("Unknown privilege " + privilegeName);
+            }
+
+            PrivilegeDefinition def = privilegeDefinitions.get(privilegeName);
+            if (def.isAbstract()) {
+                fail("Abstract privilege " + privilegeName);
+            }
+        }
+    }
+
+    private void checkValidRestrictions(NodeUtil aceNode) throws CommitFailedException {
+        try {
+            String path = null; // TODO
+            restrictionProvider.validateRestrictions(path, aceNode.getTree());
+        } catch (AccessControlException e) {
+            throw new CommitFailedException(e);
+        }
+    }
+
+    private static void fail(String msg) throws CommitFailedException {
+        throw new CommitFailedException(new AccessControlException(msg));
     }
 }

@@ -17,6 +17,9 @@
 package org.apache.jackrabbit.oak.security.authorization;
 
 import java.security.AccessController;
+import java.security.Principal;
+import java.util.Collections;
+import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.security.auth.Subject;
 
@@ -26,7 +29,7 @@ import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfiguration;
-import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlContext;
+import org.apache.jackrabbit.oak.spi.security.authorization.CompiledPermissions;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 
@@ -48,16 +51,12 @@ class PermissionValidatorProvider implements ValidatorProvider {
     @Override
     public Validator getRootValidator(NodeState before, NodeState after) {
         Subject subject = Subject.getSubject(AccessController.getContext());
-        if (subject == null) {
-            // use empty subject
-            subject = new Subject();
-        }
-
-        AccessControlContext context = acConfiguration.getAccessControlContext(subject);
+        Set<Principal> principals = (subject != null) ? subject.getPrincipals() : Collections.<Principal>emptySet();
+        CompiledPermissions permissions = acConfiguration.getCompiledPermissions(/*TODO*/null, principals);
 
         NodeUtil rootBefore = new NodeUtil(new ReadOnlyTree(before));
         NodeUtil rootAfter = new NodeUtil(new ReadOnlyTree(after));
-        return new PermissionValidator(rootBefore, rootAfter, context.getPermissions(), this);
+        return new PermissionValidator(rootBefore, rootAfter, permissions, this);
     }
 
     //-----------------------------------------------------------< internal >---
