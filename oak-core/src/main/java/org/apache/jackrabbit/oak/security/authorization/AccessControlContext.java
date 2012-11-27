@@ -16,52 +16,35 @@
  */
 package org.apache.jackrabbit.oak.security.authorization;
 
-import java.security.Principal;
-import java.util.Set;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.spi.security.authorization.CompiledPermissions;
-import org.apache.jackrabbit.oak.spi.security.authorization.Permissions;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.spi.security.Context;
+import org.apache.jackrabbit.oak.util.NodeUtil;
 
 /**
- * TODO
+ * AccessControlContext... TODO
  */
-class CompiledPermissionImpl implements CompiledPermissions {
+class AccessControlContext implements Context, AccessControlConstants {
 
-    CompiledPermissionImpl(NodeStore nodeStore, Set<Principal> principals) {
+    private static final Context INSTANCE = new AccessControlContext();
 
+    private AccessControlContext() {
+    }
+
+    static Context getInstance() {
+        return INSTANCE;
+    }
+
+    //------------------------------------------------------------< Context >---
+    @Override
+    public boolean definesProperty(Tree parent, PropertyState property) {
+        return definesTree(parent);
     }
 
     @Override
-    public boolean canRead(Tree tree) {
-        // TODO
-        return true;
+    public boolean definesTree(Tree tree) {
+        NodeUtil node = new NodeUtil(tree);
+        String ntName = node.getPrimaryNodeTypeName();
+        return AC_NODE_TYPE_NAMES.contains(ntName);
     }
-
-    @Override
-    public boolean canRead(Tree tree, PropertyState property) {
-        // TODO
-        return true;
-    }
-
-    @Override
-    public boolean isGranted(int permissions) {
-        // TODO
-        return false;
-    }
-
-    @Override
-    public boolean isGranted(Tree tree, int permissions) {
-        // TODO
-        return (permissions == Permissions.READ_NODE);
-    }
-
-    @Override
-    public boolean isGranted(Tree parent, PropertyState property, int permissions) {
-        // TODO
-        return (permissions == Permissions.READ_PROPERTY);
-    }
-
 }
