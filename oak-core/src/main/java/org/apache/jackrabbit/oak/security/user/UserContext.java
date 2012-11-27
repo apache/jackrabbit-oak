@@ -27,9 +27,14 @@ import org.apache.jackrabbit.oak.util.NodeUtil;
  */
 class UserContext implements Context {
 
-    static final Context INSTANCE = new UserContext();
+    private static final Context INSTANCE = new UserContext();
 
     private UserContext() {}
+
+    static Context getInstance() {
+        return INSTANCE;
+    }
+
     //------------------------------------------------------------< Context >---
     @Override
     public boolean definesProperty(Tree parent, PropertyState property) {
