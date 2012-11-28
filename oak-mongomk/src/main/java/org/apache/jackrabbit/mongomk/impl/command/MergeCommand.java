@@ -9,7 +9,6 @@ import org.apache.jackrabbit.mongomk.api.command.Command;
 import org.apache.jackrabbit.mongomk.api.model.Commit;
 import org.apache.jackrabbit.mongomk.api.model.Node;
 import org.apache.jackrabbit.mongomk.impl.MongoNodeStore;
-import org.apache.jackrabbit.mongomk.impl.action.FetchBranchBaseRevisionIdAction;
 import org.apache.jackrabbit.mongomk.impl.action.FetchCommitAction;
 import org.apache.jackrabbit.mongomk.impl.action.FetchHeadRevisionIdAction;
 import org.apache.jackrabbit.mongomk.impl.model.CommitBuilder;
@@ -65,8 +64,7 @@ public class MergeCommand extends BaseCommand<String> {
 
         Node ourRoot = getNode("/", rootNodeId, branchId);
 
-        FetchBranchBaseRevisionIdAction branchAction = new FetchBranchBaseRevisionIdAction(nodeStore, branchId);
-        long branchRootId = branchAction.execute();
+        long branchRootId = Long.parseLong(branchId.substring(0, branchId.indexOf("-")));
 
         // Merge nodes from head to branch.
         ourRoot = mergeNodes(ourRoot, currentHead, branchRootId);
