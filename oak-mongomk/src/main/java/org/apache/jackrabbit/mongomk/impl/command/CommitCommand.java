@@ -25,7 +25,7 @@ import java.util.Set;
 import org.apache.jackrabbit.mongomk.api.instruction.Instruction;
 import org.apache.jackrabbit.mongomk.api.model.Commit;
 import org.apache.jackrabbit.mongomk.impl.MongoNodeStore;
-import org.apache.jackrabbit.mongomk.impl.action.FetchCommitAction;
+import org.apache.jackrabbit.mongomk.impl.action.FetchCommitsAction;
 import org.apache.jackrabbit.mongomk.impl.action.FetchNodesAction;
 import org.apache.jackrabbit.mongomk.impl.action.ReadAndIncHeadRevisionAction;
 import org.apache.jackrabbit.mongomk.impl.action.SaveAndSetHeadRevisionAction;
@@ -56,7 +56,8 @@ public class CommitCommand extends BaseCommand<Long> {
     private final MongoCommit commit;
 
     private Set<String> affectedPaths;
-    private List<MongoNode> existingNodes;
+    private Map<String, MongoNode> existingNodes;
+    private List<MongoCommit> validCommits;
     private MongoSync mongoSync;
     private Set<MongoNode> nodes;
     private Long revisionId;
@@ -81,6 +82,7 @@ public class CommitCommand extends BaseCommand<Long> {
         do {
             mongoSync = new ReadAndIncHeadRevisionAction(nodeStore).execute();
             revisionId = mongoSync.getNextRevisionId() - 1;
+            readValidCommits();
             readBranchIdFromBaseCommit();
             createMongoNodes();
             prepareCommit();
@@ -93,6 +95,10 @@ public class CommitCommand extends BaseCommand<Long> {
         } while (!success);
 
         return revisionId;
+    }
+
+    private void readValidCommits() {
+        validCommits = new FetchCommitsAction(nodeStore, revisionId).execute();
     }
 
     @Override
@@ -119,13 +125,16 @@ public class CommitCommand extends BaseCommand<Long> {
             return;
         }
 
-        MongoCommit baseCommit = new FetchCommitAction(nodeStore, baseRevisionId).execute();
-        branchId = baseCommit.getBranchId();
+        for (MongoCommit commit : validCommits) {
+            if (baseRevisionId.equals(commit.getRevisionId())) {
+                branchId = commit.getBranchId();
+            }
+        }
     }
 
     private void createMongoNodes() throws Exception {
         CommitCommandInstructionVisitor visitor = new CommitCommandInstructionVisitor(
-                nodeStore, mongoSync.getHeadRevisionId());
+                nodeStore, mongoSync.getHeadRevisionId(), validCommits);
         visitor.setBranchId(branchId);
 
         for (Instruction instruction : commit.getInstructions()) {
@@ -151,11 +160,12 @@ public class CommitCommand extends BaseCommand<Long> {
         FetchNodesAction action = new FetchNodesAction(nodeStore, affectedPaths,
                 mongoSync.getHeadRevisionId());
         action.setBranchId(branchId);
+        action.setValidCommits(validCommits);
         existingNodes = action.execute();
     }
 
     private void mergeNodes() {
-        for (MongoNode existingNode : existingNodes) {
+        for (MongoNode existingNode : existingNodes.values()) {
             for (MongoNode committingNode : nodes) {
                 if (existingNode.getPath().equals(committingNode.getPath())) {
                     if(logger.isDebugEnabled()){

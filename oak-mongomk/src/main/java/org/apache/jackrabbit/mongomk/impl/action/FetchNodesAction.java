@@ -39,7 +39,7 @@ import com.mongodb.QueryBuilder;
 /**
  * An action for fetching nodes.
  */
-public class FetchNodesAction extends BaseAction<List<MongoNode>> {
+public class FetchNodesAction extends BaseAction<Map<String, MongoNode>> {
 
     public static final int LIMITLESS_DEPTH = -1;
     private static final Logger LOG = LoggerFactory.getLogger(FetchNodesAction.class);
@@ -48,6 +48,7 @@ public class FetchNodesAction extends BaseAction<List<MongoNode>> {
     private final long revisionId;
 
     private String branchId;
+    private List<MongoCommit> validCommits;
     private int depth = LIMITLESS_DEPTH;
     private boolean fetchDescendants;
 
@@ -95,6 +96,16 @@ public class FetchNodesAction extends BaseAction<List<MongoNode>> {
     }
 
     /**
+     * Sets the last valid commits if already known. This is an optimization to
+     * speed up the fetch nodes action.
+     *
+     * @param commits The last valid commits.
+     */
+    public void setValidCommits(List<MongoCommit> validCommits) {
+        this.validCommits = validCommits;
+    }
+
+    /**
      * Sets the depth for the command. Only used when fetchDescendants is enabled.
      *
      * @param depth The depth for the command or -1 for limitless depth.
@@ -104,13 +115,12 @@ public class FetchNodesAction extends BaseAction<List<MongoNode>> {
     }
 
     @Override
-    public List<MongoNode> execute() {
+    public Map<String, MongoNode> execute() {
         if (paths.isEmpty()) {
-            return Collections.emptyList();
+            return Collections.emptyMap();
         }
         DBCursor dbCursor = performQuery();
-        List<MongoCommit> validCommits = new FetchCommitsAction(nodeStore, revisionId).execute();
-        return getMostRecentValidNodes(dbCursor, validCommits);
+        return getMostRecentValidNodes(dbCursor);
     }
 
     private DBCursor performQuery() {
@@ -155,19 +165,19 @@ public class FetchNodesAction extends BaseAction<List<MongoNode>> {
 
     private Pattern createPrefixRegExp(String path) {
         StringBuilder sb = new StringBuilder();
-        path = Pattern.quote(path);
+        String quotedPath = Pattern.quote(path);
 
         if (depth < 0) {
             sb.append("^");
-            sb.append(path);
+            sb.append(quotedPath);
         } else if (depth == 0) {
             sb.append("^");
-            sb.append(path);
+            sb.append(quotedPath);
             sb.append("$");
         } else if (depth > 0) {
             sb.append("^");
             if (!"/".equals(path)) {
-                sb.append(path);
+                sb.append(quotedPath);
             }
             sb.append("(/[^/]*)");
             sb.append("{0,");
@@ -178,8 +188,11 @@ public class FetchNodesAction extends BaseAction<List<MongoNode>> {
         return Pattern.compile(sb.toString());
     }
 
-    private List<MongoNode> getMostRecentValidNodes(DBCursor dbCursor,
-            List<MongoCommit> validCommits) {
+    private Map<String, MongoNode> getMostRecentValidNodes(DBCursor dbCursor) {
+        if (validCommits == null) {
+            validCommits = new FetchCommitsAction(nodeStore, revisionId).execute();
+        }
+
         List<Long> validRevisions = extractRevisionIds(validCommits);
         Map<String, MongoNode> nodeMongos = new HashMap<String, MongoNode>();
 
@@ -214,7 +227,7 @@ public class FetchNodesAction extends BaseAction<List<MongoNode>> {
             }
         }
 
-        return new ArrayList<MongoNode>(nodeMongos.values());
+        return nodeMongos;
     }
 
     private List<Long> extractRevisionIds(List<MongoCommit> validCommits) {

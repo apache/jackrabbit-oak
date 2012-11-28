@@ -111,6 +111,27 @@ public class MongoMKCommitAddTest extends BaseMongoMicroKernelTest {
         assertPropertyValue(obj, "a/key4", 0.25);
     }
 
+    // See http://www.mongodb.org/display/DOCS/Legal+Key+Names
+    @Test
+    public void setPropertyIllegalKey() throws Exception {
+        mk.commit("/", "+\"a\" : {}", null, null);
+
+        mk.commit("/", "^\"a/ke.y1\" : \"value\"", null, null);
+        String nodes = mk.getNodes("/", null, 1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        JSONObject obj = parseJSONObject(nodes);
+        assertPropertyValue(obj, "a/ke.y1", "value");
+
+        mk.commit("/", "^\"a/ke.y.1\" : \"value\"", null, null);
+        nodes = mk.getNodes("/", null, 1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        obj = parseJSONObject(nodes);
+        assertPropertyValue(obj, "a/ke.y.1", "value");
+
+        mk.commit("/", "^\"a/$key1\" : \"value\"", null, null);
+        nodes = mk.getNodes("/", null, 1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        obj = parseJSONObject(nodes);
+        assertPropertyValue(obj, "a/$key1", "value");
+    }
+
     @Test
     public void setPropertyWithoutAddingNode() throws Exception {
         try {

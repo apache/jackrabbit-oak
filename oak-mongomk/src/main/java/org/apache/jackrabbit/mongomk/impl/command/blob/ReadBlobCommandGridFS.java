@@ -18,7 +18,7 @@ package org.apache.jackrabbit.mongomk.impl.command.blob;
 
 import java.io.InputStream;
 
-import org.apache.commons.io.IOUtils;
+import org.apache.jackrabbit.mk.util.IOUtils;
 import org.apache.jackrabbit.mongomk.impl.command.BaseCommand;
 
 import com.mongodb.BasicDBObject;
@@ -77,7 +77,9 @@ public class ReadBlobCommandGridFS extends BaseCommand<Integer> {
 
         if (start < end) {
             InputStream is = gridFile.getInputStream();
-            IOUtils.skipFully(is, blobOffset);
+            if (blobOffset > 0) {
+                IOUtils.skipFully(is, blobOffset);
+            }
             IOUtils.readFully(is, buffer, bufferOffset, length);
             is.close();
             return length;

@@ -16,19 +16,24 @@
  */
 package org.apache.jackrabbit.mongomk.impl.command;
 
-import org.apache.jackrabbit.mongomk.api.model.Node;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+
 import org.apache.jackrabbit.mongomk.impl.MongoNodeStore;
+import org.apache.jackrabbit.mongomk.impl.action.FetchNodesAction;
+import org.apache.jackrabbit.mongomk.impl.model.MongoNode;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+//import org.apache.jackrabbit.mongomk.api.model.Node;
 
 /**
  * {@code Command} for {@code MongoMicroKernel#nodeExists(String, String)}
  */
 public class NodeExistsCommand extends BaseCommand<Boolean> {
 
-    private final Long revisionId;
-
+    private Long revisionId;
     private String branchId;
-    private Node parentNode;
+    //private Node parentNode;
     private String path;
 
     /**
@@ -64,26 +69,60 @@ public class NodeExistsCommand extends BaseCommand<Boolean> {
     }
 
     private boolean pathExists() throws Exception {
-        while (!PathUtils.denotesRoot(path)) {
-            readParentNode(revisionId, branchId);
-            if (parentNode == null || !childExists()) {
-                return false;
+        Set<String> paths = new HashSet<String>();
+        char[] path = this.path.toCharArray();
+        StringBuilder current = new StringBuilder();
+        for (int i = 0; i < path.length; i++) {
+            if (i == 0) {
+                paths.add("/");
+            } else if (path[i] == '/') {
+                paths.add(current.toString());
             }
-            path = PathUtils.getParentPath(path);
+            current.append(path[i]);
         }
 
+        if (revisionId == null) {
+            revisionId = new GetHeadRevisionCommand(nodeStore).execute();
+        }
+        FetchNodesAction action = new FetchNodesAction(nodeStore, paths, revisionId);
+        action.setBranchId(branchId);
+        //action.setValidCommits(validCommits);
+
+        Map<String, MongoNode> pathAndNodeMap = action.execute();
+        String currentPath = this.path;
+        while (!PathUtils.denotesRoot(currentPath)) {
+            String childName = PathUtils.getName(currentPath);
+            String parentPath = PathUtils.getParentPath(currentPath);
+            MongoNode parentNode = pathAndNodeMap.get(parentPath);
+            if (parentNode == null || !parentNode.childExists(childName)) {
+                return false;
+            }
+            currentPath = PathUtils.getParentPath(currentPath);
+        }
         return true;
     }
 
-    private void readParentNode(Long revisionId, String branchId) throws Exception {
-        String parentPath = PathUtils.getParentPath(path);
-        GetNodesCommand command = new GetNodesCommand(nodeStore, parentPath, revisionId);
-        command.setBranchId(branchId);
-        parentNode = command.execute();
-    }
-
-    private boolean childExists() {
-        String childName = PathUtils.getName(path);
-        return parentNode.getChildNodeEntry(childName) != null;
-    }
+//    private boolean pathExists() throws Exception {
+//        while (!PathUtils.denotesRoot(path)) {
+//            readParentNode(revisionId, branchId);
+//            if (parentNode == null || !childExists()) {
+//                return false;
+//            }
+//            path = PathUtils.getParentPath(path);
+//        }
+//
+//        return true;
+//    }
+//
+//    private void readParentNode(Long revisionId, String branchId) throws Exception {
+//        String parentPath = PathUtils.getParentPath(path);
+//        GetNodesCommand command = new GetNodesCommand(nodeStore, parentPath, revisionId);
+//        command.setBranchId(branchId);
+//        parentNode = command.execute();
+//    }
+//
+//    private boolean childExists() {
+//        String childName = PathUtils.getName(path);
+//        return parentNode.getChildNodeEntry(childName) != null;
+//    }
 }

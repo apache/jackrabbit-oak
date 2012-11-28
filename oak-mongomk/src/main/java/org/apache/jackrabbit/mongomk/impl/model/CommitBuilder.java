@@ -104,7 +104,8 @@ public class CommitBuilder {
 
         @Override
         public void propertySet(String path, String key, Object value) {
-            commit.addInstruction(new SetPropertyInstructionImpl(path, key, value));
+            commit.addInstruction(new SetPropertyInstructionImpl(path,
+                    MongoUtil.toMongoPropertyKey(key), value));
         }
     }
 }
