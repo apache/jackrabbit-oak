@@ -16,14 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
-import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
-import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_UNKNOWN;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -33,6 +25,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
+import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -45,7 +38,13 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Lists;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_UNKNOWN;
 
 /**
  * Acts as a composite NodeStateDiff, it delegates all the diff's events to the
@@ -75,6 +74,19 @@ class IndexHookManagerDiff implements NodeStateDiff {
      * <type, <path, indexhook>>
      */
     private final Map<String, Map<String, List<IndexHook>>> updates;
+
+    public IndexHookManagerDiff(IndexHookProvider provider, NodeBuilder root,
+            Map<String, Map<String, List<IndexHook>>> updates)
+            throws CommitFailedException {
+        this(provider, null, root, null, "/", updates);
+    }
+
+    private IndexHookManagerDiff(IndexHookProvider provider,
+            IndexHookManagerDiff parent, String name)
+            throws CommitFailedException {
+        this(provider, parent, getChildNode(parent.node, name), name, null,
+                parent.updates);
+    }
 
     private IndexHookManagerDiff(IndexHookProvider provider,
             IndexHookManagerDiff parent, NodeBuilder node, String name,
@@ -167,19 +179,6 @@ class IndexHookManagerDiff implements NodeStateDiff {
         }
     }
 
-    private IndexHookManagerDiff(IndexHookProvider provider,
-            IndexHookManagerDiff parent, String name)
-            throws CommitFailedException {
-        this(provider, parent, getChildNode(parent.node, name), name, null,
-                parent.updates);
-    }
-
-    public IndexHookManagerDiff(IndexHookProvider provider, NodeBuilder root,
-            Map<String, Map<String, List<IndexHook>>> updates)
-            throws CommitFailedException {
-        this(provider, null, root, null, "/", updates);
-    }
-
     private static NodeBuilder getChildNode(NodeBuilder node, String name) {
         if (node != null && node.hasChildNode(name)) {
             return node.child(name);
@@ -196,10 +195,8 @@ class IndexHookManagerDiff implements NodeStateDiff {
     }
 
     /**
-     * 
      * Returns IndexHooks of all types that have the best match (are situated
      * the closest on the hierarchy) for the given path.
-     * 
      */
     private Map<String, List<IndexHook>> getIndexes() {
         Map<String, List<IndexHook>> hooks = new HashMap<String, List<IndexHook>>();
@@ -217,10 +214,8 @@ class IndexHookManagerDiff implements NodeStateDiff {
     }
 
     /**
-     * 
      * Returns IndexHooks of the given type that have the best match (are
      * situated the closest on the hierarchy) for the current path.
-     * 
      */
     private Map<String, List<IndexHook>> getIndexes(String type) {
         Map<String, List<IndexHook>> hooks = new HashMap<String, List<IndexHook>>();
@@ -271,7 +266,7 @@ class IndexHookManagerDiff implements NodeStateDiff {
                 && ps.getValue(Type.STRING).equals(INDEX_DEFINITIONS_NODE_TYPE);
     }
 
-    // -----------------------------------------------------< NodeStateDiff >--
+    // -----------------------------------------------------< NodeStateDiff >---
 
     @Override
     public void propertyAdded(PropertyState after) {
