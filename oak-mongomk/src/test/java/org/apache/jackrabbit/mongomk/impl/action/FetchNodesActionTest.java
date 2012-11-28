@@ -18,10 +18,10 @@ package org.apache.jackrabbit.mongomk.impl.action;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.jackrabbit.mongomk.BaseMongoMicroKernelTest;
@@ -33,7 +33,6 @@ import org.apache.jackrabbit.mongomk.impl.model.CommitBuilder;
 import org.apache.jackrabbit.mongomk.impl.model.MongoCommit;
 import org.apache.jackrabbit.mongomk.impl.model.MongoNode;
 import org.apache.jackrabbit.mongomk.util.NodeBuilder;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.mongodb.BasicDBObject;
@@ -101,7 +100,6 @@ public class FetchNodesActionTest extends BaseMongoMicroKernelTest {
 
     // FIXME - Revisit this test.
     @Test
-    @Ignore("OAK-459")
     public void fetchRootAndAllDepths() throws Exception {
         SimpleNodeScenario scenario = new SimpleNodeScenario(getNodeStore());
         Long firstRevisionId = scenario.create();
@@ -110,8 +108,7 @@ public class FetchNodesActionTest extends BaseMongoMicroKernelTest {
         FetchNodesAction query = new FetchNodesAction(getNodeStore(),
                 "/", true, firstRevisionId);
         query.setDepth(0);
-        List<MongoNode> result = query.execute();
-        List<Node> actuals = toNode(result);
+        List<Node> actuals = toNode(query.execute());
         String json = String.format("{ \"/#%1$s\" : {} }", firstRevisionId);
         Node expected = NodeBuilder.build(json);
         Iterator<Node> expecteds = expected.getChildNodeEntries(0, -1);
@@ -119,8 +116,7 @@ public class FetchNodesActionTest extends BaseMongoMicroKernelTest {
 
         query = new FetchNodesAction(getNodeStore(), "/", true, secondRevisionId);
         query.setDepth(0);
-        result = query.execute();
-        actuals = toNode(result);
+        actuals = toNode(query.execute());
         json = String.format("{ \"/#%1$s\" : {} }", firstRevisionId);
         expected = NodeBuilder.build(json);
         expecteds = expected.getChildNodeEntries(0, -1);
@@ -128,8 +124,7 @@ public class FetchNodesActionTest extends BaseMongoMicroKernelTest {
 
         query = new FetchNodesAction(getNodeStore(), "/", true, firstRevisionId);
         query.setDepth(1);
-        result = query.execute();
-        actuals = toNode(result);
+        actuals = toNode(query.execute());
         json = String.format("{ \"/#%1$s\" : { \"a#%1$s\" : { \"int\" : 1 } } }", firstRevisionId);
         expected = NodeBuilder.build(json);
         expecteds = expected.getChildNodeEntries(0, -1);
@@ -137,8 +132,7 @@ public class FetchNodesActionTest extends BaseMongoMicroKernelTest {
 
         query = new FetchNodesAction(getNodeStore(), "/", true, secondRevisionId);
         query.setDepth(1);
-        result = query.execute();
-        actuals = toNode(result);
+        actuals = toNode(query.execute());
         json = String.format("{ \"/#%1$s\" : { \"a#%2$s\" : { \"int\" : 1 , \"double\" : 0.123 } } }",
                 firstRevisionId, secondRevisionId);
         expected = NodeBuilder.build(json);
@@ -147,8 +141,7 @@ public class FetchNodesActionTest extends BaseMongoMicroKernelTest {
 
         query = new FetchNodesAction(getNodeStore(), "/", true, firstRevisionId);
         query.setDepth(2);
-        result = query.execute();
-        actuals = toNode(result);
+        actuals = toNode(query.execute());
         json = String.format("{ \"/#%1$s\" : { \"a#%1$s\" : { \"int\" : 1, \"b#%1$s\" : { \"string\" : \"foo\" } , \"c#%1$s\" : { \"bool\" : true } } } }",
                 firstRevisionId);
         expected = NodeBuilder.build(json);
@@ -157,8 +150,7 @@ public class FetchNodesActionTest extends BaseMongoMicroKernelTest {
 
         query = new FetchNodesAction(getNodeStore(), "/", true, secondRevisionId);
         query.setDepth(2);
-        result = query.execute();
-        actuals = toNode(result);
+        actuals = toNode(query.execute());
         json = String.format("{ \"/#%1$s\" : { \"a#%2$s\" : { \"int\" : 1 , \"double\" : 0.123 , \"b#%2$s\" : { \"string\" : \"foo\" } , \"c#%1$s\" : { \"bool\" : true }, \"d#%2$s\" : { \"null\" : null } } } }",
                 firstRevisionId, secondRevisionId);
         expected = NodeBuilder.build(json);
@@ -166,8 +158,7 @@ public class FetchNodesActionTest extends BaseMongoMicroKernelTest {
         NodeAssert.assertEquals(expecteds, actuals);
 
         query = new FetchNodesAction(getNodeStore(), "/", true, firstRevisionId);
-        result = query.execute();
-        actuals = toNode(result);
+        actuals = toNode(query.execute());
         json = String.format("{ \"/#%1$s\" : { \"a#%1$s\" : { \"int\" : 1 , \"b#%1$s\" : { \"string\" : \"foo\" } , \"c#%1$s\" : { \"bool\" : true } } } }",
                 firstRevisionId);
         expected = NodeBuilder.build(json);
@@ -175,8 +166,7 @@ public class FetchNodesActionTest extends BaseMongoMicroKernelTest {
         NodeAssert.assertEquals(expecteds, actuals);
 
         query = new FetchNodesAction(getNodeStore(), "/", true, secondRevisionId);
-        result = query.execute();
-        actuals = toNode(result);
+        actuals = toNode(query.execute());
         json = String.format("{ \"/#%1$s\" : { \"a#%2$s\" : { \"int\" : 1 , \"double\" : 0.123 , \"b#%2$s\" : { \"string\" : \"foo\", \"e#%2$s\" : { \"array\" : [ 123, null, 123.456, \"for:bar\", true ] } } , \"c#%1$s\" : { \"bool\" : true }, \"d#%2$s\" : { \"null\" : null } } } }",
                 firstRevisionId, secondRevisionId);
         expected = NodeBuilder.build(json);
@@ -197,8 +187,7 @@ public class FetchNodesActionTest extends BaseMongoMicroKernelTest {
 
         FetchNodesAction query = new FetchNodesAction(getNodeStore(),
                 getPathSet("/a", "/a/b", "/a/c", "not_existing"), revisionId);
-        List<MongoNode> nodeMongos = query.execute();
-        List<Node> actuals = toNode(nodeMongos);
+        List<Node> actuals = toNode(query.execute());
         String json = String.format("{ \"/#%1$s\" : { \"a#%1$s\" : { \"int\" : 1 , \"b#%1$s\" : { \"string\" : \"foo\" } , \"c#%1$s\" : { \"bool\" : true } } } }",
                 revisionId);
         Node expected = NodeBuilder.build(json);
@@ -207,8 +196,7 @@ public class FetchNodesActionTest extends BaseMongoMicroKernelTest {
 
         query = new FetchNodesAction(getNodeStore(),
                 getPathSet("/a", "not_existing"), revisionId);
-        nodeMongos = query.execute();
-        actuals = toNode(nodeMongos);
+        actuals = toNode(query.execute());
         json = String.format("{ \"/#%1$s\" : { \"a#%1$s\" : { \"int\" : 1 } } }",
                 revisionId);
         expected = NodeBuilder.build(json);
@@ -225,8 +213,7 @@ public class FetchNodesActionTest extends BaseMongoMicroKernelTest {
         FetchNodesAction query = new FetchNodesAction(getNodeStore(),
                 getPathSet("/a", "/a/b", "/a/c", "/a/d", "/a/b/e", "not_existing"),
                 firstRevisionId);
-        List<MongoNode> nodeMongos = query.execute();
-        List<Node> actuals = toNode(nodeMongos);
+        List<Node> actuals = toNode(query.execute());
         String json = String.format("{ \"/#%1$s\" : { \"a#%1$s\" : { \"int\" : 1 , \"b#%1$s\" : { \"string\" : \"foo\" } , \"c#%1$s\" : { \"bool\" : true } } } }",
                 firstRevisionId);
         Node expected = NodeBuilder.build(json);
@@ -236,8 +223,7 @@ public class FetchNodesActionTest extends BaseMongoMicroKernelTest {
         query = new FetchNodesAction(getNodeStore(),
                 getPathSet("/a", "/a/b", "/a/c", "/a/d", "/a/b/e", "not_existing"),
                 secondRevisionId);
-        nodeMongos = query.execute();
-        actuals = toNode(nodeMongos);
+        actuals = toNode(query.execute());
         json = String.format("{ \"/#%1$s\" : { \"a#%2$s\" : { \"int\" : 1 , \"double\" : 0.123 , \"b#%2$s\" : { \"string\" : \"foo\" , \"e#%2$s\" : { \"array\" : [ 123, null, 123.456, \"for:bar\", true ] } } , \"c#%1$s\" : { \"bool\" : true }, \"d#%2$s\" : { \"null\" : null } } } }",
                 firstRevisionId, secondRevisionId);
         expected = NodeBuilder.build(json);
@@ -268,9 +254,9 @@ public class FetchNodesActionTest extends BaseMongoMicroKernelTest {
         commitCollection.update(query, update);
     }
 
-    private List<Node> toNode(Collection<MongoNode> nodeMongos) {
+    private List<Node> toNode(Map<String, MongoNode> nodeMongos) {
         List<Node> nodes = new ArrayList<Node>(nodeMongos.size());
-        for (MongoNode nodeMongo : nodeMongos) {
+        for (MongoNode nodeMongo : nodeMongos.values()) {
             Node node = MongoNode.toNode(nodeMongo);
             nodes.add(node);
         }

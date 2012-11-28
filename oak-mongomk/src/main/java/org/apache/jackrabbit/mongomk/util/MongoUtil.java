@@ -51,4 +51,24 @@ public class MongoUtil {
     public static boolean isFiltered(String path) {
         return !"/".equals(path);
     }
+
+    public static String fromMongoPropertyKey(String key) {
+        if (key.startsWith("[dollar]")) {
+            return key.replaceFirst("\\[dollar\\]", "\\$");
+        }
+        if (key.contains("[dot]")) {
+            return key.replaceAll("\\[dot\\]", "\\.");
+        }
+        return key;
+    }
+
+    public static String toMongoPropertyKey(String key) {
+        if (key.startsWith("$")) {
+            return key.replaceFirst("\\$", "[dollar]");
+        }
+        if (key.contains(".")) {
+            return key.replaceAll("\\.", "[dot]");
+        }
+        return key;
+    }
 }

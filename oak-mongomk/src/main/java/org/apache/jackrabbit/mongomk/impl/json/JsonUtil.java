@@ -25,6 +25,7 @@ import org.apache.jackrabbit.mk.model.tree.NodeState;
 import org.apache.jackrabbit.mk.model.tree.PropertyState;
 import org.apache.jackrabbit.mk.util.NameFilter;
 import org.apache.jackrabbit.mk.util.NodeFilter;
+import org.apache.jackrabbit.mongomk.util.MongoUtil;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -69,7 +70,8 @@ public class JsonUtil {
 
         for (PropertyState property : node.getProperties()) {
             if (filter == null || filter.includeProperty(property.getName())) {
-                builder.key(property.getName()).encodedValue(property.getEncodedValue());
+                String propertyName = property.getName();
+                builder.key(MongoUtil.fromMongoPropertyKey(propertyName)).encodedValue(property.getEncodedValue());
             }
         }
 
