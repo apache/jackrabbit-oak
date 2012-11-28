@@ -185,6 +185,7 @@ public class Oak {
     public Oak with(@Nonnull SecurityProvider securityProvider) {
         this.securityProvider = securityProvider;
         for (SecurityConfiguration sc : securityProvider.getSecurityConfigurations()) {
+            commitHooks.addAll(sc.getCommitHooks());
             validatorProviders.addAll(sc.getValidatorProviders());
             initializers.add(sc.getRepositoryInitializer());
         }

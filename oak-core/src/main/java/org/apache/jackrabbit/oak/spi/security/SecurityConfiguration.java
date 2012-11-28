@@ -22,6 +22,8 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.spi.commit.CommitHook;
+import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.lifecycle.CompositeInitializer;
@@ -38,6 +40,9 @@ public interface SecurityConfiguration {
 
     @Nonnull
     RepositoryInitializer getRepositoryInitializer();
+
+    @Nonnull
+    List<CommitHook> getCommitHooks();
 
     @Nonnull
     List<ValidatorProvider> getValidatorProviders();
@@ -66,6 +71,12 @@ public interface SecurityConfiguration {
         @Override
         public RepositoryInitializer getRepositoryInitializer() {
             return new CompositeInitializer(Collections.<RepositoryInitializer>emptyList());
+        }
+
+        @Nonnull
+        @Override
+        public List<CommitHook> getCommitHooks() {
+            return Collections.<CommitHook>singletonList(new EmptyHook());
         }
 
         @Nonnull
