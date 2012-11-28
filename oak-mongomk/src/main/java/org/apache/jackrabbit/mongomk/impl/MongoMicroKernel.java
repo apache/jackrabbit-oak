@@ -89,7 +89,7 @@ public class MongoMicroKernel implements MicroKernel {
         try {
             MongoCommit commit = (MongoCommit)CommitBuilder.build("", "", revId,
                     MongoNodeStore.INITIAL_COMMIT_MESSAGE);
-            commit.setBranchId(UUID.randomUUID().toString());
+            commit.setBranchId(revId + "-" + UUID.randomUUID().toString());
             return nodeStore.commit(commit);
         } catch (Exception e) {
             throw new MicroKernelException(e);

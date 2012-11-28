@@ -147,8 +147,7 @@ public class FetchNodesAction extends BaseAction<Map<String, MongoNode>> {
         } else {
             // Not only return nodes in the branch but also nodes in the trunk
             // before the branch was created.
-            FetchBranchBaseRevisionIdAction action = new FetchBranchBaseRevisionIdAction(nodeStore, branchId);
-            long headBranchRevisionId = action.execute();
+            long headBranchRevisionId = Long.parseLong(branchId.substring(0, branchId.indexOf("-")));
 
             DBObject branchQuery = QueryBuilder.start().or(
                     QueryBuilder.start(MongoNode.KEY_BRANCH_ID).is(branchId).get(),
