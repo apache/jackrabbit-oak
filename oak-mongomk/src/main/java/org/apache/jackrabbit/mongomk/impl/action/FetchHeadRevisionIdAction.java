@@ -18,9 +18,13 @@ package org.apache.jackrabbit.mongomk.impl.action;
 
 import org.apache.jackrabbit.mongomk.impl.MongoNodeStore;
 import org.apache.jackrabbit.mongomk.impl.model.MongoCommit;
+import org.apache.jackrabbit.mongomk.impl.model.MongoNode;
 import org.apache.jackrabbit.mongomk.impl.model.MongoSync;
 
+import com.mongodb.BasicDBObject;
 import com.mongodb.DBCollection;
+import com.mongodb.DBObject;
+import com.mongodb.QueryBuilder;
 
 /**
  * An action for fetching the head revision.
@@ -57,13 +61,14 @@ public class FetchHeadRevisionIdAction extends BaseAction<Long> {
         }
 
         // Otherwise, find the first revision id that's not part of a branch.
-        long revisionId = headRevisionId;
-        while (true) {
-            MongoCommit commitMongo = new FetchCommitAction(nodeStore, revisionId).execute();
-            if (commitMongo.getBranchId() == null) {
-                return revisionId;
-            }
-            revisionId = commitMongo.getBaseRevisionId();
-        }
+        DBCollection collection = nodeStore.getCommitCollection();
+        DBObject query = QueryBuilder.start(MongoCommit.KEY_FAILED).notEquals(Boolean.TRUE)
+                .and(MongoCommit.KEY_REVISION_ID).lessThanEquals(headRevisionId)
+                .and(new BasicDBObject(MongoNode.KEY_BRANCH_ID, new BasicDBObject("$exists", false)))
+                .get();
+        DBObject fields = new BasicDBObject(MongoCommit.KEY_REVISION_ID, 1);
+        DBObject orderBy = new BasicDBObject(MongoCommit.KEY_REVISION_ID, -1);
+        MongoCommit commit = (MongoCommit)collection.findOne(query, fields, orderBy);
+        return commit.getRevisionId();
     }
 }
