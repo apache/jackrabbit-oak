@@ -16,6 +16,10 @@
  */
 package org.apache.jackrabbit.mongomk.impl.command.exception;
 
+/**
+ * Exception thrown by {@link CommitCommand} when it tries to save a commit but
+ * a conflicting concurrent update has been encountered.
+ */
 public class ConflictingCommitException extends Exception {
 
     private static final long serialVersionUID = -5827664000083665577L;
