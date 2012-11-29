@@ -111,6 +111,9 @@ public class FetchCommitsAction extends BaseAction<List<MongoCommit>> {
     private DBCursor fetchListOfValidCommits() {
         DBCollection commitCollection = nodeStore.getCommitCollection();
         QueryBuilder queryBuilder = QueryBuilder.start(MongoCommit.KEY_FAILED).notEquals(Boolean.TRUE);
+        if (fromRevisionId > -1) {
+            queryBuilder = queryBuilder.and(MongoCommit.KEY_REVISION_ID).greaterThanEquals(fromRevisionId);
+        }
         if (toRevisionId > -1) {
             queryBuilder = queryBuilder.and(MongoCommit.KEY_REVISION_ID).lessThanEquals(toRevisionId);
         }
@@ -121,13 +124,35 @@ public class FetchCommitsAction extends BaseAction<List<MongoCommit>> {
         }
 
         DBObject query = queryBuilder.get();
+        DBObject orderBy = new BasicDBObject(MongoCommit.KEY_REVISION_ID, -1);
 
         LOG.debug("Executing query: {}", query);
 
-        return maxEntries > 0? commitCollection.find(query).limit(maxEntries) : commitCollection.find(query);
+        return maxEntries > 0? commitCollection.find(query).limit(maxEntries).sort(orderBy)
+                : commitCollection.find(query).sort(orderBy);
     }
 
+    // FIXME - Revisit this method to make sure it works correctly in concurrent scenarios.
+    // The old method tried to read all commits reachable from current rev but the problem
+    // with that approach is that the current rev can end up being invalid later on which
+    // causes previous valid but unreachable commits to be missed. The new method simply grabs all
+    // valid commits at the moment in order to not miss any legitimate valid commits but
+    // not sure if this is the right thing to do in all scenarios.
     private List<MongoCommit> convertToCommits(DBCursor dbCursor) {
+        List<MongoCommit> commits = new LinkedList<MongoCommit>();
+        while (dbCursor.hasNext()) {
+            MongoCommit commit = (MongoCommit) dbCursor.next();
+            commits.add(commit);
+        }
+
+        LOG.debug("Found list of valid revisions for max revision {}: {}",
+                toRevisionId, commits);
+
+        return commits;
+    }
+
+    // Keeping this until we're sure that the new method is correct.
+    private List<MongoCommit> convertToCommitsOld(DBCursor dbCursor) {
         Map<Long, MongoCommit> commits = new HashMap<Long, MongoCommit>();
         while (dbCursor.hasNext()) {
             MongoCommit commitMongo = (MongoCommit) dbCursor.next();
