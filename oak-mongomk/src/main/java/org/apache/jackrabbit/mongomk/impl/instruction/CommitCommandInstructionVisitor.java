@@ -252,6 +252,7 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
         NodeExistsCommand existCommand = new NodeExistsCommand(nodeStore,
                 path, headRevisionId);
         existCommand.setBranchId(branchId);
+        existCommand.setValidCommits(validCommits);
         boolean exists = false;
         try {
             exists = existCommand.execute();

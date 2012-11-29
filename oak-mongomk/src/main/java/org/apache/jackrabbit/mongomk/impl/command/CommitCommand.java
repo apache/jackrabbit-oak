@@ -96,7 +96,7 @@ public class CommitCommand extends BaseCommand<Long> {
     }
 
     private void readValidCommits() {
-        validCommits = new FetchCommitsAction(nodeStore, revisionId).execute();
+        validCommits = new FetchCommitsAction(nodeStore, mongoSync.getHeadRevisionId()).execute();
     }
 
     @Override
