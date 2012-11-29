@@ -41,7 +41,6 @@ import org.slf4j.LoggerFactory;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBCollection;
-import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 import com.mongodb.QueryBuilder;
 import com.mongodb.WriteResult;
@@ -270,14 +269,15 @@ public class CommitCommand extends BaseCommand<Long> {
             // but don't count these retries against number of retries.
             if (conflictingCommitsExist(assumedHeadRevision)) {
                 String message = String.format("Encountered a concurrent conflicting update"
-                        + ", thus can't commit revision %s and will be retried with new revision", revisionId);
+                        + ", thus can't commit revision %s with affected paths %s."
+                        + " Retry with a new revision.", revisionId, commit.getAffectedPaths());
                 logger.warn(message);
                 markAsFailed();
                 throw new ConflictingCommitException(message);
             } else {
-                String message = String.format("Encountered a concurrent but non-conflicting update"
-                        + ", thus can't commit revision %s and will be retried with new revision", revisionId);
-                logger.warn(message);
+                logger.warn("Encountered a concurrent but non-conflicting update"
+                        + ", thus can't commit revision {} with affected paths {}."
+                        + " Retry with a new revision.", revisionId, commit.getAffectedPaths());
                 markAsFailed();
                 return false;
             }
@@ -286,20 +286,16 @@ public class CommitCommand extends BaseCommand<Long> {
     }
 
     private boolean conflictingCommitsExist(long baseRevisionId) {
-        QueryBuilder queryBuilder = QueryBuilder.start(MongoCommit.KEY_FAILED).notEquals(Boolean.TRUE);
-        queryBuilder = queryBuilder.and(MongoCommit.KEY_BASE_REVISION_ID).is(baseRevisionId);
+        QueryBuilder queryBuilder = QueryBuilder.start(MongoCommit.KEY_FAILED).notEquals(Boolean.TRUE)
+                .and(MongoCommit.KEY_BASE_REVISION_ID).is(baseRevisionId)
+                .and(MongoCommit.KEY_REVISION_ID).greaterThan(0L)
+                .and(MongoCommit.KEY_REVISION_ID).notEquals(revisionId);
         DBObject query = queryBuilder.get();
         DBCollection collection = nodeStore.getCommitCollection();
-        DBCursor dbCursor = collection.find(query);
-        while (dbCursor.hasNext()) {
-            MongoCommit commit = (MongoCommit)dbCursor.next();
-            if (this.commit.getRevisionId().equals(commit.getRevisionId())) {
-                continue;
-            }
-            for (String affectedPath : commit.getAffectedPaths()) {
-                if (affectedPaths.contains(affectedPath)) {
-                    return true;
-                }
+        MongoCommit conflictingCommit = (MongoCommit)collection.findOne(query);
+        for (String affectedPath : conflictingCommit.getAffectedPaths()) {
+            if (affectedPaths.contains(affectedPath)) {
+                return true;
             }
         }
         return false;
