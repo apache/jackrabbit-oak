@@ -186,8 +186,6 @@ public class CommitCommand extends BaseCommand<Long> {
                         logger.debug("Merged children for {}: {}", existingNode.getPath(), existingChildren);
                     }
 
-                    committingNode.setBaseRevisionId(existingNode.getRevisionId());
-
                     logger.debug("Merged node for {}: {}", existingNode.getPath(), committingNode);
 
                     break;
