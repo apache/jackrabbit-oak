@@ -17,14 +17,15 @@
 package org.apache.jackrabbit.mongomk.impl.command;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import org.apache.jackrabbit.mongomk.impl.MongoNodeStore;
 import org.apache.jackrabbit.mongomk.impl.action.FetchNodesAction;
+import org.apache.jackrabbit.mongomk.impl.model.MongoCommit;
 import org.apache.jackrabbit.mongomk.impl.model.MongoNode;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-//import org.apache.jackrabbit.mongomk.api.model.Node;
 
 /**
  * {@code Command} for {@code MongoMicroKernel#nodeExists(String, String)}
@@ -33,8 +34,8 @@ public class NodeExistsCommand extends BaseCommand<Boolean> {
 
     private Long revisionId;
     private String branchId;
-    //private Node parentNode;
     private String path;
+    private List<MongoCommit> validCommits;
 
     /**
      * Constructs a new {@code NodeExistsCommandMongo}.
@@ -56,6 +57,16 @@ public class NodeExistsCommand extends BaseCommand<Boolean> {
      */
     public void setBranchId(String branchId) {
         this.branchId = branchId;
+    }
+
+    /**
+     * Sets the last valid commits if already known. This is an optimization to
+     * speed up the fetch nodes action.
+     *
+     * @param commits The last valid commits.
+     */
+    public void setValidCommits(List<MongoCommit> validCommits) {
+        this.validCommits = validCommits;
     }
 
     @Override
@@ -86,7 +97,7 @@ public class NodeExistsCommand extends BaseCommand<Boolean> {
         }
         FetchNodesAction action = new FetchNodesAction(nodeStore, paths, revisionId);
         action.setBranchId(branchId);
-        //action.setValidCommits(validCommits);
+        action.setValidCommits(validCommits);
 
         Map<String, MongoNode> pathAndNodeMap = action.execute();
         String currentPath = this.path;

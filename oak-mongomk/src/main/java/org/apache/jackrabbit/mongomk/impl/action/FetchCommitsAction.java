@@ -132,27 +132,7 @@ public class FetchCommitsAction extends BaseAction<List<MongoCommit>> {
                 : commitCollection.find(query).sort(orderBy);
     }
 
-    // FIXME - Revisit this method to make sure it works correctly in concurrent scenarios.
-    // The old method tried to read all commits reachable from current rev but the problem
-    // with that approach is that the current rev can end up being invalid later on which
-    // causes previous valid but unreachable commits to be missed. The new method simply grabs all
-    // valid commits at the moment in order to not miss any legitimate valid commits but
-    // not sure if this is the right thing to do in all scenarios.
     private List<MongoCommit> convertToCommits(DBCursor dbCursor) {
-        List<MongoCommit> commits = new LinkedList<MongoCommit>();
-        while (dbCursor.hasNext()) {
-            MongoCommit commit = (MongoCommit) dbCursor.next();
-            commits.add(commit);
-        }
-
-        LOG.debug("Found list of valid revisions for max revision {}: {}",
-                toRevisionId, commits);
-
-        return commits;
-    }
-
-    // Keeping this until we're sure that the new method is correct.
-    private List<MongoCommit> convertToCommitsOld(DBCursor dbCursor) {
         Map<Long, MongoCommit> commits = new HashMap<Long, MongoCommit>();
         while (dbCursor.hasNext()) {
             MongoCommit commitMongo = (MongoCommit) dbCursor.next();
