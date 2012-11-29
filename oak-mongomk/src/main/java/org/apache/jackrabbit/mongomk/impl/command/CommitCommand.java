@@ -76,12 +76,11 @@ public class CommitCommand extends BaseCommand<Long> {
 
     @Override
     public Long execute() throws Exception {
-        logger.debug("Trying to commit: {}", commit.getDiff());
-
         boolean success = false;
         do {
             mongoSync = new ReadAndIncHeadRevisionAction(nodeStore).execute();
             revisionId = mongoSync.getNextRevisionId() - 1;
+            logger.debug("Trying to commit: {} @rev{}", commit.getDiff(), revisionId);
             readValidCommits();
             readBranchIdFromBaseCommit();
             createMongoNodes();

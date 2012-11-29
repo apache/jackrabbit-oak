@@ -54,7 +54,7 @@ public class GetJournalCommand extends BaseCommand<String> {
         List<MongoCommit> commits = getCommits(fromRevision, toRevision);
 
         MongoCommit toCommit = extractCommit(commits, toRevision);
-        if (toCommit.getBranchId() != null) {
+        if (toCommit != null && toCommit.getBranchId() != null) {
             throw new MicroKernelException("Branch revisions are not supported: " + toRevisionId);
         }
 
