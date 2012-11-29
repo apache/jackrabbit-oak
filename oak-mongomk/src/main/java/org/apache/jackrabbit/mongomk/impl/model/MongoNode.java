@@ -31,7 +31,6 @@ import com.mongodb.BasicDBObject;
  */
 public class MongoNode extends BasicDBObject {
 
-    public static final String KEY_BASE_REVISION_ID = "baseRevId";
     public static final String KEY_CHILDREN = "children";
     public static final String KEY_PATH = "path";
     public static final String KEY_PROPERTIES = "props";
@@ -80,10 +79,6 @@ public class MongoNode extends BasicDBObject {
     // These properties are persisted to MongoDB
     //
     //--------------------------------------------------------------------------
-
-    public void setBaseRevisionId(long baseRevisionId) {
-        put(KEY_BASE_REVISION_ID, baseRevisionId);
-    }
 
     public String getBranchId() {
         return getString(KEY_BRANCH_ID);
