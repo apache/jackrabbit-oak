@@ -362,7 +362,23 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
     }
 
     @Override
-    public NodeDefinition getDefinition(Iterable<NodeType> parentNodeTypes, String nodeName, NodeType nodeType) throws RepositoryException {
+    public NodeDefinition getDefinition(Iterable<NodeType> parentNodeTypes, String nodeName, NodeType nodeType)
+            throws RepositoryException {
+
+        NodeDefinition def = getDefinitionOrNull(parentNodeTypes, nodeName, nodeType);
+        if (def == null) {
+            throw new RepositoryException("No matching node definition found for " + this);
+        }
+
+        return def;
+    }
+
+    /**
+     * Same as {@link #getDefinition(Iterable, String, javax.jcr.nodetype.NodeType)} but returns
+     * {@code null} if no matching definition could be found instead of throwing a
+     * {@code RepositoryException}.
+     */
+    public NodeDefinition getDefinitionOrNull(Iterable<NodeType> parentNodeTypes, String nodeName, NodeType nodeType) {
         List<NodeDefinition> residualDefs = new ArrayList<NodeDefinition>();
         // TODO: This may need to be optimized
         // TODO: cleanup redundancy with getDefinition(Node, Node)
@@ -403,7 +419,7 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
             }
         }
 
-        throw new RepositoryException("No matching node definition found for " + this);
+        return null;
     }
 
     @Override
