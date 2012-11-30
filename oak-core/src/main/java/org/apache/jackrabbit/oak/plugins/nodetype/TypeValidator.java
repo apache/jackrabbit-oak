@@ -236,6 +236,10 @@ class TypeValidator implements Validator {
 
         public void checkRemoveNode(String name, NodeType nodeType) throws RepositoryException {
             NodeDefinition definition = getDefinition(name, nodeType);
+            if (definition == null) {
+                throw new ConstraintViolationException("No matching node definition found for " + name);
+            }
+
             if (definition.isProtected()) {
                 return;
             }
@@ -247,6 +251,10 @@ class TypeValidator implements Validator {
 
         public void checkAddChildNode(String name, NodeType nodeType) throws RepositoryException {
             NodeDefinition definition = getDefinition(name, nodeType);
+            if (definition == null) {
+                throw new ConstraintViolationException("No matching node definition found for " + name);
+            }
+
             if (definition.isProtected()) {
                 return;
             }
@@ -290,7 +298,7 @@ class TypeValidator implements Validator {
             return ntm.getDefinition(allTypes, propertyName, isMultiple, propertyType, true);
         }
 
-        private NodeDefinition getDefinition(String nodeName, NodeType nodeType) throws RepositoryException {
+        private NodeDefinition getDefinition(String nodeName, NodeType nodeType) {
             // FIXME: ugly hack to workaround sns-hack that was used to map sns-item definitions with node types.
             String nameToCheck = nodeName;
             if (nodeName.startsWith("jcr:childNodeDefinition") && !nodeName.equals("jcr:childNodeDefinition")) {
@@ -299,7 +307,7 @@ class TypeValidator implements Validator {
             if (nodeName.startsWith("jcr:propertyDefinition") && !nodeName.equals("jcr:propertyDefinition")) {
                 nameToCheck = nodeName.substring(0, "jcr:propertyDefinition".length());
             }
-            return ntm.getDefinition(allTypes, nameToCheck, nodeType);
+            return ntm.getDefinitionOrNull(allTypes, nameToCheck, nodeType);
         }
 
 

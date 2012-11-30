@@ -23,16 +23,14 @@ import javax.jcr.Session;
 import javax.jcr.nodetype.ConstraintViolationException;
 
 import org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class NodeTypeTest extends AbstractRepositoryTest {
 
     /**
      * Add a node to a node type that does not accept child nodes
-     * FIXME OAK-479
+     * See OAK-479
      */
-    @Ignore("OAK-479")
     @Test(expected = ConstraintViolationException.class)
     public void illegalAddNode() throws Exception {
         Session session = getAdminSession();
