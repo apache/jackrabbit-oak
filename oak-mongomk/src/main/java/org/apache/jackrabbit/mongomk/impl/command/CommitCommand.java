@@ -79,7 +79,7 @@ public class CommitCommand extends BaseCommand<Long> {
         do {
             mongoSync = new ReadAndIncHeadRevisionAction(nodeStore).execute();
             revisionId = mongoSync.getNextRevisionId() - 1;
-            logger.debug("Trying to commit: {} @rev{}", commit.getDiff(), revisionId);
+            logger.info("Committing @{} with diff: {}", revisionId, commit.getDiff());
             readValidCommits();
             readBranchIdFromBaseCommit();
             createMongoNodes();
@@ -92,6 +92,7 @@ public class CommitCommand extends BaseCommand<Long> {
             success = saveAndSetHeadRevision();
         } while (!success);
 
+        logger.info("Commit @{}: success", revisionId);
         return revisionId;
     }
 
@@ -266,16 +267,14 @@ public class CommitCommand extends BaseCommand<Long> {
             // If not, need to retry again (in order to write commits and nodes properly)
             // but don't count these retries against number of retries.
             if (conflictingCommitsExist(assumedHeadRevision)) {
-                String message = String.format("Encountered a concurrent conflicting update"
-                        + ", thus can't commit revision %s with affected paths %s."
-                        + " Retry with a new revision.", revisionId, commit.getAffectedPaths());
+                String message = String.format("Commit @%s: failed due to a conflicting commit."
+                        + " Affected paths: %s", revisionId, commit.getAffectedPaths());
                 logger.warn(message);
                 markAsFailed();
                 throw new ConflictingCommitException(message);
             } else {
-                logger.warn("Encountered a concurrent but non-conflicting update"
-                        + ", thus can't commit revision {} with affected paths {}."
-                        + " Retry with a new revision.", revisionId, commit.getAffectedPaths());
+                logger.warn("Commit @{}: failed due to a conflicting commit."
+                        + " Affected paths: {}", revisionId, commit.getAffectedPaths());
                 markAsFailed();
                 return false;
             }
