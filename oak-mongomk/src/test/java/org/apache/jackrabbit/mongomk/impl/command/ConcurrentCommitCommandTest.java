@@ -36,15 +36,11 @@ import org.apache.jackrabbit.mongomk.impl.action.FetchCommitsAction;
 import org.apache.jackrabbit.mongomk.impl.model.CommitBuilder;
 import org.apache.jackrabbit.mongomk.impl.model.MongoCommit;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class ConcurrentCommitCommandTest extends BaseMongoMicroKernelTest {
 
     @Test
-    @Ignore
-    // FIXME - This started failing after removing the FetchCommitAction call
-    // from GetNodesCommand#ensureRevisionId but I think the test has the bug.
     public void testConflictingConcurrentUpdate() throws Exception {
         int numOfConcurrentThreads = 5;
         final Object waitLock = new Object();
