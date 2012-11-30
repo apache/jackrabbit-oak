@@ -261,20 +261,9 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
         if (!exists) {
             throw new NotFoundException(path + " @rev" + headRevisionId);
         }
-
-        // Fetch the node without its descendants.
-        FetchNodesAction query = new FetchNodesAction(nodeStore,
-                path, false /*fetchDescendants*/, headRevisionId);
-        query.setBranchId(branchId);
-        query.setValidCommits(validCommits);
-        Map<String, MongoNode> nodes = query.execute();
-
-        if (nodes.containsKey(path)) {
-            node = nodes.get(path);
-            node.removeField("_id");
-            pathNodeMap.put(path, node);
-        }
-
+        node = existCommand.getNode();
+        node.removeField("_id");
+        pathNodeMap.put(path, node);
         return node;
     }
 

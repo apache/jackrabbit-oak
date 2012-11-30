@@ -36,6 +36,7 @@ public class NodeExistsCommand extends BaseCommand<Boolean> {
     private String branchId;
     private String path;
     private List<MongoCommit> validCommits;
+    private MongoNode node;
 
     /**
      * Constructs a new {@code NodeExistsCommandMongo}.
@@ -71,15 +72,7 @@ public class NodeExistsCommand extends BaseCommand<Boolean> {
 
     @Override
     public Boolean execute() throws Exception {
-        if (PathUtils.denotesRoot(path)) {
-            return true;
-        }
-
-        // Check that all the paths up to the root actually exist.
-        return pathExists();
-    }
-
-    private boolean pathExists() throws Exception {
+        // To check a path really exists, all the paths from root need to be checked.
         Set<String> paths = new HashSet<String>();
         char[] path = this.path.toCharArray();
         StringBuilder current = new StringBuilder();
@@ -91,10 +84,12 @@ public class NodeExistsCommand extends BaseCommand<Boolean> {
             }
             current.append(path[i]);
         }
+        paths.add(current.toString());
 
         if (revisionId == null) {
             revisionId = new GetHeadRevisionCommand(nodeStore).execute();
         }
+
         FetchNodesAction action = new FetchNodesAction(nodeStore, paths, revisionId);
         action.setBranchId(branchId);
         action.setValidCommits(validCommits);
@@ -106,34 +101,22 @@ public class NodeExistsCommand extends BaseCommand<Boolean> {
             String parentPath = PathUtils.getParentPath(currentPath);
             MongoNode parentNode = pathAndNodeMap.get(parentPath);
             if (parentNode == null || !parentNode.childExists(childName)) {
+                node = null;
                 return false;
             }
             currentPath = PathUtils.getParentPath(currentPath);
         }
+        node = pathAndNodeMap.get(this.path);
         return true;
     }
 
-//    private boolean pathExists() throws Exception {
-//        while (!PathUtils.denotesRoot(path)) {
-//            readParentNode(revisionId, branchId);
-//            if (parentNode == null || !childExists()) {
-//                return false;
-//            }
-//            path = PathUtils.getParentPath(path);
-//        }
-//
-//        return true;
-//    }
-//
-//    private void readParentNode(Long revisionId, String branchId) throws Exception {
-//        String parentPath = PathUtils.getParentPath(path);
-//        GetNodesCommand command = new GetNodesCommand(nodeStore, parentPath, revisionId);
-//        command.setBranchId(branchId);
-//        parentNode = command.execute();
-//    }
-//
-//    private boolean childExists() {
-//        String childName = PathUtils.getName(path);
-//        return parentNode.getChildNodeEntry(childName) != null;
-//    }
+    /**
+     * After {@link NodeExistsCommand} executed, this method can be used to access
+     * the node with the path.
+     *
+     * @return Node or null if it does not exist.
+     */
+    public MongoNode getNode() {
+        return node;
+    }
 }
