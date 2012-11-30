@@ -316,7 +316,7 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
             }
         }
 
-        throw new RepositoryException("No matching node definition found for " + this);
+        throw new RepositoryException("No matching node definition found for " + nodeName);
     }
 
     @Override
@@ -358,7 +358,7 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
             }
         }
 
-        throw new RepositoryException("No matching node definition found for " + this);
+        throw new RepositoryException("No matching node definition found for " + targetNode.getName());
     }
 
     @Override
@@ -367,7 +367,7 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
 
         NodeDefinition def = getDefinitionOrNull(parentNodeTypes, nodeName, nodeType);
         if (def == null) {
-            throw new RepositoryException("No matching node definition found for " + this);
+            throw new RepositoryException("No matching node definition found for " + nodeName);
         }
 
         return def;
@@ -474,7 +474,7 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
             }
         }
 
-        throw new RepositoryException("No matching property definition found for " + this);
+        throw new RepositoryException("No matching property definition found for " + targetProperty.getName());
     }
 
     @Override
