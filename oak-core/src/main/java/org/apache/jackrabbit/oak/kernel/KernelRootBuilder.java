@@ -79,7 +79,7 @@ class KernelRootBuilder extends MemoryNodeBuilder {
     }
 
     private class CopyAndMoveAwareJsopDiff extends JsopDiff {
-
+        // FIXME this does currently not work. See OAK-463, OAK464
         private final Map<String, NodeState> added;
 
 
