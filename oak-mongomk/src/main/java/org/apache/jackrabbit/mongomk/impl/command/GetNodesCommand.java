@@ -168,8 +168,7 @@ public class GetNodesCommand extends BaseCommand<Node> {
     }
 
     private void readNodesByPath() {
-        FetchNodesAction query = new FetchNodesAction(nodeStore,
-                path, true, revisionId);
+        FetchNodesAction query = new FetchNodesAction(nodeStore, path, revisionId);
         query.setBranchId(branchId);
         query.setValidCommits(lastCommits);
         query.setDepth(depth);
@@ -177,15 +176,11 @@ public class GetNodesCommand extends BaseCommand<Node> {
     }
 
     private boolean verifyNodeHierarchy() {
-        boolean verified = false;
-
-        verified = verifyNodeHierarchyRec(path, 0);
-
+        boolean verified = verifyNodeHierarchyRec(path, 0);
         if (!verified) {
-            LOG.error(String.format("Node hierarchy could not be verified because"
-                    + " some nodes were inconsistent: %s", path));
+            LOG.error("Node hierarchy could not be verified because some nodes"
+                    + " were inconsistent: {}", path);
         }
-
         return verified;
     }
 
@@ -217,26 +212,19 @@ public class GetNodesCommand extends BaseCommand<Node> {
     }
 
     private boolean verifyProblematicNodes() {
-        boolean verified = true;
-
         for (Map.Entry<String, Long> entry : problematicNodes.entrySet()) {
             String path = entry.getKey();
             Long revisionId = entry.getValue();
-
             MongoNode nodeMongo = pathAndNodeMap.get(path);
             if (nodeMongo != null) {
                 if (!revisionId.equals(nodeMongo.getRevisionId())) {
-                    verified = false;
-
-                    LOG.error(String
-                            .format("Node could not be verified because the expected revisionId did not match: %d (expected) vs %d (actual)",
-                                    revisionId, nodeMongo.getRevisionId()));
-
-                    break;
+                    LOG.error("Node could not be verified because revisionIds"
+                            + " did not match: {} (expected) vs {} (actual)",
+                            revisionId, nodeMongo.getRevisionId());
+                    return false;
                 }
             }
         }
-
-        return verified;
+        return true;
     }
 }
