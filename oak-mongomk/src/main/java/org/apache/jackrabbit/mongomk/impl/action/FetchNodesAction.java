@@ -50,7 +50,6 @@ public class FetchNodesAction extends BaseAction<Map<String, MongoNode>> {
     private String branchId;
     private List<MongoCommit> validCommits;
     private int depth = LIMITLESS_DEPTH;
-    private boolean fetchDescendants;
 
     /**
      * Constructs a new {@code FetchNodesAction} to fetch a node and optionally
@@ -58,16 +57,12 @@ public class FetchNodesAction extends BaseAction<Map<String, MongoNode>> {
      *
      * @param nodeStore Node store.
      * @param path The path.
-     * @param fetchDescendants Determines whether the descendants of the path
-     * will be fetched as well.
      * @param revisionId The revision id.
      */
-    public FetchNodesAction(MongoNodeStore nodeStore, String path,
-            boolean fetchDescendants, long revisionId) {
+    public FetchNodesAction(MongoNodeStore nodeStore, String path, long revisionId) {
         super(nodeStore);
         paths = new HashSet<String>();
         paths.add(path);
-        this.fetchDescendants = fetchDescendants;
         this.revisionId = revisionId;
     }
 
@@ -79,8 +74,7 @@ public class FetchNodesAction extends BaseAction<Map<String, MongoNode>> {
      * @param paths The exact paths to fetch nodes for.
      * @param revisionId The revision id.
      */
-    public FetchNodesAction(MongoNodeStore nodeStore,  Set<String> paths,
-            long revisionId) {
+    public FetchNodesAction(MongoNodeStore nodeStore,  Set<String> paths, long revisionId) {
         super(nodeStore);
         this.paths = paths;
         this.revisionId = revisionId;
@@ -129,12 +123,8 @@ public class FetchNodesAction extends BaseAction<Map<String, MongoNode>> {
             queryBuilder = queryBuilder.in(paths);
         } else {
             String path = paths.toArray(new String[0])[0];
-            if (fetchDescendants) {
-                Pattern pattern = createPrefixRegExp(path);
-                queryBuilder = queryBuilder.regex(pattern);
-            } else {
-                queryBuilder = queryBuilder.is(path);
-            }
+            Pattern pattern = createPrefixRegExp(path);
+            queryBuilder = queryBuilder.regex(pattern);
         }
 
         if (revisionId > 0) {
@@ -156,10 +146,11 @@ public class FetchNodesAction extends BaseAction<Map<String, MongoNode>> {
             queryBuilder = queryBuilder.and(branchQuery);
         }
 
+        DBObject orderBy = new BasicDBObject(MongoCommit.KEY_REVISION_ID, -1);
         DBObject query = queryBuilder.get();
         LOG.debug("Executing query: {}", query);
 
-        return nodeStore.getNodeCollection().find(query);
+        return nodeStore.getNodeCollection().find(query).sort(orderBy);
     }
 
     private Pattern createPrefixRegExp(String path) {
@@ -209,6 +200,19 @@ public class FetchNodesAction extends BaseAction<Map<String, MongoNode>> {
                 continue;
             }
 
+            // This assumes that revision ids are ordered and nodes were fetched
+            // in sorted order.
+            if (nodeMongos.containsKey(path)) {
+                LOG.debug("Converted nodes @{} with path {} was not put into map"
+                        + " because a newer version is available", revisionId, path);
+                continue;
+            }
+            nodeMongos.put(path, nodeMongo);
+            LOG.debug("Converted node @{} with path {} was put into map", revisionId, path);
+
+
+            // This is for unordered revision ids.
+            /*
             MongoNode existingNodeMongo = nodeMongos.get(path);
             if (existingNodeMongo != null) {
                 long existingRevId = existingNodeMongo.getRevisionId();
@@ -222,10 +226,11 @@ public class FetchNodesAction extends BaseAction<Map<String, MongoNode>> {
                 }
             } else {
                 nodeMongos.put(path, nodeMongo);
-                LOG.debug("Converted node was put into map");
+                LOG.debug("Converted node @{} with path {} was put into map", revisionId, path);
             }
+            */
         }
-
+        dbCursor.close();
         return nodeMongos;
     }
 

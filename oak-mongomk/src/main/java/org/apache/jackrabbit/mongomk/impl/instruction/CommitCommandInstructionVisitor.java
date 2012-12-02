@@ -156,7 +156,7 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
 
         // First, copy the existing nodes.
         Map<String, MongoNode> nodesToCopy = new FetchNodesAction(nodeStore,
-                srcPath, true, headRevisionId).execute();
+                srcPath, headRevisionId).execute();
         for (MongoNode nodeMongo : nodesToCopy.values()) {
             String oldPath = nodeMongo.getPath();
             String oldPathRel = PathUtils.relativize(srcPath, oldPath);
@@ -204,7 +204,7 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
 
         // First, copy the existing nodes.
         Map<String, MongoNode> nodesToCopy = new FetchNodesAction(nodeStore,
-                srcPath, true, headRevisionId).execute();
+                srcPath, headRevisionId).execute();
         for (MongoNode nodeMongo : nodesToCopy.values()) {
             String oldPath = nodeMongo.getPath();
             String oldPathRel = PathUtils.relativize(srcPath, oldPath);

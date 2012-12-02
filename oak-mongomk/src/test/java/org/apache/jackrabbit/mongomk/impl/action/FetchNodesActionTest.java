@@ -51,8 +51,7 @@ public class FetchNodesActionTest extends BaseMongoMicroKernelTest {
         invalidateCommit(revisionId1);
         updateBaseRevisionId(revisionId2, 0L);
 
-        FetchNodesAction query = new FetchNodesAction(getNodeStore(),
-                "/", true, revisionId3);
+        FetchNodesAction query = new FetchNodesAction(getNodeStore(), "/", revisionId3);
         List<Node> actuals = toNode(query.execute());
 
         String json = String.format("{\"/#%2$s\" : { \"b#%1$s\" : {}, \"c#%2$s\" : {} }}",
@@ -68,10 +67,7 @@ public class FetchNodesActionTest extends BaseMongoMicroKernelTest {
         Long revisionId3 = addNode("c");
 
         invalidateCommit(revisionId3);
-
-        FetchNodesAction query = new FetchNodesAction(getNodeStore(),
-                "/", true, revisionId3);
-        List<Node> actuals = toNode(query.execute());
+        List<Node> actuals = createAndExecuteQuery(revisionId3);
 
         String json = String.format("{\"/#%2$s\" : { \"a#%1$s\" : {}, \"b#%2$s\" : {} }}",
                 revisionId1, revisionId2);
@@ -87,10 +83,7 @@ public class FetchNodesActionTest extends BaseMongoMicroKernelTest {
 
         invalidateCommit(revisionId2);
         updateBaseRevisionId(revisionId3, revisionId1);
-
-        FetchNodesAction query = new FetchNodesAction(getNodeStore(),
-                "/", true, revisionId3);
-        List<Node> actuals = toNode(query.execute());
+        List<Node> actuals = createAndExecuteQuery(revisionId3);
 
         String json = String.format("{\"/#%2$s\" : { \"a#%1$s\" : {}, \"c#%2$s\" : {} }}",
                 revisionId1, revisionId3);
@@ -105,68 +98,53 @@ public class FetchNodesActionTest extends BaseMongoMicroKernelTest {
         Long firstRevisionId = scenario.create();
         Long secondRevisionId = scenario.update_A_and_add_D_and_E();
 
-        FetchNodesAction query = new FetchNodesAction(getNodeStore(),
-                "/", true, firstRevisionId);
-        query.setDepth(0);
-        List<Node> actuals = toNode(query.execute());
+        List<Node> actuals = createAndExecuteQuery(firstRevisionId, 0);
         String json = String.format("{ \"/#%1$s\" : {} }", firstRevisionId);
         Node expected = NodeBuilder.build(json);
         Iterator<Node> expecteds = expected.getChildNodeEntries(0, -1);
         NodeAssert.assertEquals(expecteds, actuals);
 
-        query = new FetchNodesAction(getNodeStore(), "/", true, secondRevisionId);
-        query.setDepth(0);
-        actuals = toNode(query.execute());
+        actuals = createAndExecuteQuery(secondRevisionId, 0);
         json = String.format("{ \"/#%1$s\" : {} }", firstRevisionId);
         expected = NodeBuilder.build(json);
         expecteds = expected.getChildNodeEntries(0, -1);
         NodeAssert.assertEquals(expecteds, actuals);
 
-        query = new FetchNodesAction(getNodeStore(), "/", true, firstRevisionId);
-        query.setDepth(1);
-        actuals = toNode(query.execute());
+        actuals = createAndExecuteQuery(firstRevisionId, 1);
         json = String.format("{ \"/#%1$s\" : { \"a#%1$s\" : { \"int\" : 1 } } }", firstRevisionId);
         expected = NodeBuilder.build(json);
         expecteds = expected.getChildNodeEntries(0, -1);
         NodeAssert.assertEquals(expecteds, actuals);
 
-        query = new FetchNodesAction(getNodeStore(), "/", true, secondRevisionId);
-        query.setDepth(1);
-        actuals = toNode(query.execute());
+        actuals = createAndExecuteQuery(secondRevisionId, 1);
         json = String.format("{ \"/#%1$s\" : { \"a#%2$s\" : { \"int\" : 1 , \"double\" : 0.123 } } }",
                 firstRevisionId, secondRevisionId);
         expected = NodeBuilder.build(json);
         expecteds = expected.getChildNodeEntries(0, -1);
         NodeAssert.assertEquals(expecteds, actuals);
 
-        query = new FetchNodesAction(getNodeStore(), "/", true, firstRevisionId);
-        query.setDepth(2);
-        actuals = toNode(query.execute());
+        actuals = createAndExecuteQuery(firstRevisionId, 2);
         json = String.format("{ \"/#%1$s\" : { \"a#%1$s\" : { \"int\" : 1, \"b#%1$s\" : { \"string\" : \"foo\" } , \"c#%1$s\" : { \"bool\" : true } } } }",
                 firstRevisionId);
         expected = NodeBuilder.build(json);
         expecteds = expected.getChildNodeEntries(0, -1);
         NodeAssert.assertEquals(expecteds, actuals);
 
-        query = new FetchNodesAction(getNodeStore(), "/", true, secondRevisionId);
-        query.setDepth(2);
-        actuals = toNode(query.execute());
+        actuals = createAndExecuteQuery(secondRevisionId, 2);
         json = String.format("{ \"/#%1$s\" : { \"a#%2$s\" : { \"int\" : 1 , \"double\" : 0.123 , \"b#%2$s\" : { \"string\" : \"foo\" } , \"c#%1$s\" : { \"bool\" : true }, \"d#%2$s\" : { \"null\" : null } } } }",
                 firstRevisionId, secondRevisionId);
         expected = NodeBuilder.build(json);
         expecteds = expected.getChildNodeEntries(0, -1);
         NodeAssert.assertEquals(expecteds, actuals);
 
-        query = new FetchNodesAction(getNodeStore(), "/", true, firstRevisionId);
-        actuals = toNode(query.execute());
+        actuals = createAndExecuteQuery(firstRevisionId);
         json = String.format("{ \"/#%1$s\" : { \"a#%1$s\" : { \"int\" : 1 , \"b#%1$s\" : { \"string\" : \"foo\" } , \"c#%1$s\" : { \"bool\" : true } } } }",
                 firstRevisionId);
         expected = NodeBuilder.build(json);
         expecteds = expected.getChildNodeEntries(0, -1);
         NodeAssert.assertEquals(expecteds, actuals);
 
-        query = new FetchNodesAction(getNodeStore(), "/", true, secondRevisionId);
-        actuals = toNode(query.execute());
+        actuals = createAndExecuteQuery(secondRevisionId);
         json = String.format("{ \"/#%1$s\" : { \"a#%2$s\" : { \"int\" : 1 , \"double\" : 0.123 , \"b#%2$s\" : { \"string\" : \"foo\", \"e#%2$s\" : { \"array\" : [ 123, null, 123.456, \"for:bar\", true ] } } , \"c#%1$s\" : { \"bool\" : true }, \"d#%2$s\" : { \"null\" : null } } } }",
                 firstRevisionId, secondRevisionId);
         expected = NodeBuilder.build(json);
@@ -229,6 +207,18 @@ public class FetchNodesActionTest extends BaseMongoMicroKernelTest {
         expected = NodeBuilder.build(json);
         expecteds = expected.getChildNodeEntries(0, -1);
         NodeAssert.assertEquals(expecteds, actuals);
+    }
+
+    private List<Node> createAndExecuteQuery(Long revisionId) {
+        return createAndExecuteQuery(revisionId, -1);
+    }
+
+    private List<Node> createAndExecuteQuery(Long revisionId, int depth) {
+        FetchNodesAction query = new FetchNodesAction(getNodeStore(), "/", revisionId);
+        if (depth > -1) {
+            query.setDepth(depth);
+        }
+        return toNode(query.execute());
     }
 
     private Set<String> getPathSet(String... paths) {
