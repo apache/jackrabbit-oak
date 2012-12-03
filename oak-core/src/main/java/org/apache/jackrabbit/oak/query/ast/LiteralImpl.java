@@ -60,5 +60,11 @@ public class LiteralImpl extends StaticOperandImpl {
     PropertyValue currentValue() {
         return value;
     }
+    
+    @Override
+    int getPropertyType() {
+        PropertyValue v = currentValue();
+        return v == null ? PropertyType.UNDEFINED : v.getType().tag();
+    }
 
 }

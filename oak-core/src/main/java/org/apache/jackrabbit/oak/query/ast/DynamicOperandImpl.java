@@ -43,4 +43,6 @@ public abstract class DynamicOperandImpl extends AstElement {
         return true;
     }
 
+    abstract int getPropertyType();
+
 }

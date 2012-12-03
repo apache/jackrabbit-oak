@@ -121,5 +121,10 @@ public class NodeNameImpl extends DynamicOperandImpl {
         }
         return true;
     }
+    
+    @Override
+    int getPropertyType() {
+        return PropertyType.NAME;
+    }
 
 }

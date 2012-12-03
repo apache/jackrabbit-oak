@@ -18,6 +18,8 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
+import javax.jcr.PropertyType;
+
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
@@ -69,6 +71,11 @@ public class NodeLocalNameImpl extends DynamicOperandImpl {
     @Override
     public boolean canRestrictSelector(SelectorImpl s) {
         return s == selector;
+    }
+    
+    @Override
+    int getPropertyType() {
+        return PropertyType.STRING;
     }
 
 }

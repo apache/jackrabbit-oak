@@ -18,6 +18,8 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
+import javax.jcr.PropertyType;
+
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.query.Query;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
@@ -73,6 +75,11 @@ public class FullTextSearchScoreImpl extends DynamicOperandImpl {
     @Override
     public boolean canRestrictSelector(SelectorImpl s) {
         return s == selector;
+    }
+    
+    @Override
+    int getPropertyType() {
+        return PropertyType.DOUBLE;
     }
 
 }

@@ -92,5 +92,10 @@ public class LengthImpl extends DynamicOperandImpl {
     public boolean canRestrictSelector(SelectorImpl s) {
         return propertyValue.canRestrictSelector(s);
     }
+    
+    @Override
+    int getPropertyType() {
+        return PropertyType.LONG;
+    }
 
 }
