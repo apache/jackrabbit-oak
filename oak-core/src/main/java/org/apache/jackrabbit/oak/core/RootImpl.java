@@ -305,6 +305,8 @@ public class RootImpl implements Root {
     @Nonnull
     @Override
     public BlobFactory getBlobFactory() {
+        checkLive();
+
         return new BlobFactory() {
             @Override
             public Blob createBlob(InputStream inputStream) throws IOException {
