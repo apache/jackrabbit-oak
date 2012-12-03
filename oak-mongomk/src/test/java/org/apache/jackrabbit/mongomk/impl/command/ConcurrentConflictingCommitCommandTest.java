@@ -42,9 +42,9 @@ public class ConcurrentConflictingCommitCommandTest extends BaseMongoMicroKernel
     public void rootUpdate() throws Exception {
         int n = 2;
         CountDownLatch latch = new CountDownLatch(n - 1);
-        CommitCommand cmd1 = new WaitingCommitCommand(getNodeStore(),
+        CommitCommandNew cmd1 = new WaitingCommitCommand(getNodeStore(),
                 CommitBuilder.build("/", "+\"a1\" : {}", null), latch);
-        CommitCommand cmd2 = new NotifyingCommitCommand(getNodeStore(),
+        CommitCommandNew cmd2 = new NotifyingCommitCommand(getNodeStore(),
                 CommitBuilder.build("/", "+\"a2\" : {}", null), latch);
 
         ExecutorService executorService = Executors.newFixedThreadPool(n);
@@ -70,9 +70,9 @@ public class ConcurrentConflictingCommitCommandTest extends BaseMongoMicroKernel
 
         int n = 2;
         CountDownLatch latch = new CountDownLatch(n - 1);
-        CommitCommand cmd1 = new WaitingCommitCommand(getNodeStore(),
+        CommitCommandNew cmd1 = new WaitingCommitCommand(getNodeStore(),
                 CommitBuilder.build("/", "+\"a1/b1\" : {}", null), latch);
-        CommitCommand cmd2 = new NotifyingCommitCommand(getNodeStore(),
+        CommitCommandNew cmd2 = new NotifyingCommitCommand(getNodeStore(),
                 CommitBuilder.build("/", "+\"a2/b1\" : {}", null), latch);
 
         ExecutorService executorService = Executors.newFixedThreadPool(n);
@@ -99,11 +99,11 @@ public class ConcurrentConflictingCommitCommandTest extends BaseMongoMicroKernel
 
         int n = 3;
         CountDownLatch latch = new CountDownLatch(n - 1);
-        CommitCommand cmd1 = new WaitingCommitCommand(getNodeStore(),
+        CommitCommandNew cmd1 = new WaitingCommitCommand(getNodeStore(),
                 CommitBuilder.build("/", "+\"a1/b1\" : {}", null), latch);
-        CommitCommand cmd2 = new NotifyingCommitCommand(getNodeStore(),
+        CommitCommandNew cmd2 = new NotifyingCommitCommand(getNodeStore(),
                 CommitBuilder.build("/", "+\"a2/b1\" : {}", null), latch);
-        CommitCommand cmd3 = new NotifyingCommitCommand(getNodeStore(),
+        CommitCommandNew cmd3 = new NotifyingCommitCommand(getNodeStore(),
                 CommitBuilder.build("/", "+\"a3/b1\" : {}", null), latch);
 
 
@@ -132,11 +132,11 @@ public class ConcurrentConflictingCommitCommandTest extends BaseMongoMicroKernel
 
         int n = 3;
         CountDownLatch latch = new CountDownLatch(n - 1);
-        CommitCommand cmd1 = new WaitingCommitCommand(getNodeStore(),
+        CommitCommandNew cmd1 = new WaitingCommitCommand(getNodeStore(),
                 CommitBuilder.build("/", "+\"a1/b1\" : {}", null), latch);
-        CommitCommand cmd2 = new NotifyingCommitCommand(getNodeStore(),
+        CommitCommandNew cmd2 = new NotifyingCommitCommand(getNodeStore(),
                 CommitBuilder.build("/", "+\"a2/b1\" : {}", null), latch);
-        CommitCommand cmd3 = new NotifyingCommitCommand(getNodeStore(),
+        CommitCommandNew cmd3 = new NotifyingCommitCommand(getNodeStore(),
                 CommitBuilder.build("/", "+\"a1/b2\" : {}", null), latch);
 
 
@@ -157,7 +157,7 @@ public class ConcurrentConflictingCommitCommandTest extends BaseMongoMicroKernel
     /**
      * A CommitCommand that simply waits on the waitLock until notified.
      */
-    private static class WaitingCommitCommand extends CommitCommand {
+    private static class WaitingCommitCommand extends CommitCommandNew {
 
         private final CountDownLatch latch;
 
@@ -182,7 +182,7 @@ public class ConcurrentConflictingCommitCommandTest extends BaseMongoMicroKernel
     /**
      * A CommitCommand that notifies on the waitLock.
      */
-    private static class NotifyingCommitCommand extends CommitCommand {
+    private static class NotifyingCommitCommand extends CommitCommandNew {
 
         private final CountDownLatch latch;
 
@@ -211,9 +211,9 @@ public class ConcurrentConflictingCommitCommandTest extends BaseMongoMicroKernel
      */
     private static class CommitCallable implements Callable<Long> {
 
-        private final CommitCommand command;
+        private final CommitCommandNew command;
 
-        public CommitCallable(CommitCommand  command) {
+        public CommitCallable(CommitCommandNew  command) {
             this.command = command;
         }
 

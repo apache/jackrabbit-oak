@@ -28,7 +28,7 @@ import org.apache.jackrabbit.mongomk.api.instruction.Instruction.RemoveNodeInstr
 import org.apache.jackrabbit.mongomk.api.instruction.Instruction.SetPropertyInstruction;
 import org.apache.jackrabbit.mongomk.api.instruction.InstructionVisitor;
 import org.apache.jackrabbit.mongomk.impl.MongoNodeStore;
-import org.apache.jackrabbit.mongomk.impl.action.FetchNodesAction;
+import org.apache.jackrabbit.mongomk.impl.action.FetchNodesActionNew;
 import org.apache.jackrabbit.mongomk.impl.command.NodeExistsCommand;
 import org.apache.jackrabbit.mongomk.impl.exception.NotFoundException;
 import org.apache.jackrabbit.mongomk.impl.model.MongoCommit;
@@ -155,7 +155,7 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
         }
 
         // First, copy the existing nodes.
-        Map<String, MongoNode> nodesToCopy = new FetchNodesAction(nodeStore,
+        Map<String, MongoNode> nodesToCopy = new FetchNodesActionNew(nodeStore,
                 srcPath, headRevisionId).execute();
         for (MongoNode nodeMongo : nodesToCopy.values()) {
             String oldPath = nodeMongo.getPath();
@@ -203,7 +203,7 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
         }
 
         // First, copy the existing nodes.
-        Map<String, MongoNode> nodesToCopy = new FetchNodesAction(nodeStore,
+        Map<String, MongoNode> nodesToCopy = new FetchNodesActionNew(nodeStore,
                 srcPath, headRevisionId).execute();
         for (MongoNode nodeMongo : nodesToCopy.values()) {
             String oldPath = nodeMongo.getPath();
