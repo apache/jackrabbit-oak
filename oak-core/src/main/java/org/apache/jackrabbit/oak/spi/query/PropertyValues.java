@@ -243,16 +243,24 @@ public final class PropertyValues {
             // throw new IllegalArgumentException("Unknown property type: " +
             // targetType);
         } catch (UnsupportedOperationException e) {
-            // TODO detect unsupported conversions, so that no exception is
-            // thrown
-            // because exceptions are slow
-            return null;
-            // throw new IllegalArgumentException("<unsupported conversion of "
-            // +
-            // v + " (" + PropertyType.nameFromValue(v.getType()) + ") to type "
-            // +
-            // PropertyType.nameFromValue(targetType) + ">");
+            throw new IllegalArgumentException(
+                    "Unsupported conversion from type " + value + 
+                    " (" + PropertyType.nameFromValue(value.getType().tag()) + ") to type " +
+                            PropertyType.nameFromValue(targetType));
         }
+    }
+    
+    public static boolean canConvert(int sourceType, int targetType) {
+        // TODO support full set of conversion features defined in the JCR spec
+        // at 3.6.4 Property Type Conversion
+        switch (sourceType) {
+        case PropertyType.WEAKREFERENCE:
+        case PropertyType.REFERENCE:
+            if (targetType == PropertyType.NAME) {
+                return false;
+            }
+        }
+        return true;
     }
 
     public static String getOakPath(String jcrPath, NamePathMapper mapper) {

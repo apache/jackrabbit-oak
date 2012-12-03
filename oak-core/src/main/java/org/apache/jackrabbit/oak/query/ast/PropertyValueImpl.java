@@ -182,5 +182,10 @@ public class PropertyValueImpl extends DynamicOperandImpl {
     public boolean canRestrictSelector(SelectorImpl s) {
         return s == selector;
     }
+    
+    @Override
+    int getPropertyType() {
+        return propertyType;
+    }
 
 }
