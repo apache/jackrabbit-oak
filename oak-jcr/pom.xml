@@ -209,8 +209,6 @@
       org.apache.jackrabbit.test.api.query.qom.ColumnTest#testExpandColumnsForNodeType               <!-- OAK-323 -->
       org.apache.jackrabbit.test.api.query.GetPropertyNamesTest#testGetPropertyNames                 <!-- OAK-323 -->
       org.apache.jackrabbit.test.api.query.qom.SelectorTest#testUnknownNodeType                      <!-- OAK-476 -->
-      org.apache.jackrabbit.test.api.query.qom.NodeNameTest#testReferenceLiteral                     <!-- OAK-473 -->
-      org.apache.jackrabbit.test.api.query.qom.NodeNameTest#testWeakReferenceLiteral                 <!-- OAK-473 -->
       org.apache.jackrabbit.test.api.query.qom.SameNodeJoinConditionTest#testInnerJoin               <!-- OAK-475 -->
       org.apache.jackrabbit.test.api.query.qom.SameNodeJoinConditionTest#testRightOuterJoin          <!-- OAK-475 -->
       org.apache.jackrabbit.test.api.query.qom.SameNodeJoinConditionTest#testLeftOuterJoin           <!-- OAK-475 -->
