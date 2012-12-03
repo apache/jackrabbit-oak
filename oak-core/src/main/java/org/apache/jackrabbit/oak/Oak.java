@@ -77,6 +77,8 @@ public class Oak {
 
     private List<ValidatorProvider> validatorProviders = newArrayList();
 
+    private List<CommitHook> securityHooks = newArrayList();
+
     // TODO: review if we really want to have the OpenSecurityProvider as default.
     private SecurityProvider securityProvider = new OpenSecurityProvider();
 
@@ -152,6 +154,17 @@ public class Oak {
     }
 
     /**
+     * Adds all currently tracked security related hooks to the commit hook that
+     * is used to create the content repository.
+     */
+    private void withSecurityHooks() {
+        if (!securityHooks.isEmpty()) {
+            commitHooks.addAll(securityHooks);
+            securityHooks = newArrayList();
+        }
+    }
+
+    /**
      * Associates the given validator provider with the repository to
      * be created.
      *
@@ -185,8 +198,8 @@ public class Oak {
     public Oak with(@Nonnull SecurityProvider securityProvider) {
         this.securityProvider = securityProvider;
         for (SecurityConfiguration sc : securityProvider.getSecurityConfigurations()) {
-            commitHooks.addAll(sc.getCommitHooks());
             validatorProviders.addAll(sc.getValidatorProviders());
+            securityHooks.addAll(sc.getCommitHooks());
             initializers.add(sc.getRepositoryInitializer());
         }
         return this;
@@ -215,6 +228,7 @@ public class Oak {
         commitHooks.add(IndexHookManager.of(indexHooks));
 
         withValidatorHook();
+        withSecurityHooks();
         store.setHook(CompositeHook.compose(commitHooks));
 
         return new ContentRepositoryImpl(
