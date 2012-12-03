@@ -24,6 +24,7 @@ import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.security.Context;
@@ -52,6 +53,12 @@ public class PrivilegeConfigurationImpl extends SecurityConfiguration.Default im
     @Override
     public RepositoryInitializer getRepositoryInitializer() {
         return new PrivilegeInitializer();
+    }
+
+    @Nonnull
+    @Override
+    public List<CommitHook> getCommitHooks() {
+        return Collections.<CommitHook>singletonList(new JcrAllCommitHook());
     }
 
     @Nonnull

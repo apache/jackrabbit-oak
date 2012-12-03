@@ -52,6 +52,9 @@ class PrivilegeDefinitionWriter implements PrivilegeConstants {
 
             NodeUtil privilegesNode = new NodeUtil(privilegesTree);
             for (PrivilegeDefinition definition : definitions) {
+                if (privilegesNode.hasChild(definition.getName())) {
+                    throw new RepositoryException("Privilege definition with name '"+definition.getName()+"' already exists.");
+                }
                 writePrivilegeNode(privilegesNode, definition);
             }
 
@@ -68,12 +71,8 @@ class PrivilegeDefinitionWriter implements PrivilegeConstants {
         }
     }
 
-    private static void writePrivilegeNode(NodeUtil privilegesNode, PrivilegeDefinition definition) throws RepositoryException {
+    private static void writePrivilegeNode(NodeUtil privilegesNode, PrivilegeDefinition definition) {
         String name = definition.getName();
-        if (privilegesNode.hasChild(definition.getName())) {
-            throw new RepositoryException("Privilege definition with name '"+name+"' already exists.");
-        }
-
         NodeUtil privNode = privilegesNode.addChild(name, NT_REP_PRIVILEGE);
         if (definition.isAbstract()) {
             privNode.setBoolean(REP_IS_ABSTRACT, true);
