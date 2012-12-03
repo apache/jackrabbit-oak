@@ -58,12 +58,15 @@ public class FetchNodesActionNew extends BaseAction<Map<String, MongoNode>> {
      *
      * @param nodeStore Node store.
      * @param path The path.
+     * @param depth The depth.
      * @param revisionId The revision id.
      */
-    public FetchNodesActionNew(MongoNodeStore nodeStore, String path, long revisionId) {
+    public FetchNodesActionNew(MongoNodeStore nodeStore, String path, int depth,
+            long revisionId) {
         super(nodeStore);
         paths = new HashSet<String>();
         paths.add(path);
+        this.depth = depth;
         this.revisionId = revisionId;
     }
 
@@ -88,15 +91,6 @@ public class FetchNodesActionNew extends BaseAction<Map<String, MongoNode>> {
      */
     public void setBranchId(String branchId) {
         this.branchId = branchId;
-    }
-
-    /**
-     * Sets the depth for the command. Only used when fetchDescendants is enabled.
-     *
-     * @param depth The depth for the command or -1 for limitless depth.
-     */
-    public void setDepth(int depth) {
-        this.depth = depth;
     }
 
     @Override
