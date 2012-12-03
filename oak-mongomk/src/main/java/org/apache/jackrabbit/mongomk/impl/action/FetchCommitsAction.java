@@ -138,6 +138,7 @@ public class FetchCommitsAction extends BaseAction<List<MongoCommit>> {
             MongoCommit commitMongo = (MongoCommit) dbCursor.next();
             commits.put(commitMongo.getRevisionId(), commitMongo);
         }
+        dbCursor.close();
 
         List<MongoCommit> validCommits = new LinkedList<MongoCommit>();
         if (commits.isEmpty()) {
