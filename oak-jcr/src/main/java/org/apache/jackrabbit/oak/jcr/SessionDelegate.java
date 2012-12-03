@@ -85,8 +85,7 @@ public class SessionDelegate {
     SessionDelegate(
             Repository repository, ScheduledExecutorService executor,
             ContentSession contentSession, SecurityProvider securityProvider,
-            boolean autoRefresh)
-            throws RepositoryException {
+            boolean autoRefresh) {
 
         this.repository = checkNotNull(repository);
         this.executor = executor;
@@ -503,7 +502,7 @@ public class SessionDelegate {
     UserManager getUserManager() throws UnsupportedRepositoryOperationException {
         if (userManager == null) {
             if (securityProvider != null) {
-                userManager = securityProvider.getUserConfiguration().getUserManager(root, getNamePathMapper(), session);
+                userManager = securityProvider.getUserConfiguration().getUserManager(root, getNamePathMapper());
             } else {
                 throw new UnsupportedRepositoryOperationException("User management not supported.");
             }

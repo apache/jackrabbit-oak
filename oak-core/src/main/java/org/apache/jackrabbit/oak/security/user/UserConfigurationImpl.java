@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.security.user;
 import java.util.Collections;
 import java.util.List;
 import javax.annotation.Nonnull;
-import javax.jcr.Session;
 
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.Root;
@@ -91,13 +90,7 @@ public class UserConfigurationImpl extends SecurityConfiguration.Default impleme
 
     @Nonnull
     @Override
-    public UserManager getUserManager(Root root, NamePathMapper namePathMapper, Session session) {
-        return new UserManagerImpl(session, root, namePathMapper, securityProvider);
-    }
-
-    @Nonnull
-    @Override
     public UserManager getUserManager(Root root, NamePathMapper namePathMapper) {
-        return new UserManagerImpl(null, root, namePathMapper, securityProvider);
+        return new UserManagerImpl(root, namePathMapper, securityProvider);
     }
 }
