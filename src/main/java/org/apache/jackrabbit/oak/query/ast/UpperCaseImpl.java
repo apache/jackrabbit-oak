@@ -18,6 +18,8 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
+import javax.jcr.PropertyType;
+
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
@@ -70,6 +72,11 @@ public class UpperCaseImpl extends DynamicOperandImpl {
     @Override
     public boolean canRestrictSelector(SelectorImpl s) {
         return operand.canRestrictSelector(s);
+    }
+    
+    @Override
+    int getPropertyType() {
+        return PropertyType.STRING;
     }
 
 }

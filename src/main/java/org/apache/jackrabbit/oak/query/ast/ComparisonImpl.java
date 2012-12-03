@@ -18,6 +18,8 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
+import javax.jcr.PropertyType;
+
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
@@ -135,9 +137,16 @@ public class ComparisonImpl extends ConstraintImpl {
     @Override
     public void restrict(FilterImpl f) {
         PropertyValue v = operand2.currentValue();
+        if (!PropertyValues.canConvert(
+                operand2.getPropertyType(), 
+                operand1.getPropertyType())) {
+            throw new IllegalArgumentException(
+                    "Unsupported conversion from property type " + 
+                            PropertyType.nameFromValue(operand2.getPropertyType()) + 
+                            " to property type " +
+                            PropertyType.nameFromValue(operand1.getPropertyType()));
+        }
         if (v != null) {
-       //     operand1.restrict(f, operator, v);
-            // TODO OAK-347
             if (operator == Operator.LIKE) {
                 String pattern;
                 pattern = v.getValue(Type.STRING);

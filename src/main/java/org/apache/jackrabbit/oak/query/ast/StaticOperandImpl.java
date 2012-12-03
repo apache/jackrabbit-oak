@@ -27,4 +27,6 @@ public abstract class StaticOperandImpl extends AstElement {
 
     abstract PropertyValue currentValue();
 
+    abstract int getPropertyType();
+
 }
