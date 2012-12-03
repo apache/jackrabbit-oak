@@ -477,11 +477,25 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
         throw new RepositoryException("No matching property definition found for " + targetProperty.getName());
     }
 
+    @Nonnull
+    @Override
+    public PropertyDefinition getDefinition(Tree parent, PropertyState propertyState) throws RepositoryException {
+        return getDefinition(parent, propertyState.getName(), propertyState.isArray(), propertyState.getType().tag(), true);
+    }
+
+    @Nonnull
     @Override
     public PropertyDefinition getDefinition(Node parent, String propertyName, boolean isMultiple, int type, boolean exactTypeMatch) throws RepositoryException {
         return getPropertyDefinition(getEffectiveNodeTypes(parent), propertyName, isMultiple, type, exactTypeMatch);
     }
 
+    @Nonnull
+    @Override
+    public PropertyDefinition getDefinition(Tree parent, String propertyName, boolean isMultiple, int type, boolean exactTypeMatch) throws RepositoryException {
+        return getPropertyDefinition(getEffectiveNodeTypes(parent), propertyName, isMultiple, type, exactTypeMatch);
+    }
+
+    @Nonnull
     @Override
     public PropertyDefinition getDefinition(Iterable<NodeType> nodeTypes, String propertyName, boolean isMultiple,
             int type, boolean exactTypeMatch) throws RepositoryException {

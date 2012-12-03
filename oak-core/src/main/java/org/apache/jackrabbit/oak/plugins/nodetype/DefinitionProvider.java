@@ -24,6 +24,9 @@ import javax.jcr.nodetype.NodeDefinition;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.PropertyDefinition;
 
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Tree;
+
 /**
  * DefinitionProvider... TODO
  */
@@ -58,7 +61,13 @@ public interface DefinitionProvider {
     PropertyDefinition getDefinition(Node parent, Property targetProperty) throws RepositoryException;
 
     @Nonnull
+    PropertyDefinition getDefinition(Tree parent, PropertyState propertyState) throws RepositoryException;
+
+    @Nonnull
     PropertyDefinition getDefinition(Node parent, String propertyName, boolean isMultiple, int type, boolean exactTypeMatch) throws RepositoryException;
+
+    @Nonnull
+    PropertyDefinition getDefinition(Tree parent, String propertyName, boolean isMultiple, int type, boolean exactTypeMatch) throws RepositoryException;
 
     @Nonnull
     PropertyDefinition getDefinition(Iterable<NodeType> nodeTypes, String propertyName, boolean isMultiple, int type, boolean exactTypeMatch) throws RepositoryException;
