@@ -58,7 +58,7 @@ public class UserManagerImplTest extends AbstractSecurityTest {
         super.before();
 
         root = admin.getLatestRoot();
-        userMgr = new UserManagerImpl(null, root, NamePathMapper.DEFAULT, getSecurityProvider());
+        userMgr = new UserManagerImpl(root, NamePathMapper.DEFAULT, getSecurityProvider());
     }
 
     @Test

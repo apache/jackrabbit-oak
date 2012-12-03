@@ -193,12 +193,12 @@ public class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImp
             if (uMgr instanceof UserManagerImpl) {
                 UserManagerImpl impl = (UserManagerImpl) uMgr;
                 if (isWorkspaceImport) {
-                    userManager = new UserManagerImpl(null, root, namePathMapper, impl.getSecurityProvider());
+                    // use a separate user manager that is not associated with
+                    // transient session modifications.
+                    userManager = new UserManagerImpl(root, namePathMapper, impl.getSecurityProvider());
                     return true;
                 } else {
-                    if (session != impl.getSession()) {
-                        log.warn("Session import cannot handle user content: different session used by UserManager instance.");
-                    } else if (impl.isAutoSave()) {
+                    if (impl.isAutoSave()) {
                         log.warn("Session import cannot handle user content: UserManager is in autosave mode.");
                     } else {
                         userManager = impl;

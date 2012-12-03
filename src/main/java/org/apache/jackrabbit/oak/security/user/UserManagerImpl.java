@@ -23,9 +23,7 @@ import java.util.Iterator;
 import java.util.List;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
-import javax.jcr.Node;
 import javax.jcr.RepositoryException;
-import javax.jcr.Session;
 import javax.jcr.UnsupportedRepositoryOperationException;
 
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -60,7 +58,6 @@ public class UserManagerImpl implements UserManager {
 
     private static final Logger log = LoggerFactory.getLogger(UserManagerImpl.class);
 
-    private final Session session;
     private final Root root;
     private final NamePathMapper namePathMapper;
     private final SecurityProvider securityProvider;
@@ -72,9 +69,7 @@ public class UserManagerImpl implements UserManager {
 
     private UserQueryManager queryManager;
 
-    public UserManagerImpl(Session session, Root root, NamePathMapper namePathMapper,
-                           SecurityProvider securityProvider) {
-        this.session = session;
+    public UserManagerImpl(Root root, NamePathMapper namePathMapper, SecurityProvider securityProvider) {
         this.root = root;
         this.namePathMapper = namePathMapper;
         this.securityProvider = securityProvider;
@@ -279,20 +274,6 @@ public class UserManagerImpl implements UserManager {
 
     //--------------------------------------------------------------------------
     @CheckForNull
-    Node getAuthorizableNode(String id) throws RepositoryException {
-        if (session == null) {
-            return null;
-        }
-
-        Tree tree = userProvider.getAuthorizable(id);
-        if (tree == null) {
-            throw new RepositoryException("Authorizable not associated with an existing tree");
-        }
-        String jcrPath = getNamePathMapper().getJcrPath(tree.getPath());
-        return session.getNode(jcrPath);
-    }
-
-    @CheckForNull
     Tree getAuthorizableTree(String id) {
         Tree tree = userProvider.getAuthorizable(id);
         if (tree == null) {
@@ -311,11 +292,7 @@ public class UserManagerImpl implements UserManager {
 
     @Nonnull
     AuthorizableProperties getAuthorizableProperties(String id) throws RepositoryException {
-        if (session != null) {
-            return new JcrAuthorizableProperties(getAuthorizableNode(id), namePathMapper);
-        } else {
-            return new OakAuthorizableProperties(userProvider, id, namePathMapper);
-        }
+        return new OakAuthorizableProperties(root, userProvider, id, namePathMapper);
     }
 
     @Nonnull
@@ -341,11 +318,6 @@ public class UserManagerImpl implements UserManager {
     @Nonnull
     ConfigurationParameters getConfig() {
         return config;
-    }
-
-    @CheckForNull
-    Session getSession() {
-        return session;
     }
 
     @CheckForNull
@@ -401,8 +373,11 @@ public class UserManagerImpl implements UserManager {
     }
 
     private void checkIsLive() throws RepositoryException {
-        if (session != null && !session.isLive()) {
-            throw new RepositoryException("UserManager has been closed.");
+        try {
+            // FIXME: checkIsLive is not part of the public root interface... execute the check using another method.
+            root.getBlobFactory();
+        } catch (IllegalStateException e) {
+            throw new RepositoryException("User manager is no longer alive.");
         }
     }
 

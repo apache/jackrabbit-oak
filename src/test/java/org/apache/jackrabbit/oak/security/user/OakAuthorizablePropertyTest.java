@@ -64,7 +64,7 @@ public class OakAuthorizablePropertyTest extends AbstractSecurityTest {
         super.before();
 
         root = admin.getLatestRoot();
-        userMgr = new UserManagerImpl(null, root, NamePathMapper.DEFAULT, getSecurityProvider());
+        userMgr = new UserManagerImpl(root, NamePathMapper.DEFAULT, getSecurityProvider());
 
         user = userMgr.createUser("testuser", "pw");
         group = userMgr.createGroup("testgroup");

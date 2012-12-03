@@ -21,22 +21,30 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import javax.annotation.Nonnull;
+import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
+import javax.jcr.nodetype.ConstraintViolationException;
+import javax.jcr.nodetype.NodeType;
+import javax.jcr.nodetype.PropertyDefinition;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.util.LocationUtil;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
-import org.apache.jackrabbit.oak.plugins.name.NamespaceConstants;
+import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
+import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
+import org.apache.jackrabbit.oak.util.LocationUtil;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
 
 /**
  * Oak level implementation of the internal {@code AuthorizableProperties} that
@@ -51,11 +59,19 @@ class OakAuthorizableProperties implements AuthorizableProperties {
     private final UserProvider userProvider;
     private final String id;
     private final NamePathMapper namePathMapper;
+    private final ReadOnlyNodeTypeManager nodeTypeManager;
 
-    OakAuthorizableProperties(UserProvider userProvider, String id, NamePathMapper namePathMapper) {
+    OakAuthorizableProperties(final Root root, UserProvider userProvider,
+                              String id, NamePathMapper namePathMapper) {
         this.userProvider = userProvider;
         this.id = id;
         this.namePathMapper = namePathMapper;
+        this.nodeTypeManager = new ReadOnlyNodeTypeManager() {
+            @Override
+            protected Tree getTypes() {
+                return root.getTree(NODE_TYPES_PATH);
+            }
+        };
     }
 
     //---------------------------------------------< AuthorizableProperties >---
@@ -64,12 +80,14 @@ class OakAuthorizableProperties implements AuthorizableProperties {
         checkRelativePath(relPath);
 
         Tree tree = getTree();
-        Tree n = getLocation(tree, relPath).getTree();
-        if (n != null && Text.isDescendantOrEqual(tree.getPath(), n.getPath())) {
+        TreeLocation location = getLocation(tree, relPath);
+        Tree parent = location.getTree();
+        if (parent != null && Text.isDescendantOrEqual(tree.getPath(), parent.getPath())) {
             List<String> l = new ArrayList<String>();
-            for (PropertyState property : n.getProperties()) {
-                if (isAuthorizableProperty(tree, property)) {
-                    l.add(property.getName());
+            for (PropertyState property : parent.getProperties()) {
+                String propName = property.getName();
+                if (isAuthorizableProperty(tree, location.getChild(propName), false)) {
+                    l.add(propName);
                 }
             }
             return l.iterator();
@@ -119,26 +137,28 @@ class OakAuthorizableProperties implements AuthorizableProperties {
      */
     @Override
     public void setProperty(String relPath, Value value) throws RepositoryException {
-        checkRelativePath(relPath);
+        if (value == null) {
+            removeProperty(relPath);
+        } else {
+            checkRelativePath(relPath);
 
-        String name = Text.getName(relPath);
-        if (!isAuthorizableProperty(name)) {
-            throw new RepositoryException("Attempt to set an protected property " + name);
-        }
+            String name = Text.getName(relPath);
+            String intermediate = (relPath.equals(name)) ? null : Text.getRelativeParent(relPath, 1);
+            Tree parent = getOrCreateTargetTree(intermediate);
+            checkProtectedProperty(parent, name, false, value.getType());
 
-        String intermediate = (relPath.equals(name)) ? null : Text.getRelativeParent(relPath, 1);
-        Tree n = getOrCreateTargetTree(intermediate);
-        // check if the property has already been created as multi valued
-        // property before -> in this case remove in order to avoid
-        // ValueFormatException.
-        if (n.hasProperty(name)) {
-            PropertyState p = n.getProperty(name);
-            if (p.isArray()) {
-                n.removeProperty(name);
+            // check if the property has already been created as multi valued
+            // property before -> in this case remove in order to avoid
+            // ValueFormatException.
+            if (parent.hasProperty(name)) {
+                PropertyState p = parent.getProperty(name);
+                if (p.isArray()) {
+                    parent.removeProperty(name);
+                }
             }
+            PropertyState propertyState = PropertyStates.createProperty(name, value);
+            parent.setProperty(propertyState);
         }
-        PropertyState propertyState = PropertyStates.createProperty(name, value);
-        n.setProperty(propertyState);
     }
 
     /**
@@ -146,26 +166,29 @@ class OakAuthorizableProperties implements AuthorizableProperties {
      */
     @Override
     public void setProperty(String relPath, Value[] values) throws RepositoryException {
-        checkRelativePath(relPath);
+        if (values == null) {
+            removeProperty(relPath);
+        } else {
+            checkRelativePath(relPath);
 
-        String name = Text.getName(relPath);
-        if (!isAuthorizableProperty(name)) {
-            throw new RepositoryException("Attempt to set an protected property " + name);
-        }
+            String name = Text.getName(relPath);
+            String intermediate = (relPath.equals(name)) ? null : Text.getRelativeParent(relPath, 1);
+            Tree parent = getOrCreateTargetTree(intermediate);
+            int targetType = (values.length == 0) ? PropertyType.UNDEFINED : values[0].getType();
+            checkProtectedProperty(parent, name, true, targetType);
 
-        String intermediate = (relPath.equals(name)) ? null : Text.getRelativeParent(relPath, 1);
-        Tree n = getOrCreateTargetTree(intermediate);
-        // check if the property has already been created as single valued
-        // property before -> in this case remove in order to avoid
-        // ValueFormatException.
-        if (n.hasProperty(name)) {
-            PropertyState p = n.getProperty(name);
-            if (!p.isArray()) {
-                n.removeProperty(name);
+            // check if the property has already been created as single valued
+            // property before -> in this case remove in order to avoid
+            // ValueFormatException.
+            if (parent.hasProperty(name)) {
+                PropertyState p = parent.getProperty(name);
+                if (!p.isArray()) {
+                    parent.removeProperty(name);
+                }
             }
+            PropertyState propertyState = PropertyStates.createProperty(name, Arrays.asList(values));
+            parent.setProperty(propertyState);
         }
-        PropertyState propertyState = PropertyStates.createProperty(name, Arrays.asList(values));
-        n.setProperty(propertyState);
     }
 
     /**
@@ -183,6 +206,8 @@ class OakAuthorizableProperties implements AuthorizableProperties {
                 Tree parent = propertyLocation.getParent().getTree();
                 parent.removeProperty(property.getName());
                 return true;
+            } else {
+                throw new ConstraintViolationException("Property " + relPath + " isn't a modifiable authorizable property");
             }
         }
         // no such property or wasn't a property of this authorizable.
@@ -208,24 +233,40 @@ class OakAuthorizableProperties implements AuthorizableProperties {
      * @return {@code true} if the given property is defined
      * by the rep:authorizable node type or one of it's sub-node types;
      * {@code false} otherwise.
+     * @throws RepositoryException If an error occurs.
      */
-    private boolean isAuthorizableProperty(Tree authorizableTree, TreeLocation propertyLocation, boolean verifyAncestor) {
-        if (verifyAncestor && !Text.isDescendant(authorizableTree.getPath(), propertyLocation.getPath())) {
-                log.debug("Attempt to access property outside of authorizable scope.");
+    private boolean isAuthorizableProperty(Tree authorizableTree, TreeLocation propertyLocation, boolean verifyAncestor) throws RepositoryException {
+        String authorizablePath = authorizableTree.getPath();
+        String propPath = propertyLocation.getPath();
+        if (verifyAncestor && !Text.isDescendant(authorizablePath, propPath)) {
+            log.debug("Attempt to access property outside of authorizable scope.");
+            return false;
+        }
+
+        Tree parent = propertyLocation.getParent().getTree();
+        PropertyState property = propertyLocation.getProperty();
+        if (property != null) {
+            PropertyDefinition def = nodeTypeManager.getDefinition(parent, property);
+            if (def.isProtected()) {
                 return false;
+            } else if (authorizablePath.equals(parent.getPath())) {
+                NodeType declaringNt = def.getDeclaringNodeType();
+                return declaringNt.isNodeType(UserConstants.NT_REP_AUTHORIZABLE);
+            } else {
+                // another non-protected property somewhere in the subtree of this
+                // authorizable node -> is a property that can be set using #setProperty.
+                return true;
             }
-        return isAuthorizableProperty(authorizableTree, propertyLocation.getProperty());
+        }
+        // property does not exist.
+        return false;
     }
 
-    private boolean isAuthorizableProperty(Tree authorizableTree, PropertyState property) {
-        // FIXME: add proper check for protection and declaring nt of the
-        // FIXME: property using nt functionality provided by nt-plugins
-        return property != null && isAuthorizableProperty(property.getName());
-    }
-
-    private boolean isAuthorizableProperty(String propertyName) {
-        String prefix = Text.getNamespacePrefix(propertyName);
-        return !NamespaceConstants.RESERVED_PREFIXES.contains(prefix);
+    private void checkProtectedProperty(Tree parent, String propertyName, boolean isArray, int type) throws RepositoryException {
+        PropertyDefinition def = nodeTypeManager.getDefinition(parent, propertyName, isArray, type, false);
+        if (def.isProtected()) {
+            throw new ConstraintViolationException("Attempt to set an protected property " + propertyName);
+        }
     }
 
     /**
