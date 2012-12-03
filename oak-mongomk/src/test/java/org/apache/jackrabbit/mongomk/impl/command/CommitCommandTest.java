@@ -34,7 +34,7 @@ public class CommitCommandTest extends BaseMongoMicroKernelTest {
     @Test
     public void initialCommit() throws Exception {
         Commit commit = CommitBuilder.build("/", "+\"a\" : { \"b\" : {} , \"c\" : {} }", null);
-        CommitCommand command = new CommitCommand(getNodeStore(), commit);
+        CommitCommandNew command = new CommitCommandNew(getNodeStore(), commit);
         Long revisionId = command.execute();
 
         Assert.assertNotNull(revisionId);

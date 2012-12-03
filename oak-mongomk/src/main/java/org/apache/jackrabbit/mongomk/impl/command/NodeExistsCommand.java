@@ -22,7 +22,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.jackrabbit.mongomk.impl.MongoNodeStore;
-import org.apache.jackrabbit.mongomk.impl.action.FetchNodesAction;
+import org.apache.jackrabbit.mongomk.impl.action.FetchNodesActionNew;
 import org.apache.jackrabbit.mongomk.impl.model.MongoCommit;
 import org.apache.jackrabbit.mongomk.impl.model.MongoNode;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -90,9 +90,9 @@ public class NodeExistsCommand extends BaseCommand<Boolean> {
             revisionId = new GetHeadRevisionCommand(nodeStore).execute();
         }
 
-        FetchNodesAction action = new FetchNodesAction(nodeStore, paths, revisionId);
+        FetchNodesActionNew action = new FetchNodesActionNew(nodeStore, paths, revisionId);
         action.setBranchId(branchId);
-        action.setValidCommits(validCommits);
+        //action.setValidCommits(validCommits);
 
         Map<String, MongoNode> pathAndNodeMap = action.execute();
         String currentPath = this.path;

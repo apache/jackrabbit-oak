@@ -16,11 +16,9 @@
  */
 package org.apache.jackrabbit.mongomk.impl.action;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -37,18 +35,21 @@ import com.mongodb.DBObject;
 import com.mongodb.QueryBuilder;
 
 /**
+ * FIXME - This is same as FetchNodesAction except that it does not require
+ * the list of all valid commits upfront. It also has some optimizations on how
+ * it fetches nodes. Consolidate the two.
+ *
  * An action for fetching nodes.
  */
-public class FetchNodesAction extends BaseAction<Map<String, MongoNode>> {
+public class FetchNodesActionNew extends BaseAction<Map<String, MongoNode>> {
 
     public static final int LIMITLESS_DEPTH = -1;
-    private static final Logger LOG = LoggerFactory.getLogger(FetchNodesAction.class);
+    private static final Logger LOG = LoggerFactory.getLogger(FetchNodesActionNew.class);
 
     private final Set<String> paths;
     private long revisionId = -1;
 
     private String branchId;
-    private List<MongoCommit> validCommits;
     private int depth = LIMITLESS_DEPTH;
 
     /**
@@ -59,7 +60,7 @@ public class FetchNodesAction extends BaseAction<Map<String, MongoNode>> {
      * @param path The path.
      * @param revisionId The revision id.
      */
-    public FetchNodesAction(MongoNodeStore nodeStore, String path, long revisionId) {
+    public FetchNodesActionNew(MongoNodeStore nodeStore, String path, long revisionId) {
         super(nodeStore);
         paths = new HashSet<String>();
         paths.add(path);
@@ -74,7 +75,7 @@ public class FetchNodesAction extends BaseAction<Map<String, MongoNode>> {
      * @param paths The exact paths to fetch nodes for.
      * @param revisionId The revision id.
      */
-    public FetchNodesAction(MongoNodeStore nodeStore,  Set<String> paths, long revisionId) {
+    public FetchNodesActionNew(MongoNodeStore nodeStore,  Set<String> paths, long revisionId) {
         super(nodeStore);
         this.paths = paths;
         this.revisionId = revisionId;
@@ -87,16 +88,6 @@ public class FetchNodesAction extends BaseAction<Map<String, MongoNode>> {
      */
     public void setBranchId(String branchId) {
         this.branchId = branchId;
-    }
-
-    /**
-     * Sets the last valid commits if already known. This is an optimization to
-     * speed up the fetch nodes action.
-     *
-     * @param commits The last valid commits.
-     */
-    public void setValidCommits(List<MongoCommit> validCommits) {
-        this.validCommits = validCommits;
     }
 
     /**
@@ -127,6 +118,7 @@ public class FetchNodesAction extends BaseAction<Map<String, MongoNode>> {
             queryBuilder = queryBuilder.regex(pattern);
         }
 
+        // FIXME - This needs to be improved to not fetch all revisions of a path.
         if (revisionId > -1) {
             queryBuilder = queryBuilder.and(MongoNode.KEY_REVISION_ID).lessThanEquals(revisionId);
         }
@@ -179,37 +171,37 @@ public class FetchNodesAction extends BaseAction<Map<String, MongoNode>> {
     }
 
     private Map<String, MongoNode> getMostRecentValidNodes(DBCursor dbCursor) {
-        if (validCommits == null) {
-            validCommits = new FetchCommitsAction(nodeStore, revisionId).execute();
-        }
-
-        List<Long> validRevisions = extractRevisionIds(validCommits);
         Map<String, MongoNode> nodeMongos = new HashMap<String, MongoNode>();
+        Map<Long, MongoCommit> commits = new HashMap<Long, MongoCommit>();
 
         while (dbCursor.hasNext()) {
             MongoNode nodeMongo = (MongoNode) dbCursor.next();
-
             String path = nodeMongo.getPath();
-            long revisionId = nodeMongo.getRevisionId();
-
-            LOG.debug("Converting node {} ({})", path, revisionId);
-
-            if (!validRevisions.contains(revisionId)) {
-                LOG.debug("Node will not be converted as it is not a valid commit {} ({})",
-                        path, revisionId);
-                continue;
-            }
-
-            // This assumes that revision ids are ordered and nodes were fetched
-            // in sorted order.
+            // Assuming that revision ids are ordered and nodes are fetched in
+            // sorted order, first check if the path is already in the map.
             if (nodeMongos.containsKey(path)) {
                 LOG.debug("Converted nodes @{} with path {} was not put into map"
                         + " because a newer version is available", revisionId, path);
                 continue;
-            }
-            nodeMongos.put(path, nodeMongo);
-            LOG.debug("Converted node @{} with path {} was put into map", revisionId, path);
+            } else {
+                long revisionId = nodeMongo.getRevisionId();
+                LOG.debug("Converting node {} ({})", path, revisionId);
 
+                if (!commits.containsKey(revisionId)) {
+                    LOG.debug("Fetching commit @{}", revisionId);
+                    FetchCommitAction action = new FetchCommitAction(nodeStore, revisionId);
+                    try {
+                        MongoCommit commit = action.execute();
+                        commits.put(revisionId, commit);
+                    } catch (Exception e) {
+                        LOG.debug("Node will not be converted as it is not part of a valid commit {} ({})",
+                                path, revisionId);
+                        continue;
+                    }
+                }
+                nodeMongos.put(path, nodeMongo);
+                LOG.debug("Converted node @{} with path {} was put into map", revisionId, path);
+            }
 
             // This is for unordered revision ids.
             /*
@@ -232,13 +224,5 @@ public class FetchNodesAction extends BaseAction<Map<String, MongoNode>> {
         }
         dbCursor.close();
         return nodeMongos;
-    }
-
-    private List<Long> extractRevisionIds(List<MongoCommit> validCommits) {
-        List<Long> validRevisions = new ArrayList<Long>(validCommits.size());
-        for (MongoCommit commitMongo : validCommits) {
-            validRevisions.add(commitMongo.getRevisionId());
-        }
-        return validRevisions;
     }
 }

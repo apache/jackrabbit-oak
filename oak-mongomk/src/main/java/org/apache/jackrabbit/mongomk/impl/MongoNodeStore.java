@@ -24,12 +24,12 @@ import org.apache.jackrabbit.mongomk.api.command.CommandExecutor;
 import org.apache.jackrabbit.mongomk.api.model.Commit;
 import org.apache.jackrabbit.mongomk.api.model.Node;
 import org.apache.jackrabbit.mongomk.impl.action.FetchCommitAction;
-import org.apache.jackrabbit.mongomk.impl.command.CommitCommand;
+import org.apache.jackrabbit.mongomk.impl.command.CommitCommandNew;
 import org.apache.jackrabbit.mongomk.impl.command.DefaultCommandExecutor;
 import org.apache.jackrabbit.mongomk.impl.command.DiffCommand;
 import org.apache.jackrabbit.mongomk.impl.command.GetHeadRevisionCommand;
 import org.apache.jackrabbit.mongomk.impl.command.GetJournalCommand;
-import org.apache.jackrabbit.mongomk.impl.command.GetNodesCommand;
+import org.apache.jackrabbit.mongomk.impl.command.GetNodesCommandNew;
 import org.apache.jackrabbit.mongomk.impl.command.GetRevisionHistoryCommand;
 import org.apache.jackrabbit.mongomk.impl.command.MergeCommand;
 import org.apache.jackrabbit.mongomk.impl.command.NodeExistsCommand;
@@ -73,7 +73,7 @@ public class MongoNodeStore implements NodeStore {
 
     @Override
     public String commit(Commit commit) throws Exception {
-        Command<Long> command = new CommitCommand(this, commit);
+        Command<Long> command = new CommitCommandNew(this, commit);
         Long revisionId = commandExecutor.execute(command);
         return MongoUtil.fromMongoRepresentation(revisionId);
     }
@@ -95,7 +95,7 @@ public class MongoNodeStore implements NodeStore {
     @Override
     public Node getNodes(String path, String revisionId, int depth, long offset,
             int maxChildNodes, String filter) throws Exception {
-        GetNodesCommand command = new GetNodesCommand(this, path,
+        GetNodesCommandNew command = new GetNodesCommandNew(this, path,
                 MongoUtil.toMongoRepresentation(revisionId));
         command.setBranchId(getBranchId(revisionId));
         command.setDepth(depth);

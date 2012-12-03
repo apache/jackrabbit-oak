@@ -114,6 +114,6 @@ public class GetJournalCommand extends BaseCommand<String> {
     }
 
     private Node getNode(String path, long revisionId) throws Exception {
-        return new GetNodesCommand(nodeStore, path, revisionId).execute();
+        return new GetNodesCommandNew(nodeStore, path, revisionId).execute();
     }
 }

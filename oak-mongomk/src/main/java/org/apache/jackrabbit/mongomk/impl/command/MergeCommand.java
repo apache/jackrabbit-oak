@@ -84,7 +84,7 @@ public class MergeCommand extends BaseCommand<String> {
         Commit newCommit = CommitBuilder.build("", diff,
                 MongoUtil.fromMongoRepresentation(currentHead), message);
 
-        Command<Long> command = new CommitCommand(nodeStore, newCommit);
+        Command<Long> command = new CommitCommandNew(nodeStore, newCommit);
         long revision = command.execute();
         return MongoUtil.fromMongoRepresentation(revision);
     }
@@ -179,7 +179,7 @@ public class MergeCommand extends BaseCommand<String> {
     }
 
     private Node getNode(String path, long revisionId, String branchId) throws Exception {
-        GetNodesCommand command = new GetNodesCommand(nodeStore, path, revisionId);
+        GetNodesCommandNew command = new GetNodesCommandNew(nodeStore, path, revisionId);
         command.setBranchId(branchId);
         return command.execute();
     }

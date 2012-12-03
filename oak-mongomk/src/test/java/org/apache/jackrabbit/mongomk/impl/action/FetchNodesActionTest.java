@@ -51,8 +51,7 @@ public class FetchNodesActionTest extends BaseMongoMicroKernelTest {
         invalidateCommit(revisionId1);
         updateBaseRevisionId(revisionId2, 0L);
 
-        FetchNodesAction query = new FetchNodesAction(getNodeStore(), "/", revisionId3);
-        List<Node> actuals = toNode(query.execute());
+        List<Node> actuals = createAndExecuteQuery(revisionId3);
 
         String json = String.format("{\"/#%2$s\" : { \"b#%1$s\" : {}, \"c#%2$s\" : {} }}",
                 revisionId2, revisionId3);
@@ -163,18 +162,14 @@ public class FetchNodesActionTest extends BaseMongoMicroKernelTest {
         SimpleNodeScenario scenario = new SimpleNodeScenario(getNodeStore());
         Long revisionId = scenario.create();
 
-        FetchNodesAction query = new FetchNodesAction(getNodeStore(),
-                getPathSet("/a", "/a/b", "/a/c", "not_existing"), revisionId);
-        List<Node> actuals = toNode(query.execute());
+        List<Node> actuals = createAndExecuteQuery(revisionId, getPathSet("/a", "/a/b", "/a/c", "not_existing"));
         String json = String.format("{ \"/#%1$s\" : { \"a#%1$s\" : { \"int\" : 1 , \"b#%1$s\" : { \"string\" : \"foo\" } , \"c#%1$s\" : { \"bool\" : true } } } }",
                 revisionId);
         Node expected = NodeBuilder.build(json);
         Iterator<Node> expecteds = expected.getChildNodeEntries(0, -1);
         NodeAssert.assertEquals(expecteds, actuals);
 
-        query = new FetchNodesAction(getNodeStore(),
-                getPathSet("/a", "not_existing"), revisionId);
-        actuals = toNode(query.execute());
+        actuals = createAndExecuteQuery(revisionId, getPathSet("/a", "not_existing"));
         json = String.format("{ \"/#%1$s\" : { \"a#%1$s\" : { \"int\" : 1 } } }",
                 revisionId);
         expected = NodeBuilder.build(json);
@@ -188,20 +183,14 @@ public class FetchNodesActionTest extends BaseMongoMicroKernelTest {
         Long firstRevisionId = scenario.create();
         Long secondRevisionId = scenario.update_A_and_add_D_and_E();
 
-        FetchNodesAction query = new FetchNodesAction(getNodeStore(),
-                getPathSet("/a", "/a/b", "/a/c", "/a/d", "/a/b/e", "not_existing"),
-                firstRevisionId);
-        List<Node> actuals = toNode(query.execute());
+        List<Node> actuals = createAndExecuteQuery(firstRevisionId, getPathSet("/a", "/a/b", "/a/c", "/a/d", "/a/b/e", "not_existing"));
         String json = String.format("{ \"/#%1$s\" : { \"a#%1$s\" : { \"int\" : 1 , \"b#%1$s\" : { \"string\" : \"foo\" } , \"c#%1$s\" : { \"bool\" : true } } } }",
                 firstRevisionId);
         Node expected = NodeBuilder.build(json);
         Iterator<Node> expecteds = expected.getChildNodeEntries(0, -1);
         NodeAssert.assertEquals(expecteds, actuals);
 
-        query = new FetchNodesAction(getNodeStore(),
-                getPathSet("/a", "/a/b", "/a/c", "/a/d", "/a/b/e", "not_existing"),
-                secondRevisionId);
-        actuals = toNode(query.execute());
+        actuals = createAndExecuteQuery(secondRevisionId, getPathSet("/a", "/a/b", "/a/c", "/a/d", "/a/b/e", "not_existing"));
         json = String.format("{ \"/#%1$s\" : { \"a#%2$s\" : { \"int\" : 1 , \"double\" : 0.123 , \"b#%2$s\" : { \"string\" : \"foo\" , \"e#%2$s\" : { \"array\" : [ 123, null, 123.456, \"for:bar\", true ] } } , \"c#%1$s\" : { \"bool\" : true }, \"d#%2$s\" : { \"null\" : null } } } }",
                 firstRevisionId, secondRevisionId);
         expected = NodeBuilder.build(json);
@@ -209,12 +198,22 @@ public class FetchNodesActionTest extends BaseMongoMicroKernelTest {
         NodeAssert.assertEquals(expecteds, actuals);
     }
 
-    private List<Node> createAndExecuteQuery(Long revisionId) {
+    private List<Node> createAndExecuteQuery(long revisionId) {
         return createAndExecuteQuery(revisionId, -1);
     }
 
-    private List<Node> createAndExecuteQuery(Long revisionId, int depth) {
-        FetchNodesAction query = new FetchNodesAction(getNodeStore(), "/", revisionId);
+    private List<Node> createAndExecuteQuery(long revisionId, int depth) {
+        Set<String> paths = new HashSet<String>();
+        paths.add("/");
+        return createAndExecuteQuery(revisionId, paths, depth);
+    }
+
+    private List<Node> createAndExecuteQuery(long revisionId, Set<String> paths) {
+        return createAndExecuteQuery(revisionId, paths, -1);
+    }
+
+    private List<Node> createAndExecuteQuery(long revisionId, Set<String> paths, int depth) {
+        FetchNodesActionNew query = new FetchNodesActionNew(getNodeStore(), paths, revisionId);
         if (depth > -1) {
             query.setDepth(depth);
         }
