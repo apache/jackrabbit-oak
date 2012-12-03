@@ -165,20 +165,27 @@ public class FetchNodesActionNew extends BaseAction<Map<String, MongoNode>> {
     }
 
     private Map<String, MongoNode> getMostRecentValidNodes(DBCursor dbCursor) {
-        Map<String, MongoNode> nodeMongos = new HashMap<String, MongoNode>();
+        int numberOfNodesToFetch = -1;
+        if (paths.size() > 1) {
+            numberOfNodesToFetch = paths.size();
+        } else if (depth == 0) {
+            numberOfNodesToFetch = 1;
+        }
+
+        Map<String, MongoNode> nodes = new HashMap<String, MongoNode>();
         Map<Long, MongoCommit> commits = new HashMap<Long, MongoCommit>();
 
-        while (dbCursor.hasNext()) {
-            MongoNode nodeMongo = (MongoNode) dbCursor.next();
-            String path = nodeMongo.getPath();
+        while (dbCursor.hasNext() && (numberOfNodesToFetch == -1 || nodes.size() < numberOfNodesToFetch)) {
+            MongoNode node = (MongoNode)dbCursor.next();
+            String path = node.getPath();
             // Assuming that revision ids are ordered and nodes are fetched in
             // sorted order, first check if the path is already in the map.
-            if (nodeMongos.containsKey(path)) {
+            if (nodes.containsKey(path)) {
                 LOG.debug("Converted nodes @{} with path {} was not put into map"
                         + " because a newer version is available", revisionId, path);
                 continue;
             } else {
-                long revisionId = nodeMongo.getRevisionId();
+                long revisionId = node.getRevisionId();
                 LOG.debug("Converting node {} ({})", path, revisionId);
 
                 if (!commits.containsKey(revisionId)) {
@@ -193,7 +200,7 @@ public class FetchNodesActionNew extends BaseAction<Map<String, MongoNode>> {
                         continue;
                     }
                 }
-                nodeMongos.put(path, nodeMongo);
+                nodes.put(path, node);
                 LOG.debug("Converted node @{} with path {} was put into map", revisionId, path);
             }
 
@@ -217,6 +224,6 @@ public class FetchNodesActionNew extends BaseAction<Map<String, MongoNode>> {
             */
         }
         dbCursor.close();
-        return nodeMongos;
+        return nodes;
     }
 }
