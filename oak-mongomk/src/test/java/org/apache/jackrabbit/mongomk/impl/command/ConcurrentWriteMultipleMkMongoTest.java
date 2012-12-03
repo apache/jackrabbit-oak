@@ -20,14 +20,14 @@ import com.mongodb.DB;
 public class ConcurrentWriteMultipleMkMongoTest extends BaseMongoMicroKernelTest {
 
     @Test
-    public void testHundredNodes() throws Exception {
-        doTest(100);
+    public void testSmall() throws Exception {
+        doTest(1000);
     }
 
     @Test
     @Ignore // Ignored only because it takes a while to complete.
-    public void testThousandNodes() throws Exception {
-        doTest(1000);
+    public void testLarge() throws Exception {
+        doTest(10000);
     }
 
     private void doTest(int numberOfNodes) throws Exception {
