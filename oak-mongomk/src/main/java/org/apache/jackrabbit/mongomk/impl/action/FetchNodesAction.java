@@ -74,7 +74,7 @@ public class FetchNodesAction extends BaseAction<Map<String, MongoNode>> {
      * @param paths The exact paths to fetch nodes for.
      * @param revisionId The revision id.
      */
-    public FetchNodesAction(MongoNodeStore nodeStore,  Set<String> paths, long revisionId) {
+    public FetchNodesAction(MongoNodeStore nodeStore, Set<String> paths, long revisionId) {
         super(nodeStore);
         this.paths = paths;
         this.revisionId = revisionId;
@@ -123,8 +123,12 @@ public class FetchNodesAction extends BaseAction<Map<String, MongoNode>> {
             queryBuilder = queryBuilder.in(paths);
         } else {
             String path = paths.toArray(new String[0])[0];
-            Pattern pattern = createPrefixRegExp(path);
-            queryBuilder = queryBuilder.regex(pattern);
+            if (depth == 0) {
+                queryBuilder = queryBuilder.is(path);
+            } else {
+                Pattern pattern = createPrefixRegExp(path);
+                queryBuilder = queryBuilder.regex(pattern);
+            }
         }
 
         if (revisionId > -1) {
@@ -160,10 +164,6 @@ public class FetchNodesAction extends BaseAction<Map<String, MongoNode>> {
         if (depth < 0) {
             sb.append("^");
             sb.append(quotedPath);
-        } else if (depth == 0) {
-            sb.append("^");
-            sb.append(quotedPath);
-            sb.append("$");
         } else if (depth > 0) {
             sb.append("^");
             if (!"/".equals(path)) {
