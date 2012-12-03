@@ -214,9 +214,6 @@ public class FetchNodesActionTest extends BaseMongoMicroKernelTest {
 
     private List<Node> createAndExecuteQuery(long revisionId, Set<String> paths, int depth) {
         FetchNodesActionNew query = new FetchNodesActionNew(getNodeStore(), paths, revisionId);
-        if (depth > -1) {
-            query.setDepth(depth);
-        }
         return toNode(query.execute());
     }
 

@@ -135,9 +135,8 @@ public class GetNodesCommandNew extends BaseCommand<Node> {
     }
 
     private void readNodesByPath() {
-        FetchNodesActionNew query = new FetchNodesActionNew(nodeStore, path, revisionId);
+        FetchNodesActionNew query = new FetchNodesActionNew(nodeStore, path, depth, revisionId);
         query.setBranchId(branchId);
-        query.setDepth(depth);
         pathAndNodeMap = query.execute();
     }
 
