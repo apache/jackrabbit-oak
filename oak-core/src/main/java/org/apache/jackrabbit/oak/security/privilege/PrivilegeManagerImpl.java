@@ -42,8 +42,6 @@ import org.slf4j.LoggerFactory;
 /**
  * {@code PrivilegeManager} implementation reading from and storing privileges
  * into the repository.
- *
- * TODO: review if jcr:all should be present in the content as well (updated in the privilege commit validator)
  */
 public class PrivilegeManagerImpl implements PrivilegeManager {
 
@@ -141,27 +139,17 @@ public class PrivilegeManagerImpl implements PrivilegeManager {
     @Nonnull
     private PrivilegeDefinition[] getPrivilegeDefinitions() {
         Map<String, PrivilegeDefinition> definitions = getReader().readDefinitions();
-        definitions.put(PrivilegeConstants.JCR_ALL, getJcrAllDefinition(definitions));
         return definitions.values().toArray(new PrivilegeDefinition[definitions.size()]);
     }
 
     @CheckForNull
     private PrivilegeDefinition getPrivilegeDefinition(String oakName) {
-        if (PrivilegeConstants.JCR_ALL.equals(oakName)) {
-            return getJcrAllDefinition(getReader().readDefinitions());
-        } else {
-            return getReader().readDefinition(oakName);
-        }
+        return getReader().readDefinition(oakName);
     }
 
     @Nonnull
     private PrivilegeDefinitionReader getReader() {
         return new PrivilegeDefinitionReaderImpl(root);
-    }
-
-    @Nonnull
-    private static PrivilegeDefinition getJcrAllDefinition(Map<String, PrivilegeDefinition> definitions) {
-        return new PrivilegeDefinitionImpl(PrivilegeConstants.JCR_ALL, false, definitions.keySet());
     }
 
     //--------------------------------------------------------------------------

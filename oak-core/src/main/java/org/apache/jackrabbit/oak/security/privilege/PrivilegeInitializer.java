@@ -16,8 +16,9 @@
  */
 package org.apache.jackrabbit.oak.security.privilege;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.JcrConstants;
@@ -76,16 +77,18 @@ class PrivilegeInitializer implements RepositoryInitializer, PrivilegeConstants 
         }
     }
 
-    Set<PrivilegeDefinition> getBuiltInDefinitions() {
-        Set<PrivilegeDefinition> definitions = new HashSet<PrivilegeDefinition>();
+    private Collection<PrivilegeDefinition> getBuiltInDefinitions() {
+        Map<String, PrivilegeDefinition> definitions = new LinkedHashMap<String, PrivilegeDefinition>();
         for (String privilegeName : NON_AGGR_PRIVILEGES) {
             PrivilegeDefinition def = new PrivilegeDefinitionImpl(privilegeName, false);
-            definitions.add(def);
+            definitions.put(privilegeName, def);
         }
         for (String privilegeName : AGGREGATE_PRIVILEGES.keySet()) {
             PrivilegeDefinition def = new PrivilegeDefinitionImpl(privilegeName, false, AGGREGATE_PRIVILEGES.get(privilegeName));
-            definitions.add(def);
+            definitions.put(privilegeName, def);
         }
-        return definitions;
+        PrivilegeDefinition all = new PrivilegeDefinitionImpl(JCR_ALL, false, definitions.keySet());
+        definitions.put(JCR_ALL, all);
+        return definitions.values();
     }
 }
