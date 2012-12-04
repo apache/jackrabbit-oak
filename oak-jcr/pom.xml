@@ -41,9 +41,6 @@
       org.apache.jackrabbit.test.api.SessionTest#testMoveLockException
       org.apache.jackrabbit.test.api.SessionUUIDTest#testSaveReferentialIntegrityException<!--OAK-66-->
       org.apache.jackrabbit.test.api.SessionUUIDTest#testSaveMovedRefNode<!--OAK-66-->
-      org.apache.jackrabbit.test.api.NodeTest#testSaveConstraintViolationException<!--OAK-66-->
-      org.apache.jackrabbit.test.api.NodeTest#testAddNodeConstraintViolationExceptionUndefinedNodeType<!--OAK-66-->
-      org.apache.jackrabbit.test.api.NodeTest#testRemoveMandatoryNode<!--OAK-66-->
       org.apache.jackrabbit.test.api.NodeTest#testRefreshInvalidItemStateException<!--OAK-141-->
       org.apache.jackrabbit.test.api.NodeTest#testRemoveNodeLockedItself
       org.apache.jackrabbit.test.api.NodeTest#testRemoveNodeParentLocked
