@@ -65,11 +65,9 @@
       org.apache.jackrabbit.test.api.NodeRemoveMixinTest#testLocked
       org.apache.jackrabbit.test.api.ValueFactoryTest#testValueFormatException<!--OAK-204-->
       org.apache.jackrabbit.test.api.WorkspaceCopySameNameSibsTest
-      org.apache.jackrabbit.test.api.WorkspaceCopyTest#testCopyNodesConstraintViolationException
       org.apache.jackrabbit.test.api.WorkspaceCopyTest#testCopyNodesAccessDenied
       org.apache.jackrabbit.test.api.WorkspaceCopyTest#testCopyNodesLocked
       org.apache.jackrabbit.test.api.WorkspaceMoveSameNameSibsTest
-      org.apache.jackrabbit.test.api.WorkspaceMoveTest#testMoveNodesConstraintViolationException
       org.apache.jackrabbit.test.api.WorkspaceMoveTest#testMoveNodesLocked
       org.apache.jackrabbit.test.api.WorkspaceMoveTest#testMoveNodesAccessDenied
       org.apache.jackrabbit.test.api.CheckPermissionTest
