@@ -44,8 +44,6 @@ import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
-
 /**
  * Oak level implementation of the internal {@code AuthorizableProperties} that
  * is used in those cases where no {@code Session} is associated with the
@@ -66,12 +64,7 @@ class OakAuthorizableProperties implements AuthorizableProperties {
         this.userProvider = userProvider;
         this.id = id;
         this.namePathMapper = namePathMapper;
-        this.nodeTypeManager = new ReadOnlyNodeTypeManager() {
-            @Override
-            protected Tree getTypes() {
-                return root.getTree(NODE_TYPES_PATH);
-            }
-        };
+        this.nodeTypeManager = ReadOnlyNodeTypeManager.getInstance(root);
     }
 
     //---------------------------------------------< AuthorizableProperties >---

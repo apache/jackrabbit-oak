@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.nodetype;
 
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
+import javax.jcr.nodetype.NoSuchNodeTypeException;
 import javax.jcr.nodetype.NodeType;
 
 import org.apache.jackrabbit.oak.api.Tree;
@@ -30,24 +31,39 @@ import org.apache.jackrabbit.oak.api.Tree;
 public interface EffectiveNodeTypeProvider {
 
     /**
-     * FIXME in contrast what the method name implies this method returns the transitive closure of the super types
-     * TODO clarify contract, what is the difference between this method and NodeType.getSuperTypes()
+     * Returns {@code true} if this tree is of the specified primary node
+     * type or mixin type, or a subtype thereof respecting the effective node
+     * type of the {@code tree}. Returns {@code false} otherwise.
+     *
+     * @param tree The tree to be tested.
+     * @param nodeTypeName The name of the node type to be tested.
+     * @return true if the specified node is of the given node type.
+     * @throws NoSuchNodeTypeException If the specified node type name doesn't
+     * refer to an existing node type.
+     * @throws RepositoryException If the given node type name is invalid or if
+     * some other error occurs.
+     */
+    boolean isNodeType(Tree tree, String nodeTypeName) throws NoSuchNodeTypeException, RepositoryException;
+
+    /**
      * Calculates and returns all effective node types of the given node.
      *
      * @param targetNode the node for which the types should be calculated.
      * @return all types of the given node
      * @throws RepositoryException if the type information can not be accessed
+     * @see <a href="http://www.jcp.org/en/jsr/detail?id=283">JCR 2.0 Specification,
+     * Section 3.7.6.5</a> for the definition of the effective node type.
      */
     Iterable<NodeType> getEffectiveNodeTypes(Node targetNode) throws RepositoryException;
 
     /**
-     * FIXME in contrast what the method name implies this method returns the transitive closure of the super types
-     * TODO clarify contract, what is the difference between this method and NodeType.getSuperTypes()
      * Calculates and returns all effective node types of the given tree.
      *
      * @param tree
      * @return all node types of the given tree
-     * @throws RepositoryException if the type information can not be accessed
+     * @throws RepositoryException if the type information can not be accessed,
+     * @see <a href="http://www.jcp.org/en/jsr/detail?id=283">JCR 2.0 Specification,
+     * Section 3.7.6.5</a> for the definition of the effective node type.
      */
     Iterable<NodeType> getEffectiveNodeTypes(Tree tree) throws RepositoryException;
 }
