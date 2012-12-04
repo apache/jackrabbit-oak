@@ -18,14 +18,15 @@
  */
 package org.apache.jackrabbit.oak.spi.query;
 
-import java.io.IOException;
 import java.math.BigDecimal;
+import java.net.URI;
 import java.util.Iterator;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
 
+import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
@@ -136,6 +137,11 @@ public final class PropertyValues {
     public static PropertyValue newBinary(byte[] value) {
         return new PropertyStateValue(BinaryPropertyState.binaryProperty("", value));
     }
+    
+    @Nonnull
+    public static PropertyValue newBinary(Blob value) {
+        return new PropertyStateValue(BinaryPropertyState.binaryProperty("", value));
+    }
 
     // --
 
@@ -190,77 +196,161 @@ public final class PropertyValues {
     }
 
     // --
+    
     /**
-     * Convert a value to the given target type, if possible.
+     * Converts the given value to a value of the specified target type. The
+     * conversion is performed according to the rules described in
+     * "3.6.4 Property Type Conversion" in the JCR 2.0 specification.
      * 
-     * @param value
-     *            the value to convert
-     * @param targetType
-     *            the target property type
-     * @return the converted value, or null if converting is not possible
+     * @param value the value to convert
+     * @param targetType the target property type 
+     * @param mapper the name mapper
+     * @return the converted value
+     * @throws IllegalArgumentException if mapping is illegal
      */
     public static PropertyValue convert(PropertyValue value, int targetType,
             NamePathMapper mapper) {
-        // TODO support full set of conversion features defined in the JCR spec
-        // at 3.6.4 Property Type Conversion
-        // re-use existing code if possible
-        try {
-            switch (targetType) {
-            case PropertyType.STRING:
-                return newString(value.getValue(Type.STRING));
-            case PropertyType.DATE:
-                return newDate(value.getValue(Type.STRING));
-            case PropertyType.LONG:
-                return newLong(value.getValue(Type.LONG));
-            case PropertyType.DOUBLE:
-                return newDouble(value.getValue(Type.DOUBLE));
-            case PropertyType.DECIMAL:
-                return newDecimal(value.getValue(Type.DECIMAL));
-            case PropertyType.BOOLEAN:
-                return newBoolean(value.getValue(Type.BOOLEAN));
-            case PropertyType.NAME:
-                return newName(getOakPath(value.getValue(Type.STRING), mapper));
-            case PropertyType.PATH:
-                return newPath(value.getValue(Type.STRING));
-            case PropertyType.REFERENCE:
-                return newReference(value.getValue(Type.STRING));
-            case PropertyType.WEAKREFERENCE:
-                return newWeakReference(value.getValue(Type.STRING));
-            case PropertyType.URI:
-                return newUri(value.getValue(Type.STRING));
-            case PropertyType.BINARY:
-                try {
-                    byte[] data = value.getValue(Type.STRING).getBytes("UTF-8");
-                    return newBinary(data);
-                } catch (IOException e) {
-                    // I don't know in what case that could really occur
-                    // except if UTF-8 isn't supported
-                    throw new IllegalArgumentException(
-                            value.getValue(Type.STRING), e);
-                }
-            }
-            return null;
-            // throw new IllegalArgumentException("Unknown property type: " +
-            // targetType);
-        } catch (UnsupportedOperationException e) {
-            throw new IllegalArgumentException(
-                    "Unsupported conversion from type " + value + 
-                    " (" + PropertyType.nameFromValue(value.getType().tag()) + ") to type " +
-                            PropertyType.nameFromValue(targetType));
+        int sourceType = value.getType().tag();
+        if (sourceType == targetType) {
+            return value;
         }
+        switch (targetType) {
+        case PropertyType.BINARY:
+            Blob blob = value.getValue(Type.BINARY);
+            return newBinary(blob);
+        case PropertyType.BOOLEAN:
+            return newBoolean(value.getValue(Type.BOOLEAN));
+        case PropertyType.DATE:
+            return newDate(value.getValue(Type.DATE));
+        case PropertyType.DOUBLE:
+            return newDouble(value.getValue(Type.DOUBLE));
+        case PropertyType.LONG:
+            return newLong(value.getValue(Type.LONG));
+        case PropertyType.DECIMAL:
+            return newDecimal(value.getValue(Type.DECIMAL));
+        }
+        // for other types, the value is first converted to a string
+        String v = value.getValue(Type.STRING);
+        switch (targetType) {
+        case PropertyType.STRING:
+            return newString(v);
+        case PropertyType.PATH:
+            switch (sourceType) {
+            case PropertyType.BINARY:
+            case PropertyType.STRING:
+            case PropertyType.NAME:
+                return newPath(v);
+            case PropertyType.URI:
+                URI uri = URI.create(v);
+                if (uri.isAbsolute()) {
+                    // uri contains scheme
+                    throw new IllegalArgumentException(
+                            "Failed to convert URI " + v + " to PATH");
+                }
+                String p = uri.getPath();
+                if (p.startsWith("./")) {
+                    p = p.substring(2);
+                }
+                return newPath(v);
+            }
+            break;
+        case PropertyType.NAME: 
+            switch (sourceType) {
+            case PropertyType.BINARY:
+            case PropertyType.STRING:
+            case PropertyType.PATH:
+                // path might be a name (relative path of length 1)
+                // try conversion via string
+                return newName(getOakPath(v, mapper));
+            case PropertyType.URI:
+                URI uri = URI.create(v);
+                if (uri.isAbsolute()) {
+                    // uri contains scheme
+                    throw new IllegalArgumentException(
+                            "Failed to convert URI " + v + " to PATH");
+                }
+                String p = uri.getPath();
+                if (p.startsWith("./")) {
+                    p = p.substring(2);
+                }
+                return newName(getOakPath(v, mapper));
+            }
+            break;
+        case PropertyType.REFERENCE:
+            switch (sourceType) {
+            case PropertyType.BINARY:
+            case PropertyType.STRING:
+            case PropertyType.WEAKREFERENCE:
+                return newReference(v);
+            }
+            break;
+        case PropertyType.WEAKREFERENCE:
+            switch (sourceType) {
+            case PropertyType.BINARY:
+            case PropertyType.STRING:
+            case PropertyType.REFERENCE:
+                return newWeakReference(v);
+            }
+            break;
+        case PropertyType.URI:
+            switch (sourceType) {
+            case PropertyType.BINARY:
+            case PropertyType.STRING:
+                return newUri(v);
+            case PropertyType.NAME:
+                // prefix name with "./" (JCR 2.0 spec 3.6.4.8)
+                return newUri("./" + v);
+            case PropertyType.PATH:
+                // prefix name with "./" (JCR 2.0 spec 3.6.4.9)
+                return newUri("./" + v);
+            }
+        }
+        throw new IllegalArgumentException(
+                "Unsupported conversion from property type " + 
+                        PropertyType.nameFromValue(sourceType) + 
+                        " to property type " +
+                        PropertyType.nameFromValue(targetType));
     }
     
     public static boolean canConvert(int sourceType, int targetType) {
-        // TODO support full set of conversion features defined in the JCR spec
-        // at 3.6.4 Property Type Conversion
-        switch (sourceType) {
-        case PropertyType.WEAKREFERENCE:
-        case PropertyType.REFERENCE:
-            if (targetType == PropertyType.NAME) {
-                return false;
-            }
+        if (sourceType == targetType || 
+                sourceType == PropertyType.UNDEFINED ||
+                targetType == PropertyType.UNDEFINED) {
+            return true;
         }
-        return true;
+        switch (targetType) {
+        case PropertyType.BINARY:
+        case PropertyType.BOOLEAN:
+        case PropertyType.DATE:
+        case PropertyType.DOUBLE:
+        case PropertyType.LONG:
+        case PropertyType.DECIMAL:
+        case PropertyType.STRING:
+            return true;
+        case PropertyType.NAME: 
+        case PropertyType.PATH:
+        case PropertyType.URI:
+            switch (sourceType) {
+            case PropertyType.NAME:
+            case PropertyType.PATH:
+            case PropertyType.URI:
+                return true;
+            }
+            break;
+        case PropertyType.REFERENCE:
+        case PropertyType.WEAKREFERENCE:
+            switch (sourceType) {
+            case PropertyType.REFERENCE:
+            case PropertyType.WEAKREFERENCE:
+                return true;
+            }
+            break;
+        }        
+        if (sourceType == PropertyType.STRING || 
+                sourceType == PropertyType.BINARY) {
+            return true;
+        }
+        return false;
     }
 
     public static String getOakPath(String jcrPath, NamePathMapper mapper) {
