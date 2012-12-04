@@ -232,9 +232,8 @@ public class SQL2Parser {
                 read(",");
                 String selector2 = readName();
                 if (readIf(",")) {
-                    c = factory.sameNodeJoinCondition(selector1, selector2, readAbsolutePath());
+                    c = factory.sameNodeJoinCondition(selector1, selector2, readPath());
                 } else {
-                    // TODO verify "." is correct
                     c = factory.sameNodeJoinCondition(selector1, selector2, ".");
                 }
             } else if ("ISCHILDNODE".equalsIgnoreCase(name)) {
