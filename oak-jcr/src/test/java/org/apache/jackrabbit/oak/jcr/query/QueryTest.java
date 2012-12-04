@@ -101,7 +101,7 @@ public class QueryTest extends AbstractRepositoryTest {
         n = nodeIt.nextNode();
         assertEquals("hello_world", n.getProperty("text").getString());
         assertFalse(nodeIt.hasNext());
-        
+
         // XPath
 
         q = qm.createQuery("//*[@id=1]", Query.XPATH);
