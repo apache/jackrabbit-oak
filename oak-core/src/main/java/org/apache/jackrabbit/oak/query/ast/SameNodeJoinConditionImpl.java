@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 
@@ -68,18 +69,33 @@ public class SameNodeJoinConditionImpl extends JoinConditionImpl {
     public boolean evaluate() {
         String p1 = selector1.currentPath();
         String p2 = selector2.currentPath();
-        return p1.equals(p2);
+        // TODO normalize paths; support more complex relative path (".." and so on)
+        if (selector2Path.equals(".")) {
+            return p1.equals(p2);
+        }
+        String p = PathUtils.concat(p2, selector2Path);
+        return p.equals(p1);
     }
 
     @Override
     public void restrict(FilterImpl f) {
         if (f.getSelector() == selector1) {
             String p2 = selector2.currentPath();
-            f.restrictPath(p2, Filter.PathRestriction.EXACT);
+            if (selector2Path.equals(".")) {
+                f.restrictPath(p2, Filter.PathRestriction.EXACT);
+            } else {
+                // TODO normalize paths; support more complex relative path (".." and so on)
+                String p = PathUtils.concat(p2, selector2Path);
+                f.restrictPath(p, Filter.PathRestriction.EXACT);
+            }
         }
         if (f.getSelector() == selector2) {
-            String p1 = selector1.currentPath();
-            f.restrictPath(p1, Filter.PathRestriction.EXACT);
+            if (selector2Path.equals(".")) {
+                String p1 = selector1.currentPath();
+                f.restrictPath(p1, Filter.PathRestriction.EXACT);
+            } else {
+                // TODO normalize paths; support relative path (".." and so on)
+            }
         }
     }
 
