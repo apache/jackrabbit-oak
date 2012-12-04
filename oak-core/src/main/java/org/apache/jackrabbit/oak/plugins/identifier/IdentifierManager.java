@@ -21,10 +21,10 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
+import javax.jcr.RepositoryException;
 import javax.jcr.query.Query;
 
 import com.google.common.base.Charsets;
@@ -43,12 +43,12 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.StringPropertyState;
+import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.oak.api.Type.STRING;
-import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 
 /**
  * IdentifierManager...
@@ -58,9 +58,11 @@ public class IdentifierManager {
     private static final Logger log = LoggerFactory.getLogger(IdentifierManager.class);
 
     private final Root root;
+    private final ReadOnlyNodeTypeManager nodeTypeManager;
 
     public IdentifierManager(Root root) {
         this.root = root;
+        this.nodeTypeManager = ReadOnlyNodeTypeManager.getInstance(root);
     }
 
     @Nonnull
@@ -209,8 +211,12 @@ public class IdentifierManager {
                             Tree tree = root.getTree(PathUtils.getParentPath(path));
                             if (tree != null) {
                                 for (String ntName : nodeTypeNames) {
-                                    if (hasType(tree, ntName)) {
-                                        return true;
+                                    try {
+                                        if (nodeTypeManager.isNodeType(tree, ntName)) {
+                                            return true;
+                                        }
+                                    } catch (RepositoryException e) {
+                                        log.warn(e.getMessage());
                                     }
                                 }
                             }
@@ -251,31 +257,13 @@ public class IdentifierManager {
         return refProp.getName();
     }
 
-    private static boolean hasType(Tree tree, String ntName) {
-        // TODO use NodeType.isNodeType to determine type membership instead of equality on type names
-        PropertyState pType = tree.getProperty(JcrConstants.JCR_PRIMARYTYPE);
-        if (pType != null) {
-            String primaryType = pType.getValue(STRING);
-            if (ntName.equals(primaryType)) {
-                return true;
-            }
-        }
-
-        PropertyState pMixin = tree.getProperty(JcrConstants.JCR_MIXINTYPES);
-        if (pMixin != null) {
-            for (String mixinType : pMixin.getValue(STRINGS)) {
-                if (ntName.equals(mixinType)) {
-                    return true;
-                }
-            }
-        }
-
-        return false;
-    }
-
     public boolean isReferenceable(Tree tree) {
-        // TODO add proper implementation include node type eval
-        return tree.hasProperty(JcrConstants.JCR_UUID);
+        try {
+            return nodeTypeManager.isNodeType(tree, JcrConstants.MIX_REFERENCEABLE);
+        } catch (RepositoryException e) {
+            log.warn(e.getMessage());
+            return false;
+        }
     }
 
     @CheckForNull

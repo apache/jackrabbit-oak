@@ -22,7 +22,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.Node;
@@ -46,8 +45,10 @@ import javax.jcr.nodetype.PropertyDefinitionTemplate;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Queues;
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.iterator.NodeTypeIteratorAdapter;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
@@ -62,6 +63,7 @@ import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
 
 /**
  * Base implementation of a {@link NodeTypeManager} with support for reading
@@ -118,6 +120,24 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
     @Nonnull
     protected NameMapper getNameMapper() {
         return NamePathMapperImpl.DEFAULT;
+    }
+
+    //--------------------------------------------------------------------------
+    /**
+     * Return a new instance of {@code ReadOnlyNodeTypeManager} that reads node
+     * type information from the tree at {@link NodeTypeConstants#NODE_TYPES_PATH}.
+     *
+     * @param root The root to read node types from.
+     * @return a new instance of {@code ReadOnlyNodeTypeManager}.
+     */
+    @Nonnull
+    public static ReadOnlyNodeTypeManager getInstance(final Root root) {
+        return new ReadOnlyNodeTypeManager() {
+            @Override
+            protected Tree getTypes() {
+                return root.getTree(NODE_TYPES_PATH);
+            }
+        };
     }
 
     //----------------------------------------------------< NodeTypeManager >---
@@ -234,6 +254,24 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
     }
 
     //------------------------------------------< EffectiveNodeTypeProvider >---
+    @Override
+    public boolean isNodeType(Tree tree, String nodeTypeName) throws RepositoryException {
+        if (!hasNodeType(nodeTypeName)) {
+            throw new NoSuchNodeTypeException(nodeTypeName);
+        }
+
+        NodeUtil node = new NodeUtil(tree);
+        String ntName = node.getPrimaryNodeTypeName();
+        if (nodeTypeName.equals(ntName) || getNodeType(ntName).isNodeType(nodeTypeName)) {
+            return true;
+        }
+        for (String mixinName : node.getNames(JcrConstants.JCR_MIXINTYPES, new String[0])) {
+            if (nodeTypeName.equals(mixinName) || getNodeType(mixinName).isNodeType(nodeTypeName)) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     /**
      * Returns all the node types of the given node, in a breadth-first

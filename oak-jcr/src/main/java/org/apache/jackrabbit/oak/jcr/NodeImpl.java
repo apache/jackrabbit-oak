@@ -859,24 +859,8 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
     public boolean isNodeType(final String nodeTypeName) throws RepositoryException {
         checkStatus();
 
-        // TODO: figure out the right place for this check
-        NodeTypeManager ntm = sessionDelegate.getNodeTypeManager();
-        NodeType ntToCheck = ntm.getNodeType(nodeTypeName); // throws on not found
-        String nameToCheck = ntToCheck.getName();
-
-        NodeType currentPrimaryType = getPrimaryNodeType();
-        if (currentPrimaryType.isNodeType(nameToCheck)) {
-            return true;
-        }
-
-        for (NodeType mixin : getMixinNodeTypes()) {
-            if (mixin.isNodeType(nameToCheck)) {
-                return true;
-            }
-        }
-        // TODO: END
-
-        return false;
+        String oakName = sessionDelegate.getOakNameOrThrow(nodeTypeName);
+        return sessionDelegate.getEffectiveNodeTypeProvider().isNodeType(dlg.getTree(), oakName);
     }
 
     @Override
