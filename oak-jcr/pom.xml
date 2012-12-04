@@ -47,8 +47,6 @@
       org.apache.jackrabbit.test.api.NodeUUIDTest#testSaveReferentialIntegrityException<!--OAK-66-->
       org.apache.jackrabbit.test.api.NodeUUIDTest#testSaveMovedRefNode<!--OAK-66-->
       org.apache.jackrabbit.test.api.NodeOrderableChildNodesTest#testOrderBeforeUnsupportedRepositoryOperationException<!--OAK-169-->
-      org.apache.jackrabbit.test.api.NodeOrderableChildNodesTest#testOrderBeforePlaceAtEndParentSave<!--OAK-169-->
-      org.apache.jackrabbit.test.api.NodeOrderableChildNodesTest#testOrderBeforePlaceAtEndSessionSave<!--OAK-169-->
       org.apache.jackrabbit.test.api.SetValueValueFormatExceptionTest#testNodeNotReferenceable
       org.apache.jackrabbit.test.api.NodeSetPrimaryTypeTest#testLocked
       org.apache.jackrabbit.test.api.WorkspaceCopyReferenceableTest#testCopyNodesNewUUID
