@@ -150,15 +150,7 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
 
     @Override
     public NodeType getNodeType(String name) throws RepositoryException {
-        Tree types = getTypes();
-        if (types != null) {
-            Tree type = types.getChild(getOakName(name));
-            if (type != null) {
-                return new NodeTypeImpl(this, getValueFactory(),
-                        new NodeUtil(type, getNameMapper()));
-            }
-        }
-        throw new NoSuchNodeTypeException(name);
+        return internalGetNodeType(getOakName(name));
     }
 
     @Override
@@ -260,14 +252,18 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
             throw new NoSuchNodeTypeException(nodeTypeName);
         }
 
+        String oakName = getOakName(nodeTypeName);
         NodeUtil node = new NodeUtil(tree);
         String ntName = node.getPrimaryNodeTypeName();
-        if (nodeTypeName.equals(ntName) || getNodeType(ntName).isNodeType(nodeTypeName)) {
+        if (oakName.equals(ntName) || internalGetNodeType(ntName).isNodeType(nodeTypeName)) {
             return true;
         }
-        for (String mixinName : node.getNames(JcrConstants.JCR_MIXINTYPES, new String[0])) {
-            if (nodeTypeName.equals(mixinName) || getNodeType(mixinName).isNodeType(nodeTypeName)) {
-                return true;
+        String[] mixinNames = node.getStrings(JcrConstants.JCR_MIXINTYPES);
+        if (mixinNames != null) {
+            for (String mixinName : mixinNames) {
+                if (oakName.equals(mixinName) || internalGetNodeType(mixinName).isNodeType(nodeTypeName)) {
+                    return true;
+                }
             }
         }
         return false;
@@ -543,6 +539,16 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
     }
 
     //------------------------------------------------------------< private >---
+    private NodeType internalGetNodeType(String oakName) throws NoSuchNodeTypeException {
+        Tree types = getTypes();
+        if (types != null) {
+            Tree type = types.getChild(oakName);
+            if (type != null) {
+                return new NodeTypeImpl(this, getValueFactory(), new NodeUtil(type, getNameMapper()));
+            }
+        }
+        throw new NoSuchNodeTypeException(getNameMapper().getJcrName(oakName));
+    }
 
     private static Collection<NodeType> getEffectiveNodeTypes(Queue<NodeType> queue) {
         Map<String, NodeType> types = Maps.newHashMap();
