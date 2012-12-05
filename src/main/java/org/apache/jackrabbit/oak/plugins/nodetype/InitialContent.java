@@ -60,6 +60,7 @@ public class InitialContent implements RepositoryInitializer {
 
         if (!root.hasChildNode("oak:index")) {
             NodeBuilder index = root.child("oak:index");
+            index.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_UNSTRUCTURED); // TODO: use proper node type
             index.child("uuid")
                 .setProperty("jcr:primaryType", "oak:queryIndexDefinition", Type.NAME)
                 .setProperty("type", "property")
