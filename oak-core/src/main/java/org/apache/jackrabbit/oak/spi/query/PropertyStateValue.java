@@ -91,10 +91,16 @@ public class PropertyStateValue implements PropertyValue {
             return Integer.signum(p2.getType().tag() - getType().tag());
         }
         switch (getType().tag()) {
-        case PropertyType.BINARY:
-            return compare(getValue(Type.BINARIES), p2.getValue(Type.BINARIES));
+        case PropertyType.BOOLEAN:
+            return compare(getValue(Type.BOOLEANS), p2.getValue(Type.BOOLEANS));
+        case PropertyType.DECIMAL:
+            return compare(getValue(Type.DECIMALS), p2.getValue(Type.DECIMALS));
         case PropertyType.DOUBLE:
             return compare(getValue(Type.DOUBLES), p2.getValue(Type.DOUBLES));
+        case PropertyType.LONG:
+            return compare(getValue(Type.LONGS), p2.getValue(Type.LONGS));
+        case PropertyType.BINARY:
+            return compare(getValue(Type.BINARIES), p2.getValue(Type.BINARIES));
         case PropertyType.DATE:
             return compareAsDate(getValue(Type.STRINGS),
                     p2.getValue(Type.STRINGS));
