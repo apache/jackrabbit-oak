@@ -25,6 +25,7 @@ import org.apache.jackrabbit.core.query.FulltextSQL2QueryTest;
 import org.apache.jackrabbit.core.query.JoinTest;
 import org.apache.jackrabbit.core.query.LimitAndOffsetTest;
 import org.apache.jackrabbit.core.query.MixinTest;
+import org.apache.jackrabbit.core.query.OrderByTest;
 import org.apache.jackrabbit.core.query.PathQueryNodeTest;
 import org.apache.jackrabbit.core.query.SQL2NodeLocalNameTest;
 import org.apache.jackrabbit.core.query.SQL2OffsetLimitTest;
@@ -50,11 +51,11 @@ public class QueryJcrTest extends TestCase {
         suite.addTestSuite(SQL2OuterJoinTest.class);
         suite.addTestSuite(SQL2OffsetLimitTest.class);
         suite.addTestSuite(LimitAndOffsetTest.class);
+        suite.addTestSuite(OrderByTest.class);
 
         // FAILURES
         //
         // suite.addTestSuite(QueryResultTest.class); // OAK-484
-        // suite.addTestSuite(OrderByTest.class); // OAK-466
         // suite.addTestSuite(ParentNodeTest.class); // OAK-309
         // suite.addTestSuite(ExcerptTest.class); // OAK-318
         // suite.addTestSuite(SimilarQueryTest.class); // OAK-319
