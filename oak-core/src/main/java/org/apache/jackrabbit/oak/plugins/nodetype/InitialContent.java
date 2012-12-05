@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.plugins.nodetype;
 
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Service;
-import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.core.RootImpl;
@@ -30,6 +29,12 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 
 import com.google.common.collect.ImmutableList;
+
+import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
+import static org.apache.jackrabbit.JcrConstants.JCR_VERSIONSTORAGE;
+import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
 
 /**
  * {@code InitialContent} implements a {@link RepositoryInitializer} and
@@ -44,53 +49,53 @@ public class InitialContent implements RepositoryInitializer {
         NodeStoreBranch branch = store.branch();
 
         NodeBuilder root = branch.getRoot().builder();
-        root.setProperty("jcr:primaryType", "rep:root", Type.NAME);
+        root.setProperty(JCR_PRIMARYTYPE, "rep:root", Type.NAME);
 
-        if (!root.hasChildNode("jcr:system")) {
-            NodeBuilder system = root.child("jcr:system");
-            system.setProperty("jcr:primaryType", "rep:system", Type.NAME);
+        if (!root.hasChildNode(JCR_SYSTEM)) {
+            NodeBuilder system = root.child(JCR_SYSTEM);
+            system.setProperty(JCR_PRIMARYTYPE, "rep:system", Type.NAME);
 
-            system.child("jcr:versionStorage")
-                .setProperty("jcr:primaryType", "rep:versionStorage", Type.NAME);
+            system.child(JCR_VERSIONSTORAGE)
+                .setProperty(JCR_PRIMARYTYPE, "rep:versionStorage", Type.NAME);
             system.child("jcr:nodeTypes")
-                .setProperty("jcr:primaryType", "rep:nodeTypes", Type.NAME);
+                .setProperty(JCR_PRIMARYTYPE, "rep:nodeTypes", Type.NAME);
             system.child("jcr:activities")
-                .setProperty("jcr:primaryType", "rep:Activities", Type.NAME);
+                .setProperty(JCR_PRIMARYTYPE, "rep:Activities", Type.NAME);
         }
 
         if (!root.hasChildNode("oak:index")) {
             NodeBuilder index = root.child("oak:index");
-            index.setProperty(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.NT_UNSTRUCTURED); // TODO: use proper node type
+            index.setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED); // TODO: use proper node type
             index.child("uuid")
-                .setProperty("jcr:primaryType", "oak:queryIndexDefinition", Type.NAME)
+                .setProperty(JCR_PRIMARYTYPE, "oak:queryIndexDefinition", Type.NAME)
                 .setProperty("type", "property")
                 .setProperty("propertyNames", "jcr:uuid")
                 .setProperty("reindex", true)
                 .setProperty("unique", true);
             index.child("nodetype")
-                .setProperty("jcr:primaryType", "oak:queryIndexDefinition", Type.NAME)
+                .setProperty(JCR_PRIMARYTYPE, "oak:queryIndexDefinition", Type.NAME)
                 .setProperty("type", "property")
                 .setProperty("reindex", true)
                 .setProperty(PropertyStates.createProperty(
                         "propertyNames",
-                        ImmutableList.of(JcrConstants.JCR_PRIMARYTYPE, JcrConstants.JCR_MIXINTYPES),
+                        ImmutableList.of(JCR_PRIMARYTYPE, JCR_MIXINTYPES),
                         Type.STRINGS));
             // FIXME: user-mgt related unique properties (rep:authorizableId, rep:principalName) are implementation detail and not generic for repo
             // FIXME OAK-396: rep:principalName only needs to be unique if defined with user/group nodes -> add defining nt-info to uniqueness constraint otherwise ac-editing will fail.
             index.child("authorizableId")
-                .setProperty("jcr:primaryType", "oak:queryIndexDefinition", Type.NAME)
+                .setProperty(JCR_PRIMARYTYPE, "oak:queryIndexDefinition", Type.NAME)
                 .setProperty("type", "property")
                 .setProperty("propertyNames", UserConstants.REP_AUTHORIZABLE_ID)
                 .setProperty("reindex", true)
                 .setProperty("unique", true);
             index.child("principalName")
-                .setProperty("jcr:primaryType", "oak:queryIndexDefinition", Type.NAME)
+                .setProperty(JCR_PRIMARYTYPE, "oak:queryIndexDefinition", Type.NAME)
                 .setProperty("type", "property")
                 .setProperty("propertyNames", UserConstants.REP_PRINCIPAL_NAME)
                 .setProperty("reindex", true)
                 .setProperty("unique", true);
             index.child("members")
-                .setProperty("jcr:primaryType", "oak:queryIndexDefinition", Type.NAME)
+                .setProperty(JCR_PRIMARYTYPE, "oak:queryIndexDefinition", Type.NAME)
                 .setProperty("type", "property")
                 .setProperty("propertyNames", UserConstants.REP_MEMBERS)
                 .setProperty("reindex", true);
