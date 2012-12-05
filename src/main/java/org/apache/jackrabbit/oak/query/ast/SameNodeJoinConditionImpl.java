@@ -81,20 +81,24 @@ public class SameNodeJoinConditionImpl extends JoinConditionImpl {
     public void restrict(FilterImpl f) {
         if (f.getSelector() == selector1) {
             String p2 = selector2.currentPath();
-            if (selector2Path.equals(".")) {
-                f.restrictPath(p2, Filter.PathRestriction.EXACT);
-            } else {
-                // TODO normalize paths; support more complex relative path (".." and so on)
-                String p = PathUtils.concat(p2, selector2Path);
-                f.restrictPath(p, Filter.PathRestriction.EXACT);
+            if (p2 != null) {
+                if (selector2Path.equals(".")) {
+                    f.restrictPath(p2, Filter.PathRestriction.EXACT);
+                } else {
+                    // TODO normalize paths; support more complex relative path (".." and so on)
+                    String p = PathUtils.concat(p2, selector2Path);
+                    f.restrictPath(p, Filter.PathRestriction.EXACT);
+                }
             }
         }
         if (f.getSelector() == selector2) {
-            if (selector2Path.equals(".")) {
-                String p1 = selector1.currentPath();
-                f.restrictPath(p1, Filter.PathRestriction.EXACT);
-            } else {
-                // TODO normalize paths; support relative path (".." and so on)
+            String p1 = selector1.currentPath();
+            if (p1 != null) {
+                if (selector2Path.equals(".")) {
+                    f.restrictPath(p1, Filter.PathRestriction.EXACT);
+                } else {
+                    // TODO normalize paths; support relative path (".." and so on)
+                }
             }
         }
     }
