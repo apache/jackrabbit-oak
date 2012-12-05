@@ -60,7 +60,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static javax.jcr.PropertyType.UNDEFINED;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
-import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
@@ -299,8 +298,7 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
             String ntName = jcrPrimaryType.getValue(STRING);
             primaryType = getNodeType(ntName);
         } else {
-            log.warn("Item at {} has no primary type. Assuming nt:unstructured", tree.getPath());
-            primaryType = getNodeType(NT_UNSTRUCTURED);
+            throw new RepositoryException("Node at "+tree.getPath()+" has no primary type.");
         }
         queue.add(primaryType);
 

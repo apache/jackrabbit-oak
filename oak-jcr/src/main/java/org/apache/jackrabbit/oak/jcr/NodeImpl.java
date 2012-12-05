@@ -816,13 +816,13 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
         return sessionDelegate.perform(new SessionOperation<NodeType>() {
             @Override
             public NodeType perform() throws RepositoryException {
-                // TODO: check if transient changes to mixin-types are reflected here
                 NodeTypeManager ntMgr = sessionDelegate.getNodeTypeManager();
                 String primaryNtName;
-                primaryNtName = hasProperty(Property.JCR_PRIMARY_TYPE)
-                        ? getProperty(Property.JCR_PRIMARY_TYPE).getString()
-                        : NodeType.NT_UNSTRUCTURED;
-
+                if (hasProperty(Property.JCR_PRIMARY_TYPE)) {
+                    primaryNtName = getProperty(Property.JCR_PRIMARY_TYPE).getString();
+                } else {
+                    throw new RepositoryException("Node " + getPath() + " doesn't have primary type set.");
+                }
                 return ntMgr.getNodeType(primaryNtName);
             }
         });
