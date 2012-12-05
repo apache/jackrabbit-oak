@@ -27,7 +27,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 import java.util.Set;
-
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
@@ -225,7 +224,8 @@ class NodeTypeImpl implements NodeType {
 
     @Override
     public boolean isNodeType(String nodeTypeName) {
-        if (nodeTypeName.equals(getName())) {
+        String oakName = node.getNameMapper().getOakName(nodeTypeName);
+        if (getOakName().equals(oakName)) {
             return true;
         }
 
@@ -304,6 +304,10 @@ class NodeTypeImpl implements NodeType {
     @Override
     public String toString() {
         return getName();
+    }
+
+    private String getOakName() {
+        return node.getTree().getName();
     }
 
     private static boolean meetsTypeConstraints(Value value, int requiredType) {
