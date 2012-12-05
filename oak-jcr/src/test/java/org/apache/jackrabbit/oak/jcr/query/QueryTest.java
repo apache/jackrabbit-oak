@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.jcr.query;
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertTrue;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.fail;
 
 import java.io.ByteArrayInputStream;
 import java.util.Arrays;
@@ -33,6 +34,7 @@ import javax.jcr.NodeIterator;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.ValueFactory;
+import javax.jcr.query.InvalidQueryException;
 import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
 import javax.jcr.query.QueryResult;
@@ -205,6 +207,7 @@ public class QueryTest extends AbstractRepositoryTest {
         }
     }
 
+    @SuppressWarnings("deprecation")
     @Test
     public void nodeTypeConstraint() throws Exception {
         Session session = getAdminSession();
@@ -225,4 +228,31 @@ public class QueryTest extends AbstractRepositoryTest {
         assertEquals(new HashSet<String>(Arrays.asList("/folder1", "/folder2", "/folder2/folder3")),
                 paths);
     }
+    
+    @Test
+    public void noLiterals() throws RepositoryException {
+        Session session = getAdminSession();
+        ValueFactory vf = session.getValueFactory();
+        QueryManager qm = session.getWorkspace().getQueryManager();
+        
+        // insecure
+        try {
+            Query q = qm.createQuery(
+                    "select text from [nt:base] where password = 'x'", 
+                    Query.JCR_SQL2 + "-noLiterals");
+            q.execute();
+            fail();
+        } catch (InvalidQueryException e) {
+            assertTrue(e.toString(), e.toString().indexOf(
+                    "literals of this type not allowed") > 0);
+        }
+
+        // secure
+        Query q = qm.createQuery(
+                "select text from [nt:base] where password = $p", 
+                Query.JCR_SQL2 + "-noLiterals");
+        q.bindValue("p", vf.createValue("x"));
+        q.execute();
+    }
+
 }
