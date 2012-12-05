@@ -72,6 +72,11 @@ public class NodeUtil {
     }
 
     @Nonnull
+    public NameMapper getNameMapper() {
+        return mapper;
+    }
+
+    @Nonnull
     public Tree getTree() {
         return tree;
     }
