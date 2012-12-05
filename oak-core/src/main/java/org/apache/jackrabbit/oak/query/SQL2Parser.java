@@ -35,6 +35,8 @@ import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
 import org.apache.jackrabbit.oak.query.ast.SourceImpl;
 import org.apache.jackrabbit.oak.query.ast.StaticOperandImpl;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.jcr.PropertyType;
 import java.math.BigDecimal;
@@ -47,6 +49,8 @@ import java.util.HashMap;
  * language (here named SQL-1) is also supported.
  */
 public class SQL2Parser {
+    
+    private static final Logger LOG = LoggerFactory.getLogger(SQL2Parser.class);
 
     // Character types, used during the tokenizer phase
     private static final int CHAR_END = -1, CHAR_VALUE = 2, CHAR_QUOTED = 3;
@@ -1031,13 +1035,18 @@ public class SQL2Parser {
             i++;
         }
         currentToken = "'";
-        checkLiterals(false);
+        if (end != ']') {
+            checkLiterals(false);
+        }
         currentValue = PropertyValues.newString(result);
         parseIndex = i;
         currentTokenType = VALUE;
     }
 
     private void checkLiterals(boolean text) throws ParseException {
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("Literal used in query: " + statement);
+        }
         if (text && !allowTextLiterals || !text && !allowNumberLiterals) {
             throw getSyntaxError("bind variable (literals of this type not allowed)");
         }

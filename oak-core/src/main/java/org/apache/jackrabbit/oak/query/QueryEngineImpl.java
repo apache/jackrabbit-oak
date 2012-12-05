@@ -42,6 +42,8 @@ public class QueryEngineImpl {
     static final String SQL = "sql";
     static final String XPATH = "xpath";
     static final String JQOM = "JCR-JQOM";
+    
+    static final String NO_LITERALS = "-noLiterals";
 
     private static final Logger LOG = LoggerFactory.getLogger(QueryEngineImpl.class);
 
@@ -54,7 +56,8 @@ public class QueryEngineImpl {
     }
 
     public List<String> getSupportedQueryLanguages() {
-        return Arrays.asList(SQL2, SQL, XPATH, JQOM);
+        return Arrays.asList(SQL2, SQL, XPATH, JQOM,
+                SQL2 + NO_LITERALS, SQL + NO_LITERALS, XPATH + NO_LITERALS);
     }
 
     /**
@@ -75,17 +78,20 @@ public class QueryEngineImpl {
         if (LOG.isDebugEnabled()) {
             LOG.debug(language + ": " + statement);
         }
+        SQL2Parser parser = new SQL2Parser();
+        if (language.endsWith(NO_LITERALS)) {
+            language = language.substring(0, language.length() - NO_LITERALS.length());
+            parser.setAllowNumberLiterals(false);
+            parser.setAllowTextLiterals(false);
+        }
         if (SQL2.equals(language) || JQOM.equals(language)) {
-            SQL2Parser parser = new SQL2Parser();
             q = parser.parse(statement);
         } else if (SQL.equals(language)) {
-            SQL2Parser parser = new SQL2Parser();
             parser.setSupportSQL1(true);
             q = parser.parse(statement);
         } else if (XPATH.equals(language)) {
             XPathToSQL2Converter converter = new XPathToSQL2Converter();
             String sql2 = converter.convert(statement);
-            SQL2Parser parser = new SQL2Parser();
             if (LOG.isDebugEnabled()) {
                 LOG.debug("XPath > SQL2: " + sql2);
             }
