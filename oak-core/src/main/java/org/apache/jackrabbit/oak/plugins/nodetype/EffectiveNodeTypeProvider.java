@@ -46,6 +46,7 @@ public interface EffectiveNodeTypeProvider {
     boolean isNodeType(Tree tree, String nodeTypeName) throws NoSuchNodeTypeException, RepositoryException;
 
     /**
+     * FIXME in contrast what the method name implies this method returns the transitive closure of the super types
      * Calculates and returns all effective node types of the given node.
      *
      * @param targetNode the node for which the types should be calculated.
@@ -57,6 +58,7 @@ public interface EffectiveNodeTypeProvider {
     Iterable<NodeType> getEffectiveNodeTypes(Node targetNode) throws RepositoryException;
 
     /**
+     * FIXME in contrast what the method name implies this method returns the transitive closure of the super types
      * Calculates and returns all effective node types of the given tree.
      *
      * @param tree
