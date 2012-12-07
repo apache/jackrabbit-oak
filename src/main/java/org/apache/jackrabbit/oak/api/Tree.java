@@ -246,7 +246,7 @@ public interface Tree {
      * Set a property state
      * @param property  The property state to set
      */
-    void setProperty(PropertyState property);
+    void setProperty(@Nonnull PropertyState property);
 
     /**
      * Set a property state
@@ -255,7 +255,7 @@ public interface Tree {
      * @param <T>  The type of this property. Must be one of {@code String, Blob, byte[], Long, Integer, Double, Boolean, BigDecimal}
      * @throws IllegalArgumentException if {@code T} is not one of the above types.
      */
-    <T> void setProperty(String name, T value);
+    <T> void setProperty(String name, @Nonnull T value);
 
     /**
      * Set a property state
@@ -264,7 +264,7 @@ public interface Tree {
      * @param type The type of this property.
      * @param <T>  The type of this property.
      */
-    <T> void setProperty(String name, T value, Type<T> type);
+    <T> void setProperty(String name, @Nonnull T value, Type<T> type);
 
     /**
      * Remove the property with the given name. This method has no effect if a
