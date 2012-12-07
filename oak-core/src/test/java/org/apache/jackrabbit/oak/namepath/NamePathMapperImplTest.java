@@ -22,9 +22,11 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
@@ -139,6 +141,45 @@ public class NamePathMapperImplTest {
             fail("expanded name should not be accepted");
         } catch (IllegalStateException expected) {
         }
+    }
+
+    @Ignore
+    @Test
+    public void testInvalidJcrPaths() {
+        assertNull(npMapper.getOakPath("//"));
+        assertNull(npMapper.getOakPath("/foo//"));
+        assertNull(npMapper.getOakPath("/..//"));
+        assertNull(npMapper.getOakPath("/.."));
+        assertNull(npMapper.getOakPath("/foo/../.."));
+    }
+
+    @Ignore
+    @Test
+    public void testInvalidOakPaths() {
+        getJcrPath("//");
+        getJcrPath("/foo//");
+        getJcrPath("/..//");
+        getJcrPath("/..");
+        getJcrPath("/foo/../..");
+    }
+
+    private void getJcrPath(String path) {
+        try {
+            npMapper.getJcrPath(path);
+            fail("Expected IllegalArgumentException");
+        }
+        catch (IllegalArgumentException expected) {
+        }
+    }
+
+    @Ignore
+    @Test
+    public void testValidateInvalidPaths() {
+        assertFalse(JcrPathParser.validate("//"));
+        assertFalse(JcrPathParser.validate("/foo//"));
+        assertFalse(JcrPathParser.validate("/..//"));
+        assertFalse(JcrPathParser.validate("/.."));
+        assertFalse(JcrPathParser.validate("/foo/../.."));
     }
 
     private void checkEquals(NamePathMapper npMapper, String jcrPath) {
