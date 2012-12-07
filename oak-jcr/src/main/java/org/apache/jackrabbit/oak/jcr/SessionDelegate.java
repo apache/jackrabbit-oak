@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.jcr;
 
 import java.io.IOException;
 import java.util.concurrent.ScheduledExecutorService;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.ItemExistsException;
@@ -50,12 +51,13 @@ import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.plugins.nodetype.DefinitionProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.EffectiveNodeTypeProvider;
 import org.apache.jackrabbit.oak.plugins.observation.ObservationManagerImpl;
-import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.namepath.PathResolvers.dotResolver;
 
 public class SessionDelegate {
     static final Logger log = LoggerFactory.getLogger(SessionDelegate.class);
@@ -215,7 +217,7 @@ public class SessionDelegate {
      * none exists or not accessible.
      */
     public PropertyDelegate getProperty(String path) {
-        TreeLocation location = root.getLocation(path);
+        TreeLocation location = getLocation(path);
         return location.getProperty() == null
             ? null
             : new PropertyDelegate(this, location);
@@ -483,7 +485,7 @@ public class SessionDelegate {
 
     @Nonnull
     TreeLocation getLocation(String path) {
-        return root.getLocation(path);
+        return root.getLocation(dotResolver(path));
     }
 
     @Nonnull

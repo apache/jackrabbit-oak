@@ -30,6 +30,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
+import org.apache.jackrabbit.oak.api.PathResolver;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.TreeLocation;
@@ -574,7 +575,38 @@ public class TreeImpl implements Tree {
 
     //-------------------------------------------------------< TreeLocation >---
 
-    public class NodeLocation implements TreeLocation {
+    private abstract static class TreeLocationBase implements TreeLocation {
+
+        @Nonnull
+        @Override
+        public TreeLocation getChild(String name) {
+            return TreeLocation.NULL;
+        }
+
+        @Nonnull
+        @Override
+        public TreeLocation getLocation(PathResolver pathResolver) {
+            TreeLocation cur = this;
+            for (Function<TreeLocation, TreeLocation> element : pathResolver) {
+                cur = element.apply(cur);
+            }
+
+            assert cur != null;
+            return cur;
+        }
+
+        @Override
+        public Tree getTree() {
+            return null;
+        }
+
+        @Override
+        public PropertyState getProperty() {
+            return null;
+        }
+    }
+
+    public class NodeLocation extends TreeLocationBase {
         private final TreeImpl tree;
 
         private NodeLocation(TreeImpl tree) {
@@ -588,33 +620,20 @@ public class TreeImpl implements Tree {
                 : new NodeLocation(tree.parent);
         }
 
+        @Nonnull
         @Override
-        public TreeLocation getChild(String relPath) {
-            checkArgument(!relPath.startsWith("/"));
-            if (relPath.isEmpty()) {
-                return this;
+        public TreeLocation getChild(String name) {
+            TreeImpl child = tree.internalGetChild(name);
+            if (child != null) {
+                return new NodeLocation(child);
             }
 
-            TreeImpl child = tree;
-            String parentPath = PathUtils.getParentPath(relPath);
-            for (String name : PathUtils.elements(parentPath)) {
-                child = child.internalGetChild(name);
-                if (child == null) {
-                    return TreeLocation.NULL;
-                }
-            }
-
-            String name = PathUtils.getName(relPath);
-            PropertyState property = child.internalGetProperty(name);
+            PropertyState property = tree.internalGetProperty(name);
             if (property != null) {
-                return new PropertyLocation(new NodeLocation(child), name);
+                return new PropertyLocation(this, name);
             }
-            else {
-                child = child.internalGetChild(name);
-                return child == null
-                    ? TreeLocation.NULL
-                    : new NodeLocation(child);
-            }
+
+            return TreeLocation.NULL;
         }
 
         @Override
@@ -628,17 +647,12 @@ public class TreeImpl implements Tree {
         }
 
         @Override
-        public PropertyState getProperty() {
-            return null;
-        }
-
-        @Override
         public Status getStatus() {
             return tree.getStatus();
         }
     }
 
-    public class PropertyLocation implements TreeLocation {
+    public class PropertyLocation extends TreeLocationBase {
         private final NodeLocation parent;
         private final String name;
 
@@ -653,18 +667,8 @@ public class TreeImpl implements Tree {
         }
 
         @Override
-        public TreeLocation getChild(String relPath) {
-            return TreeLocation.NULL;
-        }
-
-        @Override
         public String getPath() {
             return PathUtils.concat(parent.getPath(), name);
-        }
-
-        @Override
-        public Tree getTree() {
-            return null;
         }
 
         @Override

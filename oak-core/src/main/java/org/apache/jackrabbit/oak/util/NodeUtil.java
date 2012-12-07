@@ -20,6 +20,7 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.List;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
@@ -50,6 +51,7 @@ import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+import static org.apache.jackrabbit.oak.namepath.PathResolvers.dotResolver;
 
 /**
  * Utility class for accessing and writing typed content of a tree.
@@ -120,7 +122,7 @@ public class NodeUtil {
     }
 
     /**
-     * FIXME: workaround for OAK-426
+     * FIXME: this might add a node at a parent where a property of the same name already exists.
      * FIXME: does probably no work as intended
      * rootNode.getOrAddTree("a/b/../../c/d/../../e/f", "");
      * adds the three sub trees /a/b, /c/d and /e/f.
@@ -130,7 +132,7 @@ public class NodeUtil {
         if (relativePath.indexOf('/') == -1) {
             return getOrAddChild(relativePath, primaryTypeName);
         } else {
-            TreeLocation location = LocationUtil.getTreeLocation(tree.getLocation(), relativePath);
+            TreeLocation location = tree.getLocation().getLocation(dotResolver(relativePath));
             if (location.getTree() == null) {
                 NodeUtil target = this;
                 for (String segment : Text.explode(relativePath, '/')) {

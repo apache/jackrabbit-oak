@@ -86,13 +86,13 @@ public interface Root {
     Tree getTree(String path);
 
     /**
-     * Get a tree location for a given absolute {@code path}
+     * Get a tree location for from {@code pathResolver}
      *
-     * @param path absolute path to the location
-     * @return the tree location for {@code path}
+     * @param pathResolver for the path to the location
+     * @return the tree location for {@code pathResolver}
      */
     @Nonnull
-    TreeLocation getLocation(String path);
+    TreeLocation getLocation(PathResolver pathResolver);
 
     /**
      * Rebase this root instance to the latest revision. After a call to this method,
