@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -143,7 +142,6 @@ public class NamePathMapperImplTest {
         }
     }
 
-    @Ignore
     @Test
     public void testInvalidJcrPaths() {
         assertNull(npMapper.getOakPath("//"));
@@ -153,7 +151,6 @@ public class NamePathMapperImplTest {
         assertNull(npMapper.getOakPath("/foo/../.."));
     }
 
-    @Ignore
     @Test
     public void testInvalidOakPaths() {
         getJcrPath("//");
@@ -172,7 +169,6 @@ public class NamePathMapperImplTest {
         }
     }
 
-    @Ignore
     @Test
     public void testValidateInvalidPaths() {
         assertFalse(JcrPathParser.validate("//"));
