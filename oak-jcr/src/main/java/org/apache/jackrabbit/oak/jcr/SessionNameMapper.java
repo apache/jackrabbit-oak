@@ -19,7 +19,7 @@ public class SessionNameMapper extends AbstractNameMapper {
             String ns = sessionDelegate.getWorkspace().getNamespaceRegistry().getURI(oakPrefix);
             return sessionDelegate.getSession().getNamespacePrefix(ns);
         } catch (RepositoryException e) {
-            SessionDelegate.log.debug("Could not get JCR prefix for OAK prefix " + oakPrefix);
+            SessionDelegate.log.debug("Could not get JCR prefix for OAK prefix " + oakPrefix, e);
             return null;
         }
     }
@@ -31,7 +31,7 @@ public class SessionNameMapper extends AbstractNameMapper {
             String ns = sessionDelegate.getSession().getNamespaceURI(jcrPrefix);
             return sessionDelegate.getWorkspace().getNamespaceRegistry().getPrefix(ns);
         } catch (RepositoryException e) {
-            SessionDelegate.log.debug("Could not get OAK prefix for JCR prefix " + jcrPrefix);
+            SessionDelegate.log.debug("Could not get OAK prefix for JCR prefix " + jcrPrefix, e);
             return null;
         }
     }
@@ -42,7 +42,7 @@ public class SessionNameMapper extends AbstractNameMapper {
         try {
             return sessionDelegate.getWorkspace().getNamespaceRegistry().getPrefix(uri);
         } catch (RepositoryException e) {
-            SessionDelegate.log.debug("Could not get OAK prefix for URI " + uri);
+            SessionDelegate.log.debug("Could not get OAK prefix for URI " + uri, e);
             return null;
         }
     }
