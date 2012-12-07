@@ -19,16 +19,15 @@ package org.apache.jackrabbit.oak.jcr;
 import java.security.Principal;
 import java.util.Properties;
 import java.util.concurrent.Executors;
+
 import javax.jcr.Credentials;
 import javax.jcr.GuestCredentials;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.UnsupportedRepositoryOperationException;
-import javax.security.auth.login.Configuration;
 
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
-import org.apache.jackrabbit.oak.security.OakConfiguration;
 import org.apache.jackrabbit.test.NotExecutableException;
 import org.apache.jackrabbit.test.RepositoryStub;
 
@@ -42,11 +41,8 @@ public class OakRepositoryStubBase extends RepositoryStub {
      * @param settings repository settings
      * @throws javax.jcr.RepositoryException If an error occurs.
      */
-    public OakRepositoryStubBase(Properties settings) throws RepositoryException {
+    public OakRepositoryStubBase(Properties settings) {
         super(settings);
-
-        // TODO: OAK-17. workaround for missing test configuration
-        Configuration.setConfiguration(new OakConfiguration());
 
         String dir = "target/mk-tck-" + System.currentTimeMillis();
         Jcr jcr = new Jcr(new MicroKernelImpl(dir));
