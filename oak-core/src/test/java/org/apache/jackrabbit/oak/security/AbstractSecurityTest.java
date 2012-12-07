@@ -47,8 +47,6 @@ public abstract class AbstractSecurityTest {
                 .with(getSecurityProvider())
                 .createContentRepository();
 
-        // TODO: OAK-17. workaround for missing test configuration
-        Configuration.setConfiguration(new OakConfiguration());
         admin = login(getAdminCredentials());
 
         Configuration.setConfiguration(getConfiguration());
