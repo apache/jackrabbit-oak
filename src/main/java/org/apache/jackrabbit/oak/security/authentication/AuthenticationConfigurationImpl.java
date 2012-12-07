@@ -57,13 +57,19 @@ public class AuthenticationConfigurationImpl extends SecurityConfiguration.Defau
     @Override
     public LoginContextProvider getLoginContextProvider(NodeStore nodeStore, QueryIndexProvider indexProvider) {
         String appName = options.getConfigValue(PARAM_APP_NAME, DEFAULT_APP_NAME);
-        Configuration loginConfig;
+        Configuration loginConfig = null;
         try {
             loginConfig = Configuration.getConfiguration();
+            if (loginConfig.getAppConfigurationEntry(appName) == null) {
+                log.warn("No login configuration available for " + appName
+                        + ": using default.");
+                loginConfig = null;
+            }
         } catch (SecurityException e) {
             log.warn("Failed to retrieve login configuration: using default.", e);
+        }
+        if (loginConfig == null) {
             loginConfig = new OakConfiguration(options); // TODO: define configuration structure
-            Configuration.setConfiguration(loginConfig);
         }
         return new LoginContextProviderImpl(appName, loginConfig, nodeStore, indexProvider, securityProvider);
     }
