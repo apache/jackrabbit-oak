@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
@@ -39,6 +40,7 @@ import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -49,6 +51,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.oak.api.Type.STRING;
+import static org.apache.jackrabbit.oak.namepath.PathResolvers.identity;
 
 /**
  * IdentifierManager...
@@ -234,8 +237,8 @@ public class IdentifierManager {
     }
 
     private String findProperty(String path, final String uuid) {
-        // TODO (OAK-220) PropertyState can only be accessed from parent tree
-        Tree tree = root.getTree(path);
+        TreeLocation loc = root.getLocation(identity(path));
+        Tree tree = loc.getTree();
         assert tree != null;
         final PropertyState refProp = Iterables.find(tree.getProperties(), new Predicate<PropertyState>() {
             @Override
