@@ -34,6 +34,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.TreeLocation;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
@@ -306,7 +307,7 @@ class OakAuthorizableProperties implements AuthorizableProperties {
         if (relativePath == null) {
             throw new RepositoryException("Relative path expected. Found null.");
         }
-        if ('/' == relativePath.charAt(0)) {
+        if (PathUtils.isAbsolute(relativePath)) {
             throw new RepositoryException("Relative path expected. Found " + relativePath);
         }
     }
