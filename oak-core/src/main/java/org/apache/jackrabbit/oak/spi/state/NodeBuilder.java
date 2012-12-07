@@ -153,7 +153,7 @@ public interface NodeBuilder {
      * @param property  The property state to set
      * @return this builder
      */
-    NodeBuilder setProperty(PropertyState property);
+    NodeBuilder setProperty(@Nonnull PropertyState property);
 
     /**
      * Set a property state
@@ -165,7 +165,7 @@ public interface NodeBuilder {
      * @param name  name of the property
      * @return this builder
      */
-    <T> NodeBuilder setProperty(String name, T value);
+    <T> NodeBuilder setProperty(String name, @Nonnull T value);
 
     /**
      * Set a property state
@@ -174,7 +174,7 @@ public interface NodeBuilder {
      * @param <T>  The type of this property.
      * @return this builder
      */
-    <T> NodeBuilder setProperty(String name, T value, Type<T> type);
+    <T> NodeBuilder setProperty(String name, @Nonnull T value, Type<T> type);
 
     /**
     * Remove the named property. This method has no effect if a
