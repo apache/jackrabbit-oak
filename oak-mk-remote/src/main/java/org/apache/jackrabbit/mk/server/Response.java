@@ -129,10 +129,8 @@ class Response implements Closeable {
         if (!keepAlive) {
             writeLine("Connection: Close");
         }
-        if (headers != null) {
-            for (Map.Entry<String, String> header : headers.entrySet()) {
-                writeLine(String.format("%s: %s", header.getKey(), header.getValue()));
-            }
+        for (Map.Entry<String, String> header : headers.entrySet()) {
+            writeLine(String.format("%s: %s", header.getKey(), header.getValue()));
         }
 
         writeLine("");

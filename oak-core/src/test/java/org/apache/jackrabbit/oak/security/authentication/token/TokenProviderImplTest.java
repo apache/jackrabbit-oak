@@ -264,12 +264,12 @@ public class TokenProviderImplTest extends AbstractTokenTest {
         @Nonnull
         @Override
         public Map<String, String> getPrivateAttributes() {
-            return null;
+            return Collections.emptyMap();
         }
         @Nonnull
         @Override
         public Map<String, String> getPublicAttributes() {
-            return null;
+            return Collections.emptyMap();
         }
     }
 }
