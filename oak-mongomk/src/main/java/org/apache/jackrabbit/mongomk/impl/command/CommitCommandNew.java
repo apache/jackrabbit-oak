@@ -81,7 +81,7 @@ public class CommitCommandNew extends BaseCommand<Long> {
         do {
             mongoSync = new ReadAndIncHeadRevisionAction(nodeStore).execute();
             revisionId = mongoSync.getNextRevisionId() - 1;
-            logger.info("Committing @{} with diff: {}", revisionId, commit.getDiff());
+            logger.debug("Committing @{} with diff: {}", revisionId, commit.getDiff());
             readBranchIdFromBaseCommit();
             createMongoNodes();
             prepareCommit();
@@ -93,7 +93,7 @@ public class CommitCommandNew extends BaseCommand<Long> {
             success = saveAndSetHeadRevision();
         } while (!success);
 
-        logger.info("Commit @{}: success", revisionId);
+        logger.debug("Commit @{}: success", revisionId);
         return revisionId;
     }
 
