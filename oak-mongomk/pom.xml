@@ -161,7 +161,12 @@
       <artifactId>json-simple</artifactId>
       <version>1.1</version>
     </dependency>
-
+    <dependency>
+       <groupId>com.jamonapi</groupId>
+       <artifactId>jamon</artifactId>
+       <version>2.4</version>
+        <scope>test</scope>
+     </dependency>
   </dependencies>
 
 </project>
