@@ -7,7 +7,11 @@ import static org.junit.Assert.fail;
 
 import org.apache.jackrabbit.mongomk.BaseMongoMicroKernelTest;
 import org.json.simple.JSONObject;
+import org.junit.Ignore;
 import org.junit.Test;
+
+import com.jamonapi.Monitor;
+import com.jamonapi.MonitorFactory;
 
 /**
  * Tests for {@link MongoMicroKernel#commit(String, String, String, String)}
@@ -154,4 +158,21 @@ public class MongoMKCommitAddTest extends BaseMongoMicroKernelTest {
         JSONObject obj = parseJSONObject(nodes);
         assertPropertyValue(obj, "a/key1", "value3");
    }
+
+    // This is a test to make sure commit time stays the same as time goes on.
+    @Test
+    @Ignore("OAK-461")
+    public void commitTime() throws Exception {
+        boolean debug = false;
+        Monitor commitMonitor = MonitorFactory.getTimeMonitor("commit");
+        for (int i = 0; i < 1000; i++) {
+            commitMonitor.start();
+            String diff = "+\"a"+i+"\" : {} +\"b"+i+"\" : {} +\"c"+i+"\" : {}";
+            if (debug) System.out.println("Committing: " + diff);
+            mk.commit("/", diff, null, null);
+            commitMonitor.stop();
+            if (debug) System.out.println("Committed in " + commitMonitor.getLastValue() + "ms");
+        }
+        if (debug) System.out.println("Final Result:" + commitMonitor);
+    }
 }
