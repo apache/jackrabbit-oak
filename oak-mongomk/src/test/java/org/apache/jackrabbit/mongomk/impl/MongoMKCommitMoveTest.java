@@ -143,6 +143,17 @@ public class MongoMKCommitMoveTest extends BaseMongoMicroKernelTest {
     }
 
     @Test
+    public void addNodeAndMove2() {
+        mk.commit("/", "+\"a\":{}", null, null);
+        mk.commit("/", "+\"a/b\": {}\n", null, null);
+        mk.commit("/", ">\"a/b\":\"c\"", null, null);
+
+        assertFalse(mk.nodeExists("/a/b", null));
+        assertTrue(mk.nodeExists("/a", null));
+        assertTrue(mk.nodeExists("/c", null));
+    }
+
+    @Test
     public void addNodeWithChildrenAndMove() {
         mk.commit("/", "+\"a\":{}", null, null);
         mk.commit("/", "+\"a/b\":{ \"c\" : {}, \"d\" : {} }\n"

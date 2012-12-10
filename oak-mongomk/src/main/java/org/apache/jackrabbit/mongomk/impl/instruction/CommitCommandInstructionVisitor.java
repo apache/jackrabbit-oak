@@ -145,7 +145,7 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
         String destParentPath = PathUtils.getParentPath(destPath);
         String destNodeName = PathUtils.getName(destPath);
 
-        MongoNode srcParent = getStoredNode(srcParentPath);
+        MongoNode srcParent = getStoredNode(srcParentPath, false);
         if (!srcParent.childExists(srcNodeName)) {
             throw new NotFoundException(srcPath);
         }
@@ -168,12 +168,11 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
         }
 
         // Then, copy any staged changes.
-        MongoNode srcNode = getStoredNode(srcPath);
+        MongoNode srcNode = getStoredNode(srcPath, false);
         MongoNode destNode = getStagedNode(destPath);
         copyStagedChanges(srcNode, destNode);
 
         // Finally, add to destParent.
-        pathNodeMap.put(destPath, destNode);
         destParent.addChild(destNodeName);
     }
 
@@ -216,12 +215,11 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
         }
 
         // Then, copy any staged changes.
-        MongoNode srcNode = getStoredNode(srcPath);
+        MongoNode srcNode = getStoredNode(srcPath, false);
         MongoNode destNode = getStagedNode(destPath);
         copyStagedChanges(srcNode, destNode);
 
         // Finally, add to destParent and remove from srcParent.
-        getStagedNode(destPath);
         destParent.addChild(destNodeName);
         srcParent.removeChild(srcNodeName);
     }
@@ -243,6 +241,10 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
     }
 
     private MongoNode getStoredNode(String path) {
+        return getStoredNode(path, true);
+    }
+
+    private MongoNode getStoredNode(String path, boolean addToMap) {
         MongoNode node = pathNodeMap.get(path);
         if (node != null) {
             return node;
@@ -252,7 +254,6 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
         NodeExistsCommand existCommand = new NodeExistsCommand(nodeStore,
                 path, headRevisionId);
         existCommand.setBranchId(branchId);
-        existCommand.setValidCommits(validCommits);
         boolean exists = false;
         try {
             exists = existCommand.execute();
@@ -263,7 +264,9 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
         }
         node = existCommand.getNode();
         node.removeField("_id");
-        pathNodeMap.put(path, node);
+        if (addToMap) {
+            pathNodeMap.put(path, node);
+        }
         return node;
     }
 
