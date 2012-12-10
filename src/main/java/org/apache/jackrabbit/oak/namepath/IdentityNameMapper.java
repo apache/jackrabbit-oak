@@ -44,10 +44,12 @@ public class IdentityNameMapper implements NameMapper {
     @Override @CheckForNull
     public String getOakName(String jcrName) {
         if (jcrName.startsWith("{")) { // Could it be an expanded name?
-            int colon = jcrName.indexOf(':');
-            int brace = jcrName.indexOf('}');
-            if (0 < colon && colon < brace) { // Yes, it looks like one
-                String uri = jcrName.substring(1, brace);
+            int brace = jcrName.indexOf('}', 1);
+            String uri = jcrName.substring(1, brace);
+            if (uri.isEmpty()) {
+                return jcrName.substring(2); // special case: {}name
+            } else if (uri.indexOf(':') != -1) {
+                // It's an expanded name, look up the namespace prefix
                 String name = jcrName.substring(brace + 1);
                 for (Map.Entry<String, String> entry
                         : Namespaces.getNamespaceMap(root).entrySet()) {
