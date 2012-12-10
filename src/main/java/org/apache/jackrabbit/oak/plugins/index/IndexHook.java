@@ -24,7 +24,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 /**
  * Represents the content of a QueryIndex as well as a mechanism for keeping
  * this content up to date.
- * 
+ *<p>
+ * An IndexHook listens for changes to the content and updates the index data
+ * accordingly.
  */
 public interface IndexHook extends HierarchicalNodeStateDiff<IndexHook>,
         Closeable {
@@ -34,6 +36,12 @@ public interface IndexHook extends HierarchicalNodeStateDiff<IndexHook>,
      */
     void apply() throws CommitFailedException;
 
+    /**
+     * Re-create this index.
+     * 
+     * @param state the parent of the node "oak:index" (the node that contains the index definition)
+     * @throws CommitFailedException
+     */
     void reindex(NodeBuilder state) throws CommitFailedException;
 
 }

@@ -308,6 +308,7 @@ class IndexHookManagerDiff implements NodeStateDiff {
             after.compareAgainstBaseState(before, new IndexHookManagerDiff(
                     provider, this, name));
         } catch (CommitFailedException e) {
+            // TODO ignore exception - is this a hack?
             LOG.error(e.getMessage(), e);
         }
     }
