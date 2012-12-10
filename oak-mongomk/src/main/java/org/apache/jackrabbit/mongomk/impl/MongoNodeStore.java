@@ -219,6 +219,7 @@ public class MongoNodeStore implements NodeStore {
         DBCollection commitCollection = getCommitCollection();
         DBObject index = new BasicDBObject();
         index.put(MongoCommit.KEY_REVISION_ID, 1L);
+        index.put(MongoCommit.KEY_BRANCH_ID, 1L);
         DBObject options = new BasicDBObject();
         options.put("unique", Boolean.TRUE);
         commitCollection.ensureIndex(index, options);
@@ -240,6 +241,7 @@ public class MongoNodeStore implements NodeStore {
         DBObject index = new BasicDBObject();
         index.put(MongoNode.KEY_PATH, 1L);
         index.put(MongoNode.KEY_REVISION_ID, 1L);
+        index.put(MongoCommit.KEY_BRANCH_ID, 1L);
         DBObject options = new BasicDBObject();
         options.put("unique", Boolean.TRUE);
         nodeCollection.ensureIndex(index, options);
