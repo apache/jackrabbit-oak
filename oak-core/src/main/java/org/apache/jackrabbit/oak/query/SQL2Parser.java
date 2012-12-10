@@ -525,6 +525,23 @@ public class SQL2Parser {
     private StaticOperandImpl parseStaticOperand() throws ParseException {
         if (currentTokenType == PLUS) {
             read();
+            if (currentTokenType != VALUE) {
+                throw getSyntaxError("number");
+            }
+            int valueType = currentValue.getType().tag();
+            switch (valueType) {
+            case PropertyType.LONG:
+                currentValue = PropertyValues.newLong(currentValue.getValue(Type.LONG));
+                break;
+            case PropertyType.DOUBLE:
+                currentValue = PropertyValues.newDouble(currentValue.getValue(Type.DOUBLE));
+                break;
+            case PropertyType.DECIMAL:
+                currentValue = PropertyValues.newDecimal(currentValue.getValue(Type.DECIMAL).negate());
+                break;
+            default:
+                throw getSyntaxError("Illegal operation: + " + currentValue);
+            }
         } else if (currentTokenType == MINUS) {
             read();
             if (currentTokenType != VALUE) {
@@ -923,7 +940,10 @@ public class SQL2Parser {
             if (types[i] == CHAR_SPECIAL_2) {
                 i++;
             }
-            // fall through
+            currentToken = statement.substring(start, i);
+            currentTokenType = KEYWORD;
+            parseIndex = i;
+            return;
         case CHAR_SPECIAL_1:
             currentToken = statement.substring(start, i);
             switch (c) {
