@@ -274,3 +274,10 @@ select * from [nt:base] where upper(name) like '10%'
 select * from [nt:base] where upper(name) like '10\%'
 /testRoot/test4
 
+# errors
+
+select * from [nt:base] where name =+ 'Hello'
+java.text.ParseException: Query: select * from [nt:base] where name =+ 'Hello(*)'; expected: Illegal operation: + Hello
+
+select * from [nt:base] where name => 'Hello'
+java.text.ParseException: Query: select * from [nt:base] where name =>(*)'Hello'; expected: (, ., =, <>, <, >, <=, >=, LIKE, IS, NOT
