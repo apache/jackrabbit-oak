@@ -16,18 +16,22 @@
  */
 package org.apache.jackrabbit.oak.security.authorization;
 
-import org.apache.jackrabbit.oak.spi.commit.Observer;
+import javax.annotation.Nonnull;
+
+import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
- * {@code Observer} implementation that processes any modification made to
+ * {@code CommitHook} implementation that processes any modification made to
  * access control content and updates persisted permission caches associated
  * with access control related data stored in the repository.
  */
-public class AccessControlObserver implements Observer {
+public class AccessControlHook implements CommitHook {
 
+    @Nonnull
     @Override
-    public void contentChanged(NodeState before, NodeState after) {
+    public NodeState processCommit(NodeState before, NodeState after) throws CommitFailedException {
         // TODO
         throw new UnsupportedOperationException("not yet implemented");
     }

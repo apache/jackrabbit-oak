@@ -16,26 +16,22 @@
  */
 package org.apache.jackrabbit.oak.security.authorization;
 
-import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.jcr.security.AccessControlManager;
 
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.security.authorization.restriction.RestrictionProviderImpl;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfiguration;
-import org.apache.jackrabbit.oak.spi.security.authorization.AllPermissions;
-import org.apache.jackrabbit.oak.spi.security.authorization.CompiledPermissions;
-import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
-import org.apache.jackrabbit.oak.spi.security.principal.SystemPrincipal;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.spi.security.authorization.PermissionProvider;
+import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 
 /**
  * {@code AccessControlConfigurationImpl} ... TODO
@@ -63,13 +59,21 @@ public class AccessControlConfigurationImpl extends SecurityConfiguration.Defaul
 
     @Nonnull
     @Override
-    public CompiledPermissions getCompiledPermissions(NodeStore nodeStore, Set<Principal> principals) {
-        if (principals.contains(SystemPrincipal.INSTANCE) || isAdmin(principals)) {
-            return AllPermissions.getInstance();
-        } else {
-            return new CompiledPermissionImpl(nodeStore, principals);
-        }
+    public RestrictionProvider getRestrictionProvider(NamePathMapper namePathMapper) {
+        return new RestrictionProviderImpl(namePathMapper);
     }
+
+    @Nonnull
+    @Override
+    public PermissionProvider getPermissionProvider(NamePathMapper namePathMapper) {
+        return new PermissionProviderImpl();
+    }
+
+//    @Nonnull
+//    @Override
+//    public List<CommitHook> getCommitHooks() {
+//        return Collections.<CommitHook>singletonList(new AccessControlHook());
+//    }
 
     @Override
     public List<ValidatorProvider> getValidatorProviders() {
@@ -77,15 +81,5 @@ public class AccessControlConfigurationImpl extends SecurityConfiguration.Defaul
         vps.add(new PermissionValidatorProvider(securityProvider));
         vps.add(new AccessControlValidatorProvider(securityProvider));
         return Collections.unmodifiableList(vps);
-    }
-
-    //--------------------------------------------------------------------------
-    private static boolean isAdmin(Set<Principal> principals) {
-        for (Principal principal : principals) {
-            if (principal instanceof AdminPrincipal) {
-                return true;
-            }
-        }
-        return false;
     }
 }

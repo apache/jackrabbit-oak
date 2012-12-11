@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.security.authorization;
+package org.apache.jackrabbit.oak.security.authorization.restriction;
 
 import java.security.AccessControlException;
 import java.util.Collections;
@@ -27,12 +27,12 @@ import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.apache.jackrabbit.oak.security.authorization.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionDefinition;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
@@ -46,8 +46,9 @@ public class RestrictionProviderImpl implements RestrictionProvider {
     private Map<String, RestrictionDefinition> supported;
     private NamePathMapper namePathMapper;
 
-    public RestrictionProviderImpl(Map<String, RestrictionDefinition> supported, NamePathMapper namePathMapper) {
-        this.supported = ImmutableMap.copyOf(supported);
+    public RestrictionProviderImpl(NamePathMapper namePathMapper) {
+        RestrictionDefinition glob = new RestrictionDefinitionImpl(AccessControlConstants.REP_GLOB, PropertyType.STRING, false);
+        this.supported = Collections.singletonMap(AccessControlConstants.REP_GLOB, glob);
         this.namePathMapper = namePathMapper;
     }
 
@@ -80,6 +81,12 @@ public class RestrictionProviderImpl implements RestrictionProvider {
     public Set<Restriction> readRestrictions(String path, Tree aceTre) throws javax.jcr.security.AccessControlException {
         // TODO
         return null;
+    }
+
+    @Override
+    public void writeRestrictions(String path, Tree aceTree, Set<Restriction> restrictions) throws javax.jcr.security.AccessControlException {
+        // TODO
+
     }
 
     @Override

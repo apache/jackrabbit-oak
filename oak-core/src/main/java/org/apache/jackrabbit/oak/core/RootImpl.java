@@ -33,6 +33,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.SessionQueryEngine;
 import org.apache.jackrabbit.oak.api.TreeLocation;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.commit.DefaultConflictHandler;
 import org.apache.jackrabbit.oak.query.SessionQueryEngineImpl;
 import org.apache.jackrabbit.oak.spi.commit.ConflictHandler;
@@ -340,7 +341,7 @@ public class RootImpl implements Root {
     }
 
     CompiledPermissions getPermissions() {
-        return accConfiguration.getCompiledPermissions(store, subject.getPrincipals());
+        return accConfiguration.getPermissionProvider(NamePathMapper.DEFAULT).getCompiledPermissions(store, subject.getPrincipals());
     }
 
     //------------------------------------------------------------< private >---
