@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.namepath;
 
 import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 
 public interface NameMapper {
 
@@ -29,7 +30,7 @@ public interface NameMapper {
      * @return Oak name, or {@code null}
      */
     @CheckForNull
-    String getOakName(String jcrName);
+    String getOakName(@Nonnull String jcrName);
 
     /**
      * Returns whether the mapper has prefix remappings; when there aren't
@@ -49,6 +50,7 @@ public interface NameMapper {
      * @param oakName Oak name
      * @return JCR name
      */
-    @CheckForNull
-    String getJcrName(String oakName);
+    @Nonnull
+    String getJcrName(@Nonnull String oakName);
+
 }

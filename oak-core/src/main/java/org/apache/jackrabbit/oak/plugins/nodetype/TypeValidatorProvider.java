@@ -16,12 +16,15 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype;
 
+import java.util.Map;
+
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.core.ReadOnlyTree;
-import org.apache.jackrabbit.oak.namepath.IdentityNameMapper;
+import org.apache.jackrabbit.oak.namepath.GlobalNameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
+import org.apache.jackrabbit.oak.plugins.name.Namespaces;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -33,8 +36,13 @@ public class TypeValidatorProvider implements ValidatorProvider {
     @Override
     public Validator getRootValidator(NodeState before, final NodeState after) {
         ReadOnlyNodeTypeManager ntm = new ValidatingNodeTypeManager(after);
-        ReadOnlyTree root = new ReadOnlyTree(after);
-        final NamePathMapper mapper = new NamePathMapperImpl(new IdentityNameMapper(root));
+        final ReadOnlyTree root = new ReadOnlyTree(after);
+        NamePathMapper mapper = new NamePathMapperImpl(new GlobalNameMapper() {
+            @Override
+            protected Map<String, String> getNamespaceMap() {
+                return Namespaces.getNamespaceMap(root);
+            }
+        });
         return new TypeValidator(ntm, root, mapper);
     }
 

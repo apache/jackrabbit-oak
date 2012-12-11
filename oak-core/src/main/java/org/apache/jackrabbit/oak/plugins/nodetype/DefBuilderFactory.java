@@ -23,7 +23,7 @@ import javax.jcr.nodetype.NodeTypeTemplate;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.cnd.DefinitionBuilderFactory;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.namepath.IdentityNameMapper;
+import org.apache.jackrabbit.oak.namepath.GlobalNameMapper;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceConstants;
 import org.apache.jackrabbit.oak.plugins.name.Namespaces;
 
@@ -38,7 +38,12 @@ class DefBuilderFactory extends
 
     @Override
     public NodeTypeTemplateImpl newNodeTypeDefinitionBuilder() {
-        return new NodeTypeTemplateImpl(new IdentityNameMapper(root));
+        return new NodeTypeTemplateImpl(new GlobalNameMapper() {
+            @Override
+            protected Map<String, String> getNamespaceMap() {
+                return getNamespaceMapping();
+            }
+        });
     }
 
     @Override
