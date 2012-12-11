@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.jcr;
 
 import java.io.IOException;
+import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 
 import javax.annotation.CheckForNull;
@@ -45,9 +46,12 @@ import org.apache.jackrabbit.oak.api.SessionQueryEngine;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.namepath.LocalNameMapper;
+import org.apache.jackrabbit.oak.namepath.NameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
+import org.apache.jackrabbit.oak.plugins.name.Namespaces;
 import org.apache.jackrabbit.oak.plugins.nodetype.DefinitionProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.EffectiveNodeTypeProvider;
 import org.apache.jackrabbit.oak.plugins.observation.ObservationManagerImpl;
@@ -55,6 +59,8 @@ import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.Maps;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.namepath.PathResolvers.dotResolver;
@@ -68,7 +74,7 @@ public class SessionDelegate {
     private final ContentSession contentSession;
     private final ValueFactoryImpl valueFactory;
     private final Workspace workspace;
-    private final Session session;
+    private final SessionImpl session;
     private final Root root;
     private final boolean autoRefresh;
 
@@ -97,9 +103,17 @@ public class SessionDelegate {
 
         this.root = contentSession.getLatestRoot();
         this.workspace = new WorkspaceImpl(this);
-        this.session = new SessionImpl(this);
+
+        Map<String, String> namespaces = Maps.newHashMap();
+        NameMapper mapper = new LocalNameMapper(namespaces) {
+            @Override
+            protected Map<String, String> getNamespaceMap() {
+                return Namespaces.getNamespaceMap(root.getTree("/"));
+            }
+        };
+        this.session = new SessionImpl(this, namespaces);
         this.idManager = new IdentifierManager(root);
-        this.namePathMapper = new NamePathMapperImpl(new SessionNameMapper(this), idManager);
+        this.namePathMapper = new NamePathMapperImpl(mapper, idManager);
         this.valueFactory = new ValueFactoryImpl(root.getBlobFactory(), namePathMapper);
     }
 

@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.jcr;
 
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.Map;
@@ -79,10 +78,11 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
      * This map is only accessed from synchronized methods (see
      * <a href="https://issues.apache.org/jira/browse/JCR-1793">JCR-1793</a>).
      */
-    private final Map<String, String> namespaces = new HashMap<String, String>();
+    private final Map<String, String> namespaces;
 
-    SessionImpl(SessionDelegate dlg) {
+    SessionImpl(SessionDelegate dlg, Map<String, String> namespaces) {
         this.dlg = dlg;
+        this.namespaces = namespaces;
     }
 
     //------------------------------------------------------------< Session >---
