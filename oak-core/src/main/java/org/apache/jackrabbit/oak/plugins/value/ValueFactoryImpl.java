@@ -319,15 +319,6 @@ public class ValueFactoryImpl implements ValueFactory {
             return new RepositoryException("Inaccessible value", exception);
         }
 
-        /**
-         * Error values are never equal.
-         * @return {@code false}
-         */
-        @Override
-        public boolean equals(Object obj) {
-            return false;
-        }
-
         @Override
         public String toString() {
             return "Inaccessible value: " + exception.getMessage();
