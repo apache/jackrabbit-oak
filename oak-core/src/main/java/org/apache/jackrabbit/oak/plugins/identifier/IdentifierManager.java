@@ -64,7 +64,7 @@ public class IdentifierManager {
 
     public IdentifierManager(Root root) {
         this.root = root;
-        this.nodeTypeManager = ReadOnlyNodeTypeManager.getInstance(root);
+        this.nodeTypeManager = ReadOnlyNodeTypeManager.getInstance(root, NamePathMapper.DEFAULT);
     }
 
     @Nonnull
@@ -295,5 +295,4 @@ public class IdentifierManager {
             return null;
         }
     }
-
 }

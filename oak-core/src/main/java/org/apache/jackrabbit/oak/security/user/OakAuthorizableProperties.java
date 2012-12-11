@@ -64,7 +64,7 @@ class OakAuthorizableProperties implements AuthorizableProperties {
         this.userProvider = userProvider;
         this.id = id;
         this.namePathMapper = namePathMapper;
-        this.nodeTypeManager = ReadOnlyNodeTypeManager.getInstance(root);
+        this.nodeTypeManager = ReadOnlyNodeTypeManager.getInstance(root, NamePathMapper.DEFAULT);
     }
 
     //---------------------------------------------< AuthorizableProperties >---
