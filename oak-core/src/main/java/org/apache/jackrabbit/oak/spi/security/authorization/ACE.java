@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.spi.security.authorization;
 
 import java.security.Principal;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Set;
 import javax.jcr.RepositoryException;
@@ -26,6 +25,7 @@ import javax.jcr.security.Privilege;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
+import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
@@ -37,7 +37,7 @@ import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restrict
 public class ACE implements JackrabbitAccessControlEntry {
 
     private final Principal principal;
-    private final Privilege[] privileges;
+    private final Set<Privilege> privileges;
     private final boolean isAllow;
     private final Set<Restriction> restrictions;
     private final NamePathMapper namePathMapper;
@@ -46,11 +46,24 @@ public class ACE implements JackrabbitAccessControlEntry {
 
     public ACE(Principal principal, Privilege[] privileges, boolean isAllow,
                Set<Restriction> restrictions, NamePathMapper namePathMapper) {
+        this(principal, ImmutableSet.copyOf(privileges), isAllow, restrictions, namePathMapper);
+    }
+
+    public ACE(Principal principal, Set<Privilege> privileges, boolean isAllow,
+               Set<Restriction> restrictions, NamePathMapper namePathMapper) {
         this.principal = principal;
-        this.privileges = privileges;
+        this.privileges = ImmutableSet.copyOf(privileges);
         this.isAllow = isAllow;
-        this.restrictions = (restrictions == null) ? Collections.<Restriction>emptySet() : restrictions;
+        this.restrictions = (restrictions == null) ? Collections.<Restriction>emptySet() : ImmutableSet.copyOf(restrictions);
         this.namePathMapper = namePathMapper;
+    }
+
+    public Set<Privilege> getPrivilegeSet() {
+        return privileges;
+    }
+
+    public Set<Restriction> getRestrictionSet() {
+        return restrictions;
     }
 
     //-------------------------------------------------< AccessControlEntry >---
@@ -61,7 +74,7 @@ public class ACE implements JackrabbitAccessControlEntry {
 
     @Override
     public Privilege[] getPrivileges() {
-        return privileges;
+        return privileges.toArray(new Privilege[privileges.size()]);
     }
 
     //---------------------------------------< JackrabbitAccessControlEntry >---
@@ -114,7 +127,7 @@ public class ACE implements JackrabbitAccessControlEntry {
         if (obj instanceof ACE) {
             ACE other = (ACE) obj;
             return principal.equals(other.principal) &&
-                   Arrays.equals(privileges, other.privileges) &&
+                   privileges.equals(other.privileges) &&
                    isAllow == other.isAllow &&
                    restrictions.equals(other.restrictions);
         }
@@ -128,7 +141,7 @@ public class ACE implements JackrabbitAccessControlEntry {
     public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append(principal.getName()).append('-').append(isAllow).append('-');
-        sb.append(Arrays.toString(privileges)).append('-').append(restrictions.toString());
+        sb.append(privileges.toString()).append('-').append(restrictions.toString());
         return sb.toString();
     }
 
@@ -141,7 +154,7 @@ public class ACE implements JackrabbitAccessControlEntry {
     private int buildHashCode() {
         int h = 17;
         h = 37 * h + principal.getName().hashCode();
-        h = 37 * h + Arrays.hashCode(privileges);
+        h = 37 * h + privileges.hashCode();
         h = 37 * h + Boolean.valueOf(isAllow).hashCode();
         h = 37 * h + restrictions.hashCode();
         return h;

@@ -16,17 +16,22 @@
  */
 package org.apache.jackrabbit.oak.spi.security.user.action;
 
+import java.security.Principal;
 import java.util.ArrayList;
 import java.util.List;
 import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlManager;
+import javax.jcr.security.AccessControlPolicy;
+import javax.jcr.security.AccessControlPolicyIterator;
 import javax.jcr.security.Privilege;
 
+import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -96,16 +101,24 @@ public class AccessControlAction extends AbstractAuthorizableAction {
 
     private String[] groupPrivilegeNames = new String[0];
     private String[] userPrivilegeNames = new String[0];
+    private final SecurityProvider securityProvider;
+
+    AccessControlAction(String[] groupPrivilegeNames, String[] userPrivilegeNames,
+                        SecurityProvider securityProvider) {
+        this.groupPrivilegeNames = groupPrivilegeNames;
+        this.userPrivilegeNames = userPrivilegeNames;
+        this.securityProvider = securityProvider;
+    }
 
     //-------------------------------------------------< AuthorizableAction >---
     @Override
     public void onCreate(Group group, Root root, NamePathMapper namePathMapper) throws RepositoryException {
-        setAC(group, root);
+        setAC(group, root, namePathMapper);
     }
 
     @Override
     public void onCreate(User user, String password, Root root, NamePathMapper namePathMapper) throws RepositoryException {
-        setAC(user, root);
+        setAC(user, root, namePathMapper);
     }
 
     //------------------------------------------------------< Configuration >---
@@ -134,44 +147,39 @@ public class AccessControlAction extends AbstractAuthorizableAction {
 
     //------------------------------------------------------------< private >---
 
-    private void setAC(Authorizable authorizable, Root root) throws RepositoryException {
-        // TODO: add implementation
-        log.error("Not yet implemented");
+    private void setAC(Authorizable authorizable, Root root, NamePathMapper namePathMapper) throws RepositoryException {
+        String path = authorizable.getPath();
+        AccessControlManager acMgr = securityProvider.getAccessControlConfiguration().getAccessControlManager(root, namePathMapper);
+        JackrabbitAccessControlList acl = null;
+        for (AccessControlPolicyIterator it = acMgr.getApplicablePolicies(path); it.hasNext();) {
+            AccessControlPolicy plc = it.nextAccessControlPolicy();
+            if (plc instanceof JackrabbitAccessControlList) {
+                acl = (JackrabbitAccessControlList) plc;
+                break;
+            }
+        }
 
-//        Node aNode;
-//        String path = authorizable.getPath();
-//
-//        JackrabbitAccessControlList acl = null;
-//        AccessControlManager acMgr = session.getAccessControlManager();
-//        for (AccessControlPolicyIterator it = acMgr.getApplicablePolicies(path); it.hasNext();) {
-//            AccessControlPolicy plc = it.nextAccessControlPolicy();
-//            if (plc instanceof JackrabbitAccessControlList) {
-//                acl = (JackrabbitAccessControlList) plc;
-//                break;
-//            }
-//        }
-//
-//        if (acl == null) {
-//            log.warn("Cannot process AccessControlAction: no applicable ACL at " + path);
-//        } else {
-//            // setup acl according to configuration.
-//            Principal principal = authorizable.getPrincipal();
-//            boolean modified = false;
-//            if (authorizable.isGroup()) {
-//                // new authorizable is a Group
-//                if (groupPrivilegeNames.length > 0) {
-//                    modified = acl.addAccessControlEntry(principal, getPrivileges(groupPrivilegeNames, acMgr));
-//                }
-//            } else {
-//                // new authorizable is a User
-//                if (userPrivilegeNames.length > 0) {
-//                    modified = acl.addAccessControlEntry(principal, getPrivileges(userPrivilegeNames, acMgr));
-//                }
-//            }
-//            if (modified) {
-//                acMgr.setPolicy(path, acl);
-//            }
-//        }
+        if (acl == null) {
+            log.warn("Cannot process AccessControlAction: no applicable ACL at " + path);
+        } else {
+            // setup acl according to configuration.
+            Principal principal = authorizable.getPrincipal();
+            boolean modified = false;
+            if (authorizable.isGroup()) {
+                // new authorizable is a Group
+                if (groupPrivilegeNames.length > 0) {
+                    modified = acl.addAccessControlEntry(principal, getPrivileges(groupPrivilegeNames, acMgr));
+                }
+            } else {
+                // new authorizable is a User
+                if (userPrivilegeNames.length > 0) {
+                    modified = acl.addAccessControlEntry(principal, getPrivileges(userPrivilegeNames, acMgr));
+                }
+            }
+            if (modified) {
+                acMgr.setPolicy(path, acl);
+            }
+        }
     }
 
     /**
