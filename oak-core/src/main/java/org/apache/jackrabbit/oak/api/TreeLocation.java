@@ -53,18 +53,8 @@ public interface TreeLocation {
         /**
          * @return  {@code NULL}
          */
-        @Nonnull
         @Override
-        public TreeLocation getChild(String name) {
-            return NULL;
-        }
-
-        /**
-         * @return  {@code NULL}
-         */
-        @Nonnull
-        @Override
-        public TreeLocation getLocation(PathResolver pathResolver) {
+        public TreeLocation getChild(String relPath) {
             return NULL;
         }
 
@@ -109,20 +99,13 @@ public interface TreeLocation {
     TreeLocation getParent();
 
     /**
-     * Retrieve the child location with the given name.
-     * @param name  name of the child
+     * Navigate to a child through a relative path. A relative path consists of a
+     * possibly empty lists of names separated by forward slashes.
+     * @param relPath  relative path to the child
      * @return  a {@code TreeLocation} for a child with the given {@code name}.
      */
     @Nonnull
-    TreeLocation getChild(String name);
-
-    /**
-     * Navigate to a child through a {@code pathResolver}.
-     * @param pathResolver for the path to the location
-     * @return the tree location for {@code pathResolver}
-     */
-    @Nonnull
-    TreeLocation getLocation(PathResolver pathResolver);
+    TreeLocation getChild(String relPath);
 
     /**
      * Get the underlying {@link org.apache.jackrabbit.oak.api.Tree} for this {@code TreeLocation}.

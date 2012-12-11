@@ -30,7 +30,6 @@ import javax.security.auth.Subject;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.BlobFactory;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.PathResolver;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.SessionQueryEngine;
 import org.apache.jackrabbit.oak.api.TreeLocation;
@@ -50,6 +49,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
@@ -128,7 +128,6 @@ public class RootImpl implements Root {
     public Root getLatest() {
         checkLive();
         RootImpl root = new RootImpl(store, null, subject, accConfiguration, indexProvider) {
-            @Override
             protected void checkLive() {
                 RootImpl.this.checkLive();
             }
@@ -202,9 +201,10 @@ public class RootImpl implements Root {
     }
 
     @Override
-    public TreeLocation getLocation(PathResolver pathResolver) {
+    public TreeLocation getLocation(String path) {
         checkLive();
-        return rootTree.getLocation().getLocation(pathResolver);
+        checkArgument(path.startsWith("/"));
+        return rootTree.getLocation().getChild(path.substring(1));
     }
 
     @Override

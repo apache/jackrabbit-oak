@@ -59,7 +59,6 @@ public class OakAuthorizablePropertyTest extends AbstractSecurityTest {
     private Map<String, Boolean> protectedUserProps = new HashMap<String, Boolean>();
     private Map<String, Boolean> protectedGroupProps = new HashMap<String, Boolean>();
     
-    @Override
     @Before
     public void before() throws Exception {
         super.before();
@@ -79,7 +78,6 @@ public class OakAuthorizablePropertyTest extends AbstractSecurityTest {
         protectedGroupProps.put(UserConstants.REP_PRINCIPAL_NAME, false);
     }
 
-    @Override
     @After
     public void after() throws Exception {
         try {
@@ -334,8 +332,8 @@ public class OakAuthorizablePropertyTest extends AbstractSecurityTest {
     @Test
     public void testGetPropertyNamesByInvalidRelPath() throws Exception {
         List<String> invalidPaths = new ArrayList<String>();
-//        invalidPaths.add("../");     // FIXME: these paths are valid on JR2
-//        invalidPaths.add("../../");
+        invalidPaths.add("../");
+        invalidPaths.add("../../");
         invalidPaths.add("../testing");
         invalidPaths.add("/testing");
         invalidPaths.add(null);
