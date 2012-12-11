@@ -51,7 +51,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.oak.api.Type.STRING;
-import static org.apache.jackrabbit.oak.namepath.PathResolvers.identity;
 
 /**
  * IdentifierManager...
@@ -237,7 +236,7 @@ public class IdentifierManager {
     }
 
     private String findProperty(String path, final String uuid) {
-        TreeLocation loc = root.getLocation(identity(path));
+        TreeLocation loc = root.getLocation(path);
         Tree tree = loc.getTree();
         assert tree != null;
         final PropertyState refProp = Iterables.find(tree.getProperties(), new Predicate<PropertyState>() {
