@@ -254,7 +254,10 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
         String oakName = getOakName(nodeTypeName);
         NodeUtil node = new NodeUtil(tree);
         String ntName = node.getPrimaryNodeTypeName();
-        if (oakName.equals(ntName) || internalGetNodeType(ntName).isNodeType(nodeTypeName)) {
+        if (ntName == null) {
+            return false;
+        } else if (oakName.equals(ntName)
+                || internalGetNodeType(ntName).isNodeType(nodeTypeName)) {
             return true;
         }
         String[] mixinNames = node.getStrings(JcrConstants.JCR_MIXINTYPES);
