@@ -51,6 +51,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.slf4j.Logger;
@@ -130,11 +131,18 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
      * @return a new instance of {@code ReadOnlyNodeTypeManager}.
      */
     @Nonnull
-    public static ReadOnlyNodeTypeManager getInstance(final Root root) {
+    public static ReadOnlyNodeTypeManager getInstance(final Root root,
+                                                      final NamePathMapper namePathMapper) {
         return new ReadOnlyNodeTypeManager() {
             @Override
             protected Tree getTypes() {
                 return root.getTree(NODE_TYPES_PATH);
+            }
+
+            @Nonnull
+            @Override
+            protected NameMapper getNameMapper() {
+                return namePathMapper;
             }
         };
     }
