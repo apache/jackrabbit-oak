@@ -47,28 +47,28 @@ public interface QueryIndex {
      * estimated number of nodes to traverse.
      *
      * @param filter the filter
-     * @param root root state of the current repository snapshot
+     * @param rootState root state of the current repository snapshot
      * @return the estimated cost in number of read nodes
      */
-    double getCost(Filter filter, NodeState root);
+    double getCost(Filter filter, NodeState rootState);
 
     /**
      * Start a query.
      *
      * @param filter the filter
-     * @param root root state of the current repository snapshot
+     * @param rootState root state of the current repository snapshot
      * @return a cursor to iterate over the result
      */
-    Cursor query(Filter filter, NodeState root);
+    Cursor query(Filter filter, NodeState rootState);
 
     /**
      * Get the query plan for the given filter.
      *
      * @param filter the filter
-     * @param root root state of the current repository snapshot
+     * @param rootState root state of the current repository snapshot
      * @return the query plan
      */
-    String getPlan(Filter filter, NodeState root);
+    String getPlan(Filter filter, NodeState rootState);
 
     /**
      * Get the unique index name.

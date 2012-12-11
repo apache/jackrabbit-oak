@@ -105,15 +105,15 @@ public class SelectorImpl extends SourceImpl {
     }
 
     @Override
-    public void execute(NodeState root) {
-        cursor = index.query(createFilter(), root);
+    public void execute(NodeState rootState) {
+        cursor = index.query(createFilter(), rootState);
     }
 
     @Override
-    public String getPlan(NodeState root) {
+    public String getPlan(NodeState rootState) {
         StringBuilder buff = new StringBuilder();
         buff.append(toString());
-        buff.append(" /* ").append(index.getPlan(createFilter(), root));
+        buff.append(" /* ").append(index.getPlan(createFilter(), rootState));
         if (selectorCondition != null) {
             buff.append(" where ").append(selectorCondition);
         }

@@ -30,7 +30,7 @@ public class JoinImpl extends SourceImpl {
     private boolean leftNeedNext;
     private boolean foundJoinedRow;
     private boolean end;
-    private NodeState root;
+    private NodeState rootState;
 
     public JoinImpl(SourceImpl left, SourceImpl right, JoinType joinType,
             JoinConditionImpl joinCondition) {
@@ -58,9 +58,9 @@ public class JoinImpl extends SourceImpl {
     }
 
     @Override
-    public String getPlan(NodeState root) {
-        return left.getPlan(root) + ' ' + joinType +
-                " " + right.getPlan(root) + " on " + joinCondition;
+    public String getPlan(NodeState rootState) {
+        return left.getPlan(rootState) + ' ' + joinType +
+                " " + right.getPlan(rootState) + " on " + joinCondition;
     }
 
     @Override
@@ -116,8 +116,8 @@ public class JoinImpl extends SourceImpl {
     }
 
     @Override
-    public void execute(NodeState root) {
-        this.root = root;
+    public void execute(NodeState rootState) {
+        this.rootState = rootState;
         leftNeedExecute = true;
         end = false;
     }
@@ -128,7 +128,7 @@ public class JoinImpl extends SourceImpl {
             return false;
         }
         if (leftNeedExecute) {
-            left.execute(root);
+            left.execute(rootState);
             leftNeedExecute = false;
             leftNeedNext = true;
         }
@@ -142,7 +142,7 @@ public class JoinImpl extends SourceImpl {
                 rightNeedExecute = true;
             }
             if (rightNeedExecute) {
-                right.execute(root);
+                right.execute(rootState);
                 foundJoinedRow = false;
                 rightNeedExecute = false;
             }

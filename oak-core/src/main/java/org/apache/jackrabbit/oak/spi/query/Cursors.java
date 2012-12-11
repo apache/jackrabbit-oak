@@ -58,12 +58,12 @@ public class Cursors {
      * {@link Filter}.
      *
      * @param filter    the filter.
-     * @param root      the root {@link NodeState}.
+     * @param rootState      the root {@link NodeState}.
      * @return the {@link Cursor}.
      */
     public static Cursor newTraversingCursor(Filter filter,
-                                             NodeState root) {
-        return new TraversingCursor(filter, root);
+                                             NodeState rootState) {
+        return new TraversingCursor(filter, rootState);
     }
     
     /**
@@ -127,14 +127,14 @@ public class Cursors {
         
         private boolean closed;
 
-        public TraversingCursor(Filter filter, NodeState root) {
+        public TraversingCursor(Filter filter, NodeState rootState) {
             this.filter = filter;
 
             String path = filter.getPath();
             parentPath = null;
             currentPath = "/";
             NodeState parent = null;
-            NodeState node = root;
+            NodeState node = rootState;
             if (!path.equals("/")) {
                 for (String name : path.substring(1).split("/")) {
                     parentPath = currentPath;
