@@ -103,6 +103,7 @@ public interface NodeBuilder {
      *
      * @return child node names
      */
+    @Nonnull
     Iterable<String> getChildNodeNames();
 
     /**
@@ -137,6 +138,7 @@ public interface NodeBuilder {
      *
      * @return current properties
      */
+    @Nonnull
     Iterable<? extends PropertyState> getProperties();
 
     /**
@@ -146,6 +148,7 @@ public interface NodeBuilder {
      * @param name property name
      * @return property state
      */
+    @CheckForNull
     PropertyState getProperty(String name);
 
     /**
@@ -153,6 +156,7 @@ public interface NodeBuilder {
      * @param property  The property state to set
      * @return this builder
      */
+    @Nonnull
     NodeBuilder setProperty(@Nonnull PropertyState property);
 
     /**
@@ -165,6 +169,7 @@ public interface NodeBuilder {
      * @param name  name of the property
      * @return this builder
      */
+    @Nonnull
     <T> NodeBuilder setProperty(String name, @Nonnull T value);
 
     /**
@@ -174,6 +179,7 @@ public interface NodeBuilder {
      * @param <T>  The type of this property.
      * @return this builder
      */
+    @Nonnull
     <T> NodeBuilder setProperty(String name, @Nonnull T value, Type<T> type);
 
     /**
