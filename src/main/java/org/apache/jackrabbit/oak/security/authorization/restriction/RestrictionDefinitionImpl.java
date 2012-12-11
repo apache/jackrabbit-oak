@@ -14,29 +14,40 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.spi.security.authorization.restriction;
+package org.apache.jackrabbit.oak.security.authorization.restriction;
 
-import java.util.Set;
 import javax.annotation.Nonnull;
-import javax.jcr.RepositoryException;
-import javax.jcr.Value;
-import javax.jcr.security.AccessControlException;
 
-import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionDefinition;
 
 /**
- * RestrictionProvider... TODO
+ * RestrictionDefinitionImpl... TODO
  */
-public interface RestrictionProvider {
+public class RestrictionDefinitionImpl implements RestrictionDefinition {
+
+    private final String name;
+    private final int type;
+    private final boolean isMandatory;
+
+    public RestrictionDefinitionImpl(String name, int type, boolean isMandatory) {
+        this.name = name;
+        this.type = type;
+        this.isMandatory = isMandatory;
+    }
 
     @Nonnull
-    Set<RestrictionDefinition> getSupportedRestrictions(String path);
+    @Override
+    public String getName() {
+        return name;
+    }
 
-    Restriction createRestriction(String jcrPath, String jcrName, Value value) throws RepositoryException;
+    @Override
+    public int getRequiredType() {
+        return type;
+    }
 
-    Set<Restriction> readRestrictions(String path, Tree aceTree) throws AccessControlException;
-
-    void writeRestrictions(String path, Tree aceTree, Set<Restriction> restrictions) throws AccessControlException;
-
-    void validateRestrictions(String path, Tree aceTree) throws AccessControlException;
+    @Override
+    public boolean isMandatory() {
+        return isMandatory;
+    }
 }

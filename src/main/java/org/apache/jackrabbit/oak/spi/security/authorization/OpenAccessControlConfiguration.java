@@ -20,16 +20,18 @@ import java.security.Principal;
 import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.jcr.security.AccessControlManager;
+import javax.jcr.security.Privilege;
 import javax.security.auth.Subject;
 
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
+import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 /**
  * This class implements an {@link AccessControlConfiguration} which grants
- * full access to any {@link Subject} passed to {@link AccessControlConfiguration#getCompiledPermissions(NodeStore, java.util.Set}.
+ * full access to any {@link Subject}.
  */
 public class OpenAccessControlConfiguration extends SecurityConfiguration.Default
         implements AccessControlConfiguration {
@@ -41,7 +43,23 @@ public class OpenAccessControlConfiguration extends SecurityConfiguration.Defaul
 
     @Nonnull
     @Override
-    public CompiledPermissions getCompiledPermissions(NodeStore nodeStore, Set<Principal> principals) {
-        return AllPermissions.getInstance();
+    public RestrictionProvider getRestrictionProvider(NamePathMapper namePathMapper) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Nonnull
+    @Override
+    public PermissionProvider getPermissionProvider(NamePathMapper namePathMapper) {
+        return new PermissionProvider() {
+            @Override
+            public Permissions getPermissions(Set<Privilege> privileges) {
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
+            public CompiledPermissions getCompiledPermissions(NodeStore nodeStore, Set<Principal> principals) {
+                return AllPermissions.getInstance();
+            }
+        };
     }
 }

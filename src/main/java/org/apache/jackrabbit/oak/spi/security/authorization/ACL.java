@@ -49,22 +49,26 @@ public class ACL implements JackrabbitAccessControlList {
     private static final Logger log = LoggerFactory.getLogger(ACL.class);
 
     private final String path;
-    private final List<AccessControlEntry> entries;
+    private final List<ACE> entries;
     private final RestrictionProvider restrictionProvider;
     private final NamePathMapper namePathMapper;
 
-    public ACL(String path, List<AccessControlEntry> entries,
-               RestrictionProvider restrictionProvider, NamePathMapper namePathMapper) {
+    public ACL(String path, List<ACE> entries, RestrictionProvider restrictionProvider,
+               NamePathMapper namePathMapper) {
         this.path = path;
-        this.entries = (entries == null) ? new ArrayList<AccessControlEntry>() : entries;
+        this.entries = (entries == null) ? new ArrayList<ACE>() : entries;
         this.restrictionProvider = restrictionProvider;
         this.namePathMapper = namePathMapper;
+    }
+
+    public ACE[] getACEs() {
+        return entries.toArray(new ACE[entries.size()]);
     }
 
     //--------------------------------------------------< AccessControlList >---
     @Override
     public AccessControlEntry[] getAccessControlEntries() throws RepositoryException {
-        return entries.toArray(new AccessControlEntry[entries.size()]);
+        return getACEs();
     }
 
     @Override
@@ -74,9 +78,7 @@ public class ACL implements JackrabbitAccessControlList {
 
     @Override
     public void removeAccessControlEntry(AccessControlEntry ace) throws AccessControlException, RepositoryException {
-        if (!(ace instanceof ACE)) {
-            throw new AccessControlException("Invalid AccessControlEntry implementation " + ace.getClass().getName() + '.');
-        }
+        checkACE(ace);
         if (!entries.remove(ace)) {
             throw new AccessControlException("Cannot remove AccessControlEntry " + ace);
         }
@@ -140,7 +142,7 @@ public class ACL implements JackrabbitAccessControlList {
                 rs.add(restrictionProvider.createRestriction(path, name, restrictions.get(name)));
             }
         }
-        AccessControlEntry entry = new ACE(principal, privileges, isAllow, rs, namePathMapper);
+        ACE entry = new ACE(principal, privileges, isAllow, rs, namePathMapper);
         if (entries.contains(entry)) {
             log.debug("Entry is already contained in policy -> no modification.");
             return false;
@@ -151,6 +153,11 @@ public class ACL implements JackrabbitAccessControlList {
 
     @Override
     public void orderBefore(AccessControlEntry srcEntry, AccessControlEntry destEntry) throws AccessControlException, UnsupportedRepositoryOperationException, RepositoryException {
+        checkACE(srcEntry);
+        if (destEntry != null) {
+            checkACE(destEntry);
+        }
+
         if (srcEntry.equals(destEntry)) {
             log.debug("'srcEntry' equals 'destEntry' -> no reordering required.");
             return;
@@ -160,9 +167,10 @@ public class ACL implements JackrabbitAccessControlList {
         if (index < 0) {
             throw new AccessControlException("'destEntry' not contained in this AccessControlList.");
         } else {
-            if (entries.remove(srcEntry)) {
+            ACE srcACE = (ACE) srcEntry;
+            if (entries.remove(srcACE)) {
                 // re-insert the srcEntry at the new position.
-                entries.add(index, srcEntry);
+                entries.add(index, srcACE);
             } else {
                 // src entry not contained in this list.
                 throw new AccessControlException("srcEntry not contained in this AccessControlList");
@@ -210,5 +218,12 @@ public class ACL implements JackrabbitAccessControlList {
             sb.append(ace.toString()).append(';');
         }
         return sb.toString();
+    }
+
+    //------------------------------------------------------------< private >---
+    private static void checkACE(AccessControlEntry entry) throws AccessControlException {
+        if (!(entry instanceof ACE)) {
+            throw new AccessControlException("Invalid access control entry.");
+        }
     }
 }

@@ -24,14 +24,13 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
-import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.lifecycle.CompositeInitializer;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 
 /**
- * PluginConfiguration... TODO
+ * SecurityConfiguration... TODO
  */
 public interface SecurityConfiguration {
 
@@ -46,9 +45,6 @@ public interface SecurityConfiguration {
 
     @Nonnull
     List<ValidatorProvider> getValidatorProviders();
-
-    @Nonnull
-    List<Observer> getCommitObservers();
 
     @Nonnull
     List<ProtectedItemImporter> getProtectedItemImporters();
@@ -87,12 +83,6 @@ public interface SecurityConfiguration {
 
         @Nonnull
         @Override
-        public List<Observer> getCommitObservers() {
-            return Collections.emptyList();
-        }
-
-        @Nonnull
-        @Override
         public List<ProtectedItemImporter> getProtectedItemImporters() {
             return Collections.emptyList();
         }
@@ -112,5 +102,4 @@ public interface SecurityConfiguration {
             };
         }
     }
-
 }

@@ -14,29 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.spi.security.authorization.restriction;
+package org.apache.jackrabbit.oak.spi.security.authorization;
 
+import java.security.Principal;
 import java.util.Set;
 import javax.annotation.Nonnull;
-import javax.jcr.RepositoryException;
-import javax.jcr.Value;
-import javax.jcr.security.AccessControlException;
+import javax.jcr.security.Privilege;
 
-import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 /**
- * RestrictionProvider... TODO
+ * PermissionProvider... TODO
  */
-public interface RestrictionProvider {
+public interface PermissionProvider {
 
     @Nonnull
-    Set<RestrictionDefinition> getSupportedRestrictions(String path);
+    Permissions getPermissions(Set<Privilege> privileges);
 
-    Restriction createRestriction(String jcrPath, String jcrName, Value value) throws RepositoryException;
-
-    Set<Restriction> readRestrictions(String path, Tree aceTree) throws AccessControlException;
-
-    void writeRestrictions(String path, Tree aceTree, Set<Restriction> restrictions) throws AccessControlException;
-
-    void validateRestrictions(String path, Tree aceTree) throws AccessControlException;
+    // TODO define how permissions eval is bound to a particular revision/branch. (passing Tree?)
+    @Nonnull
+    CompiledPermissions getCompiledPermissions(NodeStore nodeStore, Set<Principal> principals);
 }

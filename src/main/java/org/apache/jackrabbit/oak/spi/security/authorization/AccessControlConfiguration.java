@@ -16,15 +16,13 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization;
 
-import java.security.Principal;
-import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.jcr.security.AccessControlManager;
 
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 
 /**
  * {@code AccessControlContextProvider}...
@@ -34,7 +32,9 @@ public interface AccessControlConfiguration extends SecurityConfiguration {
     @Nonnull
     public AccessControlManager getAccessControlManager(Root root, NamePathMapper namePathMapper);
 
-    // TODO define how permissions eval is bound to a particular revision/branch. (passing Tree?)
     @Nonnull
-    public CompiledPermissions getCompiledPermissions(NodeStore nodeStore, Set<Principal> principals);
+    public RestrictionProvider getRestrictionProvider(NamePathMapper namePathMapper);
+
+    @Nonnull
+    public PermissionProvider getPermissionProvider(NamePathMapper namePathMapper);
 }
