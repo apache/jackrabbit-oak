@@ -127,10 +127,10 @@ public abstract class SourceImpl extends AstElement {
     /**
      * Get the query plan.
      *
-     * @param root the root
+     * @param rootState the root
      * @return the query plan
      */
-    public abstract String getPlan(NodeState root);
+    public abstract String getPlan(NodeState rootState);
 
     /**
      * Prepare executing the query. This method will decide which index to use.
@@ -141,9 +141,9 @@ public abstract class SourceImpl extends AstElement {
     /**
      * Execute the query. The current node is set to before the first row.
      *
-     * @param root root state of the given revision
+     * @param rootState root state of the given revision
      */
-    public abstract void execute(NodeState root);
+    public abstract void execute(NodeState rootState);
 
     /**
      * Go to the next node for the given source. This will also filter the

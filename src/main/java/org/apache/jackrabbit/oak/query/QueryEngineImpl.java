@@ -47,11 +47,11 @@ public class QueryEngineImpl {
 
     private static final Logger LOG = LoggerFactory.getLogger(QueryEngineImpl.class);
 
-    private final NodeState root;
+    private final NodeState rootState;
     private final QueryIndexProvider indexProvider;
 
-    public QueryEngineImpl(NodeState root, QueryIndexProvider indexProvider) {
-        this.root = root;
+    public QueryEngineImpl(NodeState rootState, QueryIndexProvider indexProvider) {
+        this.rootState = rootState;
         this.indexProvider = indexProvider;
     }
 
@@ -108,10 +108,10 @@ public class QueryEngineImpl {
 
     public ResultImpl executeQuery(String statement, String language, 
             long limit, long offset, Map<String, ? extends PropertyValue> bindings,
-            Root root,
+            Root rootTree,
             NamePathMapper namePathMapper) throws ParseException {
         Query q = parseQuery(statement, language);
-        q.setRoot(root);
+        q.setRootTree(rootTree);
         q.setNamePathMapper(namePathMapper);
         q.setLimit(limit);
         q.setOffset(offset);
@@ -122,14 +122,14 @@ public class QueryEngineImpl {
         }
         q.setQueryEngine(this);
         q.prepare();
-        return q.executeQuery(this.root);
+        return q.executeQuery(this.rootState);
     }
 
     public QueryIndex getBestIndex(Query query, Filter filter) {
         QueryIndex best = null;
         double bestCost = Double.MAX_VALUE;
         for (QueryIndex index : getIndexes()) {
-            double cost = index.getCost(filter, root);
+            double cost = index.getCost(filter, rootState);
             if (LOG.isDebugEnabled()) {
                 LOG.debug("cost for " + index.getIndexName() + " is " + cost);
             }
@@ -148,7 +148,7 @@ public class QueryEngineImpl {
     }
 
     private List<? extends QueryIndex> getIndexes() {
-        return indexProvider.getQueryIndexes(root);
+        return indexProvider.getQueryIndexes(rootState);
     }
 
 }

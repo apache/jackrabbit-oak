@@ -31,12 +31,12 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 public class TraversingIndex implements QueryIndex {
 
     @Override
-    public Cursor query(Filter filter, NodeState root) {
-        return Cursors.newTraversingCursor(filter, root);
+    public Cursor query(Filter filter, NodeState rootState) {
+        return Cursors.newTraversingCursor(filter, rootState);
     }
 
     @Override
-    public double getCost(Filter filter, NodeState root) {
+    public double getCost(Filter filter, NodeState rootState) {
         String path = filter.getPath();
         // TODO estimate or read the node count
         double nodeCount = 10000000;
@@ -50,7 +50,7 @@ public class TraversingIndex implements QueryIndex {
     }
 
     @Override
-    public String getPlan(Filter filter, NodeState root) {
+    public String getPlan(Filter filter, NodeState rootState) {
         String p = filter.getPath();
         String r = filter.getPathRestriction().toString();
         if (PathUtils.denotesRoot(p)) {

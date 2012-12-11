@@ -92,7 +92,7 @@ public class Query {
     private long offset;
     private long size = -1;
     private boolean prepared;
-    private Root root;
+    private Root rootTree;
     private NamePathMapper namePathMapper;
 
     Query(String statement, SourceImpl source, ConstraintImpl constraint, OrderingImpl[] orderings,
@@ -299,15 +299,15 @@ public class Query {
         this.measure = measure;
     }
 
-    public ResultImpl executeQuery(NodeState root) {
-        return new ResultImpl(this, root);
+    public ResultImpl executeQuery(NodeState rootState) {
+        return new ResultImpl(this, rootState);
     }
 
-    Iterator<ResultRowImpl> getRows(NodeState root) {
+    Iterator<ResultRowImpl> getRows(NodeState rootState) {
         prepare();
         Iterator<ResultRowImpl> it;
         if (explain) {
-            String plan = source.getPlan(root);
+            String plan = source.getPlan(rootState);
             columns = new ColumnImpl[] { new ColumnImpl("explain", "plan", "plan")};
             ResultRowImpl r = new ResultRowImpl(this,
                     new String[0], 
@@ -316,14 +316,14 @@ public class Query {
             it = Arrays.asList(r).iterator();
         } else {
             if (LOG.isDebugEnabled()) {
-                LOG.debug("plan: " + source.getPlan(root));
+                LOG.debug("plan: " + source.getPlan(rootState));
             }
             if (orderings == null) {
                 // can apply limit and offset directly
-                it = new RowIterator(root, limit, offset);
+                it = new RowIterator(rootState, limit, offset);
             } else {
                 // read and order first; skip and limit afterwards
-                it = new RowIterator(root, Long.MAX_VALUE, 0);
+                it = new RowIterator(rootState, Long.MAX_VALUE, 0);
             }
             long readCount = 0;
             if (orderings != null) {
@@ -450,13 +450,13 @@ public class Query {
      */
     class RowIterator implements Iterator<ResultRowImpl> {
 
-        private final NodeState root;
+        private final NodeState rootState;
         private ResultRowImpl current;
         private boolean started, end;
         private long limit, offset, rowIndex;
 
-        RowIterator(NodeState root, long limit, long offset) {
-            this.root = root;
+        RowIterator(NodeState rootState, long limit, long offset) {
+            this.rootState = rootState;
             this.limit = limit;
             this.offset = offset;
         }
@@ -470,7 +470,7 @@ public class Query {
                 return;
             }
             if (!started) {
-                source.execute(root);
+                source.execute(rootState);
                 started = true;
             }
             while (true) {
@@ -592,8 +592,8 @@ public class Query {
         return queryEngine.getBestIndex(this, filter);
     }
 
-    public void setRoot(Root root) {
-        this.root = root;
+    public void setRootTree(Root rootTree) {
+        this.rootTree = rootTree;
     }
 
     public void setNamePathMapper(NamePathMapper namePathMapper) {
@@ -605,7 +605,7 @@ public class Query {
     }
 
     public Tree getTree(String path) {
-        return root.getTree(path);
+        return rootTree.getTree(path);
     }
     
     /**
