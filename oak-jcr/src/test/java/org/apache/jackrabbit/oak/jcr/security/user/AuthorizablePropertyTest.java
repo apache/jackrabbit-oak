@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+
 import javax.jcr.Node;
 import javax.jcr.Property;
 import javax.jcr.PropertyIterator;
@@ -330,6 +331,11 @@ public class AuthorizablePropertyTest extends AbstractUserTest {
             }
         }
     }
+
+//    @Test FIXME OAK-502
+//    public void testGetPropertyNamesByInvalidRelPathThrowsAIOOBE() throws NotExecutableException, RepositoryException {
+//        user.getPropertyNames("");
+//    }
 
     @Test
     public void testGetNotExistingProperty() throws RepositoryException, NotExecutableException {
