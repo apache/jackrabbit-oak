@@ -20,7 +20,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
-
 import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
@@ -34,18 +33,16 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.TreeLocation;
-import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
+import org.apache.jackrabbit.oak.util.LocationUtil;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.apache.jackrabbit.oak.namepath.PathResolvers.dotResolver;
 
 /**
  * Oak level implementation of the internal {@code AuthorizableProperties} that
@@ -195,7 +192,7 @@ class OakAuthorizableProperties implements AuthorizableProperties {
         checkRelativePath(relPath);
 
         Tree node = getTree();
-        TreeLocation propertyLocation = node.getLocation().getLocation(dotResolver(relPath));
+        TreeLocation propertyLocation = node.getLocation().getChild(relPath);
         PropertyState property = propertyLocation.getProperty();
         if (property != null) {
             if (isAuthorizableProperty(node, propertyLocation, true)) {
@@ -300,14 +297,14 @@ class OakAuthorizableProperties implements AuthorizableProperties {
 
     @Nonnull
     private static TreeLocation getLocation(Tree tree, String relativePath) {
-        return tree.getLocation().getLocation(dotResolver(relativePath));
+        return LocationUtil.getTreeLocation(tree.getLocation(), relativePath);
     }
 
     private static void checkRelativePath(String relativePath) throws RepositoryException {
         if (relativePath == null) {
             throw new RepositoryException("Relative path expected. Found null.");
         }
-        if (PathUtils.isAbsolute(relativePath)) {
+        if ('/' == relativePath.charAt(0)) {
             throw new RepositoryException("Relative path expected. Found " + relativePath);
         }
     }
