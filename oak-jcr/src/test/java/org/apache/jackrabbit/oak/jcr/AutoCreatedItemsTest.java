@@ -27,7 +27,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 /**
- * <code>AutoCreatedItemsTest</code> checks if auto-created nodes and properties
+ * {@code AutoCreatedItemsTest} checks if auto-created nodes and properties
  * are added correctly as defined in the node type definition.
  */
 public class AutoCreatedItemsTest extends AbstractRepositoryTest {
