@@ -29,13 +29,13 @@ import java.util.Map.Entry;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
-import javax.jcr.nodetype.NodeType;
 import javax.jcr.query.InvalidQueryException;
 import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
 import javax.jcr.query.QueryResult;
 import javax.jcr.query.qom.QueryObjectModelFactory;
 
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.SessionQueryEngine;
@@ -77,11 +77,11 @@ public class QueryManagerImpl implements QueryManager {
 
     @Override
     public Query getQuery(Node node) throws RepositoryException {
-        if (!node.isNodeType(NodeType.NT_QUERY)) {
+        if (!node.isNodeType(JcrConstants.NT_QUERY)) {
             throw new InvalidQueryException("Not an nt:query node: " + node.getPath());
         }
-        String statement = node.getProperty("statement").getString();
-        String language = node.getProperty("language").getString();
+        String statement = node.getProperty(JcrConstants.JCR_STATEMENT).getString();
+        String language = node.getProperty(JcrConstants.JCR_LANGUAGE).getString();
         QueryImpl query = createQuery(statement, language);
         query.setStoredQueryPath(node.getPath());
         return query;

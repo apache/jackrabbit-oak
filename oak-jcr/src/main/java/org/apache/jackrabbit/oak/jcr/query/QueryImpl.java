@@ -20,21 +20,20 @@ package org.apache.jackrabbit.oak.jcr.query;
 
 import java.util.HashMap;
 import java.util.List;
-import javax.jcr.ItemExistsException;
 import javax.jcr.ItemNotFoundException;
 import javax.jcr.Node;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
-import javax.jcr.nodetype.NodeType;
+import javax.jcr.ValueFactory;
 import javax.jcr.query.InvalidQueryException;
 import javax.jcr.query.Query;
 import javax.jcr.query.QueryResult;
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.NodeImpl;
 import org.apache.jackrabbit.oak.jcr.SessionDelegate;
-import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 
 /**
  * The implementation of the corresponding JCR interface.
@@ -126,23 +125,18 @@ public class QueryImpl implements Query {
         manager.ensureIsAlive();
         SessionDelegate sessionDelegate = manager.getSessionDelegate();
         String oakPath = sessionDelegate.getOakPathOrThrow(absPath);
-        // TODO query nodes should be of type nt:query
         String parent = PathUtils.getParentPath(oakPath);
-        String nodeName = PathUtils.getName(oakPath);
-        NodeDelegate parentNode = sessionDelegate.getNode(parent);
-        ValueFactoryImpl vf = sessionDelegate.getValueFactory();
-        if (parentNode == null) {
+        NodeDelegate parentDelegate = sessionDelegate.getNode(parent);
+        if (parentDelegate == null) {
             throw new PathNotFoundException("The specified path does not exist: " + parent);
         }
-        NodeDelegate node = parentNode.addChild(nodeName);
-        if (node == null) {
-            throw new ItemExistsException("Node already exists: " + absPath);
-        }
-        node.setProperty("statement", vf.createValue(statement));
-        node.setProperty("language", vf.createValue(language));
-        NodeImpl n = new NodeImpl(node);
-        n.setPrimaryType(NodeType.NT_QUERY);
-        storedQueryPath = oakPath;
+        Node parentNode = new NodeImpl(parentDelegate);
+        String nodeName = PathUtils.getName(oakPath);
+        ValueFactory vf = sessionDelegate.getValueFactory();
+        Node n = parentNode.addNode(nodeName, JcrConstants.NT_QUERY);
+        n.setProperty(JcrConstants.JCR_STATEMENT, vf.createValue(statement));
+        n.setProperty(JcrConstants.JCR_LANGUAGE, vf.createValue(language));
+        setStoredQueryPath(oakPath);
         return n;
     }
 
