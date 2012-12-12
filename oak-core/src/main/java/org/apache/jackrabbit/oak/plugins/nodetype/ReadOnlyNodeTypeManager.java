@@ -25,7 +25,6 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.Node;
 import javax.jcr.Property;
-import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.Value;
@@ -64,7 +63,6 @@ import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.RESIDUAL_NAME;
 
 /**
  * Base implementation of a {@link NodeTypeManager} with support for reading
@@ -459,18 +457,6 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
             }
         }
 
-        // FIXME: Shouldn't be needed
-        for (NodeType nt : effectiveNodeType.getAllNodeTypes()) {
-            for (PropertyDefinition def : nt.getDeclaredPropertyDefinitions()) {
-                // FIXME: compares oak propertyName with JCR name exposed by def.getName()
-                String defName = def.getName();
-                if ((propertyName.equals(defName) || RESIDUAL_NAME.equals(defName))
-                        && type == PropertyType.STRING
-                        && isMultiple == def.isMultiple()) {
-                    return def;
-                }
-            }
-        }
         throw new ConstraintViolationException("No matching property definition found for " + propertyName);
     }
 

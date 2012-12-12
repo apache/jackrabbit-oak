@@ -251,7 +251,10 @@ public abstract class ReadWriteNodeTypeManager extends ReadOnlyNodeTypeManager {
         NodeUtil node = new NodeUtil(type, getNamePathMapper());
         node.setName(JCR_PRIMARYTYPE, NT_NODETYPE);
         node.setName(JCR_NODETYPENAME, jcrName);
-        node.setNames(JCR_SUPERTYPES, ntd.getDeclaredSupertypeNames());
+        String[] superTypeNames = ntd.getDeclaredSupertypeNames();
+        if (superTypeNames != null && superTypeNames.length > 0) {
+            node.setNames(JCR_SUPERTYPES, ntd.getDeclaredSupertypeNames());
+        }
         node.setBoolean(JCR_IS_ABSTRACT, ntd.isAbstract());
         node.setBoolean(JCR_IS_QUERYABLE, ntd.isQueryable());
         node.setBoolean(JCR_ISMIXIN, ntd.isMixin());

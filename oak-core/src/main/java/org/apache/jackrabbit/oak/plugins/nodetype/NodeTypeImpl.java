@@ -98,7 +98,7 @@ class NodeTypeImpl implements NodeType {
 
     @Override
     public String[] getDeclaredSupertypeNames() {
-        return node.getNames(JCR_SUPERTYPES);
+        return node.getNames(JCR_SUPERTYPES, new String[0]);
     }
 
     @Override
@@ -151,8 +151,7 @@ class NodeTypeImpl implements NodeType {
     public NodeType[] getSupertypes() {
         Collection<NodeType> types = new ArrayList<NodeType>();
         Set<String> added = new HashSet<String>();
-        Queue<String> queue = new LinkedList<String>(Arrays.asList(
-                getDeclaredSupertypeNames()));
+        Queue<String> queue = new LinkedList<String>(Arrays.asList(getDeclaredSupertypeNames()));
         while (!queue.isEmpty()) {
             String name = queue.remove();
             if (added.add(name)) {
