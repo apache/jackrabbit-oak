@@ -56,4 +56,6 @@ public interface NodeTypeConstants extends JcrConstants {
     String CHANGE_CHANGED = "changeChanged";
     String DELETE_CHANGED = "deleteChanged";
     String DELETE_DELETED = "deleteDeleted";
+
+    String RESIDUAL_NAME = "*";
 }

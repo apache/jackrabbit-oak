@@ -64,6 +64,7 @@ import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.RESIDUAL_NAME;
 
 /**
  * Base implementation of a {@link NodeTypeManager} with support for reading
@@ -424,6 +425,16 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
         return new EffectiveNodeTypeImpl(types.values(), this);
     }
 
+    /**
+     *
+     * @param effectiveNodeType
+     * @param propertyName The internal oak name of the property.
+     * @param isMultiple
+     * @param type
+     * @param exactTypeMatch
+     * @return
+     * @throws ConstraintViolationException
+     */
     private static PropertyDefinition getPropertyDefinition(EffectiveNodeType effectiveNodeType,
             String propertyName, boolean isMultiple,
             int type, boolean exactTypeMatch) throws ConstraintViolationException {
@@ -437,7 +448,7 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
         }
 
         // try if there is a residual definition
-        for (PropertyDefinition def : effectiveNodeType.getUnnamedPropertyDefinitions()) {
+        for (PropertyDefinition def : effectiveNodeType.getResidualPropertyDefinitions()) {
             int defType = def.getRequiredType();
             if (isMultiple == def.isMultiple()
                     && (!exactTypeMatch || (type == defType || UNDEFINED == type || UNDEFINED == defType))) {
@@ -448,8 +459,9 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
         // FIXME: Shouldn't be needed
         for (NodeType nt : effectiveNodeType.getAllNodeTypes()) {
             for (PropertyDefinition def : nt.getDeclaredPropertyDefinitions()) {
+                // FIXME: compares oak propertyName with JCR name exposed by def.getName()
                 String defName = def.getName();
-                if ((propertyName.equals(defName) || "*".equals(defName))
+                if ((propertyName.equals(defName) || RESIDUAL_NAME.equals(defName))
                         && type == PropertyType.STRING
                         && isMultiple == def.isMultiple()) {
                     return def;
@@ -459,6 +471,14 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
         throw new ConstraintViolationException("No matching property definition found for " + propertyName);
     }
 
+    /**
+     *
+     * @param effectiveNodeType
+     * @param childName The internal oak name of the target node.
+     * @param childEffective
+     * @return
+     * @throws ConstraintViolationException
+     */
     private static NodeDefinition getNodeDefinition(EffectiveNodeType effectiveNodeType,
                                                     String childName,
                                                     EffectiveNodeType childEffective) throws ConstraintViolationException {
@@ -472,7 +492,7 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
             }
         }
 
-        for (NodeDefinition def : effectiveNodeType.getUnnamedNodeDefinitions()) {
+        for (NodeDefinition def : effectiveNodeType.getResidualNodeDefinitions()) {
             boolean match = true;
             if (childEffective != null && !childEffective.includesNodeTypes(def.getRequiredPrimaryTypeNames())) {
                 match = false;
