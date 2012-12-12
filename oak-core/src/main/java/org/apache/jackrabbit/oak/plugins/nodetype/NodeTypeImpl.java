@@ -226,17 +226,7 @@ class NodeTypeImpl implements NodeType {
     @Override
     public boolean isNodeType(String nodeTypeName) {
         String oakName = node.getNameMapper().getOakName(nodeTypeName);
-        if (getOakName().equals(oakName)) {
-            return true;
-        }
-
-        for (NodeType type : getDeclaredSupertypes()) {
-            if (type.isNodeType(nodeTypeName)) {
-                return true;
-            }
-        }
-
-        return false;
+        return internalIsNodeType(oakName);
     }
 
     @Override
@@ -375,6 +365,18 @@ class NodeTypeImpl implements NodeType {
     //-----------------------------------------------------------< internal >---
     String getOakName() {
         return node.getTree().getName();
+    }
+
+    boolean internalIsNodeType(String oakName) {
+        if (getOakName().equals(oakName)) {
+            return true;
+        }
+        for (NodeType type : getDeclaredSupertypes()) {
+            if (((NodeTypeImpl) type).internalIsNodeType(oakName)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     Collection<NodeDefinition> internalGetChildDefinitions() {

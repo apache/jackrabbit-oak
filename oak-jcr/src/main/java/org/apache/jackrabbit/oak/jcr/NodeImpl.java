@@ -860,7 +860,8 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
     public boolean isNodeType(final String nodeTypeName) throws RepositoryException {
         checkStatus();
 
-        return sessionDelegate.getEffectiveNodeTypeProvider().isNodeType(dlg.getTree(), nodeTypeName);
+        String oakName = sessionDelegate.getOakNameOrThrow(nodeTypeName);
+        return sessionDelegate.getEffectiveNodeTypeProvider().isNodeType(dlg.getTree(), oakName);
     }
 
     @Override

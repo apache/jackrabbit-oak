@@ -254,24 +254,19 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
 
     //------------------------------------------< EffectiveNodeTypeProvider >---
     @Override
-    public boolean isNodeType(Tree tree, String nodeTypeName) throws RepositoryException {
-        if (!hasNodeType(nodeTypeName)) {
-            throw new NoSuchNodeTypeException(nodeTypeName);
-        }
-
-        String oakName = getOakName(nodeTypeName);
+    public boolean isNodeType(Tree tree, String oakNtName) throws RepositoryException {
+        NodeTypeImpl nodeType = internalGetNodeType(oakNtName);
         NodeUtil node = new NodeUtil(tree);
         String ntName = node.getPrimaryNodeTypeName();
         if (ntName == null) {
             return false;
-        } else if (oakName.equals(ntName)
-                || internalGetNodeType(ntName).isNodeType(nodeTypeName)) {
+        } else if (oakNtName.equals(ntName) || internalGetNodeType(ntName).isNodeType(oakNtName)) {
             return true;
         }
         String[] mixinNames = node.getStrings(JcrConstants.JCR_MIXINTYPES);
         if (mixinNames != null) {
             for (String mixinName : mixinNames) {
-                if (oakName.equals(mixinName) || internalGetNodeType(mixinName).isNodeType(nodeTypeName)) {
+                if (oakNtName.equals(mixinName) || internalGetNodeType(mixinName).isNodeType(oakNtName)) {
                     return true;
                 }
             }
@@ -307,7 +302,7 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
         PropertyState jcrPrimaryType = tree.getProperty(JCR_PRIMARYTYPE);
         if (jcrPrimaryType != null) {
             String ntName = jcrPrimaryType.getValue(STRING);
-            primaryType = getNodeType(ntName);
+            primaryType = internalGetNodeType(ntName);
         } else {
             throw new RepositoryException("Node at "+tree.getPath()+" has no primary type.");
         }
@@ -317,7 +312,7 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
         PropertyState jcrMixinType = tree.getProperty(JCR_MIXINTYPES);
         if (jcrMixinType != null) {
             for (String ntName : jcrMixinType.getValue(STRINGS)) {
-                mixinTypes.add(getNodeType(ntName));
+                mixinTypes.add(internalGetNodeType(ntName));
             }
         }
         queue.addAll(mixinTypes);
@@ -334,16 +329,20 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
 
     @Nonnull
     @Override
-    public NodeDefinition getDefinition(@Nonnull Node parent,
-                                        @Nonnull String nodeName)
+    public NodeDefinition getDefinition(@Nonnull Node parent, @Nonnull String nodeName)
             throws RepositoryException {
         checkNotNull(parent);
         checkNotNull(nodeName);
+
         return getNodeDefinition(getEffectiveNodeType(parent), nodeName, null);
     }
 
     @Override
-    public NodeDefinition getDefinition(@Nonnull Node parent, @Nonnull Node targetNode) throws RepositoryException {
+    public NodeDefinition getDefinition(@Nonnull Node parent, @Nonnull Node targetNode)
+            throws RepositoryException {
+        checkNotNull(parent);
+        checkNotNull(targetNode);
+
         String name = targetNode.getName();
         EffectiveNodeType eff = getEffectiveNodeType(parent);
         return getNodeDefinition(eff, name, getEffectiveNodeType(targetNode));
@@ -401,7 +400,7 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
     }
 
     //------------------------------------------------------------< private >---
-    private NodeType internalGetNodeType(String oakName) throws NoSuchNodeTypeException {
+    private NodeTypeImpl internalGetNodeType(String oakName) throws NoSuchNodeTypeException {
         Tree types = getTypes();
         if (types != null) {
             Tree type = types.getChild(oakName);
