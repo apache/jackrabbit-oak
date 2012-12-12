@@ -170,7 +170,11 @@ public final class KernelNodeState extends AbstractNodeState {
         String childPath = childPaths.get(name);
         if (childPath == null && childNodeCount > MAX_CHILD_NODE_NAMES) {
             String path = getChildPath(name);
-            if (kernel.nodeExists(path, revision)) {
+            // OAK-506: Avoid the nodeExists() call when already cached
+            NodeState state = cache.getIfPresent(revision + path);
+            if (state != null) {
+                return state;
+            } else if (kernel.nodeExists(path, revision)) {
                 childPath = path;
             }
         }
