@@ -93,7 +93,7 @@ public class JsopParser {
                     break;
                 }
                 default:
-                    throw new IllegalStateException("Unknown operation: " + (char) token);
+                    throw new IllegalArgumentException("Illegal token '" + (char)token);
             }
         }
     }
