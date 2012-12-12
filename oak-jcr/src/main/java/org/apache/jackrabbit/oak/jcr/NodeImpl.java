@@ -74,6 +74,7 @@ import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.plugins.nodetype.DefinitionProvider;
+import org.apache.jackrabbit.oak.plugins.nodetype.EffectiveNodeType;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.util.TODO;
 import org.apache.jackrabbit.value.ValueHelper;
@@ -1313,23 +1314,19 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
     }
 
     private void autoCreateItems() throws RepositoryException {
-        Iterable<NodeType> types = dlg.sessionDelegate.getEffectiveNodeTypeProvider().getEffectiveNodeTypes(this);
-        for (NodeType nt : types) {
-            for (PropertyDefinition pd : nt.getPropertyDefinitions()) {
-                if (pd.isAutoCreated() && dlg.getProperty(pd.getName()) == null) {
-                    if (pd.isMultiple()) {
-                        dlg.setProperty(pd.getName(), getAutoCreatedValues(pd));
-                    } else {
-                        dlg.setProperty(pd.getName(), getAutoCreatedValue(pd));
-                    }
+        EffectiveNodeType effective = dlg.sessionDelegate.getEffectiveNodeTypeProvider().getEffectiveNodeType(this);
+        for (PropertyDefinition pd : effective.getAutoCreatePropertyDefinitions()) {
+            if (dlg.getProperty(pd.getName()) == null) {
+                if (pd.isMultiple()) {
+                    dlg.setProperty(pd.getName(), getAutoCreatedValues(pd));
+                } else {
+                    dlg.setProperty(pd.getName(), getAutoCreatedValue(pd));
                 }
             }
         }
-        for (NodeType nt : types) {
-            for (NodeDefinition nd : nt.getChildNodeDefinitions()) {
-                if (nd.isAutoCreated() && dlg.getChild(nd.getName()) == null) {
-                    autoCreateNode(nd);
-                }
+        for (NodeDefinition nd : effective.getAutoCreateNodeDefinitions()) {
+            if (dlg.getChild(nd.getName()) == null) {
+                autoCreateNode(nd);
             }
         }
     }
@@ -1398,7 +1395,7 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
         addNode(definition.getName(), definition.getDefaultPrimaryTypeName());
     }
 
-    // FIXME: hack to filter for a subset of supported mixins for now
+    // FIXME OAK-505: hack to filter for a subset of supported mixins for now
     // this allows only harmless mixin types so that other code like addMixin gets test coverage
     private boolean isSupportedMixinName(String mixinName) throws RepositoryException {
         String oakName = sessionDelegate.getOakPathOrThrow(mixinName);

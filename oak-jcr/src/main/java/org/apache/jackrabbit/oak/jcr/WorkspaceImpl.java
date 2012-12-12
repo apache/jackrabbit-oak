@@ -40,7 +40,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.lock.LockManagerImpl;
 import org.apache.jackrabbit.oak.jcr.query.QueryManagerImpl;
 import org.apache.jackrabbit.oak.jcr.version.VersionManagerImpl;
-import org.apache.jackrabbit.oak.namepath.NameMapper;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.name.ReadWriteNamespaceRegistry;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadWriteNodeTypeManager;
 import org.apache.jackrabbit.util.Text;
@@ -199,7 +199,7 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
 
             @Nonnull
             @Override
-            protected NameMapper getNameMapper() {
+            protected NamePathMapper getNamePathMapper() {
                 return sessionDelegate.getNamePathMapper();
             }
         };

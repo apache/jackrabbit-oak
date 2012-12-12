@@ -19,14 +19,11 @@ package org.apache.jackrabbit.oak.plugins.nodetype;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.NoSuchNodeTypeException;
-import javax.jcr.nodetype.NodeType;
 
 import org.apache.jackrabbit.oak.api.Tree;
 
 /**
  * EffectiveNodeTypeProvider... TODO
- *
- * FIXME: see also TypeValidator which has it's own private EffectiveNodeType class. See OAK-412
  */
 public interface EffectiveNodeTypeProvider {
 
@@ -46,8 +43,7 @@ public interface EffectiveNodeTypeProvider {
     boolean isNodeType(Tree tree, String nodeTypeName) throws NoSuchNodeTypeException, RepositoryException;
 
     /**
-     * FIXME in contrast what the method name implies this method returns the transitive closure of the super types
-     * Calculates and returns all effective node types of the given node.
+     * Calculates and returns the effective node types of the given node.
      *
      * @param targetNode the node for which the types should be calculated.
      * @return all types of the given node
@@ -55,11 +51,10 @@ public interface EffectiveNodeTypeProvider {
      * @see <a href="http://www.jcp.org/en/jsr/detail?id=283">JCR 2.0 Specification,
      * Section 3.7.6.5</a> for the definition of the effective node type.
      */
-    Iterable<NodeType> getEffectiveNodeTypes(Node targetNode) throws RepositoryException;
+    EffectiveNodeType getEffectiveNodeType(Node targetNode) throws RepositoryException;
 
     /**
-     * FIXME in contrast what the method name implies this method returns the transitive closure of the super types
-     * Calculates and returns all effective node types of the given tree.
+     * Calculates and returns the effective node types of the given tree.
      *
      * @param tree
      * @return all node types of the given tree
@@ -67,5 +62,5 @@ public interface EffectiveNodeTypeProvider {
      * @see <a href="http://www.jcp.org/en/jsr/detail?id=283">JCR 2.0 Specification,
      * Section 3.7.6.5</a> for the definition of the effective node type.
      */
-    Iterable<NodeType> getEffectiveNodeTypes(Tree tree) throws RepositoryException;
+    EffectiveNodeType getEffectiveNodeType(Tree tree) throws RepositoryException;
 }

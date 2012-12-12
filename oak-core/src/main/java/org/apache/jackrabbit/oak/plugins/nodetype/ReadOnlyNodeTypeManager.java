@@ -16,9 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
@@ -31,6 +30,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
+import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.NoSuchNodeTypeException;
 import javax.jcr.nodetype.NodeDefinition;
 import javax.jcr.nodetype.NodeDefinitionTemplate;
@@ -85,7 +85,7 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
      */
     @Nonnull
     protected final String getOakName(String jcrName) throws RepositoryException {
-        String oakName = getNameMapper().getOakName(jcrName);
+        String oakName = getNamePathMapper().getOakName(jcrName);
         if (oakName == null) {
             throw new RepositoryException("Invalid JCR name " + jcrName);
         }
@@ -118,7 +118,7 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
      * @return {@link NameMapper} instance.
      */
     @Nonnull
-    protected NameMapper getNameMapper() {
+    protected NamePathMapper getNamePathMapper() {
         return NamePathMapperImpl.DEFAULT;
     }
 
@@ -141,7 +141,7 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
 
             @Nonnull
             @Override
-            protected NameMapper getNameMapper() {
+            protected NamePathMapper getNamePathMapper() {
                 return namePathMapper;
             }
         };
@@ -167,7 +167,7 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
         if (types != null) {
             for (Tree type : types.getChildren()) {
                 list.add(new NodeTypeImpl(this, getValueFactory(),
-                        new NodeUtil(type, getNameMapper())));
+                        new NodeUtil(type, getNamePathMapper())));
 
             }
         }
@@ -202,22 +202,22 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
 
     @Override
     public NodeTypeTemplate createNodeTypeTemplate() throws RepositoryException {
-        return new NodeTypeTemplateImpl(this, getNameMapper(), getValueFactory());
+        return new NodeTypeTemplateImpl(this, getNamePathMapper(), getValueFactory());
     }
 
     @Override
     public NodeTypeTemplate createNodeTypeTemplate(NodeTypeDefinition ntd) throws RepositoryException {
-        return new NodeTypeTemplateImpl(this, getNameMapper(), getValueFactory(), ntd);
+        return new NodeTypeTemplateImpl(this, getNamePathMapper(), getValueFactory(), ntd);
     }
 
     @Override
     public NodeDefinitionTemplate createNodeDefinitionTemplate() {
-        return new NodeDefinitionTemplateImpl(getNameMapper());
+        return new NodeDefinitionTemplateImpl(getNamePathMapper());
     }
 
     @Override
     public PropertyDefinitionTemplate createPropertyDefinitionTemplate() {
-        return new PropertyDefinitionTemplateImpl(getNameMapper());
+        return new PropertyDefinitionTemplateImpl(getNamePathMapper());
     }
 
     /**
@@ -291,16 +291,16 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
      * @throws RepositoryException
      */
     @Override
-    public Iterable<NodeType> getEffectiveNodeTypes(Node node) throws RepositoryException {
+    public EffectiveNodeType getEffectiveNodeType(Node node) throws RepositoryException {
         Queue<NodeType> queue = Queues.newArrayDeque();
         queue.add(node.getPrimaryNodeType());
         queue.addAll(Arrays.asList(node.getMixinNodeTypes()));
 
-        return getEffectiveNodeTypes(queue);
+        return getEffectiveNodeType(queue);
     }
 
     @Override
-    public Iterable<NodeType> getEffectiveNodeTypes(Tree tree) throws RepositoryException {
+    public EffectiveNodeType getEffectiveNodeType(Tree tree) throws RepositoryException {
         Queue<NodeType> queue = Queues.newArrayDeque();
 
         NodeType primaryType;
@@ -322,7 +322,7 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
         }
         queue.addAll(mixinTypes);
 
-        return getEffectiveNodeTypes(queue);
+        return getEffectiveNodeType(queue);
     }
 
     //-------------------------------------------------< DefinitionProvider >---
@@ -339,130 +339,22 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
             throws RepositoryException {
         checkNotNull(parent);
         checkNotNull(nodeName);
-        List<NodeDefinition> residualDefs = new ArrayList<NodeDefinition>();
-        for (NodeType nt : getEffectiveNodeTypes(parent)) {
-            for (NodeDefinition def : nt.getDeclaredChildNodeDefinitions()) {
-                String defName = def.getName();
-                if (nodeName.equals(defName)
-                        && def.getDefaultPrimaryTypeName() != null) {
-                    return def;
-                } else if ("*".equals(defName)) {
-                    residualDefs.add(def);
-                }
-            }
-        }
-
-        for (NodeDefinition def : residualDefs) {
-            if (def.getDefaultPrimaryTypeName() != null) {
-                // return the first definition with a default primary type
-                return def;
-            }
-        }
-
-        throw new RepositoryException("No matching node definition found for " + nodeName);
+        return getNodeDefinition(getEffectiveNodeType(parent), nodeName, null);
     }
 
     @Override
     public NodeDefinition getDefinition(@Nonnull Node parent, @Nonnull Node targetNode) throws RepositoryException {
         String name = targetNode.getName();
-        List<NodeDefinition> residualDefs = new ArrayList<NodeDefinition>();
-        // TODO: This may need to be optimized
-        for (NodeType nt : getEffectiveNodeTypes(parent)) {
-            for (NodeDefinition def : nt.getDeclaredChildNodeDefinitions()) {
-                String defName = def.getName();
-                if (name.equals(defName)) {
-                    boolean match = true;
-                    for (String type : def.getRequiredPrimaryTypeNames()) {
-                        if (!targetNode.isNodeType(type)) {
-                            match = false;
-                        }
-                    }
-                    if (match) {
-                        return def;
-                    }
-                } else if ("*".equals(defName)) {
-                    residualDefs.add(def);
-                }
-            }
-        }
-
-        for (NodeDefinition def : residualDefs) {
-            String defName = def.getName();
-            if ("*".equals(defName)) {
-                boolean match = true;
-                for (String type : def.getRequiredPrimaryTypeNames()) {
-                    if (!targetNode.isNodeType(type)) {
-                        match = false;
-                    }
-                }
-                if (match) {
-                    return def;
-                }
-            }
-        }
-
-        throw new RepositoryException("No matching node definition found for " + targetNode.getName());
+        EffectiveNodeType eff = getEffectiveNodeType(parent);
+        return getNodeDefinition(eff, name, getEffectiveNodeType(targetNode));
     }
 
     @Override
-    public NodeDefinition getDefinition(Iterable<NodeType> parentNodeTypes, String nodeName, NodeType nodeType)
-            throws RepositoryException {
-
-        NodeDefinition def = getDefinitionOrNull(parentNodeTypes, nodeName, nodeType);
-        if (def == null) {
-            throw new RepositoryException("No matching node definition found for " + nodeName);
-        }
-
-        return def;
-    }
-
-    /**
-     * Same as {@link #getDefinition(Iterable, String, javax.jcr.nodetype.NodeType)} but returns
-     * {@code null} if no matching definition could be found instead of throwing a
-     * {@code RepositoryException}.
-     */
-    public NodeDefinition getDefinitionOrNull(Iterable<NodeType> parentNodeTypes, String nodeName, NodeType nodeType) {
-        List<NodeDefinition> residualDefs = new ArrayList<NodeDefinition>();
-        // TODO: This may need to be optimized
-        // TODO: cleanup redundancy with getDefinition(Node, Node)
-        for (NodeType nt : parentNodeTypes) {
-            for (NodeDefinition def : nt.getDeclaredChildNodeDefinitions()) {
-                String defName = def.getName();
-                if (nodeName.equals(defName)) {
-                    boolean match = true;
-                    // TODO: check again if passing null nodeType is legal.
-                    if (nodeType != null) {
-                        for (String type : def.getRequiredPrimaryTypeNames()) {
-                            if (!nodeType.isNodeType(type)) {
-                                match = false;
-                            }
-                        }
-                    }
-                    if (match) {
-                        return def;
-                    }
-                } else if ("*".equals(defName)) {
-                    residualDefs.add(def);
-                }
-            }
-        }
-
-        for (NodeDefinition def : residualDefs) {
-            String defName = def.getName();
-            if ("*".equals(defName)) {
-                boolean match = true;
-                for (String type : def.getRequiredPrimaryTypeNames()) {
-                    if (!nodeType.isNodeType(type)) {
-                        match = false;
-                    }
-                }
-                if (match) {
-                    return def;
-                }
-            }
-        }
-
-        return null;
+    public NodeDefinition getDefinition(Iterable<NodeType> parentNodeTypes,
+                                        String nodeName, NodeType nodeType)
+            throws ConstraintViolationException {
+        EffectiveNodeType eff = getEffectiveNodeType(Queues.newArrayDeque(parentNodeTypes));
+        return getNodeDefinition(eff, nodeName, getEffectiveNodeType(Queues.newArrayDeque(Collections.singleton(nodeType))));
     }
 
     @Override
@@ -479,45 +371,7 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
             type = targetProperty.getValue().getType();
         }
 
-        // TODO: This may need to be optimized
-        List<PropertyDefinition> residualDefs = new ArrayList<PropertyDefinition>();
-        for (NodeType nt : getEffectiveNodeTypes(parent)) {
-            for (PropertyDefinition def : nt.getDeclaredPropertyDefinitions()) {
-                String defName = def.getName();
-                int defType = def.getRequiredType();
-                if ((name.equals(defName))
-                        && (type == defType || UNDEFINED == type || UNDEFINED == defType)
-                        && isMultiple == def.isMultiple()) {
-                    return def;
-                } else if ("*".equals(defName)) {
-                    residualDefs.add(def);
-                }
-            }
-        }
-
-        for (PropertyDefinition def : residualDefs) {
-            String defName = def.getName();
-            int defType = def.getRequiredType();
-            if (("*".equals(defName))
-                    && (type == defType || UNDEFINED == type || UNDEFINED == defType)
-                    && isMultiple == def.isMultiple()) {
-                return def;
-            }
-        }
-
-        // FIXME: Shouldn't be needed
-        for (NodeType nt : getEffectiveNodeTypes(parent)) {
-            for (PropertyDefinition def : nt.getDeclaredPropertyDefinitions()) {
-                String defName = def.getName();
-                if ((name.equals(defName) || "*".equals(defName))
-                        && type == PropertyType.STRING
-                        && isMultiple == def.isMultiple()) {
-                    return def;
-                }
-            }
-        }
-
-        throw new RepositoryException("No matching property definition found for " + targetProperty.getName());
+        return getPropertyDefinition(getEffectiveNodeType(parent), name, isMultiple, type, true);
     }
 
     @Nonnull
@@ -529,13 +383,13 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
     @Nonnull
     @Override
     public PropertyDefinition getDefinition(Node parent, String propertyName, boolean isMultiple, int type, boolean exactTypeMatch) throws RepositoryException {
-        return getPropertyDefinition(getEffectiveNodeTypes(parent), propertyName, isMultiple, type, exactTypeMatch);
+        return getPropertyDefinition(getEffectiveNodeType(parent), propertyName, isMultiple, type, exactTypeMatch);
     }
 
     @Nonnull
     @Override
     public PropertyDefinition getDefinition(Tree parent, String propertyName, boolean isMultiple, int type, boolean exactTypeMatch) throws RepositoryException {
-        return getPropertyDefinition(getEffectiveNodeTypes(parent), propertyName, isMultiple, type, exactTypeMatch);
+        return getPropertyDefinition(getEffectiveNodeType(parent), propertyName, isMultiple, type, exactTypeMatch);
     }
 
     @Nonnull
@@ -543,8 +397,7 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
     public PropertyDefinition getDefinition(Iterable<NodeType> nodeTypes, String propertyName, boolean isMultiple,
             int type, boolean exactTypeMatch) throws RepositoryException {
         Queue<NodeType> queue = Queues.newArrayDeque(nodeTypes);
-        Collection<NodeType> effective = getEffectiveNodeTypes(queue);
-        return getPropertyDefinition(effective, propertyName, isMultiple, type, exactTypeMatch);
+        return getPropertyDefinition(getEffectiveNodeType(queue), propertyName, isMultiple, type, exactTypeMatch);
     }
 
     //------------------------------------------------------------< private >---
@@ -553,13 +406,13 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
         if (types != null) {
             Tree type = types.getChild(oakName);
             if (type != null) {
-                return new NodeTypeImpl(this, getValueFactory(), new NodeUtil(type, getNameMapper()));
+                return new NodeTypeImpl(this, getValueFactory(), new NodeUtil(type, getNamePathMapper()));
             }
         }
-        throw new NoSuchNodeTypeException(getNameMapper().getJcrName(oakName));
+        throw new NoSuchNodeTypeException(getNamePathMapper().getJcrName(oakName));
     }
 
-    private static Collection<NodeType> getEffectiveNodeTypes(Queue<NodeType> queue) {
+    private EffectiveNodeType getEffectiveNodeType(Queue<NodeType> queue) {
         Map<String, NodeType> types = Maps.newHashMap();
         while (!queue.isEmpty()) {
             NodeType type = queue.remove();
@@ -569,41 +422,32 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
                 queue.addAll(Arrays.asList(type.getDeclaredSupertypes()));
             }
         }
-
-        return types.values();
+        return new EffectiveNodeTypeImpl(types.values(), this);
     }
 
-    private static PropertyDefinition getPropertyDefinition(Iterable<NodeType> effectiveNodeTypes,
+    private static PropertyDefinition getPropertyDefinition(EffectiveNodeType effectiveNodeType,
             String propertyName, boolean isMultiple,
-            int type, boolean exactTypeMatch) throws RepositoryException {
+            int type, boolean exactTypeMatch) throws ConstraintViolationException {
         // TODO: This may need to be optimized
-        for (NodeType nt : effectiveNodeTypes) {
-            for (PropertyDefinition def : nt.getDeclaredPropertyDefinitions()) {
-                String defName = def.getName();
-                int defType = def.getRequiredType();
-                if (propertyName.equals(defName)
-                        && isMultiple == def.isMultiple()
-                        &&(!exactTypeMatch || (type == defType || UNDEFINED == type || UNDEFINED == defType))) {
-                    return def;
-                }
+        for (PropertyDefinition def : effectiveNodeType.getNamedPropertyDefinitions(propertyName)) {
+            int defType = def.getRequiredType();
+            if (isMultiple == def.isMultiple()
+                    &&(!exactTypeMatch || (type == defType || UNDEFINED == type || UNDEFINED == defType))) {
+                return def;
             }
         }
 
         // try if there is a residual definition
-        for (NodeType nt : effectiveNodeTypes) {
-            for (PropertyDefinition def : nt.getDeclaredPropertyDefinitions()) {
-                String defName = def.getName();
-                int defType = def.getRequiredType();
-                if ("*".equals(defName)
-                        && isMultiple == def.isMultiple()
-                        && (!exactTypeMatch || (type == defType || UNDEFINED == type || UNDEFINED == defType))) {
-                    return def;
-                }
+        for (PropertyDefinition def : effectiveNodeType.getUnnamedPropertyDefinitions()) {
+            int defType = def.getRequiredType();
+            if (isMultiple == def.isMultiple()
+                    && (!exactTypeMatch || (type == defType || UNDEFINED == type || UNDEFINED == defType))) {
+                return def;
             }
         }
 
         // FIXME: Shouldn't be needed
-        for (NodeType nt : effectiveNodeTypes) {
+        for (NodeType nt : effectiveNodeType.getAllNodeTypes()) {
             for (PropertyDefinition def : nt.getDeclaredPropertyDefinitions()) {
                 String defName = def.getName();
                 if ((propertyName.equals(defName) || "*".equals(defName))
@@ -613,6 +457,31 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
                 }
             }
         }
-        throw new RepositoryException("No matching property definition found for " + propertyName);
+        throw new ConstraintViolationException("No matching property definition found for " + propertyName);
+    }
+
+    private static NodeDefinition getNodeDefinition(EffectiveNodeType effectiveNodeType,
+                                                    String childName,
+                                                    EffectiveNodeType childEffective) throws ConstraintViolationException {
+        for (NodeDefinition def : effectiveNodeType.getNamedNodeDefinitions(childName)) {
+            boolean match = true;
+            if (childEffective != null && !childEffective.includesNodeTypes(def.getRequiredPrimaryTypeNames())) {
+                match = false;
+            }
+            if (match) {
+                return def;
+            }
+        }
+
+        for (NodeDefinition def : effectiveNodeType.getUnnamedNodeDefinitions()) {
+            boolean match = true;
+            if (childEffective != null && !childEffective.includesNodeTypes(def.getRequiredPrimaryTypeNames())) {
+                match = false;
+            }
+            if (match) {
+                return def;
+            }
+        }
+        throw new ConstraintViolationException("No matching node definition found for " + childName);
     }
 }

@@ -86,6 +86,7 @@ class NodeTypeImpl implements NodeType {
         this.node = node;
     }
 
+    //-----------------------------------------------------------< NodeType >---
     @Override
     public String getName() {
         String name = node.getName(JCR_NODETYPENAME);
@@ -240,27 +241,13 @@ class NodeTypeImpl implements NodeType {
 
     @Override
     public PropertyDefinition[] getPropertyDefinitions() {
-        // TODO distinguish between additive and overriding property definitions. See 3.7.6.8 Item Definitions in Subtypes
-        Collection<PropertyDefinition> definitions =
-                new ArrayList<PropertyDefinition>();
-        for (NodeType type : getSupertypes()) {
-            definitions.addAll(Arrays.asList(
-                    type.getDeclaredPropertyDefinitions()));
-        }
-        definitions.addAll(Arrays.asList(getDeclaredPropertyDefinitions()));
+        Collection<PropertyDefinition> definitions = internalGetPropertyDefinitions();
         return definitions.toArray(new PropertyDefinition[definitions.size()]);
     }
 
     @Override
     public NodeDefinition[] getChildNodeDefinitions() {
-        // TODO distinguish between additive and overriding node definitions. See 3.7.6.8 Item Definitions in Subtypes
-        Collection<NodeDefinition> definitions =
-                new ArrayList<NodeDefinition>();
-        for (NodeType type : getSupertypes()) {
-            definitions.addAll(Arrays.asList(
-                    type.getDeclaredChildNodeDefinitions()));
-        }
-        definitions.addAll(Arrays.asList(getDeclaredChildNodeDefinitions()));
+        Collection<NodeDefinition> definitions = internalGetChildDefinitions();
         return definitions.toArray(new NodeDefinition[definitions.size()]);
     }
 
@@ -301,15 +288,116 @@ class NodeTypeImpl implements NodeType {
         }
     }
 
+        @Override
+    public boolean canAddChildNode(String childNodeName) {
+        // FIXME: properly calculate matching definition
+        for (NodeDefinition definition : getChildNodeDefinitions()) {
+            String name = definition.getName();
+            if (matches(childNodeName, name) || "*".equals(name)) {
+                return !definition.isProtected() && definition.getDefaultPrimaryType() != null;
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public boolean canAddChildNode(String childNodeName, String nodeTypeName) {
+        NodeType type;
+        try {
+            type = manager.getNodeType(nodeTypeName);
+            if (type.isAbstract()) {
+                return false;
+            }
+        } catch (NoSuchNodeTypeException e) {
+            return false;
+        } catch (RepositoryException e) {
+            log.warn("Unable to access node type " + nodeTypeName, e);
+            return false;
+        }
+        // FIXME: properly calculate matching definition
+        for (NodeDefinition definition : getChildNodeDefinitions()) {
+            String name = definition.getName();
+            if (matches(childNodeName, name) || "*".equals(name)) {
+                if (definition.isProtected()) {
+                    return false;
+                }
+                for (String required : definition.getRequiredPrimaryTypeNames()) {
+                    if (type.isNodeType(required)) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public boolean canRemoveItem(String itemName) {
+        return canRemoveNode(itemName) || canRemoveProperty(itemName);
+    }
+
+    @Override
+    public boolean canRemoveNode(String nodeName) {
+        // FIXME: properly calculate matching definition taking residual definitions into account.
+        NodeDefinition[] childNodeDefinitions = getChildNodeDefinitions();
+        for (NodeDefinition definition : childNodeDefinitions) {
+            String name = definition.getName();
+            if (matches(nodeName, name)) {
+                if (definition.isMandatory() || definition.isProtected()) {
+                    return false;
+                }
+            }
+        }
+        return childNodeDefinitions.length > 0;
+    }
+
+    @Override
+    public boolean canRemoveProperty(String propertyName) {
+        // FIXME: should properly calculate matching definition taking residual definitions into account.
+        PropertyDefinition[] propertyDefinitions = getPropertyDefinitions();
+        for (PropertyDefinition definition : propertyDefinitions) {
+            String name = definition.getName();
+            if (propertyName.equals(name)) {
+                if (definition.isMandatory() || definition.isProtected()) {
+                    return false;
+                }
+            }
+        }
+        return propertyDefinitions.length > 0;
+    }
+
+    //-------------------------------------------------------------< Object >---
     @Override
     public String toString() {
         return getName();
     }
 
-    private String getOakName() {
+    //-----------------------------------------------------------< internal >---
+    String getOakName() {
         return node.getTree().getName();
     }
 
+    Collection<NodeDefinition> internalGetChildDefinitions() {
+        // TODO distinguish between additive and overriding node definitions. See 3.7.6.8 Item Definitions in Subtypes
+        Collection<NodeDefinition> definitions = new ArrayList<NodeDefinition>();
+        definitions.addAll(Arrays.asList(getDeclaredChildNodeDefinitions()));
+        for (NodeType type : getSupertypes()) {
+            definitions.addAll(Arrays.asList(type.getDeclaredChildNodeDefinitions()));
+        }
+        return definitions;
+    }
+
+    Collection<PropertyDefinition> internalGetPropertyDefinitions() {
+        // TODO distinguish between additive and overriding property definitions. See 3.7.6.8 Item Definitions in Subtypes
+        Collection<PropertyDefinition> definitions = new ArrayList<PropertyDefinition>();
+        definitions.addAll(Arrays.asList(getDeclaredPropertyDefinitions()));
+        for (NodeType type : getSupertypes()) {
+            definitions.addAll(Arrays.asList(type.getDeclaredPropertyDefinitions()));
+        }
+        return definitions;
+    }
+
+    //--------------------------------------------------------------------------
     private static boolean meetsTypeConstraints(Value value, int requiredType) {
         try {
             switch (requiredType) {
@@ -408,84 +496,6 @@ class NodeTypeImpl implements NodeType {
         }
 
         return true;
-    }
-
-    @Override
-    public boolean canAddChildNode(String childNodeName) {
-        // FIXME: properly calculate matching definition
-        for (NodeDefinition definition : getChildNodeDefinitions()) {
-            String name = definition.getName();
-            if (matches(childNodeName, name) || "*".equals(name)) {
-                return !definition.isProtected() && definition.getDefaultPrimaryType() != null;
-            }
-        }
-        return false;
-    }
-
-    @Override
-    public boolean canAddChildNode(String childNodeName, String nodeTypeName) {
-        NodeType type;
-        try {
-            type = manager.getNodeType(nodeTypeName);
-            if (type.isAbstract()) {
-                return false;
-            }
-        } catch (NoSuchNodeTypeException e) {
-            return false;
-        } catch (RepositoryException e) {
-            log.warn("Unable to access node type " + nodeTypeName, e);
-            return false;
-        }
-        // FIXME: properly calculate matching definition
-        for (NodeDefinition definition : getChildNodeDefinitions()) {
-            String name = definition.getName();
-            if (matches(childNodeName, name) || "*".equals(name)) {
-                if (definition.isProtected()) {
-                    return false;
-                }
-                for (String required : definition.getRequiredPrimaryTypeNames()) {
-                    if (type.isNodeType(required)) {
-                        return true;
-                    }
-                }
-            }
-        }
-        return false;
-    }
-
-    @Override
-    public boolean canRemoveItem(String itemName) {
-        return canRemoveNode(itemName) || canRemoveProperty(itemName);
-    }
-
-    @Override
-    public boolean canRemoveNode(String nodeName) {
-        // FIXME: properly calculate matching definition taking residual definitions into account.
-        NodeDefinition[] childNodeDefinitions = getChildNodeDefinitions();
-        for (NodeDefinition definition : childNodeDefinitions) {
-            String name = definition.getName();
-            if (matches(nodeName, name)) {
-                if (definition.isMandatory() || definition.isProtected()) {
-                    return false;
-                }
-            }
-        }
-        return childNodeDefinitions.length > 0;
-    }
-
-    @Override
-    public boolean canRemoveProperty(String propertyName) {
-        // FIXME: should properly calculate matching definition taking residual definitions into account.
-        PropertyDefinition[] propertyDefinitions = getPropertyDefinitions();
-        for (PropertyDefinition definition : propertyDefinitions) {
-            String name = definition.getName();
-            if (propertyName.equals(name)) {
-                if (definition.isMandatory() || definition.isProtected()) {
-                    return false;
-                }
-            }
-        }
-        return propertyDefinitions.length > 0;
     }
 
     private static boolean matches(String childNodeName, String name) {
