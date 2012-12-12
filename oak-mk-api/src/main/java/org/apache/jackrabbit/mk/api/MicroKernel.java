@@ -166,8 +166,14 @@ public interface MicroKernel {
      * at {@code path}.
      * <p/>
      * A {@code MicroKernelException} is thrown if either {@code fromRevisionId}
-     * or {@code toRevisionId}  doesn't exist, denotes a <i>private</i> branch
-     * revision or if another error occurs.
+     * or {@code toRevisionId} doesn't exist, if {@code fromRevisionId} denotes
+     * a <i>private</i> branch revision <i>and</i> {@code toRevisionId} denotes
+     * either a head revision or a revision on a different <i>private</i> branch,
+     * or if another error occurs.
+     * <p/>
+     * If the journal includes <i>private</i> branch revisions, those entries
+     * will include a {@code "branchRootId"} denoting the head revision the
+     * <i>private</i> branch is based on.
      *
      * @param fromRevisionId id of first revision to be returned in journal
      * @param toRevisionId   id of last revision to be returned in journal,
