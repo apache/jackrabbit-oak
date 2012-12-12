@@ -1,9 +1,11 @@
 package org.apache.jackrabbit.mongomk.impl;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import org.apache.jackrabbit.mongomk.BaseMongoMicroKernelTest;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -30,5 +32,22 @@ public class MongoMKCommitRemoveTest extends BaseMongoMicroKernelTest {
             mk.commit("/", "-\"a\"", null, null);
             fail("Exception expected");
         } catch (Exception expected) {}
+    }
+
+    @Test
+    @Ignore("OAK-507") // FIXME
+    public void removeNodeTwice() throws Exception {
+        String base = mk.commit("", "+\"/a\":{}", null, null);
+        mk.commit("", "-\"/a\"", base, null);
+        assertTrue(mk.nodeExists("/a", base));
+        mk.commit("", "-\"/a\"", base, null);
+    }
+
+    @Test
+    public void removeAndAddNode() throws Exception {
+        String base = mk.commit("", "+\"/a\":{}", null, null);
+        mk.commit("", "-\"/a\"", base, null);
+        assertTrue(mk.nodeExists("/a", base));
+        mk.commit("", "+\"/a\":{}", base, null);
     }
 }
