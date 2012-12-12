@@ -126,6 +126,7 @@ class PropertyDefinitionImpl extends ItemDefinitionImpl
         }
     }
 
+    //-------------------------------------------------< PropertyDefinition >---
     @Override
     public int getRequiredType() {
         try {

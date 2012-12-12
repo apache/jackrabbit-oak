@@ -51,6 +51,7 @@ class NodeDefinitionImpl extends ItemDefinitionImpl implements NodeDefinition {
         this.manager = manager;
     }
 
+    //-----------------------------------------------------< NodeDefinition >---
     @Override
     public String[] getRequiredPrimaryTypeNames() {
         return node.getNames(JcrConstants.JCR_REQUIREDPRIMARYTYPES, JcrConstants.NT_BASE);
