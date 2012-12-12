@@ -192,7 +192,6 @@
       org.apache.jackrabbit.test.api.LifecycleTest
       org.apache.jackrabbit.test.api.query.ElementTest#testElementTestNameTestSomeNTWithSNS          <!-- OAK-203 -->
       org.apache.jackrabbit.test.api.query.SaveTest#testItemExistsException                          <!-- OAK-203 -->
-      org.apache.jackrabbit.test.api.query.SaveTest#testConstraintViolationException                 <!-- OAK-479 -->
       org.apache.jackrabbit.test.api.query.SaveTest#testLockException
       org.apache.jackrabbit.test.api.query.SQLJoinTest#testJoin                                      <!-- OAK-474 -->
       org.apache.jackrabbit.test.api.query.SQLJoinTest#testJoinNtBase                                <!-- OAK-474 -->
