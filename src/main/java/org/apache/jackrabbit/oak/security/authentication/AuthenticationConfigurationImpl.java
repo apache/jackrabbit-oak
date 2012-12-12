@@ -66,7 +66,7 @@ public class AuthenticationConfigurationImpl extends SecurityConfiguration.Defau
                 loginConfig = null;
             }
         } catch (SecurityException e) {
-            log.warn("Failed to retrieve login configuration: using default.", e);
+            log.warn("Failed to retrieve login configuration: using default. " + e);
         }
         if (loginConfig == null) {
             loginConfig = new OakConfiguration(options); // TODO: define configuration structure
