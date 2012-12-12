@@ -19,9 +19,11 @@ package org.apache.jackrabbit.oak.plugins.nodetype;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.nodetype.ConstraintViolationException;
+import javax.jcr.nodetype.ItemDefinition;
 import javax.jcr.nodetype.NodeDefinition;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.PropertyDefinition;
@@ -33,7 +35,10 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 
 /**
- * EffectiveNodeTypeImpl... TODO implementation needs optimization
+ * EffectiveNodeTypeImpl...
+ *
+ * TODO implementation needs optimization
+ * FIXME: add validation of the effective node type
  */
 class EffectiveNodeTypeImpl implements EffectiveNodeType {
 
@@ -135,43 +140,31 @@ class EffectiveNodeTypeImpl implements EffectiveNodeType {
     }
 
     @Override
-    public Iterable<NodeDefinition> getNamedNodeDefinitions(final String name) {
+    public Iterable<NodeDefinition> getNamedNodeDefinitions(String oakName) {
+        return Iterables.filter(getNodeDefinitions(), new DefinitionNamePredicate(oakName));
+    }
+
+    @Override
+    public Iterable<PropertyDefinition> getNamedPropertyDefinitions(String oakName) {
+        return Iterables.filter(getPropertyDefinitions(), new DefinitionNamePredicate(oakName));
+    }
+
+    @Override
+    public Iterable<NodeDefinition> getResidualNodeDefinitions() {
         return Iterables.filter(getNodeDefinitions(), new Predicate<NodeDefinition>() {
             @Override
             public boolean apply(NodeDefinition nodeDefinition) {
-                String childName = nodeDefinition.getName();
-                return childName.equals(name);
+                return NodeTypeConstants.RESIDUAL_NAME.equals(nodeDefinition.getName());
             }
         });
     }
 
     @Override
-    public Iterable<PropertyDefinition> getNamedPropertyDefinitions(final String name) {
+    public Iterable<PropertyDefinition> getResidualPropertyDefinitions() {
         return Iterables.filter(getPropertyDefinitions(), new Predicate<PropertyDefinition>() {
             @Override
             public boolean apply(PropertyDefinition propertyDefinition) {
-                String propName = propertyDefinition.getName();
-                return propName.equals(name);
-            }
-        });
-    }
-
-    @Override
-    public Iterable<NodeDefinition> getUnnamedNodeDefinitions() {
-        return Iterables.filter(getNodeDefinitions(), new Predicate<NodeDefinition>() {
-            @Override
-            public boolean apply(NodeDefinition nodeDefinition) {
-                return "*".equals(nodeDefinition.getName());
-            }
-        });
-    }
-
-    @Override
-    public Iterable<PropertyDefinition> getUnnamedPropertyDefinitions() {
-        return Iterables.filter(getPropertyDefinitions(), new Predicate<PropertyDefinition>() {
-            @Override
-            public boolean apply(PropertyDefinition propertyDefinition) {
-                return "*".equals(propertyDefinition.getName());
+                return NodeTypeConstants.RESIDUAL_NAME.equals(propertyDefinition.getName());
             }
         });
     }
@@ -287,5 +280,18 @@ class EffectiveNodeTypeImpl implements EffectiveNodeType {
             nameToCheck = nodeName.substring(0, "jcr:propertyDefinition".length());
         }
         return ntMgr.getDefinition(nodeTypes, nameToCheck, nodeType);
+    }
+
+    private class DefinitionNamePredicate implements Predicate<ItemDefinition> {
+
+        private final String oakName;
+
+        DefinitionNamePredicate(String oakName) {
+            this.oakName = oakName;
+        }
+        @Override
+        public boolean apply(@Nullable ItemDefinition definition) {
+            return definition instanceof ItemDefinitionImpl && ((ItemDefinitionImpl) definition).getOakName().equals(oakName);
+        }
     }
 }

@@ -243,8 +243,7 @@ public abstract class ReadWriteNodeTypeManager extends ReadOnlyNodeTypeManager {
             if (allowUpdate) {
                 type.remove();
             } else {
-                throw new NodeTypeExistsException(
-                        "Node type " + jcrName + " already exists");
+                throw new NodeTypeExistsException("Node type " + jcrName + " already exists");
             }
         }
         type = types.addChild(oakName);
@@ -314,7 +313,7 @@ public abstract class ReadWriteNodeTypeManager extends ReadOnlyNodeTypeManager {
         node.setBoolean(JCR_MULTIPLE, def.isMultiple());
         node.setBoolean(JCR_IS_FULLTEXT_SEARCHABLE, def.isFullTextSearchable());
         node.setBoolean(JCR_IS_QUERY_ORDERABLE, def.isQueryOrderable());
-        node.setStrings(JCR_AVAILABLE_QUERY_OPERATORS, def.getAvailableQueryOperators());
+        node.setNames(JCR_AVAILABLE_QUERY_OPERATORS, def.getAvailableQueryOperators());
 
         String[] constraints = def.getValueConstraints();
         if (constraints != null) {
@@ -395,5 +394,4 @@ public abstract class ReadWriteNodeTypeManager extends ReadOnlyNodeTypeManager {
             throw new RepositoryException("Failed to unregister node types", e);
         }
     }
-
 }

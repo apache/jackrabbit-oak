@@ -39,8 +39,7 @@ import org.slf4j.LoggerFactory;
  */
 class ItemDefinitionImpl implements ItemDefinition {
 
-    private static final Logger log =
-            LoggerFactory.getLogger(ItemDefinitionImpl.class);
+    private static final Logger log = LoggerFactory.getLogger(ItemDefinitionImpl.class);
 
     private final NodeType type;
 
@@ -51,6 +50,7 @@ class ItemDefinitionImpl implements ItemDefinition {
         this.node = node;
     }
 
+    //-----------------------------------------------------< ItemDefinition >---
     @Override
     public NodeType getDeclaringNodeType() {
         return type;
@@ -58,7 +58,7 @@ class ItemDefinitionImpl implements ItemDefinition {
 
     @Override
     public String getName() {
-        return node.getName(JcrConstants.JCR_NAME, "*");
+        return node.getName(JcrConstants.JCR_NAME, NodeTypeConstants.RESIDUAL_NAME);
     }
 
     @Override
@@ -91,5 +91,10 @@ class ItemDefinitionImpl implements ItemDefinition {
     @Override
     public String toString() {
         return getName();
+    }
+
+    //-----------------------------------------------------------< internal >---
+    String getOakName() {
+        return node.getString(JcrConstants.JCR_NAME, NodeTypeConstants.RESIDUAL_NAME);
     }
 }
