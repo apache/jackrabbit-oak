@@ -388,6 +388,9 @@ public class MicroKernelImpl implements MicroKernel {
         if (path.length() > 0 && !PathUtils.isAbsolute(path)) {
             throw new IllegalArgumentException("absolute path expected: " + path);
         }
+        if (jsonDiff == null || jsonDiff.length() == 0) {
+            return getHeadRevision();
+        }
 
         Id revId = revisionId == null ? getHeadRevisionId() : Id.fromString(revisionId);
 
@@ -483,7 +486,7 @@ public class MicroKernelImpl implements MicroKernel {
                         break;
                     }
                     default:
-                        throw new AssertionError("token type: " + t.getTokenType());
+                        throw new IllegalArgumentException("jsonDiff: illegal token '" + t.getToken() + "' at pos: " + t.getLastPos());
                 }
             }
             Id newHead = cb.doCommit();
