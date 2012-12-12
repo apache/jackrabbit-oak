@@ -171,7 +171,7 @@ public class DefaultRevisionStore extends AbstractRevisionStore implements
                         gc();
                     }
                 }
-            }, 10, 1, TimeUnit.MINUTES);
+            }, 60, 1, TimeUnit.MINUTES); // TODO: Should start earlier
         }
 
         initialized = true;
