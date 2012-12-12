@@ -54,22 +54,22 @@ public class GetJournalCommand extends BaseCommand<String> {
         List<MongoCommit> commits = getCommits(fromRevision, toRevision);
 
         MongoCommit toCommit = extractCommit(commits, toRevision);
-        if (toCommit != null && toCommit.getBranchId() != null) {
-            throw new MicroKernelException("Branch revisions are not supported: " + toRevisionId);
-        }
-
         MongoCommit fromCommit;
         if (toRevision == fromRevision) {
             fromCommit = toCommit;
         } else {
             fromCommit = extractCommit(commits, fromRevision);
-            if (fromCommit == null || (fromCommit.getTimestamp() > toCommit.getTimestamp())) {
-                // negative range, return empty journal
-                return "[]";
+        }
+
+        if (fromCommit != null && fromCommit.getBranchId() != null) {
+            if (!fromCommit.getBranchId().equals(toCommit.getBranchId())) {
+                throw new MicroKernelException("Inconsistent range specified: fromRevision denotes a private branch while toRevision denotes a head or another private branch");
             }
         }
-        if (fromCommit.getBranchId() != null) {
-            throw new MicroKernelException("Branch revisions are not supported: " + fromRevisionId);
+
+        if (fromCommit != null && fromCommit.getTimestamp() > toCommit.getTimestamp()) {
+            // negative range, return empty journal
+            return "[]";
         }
 
         JsopBuilder commitBuff = new JsopBuilder().array();
@@ -94,8 +94,11 @@ public class GetJournalCommand extends BaseCommand<String> {
             commitBuff.object()
             .key("id").value(MongoUtil.fromMongoRepresentation(commit.getRevisionId()))
             .key("ts").value(commit.getTimestamp())
-            .key("msg").value(commit.getMessage())
-            .key("changes").value(diff).endObject();
+            .key("msg").value(commit.getMessage());
+            if (commit.getBranchId() != null) {
+                commitBuff.key("branchRootId").value(commit.getBranchId().toString());
+            }
+            commitBuff.key("changes").value(diff).endObject();
         }
         return commitBuff.endArray().toString();
     }
