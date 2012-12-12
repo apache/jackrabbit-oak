@@ -18,12 +18,15 @@ package org.apache.jackrabbit.oak.plugins.nodetype;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.ItemDefinition;
+import javax.jcr.nodetype.NoSuchNodeTypeException;
 import javax.jcr.nodetype.NodeDefinition;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.PropertyDefinition;
@@ -33,23 +36,39 @@ import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * EffectiveNodeTypeImpl...
  *
  * TODO implementation needs optimization
- * FIXME: add validation of the effective node type
  */
 class EffectiveNodeTypeImpl implements EffectiveNodeType {
+
+    private static final Logger log = LoggerFactory.getLogger(EffectiveNodeTypeImpl.class);
 
     private final Collection<NodeType> nodeTypes;
     private final ReadOnlyNodeTypeManager ntMgr;
 
-    EffectiveNodeTypeImpl(Collection<NodeType> nodeTypes, ReadOnlyNodeTypeManager ntMgr) {
+    private EffectiveNodeTypeImpl(Collection<NodeType> nodeTypes, ReadOnlyNodeTypeManager ntMgr) {
         this.nodeTypes = nodeTypes;
         this.ntMgr = ntMgr;
     }
 
+    static EffectiveNodeType create(Collection<NodeType> nodeTypes, ReadOnlyNodeTypeManager ntMgr) throws ConstraintViolationException {
+        if (!isValid(nodeTypes)) {
+            throw new ConstraintViolationException("Invalid effective node type");
+        }
+        return new EffectiveNodeTypeImpl(nodeTypes, ntMgr);
+    }
+
+    private static boolean isValid(Collection<NodeType> nodeTypes) {
+        // FIXME: add validation
+        return true;
+    }
+
+    //---------------------------------------------=----< EffectiveNodeType >---
     @Override
     public Iterable<NodeType> getAllNodeTypes() {
         return nodeTypes;
@@ -77,7 +96,25 @@ class EffectiveNodeTypeImpl implements EffectiveNodeType {
 
     @Override
     public boolean supportsMixin(String mixin) {
-        // TODO: add implementation (-> OAK-505)
+        if (includesNodeType(mixin)) {
+            return true;
+        }
+
+        NodeType mixinType = null;
+        try {
+            mixinType = ntMgr.internalGetNodeType(mixin);
+            if (!mixinType.isMixin() || mixinType.isAbstract()) {
+                return false;
+            }
+        } catch (NoSuchNodeTypeException e) {
+            log.debug("Unknown mixin type " + mixin);
+        }
+
+        if (mixinType != null) {
+            Set<NodeType> newTypes = new HashSet<NodeType>(nodeTypes);
+            newTypes.add(mixinType);
+            return isValid(newTypes);
+        }
         return false;
     }
 
