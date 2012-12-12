@@ -400,8 +400,9 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
         return getPropertyDefinition(getEffectiveNodeType(queue), propertyName, isMultiple, type, exactTypeMatch);
     }
 
-    //------------------------------------------------------------< private >---
-    private NodeTypeImpl internalGetNodeType(String oakName) throws NoSuchNodeTypeException {
+    //-----------------------------------------------------------< internal >---
+
+    NodeTypeImpl internalGetNodeType(String oakName) throws NoSuchNodeTypeException {
         Tree types = getTypes();
         if (types != null) {
             Tree type = types.getChild(oakName);
@@ -412,7 +413,9 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
         throw new NoSuchNodeTypeException(getNamePathMapper().getJcrName(oakName));
     }
 
-    private EffectiveNodeType getEffectiveNodeType(Queue<NodeType> queue) {
+    //------------------------------------------------------------< private >---
+
+    private EffectiveNodeType getEffectiveNodeType(Queue<NodeType> queue) throws ConstraintViolationException {
         Map<String, NodeType> types = Maps.newHashMap();
         while (!queue.isEmpty()) {
             NodeType type = queue.remove();
@@ -422,7 +425,7 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
                 queue.addAll(Arrays.asList(type.getDeclaredSupertypes()));
             }
         }
-        return new EffectiveNodeTypeImpl(types.values(), this);
+        return EffectiveNodeTypeImpl.create(types.values(), this);
     }
 
     /**
