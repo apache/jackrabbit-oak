@@ -31,6 +31,7 @@ import org.apache.jackrabbit.mongomk.impl.json.JsonUtil;
 import org.apache.jackrabbit.mongomk.impl.model.CommitBuilder;
 import org.apache.jackrabbit.mongomk.impl.model.MongoCommit;
 import org.apache.jackrabbit.mongomk.impl.model.tree.MongoNodeState;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 
 /**
  * The {@code MongoDB} implementation of the {@link MicroKernel}.
@@ -97,7 +98,15 @@ public class MongoMicroKernel implements MicroKernel {
     }
 
     @Override
-    public String commit(String path, String jsonDiff, String revisionId, String message) throws MicroKernelException {
+    public String commit(String path, String jsonDiff, String revisionId, String message)
+            throws MicroKernelException {
+        if (path.length() > 0 && !PathUtils.isAbsolute(path)) {
+            throw new IllegalArgumentException("Absolute path expected: " + path);
+        }
+        if (jsonDiff == null || jsonDiff.length() == 0) {
+            return getHeadRevision();
+        }
+
         try {
             Commit commit = CommitBuilder.build(path, jsonDiff, revisionId, message);
             return nodeStore.commit(commit);
