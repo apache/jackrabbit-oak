@@ -100,7 +100,7 @@ import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_
  * {@link ReadOnlyNodeTypeManager} for the following methods:
  * <ul>
  *     <li>{@link #getValueFactory()}</li>
- *     <li>{@link #getNameMapper()}</li>
+ *     <li>{@link ReadOnlyNodeTypeManager#getNamePathMapper()}</li>
  * </ul>
  */
 public abstract class ReadWriteNodeTypeManager extends ReadOnlyNodeTypeManager {
@@ -249,7 +249,7 @@ public abstract class ReadWriteNodeTypeManager extends ReadOnlyNodeTypeManager {
         }
         type = types.addChild(oakName);
 
-        NodeUtil node = new NodeUtil(type, getNameMapper());
+        NodeUtil node = new NodeUtil(type, getNamePathMapper());
         node.setName(JCR_PRIMARYTYPE, NT_NODETYPE);
         node.setName(JCR_NODETYPENAME, jcrName);
         node.setNames(JCR_SUPERTYPES, ntd.getDeclaredSupertypeNames());
