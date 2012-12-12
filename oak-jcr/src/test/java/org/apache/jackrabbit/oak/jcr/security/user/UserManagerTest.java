@@ -594,14 +594,17 @@ public class UserManagerTest extends AbstractUserTest {
                 superuser.save();
 
                 fail("intermediate path '"+ path +"' outside of the user tree.");
-                user.remove();
-                superuser.save();
-
             } catch (Exception e) {
                 // success
-                assertNull(userMgr.getAuthorizable(uid));
             } finally {
+                // revert transient changes
                 superuser.refresh(false);
+                // clean up
+                Authorizable testUser = userMgr.getAuthorizable(uid);
+                if (testUser != null) {
+                    testUser.remove();
+                    superuser.save();
+                }
             }
         }
     }
