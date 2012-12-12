@@ -33,7 +33,7 @@ public interface EffectiveNodeTypeProvider {
      * type of the {@code tree}. Returns {@code false} otherwise.
      *
      * @param tree The tree to be tested.
-     * @param nodeTypeName The name of the node type to be tested.
+     * @param nodeTypeName The internal oak name of the node type to be tested.
      * @return true if the specified node is of the given node type.
      * @throws NoSuchNodeTypeException If the specified node type name doesn't
      * refer to an existing node type.

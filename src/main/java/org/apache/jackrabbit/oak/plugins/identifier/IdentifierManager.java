@@ -176,7 +176,8 @@ public class IdentifierManager {
      * @param propertyName A name constraint for the reference properties;
      * {@code null} if no constraint should be enforced.
      * @param nodeTypeNames Node type constraints to be enforced when using
-     * for reference properties.
+     * for reference properties; the specified names are expected to be internal
+     * oak names.
      * @return A set of oak paths of those reference properties referring to the
      * specified {@code tree} and matching the constraints.
      */
