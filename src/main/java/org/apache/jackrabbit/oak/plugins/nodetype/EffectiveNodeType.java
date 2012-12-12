@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype;
 
+import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.NodeDefinition;
@@ -74,13 +75,39 @@ public interface EffectiveNodeType {
 
     Iterable<PropertyDefinition> getMandatoryPropertyDefinitions();
 
-    Iterable<NodeDefinition> getNamedNodeDefinitions(String name);
+    /**
+     * Return all node definitions that match the specified oak name.
+     *
+     * @param oakName An internal oak name.
+     * @return All node definitions that match the given internal oak name.
+     */
+    @Nonnull
+    Iterable<NodeDefinition> getNamedNodeDefinitions(String oakName);
 
-    Iterable<PropertyDefinition> getNamedPropertyDefinitions(String name);
+    /**
+     * Return all property definitions that match the specified oak name.
+     *
+     * @param oakName An internal oak name.
+     * @return All property definitions that match the given internal oak name.
+     */
+    @Nonnull
+    Iterable<PropertyDefinition> getNamedPropertyDefinitions(String oakName);
 
-    Iterable<NodeDefinition> getUnnamedNodeDefinitions();
+    /**
+     * Return all residual node definitions.
+     *
+     * @return All residual node definitions.
+     */
+    @Nonnull
+    Iterable<NodeDefinition> getResidualNodeDefinitions();
 
-    Iterable<PropertyDefinition> getUnnamedPropertyDefinitions();
+    /**
+     * Return all residual property definitions.
+     *
+     * @return All residual property definitions.
+     */
+    @Nonnull
+    Iterable<PropertyDefinition> getResidualPropertyDefinitions();
 
     void checkSetProperty(PropertyState property) throws RepositoryException;
 
