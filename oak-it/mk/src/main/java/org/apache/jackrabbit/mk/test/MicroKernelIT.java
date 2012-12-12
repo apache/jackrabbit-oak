@@ -1004,6 +1004,8 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
         // make sure /branch doesn't exist in head
         assertFalse(mk.nodeExists("/branch", null));
 
+        String oldHead = mk.getHeadRevision();
+
         // create a branch on head
         String branchRev = mk.branch(null);
         String branchRootRev = branchRev;
@@ -1040,16 +1042,20 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
         assertTrue(mk.nodeExists("/branch/foo", null));
 
         try {
+            mk.getJournal(oldHead, branchRev, "/");
+        } catch (MicroKernelException e) {
+            fail("getJournal should succeed if the range spans from a (older) head to a (newer) private branch revision");
+        }
+        try {
             mk.getJournal(branchRootRev, null, "/");
-            fail("getJournal should throw for branch revisions");
+            fail("getJournal should throw if the range spans from a (older) private branch to a (newer) head revision");
         } catch (MicroKernelException e) {
             // expected
         }
         try {
             mk.getJournal(branchRootRev, branchRev, "/");
-            fail("getJournal should throw for branch revisions");
         } catch (MicroKernelException e) {
-            // expected
+            fail("getJournal should succeed if the range spans a single private branch");
         }
 
         String jrnl = mk.getJournal(newHead, newHead, "/");
@@ -1061,6 +1067,9 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
         // TODO properly verify json diff format
         // make sure json diff contains +"/branch":{...}
         assertTrue(diff.matches("\\s*\\+\\s*\"/branch\"\\s*:\\s*\\{\\s*\"foo\"\\s*:\\s*\\{\\s*\\}\\s*\\}\\s*"));
+
+        jrnl = mk.getJournal(oldHead, branchRev, "/");
+        array = parseJSONArray(jrnl);
     }
 
     @Test
