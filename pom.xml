@@ -55,6 +55,7 @@
                 org.apache.jackrabbit.oak.plugins.name,
                 org.apache.jackrabbit.oak.plugins.nodetype,
                 org.apache.jackrabbit.oak.plugins.observation,
+                org.apache.jackrabbit.oak.plugins.version,
                 org.apache.jackrabbit.oak.spi.query,
                 org.apache.jackrabbit.oak.spi.commit,
                 org.apache.jackrabbit.oak.spi.lifecycle,

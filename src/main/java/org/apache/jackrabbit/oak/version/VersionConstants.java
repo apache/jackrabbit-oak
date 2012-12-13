@@ -27,6 +27,9 @@ import org.apache.jackrabbit.JcrConstants;
  */
 public interface VersionConstants extends JcrConstants {
 
+    // version storage
+    String REP_VERSIONSTORAGE = "rep:versionStorage";
+
     // activities
     String JCR_ACTIVITY = "jcr:activity";
     String JCR_ACTIVITIES = "jcr:activities";
