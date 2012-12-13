@@ -24,6 +24,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -132,8 +133,7 @@ public class ReadOnlyTree implements Tree {
 
     @Override
     public TreeLocation getLocation() {
-        // TODO: add implementation
-        throw new UnsupportedOperationException();
+        return new NodeLocation(this);
     }
 
     @Override
@@ -216,4 +216,108 @@ public class ReadOnlyTree implements Tree {
         throw new UnsupportedOperationException();
     }
 
+    //-------------------------------------------------------< TreeLocation >---
+
+    private class NodeLocation implements TreeLocation {
+        private final ReadOnlyTree tree;
+
+        private NodeLocation(ReadOnlyTree tree) {
+            this.tree = checkNotNull(tree);
+        }
+
+        @Override
+        public TreeLocation getParent() {
+            return tree.parent == null
+                    ? TreeLocation.NULL
+                    : new NodeLocation(tree.parent);
+        }
+
+        @Override
+        public TreeLocation getChild(String relPath) {
+            checkArgument(!relPath.startsWith("/"));
+            if (relPath.isEmpty()) {
+                return this;
+            }
+
+            ReadOnlyTree child = tree;
+            String parentPath = PathUtils.getParentPath(relPath);
+            for (String name : PathUtils.elements(parentPath)) {
+                child = child.getChild(name);
+                if (child == null) {
+                    return TreeLocation.NULL;
+                }
+            }
+
+            String name = PathUtils.getName(relPath);
+            PropertyState property = child.getProperty(name);
+            if (property != null) {
+                return new PropertyLocation(new NodeLocation(child), name);
+            } else {
+                child = child.getChild(name);
+                return child == null
+                        ? TreeLocation.NULL
+                        : new NodeLocation(child);
+            }
+        }
+
+        @Override
+        public String getPath() {
+            return tree.getPath();
+        }
+
+        @Override
+        public Tree getTree() {
+            return tree;
+        }
+
+        @Override
+        public PropertyState getProperty() {
+            return null;
+        }
+
+        @Override
+        public Status getStatus() {
+            return tree.getStatus();
+        }
+    }
+
+    private class PropertyLocation implements TreeLocation {
+        private final NodeLocation parent;
+        private final String name;
+
+        private PropertyLocation(NodeLocation parent, String name) {
+            this.parent = checkNotNull(parent);
+            this.name = checkNotNull(name);
+        }
+
+        @Override
+        public TreeLocation getParent() {
+            return parent;
+        }
+
+        @Override
+        public TreeLocation getChild(String relPath) {
+            return TreeLocation.NULL;
+        }
+
+        @Override
+        public String getPath() {
+            return PathUtils.concat(parent.getPath(), name);
+        }
+
+        @Override
+        public Tree getTree() {
+            return null;
+        }
+
+        @Override
+        public PropertyState getProperty() {
+            return parent.tree.getProperty(name);
+        }
+
+        @Override
+        public Status getStatus() {
+            return Status.EXISTING;
+        }
+    }
 }

@@ -57,7 +57,7 @@ public class NodeDelegate extends ItemDelegate {
             : new NodeDelegate(sessionDelegate, location);
     }
 
-    NodeDelegate(SessionDelegate sessionDelegate, Tree tree) {
+    protected NodeDelegate(SessionDelegate sessionDelegate, Tree tree) {
         super(sessionDelegate, tree.getLocation());
     }
 
@@ -232,7 +232,7 @@ public class NodeDelegate extends ItemDelegate {
     //------------------------------------------------------------< internal >---
 
     @Nonnull
-    Tree getTree() throws InvalidItemStateException {
+    protected Tree getTree() throws InvalidItemStateException {
         Tree tree = getLocation().getTree();
         if (tree == null) {
             throw new InvalidItemStateException();

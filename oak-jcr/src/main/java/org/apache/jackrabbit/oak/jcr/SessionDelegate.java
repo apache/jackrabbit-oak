@@ -100,6 +100,7 @@ public class SessionDelegate {
         this.autoRefresh = autoRefresh;
 
         this.root = contentSession.getLatestRoot();
+        // FIXME: do not pass partially initialized 'this'
         this.workspace = new WorkspaceImpl(this);
 
         Map<String, String> namespaces = Maps.newHashMap();

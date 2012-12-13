@@ -20,6 +20,7 @@ import javax.jcr.InvalidItemStateException;
 import javax.jcr.ItemExistsException;
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
+import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.lock.LockException;
@@ -31,14 +32,15 @@ import javax.jcr.version.VersionManager;
 import org.apache.jackrabbit.commons.iterator.NodeIteratorAdapter;
 import org.apache.jackrabbit.oak.jcr.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.SessionDelegate;
+import org.apache.jackrabbit.oak.jcr.SessionOperation;
 import org.apache.jackrabbit.oak.util.TODO;
 
 public class VersionManagerImpl implements VersionManager {
 
-    private final SessionDelegate sessionDelegate;
+    private final VersionManagerDelegate versionManagerDelegate;
 
     public VersionManagerImpl(SessionDelegate sessionDelegate) {
-        this.sessionDelegate = sessionDelegate;
+        this.versionManagerDelegate = VersionManagerDelegate.create(sessionDelegate);
     }
 
     @Override
@@ -108,19 +110,54 @@ public class VersionManagerImpl implements VersionManager {
     }
 
     @Override
-    public boolean isCheckedOut(String absPath) throws RepositoryException {
-        return TODO.unimplemented().returnValue(true);
+    public boolean isCheckedOut(final String absPath) throws RepositoryException {
+        final SessionDelegate sessionDelegate = versionManagerDelegate.getSessionDelegate();
+        return sessionDelegate.perform(new SessionOperation<Boolean>() {
+            @Override
+            public Boolean perform() throws RepositoryException {
+                String oakPath = sessionDelegate.getOakPathOrThrowNotFound(absPath);
+                NodeDelegate nodeDelegate = sessionDelegate.getNode(oakPath);
+                if (nodeDelegate == null) {
+                    throw new PathNotFoundException(absPath);
+                }
+                return versionManagerDelegate.isCheckedOut(nodeDelegate);
+            }
+        });
     }
 
     @Override
-    public VersionHistory getVersionHistory(String absPath)
+    public VersionHistory getVersionHistory(final String absPath)
             throws RepositoryException {
-        return TODO.unimplemented().returnValue(null);
+        final SessionDelegate sessionDelegate = versionManagerDelegate.getSessionDelegate();
+        return sessionDelegate.perform(new SessionOperation<VersionHistory>() {
+            @Override
+            public VersionHistory perform() throws RepositoryException {
+                String oakPath = sessionDelegate.getOakPathOrThrowNotFound(absPath);
+                NodeDelegate nodeDelegate = sessionDelegate.getNode(oakPath);
+                if (nodeDelegate == null) {
+                    throw new PathNotFoundException(absPath);
+                }
+                return new VersionHistoryImpl(
+                        versionManagerDelegate.getVersionHistory(nodeDelegate));
+            }
+        });
     }
 
     @Override
-    public Version getBaseVersion(String absPath) throws RepositoryException {
-        return TODO.unimplemented().returnValue(null);
+    public Version getBaseVersion(final String absPath) throws RepositoryException {
+        final SessionDelegate sessionDelegate = versionManagerDelegate.getSessionDelegate();
+        return sessionDelegate.perform(new SessionOperation<Version>() {
+            @Override
+            public Version perform() throws RepositoryException {
+                String oakPath = sessionDelegate.getOakPathOrThrowNotFound(absPath);
+                NodeDelegate nodeDelegate = sessionDelegate.getNode(oakPath);
+                if (nodeDelegate == null) {
+                    throw new PathNotFoundException(absPath);
+                }
+                return new VersionImpl(
+                        versionManagerDelegate.getBaseVersion(nodeDelegate));
+            }
+        });
     }
 
     @Override
@@ -150,16 +187,42 @@ public class VersionManagerImpl implements VersionManager {
     }
 
     @Override
-    public void checkout(String absPath) throws RepositoryException {
-        TODO.unimplemented().doNothing();
+    public void checkout(final String absPath) throws RepositoryException {
+        final SessionDelegate sessionDelegate = versionManagerDelegate.getSessionDelegate();
+        sessionDelegate.perform(new SessionOperation<Void>() {
+            @Override
+            public Void perform() throws RepositoryException {
+                String oakPath = sessionDelegate.getOakPathOrThrowNotFound(absPath);
+                NodeDelegate nodeDelegate = sessionDelegate.getNode(oakPath);
+                if (nodeDelegate == null) {
+                    throw new PathNotFoundException(absPath);
+                }
+                if (sessionDelegate.getLockManager().isLocked(absPath)) {
+                    throw new LockException("Node at " + absPath + " is locked");
+                }
+                versionManagerDelegate.checkout(nodeDelegate);
+                return null;
+            }
+        });
     }
 
     @Override
-    public Version checkin(String absPath) throws RepositoryException {
-        String oakPath = sessionDelegate.getOakPathOrThrowNotFound(absPath);
-        NodeDelegate nodeDelegate = sessionDelegate.getNode(oakPath);
-        return TODO.dummyImplementation().returnValue(
-                new VersionImpl(nodeDelegate));
+    public Version checkin(final String absPath) throws RepositoryException {
+        final SessionDelegate sessionDelegate = versionManagerDelegate.getSessionDelegate();
+        return sessionDelegate.perform(new SessionOperation<Version>() {
+            @Override
+            public Version perform() throws RepositoryException {
+                String oakPath = sessionDelegate.getOakPathOrThrowNotFound(absPath);
+                NodeDelegate nodeDelegate = sessionDelegate.getNode(oakPath);
+                if (nodeDelegate == null) {
+                    throw new PathNotFoundException(absPath);
+                }
+                if (sessionDelegate.getLockManager().isLocked(absPath)) {
+                    throw new LockException("Node at " + absPath + " is locked");
+                }
+                return new VersionImpl(versionManagerDelegate.checkin(nodeDelegate));
+            }
+        });
     }
 
     @Override

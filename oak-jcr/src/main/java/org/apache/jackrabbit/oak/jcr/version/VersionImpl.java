@@ -23,13 +23,14 @@ import javax.jcr.RepositoryException;
 import javax.jcr.version.Version;
 import javax.jcr.version.VersionHistory;
 
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.jcr.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.NodeImpl;
 import org.apache.jackrabbit.oak.util.TODO;
 
-class VersionImpl extends NodeImpl implements Version {
+class VersionImpl extends NodeImpl<VersionDelegate> implements Version {
 
-    public VersionImpl(NodeDelegate dlg) {
+    public VersionImpl(VersionDelegate dlg) {
         super(dlg);
     }
 
