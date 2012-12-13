@@ -38,7 +38,7 @@ import javax.jcr.query.qom.QueryObjectModelFactory;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Result;
-import org.apache.jackrabbit.oak.api.SessionQueryEngine;
+import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.jcr.SessionDelegate;
 import org.apache.jackrabbit.oak.jcr.query.qom.QueryObjectModelFactoryImpl;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -51,7 +51,7 @@ import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 public class QueryManagerImpl implements QueryManager {
 
     private final QueryObjectModelFactoryImpl qomFactory;
-    private final SessionQueryEngine queryEngine;
+    private final QueryEngine queryEngine;
     private final SessionDelegate sessionDelegate;
     private final HashSet<String> supportedQueryLanguages = new HashSet<String>();
 

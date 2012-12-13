@@ -41,7 +41,7 @@ import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.api.SessionQueryEngine;
+import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -447,7 +447,7 @@ public class SessionDelegate {
     }
 
     @Nonnull
-    public SessionQueryEngine getQueryEngine() {
+    public QueryEngine getQueryEngine() {
         return root.getQueryEngine();
     }
 
