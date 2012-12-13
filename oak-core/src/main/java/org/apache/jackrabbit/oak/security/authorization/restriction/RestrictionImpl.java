@@ -14,34 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.spi.security.authorization.restriction;
+package org.apache.jackrabbit.oak.security.authorization.restriction;
+
+/**
+ * {@code RestrictionImpl}
+ */
 
 import javax.annotation.Nonnull;
 
-/**
- * RestrictionDefinition... TODO
- */
-public interface RestrictionDefinition {
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
 
-    /**
-     * The internal oak name of this restriction definition.
-     *
-     * @return The oak name.
-     */
+public class RestrictionImpl extends RestrictionDefinitionImpl implements Restriction {
+
+    private final PropertyState property;
+
+    public RestrictionImpl(@Nonnull PropertyState property, int requiredType, boolean isMandatory) {
+        super(property.getName(), requiredType, isMandatory);
+        this.property = property;
+    }
+
     @Nonnull
-    String getName();
-
-    /**
-     * The required type as defined by this definition.
-     *
-     * @return The required type which must be a valid {@link javax.jcr.PropertyType}.
-     */
-    int getRequiredType();
-
-    /**
-     * Indicates if this restriction is mandatory.
-     *
-     * @return {@code true} if this restriction is mandatory; {@code false} otherwise.
-     */
-    boolean isMandatory();
+    @Override
+    public PropertyState getProperty() {
+        return property;
+    }
 }

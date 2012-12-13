@@ -21,7 +21,6 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.nodetype.PropertyDefinition;
 
-import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 
 /**
@@ -44,7 +43,7 @@ public class PropInfo {
     /**
      * Type of the property being imported.
      */
-    private final Type type;
+    private final int type;
 
     /**
      * Value(s) of the property being imported.
@@ -64,7 +63,7 @@ public class PropInfo {
      * @param type type of the property being imported
      * @param values value(s) of the property being imported
      */
-    public PropInfo(String name, Type type, TextValue[] values) {
+    public PropInfo(String name, int type, TextValue[] values) {
         this.name = name;
         this.type = type;
         this.values = values;
@@ -78,9 +77,8 @@ public class PropInfo {
      * @param type type of the property being imported
      * @param values value(s) of the property being imported
      * @param multipleStatus Hint indicating whether the property is
-     *                       multi- or single-value
      */
-    public PropInfo(String name, Type type, TextValue[] values,
+    public PropInfo(String name, int type, TextValue[] values,
                     MultipleStatus multipleStatus) {
         this.name = name;
         this.type = type;
@@ -97,14 +95,14 @@ public class PropInfo {
         }
     }
 
-    public Type getTargetType(PropertyDefinition def) {
+    public int getTargetType(PropertyDefinition def) {
         int target = def.getRequiredType();
         if (target != PropertyType.UNDEFINED) {
-            return Type.fromTag(target, def.isMultiple());
-        } else if (type.tag() != PropertyType.UNDEFINED) {
+            return type;
+        } else if (type != PropertyType.UNDEFINED) {
             return type;
         } else {
-            return Type.STRING;
+            return PropertyType.STRING;
         }
     }
 
@@ -112,7 +110,7 @@ public class PropInfo {
         return name;
     }
 
-    public Type getType() {
+    public int getType() {
         return type;
     }
 
@@ -127,14 +125,14 @@ public class PropInfo {
         return values;
     }
 
-    public Value getValue(Type targetType, NamePathMapper namePathMapper) throws RepositoryException {
+    public Value getValue(int targetType, NamePathMapper namePathMapper) throws RepositoryException {
         if (multipleStatus == MultipleStatus.MULTIPLE) {
             throw new RepositoryException("TODO");
         }
         return values[0].getValue(targetType, namePathMapper);
     }
 
-    public Value[] getValues(Type targetType, NamePathMapper namePathMapper) throws RepositoryException {
+    public Value[] getValues(int targetType, NamePathMapper namePathMapper) throws RepositoryException {
         Value[] va = new Value[values.length];
         for (int i = 0; i < values.length; i++) {
             va[i] = values[i].getValue(targetType, namePathMapper);

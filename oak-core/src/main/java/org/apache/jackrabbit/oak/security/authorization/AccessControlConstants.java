@@ -30,6 +30,10 @@ public interface AccessControlConstants {
     String REP_PRIVILEGES = "rep:privileges";
     String REP_PRINCIPAL_NAME = "rep:principalName";
     String REP_GLOB = "rep:glob";
+    String REP_NODE_PATH = "rep:nodePath";
+    /**
+     * @since OAK 1.0
+     */
     String REP_RESTRICTIONS = "rep:restrictions";
 
 
@@ -40,6 +44,9 @@ public interface AccessControlConstants {
     String NT_REP_ACE = "rep:ACE";
     String NT_REP_GRANT_ACE = "rep:GrantACE";
     String NT_REP_DENY_ACE = "rep:DenyACE";
+    /**
+     * @since OAK 1.0
+     */
     String NT_REP_RESTRICTIONS = "rep:Restrictions";
 
     Collection<String> AC_PROPERTY_NAMES = ImmutableSet.of(REP_PRINCIPAL_NAME, REP_PRIVILEGES, REP_GLOB);

@@ -1,0 +1,559 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.jackrabbit.oak.security.authorization;
+
+import java.security.Principal;
+import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
+import javax.jcr.AccessDeniedException;
+import javax.jcr.PathNotFoundException;
+import javax.jcr.PropertyType;
+import javax.jcr.RepositoryException;
+import javax.jcr.query.Query;
+import javax.jcr.security.AccessControlException;
+import javax.jcr.security.AccessControlPolicy;
+import javax.jcr.security.AccessControlPolicyIterator;
+import javax.jcr.security.Privilege;
+
+import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
+import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
+import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
+import org.apache.jackrabbit.commons.iterator.AccessControlPolicyIteratorAdapter;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.PropertyValue;
+import org.apache.jackrabbit.oak.api.QueryEngine;
+import org.apache.jackrabbit.oak.api.Result;
+import org.apache.jackrabbit.oak.api.ResultRow;
+import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryPropertyBuilder;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
+import org.apache.jackrabbit.oak.security.authorization.restriction.RestrictionDefinitionImpl;
+import org.apache.jackrabbit.oak.security.authorization.restriction.RestrictionImpl;
+import org.apache.jackrabbit.oak.security.authorization.restriction.RestrictionProviderImpl;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.apache.jackrabbit.oak.spi.security.authorization.ACE;
+import org.apache.jackrabbit.oak.spi.security.authorization.ACL;
+import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
+import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionDefinition;
+import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
+import org.apache.jackrabbit.oak.spi.state.PropertyBuilder;
+import org.apache.jackrabbit.oak.util.NodeUtil;
+import org.apache.jackrabbit.util.ISO9075;
+import org.apache.jackrabbit.util.Text;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+/**
+ * AccessControlManagerImpl... TODO
+ */
+public class AccessControlManagerImpl implements JackrabbitAccessControlManager, AccessControlConstants {
+
+    private static final Logger log = LoggerFactory.getLogger(AccessControlManagerImpl.class);
+
+    private final Root root;
+    private final NamePathMapper namePathMapper;
+    private final SecurityProvider securityProvider;
+
+    private final PrivilegeManager privilegeManager;
+    private final PrincipalProvider principalProvider;
+    private final RestrictionProvider restrictionProvider;
+    private final ReadOnlyNodeTypeManager ntMgr;
+
+    public AccessControlManagerImpl(Root root, NamePathMapper namePathMapper,
+                                    SecurityProvider securityProvider) {
+        this.root = root;
+        this.namePathMapper = namePathMapper;
+        this.securityProvider = securityProvider;
+
+        privilegeManager = securityProvider.getPrivilegeConfiguration().getPrivilegeManager(root, namePathMapper);
+        principalProvider = securityProvider.getPrincipalConfiguration().getPrincipalProvider(root, namePathMapper);
+        restrictionProvider = securityProvider.getAccessControlConfiguration().getRestrictionProvider(namePathMapper);
+        ntMgr = ReadOnlyNodeTypeManager.getInstance(root, namePathMapper);
+    }
+
+    //-----------------------------------------------< AccessControlManager >---
+    @Override
+    public Privilege[] getSupportedPrivileges(String absPath) throws RepositoryException {
+        checkValidPath(absPath);
+        return privilegeManager.getRegisteredPrivileges();
+    }
+
+    @Override
+    public Privilege privilegeFromName(String privilegeName) throws RepositoryException {
+        return privilegeManager.getPrivilege(privilegeName);
+    }
+
+    @Override
+    public boolean hasPrivileges(String absPath, Privilege[] privileges) throws RepositoryException {
+        Tree tree = getTree(absPath);
+        checkPermission(tree);
+
+        // TODO
+        throw new UnsupportedOperationException("Not yet implemented");
+    }
+
+    @Override
+    public Privilege[] getPrivileges(String absPath) throws PathNotFoundException, RepositoryException {
+        Tree tree = getTree(absPath);
+        checkPermission(tree);
+
+        // TODO
+        throw new UnsupportedOperationException("Not yet implemented");
+    }
+
+    @Override
+    public AccessControlPolicy[] getPolicies(String absPath) throws RepositoryException {
+        Tree tree = getTree(absPath);
+        checkPermission(tree);
+        checkIsAccessControlContent(tree);
+
+        AccessControlPolicy policy = readAccessControlPolicy(absPath, tree);
+        if (policy != null) {
+            return new AccessControlPolicy[] {policy};
+        } else {
+            return new AccessControlPolicy[0];
+        }
+    }
+
+    @Override
+    public AccessControlPolicy[] getEffectivePolicies(String absPath) throws RepositoryException {
+        Tree tree = getTree(absPath);
+        checkPermission(tree);
+        checkIsAccessControlContent(tree);
+
+        List<AccessControlPolicy> effective = new ArrayList<AccessControlPolicy>();
+        AccessControlPolicy policy = readAccessControlPolicy(absPath, tree);
+        if (policy != null) {
+            effective.add(policy);
+        }
+        if (absPath != null) {
+            String parentPath = Text.getRelativeParent(tree.getPath(), 1);
+            while (!parentPath.isEmpty()) {
+                Tree t = root.getTree(parentPath);
+                AccessControlPolicy plc = readAccessControlPolicy(parentPath, t);
+                if (plc != null) {
+                    effective.add(plc);
+                }
+                parentPath = (PathUtils.denotesRoot(parentPath)) ? "" : Text.getRelativeParent(parentPath, 1);
+            }
+        }
+        return effective.toArray(new AccessControlPolicy[effective.size()]);
+    }
+
+    @Override
+    public AccessControlPolicyIterator getApplicablePolicies(String absPath) throws RepositoryException {
+        Tree tree = getTree(absPath);
+        checkPermission(tree);
+        checkIsAccessControlContent(tree);
+
+        AccessControlPolicy policy = null;
+        NodeUtil aclNode = getAclNode(absPath, tree);
+        if (aclNode == null) {
+            // create an empty acl unless the node is protected or cannot have
+            // mixin set (e.g. due to a lock) or
+            // has colliding rep:policy or rep:repoPolicy child node set.
+            String aclName = getAclName(absPath);
+            if (tree.hasChild(aclName)) {
+                // policy child node without node being access controlled
+                log.warn("Colliding policy child without node being access controllable ({}).", absPath);
+            } else {
+                String mixinName = getMixinName(absPath);
+                if (ntMgr.isNodeType(tree, mixinName) || ntMgr.getEffectiveNodeType(tree).supportsMixin(mixinName)) {
+                    policy = new ACL(absPath, restrictionProvider, namePathMapper);
+                } else {
+                    log.warn("Node {} cannot be made access controllable.", absPath);
+                }
+            }
+        } // else: acl already present -> getPolicies must be used.
+
+        if (policy == null) {
+            return AccessControlPolicyIteratorAdapter.EMPTY;
+        } else {
+            return new AccessControlPolicyIteratorAdapter(Collections.singleton(policy));
+        }
+    }
+
+    @Override
+    public void setPolicy(String absPath, AccessControlPolicy policy) throws RepositoryException {
+        Tree tree = getTree(absPath);
+        checkPermission(tree);
+        checkIsAccessControlContent(tree);
+        checkValidPolicy(absPath, policy);
+
+        NodeUtil aclNode = getAclNode(absPath, tree);
+        if (aclNode != null) {
+            // remove all existing aces
+            for (Tree aceTree : aclNode.getTree().getChildren()) {
+                aceTree.remove();
+            }
+        } else {
+            aclNode = createAclTree(absPath, tree);
+        }
+
+        ACL acl = (ACL) policy;
+        for (ACE ace : acl.getACEs()) {
+            String nodeName = generateAceName(aclNode, ace.isAllow());
+            String ntName = (ace.isAllow()) ? NT_REP_GRANT_ACE : NT_REP_DENY_ACE;
+
+            NodeUtil aceNode = aclNode.addChild(nodeName, ntName);
+            aceNode.setString(REP_PRINCIPAL_NAME, ace.getPrincipal().getName());
+            aceNode.setNames(REP_PRIVILEGES, ace.getPrivilegeNames());
+            restrictionProvider.writeRestrictions(absPath, aceNode.getTree(), ace.getRestrictionSet());
+        }
+    }
+
+    @Override
+    public void removePolicy(String absPath, AccessControlPolicy policy) throws RepositoryException {
+        Tree tree = getTree(absPath);
+        checkPermission(tree);
+        checkIsAccessControlContent(tree);
+        checkValidPolicy(absPath, policy);
+
+        NodeUtil aclNode = getAclNode(absPath, tree);
+        if (aclNode != null) {
+            aclNode.getTree().remove();
+        } else {
+            throw new AccessControlException("No policy to remove at " + absPath);
+        }
+    }
+
+    //-------------------------------------< JackrabbitAccessControlManager >---
+    @Override
+    public JackrabbitAccessControlPolicy[] getApplicablePolicies(Principal principal) throws RepositoryException {
+        Result aceResult = searchAces(Collections.<Principal>singleton(principal));
+        if (aceResult.getSize() > 0) {
+            return new JackrabbitAccessControlPolicy[0];
+        } else {
+            return new JackrabbitAccessControlPolicy[] {getPrincipalACL(principal, null)};
+        }
+    }
+
+    @Override
+    public JackrabbitAccessControlPolicy[] getPolicies(Principal principal) throws RepositoryException {
+        Result aceResult = searchAces(Collections.<Principal>singleton(principal));
+        if (aceResult.getSize() > 0) {
+            return new JackrabbitAccessControlPolicy[] {getPrincipalACL(principal, aceResult)};
+        } else {
+            return new JackrabbitAccessControlPolicy[0];
+        }
+    }
+
+    @Override
+    public AccessControlPolicy[] getEffectivePolicies(Set<Principal> principals) throws RepositoryException {
+        Result aceResult = searchAces(principals);
+        List<AccessControlPolicy> effective = new ArrayList<AccessControlPolicy>();
+        for (ResultRow row : aceResult.getRows()) {
+            Tree aclTree = root.getTree(row.getPath()).getParent();
+            Tree accessControlledTree = aclTree.getParent();
+
+            String path = (REP_REPO_POLICY.equals(aclTree.getName())) ? null : accessControlledTree.getPath();
+            AccessControlPolicy policy = readAccessControlPolicy(path, accessControlledTree);
+            if (policy != null) {
+                effective.add(policy);
+            }
+        }
+        return effective.toArray(new AccessControlPolicy[effective.size()]);
+    }
+
+    @Override
+    public boolean hasPrivileges(String absPath, Set<Principal> principals, Privilege[] privileges) throws RepositoryException {
+        Tree tree = getTree(absPath);
+        checkPermission(tree);
+
+        // TODO
+        throw new UnsupportedOperationException("Not yet implemented");
+    }
+
+    @Override
+    public Privilege[] getPrivileges(String absPath, Set<Principal> principals) throws RepositoryException {
+        Tree tree = getTree(absPath);
+        checkPermission(tree);
+
+        // TODO
+        throw new UnsupportedOperationException("Not yet implemented");
+    }
+
+    //------------------------------------------------------------< private >---
+    @CheckForNull
+    private String getOakPath(String absJcrPath) throws RepositoryException {
+        if (absJcrPath == null) {
+            return null; // repository level
+        }
+        String oakPath = namePathMapper.getOakPath(absJcrPath);
+        if (oakPath == null) {
+            throw new RepositoryException("Failed to resolve JCR path " + absJcrPath);
+        }
+        return oakPath;
+    }
+
+    @CheckForNull
+    private Tree getTree(String jcrPath) throws RepositoryException {
+        Tree tree = (jcrPath == null) ? root.getTree("/") : root.getTree(getOakPath(jcrPath));
+        if (tree == null) {
+            throw new PathNotFoundException("No tree at " +jcrPath);
+        }
+        return tree;
+    }
+
+    private void checkValidPath(String jcrPath) throws RepositoryException {
+        getTree(getOakPath(jcrPath));
+    }
+
+    /**
+     * Check if the specified tree is itself defines access control related
+     * content.
+     *
+     * @param tree the target tree
+     * @throws AccessControlException If the tree represents a ACL or ACE item.
+     */
+    private static void checkIsAccessControlContent(Tree tree) throws AccessControlException {
+        String ntName = new NodeUtil(tree).getPrimaryNodeTypeName();
+        if (AC_NODE_TYPE_NAMES.contains(ntName)) {
+            throw new AccessControlException("Tree " + tree.getPath() + " defines access control content.");
+        }
+    }
+
+    private void checkPermission(Tree tree) throws AccessDeniedException {
+        // TODO
+    }
+
+    private void checkValidPolicy(String jcrPath, AccessControlPolicy policy) throws AccessControlException {
+        // TODO
+        // TODO: make sure policy is jackrabbit acl
+        // TODO: make sure path matches path of policy
+    }
+
+    private boolean isAccessControlled(Tree tree, String nodeTypeName) throws RepositoryException {
+        return tree != null && ntMgr.isNodeType(tree, nodeTypeName);
+    }
+
+    private boolean isACE(Tree tree) throws RepositoryException {
+        return ntMgr.isNodeType(tree, NT_REP_ACE);
+    }
+
+    @CheckForNull
+    private AccessControlPolicy readAccessControlPolicy(String jcrPath, Tree accessControlledTree) throws RepositoryException {
+        AccessControlPolicy acl = null;
+        String aclName = getAclName(jcrPath);
+        String mixinName = getMixinName(jcrPath);
+        if (isAccessControlled(accessControlledTree, mixinName) && accessControlledTree.hasChild(aclName)) {
+            Tree aclTree = accessControlledTree.getChild(aclName);
+            List<ACE> entries = new ArrayList<ACE>();
+            for (Tree child : aclTree.getChildren()) {
+                if (isACE(child)) {
+                    entries.add(readAccessControlEntry(jcrPath, child, restrictionProvider));
+                }
+            }
+            acl = new ACL(jcrPath, entries, restrictionProvider, namePathMapper);
+        }
+        return acl;
+    }
+
+    @Nonnull
+    private ACE readAccessControlEntry(String jcrPath, Tree aceTree,
+                                       RestrictionProvider restrictionProvider) throws RepositoryException {
+        NodeUtil aceNode = new NodeUtil(aceTree);
+        Principal principal = principalProvider.getPrincipal(aceNode.getString(REP_PRINCIPAL_NAME, null));
+        boolean isAllow = aceNode.hasPrimaryNodeTypeName(NT_REP_GRANT_ACE);
+        Set<Restriction> restrictions = restrictionProvider.readRestrictions(jcrPath, aceTree);
+        return new ACE(principal, getPrivileges(aceNode), isAllow, restrictions, namePathMapper);
+    }
+
+    @Nonnull
+    private ACL getPrincipalACL(Principal principal, Result aceResult) throws RepositoryException {
+        // TODO: specific path indicating the principal-based nature of the
+        // TODO: ACL... this could also be the path of the compiled permissions
+        // TODO: for this principal.
+        String principalBasedPath = null;
+        // TODO: specific principal based restriction provider specifying a
+        // TODO: mandatory 'path' restriction to enforce the location where
+        // TODO: the ACEs need to be stored in the content tree.
+        RestrictionProvider pbRestrictions = new PrincipalRestrictionProvider(namePathMapper);
+
+        List<ACE> entries = null;
+        if (aceResult != null) {
+            entries = new ArrayList();
+            for (ResultRow row : aceResult.getRows()) {
+                Tree aceTree = root.getTree(row.getPath());
+                if (isACE(aceTree)) {
+                    String aclPath = Text.getRelativeParent(aceTree.getPath(), 1);
+                    String jcrPath;
+                    if (aclPath.endsWith(REP_REPO_POLICY)) {
+                        jcrPath = null;
+                    } else {
+                        jcrPath = Text.getRelativeParent(aclPath, 1);
+                    }
+                    entries.add(readAccessControlEntry(jcrPath, aceTree, pbRestrictions));
+                }
+            }
+        }
+        return new ACL(principalBasedPath, entries, pbRestrictions, namePathMapper);
+    }
+
+    /**
+     *
+     * @param jcrPath the JCR path as specified with the ac mgr call.
+     * @param tree the access controlled node.
+     * @return the new acl tree.
+     * @throws RepositoryException if an error occurs
+     */
+    @Nonnull
+    private NodeUtil createAclTree(String jcrPath, Tree tree) throws RepositoryException {
+        NodeUtil node = new NodeUtil(tree);
+        String mixinName = getMixinName(jcrPath);
+        if (!isAccessControlled(tree, mixinName)) {
+            PropertyState mixins = tree.getProperty(JcrConstants.JCR_MIXINTYPES);
+            if (mixins == null) {
+                tree.setProperty(JcrConstants.JCR_MIXINTYPES, Collections.singleton(mixinName), Type.NAMES);
+            } else {
+                PropertyBuilder pb = MemoryPropertyBuilder.copy(Type.NAME, mixins);
+                pb.addValue(mixinName);
+                tree.setProperty(pb.getPropertyState());
+            }
+        }
+        return node.addChild(getAclName(jcrPath), NT_REP_ACL);
+    }
+
+    @Nonnull
+    private Result searchAces(Set<Principal> principals) throws RepositoryException {
+        // TODO: review if compiled permissions could be used instead of running a query.
+        // TODO: replace XPATH
+        // TODO: specify sort order
+        StringBuilder stmt = new StringBuilder("/jcr:root");
+        stmt.append("//element(*,");
+        stmt.append(NT_REP_ACE);
+        stmt.append(")[");
+        int i = 0;
+        for (Principal principal : principals) {
+            if (i > 0) {
+                stmt.append(" or ");
+            }
+            stmt.append('@');
+            stmt.append(ISO9075.encode(REP_PRINCIPAL_NAME));
+            stmt.append("='");
+            stmt.append(principal.getName().replaceAll("'", "''"));
+            stmt.append('\'');
+            i++;
+        }
+        stmt.append(']');
+
+        try {
+            QueryEngine queryEngine = root.getQueryEngine();
+            return queryEngine.executeQuery(stmt.toString(), Query.XPATH, Long.MAX_VALUE, 0, Collections.<String, PropertyValue>emptyMap(), NamePathMapper.DEFAULT);
+        } catch (ParseException e) {
+            String msg = "Error while collecting effective policies.";
+            log.error(msg, e.getMessage());
+            throw new RepositoryException(msg, e);
+        }
+    }
+
+    @Nonnull
+    private Set<Privilege> getPrivileges(NodeUtil aceNode) throws RepositoryException {
+        String[] privNames = aceNode.getNames(REP_PRIVILEGES);
+        Set<Privilege> privileges = new HashSet<Privilege>(privNames.length);
+        for (String name : privNames) {
+            privileges.add(privilegeManager.getPrivilege(name));
+        }
+        return privileges;
+    }
+
+    @CheckForNull
+    private static NodeUtil getAclNode(String jcrPath, Tree accessControlledTree) {
+        Tree policyTree = accessControlledTree.getChild(getAclName(jcrPath));
+        return (policyTree == null) ? null : new NodeUtil(policyTree);
+    }
+
+    @Nonnull
+    private static String getMixinName(String jcrPath) {
+        return (jcrPath == null) ? MIX_REP_REPO_ACCESS_CONTROLLABLE : MIX_REP_ACCESS_CONTROLLABLE;
+    }
+
+    @Nonnull
+    private static String getAclName(String jcrPath) {
+        return (jcrPath == null) ? REP_REPO_POLICY : REP_POLICY;
+    }
+
+    /**
+     * Create a unique valid name for the Permission nodes to be save.
+     *
+     * @param aclNode a name for the child is resolved
+     * @param isAllow If the ACE is allowing or denying.
+     * @return the name of the ACE node.
+     */
+    @Nonnull
+    public static String generateAceName(NodeUtil aclNode, boolean isAllow) {
+        int i = 0;
+        String hint = (isAllow) ? "allow" : "deny";
+        String aceName = hint;
+        while (aclNode.hasChild(aceName)) {
+            aceName = hint + i;
+            i++;
+        }
+        return aceName;
+    }
+
+    // TODO review again.
+    private static class PrincipalRestrictionProvider extends RestrictionProviderImpl {
+
+        private PrincipalRestrictionProvider(NamePathMapper namePathMapper) {
+            super(namePathMapper);
+        }
+
+        @Nonnull
+        @Override
+        public Set<RestrictionDefinition> getSupportedRestrictions(String jcrPath) {
+            Set<RestrictionDefinition> definitions = new HashSet<RestrictionDefinition>(super.getSupportedRestrictions(jcrPath));
+            definitions.add(new RestrictionDefinitionImpl(REP_NODE_PATH, PropertyType.PATH, true));
+            return definitions;
+        }
+
+        @Override
+        public Set<Restriction> readRestrictions(String jcrPath, Tree aceTree) throws AccessControlException {
+            Set<Restriction> restrictions = super.readRestrictions(jcrPath, aceTree);
+            String value = (jcrPath == null) ? "" : jcrPath;
+            PropertyState nodePathProp = PropertyStates.createProperty(REP_NODE_PATH, value, Type.PATH);
+            restrictions.add(new RestrictionImpl(nodePathProp, PropertyType.PATH, true));
+            return restrictions;
+        }
+
+        @Override
+        public void writeRestrictions(String jcrPath, Tree aceTree, Set<Restriction> restrictions) throws AccessControlException {
+            Iterator<Restriction> it = restrictions.iterator();
+            while (it.hasNext()) {
+                Restriction r = it.next();
+                if (REP_NODE_PATH.equals(r.getName())) {
+                    it.remove();
+                }
+            }
+            super.writeRestrictions(jcrPath, aceTree, restrictions);
+        }
+    }
+}

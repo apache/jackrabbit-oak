@@ -20,7 +20,6 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.ValueFormatException;
 
-import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 
 /**
@@ -32,7 +31,7 @@ public interface TextValue {
     String getString();
 
     // TODO: review again
-    Value getValue(Type targetType, NamePathMapper namePathMapper) throws ValueFormatException, RepositoryException;
+    Value getValue(int targetType, NamePathMapper namePathMapper) throws ValueFormatException, RepositoryException;
 
     /**
      * Dispose this value, i.e. free all bound resources. Once a value has

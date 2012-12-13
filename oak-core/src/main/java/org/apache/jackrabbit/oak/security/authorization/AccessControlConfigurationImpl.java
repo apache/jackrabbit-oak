@@ -25,6 +25,7 @@ import javax.jcr.security.AccessControlManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.security.authorization.restriction.RestrictionProviderImpl;
+import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
@@ -32,6 +33,7 @@ import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
+import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 
 /**
  * {@code AccessControlConfigurationImpl} ... TODO
@@ -49,6 +51,12 @@ public class AccessControlConfigurationImpl extends SecurityConfiguration.Defaul
     @Override
     public Context getContext() {
         return AccessControlContext.getInstance();
+    }
+
+    @Nonnull
+    @Override
+    public List<ProtectedItemImporter> getProtectedItemImporters() {
+        return Collections.<ProtectedItemImporter>singletonList(new AccessControlImporter(securityProvider));
     }
 
     //-----------------------------------------< AccessControlConfiguration >---
@@ -69,11 +77,11 @@ public class AccessControlConfigurationImpl extends SecurityConfiguration.Defaul
         return new PermissionProviderImpl();
     }
 
-//    @Nonnull
-//    @Override
-//    public List<CommitHook> getCommitHooks() {
-//        return Collections.<CommitHook>singletonList(new AccessControlHook());
-//    }
+    @Nonnull
+    @Override
+    public List<CommitHook> getCommitHooks() {
+        return Collections.<CommitHook>singletonList(new AccessControlHook());
+    }
 
     @Override
     public List<ValidatorProvider> getValidatorProviders() {

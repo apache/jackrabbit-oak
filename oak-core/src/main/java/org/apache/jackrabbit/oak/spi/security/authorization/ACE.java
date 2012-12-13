@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.spi.security.authorization;
 
 import java.security.Principal;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
 import javax.jcr.RepositoryException;
@@ -58,8 +59,14 @@ public class ACE implements JackrabbitAccessControlEntry {
         this.namePathMapper = namePathMapper;
     }
 
-    public Set<Privilege> getPrivilegeSet() {
-        return privileges;
+    public String[] getPrivilegeNames() {
+        Collection<String> privNames = Collections2.transform(privileges, new Function<Privilege, String>() {
+            @Override
+            public String apply(Privilege privilege) {
+                return privilege.getName();
+            }
+        });
+        return privNames.toArray(new String[privNames.size()]);
     }
 
     public Set<Restriction> getRestrictionSet() {
@@ -153,7 +160,7 @@ public class ACE implements JackrabbitAccessControlEntry {
      */
     private int buildHashCode() {
         int h = 17;
-        h = 37 * h + principal.getName().hashCode();
+        h = 37 * h + principal.hashCode();
         h = 37 * h + privileges.hashCode();
         h = 37 * h + Boolean.valueOf(isAllow).hashCode();
         h = 37 * h + restrictions.hashCode();
