@@ -45,7 +45,8 @@ class PropertyDefinitionTemplateImpl
         requiredType = PropertyType.STRING;
     }
 
-    protected Value createValue(String value) throws RepositoryException {
+    protected Value createValue(String value, int type)
+            throws RepositoryException {
         throw new UnsupportedRepositoryOperationException();
     }
 
@@ -168,11 +169,11 @@ class PropertyDefinitionTemplateImpl
     @Override
     public void addDefaultValues(String value) throws RepositoryException {
         if (defaultValues == null) {
-            defaultValues = new Value[] { createValue(value) };
+            defaultValues = new Value[] { createValue(value, getRequiredType()) };
         } else {
             Value[] values = new Value[defaultValues.length + 1];
             System.arraycopy(defaultValues, 0, values, 0, defaultValues.length);
-            values[defaultValues.length] = createValue(value);
+            values[defaultValues.length] = createValue(value, getRequiredType());
             defaultValues = values;
         }
     }
