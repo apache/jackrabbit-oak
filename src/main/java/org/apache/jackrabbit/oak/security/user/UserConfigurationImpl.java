@@ -84,8 +84,9 @@ public class UserConfigurationImpl extends SecurityConfiguration.Default impleme
     @Nonnull
     @Override
     public AuthorizableActionProvider getAuthorizableActionProvider() {
-        return config.getConfigValue(UserConstants.PARAM_AUTHORIZABLE_ACTION_PROVIDER,
-                DefaultAuthorizableActionProvider.INSTANCE);
+        // TODO: add proper implementation
+        AuthorizableActionProvider defProvider = new DefaultAuthorizableActionProvider(securityProvider, config);
+        return config.getConfigValue(UserConstants.PARAM_AUTHORIZABLE_ACTION_PROVIDER, defProvider);
     }
 
     @Nonnull
