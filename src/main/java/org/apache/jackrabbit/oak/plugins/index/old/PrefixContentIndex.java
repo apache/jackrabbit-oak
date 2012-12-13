@@ -51,7 +51,7 @@ public class PrefixContentIndex implements QueryIndex {
         if (getPropertyTypeRestriction(filter) != null) {
             return 100;
         }
-        return Double.MAX_VALUE;
+        return Double.POSITIVE_INFINITY;
     }
 
     private Filter.PropertyRestriction getPropertyTypeRestriction(Filter filter) {
