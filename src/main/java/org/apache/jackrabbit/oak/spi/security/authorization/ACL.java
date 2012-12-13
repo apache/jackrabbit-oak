@@ -48,14 +48,18 @@ public class ACL implements JackrabbitAccessControlList {
 
     private static final Logger log = LoggerFactory.getLogger(ACL.class);
 
-    private final String path;
+    private final String jcrPath;
     private final List<ACE> entries;
     private final RestrictionProvider restrictionProvider;
     private final NamePathMapper namePathMapper;
 
-    public ACL(String path, List<ACE> entries, RestrictionProvider restrictionProvider,
+    public ACL(String jcrPath, RestrictionProvider restrictionProvider, NamePathMapper namePathMapper) {
+        this(jcrPath, null, restrictionProvider, namePathMapper);
+    }
+
+    public ACL(String jcrPath, List<ACE> entries, RestrictionProvider restrictionProvider,
                NamePathMapper namePathMapper) {
-        this.path = path;
+        this.jcrPath = jcrPath;
         this.entries = (entries == null) ? new ArrayList<ACE>() : entries;
         this.restrictionProvider = restrictionProvider;
         this.namePathMapper = namePathMapper;
@@ -87,13 +91,13 @@ public class ACL implements JackrabbitAccessControlList {
     //--------------------------------------< JackrabbitAccessControlPolicy >---
     @Override
     public String getPath() {
-        return (path == null) ? null : namePathMapper.getJcrPath(path);
+        return jcrPath;
     }
 
     //----------------------------------------< JackrabbitAccessControlList >---
     @Override
     public String[] getRestrictionNames() throws RepositoryException {
-        Set<RestrictionDefinition> supported = restrictionProvider.getSupportedRestrictions(path);
+        Set<RestrictionDefinition> supported = restrictionProvider.getSupportedRestrictions(jcrPath);
         return Collections2.transform(supported, new Function<RestrictionDefinition, String>() {
             @Override
             public String apply(RestrictionDefinition definition) {
@@ -106,7 +110,7 @@ public class ACL implements JackrabbitAccessControlList {
     @Override
     public int getRestrictionType(String restrictionName) throws RepositoryException {
         String oakName = namePathMapper.getOakName(restrictionName);
-        for (RestrictionDefinition definition : restrictionProvider.getSupportedRestrictions(path)) {
+        for (RestrictionDefinition definition : restrictionProvider.getSupportedRestrictions(jcrPath)) {
             if (definition.getName().equals(oakName)) {
                 return definition.getRequiredType();
             }
@@ -139,7 +143,7 @@ public class ACL implements JackrabbitAccessControlList {
         } else {
             rs = new HashSet<Restriction>(restrictions.size());
             for (String name : restrictions.keySet()) {
-                rs.add(restrictionProvider.createRestriction(path, name, restrictions.get(name)));
+                rs.add(restrictionProvider.createRestriction(jcrPath, name, restrictions.get(name)));
             }
         }
         ACE entry = new ACE(principal, privileges, isAllow, rs, namePathMapper);
@@ -205,7 +209,8 @@ public class ACL implements JackrabbitAccessControlList {
         }
         if (obj instanceof ACL) {
             ACL acl = (ACL) obj;
-            return path.equals(acl.path) && entries.equals(acl.entries);
+            return ((jcrPath == null) ? acl.jcrPath == null : jcrPath.equals(acl.jcrPath))
+                    && entries.equals(acl.entries);
         }
         return false;
     }
@@ -213,7 +218,7 @@ public class ACL implements JackrabbitAccessControlList {
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        sb.append("ACL: ").append(path).append("; ACEs: ");
+        sb.append("ACL: ").append(jcrPath).append("; ACEs: ");
         for (AccessControlEntry ace : entries) {
             sb.append(ace.toString()).append(';');
         }

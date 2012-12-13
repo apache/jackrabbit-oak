@@ -118,7 +118,7 @@ class PermissionValidator implements Validator {
         } else if (isVersionProperty(parent, property)) {
             permission = Permissions.VERSION_MANAGEMENT;
             // FIXME: path to check for permission must be adjusted to be
-            //        the one of the versionable node instead of the target parent.
+            // FIXME: the one of the versionable node instead of the target parent in case of version-store is affected.
         } else if (provider.getPrivilegeContext().definesProperty(parentTree, property)) {
             permission = Permissions.PRIVILEGE_MANAGEMENT;
         } else if (provider.getAccessControlContext().definesProperty(parentTree, property)) {
@@ -129,7 +129,7 @@ class PermissionValidator implements Validator {
             permission = defaultPermission;
         }
 
-        checkPermissions(parent.getTree(), property, permission);
+        checkPermissions(parentTree, property, permission);
     }
 
     private Validator checkPermissions(NodeUtil node, boolean isBefore, int defaultPermission) throws CommitFailedException {
@@ -144,7 +144,7 @@ class PermissionValidator implements Validator {
         } else if (isVersion(node)) {
             permission = Permissions.VERSION_MANAGEMENT;
             // FIXME: path to check for permission must be adjusted to be
-            // //     the one of the versionable node instead of the target node.
+            // FIXME: the one of the versionable node instead of the target parent in case of version-store is affected.
         } else if (provider.getPrivilegeContext().definesTree(tree)) {
             permission = Permissions.PRIVILEGE_MANAGEMENT;
         } else if (provider.getAccessControlContext().definesTree(tree)) {
