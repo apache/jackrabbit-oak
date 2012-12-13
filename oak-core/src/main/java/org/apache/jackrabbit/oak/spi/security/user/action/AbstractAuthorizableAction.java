@@ -23,6 +23,8 @@ import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 
 /**
  * Abstract implementation of the {@code AuthorizableAction} interface that
@@ -31,6 +33,10 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
  */
 public abstract class AbstractAuthorizableAction implements AuthorizableAction {
 
+    // TODO: review again
+    protected abstract void init(SecurityProvider securityProvider, ConfigurationParameters config);
+
+    //-------------------------------------------------< AuthorizableAction >---
     /**
      * Doesn't perform any action.
      *

@@ -31,6 +31,7 @@ import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
@@ -94,20 +95,21 @@ import org.slf4j.LoggerFactory;
  */
 public class AccessControlAction extends AbstractAuthorizableAction {
 
-    /**
-     * logger instance
-     */
     private static final Logger log = LoggerFactory.getLogger(AccessControlAction.class);
 
+    public static final String USER_PRIVILEGE_NAMES = "userPrivilegeNames";
+    public static final String GROUP_PRIVILEGE_NAMES = "groupPrivilegeNames";
+
+    private SecurityProvider securityProvider;
     private String[] groupPrivilegeNames = new String[0];
     private String[] userPrivilegeNames = new String[0];
-    private final SecurityProvider securityProvider;
 
-    AccessControlAction(String[] groupPrivilegeNames, String[] userPrivilegeNames,
-                        SecurityProvider securityProvider) {
-        this.groupPrivilegeNames = groupPrivilegeNames;
-        this.userPrivilegeNames = userPrivilegeNames;
-        this.securityProvider = securityProvider;
+    //-----------------------------------------< AbstractAuthorizableAction >---
+    @Override
+    protected void init(SecurityProvider securityProvider, ConfigurationParameters config) {
+        setSecurityProvider(securityProvider);
+        setUserPrivilegeNames(config.getConfigValue(USER_PRIVILEGE_NAMES, (String) null));
+        setGroupPrivilegeNames(config.getConfigValue(GROUP_PRIVILEGE_NAMES, (String) null));
     }
 
     //-------------------------------------------------< AuthorizableAction >---
@@ -122,6 +124,10 @@ public class AccessControlAction extends AbstractAuthorizableAction {
     }
 
     //------------------------------------------------------< Configuration >---
+    public void setSecurityProvider(SecurityProvider securityProvider) {
+        this.securityProvider = securityProvider;
+    }
+
     /**
      * Sets the privileges a new group will be granted on the group's home directory.
      *
@@ -148,6 +154,9 @@ public class AccessControlAction extends AbstractAuthorizableAction {
     //------------------------------------------------------------< private >---
 
     private void setAC(Authorizable authorizable, Root root, NamePathMapper namePathMapper) throws RepositoryException {
+        if (securityProvider == null) {
+            throw new IllegalStateException("Not initialized");
+        }
         String path = authorizable.getPath();
         AccessControlManager acMgr = securityProvider.getAccessControlConfiguration().getAccessControlManager(root, namePathMapper);
         JackrabbitAccessControlList acl = null;

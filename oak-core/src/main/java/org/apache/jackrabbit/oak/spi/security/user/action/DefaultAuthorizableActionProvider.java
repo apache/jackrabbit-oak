@@ -19,17 +19,26 @@ package org.apache.jackrabbit.oak.spi.security.user.action;
 import java.util.Collections;
 import java.util.List;
 
+import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+
 /**
  * DefaultAuthorizableActionProvider... TODO
  */
 public class DefaultAuthorizableActionProvider implements AuthorizableActionProvider {
 
-    public static final AuthorizableActionProvider INSTANCE = new DefaultAuthorizableActionProvider();
+    private final SecurityProvider securityProvider;
+    private final ConfigurationParameters config;
 
-    private DefaultAuthorizableActionProvider() {}
+    public DefaultAuthorizableActionProvider(SecurityProvider securityProvider,
+                                             ConfigurationParameters config) {
+        this.securityProvider = securityProvider;
+        this.config = config;
+    }
 
     @Override
     public List<AuthorizableAction> getAuthorizableActions() {
+        // TODO : create and initialize actions from configuration
         return Collections.emptyList();
     }
 }
