@@ -63,7 +63,7 @@ public final class KernelNodeState extends AbstractNodeState {
     /**
      * Maximum number of child nodes kept in memory.
      */
-    static final int MAX_CHILD_NODE_NAMES = 1000;
+    static final int MAX_CHILD_NODE_NAMES = 10000;
 
     private final MicroKernel kernel;
 
