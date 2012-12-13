@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.index.property;
+package org.apache.jackrabbit.oak.plugins.index.p2;
 
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 
@@ -44,17 +44,17 @@ import com.google.common.collect.Sets;
  * <code>
  * {
  *     NodeState state = ... // get a node state
- *     PropertyIndexLookup lookup = new PropertyIndexLookup(state);
+ *     Property2IndexLookup lookup = new Property2IndexLookup(state);
  *     Set<String> hits = lookup.find("foo", PropertyValues.newString("xyz"));
  * }
  * </code>
  * </pre>
  */
-public class PropertyIndexLookup {
+public class Property2IndexLookup {
 
     private final NodeState root;
 
-    public PropertyIndexLookup(NodeState root) {
+    public Property2IndexLookup(NodeState root) {
         this.root = root;
     }
 
@@ -82,7 +82,7 @@ public class PropertyIndexLookup {
         }
 
         NodeState child = root.getChildNode(path.substring(0, slash));
-        return new PropertyIndexLookup(child).isIndexed(
+        return new Property2IndexLookup(child).isIndexed(
                 name, path.substring(slash));
     }
 
@@ -110,22 +110,22 @@ public class PropertyIndexLookup {
     public Set<String> find(String name, PropertyValue value) {
         Set<String> paths = Sets.newHashSet();
 
-        PropertyState property;
         NodeState state = getIndexDefinitionNode(name);
         if (state != null && state.getChildNode(":index") != null) {
+            NodeState property;
             state = state.getChildNode(":index");
-            for (String p : PropertyIndex.encode(value)) {
-                property = state.getProperty(p);
+            for (String p : Property2Index.encode(value)) {
+                property = state.getChildNode(p);
                 if (property != null) {
                     // We have an entry for this value, so use it
-                    for (String path : property.getValue(Type.STRINGS)) {
+                    for (String path : property.getChildNodeNames()) {
                         paths.add(path);
                     }
                 }
             }
         } else {
             // No index available, so first check this node for a match
-            property = root.getProperty(name);
+            PropertyState property = root.getProperty(name);
             if (property != null) {
                 if (value.isArray()) {
                     // let query engine handle multi-valued look ups
@@ -146,8 +146,8 @@ public class PropertyIndexLookup {
             // ... and then recursively look up from the rest of the tree
             for (ChildNodeEntry entry : root.getChildNodeEntries()) {
                 String base = entry.getName();
-                PropertyIndexLookup lookup =
-                        new PropertyIndexLookup(entry.getNodeState());
+                Property2IndexLookup lookup =
+                        new Property2IndexLookup(entry.getNodeState());
                 for (String path : lookup.find(name, value)) {
                     if (path.isEmpty()) {
                         paths.add(base);
@@ -166,7 +166,7 @@ public class PropertyIndexLookup {
         NodeState state = getIndexDefinitionNode(name);
         if (state != null && state.getChildNode(":index") != null) {
             state = state.getChildNode(":index");
-            for (String p : PropertyIndex.encode(value)) {
+            for (String p : Property2Index.encode(value)) {
                 PropertyState property = state.getProperty(p);
                 if (property != null) {
                     cost += property.count();
@@ -191,7 +191,7 @@ public class PropertyIndexLookup {
         if (state != null) {
             for (ChildNodeEntry entry : state.getChildNodeEntries()) {
                 PropertyState type = entry.getNodeState().getProperty(IndexConstants.TYPE_PROPERTY_NAME);
-                if(type == null || type.isArray() || !PropertyIndex.TYPE.equals(type.getValue(Type.STRING))){
+                if(type == null || type.isArray() || !Property2Index.TYPE.equals(type.getValue(Type.STRING))){
                     continue;
                 }
                 PropertyState names = entry.getNodeState().getProperty("propertyNames");
