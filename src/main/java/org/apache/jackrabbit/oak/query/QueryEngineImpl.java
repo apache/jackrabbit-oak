@@ -17,9 +17,9 @@
 package org.apache.jackrabbit.oak.query;
 
 import java.text.ParseException;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Map.Entry;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
@@ -34,6 +34,8 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.ImmutableSet;
 
 /**
  * The query engine implementation.
@@ -50,6 +52,46 @@ public abstract class QueryEngineImpl implements QueryEngine {
     private static final Logger LOG = LoggerFactory.getLogger(QueryEngineImpl.class);
 
     private final QueryIndexProvider indexProvider;
+
+    // TODO: Turn into a standalone class
+    private final QueryParser parser = new QueryParser() {
+        @Override
+        public Set<String> getSupportedLanguages() {
+            return ImmutableSet.of(
+                    SQL2, SQL, XPATH, JQOM,
+                    SQL2 + NO_LITERALS,
+                    SQL + NO_LITERALS,
+                    XPATH + NO_LITERALS);
+        }
+        @Override
+        public Query parse(String statement, String language)
+                throws ParseException {
+            LOG.debug("Parsing {} statement: {}", language, statement);
+            SQL2Parser parser = new SQL2Parser();
+            if (language.endsWith(NO_LITERALS)) {
+                language = language.substring(0, language.length() - NO_LITERALS.length());
+                parser.setAllowNumberLiterals(false);
+                parser.setAllowTextLiterals(false);
+            }
+            if (SQL2.equals(language) || JQOM.equals(language)) {
+                return parser.parse(statement);
+            } else if (SQL.equals(language)) {
+                parser.setSupportSQL1(true);
+                return parser.parse(statement);
+            } else if (XPATH.equals(language)) {
+                XPathToSQL2Converter converter = new XPathToSQL2Converter();
+                String sql2 = converter.convert(statement);
+                LOG.debug("XPath > SQL2: {}", sql2);
+                try {
+                    return parser.parse(sql2);
+                } catch (ParseException e) {
+                    throw new ParseException(statement + " converted to SQL-2 " + e.getMessage(), 0);
+                }
+            } else {
+                throw new ParseException("Unsupported language: " + language, 0);
+            }
+        }
+    };
 
     public QueryEngineImpl(QueryIndexProvider indexProvider) {
         this.indexProvider = indexProvider;
@@ -70,9 +112,8 @@ public abstract class QueryEngineImpl implements QueryEngine {
     protected abstract Root getRootTree();
 
     @Override
-    public List<String> getSupportedQueryLanguages() {
-        return Arrays.asList(SQL2, SQL, XPATH, JQOM,
-                SQL2 + NO_LITERALS, SQL + NO_LITERALS, XPATH + NO_LITERALS);
+    public Set<String> getSupportedQueryLanguages() {
+        return parser.getSupportedLanguages();
     }
 
     /**
@@ -89,37 +130,8 @@ public abstract class QueryEngineImpl implements QueryEngine {
         return q.getBindVariableNames();
     }
 
-    private static Query parseQuery(String statement, String language) throws ParseException {
-        Query q;
-        if (LOG.isDebugEnabled()) {
-            LOG.debug(language + ": " + statement);
-        }
-        SQL2Parser parser = new SQL2Parser();
-        if (language.endsWith(NO_LITERALS)) {
-            language = language.substring(0, language.length() - NO_LITERALS.length());
-            parser.setAllowNumberLiterals(false);
-            parser.setAllowTextLiterals(false);
-        }
-        if (SQL2.equals(language) || JQOM.equals(language)) {
-            q = parser.parse(statement);
-        } else if (SQL.equals(language)) {
-            parser.setSupportSQL1(true);
-            q = parser.parse(statement);
-        } else if (XPATH.equals(language)) {
-            XPathToSQL2Converter converter = new XPathToSQL2Converter();
-            String sql2 = converter.convert(statement);
-            if (LOG.isDebugEnabled()) {
-                LOG.debug("XPath > SQL2: " + sql2);
-            }
-            try {
-                q = parser.parse(sql2);
-            } catch (ParseException e) {
-                throw new ParseException(statement + " converted to SQL-2 " + e.getMessage(), 0);
-            }
-        } else {
-            throw new ParseException("Unsupported language: " + language, 0);
-        }
-        return q;
+    private Query parseQuery(String statement, String language) throws ParseException {
+        return parser.parse(statement, language);
     }
     
     @Override

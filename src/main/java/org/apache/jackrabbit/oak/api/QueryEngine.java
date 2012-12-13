@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.api;
 import java.text.ParseException;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 
@@ -30,11 +31,11 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 public interface QueryEngine {
 
     /**
-     * Get the list of supported query languages.
+     * Get the set of supported query languages.
      *
      * @return the supported query languages
      */
-    List<String> getSupportedQueryLanguages();
+    Set<String> getSupportedQueryLanguages();
 
     /**
      * Parse the query (check if it's valid) and get the list of bind variable names.
