@@ -21,9 +21,11 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.core.ReadOnlyTree;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeDefinition;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeDefinitionReader;
@@ -54,7 +56,8 @@ class AccessControlValidatorProvider implements ValidatorProvider {
 
         PrivilegeDefinitionReader reader = securityProvider.getPrivilegeConfiguration().getPrivilegeDefinitionReader(treeBefore);
         Map<String, PrivilegeDefinition> privilegeDefinitions = reader.readDefinitions();
-        RestrictionProvider restrictionProvider = null; // TODO
+        AccessControlConfiguration acConfig = securityProvider.getAccessControlConfiguration();
+        RestrictionProvider restrictionProvider = acConfig.getRestrictionProvider(NamePathMapper.DEFAULT);
         return new AccessControlValidator(rootBefore, rootAfter, privilegeDefinitions, restrictionProvider);
     }
 

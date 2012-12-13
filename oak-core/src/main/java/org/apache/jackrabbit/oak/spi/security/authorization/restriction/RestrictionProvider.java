@@ -30,13 +30,15 @@ import org.apache.jackrabbit.oak.api.Tree;
 public interface RestrictionProvider {
 
     @Nonnull
-    Set<RestrictionDefinition> getSupportedRestrictions(String path);
+    Set<RestrictionDefinition> getSupportedRestrictions(String jcrPath);
 
+    @Nonnull
     Restriction createRestriction(String jcrPath, String jcrName, Value value) throws RepositoryException;
 
-    Set<Restriction> readRestrictions(String path, Tree aceTree) throws AccessControlException;
+    @Nonnull
+    Set<Restriction> readRestrictions(String jcrPath, Tree aceTree) throws AccessControlException;
 
-    void writeRestrictions(String path, Tree aceTree, Set<Restriction> restrictions) throws AccessControlException;
+    void writeRestrictions(String jcrPath, Tree aceTree, Set<Restriction> restrictions) throws AccessControlException;
 
-    void validateRestrictions(String path, Tree aceTree) throws AccessControlException;
+    void validateRestrictions(String jcrPath, Tree aceTree) throws AccessControlException;
 }

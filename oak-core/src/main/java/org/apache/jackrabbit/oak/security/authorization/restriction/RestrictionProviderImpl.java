@@ -37,6 +37,7 @@ import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restrict
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionDefinition;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 import org.apache.jackrabbit.util.Text;
+import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 /**
  * RestrictionProviderImpl... TODO
@@ -54,8 +55,8 @@ public class RestrictionProviderImpl implements RestrictionProvider {
 
     @Nonnull
     @Override
-    public Set<RestrictionDefinition> getSupportedRestrictions(String path) {
-        if (path == null) {
+    public Set<RestrictionDefinition> getSupportedRestrictions(String jcrPath) {
+        if (jcrPath == null) {
             return Collections.emptySet();
         } else {
             return ImmutableSet.copyOf(supported.values());
@@ -63,9 +64,9 @@ public class RestrictionProviderImpl implements RestrictionProvider {
     }
 
     @Override
-    public Restriction createRestriction(String path, String jcrName, Value value) throws RepositoryException {
+    public Restriction createRestriction(String jcrPath, String jcrName, Value value) throws RepositoryException {
         String oakName = namePathMapper.getOakName(jcrName);
-        RestrictionDefinition definition = (path == null) ? null : supported.get(oakName);
+        RestrictionDefinition definition = (jcrPath == null) ? null : supported.get(oakName);
         if (definition == null) {
             throw new AccessControlException("Unsupported restriction: " + jcrName);
         }
@@ -78,19 +79,19 @@ public class RestrictionProviderImpl implements RestrictionProvider {
     }
 
     @Override
-    public Set<Restriction> readRestrictions(String path, Tree aceTre) throws javax.jcr.security.AccessControlException {
+    public Set<Restriction> readRestrictions(String jcrPath, Tree aceTree) throws javax.jcr.security.AccessControlException {
         // TODO
-        return null;
+        throw new NotImplementedException();
     }
 
     @Override
-    public void writeRestrictions(String path, Tree aceTree, Set<Restriction> restrictions) throws javax.jcr.security.AccessControlException {
+    public void writeRestrictions(String jcrPath, Tree aceTree, Set<Restriction> restrictions) throws javax.jcr.security.AccessControlException {
         // TODO
 
     }
 
     @Override
-    public void validateRestrictions(String path, Tree aceTree) throws javax.jcr.security.AccessControlException {
+    public void validateRestrictions(String jcrPath, Tree aceTree) throws javax.jcr.security.AccessControlException {
         Tree restrictions;
         if (aceTree.hasChild(AccessControlConstants.REP_RESTRICTIONS)) {
             restrictions = aceTree.getChild(AccessControlConstants.REP_RESTRICTIONS);
@@ -108,7 +109,7 @@ public class RestrictionProviderImpl implements RestrictionProvider {
             }
         }
 
-        if (path == null && !restrictionProperties.isEmpty()) {
+        if (jcrPath == null && !restrictionProperties.isEmpty()) {
             throw new AccessControlException("Restrictions not supported with 'null' path.");
         }
         for (String restrName : restrictionProperties.keySet()) {
@@ -121,42 +122,6 @@ public class RestrictionProviderImpl implements RestrictionProvider {
             if (def.isMandatory() && !restrictionProperties.containsKey(def.getName())) {
                 throw new AccessControlException("Mandatory restriction " + def.getName() + " is missing.");
             }
-        }
-    }
-
-    private static class RestrictionImpl implements Restriction {
-
-        private final PropertyState property;
-        private final int requiredType;
-        private final boolean isMandatory;
-
-        private RestrictionImpl(PropertyState property, int requiredType, boolean isMandatory) {
-            this.property = property;
-            this.requiredType = requiredType;
-            this.isMandatory = isMandatory;
-        }
-
-        @Nonnull
-        @Override
-        public PropertyState getProperty() {
-            return property;
-        }
-
-        @Nonnull
-        @Override
-        public String getName() {
-            return property.getName();
-        }
-
-        @Nonnull
-        @Override
-        public int getRequiredType() {
-            return requiredType;
-        }
-
-        @Override
-        public boolean isMandatory() {
-            return isMandatory;
         }
     }
 }

@@ -32,7 +32,7 @@ public class AccessControlHook implements CommitHook {
     @Nonnull
     @Override
     public NodeState processCommit(NodeState before, NodeState after) throws CommitFailedException {
-        // TODO
-        throw new UnsupportedOperationException("not yet implemented");
+        // TODO: add implementation
+        return after;
     }
 }
