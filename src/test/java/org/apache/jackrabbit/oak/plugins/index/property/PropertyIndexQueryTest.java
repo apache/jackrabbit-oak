@@ -20,6 +20,7 @@ import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.plugins.nodetype.InitialContent;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
+import org.junit.Test;
 
 /**
  * Tests the query engine using the default index implementation: the
@@ -34,6 +35,11 @@ public class PropertyIndexQueryTest extends AbstractQueryTest {
             .with(new PropertyIndexProvider())
             .with(new PropertyIndexHookProvider())
             .createContentRepository();
+    }
+    
+    @Test
+    public void sql2Index() throws Exception {
+        test("sql2_index.txt");
     }
 
 }
