@@ -48,11 +48,11 @@ public class PropertyContentIndex implements QueryIndex {
         String propertyName = index.getPropertyName();
         Filter.PropertyRestriction restriction = filter.getPropertyRestriction(propertyName);
         if (restriction == null) {
-            return Double.MAX_VALUE;
+            return Double.POSITIVE_INFINITY;
         }
         if (restriction.first != restriction.last) {
             // only support equality matches (for now)
-            return Double.MAX_VALUE;
+            return Double.POSITIVE_INFINITY;
         }
         boolean unique = index.isUnique();
         return unique ? 2 : 20;

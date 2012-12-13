@@ -173,7 +173,7 @@ public class PropertyIndexLookup {
                 }
             }
         } else {
-            cost = Double.MAX_VALUE;
+            cost = Double.POSITIVE_INFINITY;
         }
         return cost;
     }
