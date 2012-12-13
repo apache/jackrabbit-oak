@@ -83,7 +83,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
                 if (parent == null) {
                     throw new AccessDeniedException();
                 } else {
-                    return new NodeImpl(dlg.getParent());
+                    return new NodeImpl<NodeDelegate>(dlg.getParent());
                 }
             }
         });

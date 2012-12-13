@@ -27,6 +27,8 @@ import javax.jcr.lock.Lock;
 import javax.jcr.lock.LockException;
 import javax.jcr.lock.LockManager;
 
+import org.apache.jackrabbit.oak.jcr.SessionDelegate;
+
 /**
  * Simple lock manager implementation that just keeps track of a set of lock
  * tokens and delegates all locking operations back to the {@link Session}
@@ -34,12 +36,12 @@ import javax.jcr.lock.LockManager;
  */
 public class LockManagerImpl implements LockManager {
 
-    private final Session session;
+    private final SessionDelegate sessionDelegate;
 
     private final Set<String> tokens = new HashSet<String>();
 
-    public LockManagerImpl(Session session) {
-        this.session = session;
+    public LockManagerImpl(SessionDelegate sessionDelegate) {
+        this.sessionDelegate = sessionDelegate;
     }
 
     @Override
@@ -64,19 +66,19 @@ public class LockManagerImpl implements LockManager {
 
     @Override
     public boolean isLocked(String absPath) throws RepositoryException {
-        return session.getNode(absPath).isLocked();
+        return getSession().getNode(absPath).isLocked();
     }
 
     @Override
     @SuppressWarnings("deprecation")
     public boolean holdsLock(String absPath) throws RepositoryException {
-        return session.getNode(absPath).holdsLock();
+        return getSession().getNode(absPath).holdsLock();
     }
 
     @Override
     @SuppressWarnings("deprecation")
     public Lock getLock(String absPath) throws RepositoryException {
-        return session.getNode(absPath).getLock();
+        return getSession().getNode(absPath).getLock();
     }
 
     @Override
@@ -84,13 +86,16 @@ public class LockManagerImpl implements LockManager {
     public Lock lock(
             String absPath, boolean isDeep, boolean isSessionScoped,
             long timeoutHint, String ownerInfo) throws RepositoryException {
-        return session.getNode(absPath).lock(isDeep, isSessionScoped);
+        return getSession().getNode(absPath).lock(isDeep, isSessionScoped);
     }
 
     @Override
     @SuppressWarnings("deprecation")
     public void unlock(String absPath) throws RepositoryException {
-        session.getNode(absPath).unlock();
+        getSession().getNode(absPath).unlock();
     }
 
+    private Session getSession() {
+        return sessionDelegate.getSession();
+    }
 }

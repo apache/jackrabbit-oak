@@ -54,6 +54,7 @@ import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.nodetype.PropertyDefinition;
 import javax.jcr.version.Version;
 import javax.jcr.version.VersionHistory;
+import javax.jcr.version.VersionManager;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
@@ -87,14 +88,14 @@ import static javax.jcr.Property.JCR_LOCK_OWNER;
 /**
  * {@code NodeImpl}...
  */
-public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
+public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Node {
 
     /**
      * logger instance
      */
     private static final Logger log = LoggerFactory.getLogger(NodeImpl.class);
 
-    public NodeImpl(NodeDelegate dlg) {
+    public NodeImpl(T dlg) {
         super(dlg.getSessionDelegate(), dlg);
     }
 
@@ -116,9 +117,9 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
     public Node getParent() throws RepositoryException {
         checkStatus();
 
-        return sessionDelegate.perform(new SessionOperation<NodeImpl>() {
+        return sessionDelegate.perform(new SessionOperation<NodeImpl<NodeDelegate>>() {
             @Override
-            public NodeImpl perform() throws RepositoryException {
+            public NodeImpl<NodeDelegate> perform() throws RepositoryException {
                 if (dlg.isRoot()) {
                     throw new ItemNotFoundException("Root has no parent");
                 } else {
@@ -126,7 +127,7 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
                     if (parent == null) {
                         throw new AccessDeniedException();
                     }
-                    return new NodeImpl(parent);
+                    return new NodeImpl<NodeDelegate>(parent);
                 }
             }
         });
@@ -251,7 +252,7 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
                     DefinitionProvider dp = sessionDelegate.getDefinitionProvider();
                     try {
                         String childName = sessionDelegate.getOakNameOrThrow(PathUtils.getName(relPath));
-                        NodeDefinition def = dp.getDefinition(new NodeImpl(parent), childName);
+                        NodeDefinition def = dp.getDefinition(new NodeImpl<NodeDelegate>(parent), childName);
                         ntName = def.getDefaultPrimaryTypeName();
                     } catch (RepositoryException e) {
                         throw new ConstraintViolationException(
@@ -272,7 +273,7 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
                     throw new ItemExistsException();
                 }
 
-                NodeImpl childNode = new NodeImpl(added);
+                NodeImpl childNode = new NodeImpl<NodeDelegate>(added);
                 childNode.internalSetPrimaryType(ntName);
                 childNode.autoCreateItems();
                 return childNode;
@@ -481,7 +482,7 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
                 if (nd == null) {
                     throw new PathNotFoundException(relPath);
                 } else {
-                    return new NodeImpl(nd);
+                    return new NodeImpl<NodeDelegate>(nd);
                 }
             }
         });
@@ -939,7 +940,9 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
                 ntm.getNodeType(mixinName); // throws on not found
                 // TODO: END
 
-                return isSupportedMixinName(mixinName);
+                VersionManager vMgr = sessionDelegate.getVersionManager();
+                String path = toJcrPath(dlg.getPath());
+                return isSupportedMixinName(mixinName) && vMgr.isCheckedOut(path);
             }
         });
     }
@@ -1276,7 +1279,7 @@ public class NodeImpl extends ItemImpl<NodeDelegate> implements Node {
                 new Function<NodeDelegate, Node>() {
                     @Override
                     public Node apply(NodeDelegate nodeDelegate) {
-                        return new NodeImpl(nodeDelegate);
+                        return new NodeImpl<NodeDelegate>(nodeDelegate);
                     }
                 });
     }

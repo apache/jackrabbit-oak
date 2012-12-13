@@ -35,6 +35,7 @@ import org.apache.jackrabbit.oak.plugins.nodetype.DefaultTypeEditor;
 import org.apache.jackrabbit.oak.plugins.nodetype.InitialContent;
 import org.apache.jackrabbit.oak.plugins.nodetype.RegistrationValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypeValidatorProvider;
+import org.apache.jackrabbit.oak.plugins.version.VersionHook;
 import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.ConflictHandler;
@@ -61,6 +62,7 @@ public class Jcr {
         with(new InitialContent());
 
         with(new DefaultTypeEditor());
+        with(new VersionHook());
 
         with(new SecurityProviderImpl());
 

@@ -130,7 +130,7 @@ public class QueryImpl implements Query {
         if (parentDelegate == null) {
             throw new PathNotFoundException("The specified path does not exist: " + parent);
         }
-        Node parentNode = new NodeImpl(parentDelegate);
+        Node parentNode = new NodeImpl<NodeDelegate>(parentDelegate);
         String nodeName = PathUtils.getName(oakPath);
         ValueFactory vf = sessionDelegate.getValueFactory();
         Node n = parentNode.addNode(nodeName, JcrConstants.NT_QUERY);

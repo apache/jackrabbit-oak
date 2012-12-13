@@ -142,7 +142,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
                 if (nd == null) {
                     throw new AccessDeniedException("Root node is not accessible.");
                 } else {
-                    return new NodeImpl(nd);
+                    return new NodeImpl<NodeDelegate>(nd);
                 }
             }
         });
@@ -166,7 +166,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
                 if (d == null) {
                     throw new ItemNotFoundException("Node with id " + id + " does not exist.");
                 }
-                return new NodeImpl(d);
+                return new NodeImpl<NodeDelegate>(d);
             }
         });
     }
@@ -197,7 +197,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
                 if (d == null) {
                     throw new PathNotFoundException("Node with path " + absPath + " does not exist.");
                 }
-                return new NodeImpl(d);
+                return new NodeImpl<NodeDelegate>(d);
             }
         });
     }

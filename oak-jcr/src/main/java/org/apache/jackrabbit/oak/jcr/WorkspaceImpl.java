@@ -63,13 +63,14 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
 
     private final SessionDelegate sessionDelegate;
     private final QueryManagerImpl queryManager;
-
     private final LockManager lockManager;
+    private final VersionManagerImpl versionManager;
 
     public WorkspaceImpl(SessionDelegate sessionDelegate) {
         this.sessionDelegate = sessionDelegate;
         this.queryManager = new QueryManagerImpl(sessionDelegate);
-        this.lockManager = new LockManagerImpl(sessionDelegate.getSession());
+        this.lockManager = new LockManagerImpl(sessionDelegate);
+        this.versionManager = new VersionManagerImpl(sessionDelegate);
     }
 
     //----------------------------------------------------------< Workspace >---
@@ -213,8 +214,9 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
     }
 
     @Override
-    public VersionManager getVersionManager() {
-        return new VersionManagerImpl(sessionDelegate);
+    public VersionManager getVersionManager() throws RepositoryException {
+        ensureIsAlive();
+        return versionManager;
     }
 
     @Override
