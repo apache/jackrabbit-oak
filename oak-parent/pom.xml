@@ -90,7 +90,7 @@
         <plugin>
           <groupId>org.apache.felix</groupId>
           <artifactId>maven-scr-plugin</artifactId>
-          <version>1.7.4</version>
+          <version>1.9.0</version>
           <executions>
             <execution>
               <id>generate-scr-scrdescriptor</id>
@@ -210,7 +210,7 @@
       <dependency>
         <groupId>org.apache.felix</groupId>
         <artifactId>org.apache.felix.scr.annotations</artifactId>
-        <version>1.6.0</version>
+        <version>1.7.0</version>
       </dependency>
       <dependency>
         <groupId>junit</groupId>
