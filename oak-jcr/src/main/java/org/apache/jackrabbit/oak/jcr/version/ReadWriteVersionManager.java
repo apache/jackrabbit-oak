@@ -116,7 +116,7 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
                 throw new RepositoryException(e);
             }
         }
-        return getBaseVersion(location.getTree());
+        return getBaseVersion(getWorkspaceRoot().getTree(location.getPath()));
     }
 
     /**
