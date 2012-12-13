@@ -31,9 +31,12 @@ import org.apache.jackrabbit.mk.model.tree.NodeStateDiff;
 import org.apache.jackrabbit.mk.persistence.GCPersistence;
 import org.apache.jackrabbit.mk.persistence.Persistence;
 import org.apache.jackrabbit.mk.util.IOUtils;
-import org.apache.jackrabbit.mk.util.SimpleLRUCache;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.Weigher;
 
 import java.io.Closeable;
 import java.util.Collections;
@@ -42,6 +45,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 import java.util.WeakHashMap;
+import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
@@ -60,7 +64,9 @@ public class DefaultRevisionStore extends AbstractRevisionStore implements
     private static final Logger LOG = LoggerFactory.getLogger(DefaultRevisionStore.class);
     
     public static final String CACHE_SIZE = "mk.cacheSize";
-    public static final int DEFAULT_CACHE_SIZE = 10000;
+    
+    // default cache size is 32 MB
+    public static final int DEFAULT_CACHE_SIZE = 32 * 1024 * 1024;
 
     private boolean initialized;
     private Id head;
@@ -72,7 +78,7 @@ public class DefaultRevisionStore extends AbstractRevisionStore implements
     protected final GCPersistence gcpm;
 
     /* avoid synthetic accessor */ int initialCacheSize;
-    /* avoid synthetic accessor */ Map<Id, Object> cache;
+    /* avoid synthetic accessor */ Cache<Id, CacheObject> cache;
 
     /**
      * GC run state constants.
@@ -131,7 +137,15 @@ public class DefaultRevisionStore extends AbstractRevisionStore implements
         }
 
         initialCacheSize = determineInitialCacheSize();
-        cache = Collections.synchronizedMap(SimpleLRUCache.<Id, Object> newInstance(initialCacheSize));
+        
+        cache = CacheBuilder.newBuilder()
+                .maximumWeight(initialCacheSize)
+                .weigher(new Weigher<Id, CacheObject>() {
+                    public int weigh(Id id, CacheObject obj) {
+                        return obj.getMemory();
+                    }
+                })
+                .build();
 
         // make sure we've got a HEAD commit
         Id[] ids = pm.readIds();
@@ -184,7 +198,7 @@ public class DefaultRevisionStore extends AbstractRevisionStore implements
             gcExecutor.shutdown();
         }
 
-        cache.clear();
+        cache.invalidateAll();
 
         IOUtils.closeQuietly(pm);
 
@@ -354,49 +368,47 @@ public class DefaultRevisionStore extends AbstractRevisionStore implements
 
     // -----------------------------------------------------< RevisionProvider >
 
-    public StoredNode getNode(Id id) throws NotFoundException, Exception {
+    public StoredNode getNode(final Id id) throws NotFoundException, Exception {
         verifyInitialized();
 
-        StoredNode node = (StoredNode) cache.get(id);
-        if (node != null) {
-            return node;
-        }
-
-        node = new StoredNode(id, this);
-        pm.readNode(node);
-
-        cache.put(id, node);
-
+        StoredNode node = (StoredNode) cache.get(id,
+                new Callable<StoredNode>() {
+                    @Override
+                    public StoredNode call() throws Exception {
+                        StoredNode node = new StoredNode(id,
+                                DefaultRevisionStore.this);
+                        pm.readNode(node);
+                        return node;
+                    }
+                });
         return node;
     }
 
-    public ChildNodeEntriesMap getCNEMap(Id id) throws NotFoundException,
+    public ChildNodeEntriesMap getCNEMap(final Id id) throws NotFoundException,
             Exception {
         verifyInitialized();
 
-        ChildNodeEntriesMap map = (ChildNodeEntriesMap) cache.get(id);
-        if (map != null) {
-            return map;
-        }
-
-        map = pm.readCNEMap(id);
-
-        cache.put(id, map);
-
+        ChildNodeEntriesMap map = (ChildNodeEntriesMap) cache.get(id,
+                new Callable<ChildNodeEntriesMap>() {
+                    @Override
+                    public ChildNodeEntriesMap call() throws Exception {
+                        return pm.readCNEMap(id);
+                    }
+                });
         return map;
     }
 
-    public StoredCommit getCommit(Id id) throws NotFoundException, Exception {
+    public StoredCommit getCommit(final Id id) throws NotFoundException,
+            Exception {
         verifyInitialized();
 
-        StoredCommit commit = (StoredCommit) cache.get(id);
-        if (commit != null) {
-            return commit;
-        }
-
-        commit = pm.readCommit(id);
-        cache.put(id, commit);
-
+        StoredCommit commit = (StoredCommit) cache.get(id,
+                new Callable<StoredCommit>() {
+                    @Override
+                    public StoredCommit call() throws Exception {
+                        return pm.readCommit(id);
+                    }
+                });
         return commit;
     }
 
@@ -554,7 +566,7 @@ public class DefaultRevisionStore extends AbstractRevisionStore implements
         try {
             int swept = gcpm.sweep();
             LOG.debug("GC cycle swept {} items", swept);
-            cache.clear();
+            cache.invalidateAll();
         } catch (Exception e) {
             LOG.error("Exception occurred in GC cycle", e);
         } finally {

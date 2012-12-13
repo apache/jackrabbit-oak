@@ -17,13 +17,14 @@
 package org.apache.jackrabbit.mk.model;
 
 import org.apache.jackrabbit.mk.store.Binding;
+import org.apache.jackrabbit.mk.store.CacheObject;
 
 import java.util.Iterator;
 
 /**
  *
  */
-public interface ChildNodeEntries extends Cloneable {
+public interface ChildNodeEntries extends Cloneable, CacheObject {
     
     static final int CAPACITY_THRESHOLD = 1000;
 

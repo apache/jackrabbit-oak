@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.mk.model;
 
 import org.apache.jackrabbit.mk.store.Binding;
+import org.apache.jackrabbit.mk.store.CacheObject;
 import org.apache.jackrabbit.mk.store.RevisionProvider;
 import org.apache.jackrabbit.mk.store.RevisionStore;
 import org.apache.jackrabbit.mk.util.AbstractFilteringIterator;
@@ -32,7 +33,7 @@ import java.util.NoSuchElementException;
 /**
  *
  */
-public class ChildNodeEntriesTree implements ChildNodeEntries {
+public class ChildNodeEntriesTree implements ChildNodeEntries, CacheObject {
 
     protected static final List<ChildNodeEntry> EMPTY = Collections.emptyList();
     
@@ -688,4 +689,12 @@ public class ChildNodeEntriesTree implements ChildNodeEntries {
             return false;
         }
     }
+    
+    @Override
+    public int getMemory() {
+        // assuming a fixed size of 1000 entries, each with 100 bytes, plus 100 bytes overhead
+        int memory = 100 + 1000 * 100;
+        return memory;
+    }
+
 }
