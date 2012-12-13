@@ -37,6 +37,7 @@ public class TimingWrapper implements MicroKernel {
     private final MicroKernel mk;
     private final int id = NEXT_ID.getAndIncrement();
 
+    private long startTime;
     private final Map<String, Count> counts = new HashMap<String, Count>();
     private long lastLogTime;
 
@@ -334,6 +335,9 @@ public class TimingWrapper implements MicroKernel {
     }
 
     private void updateAndLogTimes(String operation, long start) {
+        if (startTime == 0) {
+            startTime = System.currentTimeMillis();
+        }
         counts.get(operation).update(System.currentTimeMillis() - start);
         long now = System.currentTimeMillis();
         if (now - lastLogTime >= 2000) {
@@ -346,6 +350,7 @@ public class TimingWrapper implements MicroKernel {
                     log(count.getKey() + " --> count:" + c + " max: " + max + " total: " + total);
                 }
             }
+            System.out.println("Time: " + ((now - startTime) / 1000L));
             System.out.println("------");
         }
     }
