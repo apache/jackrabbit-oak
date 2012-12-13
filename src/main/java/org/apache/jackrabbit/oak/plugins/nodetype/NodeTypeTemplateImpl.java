@@ -22,6 +22,7 @@ import java.util.List;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
+import javax.jcr.ValueFormatException;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.NodeDefinition;
 import javax.jcr.nodetype.NodeDefinitionTemplate;
@@ -125,8 +126,9 @@ final class NodeTypeTemplateImpl
     public PropertyDefinitionTemplateImpl newPropertyDefinitionBuilder() {
         return new PropertyDefinitionTemplateImpl(mapper) {
             @Override
-            protected Value createValue(String value) {
-                return factory.createValue(value);
+            protected Value createValue(String value, int type)
+                    throws ValueFormatException {
+                return factory.createValue(value, type);
             }
             @Override
             public void build() {
