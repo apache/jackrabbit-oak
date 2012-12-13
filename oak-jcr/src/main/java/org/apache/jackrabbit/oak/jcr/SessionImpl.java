@@ -541,10 +541,6 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
         }
     }
 
-    boolean hasSessionLocalMappings() {
-        return !namespaces.isEmpty();
-    }
-
     //--------------------------------------------------< JackrabbitSession >---
 
     @Override
