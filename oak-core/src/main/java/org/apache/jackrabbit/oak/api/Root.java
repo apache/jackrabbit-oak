@@ -130,7 +130,7 @@ public interface Root {
      * @return the query engine
      */
     @Nonnull
-    SessionQueryEngine getQueryEngine();
+    QueryEngine getQueryEngine();
 
     /**
      * Returns the blob factory (TODO: review if that really belongs to the OAK-API. see also todos on BlobFactory)

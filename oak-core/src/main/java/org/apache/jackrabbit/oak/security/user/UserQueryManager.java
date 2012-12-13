@@ -29,7 +29,7 @@ import org.apache.jackrabbit.api.security.user.Query;
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.api.SessionQueryEngine;
+import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.security.user.query.XPathQueryBuilder;
 import org.apache.jackrabbit.oak.security.user.query.XPathQueryEvaluator;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
@@ -104,7 +104,7 @@ class UserQueryManager {
                                              boolean exact, AuthorizableType type) throws RepositoryException {
         // TODO: replace XPATH
         String statement = buildXPathStatement(relPath, value, exact, type);
-        SessionQueryEngine queryEngine = root.getQueryEngine();
+        QueryEngine queryEngine = root.getQueryEngine();
         try {
             Result result = queryEngine.executeQuery(statement, javax.jcr.query.Query.XPATH, Long.MAX_VALUE, 0, null, userManager.getNamePathMapper());
             return Iterators.filter(Iterators.transform(result.getRows().iterator(), new ResultRowToAuthorizable()), Predicates.<Object>notNull());

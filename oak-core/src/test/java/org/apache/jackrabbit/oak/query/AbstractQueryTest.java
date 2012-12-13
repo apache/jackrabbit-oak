@@ -38,12 +38,11 @@ import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.api.SessionQueryEngine;
+import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
@@ -61,7 +60,7 @@ public abstract class AbstractQueryTest {
 
     protected static final String TEST_INDEX_NAME = "test-index";
 
-    protected SessionQueryEngine qe;
+    protected QueryEngine qe;
     protected ContentSession session;
     protected Root root;
 
