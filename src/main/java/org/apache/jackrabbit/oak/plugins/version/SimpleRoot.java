@@ -22,8 +22,8 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.BlobFactory;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.api.SessionQueryEngine;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.TreeLocation;
 
@@ -87,7 +87,7 @@ class SimpleRoot implements Root {
 
     @Nonnull
     @Override
-    public SessionQueryEngine getQueryEngine() {
+    public QueryEngine getQueryEngine() {
         throw new UnsupportedOperationException();
     }
 

@@ -93,6 +93,7 @@ public class Query {
     private long size = -1;
     private boolean prepared;
     private Root rootTree;
+    private NodeState rootState;
     private NamePathMapper namePathMapper;
 
     Query(String statement, SourceImpl source, ConstraintImpl constraint, OrderingImpl[] orderings,
@@ -299,11 +300,11 @@ public class Query {
         this.measure = measure;
     }
 
-    public ResultImpl executeQuery(NodeState rootState) {
-        return new ResultImpl(this, rootState);
+    public ResultImpl executeQuery() {
+        return new ResultImpl(this);
     }
 
-    Iterator<ResultRowImpl> getRows(NodeState rootState) {
+    Iterator<ResultRowImpl> getRows() {
         prepare();
         Iterator<ResultRowImpl> it;
         if (explain) {
@@ -589,11 +590,15 @@ public class Query {
     }
 
     public QueryIndex getBestIndex(Filter filter) {
-        return queryEngine.getBestIndex(this, filter);
+        return queryEngine.getBestIndex(this, rootState, filter);
     }
 
     public void setRootTree(Root rootTree) {
         this.rootTree = rootTree;
+    }
+    
+    public void setRootState(NodeState rootState) {
+        this.rootState = rootState;
     }
 
     public void setNamePathMapper(NamePathMapper namePathMapper) {

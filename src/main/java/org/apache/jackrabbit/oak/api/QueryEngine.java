@@ -27,7 +27,7 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
  * <p>
  * What query languages are supported depends on the registered query parsers.
  */
-public interface SessionQueryEngine {
+public interface QueryEngine {
 
     /**
      * Get the list of supported query languages.
@@ -62,8 +62,5 @@ public interface SessionQueryEngine {
     Result executeQuery(String statement, String language,
             long limit, long offset, Map<String, ? extends PropertyValue> bindings,
             NamePathMapper namePathMapper) throws ParseException;
-
-    // TODO pass namespace mapping
-    // TODO pass node type information (select * from [xyz] is supposed to return at least the mandatory columns for xyz)
 
 }
