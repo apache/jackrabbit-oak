@@ -383,7 +383,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
         ensureIsAlive();
 
         // TODO
-        return false;
+        return TODO.unimplemented().returnValue(false);
     }
 
     @Override
