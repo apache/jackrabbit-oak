@@ -136,7 +136,10 @@ public class FetchNodesActionNew extends BaseAction<Map<String, MongoNode>> {
             queryBuilder = queryBuilder.and(branchQuery);
         }
 
-        DBObject orderBy = new BasicDBObject(MongoCommit.KEY_REVISION_ID, -1);
+        DBObject orderBy = new BasicDBObject();
+        orderBy.put(MongoNode.KEY_PATH, 1);
+        orderBy.put(MongoNode.KEY_REVISION_ID, -1);
+
         DBObject query = queryBuilder.get();
         LOG.debug("Executing query: {}", query);
 
