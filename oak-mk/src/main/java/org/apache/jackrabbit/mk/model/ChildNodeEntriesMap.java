@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.mk.model;
 
 import org.apache.jackrabbit.mk.store.Binding;
+import org.apache.jackrabbit.mk.store.CacheObject;
 import org.apache.jackrabbit.mk.util.AbstractFilteringIterator;
 import org.apache.jackrabbit.mk.util.RangeIterator;
 
@@ -29,7 +30,7 @@ import java.util.Map;
 /**
  *
  */
-public class ChildNodeEntriesMap implements ChildNodeEntries {
+public class ChildNodeEntriesMap implements ChildNodeEntries, CacheObject {
 
     protected static final List<ChildNodeEntry> EMPTY = Collections.emptyList();
     
@@ -219,4 +220,14 @@ public class ChildNodeEntriesMap implements ChildNodeEntries {
         }
         return newInstance;
     }
+
+    @Override
+    public int getMemory() {
+        int memory = 100;
+        for (String e : entries.keySet()) {
+            memory += e.length() * 2 + 100;
+        }
+        return memory;
+    }
+    
 }

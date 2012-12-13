@@ -651,4 +651,13 @@ class HashDirectory implements ChildNodeEntries {
     public Iterator<ChildNodeEntry> getRemoved(ChildNodeEntries other) {
         throw new NoSuchMethodError();
     }
+    
+    @Override
+    public int getMemory() {
+        // assuming a fixed size of 1000 entries, each with 100 bytes, plus 100
+        // bytes overhead
+        int memory = 100 + 1000 * 100;
+        return memory;
+    }
+    
 }

@@ -98,6 +98,13 @@
       <version>1.6.4</version>
     </dependency>
 
+    <!-- Caching -->    
+    <dependency>
+        <groupId>com.google.guava</groupId>
+        <artifactId>guava</artifactId>
+        <version>${guava.version}</version>
+    </dependency>
+    
     <!-- default persistence backend -->
     <dependency>
       <groupId>com.h2database</groupId>

@@ -17,16 +17,18 @@
 package org.apache.jackrabbit.mk.model;
 
 import org.apache.jackrabbit.mk.store.Binding;
+import org.apache.jackrabbit.mk.store.CacheObject;
 import org.apache.jackrabbit.mk.store.RevisionProvider;
 
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Map.Entry;
 
 /**
  *
  */
-public abstract class AbstractNode implements Node {
+public abstract class AbstractNode implements Node, CacheObject {
 
     protected RevisionProvider provider;
     
@@ -166,4 +168,16 @@ public abstract class AbstractNode implements Node {
         binding.write(":inlined", childEntries.inlined() ? 1 : 0);
         childEntries.serialize(binding);
     }
+
+    @Override
+    public int getMemory() {
+        int memory = 100;
+        for (Entry<String, String> e : properties.entrySet()) {
+            memory += 2 * e.getKey().length();
+            memory += 2 * e.getValue().length();
+        }
+        
+        return memory;
+    }
+
 }

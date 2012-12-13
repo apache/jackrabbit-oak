@@ -176,4 +176,10 @@ public class ChildNodeEntriesHTree implements ChildNodeEntries, PersistHook {
 
         // nothing to be done here
     }
+
+    @Override
+    public int getMemory() {
+        return top.getMemory();
+    }
+
 }

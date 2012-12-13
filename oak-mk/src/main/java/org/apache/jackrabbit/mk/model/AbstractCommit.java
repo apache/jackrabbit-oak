@@ -17,11 +17,12 @@
 package org.apache.jackrabbit.mk.model;
 
 import org.apache.jackrabbit.mk.store.Binding;
+import org.apache.jackrabbit.mk.store.CacheObject;
 
 /**
  *
  */
-public abstract class AbstractCommit implements Commit {
+public abstract class AbstractCommit implements Commit, CacheObject {
 
     // id of root node associated with this commit
     protected Id rootNodeId;
@@ -99,4 +100,17 @@ public abstract class AbstractCommit implements Commit {
         sb.append("branchRootId: '").append(branchRootId == null ? "" : branchRootId.toString()).append("'");
         return sb.toString();
     }
+    
+    @Override
+    public int getMemory() {
+        int memory = 100;
+        if (msg != null) {
+            memory += 2 * msg.length();
+        }
+        if (changes != null) {
+            memory += 2 * changes.length();
+        }
+        return memory;
+    }
+    
 }
