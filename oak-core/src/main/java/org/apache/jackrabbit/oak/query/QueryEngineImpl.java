@@ -156,7 +156,7 @@ public abstract class QueryEngineImpl implements QueryEngine {
 
     public QueryIndex getBestIndex(Query query, NodeState rootState, Filter filter) {
         QueryIndex best = null;
-        double bestCost = Double.MAX_VALUE;
+        double bestCost = Double.POSITIVE_INFINITY;
         for (QueryIndex index : getIndexes(rootState)) {
             double cost = index.getCost(filter, rootState);
             if (LOG.isDebugEnabled()) {

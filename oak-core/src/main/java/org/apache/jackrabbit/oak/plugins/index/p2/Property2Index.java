@@ -117,7 +117,7 @@ class Property2Index implements QueryIndex {
             }
         }
         // not an appropriate index
-        return Double.MAX_VALUE;
+        return Double.POSITIVE_INFINITY;
     }
 
     @Override

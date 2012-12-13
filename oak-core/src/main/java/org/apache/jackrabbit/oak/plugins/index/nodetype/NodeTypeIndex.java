@@ -53,13 +53,13 @@ class NodeTypeIndex implements QueryIndex, JcrConstants {
         if (!hasNodeTypeRestriction(filter)) {
             // this is not an appropriate index if the filter
             // doesn't have a node type restriction
-            return Double.MAX_VALUE;
+            return Double.POSITIVE_INFINITY;
         }
         NodeTypeIndexLookup lookup = new NodeTypeIndexLookup(root);
         if (lookup.isIndexed(filter.getPath())) {
             return lookup.getCost(resolveNodeType(root, filter.getNodeType()));
         } else {
-            return Double.MAX_VALUE;
+            return Double.POSITIVE_INFINITY;
         }
     }
 
