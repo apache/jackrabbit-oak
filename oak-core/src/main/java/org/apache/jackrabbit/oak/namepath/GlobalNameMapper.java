@@ -66,11 +66,13 @@ public abstract class GlobalNameMapper implements NameMapper {
                 String oakPrefix = getOakPrefixOrNull(uri);
                 if (oakPrefix != null) {
                     return oakPrefix + ':' + expandedName.substring(brace + 1);
+                } else {
+                    return null; // no matching namespace prefix
                 }
             }
         }
 
-        return null; // invalid or unmapped name
+        return expandedName; // not an expanded name
     }
 
     protected abstract Map<String, String> getNamespaceMap();
