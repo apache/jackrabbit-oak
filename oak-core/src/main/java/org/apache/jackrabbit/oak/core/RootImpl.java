@@ -31,11 +31,11 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.BlobFactory;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.api.SessionQueryEngine;
+import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.commit.DefaultConflictHandler;
-import org.apache.jackrabbit.oak.query.SessionQueryEngineImpl;
+import org.apache.jackrabbit.oak.query.QueryEngineImpl;
 import org.apache.jackrabbit.oak.spi.commit.ConflictHandler;
 import org.apache.jackrabbit.oak.spi.observation.ChangeExtractor;
 import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
@@ -288,18 +288,20 @@ public class RootImpl implements Root {
     }
 
     @Override
-    public SessionQueryEngine getQueryEngine() {
+    public QueryEngine getQueryEngine() {
         checkLive();
-        return new SessionQueryEngineImpl(indexProvider) {
-            @Override
-            protected NodeState getRootNodeState() {
-                return rootTree.getNodeState();
-            }
+        return new QueryEngineImpl(indexProvider) {
 
             @Override
-            protected Root getRoot() {
+            protected NodeState getRootState() {
+                return rootTree.getNodeState();
+            }
+            
+            @Override
+            protected Root getRootTree() {
                 return RootImpl.this;
             }
+
         };
     }
 

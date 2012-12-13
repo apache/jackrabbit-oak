@@ -18,11 +18,11 @@ package org.apache.jackrabbit.oak.query;
 
 import java.util.Iterator;
 import java.util.List;
+
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.query.ast.ColumnImpl;
 import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
  * A query result.
@@ -30,11 +30,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 public class ResultImpl implements Result {
 
     protected final Query query;
-    protected final NodeState rootState;
 
-    ResultImpl(Query query, NodeState rootState) {
+    ResultImpl(Query query) {
         this.query = query;
-        this.rootState = rootState;
     }
 
     @Override
@@ -63,7 +61,7 @@ public class ResultImpl implements Result {
 
             @Override
             public Iterator<ResultRowImpl> iterator() {
-                return query.getRows(rootState);
+                return query.getRows();
             }
 
         };
