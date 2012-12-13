@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.index.property;
+package org.apache.jackrabbit.oak.plugins.index.p2;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
@@ -43,7 +43,7 @@ import com.google.common.collect.Sets;
  * Under it follows the index definition node that:
  * <ul>
  * <li>must be of type <code>oak:queryIndexDefinition</code></li>
- * <li>must have the <code>type</code> property set to <b><code>property</code></b></li>
+ * <li>must have the <code>type</code> property set to <b><code>p2</code></b></li>
  * <li>contains the <code>propertyNames</code> property that indicates what property will be stored in the index</li>
  * </ul>
  * </p>
@@ -66,7 +66,7 @@ import com.google.common.collect.Sets;
  *     NodeBuilder index = root.child("oak:index");
  *     index.child("uuid")
  *         .setProperty("jcr:primaryType", "oak:queryIndexDefinition", Type.NAME)
- *         .setProperty("type", "property")
+ *         .setProperty("type", "p2")
  *         .setProperty("propertyNames", "jcr:uuid")
  *         .setProperty("unique", true)
  *         .setProperty("reindex", true);
@@ -75,11 +75,11 @@ import com.google.common.collect.Sets;
  * </pre>
  * 
  * @see QueryIndex
- * @see PropertyIndexLookup
+ * @see Property2IndexLookup
  */
-class PropertyIndex implements QueryIndex {
+class Property2Index implements QueryIndex {
 
-    public static final String TYPE = "property";
+    public static final String TYPE = "p2";
 
     private static final int MAX_STRING_LENGTH = 100; // TODO: configurable
 
@@ -99,7 +99,6 @@ class PropertyIndex implements QueryIndex {
         return values;
     }
 
-
     //--------------------------------------------------------< QueryIndex >--
 
     @Override
@@ -109,7 +108,7 @@ class PropertyIndex implements QueryIndex {
 
     @Override
     public double getCost(Filter filter, NodeState root) {
-        PropertyIndexLookup lookup = new PropertyIndexLookup(root);
+        Property2IndexLookup lookup = new Property2IndexLookup(root);
         for (PropertyRestriction pr : filter.getPropertyRestrictions()) {
             if (pr.firstIncluding && pr.lastIncluding
                     && pr.first.equals(pr.last) // TODO: range queries
@@ -125,7 +124,7 @@ class PropertyIndex implements QueryIndex {
     public Cursor query(Filter filter, NodeState root) {
         Set<String> paths = null;
 
-        PropertyIndexLookup lookup = new PropertyIndexLookup(root);
+        Property2IndexLookup lookup = new Property2IndexLookup(root);
         for (PropertyRestriction pr : filter.getPropertyRestrictions()) {
             if (pr.firstIncluding && pr.lastIncluding
                     && pr.first.equals(pr.last) // TODO: range queries
