@@ -24,6 +24,8 @@ import javax.jcr.nodetype.ConstraintViolationException;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtility;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,12 +49,20 @@ import org.slf4j.LoggerFactory;
  */
 public class PasswordValidationAction extends AbstractAuthorizableAction {
 
-    /**
-     * logger instance
-     */
     private static final Logger log = LoggerFactory.getLogger(PasswordValidationAction.class);
 
+    public static final String CONSTRAINT = "constraint";
+
     private Pattern pattern;
+
+    //-----------------------------------------< AbstractAuthorizableAction >---
+    @Override
+    protected void init(SecurityProvider securityProvider, ConfigurationParameters config) {
+        String constraint = config.getConfigValue(CONSTRAINT, (String) null);
+        if (constraint != null) {
+            setConstraint(constraint);
+        }
+    }
 
     //-------------------------------------------------< AuthorizableAction >---
     @Override
