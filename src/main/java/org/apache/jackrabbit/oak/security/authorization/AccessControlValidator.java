@@ -49,12 +49,16 @@ class AccessControlValidator implements Validator, AccessControlConstants {
     //----------------------------------------------------------< Validator >---
     @Override
     public void propertyAdded(PropertyState after) throws CommitFailedException {
-        // TODO: validate access control property
+        if (isAccessControlEntry(parentAfter)) {
+            checkValidAccessControlEntry(parentAfter);
+        }
     }
 
     @Override
     public void propertyChanged(PropertyState before, PropertyState after) throws CommitFailedException {
-        // TODO: validate access control property
+        if (isAccessControlEntry(parentAfter)) {
+            checkValidAccessControlEntry(parentAfter);
+        }
     }
 
     @Override
