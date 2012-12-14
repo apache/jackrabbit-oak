@@ -40,13 +40,11 @@ import org.slf4j.LoggerFactory;
  */
 class NodeDefinitionImpl extends ItemDefinitionImpl implements NodeDefinition {
 
-    private static final Logger log =
-            LoggerFactory.getLogger(NodeDefinitionImpl.class);
+    private static final Logger log = LoggerFactory.getLogger(NodeDefinitionImpl.class);
 
     private final NodeTypeManager manager;
 
-    protected NodeDefinitionImpl(
-            NodeTypeManager manager, NodeType type, NodeUtil node) {
+    protected NodeDefinitionImpl(NodeTypeManager manager, NodeType type, NodeUtil node) {
         super(type, node);
         this.manager = manager;
     }
@@ -64,8 +62,7 @@ class NodeDefinitionImpl extends ItemDefinitionImpl implements NodeDefinition {
         for (String name : names) {
             try {
                 types.add(manager.getNodeType(name));
-            }
-            catch (RepositoryException e) {
+            } catch (RepositoryException e) {
                 log.warn("Unable to access required primary type "
                         + name + " of node " + getName(), e);
             }
@@ -96,5 +93,4 @@ class NodeDefinitionImpl extends ItemDefinitionImpl implements NodeDefinition {
     public boolean allowsSameNameSiblings() {
         return node.getBoolean(JcrConstants.JCR_SAMENAMESIBLINGS);
     }
-
 }
