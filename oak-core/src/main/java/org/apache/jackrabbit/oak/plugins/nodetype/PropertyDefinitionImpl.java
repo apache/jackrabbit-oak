@@ -70,11 +70,9 @@ import static javax.jcr.PropertyType.WEAKREFERENCE;
  * - jcr:isQueryOrderable (BOOLEAN) protected mandatory
  * </pre>
  */
-class PropertyDefinitionImpl extends ItemDefinitionImpl
-        implements PropertyDefinition {
+class PropertyDefinitionImpl extends ItemDefinitionImpl implements PropertyDefinition {
 
-    private static final Logger log =
-            LoggerFactory.getLogger(PropertyDefinitionImpl.class);
+    private static final Logger log = LoggerFactory.getLogger(PropertyDefinitionImpl.class);
 
     private final ValueFactory factory;
 
@@ -151,8 +149,7 @@ class PropertyDefinitionImpl extends ItemDefinitionImpl
     public Value[] getDefaultValues() {
         if (factory != null) {
             return node.getValues(JcrConstants.JCR_DEFAULTVALUES, factory);
-        }
-        else {
+        } else {
             log.warn("Cannot create default values: no value factory");
             return null;
         }
@@ -188,5 +185,4 @@ class PropertyDefinitionImpl extends ItemDefinitionImpl
     public boolean isQueryOrderable() {
         return node.getBoolean(NodeTypeConstants.JCR_IS_QUERY_ORDERABLE);
     }
-
 }

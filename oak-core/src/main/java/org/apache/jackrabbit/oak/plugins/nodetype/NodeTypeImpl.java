@@ -423,16 +423,16 @@ class NodeTypeImpl implements NodeType {
                 case PropertyType.NAME: {
                     int type = value.getType();
                     return type != PropertyType.DOUBLE &&
-                           type != PropertyType.LONG &&
-                           type != PropertyType.BOOLEAN &&
-                           JcrNameParser.validate(value.getString());
+                            type != PropertyType.LONG &&
+                            type != PropertyType.BOOLEAN &&
+                            JcrNameParser.validate(value.getString());
                 }
                 case PropertyType.PATH: {
                     int type = value.getType();
                     return type != PropertyType.DOUBLE &&
-                           type != PropertyType.LONG &&
-                           type != PropertyType.BOOLEAN &&
-                           JcrPathParser.validate(value.getString());
+                            type != PropertyType.LONG &&
+                            type != PropertyType.BOOLEAN &&
+                            JcrPathParser.validate(value.getString());
                 }
                 case PropertyType.REFERENCE:
                 case PropertyType.WEAKREFERENCE:
@@ -449,11 +449,9 @@ class NodeTypeImpl implements NodeType {
                     log.warn("Invalid property type value: " + requiredType);
                     return false;
             }
-        }
-        catch (RepositoryException e) {
+        } catch (RepositoryException e) {
             return false;
-        }
-        catch (URISyntaxException e) {
+        } catch (URISyntaxException e) {
             return false;
         }
     }
