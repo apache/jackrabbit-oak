@@ -19,8 +19,10 @@ package org.apache.jackrabbit.oak.plugins.index.p2;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
 
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Set;
 
 import javax.jcr.PropertyType;
@@ -28,6 +30,7 @@ import javax.jcr.PropertyType;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 
@@ -110,6 +113,9 @@ class Property2IndexUpdate {
                     paths = Sets.newHashSet();
                     map.put(key, paths);
                 }
+                if("".equals(path)){
+                    path = "/";
+                }
                 paths.add(path);
             }
         }
@@ -138,15 +144,46 @@ class Property2IndexUpdate {
             Set<String> paths = entry.getValue();
             if (index.hasChildNode(encoded)) {
                 NodeBuilder child = index.child(encoded);
+                Queue<NodeBuilder> parentQueue = new LinkedList<NodeBuilder>();
                 for (String rm : paths) {
-                    child.removeNode(rm);
+                    if (PathUtils.denotesRoot(rm)) {
+                        child.removeProperty("match");
+                    } else {
+                        NodeBuilder indexEntry = child;
+                        Iterator<String> segments = PathUtils.elements(rm)
+                                .iterator();
+                        while (segments.hasNext()) {
+                            String segment = segments.next();
+                            if (segments.hasNext()) {
+                                parentQueue.add(indexEntry);
+                                indexEntry = indexEntry.child(segment);
+                            } else {
+                                // last segment
+                                if (indexEntry.hasChildNode(segment)) {
+                                    indexEntry.removeNode(segment);
+                                }
+                            }
+                        }
+                    }
                 }
+                // prune the index: remove all children that have no children
+                // and no "match" property progressing bottom up
+                while (!parentQueue.isEmpty()) {
+                    NodeBuilder node = parentQueue.poll();
+                    for (String name : node.getChildNodeNames()) {
+                        NodeBuilder segment = node.child(name);
+                        if (segment.getChildNodeCount() == 0
+                                && segment.getProperty("match") == null) {
+                            segment.removeNode(name);
+                        }
+                    }
+                }
+                // finally remove the index node if empty
                 if (child.getChildNodeCount() == 0) {
                     index.removeNode(encoded);
                 }
             }
         }
-
         for (Map.Entry<String, Set<String>> entry : insert.entrySet()) {
             String encoded = entry.getKey();
             Set<String> paths = entry.getValue();
@@ -154,15 +191,19 @@ class Property2IndexUpdate {
             Iterator<String> addIterator = paths.iterator();
             while (addIterator.hasNext()) {
                 String add = addIterator.next();
-                if (!child.hasChildNode(add)) {
-                    child.child(add);
-                    addIterator.remove();
+                NodeBuilder indexEntry = child;
+                Iterator<String> segments = PathUtils.elements(add).iterator();
+                while (segments.hasNext()) {
+                    String segment = segments.next();
+                    indexEntry = indexEntry.child(segment);
                 }
+                indexEntry.setProperty("match", true);
             }
-            long childCount = child.getChildNodeCount();
-            if (childCount == 0) {
+            long matchCount = Property2IndexLookup.countMatchingLeaves(child
+                    .getNodeState());
+            if (matchCount == 0) {
                 index.removeNode(encoded);
-            } else if (unique && childCount > 1) {
+            } else if (unique && matchCount > 1) {
                 throw new CommitFailedException(
                         "Uniqueness constraint violated");
             }

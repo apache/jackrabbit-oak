@@ -41,6 +41,7 @@ import org.apache.jackrabbit.oak.spi.state.PropertyBuilder;
  * The changes are temporarily added to an in-memory structure, and then applied
  * to the node.
  */
+@Deprecated
 class PropertyIndexUpdate {
 
     /**

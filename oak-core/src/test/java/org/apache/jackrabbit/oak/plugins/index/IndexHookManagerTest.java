@@ -20,14 +20,14 @@ import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.assertFalse;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexHookProvider;
-import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexLookup;
+import org.apache.jackrabbit.oak.plugins.index.p2.Property2IndexHookProvider;
+import org.apache.jackrabbit.oak.plugins.index.p2.Property2IndexLookup;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -55,7 +55,7 @@ public class IndexHookManagerTest {
         builder.child("oak:index")
                 .child("rootIndex")
                 .setProperty("propertyNames", "foo")
-                .setProperty("type", "property")
+                .setProperty("type", "p2")
                 .setProperty(JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE,
                         Type.NAME);
         builder.child("newchild")
@@ -63,7 +63,7 @@ public class IndexHookManagerTest {
                 .child("oak:index")
                 .child("subIndex")
                 .setProperty("propertyNames", "foo")
-                .setProperty("type", "property")
+                .setProperty("type", "p2")
                 .setProperty(JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE,
                         Type.NAME);
 
@@ -76,7 +76,7 @@ public class IndexHookManagerTest {
         NodeState after = builder.getNodeState();
 
         IndexHookManager im = new IndexHookManager(
-                new CompositeIndexHookProvider(new PropertyIndexHookProvider()));
+                new CompositeIndexHookProvider(new Property2IndexHookProvider()));
         NodeState indexed = im.processCommit(before, after);
 
         // first check that the index content nodes exist
@@ -84,10 +84,10 @@ public class IndexHookManagerTest {
         checkPathExists(indexed, "newchild", "other", "oak:index", "subIndex",
                 ":index");
 
-        PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
+        Property2IndexLookup lookup = new Property2IndexLookup(indexed);
         assertEquals(ImmutableSet.of("testRoot"), lookup.find("foo", "abc"));
 
-        PropertyIndexLookup lookupChild = new PropertyIndexLookup(indexed
+        Property2IndexLookup lookupChild = new Property2IndexLookup(indexed
                 .getChildNode("newchild").getChildNode("other"));
         assertEquals(ImmutableSet.of("testChild"),
                 lookupChild.find("foo", "xyz"));
@@ -115,14 +115,14 @@ public class IndexHookManagerTest {
         builder.child("oak:index")
                 .child("rootIndex")
                 .setProperty("propertyNames", "foo")
-                .setProperty("type", "property")
+                .setProperty("type", "p2")
                 .setProperty(REINDEX_PROPERTY_NAME, true)
                 .setProperty(JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE,
                         Type.NAME);
         NodeState after = builder.getNodeState();
 
         IndexHookManager im = new IndexHookManager(
-                new CompositeIndexHookProvider(new PropertyIndexHookProvider()));
+                new CompositeIndexHookProvider(new Property2IndexHookProvider()));
         NodeState indexed = im.processCommit(before, after);
 
         // first check that the index content nodes exist
@@ -133,7 +133,7 @@ public class IndexHookManagerTest {
         assertFalse(ps.getValue(Type.BOOLEAN).booleanValue());
 
         // next, lookup
-        PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
+        Property2IndexLookup lookup = new Property2IndexLookup(indexed);
         assertEquals(ImmutableSet.of("testRoot"), lookup.find("foo", "abc"));
     }
 
@@ -157,13 +157,13 @@ public class IndexHookManagerTest {
         builder.child("oak:index")
                 .child("rootIndex")
                 .setProperty("propertyNames", "foo")
-                .setProperty("type", "property")
+                .setProperty("type", "p2")
                 .setProperty(JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE,
                         Type.NAME);
         NodeState after = builder.getNodeState();
 
         IndexHookManager im = new IndexHookManager(
-                new CompositeIndexHookProvider(new PropertyIndexHookProvider()));
+                new CompositeIndexHookProvider(new Property2IndexHookProvider()));
         NodeState indexed = im.processCommit(before, after);
 
         // first check that the index content nodes exist
@@ -174,7 +174,7 @@ public class IndexHookManagerTest {
         assertFalse(ps.getValue(Type.BOOLEAN).booleanValue());
 
         // next, lookup
-        PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
+        Property2IndexLookup lookup = new Property2IndexLookup(indexed);
         assertEquals(ImmutableSet.of("testRoot"), lookup.find("foo", "abc"));
     }
 
@@ -196,7 +196,7 @@ public class IndexHookManagerTest {
         builder.child("oak:index")
                 .child("rootIndex")
                 .setProperty("propertyNames", "foo")
-                .setProperty("type", "property")
+                .setProperty("type", "p2")
                 .setProperty(JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE,
                         Type.NAME);
         NodeState before = builder.getNodeState();
@@ -205,7 +205,7 @@ public class IndexHookManagerTest {
         NodeState after = builder.getNodeState();
 
         IndexHookManager im = new IndexHookManager(
-                new CompositeIndexHookProvider(new PropertyIndexHookProvider()));
+                new CompositeIndexHookProvider(new Property2IndexHookProvider()));
         NodeState indexed = im.processCommit(before, after);
 
         // first check that the index content nodes exist
@@ -216,7 +216,7 @@ public class IndexHookManagerTest {
         assertFalse(ps.getValue(Type.BOOLEAN).booleanValue());
 
         // next, lookup
-        PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
+        Property2IndexLookup lookup = new Property2IndexLookup(indexed);
         assertEquals(ImmutableSet.of("testRoot"), lookup.find("foo", "abc"));
     }
 

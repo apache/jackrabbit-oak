@@ -24,7 +24,7 @@ import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexHookProvider;
+import org.apache.jackrabbit.oak.plugins.index.p2.Property2IndexHookProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.InitialContent;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
@@ -57,7 +57,7 @@ public class UserProviderTest {
     public void setUp() throws Exception {
         root = new Oak()
                 .with(new InitialContent())
-                .with(new PropertyIndexHookProvider())
+                .with(new Property2IndexHookProvider())
                 .createRoot();
 
         defaultConfig = new ConfigurationParameters();

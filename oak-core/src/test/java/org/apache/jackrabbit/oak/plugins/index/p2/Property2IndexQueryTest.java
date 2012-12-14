@@ -16,23 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.p2;
 
-import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
-import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
-
-import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.nodetype.InitialContent;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
-
-import com.google.common.collect.ImmutableList;
+import org.junit.Test;
 
 /**
  * Tests the query engine using the default index implementation: the
@@ -48,20 +36,9 @@ public class Property2IndexQueryTest extends AbstractQueryTest {
                 .createContentRepository();
     }
 
-    @Override
-    protected void createTestIndexNode() throws Exception {
-        Tree index = root.getTree("/");
-        Tree indexDef = index.addChild(INDEX_DEFINITIONS_NAME).addChild(
-                TEST_INDEX_NAME);
-        indexDef.setProperty(JcrConstants.JCR_PRIMARYTYPE,
-                INDEX_DEFINITIONS_NODE_TYPE, Type.NAME);
-        indexDef.setProperty(TYPE_PROPERTY_NAME, Property2Index.TYPE);
-        indexDef.setProperty(REINDEX_PROPERTY_NAME, true);
-        indexDef.setProperty(PropertyStates
-                .createProperty("propertyNames",
-                        ImmutableList.of(JCR_PRIMARYTYPE, JCR_MIXINTYPES),
-                        Type.STRINGS));
-        root.commit();
+    @Test
+    public void sql2Index() throws Exception {
+        test("sql2_index.txt");
     }
 
 }

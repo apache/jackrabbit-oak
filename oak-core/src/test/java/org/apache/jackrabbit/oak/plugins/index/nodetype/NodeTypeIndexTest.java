@@ -28,7 +28,7 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.plugins.index.IndexHookManager;
-import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexHookProvider;
+import org.apache.jackrabbit.oak.plugins.index.p2.Property2IndexHookProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.InitialContent;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
@@ -54,7 +54,7 @@ public class NodeTypeIndexTest {
     public void setup() {
         MicroKernel mk = new MicroKernelImpl();
         store = new KernelNodeStore(mk);
-        store.setHook(IndexHookManager.of(new PropertyIndexHookProvider()));
+        store.setHook(IndexHookManager.of(new Property2IndexHookProvider()));
         // initialize node types & index definitions
         new InitialContent().initialize(store);
     }

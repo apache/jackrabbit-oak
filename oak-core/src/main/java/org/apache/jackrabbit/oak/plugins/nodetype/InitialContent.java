@@ -68,13 +68,13 @@ public class InitialContent implements RepositoryInitializer {
             index.setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, Type.NAME); // TODO: use proper node type
             index.child("uuid")
                 .setProperty(JCR_PRIMARYTYPE, "oak:queryIndexDefinition", Type.NAME)
-                .setProperty("type", "property")
+                .setProperty("type", "p2")
                 .setProperty("propertyNames", "jcr:uuid")
                 .setProperty("reindex", true)
                 .setProperty("unique", true);
             index.child("nodetype")
                 .setProperty(JCR_PRIMARYTYPE, "oak:queryIndexDefinition", Type.NAME)
-                .setProperty("type", "property")
+                .setProperty("type", "p2")
                 .setProperty("reindex", true)
                 .setProperty(PropertyStates.createProperty(
                         "propertyNames",
@@ -84,19 +84,19 @@ public class InitialContent implements RepositoryInitializer {
             // FIXME OAK-396: rep:principalName only needs to be unique if defined with user/group nodes -> add defining nt-info to uniqueness constraint otherwise ac-editing will fail.
             index.child("authorizableId")
                 .setProperty(JCR_PRIMARYTYPE, "oak:queryIndexDefinition", Type.NAME)
-                .setProperty("type", "property")
+                .setProperty("type", "p2")
                 .setProperty("propertyNames", UserConstants.REP_AUTHORIZABLE_ID)
                 .setProperty("reindex", true)
                 .setProperty("unique", true);
             index.child("principalName")
                 .setProperty(JCR_PRIMARYTYPE, "oak:queryIndexDefinition", Type.NAME)
-                .setProperty("type", "property")
+                .setProperty("type", "p2")
                 .setProperty("propertyNames", UserConstants.REP_PRINCIPAL_NAME)
                 .setProperty("reindex", true)
                 .setProperty("unique", true);
             index.child("members")
                 .setProperty(JCR_PRIMARYTYPE, "oak:queryIndexDefinition", Type.NAME)
-                .setProperty("type", "property")
+                .setProperty("type", "p2")
                 .setProperty("propertyNames", UserConstants.REP_MEMBERS)
                 .setProperty("reindex", true);
         }
