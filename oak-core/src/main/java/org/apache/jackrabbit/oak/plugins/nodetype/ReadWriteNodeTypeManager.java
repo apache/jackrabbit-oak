@@ -152,12 +152,11 @@ public abstract class ReadWriteNodeTypeManager extends ReadOnlyNodeTypeManager {
         }
 
         for (NodeTypeTemplate template : templates.values()) {
+            // TODO: NT_BASE is the oak-name, while the template is an JCR level API which might have local namespace remapping
             if (!template.isMixin() && !NT_BASE.equals(template.getName())) {
-                String[] supertypes =
-                        template.getDeclaredSupertypeNames();
+                String[] supertypes = template.getDeclaredSupertypeNames();
                 if (supertypes.length == 0) {
-                    template.setDeclaredSuperTypeNames(
-                            new String[] {NT_BASE});
+                    template.setDeclaredSuperTypeNames(new String[] {NT_BASE});
                 } else {
                     // Check whether we need to add the implicit "nt:base" supertype
                     boolean needsNtBase = true;
