@@ -292,7 +292,7 @@ public class UserManagerImpl implements UserManager {
 
     @Nonnull
     AuthorizableProperties getAuthorizableProperties(String id) throws RepositoryException {
-        return new OakAuthorizableProperties(root, userProvider, id, namePathMapper);
+        return new AuthorizablePropertiesImpl(root, userProvider, id, namePathMapper);
     }
 
     @Nonnull

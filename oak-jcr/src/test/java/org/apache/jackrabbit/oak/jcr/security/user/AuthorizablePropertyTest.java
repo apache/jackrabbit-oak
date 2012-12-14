@@ -188,7 +188,7 @@ public class AuthorizablePropertyTest extends AbstractUserTest {
             try {
                 user.setProperty(invalidRelPath, v);
                 fail("Modifications outside of the scope of the authorizable must fail. Path was: " + invalidRelPath);
-            } catch (Exception e) {
+            } catch (RepositoryException e) {
                 // success.
             } finally {
                 superuser.refresh(false);
@@ -214,7 +214,7 @@ public class AuthorizablePropertyTest extends AbstractUserTest {
         for (String invalidPath : invalidPaths) {
             try {
                 assertNull(user.getProperty(invalidPath));
-            } catch (Exception e) {
+            } catch (RepositoryException e) {
                 // success
             }
         }
@@ -239,7 +239,7 @@ public class AuthorizablePropertyTest extends AbstractUserTest {
         for (String invalidPath : invalidPaths) {
             try {
                 assertFalse(user.hasProperty(invalidPath));
-            } catch (Exception e) {
+            } catch (RepositoryException e) {
                 // success
             }
         }
@@ -316,6 +316,8 @@ public class AuthorizablePropertyTest extends AbstractUserTest {
     @Test
     public void testGetPropertyNamesByInvalidRelPath() throws NotExecutableException, RepositoryException {
         List<String> invalidPaths = new ArrayList<String>();
+        invalidPaths.add("");
+        invalidPaths.add("/");
         invalidPaths.add("../");
         invalidPaths.add("../../");
         invalidPaths.add("../testing");
@@ -326,16 +328,11 @@ public class AuthorizablePropertyTest extends AbstractUserTest {
             try {
                 user.getPropertyNames(invalidRelPath);
                 fail("Calling Authorizable#getPropertyNames with " + invalidRelPath + " must fail.");
-            } catch (Exception e) {
+            } catch (RepositoryException e) {
                 // success
             }
         }
     }
-
-//    @Test FIXME OAK-502
-//    public void testGetPropertyNamesByInvalidRelPathThrowsAIOOBE() throws NotExecutableException, RepositoryException {
-//        user.getPropertyNames("");
-//    }
 
     @Test
     public void testGetNotExistingProperty() throws RepositoryException, NotExecutableException {
