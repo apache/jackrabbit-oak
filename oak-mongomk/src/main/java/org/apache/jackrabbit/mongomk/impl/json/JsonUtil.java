@@ -16,9 +16,6 @@
  */
 package org.apache.jackrabbit.mongomk.impl.json;
 
-import java.util.LinkedList;
-import java.util.List;
-
 import org.apache.jackrabbit.mk.json.JsopBuilder;
 import org.apache.jackrabbit.mk.model.tree.ChildNode;
 import org.apache.jackrabbit.mk.model.tree.NodeState;
@@ -28,6 +25,8 @@ import org.apache.jackrabbit.mk.util.NodeFilter;
 import org.apache.jackrabbit.mongomk.util.MongoUtil;
 import org.json.JSONArray;
 import org.json.JSONObject;
+
+import com.mongodb.BasicDBList;
 
 /**
  * JSON related utility class.
@@ -50,7 +49,8 @@ public class JsonUtil {
         }
 
         if (jsonObject instanceof JSONArray) {
-            List<Object> elements = new LinkedList<Object>();
+            // DBList is needed in order to cache node properties correctly.
+            BasicDBList elements = new BasicDBList();
             JSONArray dummyArray = (JSONArray) jsonObject;
             for (int i = 0; i < dummyArray.length(); ++i) {
                 Object raw = dummyArray.get(i);
