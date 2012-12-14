@@ -202,7 +202,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
     private NodeState read() {
         if (revision != root.revision) {
             assert(!isRoot()); // root never gets here since revision == root.revision
-            checkState(!parent.removed(name));
+            checkState(!parent.removed(name), "This node has already been removed");
             parent.read();
 
             // The builder could have been reset, need to re-get base state
