@@ -37,7 +37,6 @@ import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restrict
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionDefinition;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 import org.apache.jackrabbit.util.Text;
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 /**
  * RestrictionProviderImpl... TODO
@@ -81,7 +80,7 @@ public class RestrictionProviderImpl implements RestrictionProvider {
     @Override
     public Set<Restriction> readRestrictions(String jcrPath, Tree aceTree) throws javax.jcr.security.AccessControlException {
         // TODO
-        throw new NotImplementedException();
+        throw new UnsupportedOperationException();
     }
 
     @Override
