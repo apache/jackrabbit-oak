@@ -39,7 +39,7 @@ public interface NodeTypeConstants extends JcrConstants {
     String NT_REP_SYSTEM = "rep:system";
 
     /**
-     * Additinal name constants not present in JcrConstants
+     * Additional name constants not present in JcrConstants
      */
     String JCR_CREATEDBY = "jcr:createdBy";
     String JCR_LASTMODIFIEDBY = "jcr:lastModifiedBy";
