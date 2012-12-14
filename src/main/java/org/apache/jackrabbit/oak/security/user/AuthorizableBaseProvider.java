@@ -25,7 +25,7 @@ import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtility;
 
 /**
- * AuthorizableBaseProvider... TODO
+ * Base class for {@link UserProvider} and {@link MembershipProvider}.
  */
 abstract class AuthorizableBaseProvider implements UserConstants {
 
