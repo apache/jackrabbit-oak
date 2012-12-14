@@ -161,7 +161,7 @@ class MembershipProvider extends AuthorizableBaseProvider {
                 Tree membersTree = groupTree.getChild(REP_MEMBERS);
                 if (membersTree != null) {
                     // FIXME: fix.. testing for property name in jr2 wasn't correct.
-                    // TODO: add implementation
+                    // TODO OAK-482: add implementation
                     throw new UnsupportedOperationException("not implemented: isMembers determined from member-node hierarchy");
                 }
             } else {
@@ -189,7 +189,7 @@ class MembershipProvider extends AuthorizableBaseProvider {
         if (useMemberNode(groupTree)) {
             NodeUtil groupNode = new NodeUtil(groupTree);
             NodeUtil membersNode = groupNode.getOrAddChild(REP_MEMBERS, NT_REP_MEMBERS);
-            // TODO: add implementation that allows to index group members
+            // TODO OAK-482: add implementation that allows to index group members
             throw new UnsupportedOperationException("not implemented: addMember with member-node hierarchy");
         } else {
             PropertyBuilder<String> propertyBuilder = getMembersPropertyBuilder(groupTree);
@@ -207,7 +207,7 @@ class MembershipProvider extends AuthorizableBaseProvider {
         if (useMemberNode(groupTree)) {
             Tree membersTree = groupTree.getChild(REP_MEMBERS);
             if (membersTree != null) {
-                // TODO: add implementation
+                // TODO OAK-482: add implementation
                 throw new UnsupportedOperationException("not implemented: remove member from member-node hierarchy");
             }
         } else {

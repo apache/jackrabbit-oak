@@ -145,7 +145,7 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
     @Override
     public int hashCode() {
         if (hashCode == 0) {
-            // FIXME: add proper hash-code generation taking repo/workspace/tree-identifier into account
+            // FIXME OAK-523: add proper hash-code generation taking repo/workspace/tree-identifier into account
             StringBuilder sb = new StringBuilder();
             sb.append(isGroup() ? "group:" : "user:");
             sb.append(':');
@@ -162,7 +162,7 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
         }
         if (obj instanceof AuthorizableImpl) {
             AuthorizableImpl otherAuth = (AuthorizableImpl) obj;
-            // FIXME: make sure 2 authorizables are based on the same tree/node object
+            // FIXME OAK-523: make sure 2 authorizables are based on the same tree/node object
             return isGroup() == otherAuth.isGroup() && id.equals(otherAuth.id);
         }
         return false;
