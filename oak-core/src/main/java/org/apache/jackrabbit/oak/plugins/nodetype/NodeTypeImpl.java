@@ -55,6 +55,7 @@ import static org.apache.jackrabbit.JcrConstants.JCR_PROPERTYDEFINITION;
 import static org.apache.jackrabbit.JcrConstants.JCR_SUPERTYPES;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_IS_ABSTRACT;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_IS_QUERYABLE;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.RESIDUAL_NAME;
 
 /**
  * <pre>
@@ -282,7 +283,7 @@ class NodeTypeImpl implements NodeType {
         // FIXME: properly calculate matching definition
         for (NodeDefinition definition : getChildNodeDefinitions()) {
             String name = definition.getName();
-            if (matches(childNodeName, name) || "*".equals(name)) {
+            if (matches(childNodeName, name) || RESIDUAL_NAME.equals(name)) {
                 return !definition.isProtected() && definition.getDefaultPrimaryType() != null;
             }
         }
@@ -306,7 +307,7 @@ class NodeTypeImpl implements NodeType {
         // FIXME: properly calculate matching definition
         for (NodeDefinition definition : getChildNodeDefinitions()) {
             String name = definition.getName();
-            if (matches(childNodeName, name) || "*".equals(name)) {
+            if (matches(childNodeName, name) || RESIDUAL_NAME.equals(name)) {
                 if (definition.isProtected()) {
                     return false;
                 }
