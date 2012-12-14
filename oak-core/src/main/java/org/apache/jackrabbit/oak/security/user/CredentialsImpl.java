@@ -19,7 +19,8 @@ package org.apache.jackrabbit.oak.security.user;
 import javax.jcr.Credentials;
 
 /**
- * CredentialsImpl... TODO
+ * Credentials implementation to cover
+ * {@link org.apache.jackrabbit.api.security.user.User#getCredentials()}
  */
 public class CredentialsImpl implements Credentials {
 
