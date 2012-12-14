@@ -498,9 +498,11 @@ class NodeTypeImpl implements NodeType {
         return true;
     }
 
-    private static boolean matches(String childNodeName, String name) {
+    private boolean matches(String childNodeName, String name) {
+        String oakChildName = node.getNameMapper().getOakName(childNodeName);
+        String oakName = node.getNameMapper().getOakName(name);
         // TODO need a better way to handle SNS
-        return childNodeName.startsWith(name);
+        return oakChildName != null && oakChildName.startsWith(oakName);
     }
 
 }
