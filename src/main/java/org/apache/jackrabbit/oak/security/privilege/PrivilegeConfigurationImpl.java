@@ -33,10 +33,11 @@ import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeDefinitionReader;
 
 /**
- * PrivilegeConfigurationImpl... TODO
+ * Configuration for the privilege management component.
  */
 public class PrivilegeConfigurationImpl extends SecurityConfiguration.Default implements PrivilegeConfiguration {
 
+    //---------------------------------------------< PrivilegeConfiguration >---
     @Nonnull
     @Override
     public PrivilegeManager getPrivilegeManager(Root root, NamePathMapper namePathMapper) {
@@ -49,6 +50,7 @@ public class PrivilegeConfigurationImpl extends SecurityConfiguration.Default im
         return new PrivilegeDefinitionReaderImpl(tree);
     }
 
+    //----------------------------------------------< SecurityConfiguration >---
     @Nonnull
     @Override
     public RepositoryInitializer getRepositoryInitializer() {
