@@ -21,15 +21,14 @@ import java.util.Iterator;
 import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 
-import com.google.common.base.Function;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Query;
-import org.apache.jackrabbit.oak.api.Result;
-import org.apache.jackrabbit.oak.api.ResultRow;
-import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.QueryEngine;
+import org.apache.jackrabbit.oak.api.Result;
+import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.security.user.query.ResultRowToAuthorizable;
 import org.apache.jackrabbit.oak.security.user.query.XPathQueryBuilder;
 import org.apache.jackrabbit.oak.security.user.query.XPathQueryEvaluator;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
@@ -109,7 +108,8 @@ class UserQueryManager {
         QueryEngine queryEngine = root.getQueryEngine();
         try {
             Result result = queryEngine.executeQuery(statement, javax.jcr.query.Query.XPATH, Long.MAX_VALUE, 0, null, userManager.getNamePathMapper());
-            return Iterators.filter(Iterators.transform(result.getRows().iterator(), new ResultRowToAuthorizable()), Predicates.<Object>notNull());
+            Iterator<Authorizable> authorizables = Iterators.transform(result.getRows().iterator(), new ResultRowToAuthorizable(userManager));
+            return Iterators.filter(authorizables, Predicates.<Object>notNull());
         } catch (ParseException e) {
             throw new RepositoryException(e);
         }
@@ -209,18 +209,6 @@ class UserQueryManager {
             return UserConstants.NT_REP_GROUP;
         } else {
             return UserConstants.NT_REP_AUTHORIZABLE;
-        }
-    }
-
-    private class ResultRowToAuthorizable implements Function<ResultRow, Authorizable> {
-        @Override
-        public Authorizable apply(ResultRow row) {
-            try {
-                return userManager.getAuthorizable(row.getPath());
-            } catch (RepositoryException e) {
-                log.debug("Failed to access authorizable " + row.getPath());
-                return null;
-            }
         }
     }
 }
