@@ -17,13 +17,11 @@
 package org.apache.jackrabbit.mongomk.impl.command;
 
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import org.apache.jackrabbit.mongomk.impl.MongoNodeStore;
 import org.apache.jackrabbit.mongomk.impl.action.FetchNodesActionNew;
-import org.apache.jackrabbit.mongomk.impl.model.MongoCommit;
 import org.apache.jackrabbit.mongomk.impl.model.MongoNode;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 
@@ -35,7 +33,6 @@ public class NodeExistsCommand extends BaseCommand<Boolean> {
     private Long revisionId;
     private String branchId;
     private String path;
-    private List<MongoCommit> validCommits;
     private MongoNode node;
 
     /**
@@ -58,16 +55,6 @@ public class NodeExistsCommand extends BaseCommand<Boolean> {
      */
     public void setBranchId(String branchId) {
         this.branchId = branchId;
-    }
-
-    /**
-     * Sets the last valid commits if already known. This is an optimization to
-     * speed up the fetch nodes action.
-     *
-     * @param commits The last valid commits.
-     */
-    public void setValidCommits(List<MongoCommit> validCommits) {
-        this.validCommits = validCommits;
     }
 
     @Override
