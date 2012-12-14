@@ -25,13 +25,27 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 
 /**
- * PrivilegeConfiguration... TODO
+ * Interface for the privilege management configuration.
  */
 public interface PrivilegeConfiguration extends SecurityConfiguration {
 
+    /**
+     * Creates a new instance of {@link PrivilegeManager}.
+     *
+     * @param root The root for which the privilege manager should be created.
+     * @param namePathMapper The name and path mapper to be used.
+     * @return A new {@code PrivilegeManager}.
+     */
     @Nonnull
     PrivilegeManager getPrivilegeManager(Root root, NamePathMapper namePathMapper);
 
+    /**
+     * Creates a new {@code PrivilegeDefinitionReader} instance for the
+     * specified {@code tree}.
+     *
+     * @param tree The {@code Tree} that is used to read the privilege definitions.
+     * @return A new {@code PrivilegeDefinitionReader}.
+     */
     @Nonnull
     PrivilegeDefinitionReader getPrivilegeDefinitionReader(Tree tree);
 }
