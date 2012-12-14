@@ -98,6 +98,18 @@ public class FetchNodesActionNew extends BaseAction<Map<String, MongoNode>> {
         if (paths.isEmpty()) {
             return Collections.emptyMap();
         }
+
+        // FIXME - Should deal with multiple paths as long as depth = 0
+        if (paths.size() == 1 && depth == 0) {
+            String path = paths.toArray(new String[0])[0];
+            MongoNode node = nodeStore.getFromCache(path, branchId, revisionId);
+            if (node != null) {
+                Map<String, MongoNode> nodes = new HashMap<String, MongoNode>();
+                nodes.put(node.getPath(), node);
+                return nodes;
+            }
+        }
+
         DBCursor dbCursor = performQuery();
         return getMostRecentValidNodes(dbCursor);
     }
@@ -191,7 +203,7 @@ public class FetchNodesActionNew extends BaseAction<Map<String, MongoNode>> {
                 long revisionId = node.getRevisionId();
                 LOG.debug("Converting node {} ({})", path, revisionId);
 
-                if (!commits.containsKey(revisionId)) {
+                if (!commits.containsKey(revisionId) && nodeStore.getFromCache(revisionId) != null) {
                     LOG.debug("Fetching commit @{}", revisionId);
                     FetchCommitAction action = new FetchCommitAction(nodeStore, revisionId);
                     try {

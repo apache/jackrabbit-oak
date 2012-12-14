@@ -93,7 +93,9 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
         }
 
         String parentNodePath = PathUtils.getParentPath(nodePath);
-        MongoNode parent = getStoredNode(parentNodePath);
+        // FIXME - Performance
+        //MongoNode parent = getStoredNode(parentNodePath);
+        MongoNode parent = getStagedNode(parentNodePath);
         if (parent.childExists(nodeName)) {
             throw new RuntimeException("There's already a child node with name '" + nodeName + "'");
         }
@@ -105,7 +107,9 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
     public void visit(SetPropertyInstruction instruction) {
         String key = instruction.getKey();
         Object value = instruction.getValue();
-        MongoNode node = getStoredNode(instruction.getPath());
+        // FIXME - Performance
+        //MongoNode node = getStoredNode(instruction.getPath());
+        MongoNode node = getStagedNode(instruction.getPath());
         if (value == null) {
             node.removeProp(key);
         } else {

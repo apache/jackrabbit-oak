@@ -68,6 +68,7 @@ public class MongoNodeStore implements NodeStore {
     private final DB db;
 
     private Map<Long, MongoCommit> commitCache = Collections.synchronizedMap(SimpleLRUCache.<Long, MongoCommit> newInstance(1000));
+    private Map<String, MongoNode> nodeCache = Collections.synchronizedMap(SimpleLRUCache.<String, MongoNode> newInstance(10000));
 
     /**
      * Constructs a new {@code NodeStoreMongo}.
@@ -206,6 +207,40 @@ public class MongoNodeStore implements NodeStore {
         return commit;
     }
 
+    /**
+     * Caches the node.
+     *
+     * @param node Node to cache.
+     */
+    public void cache(MongoNode node) {
+        long revisionId = node.getRevisionId();
+        String path = node.getPath();
+        String branchId = node.getBranchId();
+        String key = path + "@" + branchId + "@" + revisionId;
+        if (!nodeCache.containsKey(key)) {
+            LOG.debug("Adding node to cache: {}", key);
+            nodeCache.put(key, node);
+        }
+    }
+
+    /**
+     * Returns the node from the cache or null if the node is not in the cache.
+     *
+     * @param path Path
+     * @param branchId Branch id
+     * @param revisionId Revision id
+     * @return
+     */
+    public MongoNode getFromCache(String path, String branchId, long revisionId) {
+        String key = path + "@" + branchId + "@" + revisionId;
+        MongoNode node = nodeCache.get(key);
+        if (node == null) {
+            return null;
+        }
+        LOG.debug("Returning node from cache: {}", key);
+        return node;
+    }
+
     private void init() {
         initCommitCollection();
         initNodeCollection();
@@ -238,13 +273,17 @@ public class MongoNodeStore implements NodeStore {
             return;
         }
         DBCollection nodeCollection = getNodeCollection();
+
         DBObject index = new BasicDBObject();
         index.put(MongoNode.KEY_PATH, 1L);
-        index.put(MongoNode.KEY_REVISION_ID, 1L);
-        index.put(MongoCommit.KEY_BRANCH_ID, 1L);
+        index.put(MongoNode.KEY_REVISION_ID, -1L);
+        index.put(MongoNode.KEY_BRANCH_ID, 1L);
+
         DBObject options = new BasicDBObject();
         options.put("unique", Boolean.TRUE);
+
         nodeCollection.ensureIndex(index, options);
+
         MongoNode root = new MongoNode();
         root.setRevisionId(0L);
         root.setPath("/");

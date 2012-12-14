@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.mongomk.impl.command;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -91,6 +94,9 @@ public class CommitCommandNew extends BaseCommand<Long> {
             new SaveNodesAction(nodeStore, nodes).execute();
             new SaveCommitAction(nodeStore, commit).execute();
             success = saveAndSetHeadRevision();
+            if (success) {
+                cacheNodes();
+            }
         } while (!success);
 
         logger.debug("Commit @{}: success", revisionId);
@@ -150,11 +156,30 @@ public class CommitCommandNew extends BaseCommand<Long> {
         commit.removeField("_id"); // In case this is a retry.
     }
 
+//    private void readExistingNodes() {
+//        FetchNodesActionNew action = new FetchNodesActionNew(nodeStore, affectedPaths,
+//                mongoSync.getHeadRevisionId());
+//        action.setBranchId(branchId);
+//        existingNodes = action.execute();
+//    }
+
+    // FIXME - Performance, This seems to be faster for commits than the old method.
     private void readExistingNodes() {
-        FetchNodesActionNew action = new FetchNodesActionNew(nodeStore, affectedPaths,
-                mongoSync.getHeadRevisionId());
-        action.setBranchId(branchId);
-        existingNodes = action.execute();
+        if (affectedPaths == null || affectedPaths.isEmpty()) {
+            existingNodes = Collections.emptyMap();
+        }
+
+        existingNodes = new HashMap<String, MongoNode>();
+        for (String path : affectedPaths) {
+            FetchNodesActionNew action = new FetchNodesActionNew(nodeStore, path,
+                    0, mongoSync.getHeadRevisionId());
+            action.setBranchId(branchId);
+            Map<String, MongoNode> result = action.execute();
+            MongoNode node = result.get(path);
+            if (node != null) {
+                existingNodes.put(path, node);
+            }
+        }
     }
 
     private void mergeNodes() {
@@ -197,6 +222,8 @@ public class CommitCommandNew extends BaseCommand<Long> {
             List<String> children = committingNode.getChildren();
             if (children == null) {
                 children = new LinkedList<String>();
+            } else {
+                children = new ArrayList<String>(children);
             }
 
             List<String> addedChildren = committingNode.getAddedChildren();
@@ -300,6 +327,12 @@ public class CommitCommandNew extends BaseCommand<Long> {
         if (writeResult.getError() != null) {
             // FIXME This is potentially a bug that we need to handle.
             throw new Exception(String.format("Update wasn't successful: %s", writeResult));
+        }
+    }
+
+    private void cacheNodes() {
+        for (MongoNode node : nodes) {
+            nodeStore.cache(node);
         }
     }
 }
