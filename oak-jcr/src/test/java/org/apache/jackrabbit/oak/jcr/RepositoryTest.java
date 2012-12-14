@@ -724,6 +724,29 @@ public class RepositoryTest extends AbstractRepositoryTest {
         }
     }
 
+    @Ignore("OAK-510") // FIXME: OAK-510
+    @Test
+    public void addEmptyMultiValueName() throws RepositoryException {
+        Node parentNode = getNode(TEST_PATH);
+        Value[] values = new Value[0];
+
+        parentNode.setProperty("multi name", values);
+        parentNode.getSession().save();
+
+        Session session2 = createAnonymousSession();
+        try {
+            Property property = session2.getProperty(TEST_PATH + "/multi name");
+            assertTrue(property.isMultiple());
+            assertEquals(PropertyType.NAME, property.getType());
+            Value[] values2 = property.getValues();
+            assertEquals(values.length, values2.length);
+            assertEquals(values[0], values2[0]);
+            assertEquals(values[1], values2[1]);
+        } finally {
+            session2.logout();
+        }
+    }
+
     @Test
     public void addPathProperty() throws RepositoryException, IOException {
         Node parentNode = getNode(TEST_PATH);
