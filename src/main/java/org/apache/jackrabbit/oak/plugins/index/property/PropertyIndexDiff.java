@@ -50,6 +50,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
  * @see PropertyIndexLookup
  * 
  */
+@Deprecated
 class PropertyIndexDiff implements IndexHook {
 
     /**

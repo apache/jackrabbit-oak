@@ -29,7 +29,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexHookProvider;
+import org.apache.jackrabbit.oak.plugins.index.p2.Property2IndexHookProvider;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -47,7 +47,7 @@ public class IndexHookManagerDiffTest {
         // diff
         builder.child("oak:index")
                 .child("existing")
-                .setProperty("type", "property")
+                .setProperty("type", "p2")
                 .setProperty(JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE,
                         Type.NAME);
         // this index is NOT the current update branch, it should NOT be seen by
@@ -56,7 +56,7 @@ public class IndexHookManagerDiffTest {
                 .child("other")
                 .child("oak:index")
                 .child("existing2")
-                .setProperty("type", "property")
+                .setProperty("type", "p2")
                 .setProperty(JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE,
                         Type.NAME);
 
@@ -70,13 +70,13 @@ public class IndexHookManagerDiffTest {
                 .child("other")
                 .child("oak:index")
                 .child("index2")
-                .setProperty("type", "property")
+                .setProperty("type", "p2")
                 .setProperty(JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE,
                         Type.NAME);
         NodeState after = builder.getNodeState();
 
         IndexHookProvider provider = new CompositeIndexHookProvider(
-                new PropertyIndexHookProvider());
+                new Property2IndexHookProvider());
 
         // <type, <path, indexhook>>
         Map<String, Map<String, List<IndexHook>>> updates = new HashMap<String, Map<String, List<IndexHook>>>();
@@ -93,7 +93,7 @@ public class IndexHookManagerDiffTest {
         }
 
         Set<String> expected = newHashSet("/", "/test/other");
-        Set<String> found = updates.remove("property").keySet();
+        Set<String> found = updates.remove("p2").keySet();
         assertTrue("Expecting " + expected + " got " + found,
                 difference(found, expected).isEmpty());
         assertTrue(updates.isEmpty());

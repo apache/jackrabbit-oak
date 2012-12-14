@@ -20,7 +20,7 @@ import java.util.Set;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyValue;
-import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexLookup;
+import org.apache.jackrabbit.oak.plugins.index.p2.Property2IndexLookup;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -47,7 +47,7 @@ class NodeTypeIndexLookup implements JcrConstants {
      *         otherwise.
      */
     public boolean isIndexed(String path) {
-        PropertyIndexLookup lookup = new PropertyIndexLookup(root);
+        Property2IndexLookup lookup = new Property2IndexLookup(root);
         if (lookup.isIndexed(JCR_PRIMARYTYPE, path)
                 && lookup.isIndexed(JCR_MIXINTYPES, path)) {
             return true;
@@ -68,7 +68,7 @@ class NodeTypeIndexLookup implements JcrConstants {
 
     public double getCost(Iterable<String> nodeTypes) {
         PropertyValue ntNames = PropertyValues.newName(nodeTypes);
-        PropertyIndexLookup lookup = new PropertyIndexLookup(root);
+        Property2IndexLookup lookup = new Property2IndexLookup(root);
         return lookup.getCost(JCR_PRIMARYTYPE, ntNames)
                 + lookup.getCost(JCR_MIXINTYPES, ntNames);
     }
@@ -81,7 +81,7 @@ class NodeTypeIndexLookup implements JcrConstants {
      */
     public Set<String> find(Iterable<String> nodeTypes) {
         Set<String> paths = Sets.newHashSet();
-        PropertyIndexLookup lookup = new PropertyIndexLookup(root);
+        Property2IndexLookup lookup = new Property2IndexLookup(root);
         PropertyValue ntNames = PropertyValues.newName(nodeTypes);
         paths.addAll(lookup.find(JCR_PRIMARYTYPE, ntNames));
         paths.addAll(lookup.find(JCR_MIXINTYPES, ntNames));

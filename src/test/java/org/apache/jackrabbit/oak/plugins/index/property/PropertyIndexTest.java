@@ -28,6 +28,7 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 
+@Deprecated
 public class PropertyIndexTest {
 
     private static final int MANY = 100;
