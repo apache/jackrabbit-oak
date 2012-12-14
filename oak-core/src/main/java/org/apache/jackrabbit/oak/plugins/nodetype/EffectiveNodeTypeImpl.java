@@ -242,9 +242,6 @@ class EffectiveNodeTypeImpl implements EffectiveNodeType {
     @Override
     public void checkAddChildNode(String name, NodeType nodeType) throws RepositoryException {
         NodeDefinition definition = getDefinition(name, nodeType);
-        if (definition == null) {
-            throw new ConstraintViolationException("No matching node definition found for " + name);
-        }
 
         if (definition.isProtected()) {
             return;
@@ -264,9 +261,6 @@ class EffectiveNodeTypeImpl implements EffectiveNodeType {
     @Override
     public void checkRemoveNode(String name, NodeType nodeType) throws RepositoryException {
         NodeDefinition definition = getDefinition(name, nodeType);
-        if (definition == null) {
-            throw new ConstraintViolationException("No matching node definition found for " + name);
-        }
 
         if (definition.isProtected()) {
             return;
