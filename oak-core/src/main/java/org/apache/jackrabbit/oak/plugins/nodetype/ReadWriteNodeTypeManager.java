@@ -78,6 +78,7 @@ import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_I
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_IS_QUERY_ORDERABLE;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.RESIDUAL_NAME;
 
 /**
  * {@code ReadWriteNodeTypeManager} extends the {@link ReadOnlyNodeTypeManager}
@@ -293,7 +294,7 @@ public abstract class ReadWriteNodeTypeManager extends ReadOnlyNodeTypeManager {
     private static void internalRegisterItemDefinition(
             NodeUtil node, ItemDefinition def) {
         String name = def.getName();
-        if (!"*".equals(name)) {
+        if (!RESIDUAL_NAME.equals(name)) {
             node.setName(JCR_NAME, name);
         }
 
