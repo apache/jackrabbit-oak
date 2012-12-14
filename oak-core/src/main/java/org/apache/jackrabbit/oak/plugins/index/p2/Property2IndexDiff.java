@@ -34,6 +34,8 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexHook;
+import org.apache.jackrabbit.oak.plugins.index.p2.strategy.ContentMirrorStoreStrategy;
+import org.apache.jackrabbit.oak.plugins.index.p2.strategy.IndexStoreStrategy;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -51,6 +53,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
  * 
  */
 class Property2IndexDiff implements IndexHook {
+
+    private final IndexStoreStrategy store = new ContentMirrorStoreStrategy();
 
     /**
      * The parent (null if this is the root node).
@@ -159,7 +163,7 @@ class Property2IndexDiff implements IndexHook {
                 }
             }
             if (!exists) {
-                list.add(new Property2IndexUpdate(getPath(), builder));
+                list.add(new Property2IndexUpdate(getPath(), builder, store));
             }
         }
     }
