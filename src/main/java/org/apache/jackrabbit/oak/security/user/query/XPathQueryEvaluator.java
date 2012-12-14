@@ -24,7 +24,6 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.query.Query;
 
-import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Iterators;
@@ -46,6 +45,7 @@ import org.slf4j.LoggerFactory;
  * and some minimal client side filtering.
  */
 public class XPathQueryEvaluator implements ConditionVisitor {
+
     static final Logger log = LoggerFactory.getLogger(XPathQueryEvaluator.class);
 
     private final XPathQueryBuilder builder;
@@ -253,10 +253,6 @@ public class XPathQueryEvaluator implements ConditionVisitor {
         } else {
             ntName = namePathMapper.getJcrName(UserConstants.NT_REP_AUTHORIZABLE);
         }
-        if (ntName == null) {
-            log.warn("Failed to retrieve JCR name for authorizable node type.");
-            ntName = UserConstants.NT_REP_AUTHORIZABLE;
-        }
         return ntName;
     }
 
@@ -295,20 +291,8 @@ public class XPathQueryEvaluator implements ConditionVisitor {
     @Nonnull
     private Iterator<Authorizable> findAuthorizables(long limit, long offset) throws ParseException {
         Iterable<? extends ResultRow> resultRows = root.getQueryEngine().executeQuery(xPath.toString(), Query.XPATH, limit, offset, null, namePathMapper).getRows();
-
-        Function<ResultRow, Authorizable> transformer = new Function<ResultRow, Authorizable>() {
-            public Authorizable apply(ResultRow resultRow) {
-                try {
-                    return userManager.getAuthorizableByPath(resultRow.getPath());
-                } catch (RepositoryException e) {
-                    log.warn("Cannot create authorizable from result row {}", resultRow);
-                    log.debug(e.getMessage(), e);
-                    return null;
-                }
-            }
-        };
-
-        return Iterators.filter(Iterators.transform(resultRows.iterator(), transformer), Predicates.<Object>notNull());
+        Iterator<Authorizable> authorizbles = Iterators.transform(resultRows.iterator(), new ResultRowToAuthorizable(userManager));
+        return Iterators.filter(authorizbles, Predicates.<Object>notNull());
     }
 
     @Nonnull
