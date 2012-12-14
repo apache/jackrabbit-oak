@@ -50,17 +50,17 @@ import org.slf4j.LoggerFactory;
  * {@code UserManager} and only OAK API methods can be used to read and
  * modify authorizable properties.
  */
-class OakAuthorizableProperties implements AuthorizableProperties {
+class AuthorizablePropertiesImpl implements AuthorizableProperties {
 
-    private static final Logger log = LoggerFactory.getLogger(OakAuthorizableProperties.class);
+    private static final Logger log = LoggerFactory.getLogger(AuthorizablePropertiesImpl.class);
 
     private final UserProvider userProvider;
     private final String id;
     private final NamePathMapper namePathMapper;
     private final ReadOnlyNodeTypeManager nodeTypeManager;
 
-    OakAuthorizableProperties(final Root root, UserProvider userProvider,
-                              String id, NamePathMapper namePathMapper) {
+    AuthorizablePropertiesImpl(final Root root, UserProvider userProvider,
+                               String id, NamePathMapper namePathMapper) {
         this.userProvider = userProvider;
         this.id = id;
         this.namePathMapper = namePathMapper;
@@ -85,7 +85,7 @@ class OakAuthorizableProperties implements AuthorizableProperties {
             }
             return l.iterator();
         } else {
-            throw new IllegalArgumentException("Relative path " + relPath + " refers to items outside of scope of authorizable.");
+            throw new RepositoryException("Relative path " + relPath + " refers to items outside of scope of authorizable.");
         }
     }
 
@@ -301,10 +301,7 @@ class OakAuthorizableProperties implements AuthorizableProperties {
     }
 
     private static void checkRelativePath(String relativePath) throws RepositoryException {
-        if (relativePath == null) {
-            throw new RepositoryException("Relative path expected. Found null.");
-        }
-        if ('/' == relativePath.charAt(0)) {
+        if (relativePath == null || relativePath.isEmpty() || relativePath.charAt(0) == '/') {
             throw new RepositoryException("Relative path expected. Found " + relativePath);
         }
     }
