@@ -68,6 +68,7 @@ class UserQueryManager {
 
     @Nonnull
     Iterator<Authorizable> find(Query query) throws RepositoryException {
+        // TODO OAK-253: replace usage of XPATH
         XPathQueryBuilder builder = new XPathQueryBuilder();
         query.build(builder);
         return new XPathQueryEvaluator(builder, userManager, root, userManager.getNamePathMapper()).eval();
@@ -102,7 +103,8 @@ class UserQueryManager {
     @Nonnull
     Iterator<Authorizable> findAuthorizables(String relPath, String value,
                                              boolean exact, AuthorizableType type) throws RepositoryException {
-        // TODO: replace XPATH
+        // TODO OAK-480: fix authorizable query
+        // TODO OAK-253: replace usage of XPATH
         String statement = buildXPathStatement(relPath, value, exact, type);
         QueryEngine queryEngine = root.getQueryEngine();
         try {
