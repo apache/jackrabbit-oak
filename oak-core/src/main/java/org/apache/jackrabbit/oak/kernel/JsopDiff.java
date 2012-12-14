@@ -153,10 +153,15 @@ class JsopDiff implements NodeStateDiff {
                 break;
             case PropertyType.BINARY:
                 for (Blob value : property.getValue(BINARIES)) {
-                    InputStream is = value.getNewStream();
-                    String binId = TypeCodes.encode(type, kernel.write(is));
-                    close(is);
-                    jsop.value(binId);
+                    String binId;
+                    if (value instanceof KernelBlob) {
+                        binId = ((KernelBlob) value).getBinaryID();
+                    } else {
+                        InputStream is = value.getNewStream();
+                        binId = kernel.write(is);
+                        close(is);
+                    }
+                    jsop.value(TypeCodes.encode(type, binId));
                 }
                 break;
             default:

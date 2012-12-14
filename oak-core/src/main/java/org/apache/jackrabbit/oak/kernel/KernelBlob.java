@@ -33,6 +33,14 @@ public class KernelBlob extends AbstractBlob {
     private final MicroKernel kernel;
 
     /**
+     * The id returned from {@link MicroKernel#write(java.io.InputStream)}
+     * @return  the binary id of this blob
+     */
+    public String getBinaryID() {
+        return binaryID;
+    }
+
+    /**
      * Create a new instance for a binary id and a Microkernel.
      * @param binaryID  id of the binary
      * @param kernel
