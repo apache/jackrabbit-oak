@@ -15,5 +15,5 @@
 
 org.apache.jackrabbit.mk.test.MicroKernelImplFixture
 org.apache.jackrabbit.mk.test.ClientServerFixture
-org.apache.jackrabbit.mk.test.MongoMicroKernelFixture
-org.apache.jackrabbit.mk.test.MongoGridFSMicroKernelFixture
+#org.apache.jackrabbit.mk.test.MongoMicroKernelFixture
+#org.apache.jackrabbit.mk.test.MongoGridFSMicroKernelFixture
