@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.restriction;
 
-import java.security.AccessControlException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -26,6 +25,7 @@ import javax.jcr.NamespaceRegistry;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
+import javax.jcr.security.AccessControlException;
 
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -78,15 +78,15 @@ public class RestrictionProviderImpl implements RestrictionProvider {
     }
 
     @Override
-    public Set<Restriction> readRestrictions(String jcrPath, Tree aceTree) throws javax.jcr.security.AccessControlException {
+    public Set<Restriction> readRestrictions(String jcrPath, Tree aceTree) throws AccessControlException {
         // TODO
-        throw new UnsupportedOperationException();
+        throw new UnsupportedOperationException("not yet implemented");
     }
 
     @Override
-    public void writeRestrictions(String jcrPath, Tree aceTree, Set<Restriction> restrictions) throws javax.jcr.security.AccessControlException {
+    public void writeRestrictions(String jcrPath, Tree aceTree, Set<Restriction> restrictions) throws AccessControlException {
         // TODO
-
+        throw new UnsupportedOperationException("not yet implemented");
     }
 
     @Override

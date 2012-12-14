@@ -60,6 +60,7 @@ import org.apache.jackrabbit.oak.security.authorization.restriction.RestrictionP
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.ACE;
 import org.apache.jackrabbit.oak.spi.security.authorization.ACL;
+import org.apache.jackrabbit.oak.spi.security.authorization.ImmutableACL;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionDefinition;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
@@ -135,7 +136,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
         checkPermission(tree);
         checkIsAccessControlContent(tree);
 
-        AccessControlPolicy policy = readAccessControlPolicy(absPath, tree);
+        AccessControlPolicy policy = readACL(absPath, tree, false);
         if (policy != null) {
             return new AccessControlPolicy[] {policy};
         } else {
@@ -150,7 +151,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
         checkIsAccessControlContent(tree);
 
         List<AccessControlPolicy> effective = new ArrayList<AccessControlPolicy>();
-        AccessControlPolicy policy = readAccessControlPolicy(absPath, tree);
+        AccessControlPolicy policy = readACL(absPath, tree, true);
         if (policy != null) {
             effective.add(policy);
         }
@@ -158,7 +159,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
             String parentPath = Text.getRelativeParent(tree.getPath(), 1);
             while (!parentPath.isEmpty()) {
                 Tree t = root.getTree(parentPath);
-                AccessControlPolicy plc = readAccessControlPolicy(parentPath, t);
+                AccessControlPolicy plc = readACL(parentPath, t, true);
                 if (plc != null) {
                     effective.add(plc);
                 }
@@ -187,7 +188,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
             } else {
                 String mixinName = getMixinName(absPath);
                 if (ntMgr.isNodeType(tree, mixinName) || ntMgr.getEffectiveNodeType(tree).supportsMixin(mixinName)) {
-                    policy = new ACL(absPath, restrictionProvider, namePathMapper);
+                    policy = new NodeACL(absPath);
                 } else {
                     log.warn("Node {} cannot be made access controllable.", absPath);
                 }
@@ -203,45 +204,57 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
 
     @Override
     public void setPolicy(String absPath, AccessControlPolicy policy) throws RepositoryException {
-        Tree tree = getTree(absPath);
-        checkPermission(tree);
-        checkIsAccessControlContent(tree);
         checkValidPolicy(absPath, policy);
 
-        NodeUtil aclNode = getAclNode(absPath, tree);
-        if (aclNode != null) {
-            // remove all existing aces
-            for (Tree aceTree : aclNode.getTree().getChildren()) {
-                aceTree.remove();
-            }
+        if (policy instanceof PrincipalACL) {
+            // TODO
+            throw new RepositoryException("not yet implemented");
         } else {
-            aclNode = createAclTree(absPath, tree);
-        }
+            Tree tree = getTree(absPath);
+            checkPermission(tree);
+            checkIsAccessControlContent(tree);
 
-        ACL acl = (ACL) policy;
-        for (ACE ace : acl.getACEs()) {
-            String nodeName = generateAceName(aclNode, ace.isAllow());
-            String ntName = (ace.isAllow()) ? NT_REP_GRANT_ACE : NT_REP_DENY_ACE;
+            NodeUtil aclNode = getAclNode(absPath, tree);
+            if (aclNode != null) {
+                // remove all existing aces
+                for (Tree aceTree : aclNode.getTree().getChildren()) {
+                    aceTree.remove();
+                }
+            } else {
+                aclNode = createAclTree(absPath, tree);
+            }
 
-            NodeUtil aceNode = aclNode.addChild(nodeName, ntName);
-            aceNode.setString(REP_PRINCIPAL_NAME, ace.getPrincipal().getName());
-            aceNode.setNames(REP_PRIVILEGES, ace.getPrivilegeNames());
-            restrictionProvider.writeRestrictions(absPath, aceNode.getTree(), ace.getRestrictionSet());
+            ACL acl = (ACL) policy;
+            for (ACE ace : acl.getACEs()) {
+                String nodeName = generateAceName(aclNode, ace.isAllow());
+                String ntName = (ace.isAllow()) ? NT_REP_GRANT_ACE : NT_REP_DENY_ACE;
+
+                NodeUtil aceNode = aclNode.addChild(nodeName, ntName);
+                aceNode.setString(REP_PRINCIPAL_NAME, ace.getPrincipal().getName());
+                aceNode.setNames(REP_PRIVILEGES, ace.getPrivilegeNames());
+                restrictionProvider.writeRestrictions(absPath, aceNode.getTree(), ace.getRestrictionSet());
+            }
         }
     }
 
     @Override
     public void removePolicy(String absPath, AccessControlPolicy policy) throws RepositoryException {
-        Tree tree = getTree(absPath);
-        checkPermission(tree);
-        checkIsAccessControlContent(tree);
         checkValidPolicy(absPath, policy);
 
-        NodeUtil aclNode = getAclNode(absPath, tree);
-        if (aclNode != null) {
-            aclNode.getTree().remove();
+        if (policy instanceof PrincipalACL) {
+            // TODO
+            throw new RepositoryException("not yet implemented");
         } else {
-            throw new AccessControlException("No policy to remove at " + absPath);
+            Tree tree = getTree(absPath);
+            checkPermission(tree);
+            checkIsAccessControlContent(tree);
+
+            NodeUtil aclNode = getAclNode(absPath, tree);
+            if (aclNode != null) {
+                aclNode.getTree().remove();
+            } else {
+                throw new AccessControlException("No policy to remove at " + absPath);
+            }
         }
     }
 
@@ -252,7 +265,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
         if (aceResult.getSize() > 0) {
             return new JackrabbitAccessControlPolicy[0];
         } else {
-            return new JackrabbitAccessControlPolicy[] {getPrincipalACL(principal, null)};
+            return new JackrabbitAccessControlPolicy[] {createPrincipalACL(principal, null)};
         }
     }
 
@@ -260,7 +273,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
     public JackrabbitAccessControlPolicy[] getPolicies(Principal principal) throws RepositoryException {
         Result aceResult = searchAces(Collections.<Principal>singleton(principal));
         if (aceResult.getSize() > 0) {
-            return new JackrabbitAccessControlPolicy[] {getPrincipalACL(principal, aceResult)};
+            return new JackrabbitAccessControlPolicy[] {createPrincipalACL(principal, aceResult)};
         } else {
             return new JackrabbitAccessControlPolicy[0];
         }
@@ -275,7 +288,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
             Tree accessControlledTree = aclTree.getParent();
 
             String path = (REP_REPO_POLICY.equals(aclTree.getName())) ? null : accessControlledTree.getPath();
-            AccessControlPolicy policy = readAccessControlPolicy(path, accessControlledTree);
+            AccessControlPolicy policy = readACL(path, accessControlledTree, true);
             if (policy != null) {
                 effective.add(policy);
             }
@@ -346,9 +359,16 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
     }
 
     private void checkValidPolicy(String jcrPath, AccessControlPolicy policy) throws AccessControlException {
-        // TODO
-        // TODO: make sure policy is jackrabbit acl
-        // TODO: make sure path matches path of policy
+        if (policy instanceof NodeACL) {
+            String path = ((NodeACL) policy).getPath();
+            if ((path == null && jcrPath != null) || (path != null && !path.equals(jcrPath))) {
+                throw new AccessControlException("Invalid access control policy " + policy + ": path mismatch " + jcrPath);
+            }
+        } if (policy instanceof PrincipalACL) {
+            // TODO: validate
+        } else {
+            throw new AccessControlException("Invalid access control policy " + policy);
+        }
     }
 
     private boolean isAccessControlled(Tree tree, String nodeTypeName) throws RepositoryException {
@@ -360,8 +380,9 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
     }
 
     @CheckForNull
-    private AccessControlPolicy readAccessControlPolicy(String jcrPath, Tree accessControlledTree) throws RepositoryException {
-        AccessControlPolicy acl = null;
+    private ACL readACL(String jcrPath, Tree accessControlledTree,
+                        boolean isReadOnly) throws RepositoryException {
+        ACL acl = null;
         String aclName = getAclName(jcrPath);
         String mixinName = getMixinName(jcrPath);
         if (isAccessControlled(accessControlledTree, mixinName) && accessControlledTree.hasChild(aclName)) {
@@ -369,17 +390,21 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
             List<ACE> entries = new ArrayList<ACE>();
             for (Tree child : aclTree.getChildren()) {
                 if (isACE(child)) {
-                    entries.add(readAccessControlEntry(jcrPath, child, restrictionProvider));
+                    entries.add(readACE(jcrPath, child, restrictionProvider));
                 }
             }
-            acl = new ACL(jcrPath, entries, restrictionProvider, namePathMapper);
+            if (isReadOnly) {
+                acl = new ImmutableACL(jcrPath, entries, restrictionProvider, namePathMapper);
+            } else {
+                acl = new NodeACL(jcrPath, entries);
+            }
         }
         return acl;
     }
 
     @Nonnull
-    private ACE readAccessControlEntry(String jcrPath, Tree aceTree,
-                                       RestrictionProvider restrictionProvider) throws RepositoryException {
+    private ACE readACE(String jcrPath, Tree aceTree, RestrictionProvider restrictionProvider)
+            throws RepositoryException {
         NodeUtil aceNode = new NodeUtil(aceTree);
         Principal principal = principalProvider.getPrincipal(aceNode.getString(REP_PRINCIPAL_NAME, null));
         boolean isAllow = aceNode.hasPrimaryNodeTypeName(NT_REP_GRANT_ACE);
@@ -387,8 +412,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
         return new ACE(principal, getPrivileges(aceNode), isAllow, restrictions, namePathMapper);
     }
 
-    @Nonnull
-    private ACL getPrincipalACL(Principal principal, Result aceResult) throws RepositoryException {
+    private ACL createPrincipalACL(Principal principal, Result aceResult) throws RepositoryException {
         // TODO: specific path indicating the principal-based nature of the
         // TODO: ACL... this could also be the path of the compiled permissions
         // TODO: for this principal.
@@ -411,11 +435,11 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
                     } else {
                         jcrPath = Text.getRelativeParent(aclPath, 1);
                     }
-                    entries.add(readAccessControlEntry(jcrPath, aceTree, pbRestrictions));
+                    entries.add(readACE(jcrPath, aceTree, pbRestrictions));
                 }
             }
         }
-        return new ACL(principalBasedPath, entries, pbRestrictions, namePathMapper);
+        return new PrincipalACL(principalBasedPath, entries, pbRestrictions, namePathMapper);
     }
 
     /**
@@ -520,7 +544,28 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
         return aceName;
     }
 
-    // TODO review again.
+    //--------------------------------------------------------------------------
+    private class NodeACL extends ACL {
+
+        private NodeACL(String jcrPath) {
+            this(jcrPath, null);
+        }
+
+        private NodeACL(String jcrPath, List<ACE> entries) {
+            super(jcrPath, entries, restrictionProvider, namePathMapper);
+        }
+    }
+
+    //--------------------------------------------------------------------------
+    // TODO review again
+
+    private class PrincipalACL extends ACL {
+
+        private PrincipalACL(String jcrPath, List<ACE> entries, RestrictionProvider restrictionProvider, NamePathMapper namePathMapper) {
+            super(jcrPath, entries, restrictionProvider, namePathMapper);
+        }
+    }
+
     private static class PrincipalRestrictionProvider extends RestrictionProviderImpl {
 
         private PrincipalRestrictionProvider(NamePathMapper namePathMapper) {
