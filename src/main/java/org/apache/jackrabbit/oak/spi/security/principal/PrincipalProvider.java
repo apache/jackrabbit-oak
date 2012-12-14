@@ -24,7 +24,17 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 /**
- * PrincipalProvider... TODO
+ * The {@code PrincipalProvider} defines methods to provide access to sources
+ * of {@link Principal}s. This allows the security framework share any external
+ * sources for authorization and authentication, as may be used by a custom
+ * {@link javax.security.auth.spi.LoginModule} for example.
+ *
+ * A single {@code PrincipalProvider} implementation is expected to exposed
+ * principals from one single source. In contrast to the
+ * {@link org.apache.jackrabbit.api.security.principal.PrincipalManager}
+ * which will expose all known and accessible principals from possibly
+ * different sources. See also {@link CompositePrincipalProvider} for a
+ * mechanism to combine principals of different providers.
  */
 public interface PrincipalProvider {
 
