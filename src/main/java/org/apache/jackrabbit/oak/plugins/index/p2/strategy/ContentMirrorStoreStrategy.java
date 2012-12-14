@@ -61,16 +61,17 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
         }
         // prune the index: remove all children that have no children
         // and no "match" property progressing bottom up
-        while (!parentQueue.isEmpty()) {
-            NodeBuilder node = parentQueue.poll();
-            for (String name : node.getChildNodeNames()) {
-                NodeBuilder segment = node.child(name);
-                if (segment.getChildNodeCount() == 0
-                        && segment.getProperty("match") == null) {
-                    segment.removeNode(name);
-                }
-            }
-        }
+        // see OAK-520
+        // while (!parentQueue.isEmpty()) {
+        // NodeBuilder node = parentQueue.poll();
+        // for (String name : node.getChildNodeNames()) {
+        // NodeBuilder segment = node.child(name);
+        // if (segment.getChildNodeCount() == 0
+        // && segment.getProperty("match") == null) {
+        // segment.removeNode(name);
+        // }
+        // }
+        // }
         // finally remove the index node if empty
         if (child.getChildNodeCount() == 0) {
             index.removeNode(key);
