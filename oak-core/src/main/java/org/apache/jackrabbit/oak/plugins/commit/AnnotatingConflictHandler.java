@@ -18,13 +18,11 @@ package org.apache.jackrabbit.oak.plugins.commit;
 
 import java.util.List;
 
+import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.commit.ConflictHandler;
-import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-
-import com.google.common.collect.Lists;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
@@ -93,14 +91,14 @@ public class AnnotatingConflictHandler implements ConflictHandler {
     @Override
     public Resolution addExistingNode(NodeBuilder parent, String name, NodeState ours, NodeState theirs) {
         NodeBuilder marker = addConflictMarker(parent);
-        addChild(marker.child(ADD_EXISTING), name, ours);
+        marker.child(ADD_EXISTING).setNode(name, ours);
         return Resolution.THEIRS;
     }
 
     @Override
     public Resolution changeDeletedNode(NodeBuilder parent, String name, NodeState ours) {
         NodeBuilder marker = addConflictMarker(parent);
-        addChild(marker.child(CHANGE_DELETED), name, ours);
+        marker.child(CHANGE_DELETED).setNode(name, ours);
         return Resolution.THEIRS;
     }
 
@@ -133,16 +131,6 @@ public class AnnotatingConflictHandler implements ConflictHandler {
         }
 
         return parent.child(REP_OURS);
-    }
-
-    private static void addChild(NodeBuilder parent, String name, NodeState state) {
-        NodeBuilder child = parent.child(name);
-        for (PropertyState property : state.getProperties()) {
-            child.setProperty(property);
-        }
-        for (ChildNodeEntry entry : state.getChildNodeEntries()) {
-            addChild(child, entry.getName(), entry.getNodeState());
-        }
     }
 
     private static void markChild(NodeBuilder parent, String name) {
