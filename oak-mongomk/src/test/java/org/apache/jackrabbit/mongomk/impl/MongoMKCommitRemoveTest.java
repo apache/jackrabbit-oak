@@ -28,6 +28,8 @@ public class MongoMKCommitRemoveTest extends BaseMongoMicroKernelTest {
     }
 
     @Test
+    @Ignore
+    // According to OAK-507, this should not fail.
     public void removeNonExistentNode() throws Exception {
         try {
             mk.commit("/", "-\"a\"", null, null);
@@ -36,7 +38,6 @@ public class MongoMKCommitRemoveTest extends BaseMongoMicroKernelTest {
     }
 
     @Test
-    @Ignore("OAK-507") // FIXME
     public void removeNodeTwice() throws Exception {
         String base = mk.commit("", "+\"/a\":{}", null, null);
         mk.commit("", "-\"/a\"", base, null);
