@@ -123,13 +123,15 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
         checkAbsolutePath(nodePath);
 
         String parentPath = PathUtils.getParentPath(nodePath);
+        MongoNode parent = getStagedNode(parentPath);
         String nodeName = PathUtils.getName(nodePath);
-        MongoNode parent = getStoredNode(parentPath);
-        if (!parent.childExists(nodeName)) {
-            throw new RuntimeException("Node " + nodeName
-                    + " does not exists at parent path: " + parentPath);
-        }
-        parent.removeChild(PathUtils.getName(nodePath));
+        // See OAK-507
+//        MongoNode parent = getStoredNode(parentPath);
+//        if (!parent.childExists(nodeName)) {
+//            throw new RuntimeException("Node " + nodeName
+//                    + " does not exists at parent path: " + parentPath);
+//        }
+        parent.removeChild(nodeName);
     }
 
     @Override
