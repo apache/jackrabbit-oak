@@ -25,7 +25,8 @@ import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableActionProvider;
 
 /**
- * UserContext... TODO
+ * UserConfiguration...
+ * TODO: OAK-522
  */
 public interface UserConfiguration extends SecurityConfiguration {
 

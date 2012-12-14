@@ -84,7 +84,7 @@ public class UserConfigurationImpl extends SecurityConfiguration.Default impleme
     @Nonnull
     @Override
     public AuthorizableActionProvider getAuthorizableActionProvider() {
-        // TODO: add proper implementation
+        // TODO OAK-521: add proper implementation
         AuthorizableActionProvider defProvider = new DefaultAuthorizableActionProvider(securityProvider, config);
         return config.getConfigValue(UserConstants.PARAM_AUTHORIZABLE_ACTION_PROVIDER, defProvider);
     }

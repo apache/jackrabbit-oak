@@ -33,7 +33,7 @@ import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
  */
 public abstract class AbstractAuthorizableAction implements AuthorizableAction {
 
-    // TODO: review again
+    // TODO OAK-521:: review again
     protected abstract void init(SecurityProvider securityProvider, ConfigurationParameters config);
 
     //-------------------------------------------------< AuthorizableAction >---
