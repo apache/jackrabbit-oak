@@ -111,7 +111,11 @@ public class FetchNodesActionNew extends BaseAction<Map<String, MongoNode>> {
         }
 
         DBCursor dbCursor = performQuery();
-        return getMostRecentValidNodes(dbCursor);
+        Map<String, MongoNode> nodes = getMostRecentValidNodes(dbCursor);
+        for (MongoNode node : nodes.values()) {
+            nodeStore.cache(node);
+        }
+        return nodes;
     }
 
     private DBCursor performQuery() {

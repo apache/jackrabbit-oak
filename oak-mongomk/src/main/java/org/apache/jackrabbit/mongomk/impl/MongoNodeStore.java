@@ -216,7 +216,7 @@ public class MongoNodeStore implements NodeStore {
         long revisionId = node.getRevisionId();
         String path = node.getPath();
         String branchId = node.getBranchId();
-        String key = path + "@" + branchId + "@" + revisionId;
+        String key = path + "*" + branchId + "*" + revisionId;
         if (!nodeCache.containsKey(key)) {
             LOG.debug("Adding node to cache: {}", key);
             nodeCache.put(key, node);
@@ -232,7 +232,7 @@ public class MongoNodeStore implements NodeStore {
      * @return
      */
     public MongoNode getFromCache(String path, String branchId, long revisionId) {
-        String key = path + "@" + branchId + "@" + revisionId;
+        String key = path + "*" + branchId + "*" + revisionId;
         MongoNode node = nodeCache.get(key);
         if (node == null) {
             return null;
