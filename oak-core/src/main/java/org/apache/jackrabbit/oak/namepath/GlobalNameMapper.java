@@ -26,15 +26,26 @@ import javax.annotation.Nonnull;
 
 /**
  * Name mapper with no local prefix remappings. URI to prefix mappings
- * are read from the repository when needed.
+ * are read from the repository when for transforming expanded JCR names
+ * to prefixed Oak names.
+ * <p>
+ * Note that even though this class could be used to verify that all prefixed
+ * names have valid prefixes, we explicitly don't do that since this is a
+ * fairly performance-sensitive part of the codebase and since normally the
+ * NameValidator and other consistency checks already ensure that all names
+ * being committed or already in the repository should be valid. A separate
+ * consistency check can be used if needed to locate and fix any Oak names
+ * with invalid namespace prefixes.
  */
 public abstract class GlobalNameMapper implements NameMapper {
 
     @Override @Nonnull
     public String getJcrName(@Nonnull String oakName) {
+        // Sanity checks, can be turned to assertions if needed for performance
         checkNotNull(oakName);
         checkArgument(!oakName.startsWith(":")); // hidden name
         checkArgument(!oakName.startsWith("{")); // expanded name
+
         return oakName;
     }
 
