@@ -77,6 +77,7 @@ import com.google.common.collect.Sets;
  * @see QueryIndex
  * @see PropertyIndexLookup
  */
+@Deprecated
 class PropertyIndex implements QueryIndex {
 
     public static final String TYPE = "property";

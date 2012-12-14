@@ -32,7 +32,7 @@ import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.index.CompositeIndexHookProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexHookManager;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexHookProvider;
-import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexHookProvider;
+import org.apache.jackrabbit.oak.plugins.index.p2.Property2IndexHookProvider;
 import org.apache.jackrabbit.oak.plugins.name.NameValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.DefaultTypeEditor;
@@ -207,7 +207,7 @@ public class Main {
                     new ValidatingHook(createDefaultValidatorProvider()),
                     IndexHookManager.of(
                             new CompositeIndexHookProvider(
-                            new PropertyIndexHookProvider(), 
+                            new Property2IndexHookProvider(), 
                             new LuceneIndexHookProvider())));
         }
 

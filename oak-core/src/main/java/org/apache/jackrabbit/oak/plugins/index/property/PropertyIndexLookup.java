@@ -49,7 +49,10 @@ import com.google.common.collect.Sets;
  * }
  * </code>
  * </pre>
+ * 
+ * @deprecated please use the {@link Property2IndexLookup} instead
  */
+@Deprecated
 public class PropertyIndexLookup {
 
     private final NodeState root;

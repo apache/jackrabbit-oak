@@ -20,6 +20,7 @@ import java.util.List;
 
 import javax.annotation.Nonnull;
 
+import org.apache.jackrabbit.oak.plugins.index.p2.Property2IndexProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -33,8 +34,10 @@ import com.google.common.collect.ImmutableList;
  * PropertyIndex instance, which is used for all indexes.
  * 
  * @see PropertyIndex
+ * @deprecated please use the {@link Property2IndexProvider} instead
  * 
  */
+@Deprecated
 public class PropertyIndexProvider implements QueryIndexProvider {
 
     @Override @Nonnull

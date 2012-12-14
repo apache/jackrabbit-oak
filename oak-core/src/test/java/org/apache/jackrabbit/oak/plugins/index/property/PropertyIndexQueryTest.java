@@ -16,8 +16,16 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.property;
 
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
+
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.nodetype.InitialContent;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.junit.Test;
@@ -26,6 +34,7 @@ import org.junit.Test;
  * Tests the query engine using the default index implementation: the
  * {@link PropertyIndexProvider}
  */
+@Deprecated
 public class PropertyIndexQueryTest extends AbstractQueryTest {
 
     @Override
@@ -36,7 +45,20 @@ public class PropertyIndexQueryTest extends AbstractQueryTest {
             .with(new PropertyIndexHookProvider())
             .createContentRepository();
     }
-    
+
+    @Override
+    protected void createTestIndexNode() throws Exception {
+        Tree index = root.getTree("/");
+        Tree indexDef = index.addChild(INDEX_DEFINITIONS_NAME).addChild(
+                TEST_INDEX_NAME);
+        indexDef.setProperty(JcrConstants.JCR_PRIMARYTYPE,
+                INDEX_DEFINITIONS_NODE_TYPE, Type.NAME);
+        indexDef.setProperty(TYPE_PROPERTY_NAME, PropertyIndex.TYPE);
+        indexDef.setProperty(REINDEX_PROPERTY_NAME, true);
+        indexDef.setProperty("propertyNames", "jcr:uuid");
+        root.commit();
+    }
+
     @Test
     public void sql2Index() throws Exception {
         test("sql2_index.txt");

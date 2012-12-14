@@ -25,6 +25,7 @@ import javax.annotation.Nullable;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -112,15 +113,12 @@ public class Property2IndexLookup {
 
         NodeState state = getIndexDefinitionNode(name);
         if (state != null && state.getChildNode(":index") != null) {
-            NodeState property;
             state = state.getChildNode(":index");
             for (String p : Property2Index.encode(value)) {
-                property = state.getChildNode(p);
+                NodeState property = state.getChildNode(p);
                 if (property != null) {
                     // We have an entry for this value, so use it
-                    for (String path : property.getChildNodeNames()) {
-                        paths.add(path);
-                    }
+                    getMatchingPaths(property, "", paths);
                 }
             }
         } else {
@@ -161,21 +159,45 @@ public class Property2IndexLookup {
         return paths;
     }
 
+    private void getMatchingPaths(NodeState state, String path,
+            Set<String> paths) {
+        PropertyState ps = state.getProperty("match");
+        if (ps != null && !ps.isArray() && ps.getValue(Type.BOOLEAN)) {
+            paths.add(path);
+        }
+        for (ChildNodeEntry c : state.getChildNodeEntries()) {
+            String name = c.getName();
+            NodeState childState = c.getNodeState();
+            getMatchingPaths(childState, PathUtils.concat(path, name), paths);
+        }
+    }
+
     public double getCost(String name, PropertyValue value) {
         double cost = 0.0;
         NodeState state = getIndexDefinitionNode(name);
         if (state != null && state.getChildNode(":index") != null) {
             state = state.getChildNode(":index");
             for (String p : Property2Index.encode(value)) {
-                PropertyState property = state.getProperty(p);
-                if (property != null) {
-                    cost += property.count();
-                }
+                cost += countMatchingLeaves(state.getChildNode(p));
             }
         } else {
             cost = Double.POSITIVE_INFINITY;
         }
         return cost;
+    }
+
+    static int countMatchingLeaves(NodeState state) {
+        if (state == null) {
+            return 0;
+        }
+        int count = 0;
+        if (state.getProperty("match") != null) {
+            count++;
+        }
+        for (ChildNodeEntry entry : state.getChildNodeEntries()) {
+            count += countMatchingLeaves(entry.getNodeState());
+        }
+        return count;
     }
 
     /**
