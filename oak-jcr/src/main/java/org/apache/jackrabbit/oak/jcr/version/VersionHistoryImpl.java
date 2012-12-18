@@ -16,6 +16,10 @@
  */
 package org.apache.jackrabbit.oak.jcr.version;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
 import javax.jcr.AccessDeniedException;
 import javax.jcr.NodeIterator;
 import javax.jcr.ReferentialIntegrityException;
@@ -28,8 +32,13 @@ import javax.jcr.version.VersionHistory;
 import javax.jcr.version.VersionIterator;
 
 import org.apache.jackrabbit.commons.iterator.FrozenNodeIteratorAdapter;
+import org.apache.jackrabbit.commons.iterator.VersionIteratorAdapter;
 import org.apache.jackrabbit.oak.jcr.NodeImpl;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.util.TODO;
+
+import com.google.common.base.Function;
+import com.google.common.collect.Iterators;
 
 /**
  * <code>VersionHistoryImpl</code>...
@@ -53,7 +62,7 @@ public class VersionHistoryImpl extends NodeImpl<VersionHistoryDelegate>
 
     @Override
     public Version getRootVersion() throws RepositoryException {
-        return TODO.unimplemented().returnValue(null);
+        return new VersionImpl(dlg.getRootVersion());
     }
 
     @Override
@@ -63,7 +72,13 @@ public class VersionHistoryImpl extends NodeImpl<VersionHistoryDelegate>
 
     @Override
     public VersionIterator getAllVersions() throws RepositoryException {
-        return TODO.unimplemented().returnValue(null);
+        return new VersionIteratorAdapter(Iterators.transform(
+                dlg.getAllVersions(), new Function<VersionDelegate, Version>() {
+            @Override
+            public Version apply(VersionDelegate input) {
+                return new VersionImpl(input);
+            }
+        }));
     }
 
     @Override
@@ -79,13 +94,14 @@ public class VersionHistoryImpl extends NodeImpl<VersionHistoryDelegate>
     @Override
     public Version getVersion(String versionName)
             throws VersionException, RepositoryException {
-        return TODO.unimplemented().returnValue(null);
+        return new VersionImpl(dlg.getVersion(versionName));
     }
 
     @Override
     public Version getVersionByLabel(String label)
             throws VersionException, RepositoryException {
-        return TODO.unimplemented().returnValue(null);
+        String oakLabel = sessionDelegate.getOakNameOrThrow(label);
+        return new VersionImpl(dlg.getVersionByLabel(oakLabel));
     }
 
     @Override
@@ -94,35 +110,49 @@ public class VersionHistoryImpl extends NodeImpl<VersionHistoryDelegate>
                                 boolean moveLabel)
             throws LabelExistsVersionException, VersionException,
             RepositoryException {
-        TODO.unimplemented();
+        TODO.unimplemented().doNothing();
     }
 
     @Override
     public void removeVersionLabel(String label)
             throws VersionException, RepositoryException {
-        TODO.unimplemented();
+        TODO.unimplemented().doNothing();
     }
 
     @Override
     public boolean hasVersionLabel(String label) throws RepositoryException {
-        return TODO.unimplemented().returnValue(Boolean.FALSE);
+        return Arrays.asList(getVersionLabels()).contains(label);
     }
 
     @Override
     public boolean hasVersionLabel(Version version, String label)
             throws VersionException, RepositoryException {
-        return TODO.unimplemented().returnValue(Boolean.FALSE);
+        return Arrays.asList(getVersionLabels(version)).contains(label);
     }
 
     @Override
     public String[] getVersionLabels() throws RepositoryException {
-        return TODO.unimplemented().returnValue(new String[0]);
+        NamePathMapper mapper = sessionDelegate.getNamePathMapper();
+        List<String> labels = new ArrayList<String>();
+        for (String label : dlg.getVersionLabels()) {
+            labels.add(mapper.getJcrName(label));
+        }
+        return labels.toArray(new String[labels.size()]);
     }
 
     @Override
     public String[] getVersionLabels(Version version)
             throws VersionException, RepositoryException {
-        return TODO.unimplemented().returnValue(new String[0]);
+        if (!version.getContainingHistory().getPath().equals(getPath())) {
+            throw new VersionException("Version is not contained in this " +
+                    "VersionHistory");
+        }
+        NamePathMapper mapper = sessionDelegate.getNamePathMapper();
+        List<String> labels = new ArrayList<String>();
+        for (String label : dlg.getVersionLabels(version.getIdentifier())) {
+            labels.add(mapper.getJcrName(label));
+        }
+        return labels.toArray(new String[labels.size()]);
     }
 
     @Override
@@ -130,6 +160,6 @@ public class VersionHistoryImpl extends NodeImpl<VersionHistoryDelegate>
             throws ReferentialIntegrityException, AccessDeniedException,
             UnsupportedRepositoryOperationException, VersionException,
             RepositoryException {
-        TODO.unimplemented();
+        TODO.unimplemented().doNothing();
     }
 }

@@ -105,6 +105,17 @@ public class VersionManagerDelegate {
         return VersionDelegate.create(sessionDelegate, v);
     }
 
+    @Nonnull
+    public VersionDelegate getVersionByIdentifier(@Nonnull String identifier)
+            throws RepositoryException {
+        Tree t = sessionDelegate.getIdManager().getTree(identifier);
+        if (t == null) {
+            throw new RepositoryException("No such Version with identifier: " +
+                    identifier);
+        }
+        return VersionDelegate.create(sessionDelegate, t);
+    }
+
     //----------------------------< internal >----------------------------------
 
     /**

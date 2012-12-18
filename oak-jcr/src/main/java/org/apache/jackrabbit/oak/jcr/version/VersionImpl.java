@@ -16,17 +16,26 @@
  */
 package org.apache.jackrabbit.oak.jcr.version;
 
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.List;
 
+import javax.annotation.Nonnull;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
+import javax.jcr.Value;
 import javax.jcr.version.Version;
 import javax.jcr.version.VersionHistory;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.jcr.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.NodeImpl;
+import org.apache.jackrabbit.oak.jcr.PropertyDelegate;
+import org.apache.jackrabbit.oak.jcr.SessionDelegate;
 import org.apache.jackrabbit.oak.util.TODO;
+import org.apache.jackrabbit.oak.version.VersionConstants;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 class VersionImpl extends NodeImpl<VersionDelegate> implements Version {
 
@@ -36,12 +45,13 @@ class VersionImpl extends NodeImpl<VersionDelegate> implements Version {
 
     @Override
     public VersionHistory getContainingHistory() throws RepositoryException {
-        return TODO.unimplemented().returnValue(null);
+        return new VersionHistoryImpl(
+                getVersionManagerDelegate().getVersionHistory(dlg.getParent()));
     }
 
     @Override
     public Calendar getCreated() throws RepositoryException {
-        return TODO.unimplemented().returnValue(Calendar.getInstance());
+        return getPropertyOrThrow(JcrConstants.JCR_CREATED).getValue().getDate();
     }
 
     @Override
@@ -56,17 +66,49 @@ class VersionImpl extends NodeImpl<VersionDelegate> implements Version {
 
     @Override
     public Version[] getPredecessors() throws RepositoryException {
-        return TODO.unimplemented().returnValue(new Version[0]);
+        PropertyDelegate p = getPropertyOrThrow(VersionConstants.JCR_PREDECESSORS);
+        List<Version> predecessors = new ArrayList<Version>();
+        VersionManagerDelegate vMgr = getVersionManagerDelegate();
+        for (Value v : p.getValues()) {
+            String id = v.getString();
+            predecessors.add(new VersionImpl(vMgr.getVersionByIdentifier(id)));
+        }
+        return predecessors.toArray(new Version[predecessors.size()]);
     }
 
     @Override
     public Version[] getSuccessors() throws RepositoryException {
-        return TODO.unimplemented().returnValue(new Version[0]);
+        PropertyDelegate p = getPropertyOrThrow(VersionConstants.JCR_SUCCESSORS);
+        List<Version> successors = new ArrayList<Version>();
+        VersionManagerDelegate vMgr = getVersionManagerDelegate();
+        for (Value v : p.getValues()) {
+            String id = v.getString();
+            successors.add(new VersionImpl(vMgr.getVersionByIdentifier(id)));
+        }
+        return successors.toArray(new Version[successors.size()]);
     }
 
     @Override
     public Node getFrozenNode() throws RepositoryException {
-        return TODO.unimplemented().returnValue(null);
+        return new NodeImpl<NodeDelegate>(
+                dlg.getChild(VersionConstants.JCR_FROZENNODE));
     }
 
+    //------------------------------< internal >--------------------------------
+
+    @Nonnull
+    private VersionManagerDelegate getVersionManagerDelegate() {
+        return VersionManagerDelegate.create(dlg.getSessionDelegate());
+    }
+
+    @Nonnull
+    private PropertyDelegate getPropertyOrThrow(@Nonnull String name)
+            throws RepositoryException {
+        PropertyDelegate p = dlg.getProperty(checkNotNull(name));
+        if (p == null) {
+            throw new RepositoryException("Inconsistent version storage. " +
+                    "Version does not have a " + name + " property.");
+        }
+        return p;
+    }
 }
