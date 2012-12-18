@@ -16,9 +16,13 @@
  */
 package org.apache.jackrabbit.oak.jcr.version;
 
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.jcr.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.SessionDelegate;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * <code>VersionDelegate</code>...
@@ -26,10 +30,11 @@ import org.apache.jackrabbit.oak.jcr.SessionDelegate;
 public class VersionDelegate extends NodeDelegate {
 
     private VersionDelegate(SessionDelegate sessionDelegate, Tree tree) {
-        super(sessionDelegate, tree);
+        super(checkNotNull(sessionDelegate), checkNotNull(tree));
     }
 
-    static VersionDelegate create(SessionDelegate sessionDelegate, Tree tree) {
+    static VersionDelegate create(@Nonnull SessionDelegate sessionDelegate,
+                                  @Nonnull Tree tree) {
         return new VersionDelegate(sessionDelegate, tree);
     }
 }

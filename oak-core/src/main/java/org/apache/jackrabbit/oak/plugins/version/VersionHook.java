@@ -24,6 +24,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.version.VersionException;
 
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -86,8 +87,14 @@ public class VersionHook implements CommitHook {
             if (!isVersionable()) {
                 return;
             }
+            // JCR allows to put a lock on a checked in node.
+            if (after.getName().equals(JcrConstants.JCR_LOCKOWNER)
+                    || after.getName().equals(JcrConstants.JCR_LOCKISDEEP)) {
+                return;
+            }
             if (wasCheckedIn()) {
-                throwCheckedIn("Cannot add property on checked in node");
+                throwCheckedIn("Cannot add property " + after.getName() +
+                        " on checked in node");
             }
         }
 
@@ -95,7 +102,8 @@ public class VersionHook implements CommitHook {
         public void propertyChanged(PropertyState before, PropertyState after) {
             if (!isVersionable()) {
                 if (!isVersionProperty(after) && wasCheckedIn()) {
-                    throwProtected("Cannot change property on checked in node");
+                    throwCheckedIn("Cannot change property " + after.getName() +
+                            " on checked in node");
                 }
                 return;
             }
@@ -111,7 +119,8 @@ public class VersionHook implements CommitHook {
             } else if (isVersionProperty(after)) {
                 throwProtected(after.getName());
             } else if (wasCheckedIn()) {
-                throwCheckedIn("Cannot change property on checked in node");
+                throwCheckedIn("Cannot change property " + after.getName() +
+                        " on checked in node");
             }
         }
 
