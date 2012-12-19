@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
+/**
+ * TODO document
+ */
 public interface IndexConstants {
 
     String INDEX_DEFINITIONS_NODE_TYPE = "oak:queryIndexDefinition";

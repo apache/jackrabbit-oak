@@ -27,6 +27,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
+/**
+ * TODO document
+ */
 public class CompositeIndexHookProvider implements IndexHookProvider {
 
     @Nonnull

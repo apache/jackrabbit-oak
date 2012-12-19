@@ -25,6 +25,9 @@ import org.apache.jackrabbit.oak.spi.commit.DefaultValidator;
 
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 
+/**
+ * TODO document
+ */
 class NamespaceValidator extends DefaultValidator {
 
     private final Map<String, String> map;

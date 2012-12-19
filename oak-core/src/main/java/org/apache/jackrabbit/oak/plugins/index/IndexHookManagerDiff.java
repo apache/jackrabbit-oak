@@ -52,8 +52,6 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_UNKNOW
  * 
  * This allows for a simultaneous update of all the indexes via a single
  * traversal of the changes.
- * 
- * 
  */
 class IndexHookManagerDiff implements NodeStateDiff {
 

@@ -24,7 +24,7 @@ import javax.jcr.NamespaceRegistry;
 import org.apache.jackrabbit.JcrConstants;
 
 /**
- * NamespaceConstants... TODO
+ * TODO document
  */
 public interface NamespaceConstants {
 
