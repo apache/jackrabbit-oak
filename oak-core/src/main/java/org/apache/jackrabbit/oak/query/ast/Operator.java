@@ -17,7 +17,7 @@
 package org.apache.jackrabbit.oak.query.ast;
 
 /**
- * Enumeration of operators.
+ * The enumeration of all operators.
  */
 public enum Operator {
 

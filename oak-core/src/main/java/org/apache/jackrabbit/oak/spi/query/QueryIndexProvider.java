@@ -34,6 +34,7 @@ public interface QueryIndexProvider {
     /**
      * Get the currently configured indexes.
      * 
+     * @param nodeState the node state of the root
      * @return the list of indexes
      */
     @Nonnull

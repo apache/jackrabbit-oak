@@ -17,7 +17,8 @@ import org.apache.jackrabbit.oak.query.Query;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
- * A join.
+ * A join. This object contains the left hand side source, the right hand side
+ * source, the join type, and the join condition.
  */
 public class JoinImpl extends SourceImpl {
 

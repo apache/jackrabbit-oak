@@ -32,7 +32,6 @@ import org.apache.jackrabbit.util.ISO8601;
 
 /**
  * A {@link PropertyValue} implementation that wraps a {@link PropertyState}
- * 
  */
 public class PropertyStateValue implements PropertyValue {
 
