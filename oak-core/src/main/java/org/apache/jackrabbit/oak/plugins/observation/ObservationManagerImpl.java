@@ -35,6 +35,9 @@ import org.apache.jackrabbit.oak.core.RootImpl;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.observation.ChangeExtractor;
 
+/**
+ * TODO document
+ */
 public class ObservationManagerImpl implements ObservationManager {
     private final RootImpl root;
     private final NamePathMapper namePathMapper;

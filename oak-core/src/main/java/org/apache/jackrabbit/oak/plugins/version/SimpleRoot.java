@@ -30,7 +30,7 @@ import org.apache.jackrabbit.oak.api.TreeLocation;
 import static com.google.common.base.Preconditions.checkArgument;
 
 /**
- * <code>SimpleRoot</code>...
+ * TODO document
  */
 class SimpleRoot implements Root {
 

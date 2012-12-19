@@ -41,7 +41,7 @@ import org.apache.jackrabbit.oak.version.VersionConstants;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
- * <code>VersionHook</code>...
+ * TODO document
  */
 public class VersionHook implements CommitHook {
 

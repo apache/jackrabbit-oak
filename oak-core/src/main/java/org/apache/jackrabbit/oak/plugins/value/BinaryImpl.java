@@ -24,7 +24,7 @@ import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 
 /**
- * BinaryImpl...
+ * TODO document
  */
 class BinaryImpl implements Binary {
 

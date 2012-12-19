@@ -62,7 +62,7 @@ import static org.apache.jackrabbit.JcrConstants.NT_VERSIONLABELS;
 import static org.apache.jackrabbit.oak.version.VersionConstants.REP_VERSIONSTORAGE;
 
 /**
- * <code>ReadWriteVersionManager</code>...
+ * TODO document
  */
 class ReadWriteVersionManager extends ReadOnlyVersionManager {
 
