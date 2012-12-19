@@ -187,22 +187,11 @@ public class MemoryNodeBuilder implements NodeBuilder {
         }
     }
 
-    /**
-     * Determine whether the named child has been removed. This is the
-     * case when the write state has a corresponding {@code null} entry.
-     * Assumes {@code read()}, {@code write()} needs not be called.
-     * @param name  name of the child
-     * @return  {@code true} iff a child with the given name has been removed
-     */
-    private boolean removed(String name) {
-        return writeState != null && writeState.isRemoved(name);
-    }
-
     @Nonnull
     private NodeState read() {
         if (revision != root.revision) {
             assert(!isRoot()); // root never gets here since revision == root.revision
-            checkState(!parent.removed(name), "This node has already been removed");
+            checkState(!isRemoved(), "This node has already been removed");
             parent.read();
 
             // The builder could have been reset, need to re-get base state
@@ -232,7 +221,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
     private MutableNodeState write(long newRevision, boolean skipRemovedCheck) {
         // make sure that all revision numbers up to the root gets updated
         if (!isRoot()) {
-            checkState(skipRemovedCheck || !parent.removed(name));
+            checkState(skipRemovedCheck || !isRemoved());
             parent.write(newRevision, skipRemovedCheck);
         }
 
@@ -244,7 +233,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
 
             writeState = parent.getWriteState(name);
             if (writeState == null) {
-                if (parent.removed(name)) {
+                if (isRemoved()) {
                     writeState = new MutableNodeState(null);
                 }
                 else {
