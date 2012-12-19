@@ -187,11 +187,21 @@ public class MemoryNodeBuilder implements NodeBuilder {
         }
     }
 
+    /**
+     * Determine whether this child has been removed.
+     * Assumes {@code read()}, {@code write()} needs not be called.
+     * @return  {@code true} iff this child has been removed
+     */
+    private boolean removed() {
+        return !isRoot() && parent.writeState != null &&
+                parent.hasBaseState(name) && !parent.writeState.hasChildNode(name);
+    }
+
     @Nonnull
     private NodeState read() {
         if (revision != root.revision) {
             assert(!isRoot()); // root never gets here since revision == root.revision
-            checkState(!isRemoved(), "This node has already been removed");
+            checkState(!removed(), "This node has already been removed");
             parent.read();
 
             // The builder could have been reset, need to re-get base state
@@ -221,7 +231,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
     private MutableNodeState write(long newRevision, boolean skipRemovedCheck) {
         // make sure that all revision numbers up to the root gets updated
         if (!isRoot()) {
-            checkState(skipRemovedCheck || !isRemoved());
+            checkState(skipRemovedCheck || !removed());
             parent.write(newRevision, skipRemovedCheck);
         }
 
@@ -233,7 +243,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
 
             writeState = parent.getWriteState(name);
             if (writeState == null) {
-                if (isRemoved()) {
+                if (removed()) {
                     writeState = new MutableNodeState(null);
                 }
                 else {
