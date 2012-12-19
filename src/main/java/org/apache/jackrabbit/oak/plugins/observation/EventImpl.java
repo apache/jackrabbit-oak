@@ -23,6 +23,9 @@ import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.observation.Event;
 
+/**
+ * TODO document
+ */
 public class EventImpl implements Event {
     private final int type;
     private final String path;
