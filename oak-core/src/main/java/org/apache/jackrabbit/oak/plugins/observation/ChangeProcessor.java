@@ -39,6 +39,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 
+/**
+ * TODO document
+ */
 class ChangeProcessor implements Runnable {
     private final ObservationManagerImpl observationManager;
     private final NamePathMapper namePathMapper;

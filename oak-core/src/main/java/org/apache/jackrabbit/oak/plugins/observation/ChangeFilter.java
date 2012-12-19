@@ -19,6 +19,9 @@ package org.apache.jackrabbit.oak.plugins.observation;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
+/**
+ * TODO document
+ */
 class ChangeFilter {
     private final int eventTypes;
     private final String path;
