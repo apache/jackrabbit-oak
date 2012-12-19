@@ -20,7 +20,6 @@ import javax.annotation.Nonnull;
 
 /**
  * Defines an index definition
- * 
  */
 public interface IndexDefinition {
 

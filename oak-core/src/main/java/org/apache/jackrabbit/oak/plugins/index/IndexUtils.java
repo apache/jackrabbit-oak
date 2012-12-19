@@ -27,6 +27,9 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
+/**
+ * TODO document
+ */
 public class IndexUtils implements IndexConstants {
 
     /**

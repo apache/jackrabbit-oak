@@ -20,6 +20,9 @@ import javax.jcr.NamespaceException;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 
+/**
+ * TODO document
+ */
 class NamespaceValidatorException extends CommitFailedException {
 
     public NamespaceValidatorException(String message, String prefix) {
