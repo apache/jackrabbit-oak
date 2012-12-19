@@ -22,7 +22,7 @@ import org.apache.jackrabbit.oak.query.ast.ColumnImpl;
 import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
 
 /**
- * A query result row that keeps all data in memory.
+ * A query result row that keeps all data (for this row only) in memory.
  */
 public class ResultRowImpl implements ResultRow, Comparable<ResultRowImpl> {
 

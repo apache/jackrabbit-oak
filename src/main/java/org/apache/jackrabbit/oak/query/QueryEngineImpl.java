@@ -49,7 +49,7 @@ public abstract class QueryEngineImpl implements QueryEngine {
     
     static final String NO_LITERALS = "-noLiterals";
 
-    private static final Logger LOG = LoggerFactory.getLogger(QueryEngineImpl.class);
+    static final Logger LOG = LoggerFactory.getLogger(QueryEngineImpl.class);
 
     private final QueryIndexProvider indexProvider;
 
