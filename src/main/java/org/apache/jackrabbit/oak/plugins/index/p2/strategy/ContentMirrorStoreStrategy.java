@@ -16,11 +16,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.p2.strategy;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.Queue;
+import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -38,43 +39,63 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
             return;
         }
         NodeBuilder child = index.child(key);
-        Queue<NodeBuilder> parentQueue = new LinkedList<NodeBuilder>();
+        Map<String, NodeBuilder> parents = new TreeMap<String, NodeBuilder>(Collections.reverseOrder());
+
         for (String rm : values) {
             if (PathUtils.denotesRoot(rm)) {
                 child.removeProperty("match");
             } else {
-                NodeBuilder indexEntry = child;
-                Iterator<String> segments = PathUtils.elements(rm).iterator();
-                while (segments.hasNext()) {
-                    String segment = segments.next();
-                    if (segments.hasNext()) {
-                        parentQueue.add(indexEntry);
+                String parentPath = PathUtils.getParentPath(rm);
+                String name = PathUtils.getName(rm);
+                NodeBuilder indexEntry = parents.get(parentPath);
+                if (indexEntry == null) {
+                    indexEntry = child;
+                    String segmentPath = "";
+                    Iterator<String> segments = PathUtils.elements(parentPath)
+                            .iterator();
+                    while (segments.hasNext()) {
+                        String segment = segments.next();
+                        segmentPath = PathUtils.concat(segmentPath, segment);
                         indexEntry = indexEntry.child(segment);
-                    } else {
-                        // last segment
-                        if (indexEntry.hasChildNode(segment)) {
-                            indexEntry.removeNode(segment);
-                        }
+                        parents.put(segmentPath, indexEntry);
+                    }
+                }
+                if (indexEntry.hasChildNode(name)) {
+                    NodeBuilder childEntry = indexEntry.child(name);
+                    childEntry.removeProperty("match");
+                    if (childEntry.getChildNodeCount() == 0) {
+                        indexEntry.removeNode(name);
                     }
                 }
             }
         }
         // prune the index: remove all children that have no children
         // and no "match" property progressing bottom up
-        // see OAK-520
-        // while (!parentQueue.isEmpty()) {
-        // NodeBuilder node = parentQueue.poll();
-        // for (String name : node.getChildNodeNames()) {
-        // NodeBuilder segment = node.child(name);
-        // if (segment.getChildNodeCount() == 0
-        // && segment.getProperty("match") == null) {
-        // segment.removeNode(name);
-        // }
-        // }
-        // }
-        // finally remove the index node if empty
-        if (child.getChildNodeCount() == 0) {
+        Iterator<String> it = parents.keySet().iterator();
+        while (it.hasNext()) {
+            String path = it.next();
+            NodeBuilder parent = parents.get(path);
+            pruneNode(parent);
+        }
+
+        // finally prune the index node
+        pruneNode(child);
+        if (child.getChildNodeCount() == 0
+                && child.getProperty("match") == null) {
             index.removeNode(key);
+        }
+    }
+
+    private void pruneNode(NodeBuilder parent) {
+        if (parent.isRemoved()) {
+            return;
+        }
+        for (String name : parent.getChildNodeNames()) {
+            NodeBuilder segment = parent.child(name);
+            if (segment.getChildNodeCount() == 0
+                    && segment.getProperty("match") == null) {
+                parent.removeNode(name);
+            }
         }
     }
 
@@ -85,9 +106,7 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
 
         for (String add : values) {
             NodeBuilder indexEntry = child;
-            Iterator<String> segments = PathUtils.elements(add).iterator();
-            while (segments.hasNext()) {
-                String segment = segments.next();
+            for(String segment: PathUtils.elements(add)){
                 indexEntry = indexEntry.child(segment);
             }
             indexEntry.setProperty("match", true);
