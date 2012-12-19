@@ -53,7 +53,7 @@ import org.slf4j.LoggerFactory;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 
 /**
- * IdentifierManager...
+ * TODO document
  */
 public class IdentifierManager {
 
