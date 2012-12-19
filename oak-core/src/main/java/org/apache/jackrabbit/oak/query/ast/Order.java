@@ -17,7 +17,7 @@
 package org.apache.jackrabbit.oak.query.ast;
 
 /**
- * Enumeration of query orders.
+ * The enumeration of query column orders (ascending and descending).
  */
 public enum Order {
 

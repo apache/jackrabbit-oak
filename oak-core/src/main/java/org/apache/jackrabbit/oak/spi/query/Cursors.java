@@ -36,7 +36,8 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.isAbsolute;
 import static org.apache.jackrabbit.oak.spi.query.Filter.PathRestriction.ALL_CHILDREN;
 
 /**
- * <code>Cursors</code> provides factory methods to create {@link Cursor}s.
+ * This utility class provides factory methods to create commonly used types of
+ * {@link Cursor}s.
  */
 public class Cursors {
 
@@ -56,9 +57,9 @@ public class Cursors {
     /**
      * Returns a traversing cursor based on the path restriction in the given
      * {@link Filter}.
-     *
-     * @param filter    the filter.
-     * @param rootState      the root {@link NodeState}.
+     * 
+     * @param filter the filter.
+     * @param rootState the root {@link NodeState}.
      * @return the {@link Cursor}.
      */
     public static Cursor newTraversingCursor(Filter filter,

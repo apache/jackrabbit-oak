@@ -22,7 +22,6 @@ import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
 
-
 /**
  * A bind variable.
  */

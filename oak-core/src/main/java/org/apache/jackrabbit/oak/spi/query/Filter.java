@@ -27,7 +27,15 @@ import javax.jcr.PropertyType;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 
 /**
- * The filter for an index lookup.
+ * The filter for an index lookup that contains a number of restrictions that
+ * are combined with AND. Possible restrictions are a property restriction, a
+ * path restriction, a node type restriction, and a fulltext restriction.
+ * <p>
+ * A property restriction could be that the property must exist, or that the
+ * property value has to be within a certain range.
+ * <p>
+ * A path restriction could be a restriction to a certain subtree, a parent of a
+ * certain path, or equality to a certain path.
  */
 public interface Filter {
 
