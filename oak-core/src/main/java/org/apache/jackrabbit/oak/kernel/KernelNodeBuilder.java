@@ -20,6 +20,9 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 
+/**
+ * TODO document
+ */
 class KernelNodeBuilder extends MemoryNodeBuilder {
 
     private final KernelRootBuilder root;

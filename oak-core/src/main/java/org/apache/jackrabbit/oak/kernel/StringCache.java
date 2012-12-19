@@ -24,6 +24,9 @@ import org.apache.jackrabbit.oak.version.VersionConstants;
 
 import com.google.common.collect.ImmutableMap;
 
+/**
+ * TODO document
+ */
 class StringCache {
 
     private static final Map<String, String> CONSTANTS = createStringMap(

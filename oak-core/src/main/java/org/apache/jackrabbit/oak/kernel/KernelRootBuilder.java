@@ -30,6 +30,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState.collapse;
 
+/**
+ * TODO document
+ */
 class KernelRootBuilder extends MemoryNodeBuilder {
 
     /**

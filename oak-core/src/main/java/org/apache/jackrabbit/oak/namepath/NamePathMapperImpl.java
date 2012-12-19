@@ -28,7 +28,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * NamePathMapperImpl...
+ * TODO document
  */
 public class NamePathMapperImpl implements NamePathMapper {
 

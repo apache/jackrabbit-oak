@@ -37,6 +37,9 @@ import static org.apache.jackrabbit.oak.api.Type.BOOLEANS;
 import static org.apache.jackrabbit.oak.api.Type.LONGS;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 
+/**
+ * TODO document
+ */
 class JsopDiff implements NodeStateDiff {
     private static final Logger log = LoggerFactory.getLogger(JsopDiff.class);
 
