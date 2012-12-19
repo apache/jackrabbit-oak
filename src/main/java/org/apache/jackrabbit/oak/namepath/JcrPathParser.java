@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.namepath;
 
+/**
+ * TODO document
+ */
 public class JcrPathParser {
 
     // constants for parser

@@ -22,6 +22,9 @@ import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
+/**
+ * TODO document
+ */
 @Component
 @Service(ValidatorProvider.class)
 public class ConflictValidatorProvider implements ValidatorProvider {

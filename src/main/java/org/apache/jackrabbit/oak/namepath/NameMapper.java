@@ -19,6 +19,9 @@ package org.apache.jackrabbit.oak.namepath;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+/**
+ * TODO document
+ */
 public interface NameMapper {
 
     /**
