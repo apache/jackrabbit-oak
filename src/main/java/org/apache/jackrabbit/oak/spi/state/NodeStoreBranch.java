@@ -20,6 +20,9 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 
+/**
+ * TODO document
+ */
 public interface NodeStoreBranch {
 
     /**
