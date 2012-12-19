@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
+/**
+ * TODO document
+ */
 public class IndexDefinitionImpl implements IndexDefinition, IndexConstants {
 
     private final String name;

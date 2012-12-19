@@ -26,6 +26,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 
+/**
+ * TODO document
+ */
 class NameValidator implements Validator {
 
     private final Set<String> prefixes;

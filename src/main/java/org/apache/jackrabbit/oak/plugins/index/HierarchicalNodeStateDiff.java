@@ -18,6 +18,9 @@ package org.apache.jackrabbit.oak.plugins.index;
 
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 
+/**
+ * TODO document
+ */
 public interface HierarchicalNodeStateDiff<T extends HierarchicalNodeStateDiff<T>>
         extends NodeStateDiff {
 
