@@ -31,6 +31,9 @@ import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
+/**
+ * TODO document
+ */
 public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
 
     @Override
@@ -86,7 +89,7 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
         }
     }
 
-    private void pruneNode(NodeBuilder parent) {
+    private static void pruneNode(NodeBuilder parent) {
         if (parent.isRemoved()) {
             return;
         }
@@ -106,7 +109,7 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
 
         for (String add : values) {
             NodeBuilder indexEntry = child;
-            for(String segment: PathUtils.elements(add)){
+            for (String segment : PathUtils.elements(add)) {
                 indexEntry = indexEntry.child(segment);
             }
             indexEntry.setProperty("match", true);
@@ -136,11 +139,20 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
     @Override
     public Set<String> find(NodeState index, Iterable<String> values) {
         Set<String> paths = new HashSet<String>();
-        for (String p : values) {
-            NodeState property = index.getChildNode(p);
-            if (property != null) {
+        if (values == null) {
+            if (index != null) {
                 // We have an entry for this value, so use it
-                getMatchingPaths(property, "", paths);
+                for (ChildNodeEntry child : index.getChildNodeEntries()) {
+                    getMatchingPaths(child.getNodeState(), "", paths);
+                }
+            }
+        } else {
+            for (String p : values) {
+                NodeState property = index.getChildNode(p);
+                if (property != null) {
+                    // We have an entry for this value, so use it
+                    getMatchingPaths(property, "", paths);
+                }
             }
         }
         return paths;
@@ -162,8 +174,12 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
     @Override
     public int count(NodeState index, Iterable<String> values) {
         int count = 0;
-        for (String p : values) {
-            count += countMatchingLeaves(index.getChildNode(p));
+        if (values == null) {
+            count += countMatchingLeaves(index);
+        } else {
+            for (String p : values) {
+                count += countMatchingLeaves(index.getChildNode(p));
+            }
         }
         return count;
     }
