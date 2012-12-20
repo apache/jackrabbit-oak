@@ -188,6 +188,9 @@ public class VersionManagerImpl implements VersionManager {
 
     @Override
     public void checkout(final String absPath) throws RepositoryException {
+        if (true) {
+            TODO.unimplemented().doNothing();
+        }
         final SessionDelegate sessionDelegate = versionManagerDelegate.getSessionDelegate();
         sessionDelegate.perform(new SessionOperation<Void>() {
             @Override
@@ -208,6 +211,9 @@ public class VersionManagerImpl implements VersionManager {
 
     @Override
     public Version checkin(final String absPath) throws RepositoryException {
+        if (true) {
+            return TODO.dummyImplementation().returnValue(getBaseVersion(absPath));
+        }
         final SessionDelegate sessionDelegate = versionManagerDelegate.getSessionDelegate();
         return sessionDelegate.perform(new SessionOperation<Version>() {
             @Override
