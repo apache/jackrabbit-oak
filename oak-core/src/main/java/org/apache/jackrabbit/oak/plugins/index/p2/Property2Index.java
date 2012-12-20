@@ -81,7 +81,8 @@ class Property2Index implements QueryIndex {
 
     public static final String TYPE = "p2";
 
-    private static final int MAX_STRING_LENGTH = 100; // TODO: configurable
+    // TODO the max string length should be removed, or made configurable
+    private static final int MAX_STRING_LENGTH = 100; 
 
     static List<String> encode(PropertyValue value) {
         List<String> values = new ArrayList<String>();
@@ -110,10 +111,17 @@ class Property2Index implements QueryIndex {
     public double getCost(Filter filter, NodeState root) {
         Property2IndexLookup lookup = new Property2IndexLookup(root);
         for (PropertyRestriction pr : filter.getPropertyRestrictions()) {
-            if (pr.firstIncluding && pr.lastIncluding
-                    && pr.first.equals(pr.last) // TODO: range queries
-                    && lookup.isIndexed(pr.propertyName, "/")) { // TODO: path
-                return lookup.getCost(pr.propertyName, pr.first);
+            // TODO support indexes on a path
+            // currently, only indexes on the root node are supported
+            if (lookup.isIndexed(pr.propertyName, "/")) {
+                if (pr.firstIncluding && pr.lastIncluding
+                    && pr.first != null && pr.first.equals(pr.last)) {
+                    // "[property] = $value"
+                    return lookup.getCost(pr.propertyName, pr.first);
+                } else if (pr.first == null && pr.last == null) {
+                    // "[property] is not null"
+                    return lookup.getCost(pr.propertyName, null);
+                }
             }
         }
         // not an appropriate index
@@ -126,18 +134,32 @@ class Property2Index implements QueryIndex {
 
         Property2IndexLookup lookup = new Property2IndexLookup(root);
         for (PropertyRestriction pr : filter.getPropertyRestrictions()) {
-            if (pr.firstIncluding && pr.lastIncluding
-                    && pr.first.equals(pr.last) // TODO: range queries
-                    && lookup.isIndexed(pr.propertyName, "/")) { // TODO: path
-                Set<String> set = lookup.find(pr.propertyName, pr.first);
-                if (paths == null) {
-                    paths = Sets.newHashSet(set);
-                } else {
-                    paths.retainAll(set);
+            // TODO support indexes on a path
+            // currently, only indexes on the root node are supported
+            if (lookup.isIndexed(pr.propertyName, "/")) {
+                Set<String> set = null;
+                // equality
+                if (pr.firstIncluding && pr.lastIncluding
+                    && pr.first != null && pr.first.equals(pr.last)) {
+                    // "[property] = $value"
+                    // TODO don't load all entries in memory
+                    set = lookup.find(pr.propertyName, pr.first);
+                } else if (pr.first == null && pr.last == null) {
+                    // "[property] is not null"
+                    // TODO don't load all entries in memory
+                    set = lookup.find(pr.propertyName, (PropertyValue) null);
+                }
+                // only keep the intersection
+                // TODO this requires all paths are loaded in memory
+                if (set != null) {
+                    if (paths == null) {
+                        paths = Sets.newHashSet(set);
+                    } else {
+                        paths.retainAll(set);
+                    }
                 }
             }
         }
-
         if (paths == null) {
             throw new IllegalStateException("Property index is used even when no index is available for filter " + filter);
         }
@@ -146,6 +168,7 @@ class Property2Index implements QueryIndex {
 
     @Override
     public String getPlan(Filter filter, NodeState root) {
-        return "oak:index"; // TODO: better plans
+        // TODO the index should return better query plans
+        return "oak:index"; 
     }
 }

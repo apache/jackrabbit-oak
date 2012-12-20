@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.nodetype.InitialContent;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -60,6 +61,8 @@ public class PropertyIndexQueryTest extends AbstractQueryTest {
     }
 
     @Test
+    @Ignore
+    // not implemented, see OAK-515
     public void sql2Index() throws Exception {
         test("sql2_index.txt");
     }

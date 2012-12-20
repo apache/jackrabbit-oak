@@ -25,7 +25,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 /**
  * Strategy that defines how the index content will be actually stored under the
  * index node
- * 
  */
 public interface IndexStoreStrategy {
 
@@ -57,16 +56,17 @@ public interface IndexStoreStrategy {
      * Search for a given set of values
      * 
      * @param index index node
-     * @param values values to look for
+     * @param values values to look for (null to check for property existence)
      * @return the set of paths corresponding to the given values
      */
     Set<String> find(NodeState index, Iterable<String> values);
 
     /**
-     * Count the occurrence of a given set of values. Used in scoring.
+     * Count the occurrence of a given set of values. Used in calculating the
+     * cost of an index.
      * 
      * @param index the index node
-     * @param values values to look for
+     * @param values values to look for (null to check for property existence)
      * @return the aggregated count of occurrences for each provided value
      */
     int count(NodeState index, Iterable<String> values);

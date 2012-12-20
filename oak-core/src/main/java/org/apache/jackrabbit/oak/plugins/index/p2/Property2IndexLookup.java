@@ -108,7 +108,7 @@ public class Property2IndexLookup {
      * Searches for a given value within this index.
      * 
      * @param name the property name
-     * @param value the property value
+     * @param value the property value (null to check for property existence)
      * @return the set of matched paths
      */
     public Set<String> find(String name, PropertyValue value) {
@@ -117,13 +117,18 @@ public class Property2IndexLookup {
         NodeState state = getIndexDefinitionNode(name);
         if (state != null && state.getChildNode(":index") != null) {
             state = state.getChildNode(":index");
-            paths.addAll(store.find(state, Property2Index.encode(value)));
+            if (value == null) {
+                paths.addAll(store.find(state, null));
+            } else {
+                paths.addAll(store.find(state, Property2Index.encode(value)));
+            }
         } else {
             // No index available, so first check this node for a match
             PropertyState property = root.getProperty(name);
             if (property != null) {
-                if (value.isArray()) {
-                    // let query engine handle multi-valued look ups
+                if (value == null || value.isArray()) {
+                    // let query engine handle property existence and
+                    // multi-valued look ups;
                     // simply return all nodes that have this property
                     paths.add("");
                 } else {
@@ -158,10 +163,16 @@ public class Property2IndexLookup {
 
     public double getCost(String name, PropertyValue value) {
         double cost = 0.0;
+        // TODO the cost method is currently reading all the data - 
+        // is not supposed to do that, it is only supposed to estimate
         NodeState state = getIndexDefinitionNode(name);
         if (state != null && state.getChildNode(":index") != null) {
             state = state.getChildNode(":index");
-            cost += store.count(state, Property2Index.encode(value));
+            if (value == null) {
+                cost += store.count(state, null);
+            } else {
+                cost += store.count(state, Property2Index.encode(value));
+            }
         } else {
             cost = Double.POSITIVE_INFINITY;
         }
@@ -181,7 +192,7 @@ public class Property2IndexLookup {
         if (state != null) {
             for (ChildNodeEntry entry : state.getChildNodeEntries()) {
                 PropertyState type = entry.getNodeState().getProperty(IndexConstants.TYPE_PROPERTY_NAME);
-                if(type == null || type.isArray() || !Property2Index.TYPE.equals(type.getValue(Type.STRING))){
+                if (type == null || type.isArray() || !Property2Index.TYPE.equals(type.getValue(Type.STRING))) {
                     continue;
                 }
                 PropertyState names = entry.getNodeState().getProperty("propertyNames");

@@ -28,7 +28,16 @@
 explain select * from [nt:base] where [jcr:uuid] = '123'
 [nt:base] as [nt:base] /* oak:index where [nt:base].[jcr:uuid] = cast('123' as string) */
 
-select * from [nt:base] where [jcr:uuid] = '123'
-
 explain select * from [nt:base] where [jcr:uuid] is not null
-[nt:base] as [nt:base] /* traverse "//*" where [nt:base].[jcr:uuid] is not null */
+[nt:base] as [nt:base] /* oak:index where [nt:base].[jcr:uuid] is not null */
+
+commit / + "test": { "jcr:uuid": "xyz", "a": { "jcr:uuid": "123" } }
+
+select * from [nt:base] where [jcr:uuid] is not null
+/test
+/test/a
+
+select * from [nt:base] where [jcr:uuid] = 'xyz'
+/test
+
+commit / - "test"
