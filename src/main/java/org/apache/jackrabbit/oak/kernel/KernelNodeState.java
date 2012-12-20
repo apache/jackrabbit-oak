@@ -236,9 +236,11 @@ public final class KernelNodeState extends AbstractNodeState {
                     kbase.init();
                     if (hash != null && hash.equals(kbase.hash)) {
                         return; // no differences
-                    } else if (path.equals(kbase.path)) {
-                        // TODO: Parse the JSON diff returned by the kernel
-                        // kernel.diff(kbase.revision, revision, path);
+                    } else if (path.equals(kbase.path) && !path.equals("/")) {
+                        String jsonDiff = kernel.diff(kbase.getRevision(), revision, path, 0);
+                        if (!hasChanges(jsonDiff)) {
+                            return; // no differences
+                        }
                     }
                 }
             }
@@ -271,6 +273,9 @@ public final class KernelNodeState extends AbstractNodeState {
                     that.init();
                     if (hash != null && that.hash != null) {
                         return hash.equals(that.hash);
+                    } else if (path.equals(that.path) && !path.equals("/")) {
+                        String jsonDiff = kernel.diff(that.getRevision(), revision, path, 0);
+                        return !hasChanges(jsonDiff);
                     }
                 }
             }
@@ -292,6 +297,10 @@ public final class KernelNodeState extends AbstractNodeState {
     }
 
     //------------------------------------------------------------< private >---
+
+    private boolean hasChanges(String journal) {
+        return !journal.trim().isEmpty();
+    }
 
     private Iterable<ChildNodeEntry> getChildNodeEntries(
             final long offset, final int count) {
