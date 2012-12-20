@@ -25,6 +25,24 @@
 
 # jackrabbit test queries
 
+xpath2sql testroot//child/..[@foo1]
+select b.[jcr:path] as [jcr:path], b.[jcr:score] as [jcr:score], b.* from [nt:base] as a inner join [nt:base] as b on ischildnode(a, b) where name(a) = 'child' and isdescendantnode(a, '/testroot') and b.[foo1] is not null
+
+xpath2sql testroot//child/.[@foo1]
+select [jcr:path], [jcr:score], * from [nt:base] as a where [foo1] is not null and name(a) = 'child' and isdescendantnode(a, '/testroot')
+
+xpath2sql testroot//child[@foo1]
+select [jcr:path], [jcr:score], * from [nt:base] as a where [foo1] is not null and name(a) = 'child' and isdescendantnode(a, '/testroot')
+
+xpath2sql /jcr:root/testroot/node11
+select [jcr:path], [jcr:score], * from [nt:base] as a where issamenode(a, '/testroot/node11')
+
+xpath2sql /jcr:root/testroot/./node11
+select b.[jcr:path] as [jcr:path], b.[jcr:score] as [jcr:score], b.* from [nt:base] as a inner join [nt:base] as b on ischildnode(b, a) where ischildnode(a, '/testroot') and name(b) = 'node11'
+
+xpath2sql /jcr:root/testroot/././node11
+select b.[jcr:path] as [jcr:path], b.[jcr:score] as [jcr:score], b.* from [nt:base] as a inner join [nt:base] as b on ischildnode(b, a) where ischildnode(a, '/testroot') and name(b) = 'node11'
+
 xpath /jcr:root/testroot//*[0]
 java.text.ParseException: /jcr:root/testroot//*[0] converted to SQL-2 Query: select [jcr:path], [jcr:score], * from [nt:base] as a where 0(*)is not null and isdescendantnode(a, '/testroot'); expected: NOT, (
 
@@ -32,22 +50,22 @@ xpath2sql /test
 select [jcr:path], [jcr:score], * from [nt:base] as a where name(a) = 'test' and issamenode(a, '/')
 
 xpath2sql /
-invalid: Query: (*)/; expected: jcr:root, /, *, text, element, @, (
+invalid: Query: (*)/; expected: jcr:root, /, *, text, element, @, (, .
 
 xpath2sql /[@name='data']
-invalid: Query: /[(*)@name='data']; expected: jcr:root, /, *, text, element, @, (
+invalid: Query: /[(*)@name='data']; expected: jcr:root, /, *, text, element, @, (, .
 
 xpath2sql //[@name='data']
-invalid: Query: //[(*)@name='data']; expected: *, text, element, @, (
+invalid: Query: //[(*)@name='data']; expected: *, text, element, @, (, .
 
 xpath2sql //child/[@id='2.1']
-invalid: Query: //child/[(*)@id='2.1']; expected: jcr:root, /, *, text, element, @, (
+invalid: Query: //child/[(*)@id='2.1']; expected: jcr:root, /, *, text, element, @, (, .
 
 xpath2sql //
-invalid: Query: /(*)/; expected: *, text, element, @, (
+invalid: Query: /(*)/; expected: *, text, element, @, (, .
 
 xpath2sql [@name='data']
-invalid: Query: [(*)@name='data']; expected: /, *, text, element, @, (
+invalid: Query: [(*)@name='data']; expected: /, *, text, element, @, (, .
 
 xpath2sql test
 select [jcr:path], [jcr:score], * from [nt:base] as a where issamenode(a, '/test')
@@ -129,9 +147,6 @@ select [jcr:path], [jcr:score], * from [nt:base] as a where [prop1] = 1 and name
 # TODO support rep:excerpt() and rep:similar()? how?
 xpath2sql /jcr:root/testroot/*[jcr:contains(., 'jackrabbit')]/rep:excerpt(.)
 invalid: Query: /jcr:root/testroot/*[jcr:contains(., 'jackrabbit')]/rep:excerpt((*).); expected: <end>
-
-xpath2sql /jcr:root/testroot//child/..[@foo1]
-invalid: Query: /jcr:root/testroot//child/.(*).[@foo1]; expected: jcr:root, /, *, text, element, @, (
 
 xpath2sql //testroot/*[@jcr:primaryType='nt:unstructured' and fn:not(@mytext)]
 select b.[jcr:path] as [jcr:path], b.[jcr:score] as [jcr:score], b.* from [nt:base] as a inner join [nt:base] as b on ischildnode(b, a) where name(a) = 'testroot' and b.[jcr:primaryType] = 'nt:unstructured' and b.[mytext] is null
@@ -352,7 +367,7 @@ xpath2sql //element(*, my:type)[jcr:contains(@my:title, 'jcr')] order by jcr:sco
 select [jcr:path], [jcr:score], * from [my:type] as a where contains([my:title], 'jcr') order by score(a) desc
 
 xpath2sql [invalid/query
-invalid: Query: [(*)invalid/query; expected: /, *, text, element, @, (
+invalid: Query: [(*)invalid/query; expected: /, *, text, element, @, (, .
 
 xpath2sql //element(*, my:type)[@my:value = -'x']
 invalid: Query: //element(*, my:type)[@my:value = -'x'(*)]
