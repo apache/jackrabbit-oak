@@ -72,6 +72,7 @@ public class MongoMKGetRevisionHistoryTest extends BaseMongoMicroKernelTest {
         JSONArray array = parseJSONArray(mk.getRevisionHistory(since1, -1, "/"));
         assertEquals(count1, array.size());
 
+        Thread.sleep(100);
 
         long since2 = System.currentTimeMillis();
         int count2 = 4;

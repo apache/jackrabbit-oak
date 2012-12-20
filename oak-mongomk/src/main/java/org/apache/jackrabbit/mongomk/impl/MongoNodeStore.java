@@ -36,6 +36,7 @@ import org.apache.jackrabbit.mongomk.impl.command.GetNodesCommandNew;
 import org.apache.jackrabbit.mongomk.impl.command.GetRevisionHistoryCommand;
 import org.apache.jackrabbit.mongomk.impl.command.MergeCommand;
 import org.apache.jackrabbit.mongomk.impl.command.NodeExistsCommand;
+import org.apache.jackrabbit.mongomk.impl.command.OneLevelDiffCommand;
 import org.apache.jackrabbit.mongomk.impl.command.WaitForCommitCommand;
 import org.apache.jackrabbit.mongomk.impl.model.MongoCommit;
 import org.apache.jackrabbit.mongomk.impl.model.MongoNode;
@@ -91,7 +92,12 @@ public class MongoNodeStore implements NodeStore {
     @Override
     public String diff(String fromRevision, String toRevision, String path, int depth)
             throws Exception {
-        Command<String> command = new DiffCommand(this, fromRevision, toRevision, path, depth);
+        Command<String> command;
+        if (depth == 0) {
+            command = new OneLevelDiffCommand(this, fromRevision, toRevision, path);
+        } else {
+            command = new DiffCommand(this, fromRevision, toRevision, path, depth);
+        }
         return commandExecutor.execute(command);
     }
 
