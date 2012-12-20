@@ -23,9 +23,24 @@
 # * new tests are typically be added on top, after the syntax docs
 # * use ascii character only
 
+# test parent join
+
+commit / + "test": { "a": { "x": "1", "yes": { } }, "b": { "yes" : { } }, "c": { "x": "1", "no" : { } }}
+
+xpath test//yes/..[@x]
+/test/a, null, /test/a
+
+select b.[jcr:path] as [jcr:path], b.[jcr:score] as [jcr:score], b.* from [nt:base] as a inner join [nt:base] as b on ischildnode(a, b) where name(a) = 'yes' and isdescendantnode(a, '/test') and b.[x] is not null
+/test/a, null, /test/a
+
+explain select b.[jcr:path] as [jcr:path], b.[jcr:score] as [jcr:score], b.* from [nt:base] as a inner join [nt:base] as b on ischildnode(a, b) where name(a) = 'yes' and isdescendantnode(a, '/test') and b.[x] is not null
+[nt:base] as [a] /* traverse "/test//*" where (name([a]) = cast('yes' as string)) and (isdescendantnode([a], [/test])) */ inner join [nt:base] as [b] /* traverse "//*" where [b].[x] is not null */ on ischildnode([a], [b])
+
+commit / - "test"
+
 # test spaces in identifiers
 
-commit / + "test": { "space space": { }}
+commit / + "test": { "space space": { "x": "1" }}
 
 select * from [nt:base] where issamenode([/test/space space])
 /test/space space

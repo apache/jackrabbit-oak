@@ -85,9 +85,6 @@ public class XPathToSQL2Converter {
         currentSelector.name = "a";
 
         ArrayList<Expression> columnList = new ArrayList<Expression>();
-
-        // TODO support "..", example:
-        // /jcr:root/etc/..
         
         String pathPattern = "";
         boolean startOfQuery = true;
@@ -225,6 +222,29 @@ public class XPathToSQL2Converter {
                         }
                     }
                 }
+            } else if (readIf(".")) {
+                // just "." this is simply ignored, so that
+                // "a/./b" is the same as "a/b"
+                if (readIf(".")) {
+                    // ".." means "the parent of the node"
+                    // handle like a regular path restriction
+                    String name = "..";
+                    pathPattern += name;
+                    if (!currentSelector.isChild) {
+                        currentSelector.nodeName = name;
+                    } else {
+                        if (currentSelector.isChild) {
+                            currentSelector.isChild = false;
+                            currentSelector.isParent = true;
+                        }
+                    }
+                } else {
+                    if (selectors.size() > 0) {
+                        currentSelector = selectors.remove(selectors.size() - 1);
+                        currentSelector.condition = null;
+                        currentSelector.joinCondition = null;
+                    }
+                }
             } else {
                 throw getSyntaxError();
             }
@@ -346,7 +366,7 @@ public class XPathToSQL2Converter {
         boolean isFirstSelector = selectors.size() == 0;
         String path = currentSelector.path;
         Expression condition = currentSelector.condition;
-        Expression joinCondition = currentSelector.joinCondition;
+        Expression joinCondition = null;
         if (currentSelector.nodeName != null) {
             Function f = new Function("name");
             f.params.add(new SelectorExpr(currentSelector));
@@ -372,6 +392,15 @@ public class XPathToSQL2Converter {
                 c.params.add(new SelectorExpr(selectors.get(selectors.size() - 1)));
                 joinCondition = c;
             } 
+        } else if (currentSelector.isParent) {
+            if (isFirstSelector) {
+                throw getSyntaxError();
+            } else {
+                Function c = new Function("ischildnode");
+                c.params.add(new SelectorExpr(selectors.get(selectors.size() - 1)));
+                c.params.add(new SelectorExpr(currentSelector));
+                joinCondition = c;
+            }
         } else if (currentSelector.isChild) {
             if (isFirstSelector) {
                 if (!path.isEmpty()) {
@@ -408,7 +437,7 @@ public class XPathToSQL2Converter {
             Selector nextSelector = new Selector();
             nextSelector.name = nextSelectorName;
             currentSelector.condition = condition;
-            currentSelector.joinCondition = joinCondition;
+            currentSelector.joinCondition = add(currentSelector.joinCondition, joinCondition);
             selectors.add(currentSelector);
             currentSelector = nextSelector;
         }
@@ -417,6 +446,8 @@ public class XPathToSQL2Converter {
     private static Expression add(Expression old, Expression add) {
         if (old == null) {
             return add;
+        } else if (add == null) {
+            return old;
         }
         return new Condition(old, "and", add, Expression.PRECEDENCE_AND);
     }
@@ -985,22 +1016,33 @@ public class XPathToSQL2Converter {
         
         /**
          * Whether this is a child node of the previous selector or a given path.
+         * Examples:
+         * <ul><li>/jcr:root/*
+         * </li><li>/jcr:root/test/*
+         * </li><li>/jcr:root/element()
+         * </li><li>/jcr:root/element(*)
+         * </li></ul>
          */
-        // queries of the type
-        // jcr:root/*
-        // jcr:root/test/*
-        // jcr:root/element()
-        // jcr:root/element(*)
         boolean isChild;
-
+        
+        /**
+         * Whether this is a parent node of the previous selector or given path.
+         * Examples:
+         * <ul><li>testroot//child/..[@foo1]
+         * </li><li>/jcr:root/test/descendant/..[@test]
+         * </li></ul>
+         */
+        boolean isParent;
+        
         /**
          * Whether this is a descendant of the previous selector or a given path.
+         * Examples:
+         * <ul><li>/jcr:root//descendant
+         * </li><li>/jcr:root/test//descendant
+         * </li><li>/jcr:root[@x]
+         * </li><li>/jcr:root (just by itself)
+         * </li></ul>
          */
-        // queries of the type
-        // /jcr:root//...
-        // /jcr:root/test//...
-        // /jcr:root[...]
-        // /jcr:root (just by itself)
         boolean isDescendant;
         
         /**
