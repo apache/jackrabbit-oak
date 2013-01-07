@@ -27,7 +27,11 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
+/**
+ * Test the Property2 index mechanism.
+ */
 public class Property2IndexTest {
 
     private static final int MANY = 100;
@@ -54,31 +58,19 @@ public class Property2IndexTest {
         }
         NodeState after = builder.getNodeState();
 
-        // First check lookups without an index
-        Property2IndexLookup lookup = new Property2IndexLookup(after);
-        long withoutIndex = System.nanoTime();
-        assertEquals(ImmutableSet.of("a", "b"), lookup.find("foo", "abc"));
-        assertEquals(ImmutableSet.of("b"), lookup.find("foo", "def"));
-        assertEquals(ImmutableSet.of(), lookup.find("foo", "ghi"));
-        assertEquals(MANY, lookup.find("foo", "xyz").size());
-        withoutIndex = System.nanoTime() - withoutIndex;
-
-        // ... then see how adding an index affects the code
+        // Add an index
         IndexHook p = new Property2IndexDiff(builder);
         after.compareAgainstBaseState(before, p);
         p.apply();
         p.close();
 
-        lookup = new Property2IndexLookup(builder.getNodeState());
-        long withIndex = System.nanoTime();
+        // Query the index
+        Property2IndexLookup lookup = new Property2IndexLookup(builder.getNodeState());
         assertEquals(ImmutableSet.of("a", "b"), lookup.find("foo", "abc"));
         assertEquals(ImmutableSet.of("b"), lookup.find("foo", "def"));
         assertEquals(ImmutableSet.of(), lookup.find("foo", "ghi"));
         assertEquals(MANY, lookup.find("foo", "xyz").size());
-        withIndex = System.nanoTime() - withIndex;
-
-        // System.out.println("Index performance ratio: " + withoutIndex/withIndex);
-        // assertTrue(withoutIndex > withIndex);
+        
     }
 
     @Test
@@ -103,35 +95,27 @@ public class Property2IndexTest {
         }
         NodeState after = builder.getNodeState();
 
-        // First check lookups without an index
-        Property2IndexLookup lookup = new Property2IndexLookup(after);
-        long withoutIndex = System.nanoTime();
-        assertEquals(ImmutableSet.of("a", "b"), lookup.find("foo", "abc"));
-        assertEquals(ImmutableSet.of("b"), lookup.find("foo", "def"));
-        assertEquals(ImmutableSet.of(), lookup.find("foo", "ghi"));
-        assertEquals(MANY, lookup.find("foo", "xyz").size());
-        assertEquals(ImmutableSet.of("a"), lookup.find("extrafoo", "pqr"));
-        assertEquals(ImmutableSet.of(), lookup.find("pqr", "foo"));
-        withoutIndex = System.nanoTime() - withoutIndex;
-
-        // ... then see how adding an index affects the code
+        // Add an index
         IndexHook p = new Property2IndexDiff(builder);
         after.compareAgainstBaseState(before, p);
         p.apply();
         p.close();
 
-        lookup = new Property2IndexLookup(builder.getNodeState());
-        long withIndex = System.nanoTime();
+        // Query the index
+        Property2IndexLookup lookup = new Property2IndexLookup(builder.getNodeState());
         assertEquals(ImmutableSet.of("a", "b"), lookup.find("foo", "abc"));
         assertEquals(ImmutableSet.of("b"), lookup.find("foo", "def"));
         assertEquals(ImmutableSet.of(), lookup.find("foo", "ghi"));
         assertEquals(MANY, lookup.find("foo", "xyz").size());
         assertEquals(ImmutableSet.of("a"), lookup.find("extrafoo", "pqr"));
-        assertEquals(ImmutableSet.of(), lookup.find("pqr", "foo"));
-        withIndex = System.nanoTime() - withIndex;
+        
+        try {
+            assertEquals(ImmutableSet.of(), lookup.find("pqr", "foo"));
+            fail();
+        } catch (IllegalArgumentException e) {
+            // expected: no index for "pqr"
+        }
 
-        // System.out.println("Index performance ratio: " + withoutIndex/withIndex);
-        // assertTrue(withoutIndex > withIndex);
     }
 
 
