@@ -18,8 +18,6 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
-import javax.jcr.PropertyType;
-
 import org.apache.jackrabbit.oak.api.PropertyValue;
 
 /**
@@ -55,7 +53,7 @@ public class BindVariableValueImpl extends StaticOperandImpl {
     @Override
     int getPropertyType() {
         PropertyValue v = currentValue();
-        return v == null ? PropertyType.UNDEFINED : v.getType().tag();
+        return v.getType().tag();
     }
 
 }

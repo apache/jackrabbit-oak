@@ -824,7 +824,6 @@ public class XPathToSQL2Converter {
                 // the '-' can be part of a name,
                 // for example in "fn:lower-case"
                 if (type != CHAR_NAME && type != CHAR_VALUE && chars[i] != '-') {
-                    c = chars[i];
                     break;
                 }
                 i++;
@@ -840,7 +839,10 @@ public class XPathToSQL2Converter {
             if (types[i] == CHAR_SPECIAL_2) {
                 i++;
             }
-            // fall through
+            currentToken = statement.substring(start, i);
+            currentTokenType = KEYWORD;
+            parseIndex = i;
+            break;
         case CHAR_SPECIAL_1:
             currentToken = statement.substring(start, i);
             switch (c) {

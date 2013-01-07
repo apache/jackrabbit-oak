@@ -78,9 +78,6 @@ public class ComparisonImpl extends ConstraintImpl {
             // "the value of operand2 is converted to the
             // property type of the value of operand1"
             p2 = PropertyValues.convert(p2, v1Type, query.getNamePathMapper());
-            if (p2 == null) {
-                return false;
-            }
         }
         return evaluate(p1, p2);
     }
@@ -152,24 +149,24 @@ public class ComparisonImpl extends ConstraintImpl {
                 pattern = v.getValue(Type.STRING);
                 LikePattern p = new LikePattern(pattern);
                 String lowerBound = p.getLowerBound();
-                String upperBound = p.getUpperBound();
-                if (lowerBound == null && upperBound == null) {
-                    // ignore
-                } else if (lowerBound.equals(upperBound)) {
-                    // no wildcards
-                    operand1.restrict(f, Operator.EQUAL, v);
-                } else if (operand1.supportsRangeConditions()) {
-                    if (lowerBound != null) {
-                        PropertyValue pv = PropertyValues.newString(lowerBound);
-                        operand1.restrict(f, Operator.GREATER_OR_EQUAL, pv);
+                if (lowerBound != null) {
+                    String upperBound = p.getUpperBound();
+                    if (lowerBound.equals(upperBound)) {
+                        // no wildcards
+                        operand1.restrict(f, Operator.EQUAL, v);
+                    } else if (operand1.supportsRangeConditions()) {
+                        if (lowerBound != null) {
+                            PropertyValue pv = PropertyValues.newString(lowerBound);
+                            operand1.restrict(f, Operator.GREATER_OR_EQUAL, pv);
+                        }
+                        if (upperBound != null) {
+                            PropertyValue pv = PropertyValues.newString(upperBound);
+                            operand1.restrict(f, Operator.LESS_OR_EQUAL, pv);
+                        }
+                    } else {
+                        // path conditions
+                        operand1.restrict(f, operator, v);
                     }
-                    if (upperBound != null) {
-                        PropertyValue pv = PropertyValues.newString(upperBound);
-                        operand1.restrict(f, Operator.LESS_OR_EQUAL, pv);
-                    }
-                } else {
-                    // path conditions
-                    operand1.restrict(f, operator, v);
                 }
             } else {
                 operand1.restrict(f, operator, v);
