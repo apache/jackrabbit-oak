@@ -34,6 +34,7 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.query.Query;
@@ -230,18 +231,7 @@ public class SelectorImpl extends SourceImpl {
     }
 
     public PropertyValue currentProperty(String propertyName) {
-        if (propertyName.equals(Query.JCR_PATH)) {
-            String p = currentPath();
-            if (p == null) {
-                return null;
-            }
-            String local = getLocalPath(p);
-            if (local == null) {
-                // not a local path
-                return null;
-            }
-            return PropertyValues.newString(local);
-        }
+        boolean relative = propertyName.indexOf('/') >= 0;
         if (cursor == null) {
             return null;
         }
@@ -256,7 +246,31 @@ public class SelectorImpl extends SourceImpl {
             return null;
         }
         Tree t = getTree(path);
-        return t == null ? null : PropertyValues.create(t.getProperty(propertyName));
+        if (relative) {
+            for (String p : PathUtils.elements(PathUtils.getParentPath(propertyName))) {
+                if (t == null) {
+                    return null;
+                }
+                if (p.equals("..")) {
+                    t = t.getParent();
+                } else {
+                    t = t.getChild(p);
+                }
+            }
+            propertyName = PathUtils.getName(propertyName);
+        }
+        if (t == null) {
+            return null;
+        }
+        if (propertyName.equals(Query.JCR_PATH)) {
+            String local = getLocalPath(path);
+            if (local == null) {
+                // not a local path
+                return null;
+            }
+            return PropertyValues.newString(local);
+        }
+        return PropertyValues.create(t.getProperty(propertyName));
     }
 
     @Override
