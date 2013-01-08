@@ -41,8 +41,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * This evaluator for {@link org.apache.jackrabbit.api.security.user.Query}s use XPath
- * and some minimal client side filtering.
+ * XPATH based evaluation of {@link org.apache.jackrabbit.api.security.user.Query}s.
  */
 public class XPathQueryEvaluator implements ConditionVisitor {
 
@@ -64,7 +63,6 @@ public class XPathQueryEvaluator implements ConditionVisitor {
     }
 
     public Iterator<Authorizable> eval() throws RepositoryException {
-        // shortcut
         if (builder.getMaxCount() == 0) {
             return Iterators.emptyIterator();
         }
@@ -74,7 +72,6 @@ public class XPathQueryEvaluator implements ConditionVisitor {
                 .append(')');
 
         Value bound = builder.getBound();
-
         Condition condition = builder.getCondition();
         String sortCol = builder.getSortProperty();
         QueryBuilder.Direction sortDir = builder.getSortDirection();
@@ -83,9 +80,11 @@ public class XPathQueryEvaluator implements ConditionVisitor {
                 log.warn("Ignoring bound {} since no sort order is specified");
             } else {
                 Condition boundCondition = builder.property(sortCol, getCollation(sortDir), bound);
-                condition = condition == null
-                        ? boundCondition
-                        : builder.and(condition, boundCondition);
+                if (condition == null) {
+                    condition = boundCondition;
+                } else {
+                    condition = builder.and(condition, boundCondition);
+                }
             }
         }
 
@@ -113,7 +112,7 @@ public class XPathQueryEvaluator implements ConditionVisitor {
                 }
                 return findAuthorizables(builder.getMaxCount(), offset);
             } else {
-                // filtering by group name not included in query -> enforce offset
+                // filtering by group name included in query -> enforce offset
                 // and limit on the result set.
                 Iterator<Authorizable> result = findAuthorizables(Long.MAX_VALUE, 0);
                 Iterator<Authorizable> filtered = filter(result, builder.getGroupName(), builder.isDeclaredMembersOnly());
@@ -122,10 +121,6 @@ public class XPathQueryEvaluator implements ConditionVisitor {
         } catch (ParseException e) {
             throw new RepositoryException(e);
         }
-
-        // If we are scoped to a group and have a limit, we have to apply the limit
-        // here (inefficient!) otherwise we can apply the limit in the query
-
     }
 
     //---------------------------------------------------< ConditionVisitor >---
@@ -225,7 +220,7 @@ public class XPathQueryEvaluator implements ConditionVisitor {
         int k = 0;
         int j;
         do {
-            j = string.indexOf('%', k); // split on %
+            j = string.indexOf('%', k);
             if (j < 0) {
                 // jcr escape trail
                 result.append(Text.escapeIllegalJcrChars(string.substring(k)));
@@ -271,8 +266,7 @@ public class XPathQueryEvaluator implements ConditionVisitor {
                 return "xs:dateTime('" + value.getString() + "')";
 
             default:
-                throw new RepositoryException("Property of type " + PropertyType.nameFromValue(value.getType()) +
-                        " not supported");
+                throw new RepositoryException("Property of type " + PropertyType.nameFromValue(value.getType()) + " not supported");
         }
     }
 
@@ -291,8 +285,8 @@ public class XPathQueryEvaluator implements ConditionVisitor {
     @Nonnull
     private Iterator<Authorizable> findAuthorizables(long limit, long offset) throws ParseException {
         Iterable<? extends ResultRow> resultRows = root.getQueryEngine().executeQuery(xPath.toString(), Query.XPATH, limit, offset, null, namePathMapper).getRows();
-        Iterator<Authorizable> authorizbles = Iterators.transform(resultRows.iterator(), new ResultRowToAuthorizable(userManager));
-        return Iterators.filter(authorizbles, Predicates.<Object>notNull());
+        Iterator<Authorizable> authorizables = Iterators.transform(resultRows.iterator(), new ResultRowToAuthorizable(userManager));
+        return Iterators.filter(authorizables, Predicates.<Object>notNull());
     }
 
     @Nonnull
