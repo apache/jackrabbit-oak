@@ -65,14 +65,16 @@ public class XPathQueryBuilder implements QueryBuilder<Condition> {
 
     @Override
     public void setLimit(Value bound, long maxCount) {
-        offset = 0;   // Unset any previously set offset
+        // reset the offset before setting bound value/maxCount
+        offset = 0;
         this.bound = bound;
         this.maxCount = maxCount;
     }
 
     @Override
     public void setLimit(long offset, long maxCount) {
-        bound = null; // Unset any previously set bound
+        // reset the bound value before setting offset/maxCount
+        bound = null;
         this.offset = offset;
         this.maxCount = maxCount;
     }
