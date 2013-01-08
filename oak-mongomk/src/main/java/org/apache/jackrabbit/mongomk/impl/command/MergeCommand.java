@@ -1,5 +1,6 @@
 package org.apache.jackrabbit.mongomk.impl.command;
 
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -66,9 +67,8 @@ public class MergeCommand extends BaseCommand<String> {
         long branchRootId = Long.parseLong(branchId.substring(0, branchId.indexOf("-")));
 
         // Merge nodes from head to branch.
-        ourRoot = mergeNodes(ourRoot, currentHead, branchRootId);
-
         Node currentHeadNode = getNode("/", currentHead);
+        ourRoot = mergeNodes(ourRoot, currentHeadNode, branchRootId);
 
         String diff = new DiffBuilder(MongoUtil.wrap(currentHeadNode),
                 MongoUtil.wrap(ourRoot), "/", -1,
@@ -88,14 +88,14 @@ public class MergeCommand extends BaseCommand<String> {
         return MongoUtil.fromMongoRepresentation(revision);
     }
 
-    private NodeImpl mergeNodes(Node ourRoot, Long newBaseRevisionId,
+    private NodeImpl mergeNodes(Node ourRoot, Node theirRoot,
             Long commonAncestorRevisionId) throws Exception {
 
         Node baseRoot = getNode("/", commonAncestorRevisionId);
-        Node theirRoot = getNode("/", newBaseRevisionId);
+        Node theirRootCopy = copy(theirRoot);
 
         // Recursively merge 'our' changes with 'their' changes...
-        NodeImpl mergedNode = mergeNode(baseRoot, ourRoot, theirRoot, "/");
+        NodeImpl mergedNode = mergeNode(baseRoot, ourRoot, theirRootCopy, "/");
 
         return mergedNode;
     }
@@ -181,5 +181,18 @@ public class MergeCommand extends BaseCommand<String> {
         GetNodesCommandNew command = new GetNodesCommandNew(nodeStore, path, revisionId);
         command.setBranchId(branchId);
         return command.execute();
+    }
+
+    private NodeImpl copy(Node node) {
+        NodeImpl copy = new NodeImpl(node.getPath());
+        copy.setRevisionId(node.getRevisionId());
+        for (Map.Entry<String, String> entry : node.getProperties().entrySet()) {
+            copy.addProperty(entry.getKey(), entry.getValue());
+        }
+        for (Iterator<Node> it = node.getChildNodeEntries(0, -1); it.hasNext(); ) {
+            Node child = it.next();
+            copy.addChildNodeEntry(copy(child));
+        }
+        return copy;
     }
 }
