@@ -92,29 +92,14 @@ public class PropertyValueImpl extends DynamicOperandImpl {
 
     @Override
     public PropertyValue currentProperty() {
-        boolean relative = propertyName.indexOf('/') >= 0;
-        boolean asterisk = propertyName.equals("*");
-        if (!relative && !asterisk) {
+        boolean asterisk = PathUtils.getName(propertyName).equals("*");
+        if (!asterisk) {
             PropertyValue p = selector.currentProperty(propertyName);
             return matchesPropertyType(p) ? p : null;
         }
         Tree tree = getTree(selector.currentPath());
         if (tree == null) {
             return null;
-        }
-        if (relative) {
-            for (String p : PathUtils.elements(PathUtils.getParentPath(propertyName))) {
-                if (tree == null) {
-                    return null;
-                }
-                if (!tree.hasChild(p)) {
-                    return null;
-                }
-                tree = tree.getChild(p);
-            }
-            if (tree == null) {
-                return null;
-            }
         }
         if (!asterisk) {
             String name = PathUtils.getName(propertyName);
