@@ -31,8 +31,6 @@ import com.mongodb.QueryBuilder;
  */
 public class FetchHeadRevisionIdAction extends BaseAction<Long> {
 
-    private boolean includeBranchCommits = true;
-
     /**
      * Constructs a new {@code FetchHeadRevisionIdAction}.
      *
@@ -42,25 +40,13 @@ public class FetchHeadRevisionIdAction extends BaseAction<Long> {
         super(nodeStore);
     }
 
-    /**
-     * Sets whether the branch commits are included in the query.
-     *
-     * @param includeBranchCommits Whether the branch commits are included.
-     */
-    public void includeBranchCommits(boolean includeBranchCommits) {
-        this.includeBranchCommits = includeBranchCommits;
-    }
-
     @Override
     public Long execute() throws Exception {
         DBCollection headCollection = nodeStore.getSyncCollection();
         MongoSync syncMongo = (MongoSync)headCollection.findOne();
         long headRevisionId = syncMongo.getHeadRevisionId();
-        if (includeBranchCommits) {
-            return headRevisionId;
-        }
 
-        // Otherwise, find the first revision id that's not part of a branch.
+        // Find the first revision id that's not part of a branch.
         DBCollection collection = nodeStore.getCommitCollection();
         DBObject query = QueryBuilder.start(MongoCommit.KEY_FAILED).notEquals(Boolean.TRUE)
                 .and(MongoCommit.KEY_REVISION_ID).lessThanEquals(headRevisionId)

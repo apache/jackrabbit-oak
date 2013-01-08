@@ -59,7 +59,6 @@ public class MergeCommand extends BaseCommand<String> {
         long rootNodeId = commit.getRevisionId();
 
         FetchHeadRevisionIdAction query2 = new FetchHeadRevisionIdAction(nodeStore);
-        query2.includeBranchCommits(false);
         long currentHead = query2.execute();
 
         Node ourRoot = getNode("/", rootNodeId, branchId);

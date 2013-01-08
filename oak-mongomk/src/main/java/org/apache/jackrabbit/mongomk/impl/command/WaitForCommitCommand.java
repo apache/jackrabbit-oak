@@ -55,7 +55,6 @@ public class WaitForCommitCommand extends BaseCommand<Long> {
 
     private long getHeadRevision() throws Exception {
         FetchHeadRevisionIdAction query = new FetchHeadRevisionIdAction(nodeStore);
-        query.includeBranchCommits(false);
         return query.execute();
     }
 }
