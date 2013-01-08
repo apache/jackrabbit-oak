@@ -75,10 +75,8 @@ class UserQueryManager {
 
     @Nonnull
     Iterator<Authorizable> findAuthorizables(String relativePath, String value,
-                                             AuthorizableType authorizableType)
-            throws RepositoryException {
-        String oakPath =  userManager.getNamePathMapper().getOakPath(relativePath);
-        return findAuthorizables(oakPath, value, true, authorizableType);
+                                             AuthorizableType authorizableType) throws RepositoryException {
+        return findAuthorizables(relativePath, value, true, authorizableType);
     }
 
     /**
@@ -111,6 +109,7 @@ class UserQueryManager {
             Iterator<Authorizable> authorizables = Iterators.transform(result.getRows().iterator(), new ResultRowToAuthorizable(userManager));
             return Iterators.filter(authorizables, Predicates.<Object>notNull());
         } catch (ParseException e) {
+            log.warn("Invalid user query: " + statement, e);
             throw new RepositoryException(e);
         }
     }
@@ -127,29 +126,28 @@ class UserQueryManager {
         String path;
         String propName;
         String ntName;
-        if (relPath.indexOf('/') == -1) {
+        if (relPath.indexOf('/') == -1 && value != null) {
             // search for properties somewhere below an authorizable node
             path = null;
-            propName = relPath;
+            propName = userManager.getNamePathMapper().getOakName(relPath);
             ntName = null;
         } else {
             // FIXME: proper normalization of the relative path
-            path = (relPath.startsWith("./") ? null : Text.getRelativeParent(relPath, 1));
-            propName = Text.getName(relPath);
+            String oakPath = userManager.getNamePathMapper().getOakPath(relPath);
+            path = Text.getRelativeParent(oakPath, 1);
+            propName = Text.getName(oakPath);
             ntName = getNodeTypeName(type);
         }
 
         stmt.append("//");
-        if (path != null) {
+        if (path != null && !path.isEmpty()) {
             stmt.append(path);
         } else {
             if (ntName != null) {
-                stmt.append("element(*,");
-                stmt.append(ntName);
+                stmt.append("element(*,").append(ntName).append(')');
             } else {
-                stmt.append("element(*");
+                stmt.append("element(*)");
             }
-            stmt.append(')');
         }
 
         if (value != null) {
@@ -176,13 +174,17 @@ class UserQueryManager {
      */
     @Nonnull
     private String getSearchRoot(AuthorizableType type) {
+        String path;
         if (type == AuthorizableType.USER) {
-            return userRoot;
+            path = userRoot;
         } else if (type == AuthorizableType.GROUP) {
-            return groupRoot;
+            path = groupRoot;
         } else {
-            return authorizableRoot;
+            path = authorizableRoot;
         }
+        StringBuilder searchRoot = new StringBuilder();
+        searchRoot.append("/jcr:root").append(path);
+        return searchRoot.toString();
     }
 
     @Nonnull
