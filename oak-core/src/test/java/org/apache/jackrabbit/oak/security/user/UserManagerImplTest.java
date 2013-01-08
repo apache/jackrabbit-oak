@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.security.user;
 
 import java.security.Principal;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
@@ -218,5 +219,14 @@ public class UserManagerImplTest extends AbstractSecurityTest {
                 root.commit();
             }
         }
+    }
+
+    @Test
+    public void testFindWithNullValue() throws RepositoryException {
+        Iterator<Authorizable> result = userMgr.findAuthorizables(UserConstants.REP_PRINCIPAL_NAME, null);
+        assertTrue(result.hasNext());
+
+        result = userMgr.findAuthorizables("./"+UserConstants.REP_PRINCIPAL_NAME, null);
+        assertTrue(result.hasNext());
     }
 }
