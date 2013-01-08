@@ -115,6 +115,8 @@ public class ImmutableACL extends ACL {
 
     /**
      * @see Object#equals(Object)
+     * FIXME: this implementation violates the general contract of equals: it is not symmetric.
+     * While ACL.equals(ImmutableACL) might be true, ImmutableACL.equals(ACL) is always false.
      */
     @Override
     public boolean equals(Object obj) {
