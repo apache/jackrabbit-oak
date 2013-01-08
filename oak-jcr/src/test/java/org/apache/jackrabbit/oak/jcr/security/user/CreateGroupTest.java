@@ -26,15 +26,11 @@ import org.apache.jackrabbit.api.security.user.AuthorizableExistsException;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.test.NotExecutableException;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * CreateGroupTest...
  */
 public class CreateGroupTest extends AbstractUserTest {
-
-    private static Logger log = LoggerFactory.getLogger(CreateGroupTest.class);
 
     private List<Authorizable> createdGroups = new ArrayList();
 
@@ -45,12 +41,10 @@ public class CreateGroupTest extends AbstractUserTest {
             try {
                 createdGroup.remove();
                 superuser.save();
-            } catch (RepositoryException e) {
-                log.error("Failed to remove Group " + createdGroup.getID() + " during tearDown.");
+            } finally {
+                super.tearDown();
             }
         }
-
-        super.tearDown();
     }
 
     private Group createGroup(Principal p) throws RepositoryException {
