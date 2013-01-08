@@ -72,7 +72,8 @@ public interface MicroKernel {
     //---------------------------------------------------------< REVISION ops >
 
     /**
-     * Return the id of the current head revision.
+     * Return the id of the current head revision, i.e. the most recent <i>public</i>
+     * trunk revision. <i>Private</i> branch revisions are ignored.
      *
      * @return the id of the head revision
      * @throws MicroKernelException if an error occurs
