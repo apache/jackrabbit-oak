@@ -38,6 +38,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.SerialMergeScheduler;
 import org.apache.lucene.search.PrefixQuery;
 import org.apache.tika.exception.TikaException;
 
@@ -51,7 +52,9 @@ class LuceneIndexUpdate implements Closeable, LuceneIndexConstants {
         ClassLoader loader = thread.getContextClassLoader();
         thread.setContextClassLoader(IndexWriterConfig.class.getClassLoader());
         try {
-            return new IndexWriterConfig(VERSION, ANALYZER);
+            IndexWriterConfig config = new IndexWriterConfig(VERSION, ANALYZER);
+            config.setMergeScheduler(new SerialMergeScheduler());
+            return config;
         } finally {
             thread.setContextClassLoader(loader);
         }
