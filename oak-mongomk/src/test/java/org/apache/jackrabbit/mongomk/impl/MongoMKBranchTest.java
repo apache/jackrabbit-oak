@@ -46,7 +46,6 @@ public class MongoMKBranchTest extends BaseMongoMicroKernelTest {
      * the version from the first commit.
      */
     @Test
-    @Ignore("OAK-542")
     public void isolatedBranches() throws Exception {
         String rev1 = mk.commit("", "+\"/child1\":{}", null, "");
 
