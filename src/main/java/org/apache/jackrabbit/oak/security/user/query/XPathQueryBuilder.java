@@ -19,11 +19,14 @@ package org.apache.jackrabbit.oak.security.user.query;
 import javax.jcr.Value;
 
 import org.apache.jackrabbit.api.security.user.Authorizable;
+import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.QueryBuilder;
+import org.apache.jackrabbit.api.security.user.User;
+import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 
 public class XPathQueryBuilder implements QueryBuilder<Condition> {
 
-    private Class<? extends Authorizable> selector = Authorizable.class;
+    private AuthorizableType selectorType = AuthorizableType.AUTHORIZABLE;
     private String groupName;
     private boolean declaredMembersOnly;
     private Condition condition;
@@ -37,7 +40,13 @@ public class XPathQueryBuilder implements QueryBuilder<Condition> {
     //-------------------------------------------------------< QueryBuilder >---
     @Override
     public void setSelector(Class<? extends Authorizable> selector) {
-        this.selector = selector;
+        if (User.class.isAssignableFrom(selector)) {
+            selectorType = AuthorizableType.USER;
+        } else if (Group.class.isAssignableFrom(selector)) {
+            selectorType = AuthorizableType.GROUP;
+        } else {
+            selectorType = AuthorizableType.AUTHORIZABLE;
+        }
     }
 
     @Override
@@ -155,8 +164,8 @@ public class XPathQueryBuilder implements QueryBuilder<Condition> {
         return new Condition.Property(relPath, op, value);
     }
 
-    Class<? extends Authorizable> getSelector() {
-        return selector;
+    AuthorizableType getSelectorType() {
+        return selectorType;
     }
 
     String getGroupName() {
