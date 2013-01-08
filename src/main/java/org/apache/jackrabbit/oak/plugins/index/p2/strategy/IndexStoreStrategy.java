@@ -55,7 +55,7 @@ public interface IndexStoreStrategy {
     /**
      * Search for a given set of values
      * 
-     * @param index index node
+     * @param index index node (may not be null)
      * @param values values to look for (null to check for property existence)
      * @return the set of paths corresponding to the given values
      */
@@ -65,7 +65,7 @@ public interface IndexStoreStrategy {
      * Count the occurrence of a given set of values. Used in calculating the
      * cost of an index.
      * 
-     * @param index the index node
+     * @param index the index node (may not be null)
      * @param values values to look for (null to check for property existence)
      * @return the aggregated count of occurrences for each provided value
      */

@@ -81,7 +81,7 @@ public class Property2IndexLookup {
         NodeState node = root;
         Iterator<String> it = PathUtils.elements(path).iterator();
         while (true) {
-            if (getIndexDefinitionNode(node, name) != null) {
+            if (getIndexDataNode(node, name) != null) {
                 return true;
             }
             if (!it.hasNext()) {
@@ -114,12 +114,11 @@ public class Property2IndexLookup {
      * @return the set of matched paths
      */
     public Set<String> find(String name, PropertyValue value) {
-        NodeState state = getIndexDefinitionNode(root, name);
-        if (state == null || state.getChildNode(":index") == null) {
+        NodeState state = getIndexDataNode(root, name);
+        if (state == null) {
             throw new IllegalArgumentException("No index for " + name);
         }
         Set<String> paths = Sets.newHashSet();
-        state = state.getChildNode(":index");
         if (value == null) {
             paths.addAll(store.find(state, null));
         } else {
@@ -131,11 +130,10 @@ public class Property2IndexLookup {
     public double getCost(String name, PropertyValue value) {
         // TODO the cost method is currently reading all the data - 
         // is not supposed to do that, it is only supposed to estimate
-        NodeState state = getIndexDefinitionNode(root, name);
-        if (state == null || state.getChildNode(":index") == null) {
+        NodeState state = getIndexDataNode(root, name);
+        if (state == null) {
             return Double.POSITIVE_INFINITY;
         }
-        state = state.getChildNode(":index");
         double cost;
         if (value == null) {
             cost = store.count(state, null);
@@ -146,14 +144,15 @@ public class Property2IndexLookup {
     }
 
     /**
-     * Get the node with the index definition node for the given property.
+     * Get the node with the index data for the given property, if there is an
+     * applicable index with data.
      * 
      * @param name the property name
-     * @return the node where the index definition is stored, or null if no
-     *         index definition node was found
+     * @return the node where the index data is stored, or null if no index
+     *         definition or index data node was found
      */
     @Nullable
-    private static NodeState getIndexDefinitionNode(NodeState node, String name) {
+    private static NodeState getIndexDataNode(NodeState node, String name) {
         NodeState state = node.getChildNode(INDEX_DEFINITIONS_NAME);
         if (state != null) {
             for (ChildNodeEntry entry : state.getChildNodeEntries()) {
@@ -165,7 +164,11 @@ public class Property2IndexLookup {
                 if (names != null) {
                     for (int i = 0; i < names.count(); i++) {
                         if (name.equals(names.getValue(Type.STRING, i))) {
-                            return entry.getNodeState();
+                            NodeState indexDef = entry.getNodeState();
+                            NodeState index = indexDef.getChildNode(":index");
+                            if (index != null) {
+                                return index;
+                            }
                         }
                     }
                 }

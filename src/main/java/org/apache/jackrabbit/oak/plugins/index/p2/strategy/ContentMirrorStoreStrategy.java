@@ -123,9 +123,6 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
     }
 
     static int countMatchingLeaves(NodeState state) {
-        if (state == null) {
-            return 0;
-        }
         int count = 0;
         if (state.getProperty("match") != null) {
             count++;
@@ -140,11 +137,8 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
     public Set<String> find(NodeState index, Iterable<String> values) {
         Set<String> paths = new HashSet<String>();
         if (values == null) {
-            if (index != null) {
-                // We have an entry for this value, so use it
-                for (ChildNodeEntry child : index.getChildNodeEntries()) {
-                    getMatchingPaths(child.getNodeState(), "", paths);
-                }
+            for (ChildNodeEntry child : index.getChildNodeEntries()) {
+                getMatchingPaths(child.getNodeState(), "", paths);
             }
         } else {
             for (String p : values) {
@@ -178,7 +172,10 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
             count += countMatchingLeaves(index);
         } else {
             for (String p : values) {
-                count += countMatchingLeaves(index.getChildNode(p));
+                NodeState s = index.getChildNode(p);
+                if (s != null) {
+                    count += countMatchingLeaves(s);
+                }
             }
         }
         return count;
