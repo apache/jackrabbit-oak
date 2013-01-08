@@ -147,7 +147,10 @@ public class FetchNodesActionNew extends BaseAction<Map<String, MongoNode>> {
 
             DBObject branchQuery = QueryBuilder.start().or(
                     QueryBuilder.start(MongoNode.KEY_BRANCH_ID).is(branchId).get(),
-                    QueryBuilder.start(MongoNode.KEY_REVISION_ID).lessThanEquals(headBranchRevisionId).get()
+                    QueryBuilder.start().and(
+                            QueryBuilder.start(MongoNode.KEY_REVISION_ID).lessThanEquals(headBranchRevisionId).get(),
+                            new BasicDBObject(MongoNode.KEY_BRANCH_ID, new BasicDBObject("$exists", false))
+                    ).get()
             ).get();
             queryBuilder = queryBuilder.and(branchQuery);
         }
