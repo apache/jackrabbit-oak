@@ -154,12 +154,35 @@ public class FindAuthorizablesTest extends AbstractUserTest {
     }
 
     @Test
-    public void testFindUser() throws RepositoryException, NotExecutableException {
+    public void testFindUserInAllUsers() throws RepositoryException, NotExecutableException {
         User u = null;
         try {
             Principal p = getTestPrincipal();
             String uid = createUserId();
+            u = userMgr.createUser(uid, "pw", p, null);
+            superuser.save();
 
+            boolean found = false;
+            Iterator<Authorizable> it = userMgr.findAuthorizables("./"+UserConstants.REP_PRINCIPAL_NAME, null, UserManager.SEARCH_TYPE_USER);
+            while (it.hasNext() && !found) {
+                User nu = (User) it.next();
+                found = nu.getID().equals(uid);
+            }
+            assertTrue("Searching for 'null' must find the created user.", found);
+        } finally {
+            if (u != null) {
+                u.remove();
+                superuser.save();
+            }
+        }
+    }
+
+    @Test
+    public void testFindUserInAllUsers2() throws RepositoryException, NotExecutableException {
+        User u = null;
+        try {
+            Principal p = getTestPrincipal();
+            String uid = createUserId();
             u = userMgr.createUser(uid, "pw", p, null);
             superuser.save();
 
@@ -170,20 +193,24 @@ public class FindAuthorizablesTest extends AbstractUserTest {
                 found = nu.getID().equals(uid);
             }
             assertTrue("Searching for 'null' must find the created user.", found);
-
-            it = userMgr.findAuthorizables(UserConstants.REP_PRINCIPAL_NAME, p.getName(), UserManager.SEARCH_TYPE_USER);
-            found = false;
-            while (it.hasNext() && !found) {
-                User nu = (User) it.next();
-                found = nu.getPrincipal().getName().equals(p.getName());
+        } finally {
+            if (u != null) {
+                u.remove();
+                superuser.save();
             }
-            assertTrue("Searching for principal-name must find the created user.", found);
+        }
+    }
 
-            // but search groups should not find anything
-            it = userMgr.findAuthorizables(UserConstants.REP_PRINCIPAL_NAME, p.getName(), UserManager.SEARCH_TYPE_GROUP);
-            assertFalse(it.hasNext());
+    @Test
+    public void testFindUserInAllGroups() throws RepositoryException, NotExecutableException {
+        User u = null;
+        try {
+            Principal p = getTestPrincipal();
+            String uid = createUserId();
+            u = userMgr.createUser(uid, "pw", p, null);
+            superuser.save();
 
-            it = userMgr.findAuthorizables(UserConstants.REP_PRINCIPAL_NAME, null, UserManager.SEARCH_TYPE_GROUP);
+            Iterator<Authorizable> it = userMgr.findAuthorizables(UserConstants.REP_PRINCIPAL_NAME, null, UserManager.SEARCH_TYPE_GROUP);
             while (it.hasNext()) {
                 if (it.next().getPrincipal().getName().equals(p.getName())) {
                     fail("Searching for Groups should never find a user");
@@ -198,7 +225,60 @@ public class FindAuthorizablesTest extends AbstractUserTest {
     }
 
     @Test
-    public void testFindGroup() throws RepositoryException, NotExecutableException {
+    public void testFindUserByPrincipalName() throws RepositoryException, NotExecutableException {
+        User u = null;
+        try {
+            Principal p = getTestPrincipal();
+            String uid = createUserId();
+
+            u = userMgr.createUser(uid, "pw", p, null);
+            superuser.save();
+
+            boolean found = false;
+
+            Iterator<Authorizable> it = userMgr.findAuthorizables(UserConstants.REP_PRINCIPAL_NAME, p.getName(), UserManager.SEARCH_TYPE_USER);
+            while (it.hasNext() && !found) {
+                User nu = (User) it.next();
+                found = nu.getPrincipal().getName().equals(p.getName());
+            }
+            assertTrue("Searching for principal-name must find the created user.", found);
+
+            // but search groups should not find anything
+            it = userMgr.findAuthorizables(UserConstants.REP_PRINCIPAL_NAME, p.getName(), UserManager.SEARCH_TYPE_GROUP);
+            assertFalse(it.hasNext());
+
+        } finally {
+            if (u != null) {
+                u.remove();
+                superuser.save();
+            }
+        }
+    }
+
+    @Test
+    public void testFindUserWithGroupType() throws RepositoryException, NotExecutableException {
+        User u = null;
+        try {
+            Principal p = getTestPrincipal();
+            String uid = createUserId();
+
+            u = userMgr.createUser(uid, "pw", p, null);
+            superuser.save();
+
+            // but search groups should not find anything
+            Iterator<Authorizable> it = userMgr.findAuthorizables(UserConstants.REP_PRINCIPAL_NAME, p.getName(), UserManager.SEARCH_TYPE_GROUP);
+            assertFalse("Searching for Groups should not find the user", it.hasNext());
+
+        } finally {
+            if (u != null) {
+                u.remove();
+                superuser.save();
+            }
+        }
+    }
+
+    @Test
+    public void testFindGroupInAllGroups() throws RepositoryException, NotExecutableException {
         Group gr = null;
         try {
             Principal p = getTestPrincipal();
@@ -212,18 +292,64 @@ public class FindAuthorizablesTest extends AbstractUserTest {
                 found = ng.getPrincipal().getName().equals(p.getName());
             }
             assertTrue("Searching for 'null' must find the created group.", found);
+        } finally {
+            if (gr != null) {
+                gr.remove();
+                superuser.save();
+            }
+        }
+    }
 
-            it = userMgr.findAuthorizables(UserConstants.REP_PRINCIPAL_NAME, p.getName(), UserManager.SEARCH_TYPE_GROUP);
+    @Test
+    public void testFindGroupByPrinicpalName() throws RepositoryException, NotExecutableException {
+        Group gr = null;
+        try {
+            Principal p = getTestPrincipal();
+            gr = userMgr.createGroup(p);
+            superuser.save();
+
+            boolean found = false;
+            Iterator<Authorizable> it = userMgr.findAuthorizables(UserConstants.REP_PRINCIPAL_NAME, p.getName(), UserManager.SEARCH_TYPE_GROUP);
             assertTrue(it.hasNext());
             Group ng = (Group) it.next();
             assertEquals("Searching for principal-name must find the created group.", p.getName(), ng.getPrincipal().getName());
             assertFalse("Only a single group must be found for a given principal name.", it.hasNext());
+        } finally {
+            if (gr != null) {
+                gr.remove();
+                superuser.save();
+            }
+        }
+    }
 
-            // but search users should not find anything
-            it = userMgr.findAuthorizables(UserConstants.REP_PRINCIPAL_NAME, p.getName(), UserManager.SEARCH_TYPE_USER);
+    @Test
+    public void testFindGroupWithUserType() throws RepositoryException, NotExecutableException {
+        Group gr = null;
+        try {
+            Principal p = getTestPrincipal();
+            gr = userMgr.createGroup(p);
+            superuser.save();
+
+            Iterator<Authorizable> it = userMgr.findAuthorizables(UserConstants.REP_PRINCIPAL_NAME, p.getName(), UserManager.SEARCH_TYPE_USER);
             assertFalse(it.hasNext());
+        } finally {
+            if (gr != null) {
+                gr.remove();
+                superuser.save();
+            }
+        }
+    }
 
-            it = userMgr.findAuthorizables(UserConstants.REP_PRINCIPAL_NAME, null, UserManager.SEARCH_TYPE_USER);
+    @Test
+    public void testFindGroupInAllUsers() throws RepositoryException, NotExecutableException {
+        Group gr = null;
+        try {
+            Principal p = getTestPrincipal();
+            gr = userMgr.createGroup(p);
+            superuser.save();
+
+            boolean found = false;
+            Iterator<Authorizable> it = userMgr.findAuthorizables(UserConstants.REP_PRINCIPAL_NAME, null, UserManager.SEARCH_TYPE_USER);
             while (it.hasNext()) {
                 if (it.next().getPrincipal().getName().equals(p.getName())) {
                     fail("Searching for Users should never find a group");
@@ -238,7 +364,7 @@ public class FindAuthorizablesTest extends AbstractUserTest {
     }
 
     @Test
-    public void testFindAllUsers() throws RepositoryException {
+    public void testFindAllUsersDoesNotContainGroup() throws RepositoryException {
         Iterator<Authorizable> it = userMgr.findAuthorizables(UserConstants.REP_PRINCIPAL_NAME, null, UserManager.SEARCH_TYPE_USER);
         while (it.hasNext()) {
             assertFalse(it.next().isGroup());
@@ -246,7 +372,7 @@ public class FindAuthorizablesTest extends AbstractUserTest {
     }
 
     @Test
-    public void testFindAllGroups() throws RepositoryException {
+    public void testFindAllGroupsDoesNotContainUser() throws RepositoryException {
         Iterator<Authorizable> it = userMgr.findAuthorizables(UserConstants.REP_PRINCIPAL_NAME, null, UserManager.SEARCH_TYPE_GROUP);
         while (it.hasNext()) {
             assertTrue(it.next().isGroup());
