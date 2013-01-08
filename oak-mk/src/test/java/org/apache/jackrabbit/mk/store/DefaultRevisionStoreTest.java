@@ -16,6 +16,17 @@
  */
 package org.apache.jackrabbit.mk.store;
 
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
 import org.apache.jackrabbit.mk.blobs.MemoryBlobStore;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.mk.core.Repository;
@@ -23,16 +34,14 @@ import org.apache.jackrabbit.mk.model.Id;
 import org.apache.jackrabbit.mk.model.StoredCommit;
 import org.apache.jackrabbit.mk.persistence.GCPersistence;
 import org.apache.jackrabbit.mk.persistence.InMemPersistence;
+import org.apache.jackrabbit.mk.store.DefaultRevisionStore.PutTokenImpl;
+import org.apache.jackrabbit.mk.store.RevisionStore.PutToken;
 import org.json.simple.JSONArray;
 import org.json.simple.parser.JSONParser;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
-
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -187,6 +196,30 @@ public class DefaultRevisionStoreTest {
             }
         } finally {
             gcExecutor.shutdown();
+        }
+    }
+
+    @Test
+    @Ignore
+    public void putTokenImpl() throws InterruptedException, ExecutionException {
+        final Set<PutToken> tokens = Collections.synchronizedSet(new HashSet<PutToken>());
+        Set<Future<?>> results = new HashSet<Future<?>>();
+
+        ExecutorService executorService = Executors.newFixedThreadPool(100);
+        for (int i = 0; i < 100; i++) {
+            results.add(executorService.submit(new Callable<Void>() {
+                @Override
+                public Void call() throws Exception {
+                    for (int j = 0; j < 10000; j++) {
+                        assertTrue(tokens.add(new PutTokenImpl()));
+                    }
+                    return null;
+                }
+            }));
+        }
+
+        for (Future<?> result : results) {
+            result.get();
         }
     }
 
