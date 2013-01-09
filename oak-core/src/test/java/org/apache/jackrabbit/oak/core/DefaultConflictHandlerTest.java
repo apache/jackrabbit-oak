@@ -18,11 +18,6 @@
  */
 package org.apache.jackrabbit.oak.core;
 
-import static org.apache.jackrabbit.oak.api.Type.STRING;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -33,6 +28,11 @@ import org.apache.jackrabbit.oak.plugins.commit.DefaultConflictHandler;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+
+import static org.apache.jackrabbit.oak.api.Type.STRING;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 
 public class DefaultConflictHandlerTest {
 
@@ -241,9 +241,10 @@ public class DefaultConflictHandlerTest {
     @Test
     public void testDeleteChangedNodeTheirs() throws CommitFailedException {
         theirRoot.getTree("/x").setProperty("p", THEIR_VALUE);
-        ourRoot.getTree("/").remove();
+        ourRoot.getTree("/x").remove();
 
         theirRoot.commit();
+        ourRoot.setConflictHandler(DefaultConflictHandler.THEIRS);
         ourRoot.commit();
 
         Tree n = ourRoot.getTree("/x");
