@@ -14,42 +14,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.spi.security.principal;
+package org.apache.jackrabbit.oak.security.user;
 
 import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
-import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.PathMapper;
 import org.apache.jackrabbit.oak.security.principal.PrincipalImpl;
-import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
-
-import static org.apache.jackrabbit.oak.api.Type.STRING;
 
 /**
  * TreeBasedPrincipal...
  */
-public class TreeBasedPrincipal extends PrincipalImpl implements ItemBasedPrincipal {
+class TreeBasedPrincipal extends PrincipalImpl implements ItemBasedPrincipal {
 
     private final String path;
     private final PathMapper pathMapper;
 
-    public TreeBasedPrincipal(Tree tree, PathMapper pathMapper) {
-        super(getPrincipalName(tree));
-        this.pathMapper = pathMapper;
-        this.path = tree.getPath();
-    }
-
-    public TreeBasedPrincipal(String principalName, Tree tree, PathMapper pathMapper) {
+    TreeBasedPrincipal(String principalName, Tree tree, PathMapper pathMapper) {
         this(principalName, tree.getPath(), pathMapper);
     }
 
-    public TreeBasedPrincipal(String principalName, String oakPath, PathMapper pathMapper) {
+    TreeBasedPrincipal(String principalName, String oakPath, PathMapper pathMapper) {
         super(principalName);
         this.pathMapper = pathMapper;
         this.path = oakPath;
     }
 
-    public String getOakPath() {
+    String getOakPath() {
         return path;
     }
 
@@ -57,14 +47,5 @@ public class TreeBasedPrincipal extends PrincipalImpl implements ItemBasedPrinci
     @Override
     public String getPath() {
         return pathMapper.getJcrPath(path);
-    }
-
-    //--------------------------------------------------------------------------
-    private static String getPrincipalName(Tree tree) {
-        PropertyState prop = tree.getProperty(UserConstants.REP_PRINCIPAL_NAME);
-        if (prop == null) {
-            throw new IllegalArgumentException("Tree doesn't have rep:principalName property");
-        }
-        return prop.getValue(STRING);
     }
 }

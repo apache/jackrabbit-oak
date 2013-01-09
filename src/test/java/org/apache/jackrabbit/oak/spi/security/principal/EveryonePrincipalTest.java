@@ -65,14 +65,12 @@ public class EveryonePrincipalTest extends AbstractSecurityTest {
     @Test
     public void testEqualsOtherJackrabbitPrincipal() {
         Principal someotherEveryone = new OtherEveryone();
-
-        assertEquals(everyone, someotherEveryone);
+        assertFalse(everyone.equals(someotherEveryone));
     }
 
     @Test
     public void testEqualsOtherJackrabbitGroup() {
         Principal someotherEveryone = new OtherEveryoneGroup();
-
         assertEquals(everyone, someotherEveryone);
     }
 
@@ -109,12 +107,12 @@ public class EveryonePrincipalTest extends AbstractSecurityTest {
 
         @Override
         public boolean isMember(Principal principal) {
-            return false;
+            return true;
         }
 
         @Override
         public Enumeration<? extends Principal> members() {
-            return null;
+            throw new UnsupportedOperationException();
         }
     }
 }
