@@ -24,16 +24,20 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.util.Set;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.p2.Property2IndexHookProvider;
 import org.apache.jackrabbit.oak.plugins.index.p2.Property2IndexLookup;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
+import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 
 public class IndexHookManagerTest {
 
@@ -85,14 +89,18 @@ public class IndexHookManagerTest {
                 ":index");
 
         Property2IndexLookup lookup = new Property2IndexLookup(indexed);
-        assertEquals(ImmutableSet.of("testRoot"), lookup.find("foo", "abc"));
+        assertEquals(ImmutableSet.of("testRoot"), find(lookup, "foo", "abc"));
 
         Property2IndexLookup lookupChild = new Property2IndexLookup(indexed
                 .getChildNode("newchild").getChildNode("other"));
         assertEquals(ImmutableSet.of("testChild"),
-                lookupChild.find("foo", "xyz"));
-        assertEquals(ImmutableSet.of(), lookupChild.find("foo", "abc"));
+                find(lookupChild, "foo", "xyz"));
+        assertEquals(ImmutableSet.of(), find(lookupChild, "foo", "abc"));
 
+    }
+    
+    private static Set<String> find(Property2IndexLookup lookup, String name, String value) {
+        return Sets.newHashSet(lookup.query(name, PropertyValues.newString(value)));
     }
 
     /**
@@ -134,7 +142,7 @@ public class IndexHookManagerTest {
 
         // next, lookup
         Property2IndexLookup lookup = new Property2IndexLookup(indexed);
-        assertEquals(ImmutableSet.of("testRoot"), lookup.find("foo", "abc"));
+        assertEquals(ImmutableSet.of("testRoot"), find(lookup, "foo", "abc"));
     }
 
     /**
@@ -175,7 +183,7 @@ public class IndexHookManagerTest {
 
         // next, lookup
         Property2IndexLookup lookup = new Property2IndexLookup(indexed);
-        assertEquals(ImmutableSet.of("testRoot"), lookup.find("foo", "abc"));
+        assertEquals(ImmutableSet.of("testRoot"), find(lookup, "foo", "abc"));
     }
 
     /**
@@ -217,7 +225,7 @@ public class IndexHookManagerTest {
 
         // next, lookup
         Property2IndexLookup lookup = new Property2IndexLookup(indexed);
-        assertEquals(ImmutableSet.of("testRoot"), lookup.find("foo", "abc"));
+        assertEquals(ImmutableSet.of("testRoot"), find(lookup, "foo", "abc"));
     }
 
     private static NodeState checkPathExists(NodeState state, String... verify) {

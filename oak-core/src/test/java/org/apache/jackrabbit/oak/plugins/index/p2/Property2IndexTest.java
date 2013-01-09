@@ -16,18 +16,22 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.p2;
 
-import java.util.Arrays;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
-import com.google.common.collect.ImmutableSet;
+import java.util.Arrays;
+import java.util.Set;
+
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexHook;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
+import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 
 /**
  * Test the Property2 index mechanism.
@@ -66,11 +70,16 @@ public class Property2IndexTest {
 
         // Query the index
         Property2IndexLookup lookup = new Property2IndexLookup(builder.getNodeState());
-        assertEquals(ImmutableSet.of("a", "b"), lookup.find("foo", "abc"));
-        assertEquals(ImmutableSet.of("b"), lookup.find("foo", "def"));
-        assertEquals(ImmutableSet.of(), lookup.find("foo", "ghi"));
-        assertEquals(MANY, lookup.find("foo", "xyz").size());
+        assertEquals(ImmutableSet.of("a", "b"), find(lookup, "foo", "abc"));
+        assertEquals(ImmutableSet.of("b"), find(lookup, "foo", "def"));
+        assertEquals(ImmutableSet.of(), find(lookup, "foo", "ghi"));
+        assertEquals(MANY, find(lookup, "foo", "xyz").size());
+        assertEquals(MANY + 2, find(lookup, "foo", null).size());
         
+    }
+    
+    private static Set<String> find(Property2IndexLookup lookup, String name, String value) {
+        return Sets.newHashSet(lookup.query(name, value == null ? null : PropertyValues.newString(value)));
     }
 
     @Test
@@ -103,14 +112,14 @@ public class Property2IndexTest {
 
         // Query the index
         Property2IndexLookup lookup = new Property2IndexLookup(builder.getNodeState());
-        assertEquals(ImmutableSet.of("a", "b"), lookup.find("foo", "abc"));
-        assertEquals(ImmutableSet.of("b"), lookup.find("foo", "def"));
-        assertEquals(ImmutableSet.of(), lookup.find("foo", "ghi"));
-        assertEquals(MANY, lookup.find("foo", "xyz").size());
-        assertEquals(ImmutableSet.of("a"), lookup.find("extrafoo", "pqr"));
+        assertEquals(ImmutableSet.of("a", "b"), find(lookup, "foo", "abc"));
+        assertEquals(ImmutableSet.of("b"), find(lookup, "foo", "def"));
+        assertEquals(ImmutableSet.of(), find(lookup, "foo", "ghi"));
+        assertEquals(MANY, find(lookup, "foo", "xyz").size());
+        assertEquals(ImmutableSet.of("a"), find(lookup, "extrafoo", "pqr"));
         
         try {
-            assertEquals(ImmutableSet.of(), lookup.find("pqr", "foo"));
+            assertEquals(ImmutableSet.of(), find(lookup, "pqr", "foo"));
             fail();
         } catch (IllegalArgumentException e) {
             // expected: no index for "pqr"

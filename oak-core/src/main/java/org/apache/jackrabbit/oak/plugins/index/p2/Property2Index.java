@@ -104,7 +104,7 @@ class Property2Index implements QueryIndex {
 
     @Override
     public String getIndexName() {
-        return "oak:index";
+        return "p2";
     }
 
     @Override
@@ -127,9 +127,57 @@ class Property2Index implements QueryIndex {
         // not an appropriate index
         return Double.POSITIVE_INFINITY;
     }
-
+    
     @Override
     public Cursor query(Filter filter, NodeState root) {
+        Iterable<String> paths = null;
+
+        Property2IndexLookup lookup = new Property2IndexLookup(root);
+        for (PropertyRestriction pr : filter.getPropertyRestrictions()) {
+            // TODO support indexes on a path
+            // currently, only indexes on the root node are supported
+            if (lookup.isIndexed(pr.propertyName, "/")) {
+                // equality
+                if (pr.firstIncluding && pr.lastIncluding
+                    && pr.first != null && pr.first.equals(pr.last)) {
+                    // "[property] = $value"
+                    paths = lookup.query(pr.propertyName, pr.first);
+                    break;
+                } else if (pr.first == null && pr.last == null) {
+                    // "[property] is not null"
+                    // TODO don't load all entries in memory
+                    paths = lookup.query(pr.propertyName, null);
+                    break;
+                }
+            }
+        }
+        if (paths == null) {
+            throw new IllegalStateException("Property index is used even when no index is available for filter " + filter);
+        }
+        return Cursors.newPathCursor(paths);
+    }
+    
+    @Override
+    public String getPlan(Filter filter, NodeState root) {
+        StringBuilder buff = new StringBuilder("p2");
+        Property2IndexLookup lookup = new Property2IndexLookup(root);
+        for (PropertyRestriction pr : filter.getPropertyRestrictions()) {
+            // TODO support indexes on a path
+            // currently, only indexes on the root node are supported
+            if (lookup.isIndexed(pr.propertyName, "/")) {
+                if (pr.firstIncluding && pr.lastIncluding
+                    && pr.first != null && pr.first.equals(pr.last)) {
+                    buff.append(' ').append(pr.propertyName).append('=').append(pr.first);
+                } else if (pr.first == null && pr.last == null) {
+                    buff.append(' ').append(pr.propertyName);
+                }
+            }
+        }
+        return buff.toString();
+   }
+    
+    @Deprecated
+    public Cursor queryOld(Filter filter, NodeState root) {
         Set<String> paths = null;
 
         Property2IndexLookup lookup = new Property2IndexLookup(root);
@@ -147,7 +195,7 @@ class Property2Index implements QueryIndex {
                 } else if (pr.first == null && pr.last == null) {
                     // "[property] is not null"
                     // TODO don't load all entries in memory
-                    set = lookup.find(pr.propertyName, (PropertyValue) null);
+                    set = lookup.find(pr.propertyName, null);
                 }
                 // only keep the intersection
                 // TODO this requires all paths are loaded in memory
@@ -164,11 +212,5 @@ class Property2Index implements QueryIndex {
             throw new IllegalStateException("Property index is used even when no index is available for filter " + filter);
         }
         return Cursors.newPathCursor(paths);
-    }
-
-    @Override
-    public String getPlan(Filter filter, NodeState root) {
-        // TODO the index should return better query plans
-        return "oak:index"; 
     }
 }

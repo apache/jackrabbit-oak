@@ -24,6 +24,7 @@ import org.apache.jackrabbit.oak.plugins.index.p2.Property2IndexLookup;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
 /**
@@ -79,12 +80,35 @@ class NodeTypeIndexLookup implements JcrConstants {
      * @param nodeTypes the names of the node types to match.
      * @return the set of matched paths.
      */
+    @Deprecated
     public Set<String> find(Iterable<String> nodeTypes) {
         Set<String> paths = Sets.newHashSet();
         Property2IndexLookup lookup = new Property2IndexLookup(root);
         PropertyValue ntNames = PropertyValues.newName(nodeTypes);
         paths.addAll(lookup.find(JCR_PRIMARYTYPE, ntNames));
         paths.addAll(lookup.find(JCR_MIXINTYPES, ntNames));
+        return paths;
+    }
+    
+    /**
+     * Returns the paths that match the given node types.
+     *
+     * @param nodeTypes the names of the node types to match.
+     * @return the set of matched paths.
+     */
+    public Iterable<String> query(Iterable<String> nodeTypes) {
+        // TODO currently, fetch all data to avoid duplicate entries:
+        // the following code sometimes returns duplicate entries:
+        // final PropertyValue ntNames = PropertyValues.newName(nodeTypes);
+        // Property2IndexLookup lookup = new Property2IndexLookup(root);
+        // return Iterables.concat(
+        //     lookup.query(JCR_PRIMARYTYPE, ntNames),
+        //     lookup.query(JCR_MIXINTYPES, ntNames));
+        Set<String> paths = Sets.newHashSet();
+        Property2IndexLookup lookup = new Property2IndexLookup(root);
+        PropertyValue ntNames = PropertyValues.newName(nodeTypes);
+        Iterables.addAll(paths, lookup.query(JCR_PRIMARYTYPE, ntNames));
+        Iterables.addAll(paths, lookup.query(JCR_MIXINTYPES, ntNames));
         return paths;
     }
 

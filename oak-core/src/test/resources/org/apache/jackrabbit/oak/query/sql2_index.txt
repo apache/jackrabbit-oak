@@ -26,10 +26,10 @@
 # property type (value prefix) index
 
 explain select * from [nt:base] where [jcr:uuid] = '123'
-[nt:base] as [nt:base] /* oak:index where [nt:base].[jcr:uuid] = cast('123' as string) */
+[nt:base] as [nt:base] /* p2 jcr:uuid=123 where [nt:base].[jcr:uuid] = cast('123' as string) */
 
 explain select * from [nt:base] where [jcr:uuid] is not null
-[nt:base] as [nt:base] /* oak:index where [nt:base].[jcr:uuid] is not null */
+[nt:base] as [nt:base] /* p2 jcr:uuid where [nt:base].[jcr:uuid] is not null */
 
 commit / + "test": { "jcr:uuid": "xyz", "a": { "jcr:uuid": "123" } }
 
