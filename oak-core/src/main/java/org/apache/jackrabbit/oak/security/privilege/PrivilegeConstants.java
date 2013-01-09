@@ -16,10 +16,8 @@
  */
 package org.apache.jackrabbit.oak.security.privilege;
 
-import java.util.Map;
 import java.util.Set;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.JcrConstants;
 
@@ -119,42 +117,6 @@ public interface PrivilegeConstants {
 
     /** Internal (oak) name of the rep:removeProperties privilege */
     String REP_REMOVE_PROPERTIES = "rep:removeProperties";
-
-    /** The internal names of all built-in privileges that are not aggregates. */
-    String[] NON_AGGR_PRIVILEGES = new String[] {
-            REP_READ_NODES, REP_READ_PROPERTIES,
-            REP_ADD_PROPERTIES, REP_ALTER_PROPERTIES, REP_REMOVE_PROPERTIES,
-            JCR_ADD_CHILD_NODES, JCR_REMOVE_CHILD_NODES, JCR_REMOVE_NODE,
-            JCR_READ_ACCESS_CONTROL, JCR_MODIFY_ACCESS_CONTROL, JCR_NODE_TYPE_MANAGEMENT,
-            JCR_VERSION_MANAGEMENT, JCR_LOCK_MANAGEMENT, JCR_LIFECYCLE_MANAGEMENT,
-            JCR_RETENTION_MANAGEMENT, JCR_WORKSPACE_MANAGEMENT, JCR_NODE_TYPE_DEFINITION_MANAGEMENT,
-            JCR_NAMESPACE_MANAGEMENT, REP_PRIVILEGE_MANAGEMENT, REP_USER_MANAGEMENT};
-
-    /** The aggregation definition of the jcr:read privilege. */
-    String[] AGGR_JCR_READ = new String[] {
-            REP_READ_NODES, REP_READ_PROPERTIES
-    };
-
-    /** The aggregation definition of the jcr:modifyProperties privilege. */
-    String[] AGGR_JCR_MODIFY_PROPERTIES = new String[] {
-            REP_ADD_PROPERTIES, REP_ALTER_PROPERTIES, REP_REMOVE_PROPERTIES
-    };
-
-    /** The aggregation definition of the jcr:write privilege. */
-    String[] AGGR_JCR_WRITE = new String[] {
-            JCR_MODIFY_PROPERTIES, JCR_ADD_CHILD_NODES, JCR_REMOVE_CHILD_NODES, JCR_REMOVE_NODE
-    };
-
-    /** The aggregation definition of the rep:write privilege. */
-    String[] AGGR_REP_WRITE = new String[] {
-            JCR_WRITE, JCR_NODE_TYPE_MANAGEMENT
-    };
-
-    /** The internal names of all built-in privileges that are aggregates. */
-    Map<String, String[]> AGGREGATE_PRIVILEGES = ImmutableMap.of(JCR_READ, AGGR_JCR_READ,
-            JCR_MODIFY_PROPERTIES, AGGR_JCR_MODIFY_PROPERTIES,
-            JCR_WRITE, AGGR_JCR_WRITE,
-            REP_WRITE, AGGR_REP_WRITE);
 
     /**
      * The internal names of all property definitions that are associated with

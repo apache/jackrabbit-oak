@@ -73,6 +73,6 @@ public class PrivilegeConfigurationImpl extends SecurityConfiguration.Default im
     @Nonnull
     @Override
     public Context getContext() {
-        return PrivilegeContext.INSTANCE;
+        return PrivilegeContext.getInstance();
     }
 }
