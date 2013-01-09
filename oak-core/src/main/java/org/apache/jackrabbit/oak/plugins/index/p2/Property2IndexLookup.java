@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.index.p2;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 
 import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 
 import javax.annotation.Nullable;
@@ -30,7 +31,6 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.p2.strategy.ContentMirrorStoreStrategy;
 import org.apache.jackrabbit.oak.plugins.index.p2.strategy.IndexStoreStrategy;
-import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -91,20 +91,6 @@ public class Property2IndexLookup {
         }
         return false;
     }
-    
-    /**
-     * Searches for a given <code>String<code> value within this index.
-     * 
-     * <p><b>Note</b> if the property you are looking for is not of type <code>String<code>, 
-     * the converted key value might not match the index key, and there will be no hits on the index.</p>
-     * 
-     * @param name the property name
-     * @param value the property value
-     * @return the set of matched paths
-     */
-    public Set<String> find(String name, String value) {
-        return find(name, PropertyValues.newString(value));
-    }
 
     /**
      * Searches for a given value within this index.
@@ -113,6 +99,7 @@ public class Property2IndexLookup {
      * @param value the property value (null to check for property existence)
      * @return the set of matched paths
      */
+    @Deprecated
     public Set<String> find(String name, PropertyValue value) {
         NodeState state = getIndexDataNode(root, name);
         if (state == null) {
@@ -125,6 +112,15 @@ public class Property2IndexLookup {
             paths.addAll(store.find(state, Property2Index.encode(value)));
         }
         return paths;
+    }
+    
+    public Iterable<String> query(String name, PropertyValue value) {
+        NodeState state = getIndexDataNode(root, name);
+        if (state == null) {
+            throw new IllegalArgumentException("No index for " + name);
+        }
+        List<String> values = value == null ? null : Property2Index.encode(value);
+        return store.query(name, state, values);
     }
 
     public double getCost(String name, PropertyValue value) {
