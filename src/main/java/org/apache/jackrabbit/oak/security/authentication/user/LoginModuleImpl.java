@@ -26,7 +26,6 @@ import javax.annotation.CheckForNull;
 import javax.jcr.Credentials;
 import javax.jcr.GuestCredentials;
 import javax.jcr.SimpleCredentials;
-import javax.security.auth.Subject;
 import javax.security.auth.callback.Callback;
 import javax.security.auth.callback.NameCallback;
 import javax.security.auth.callback.UnsupportedCallbackException;
@@ -38,7 +37,6 @@ import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.AbstractLoginModule;
 import org.apache.jackrabbit.oak.spi.security.authentication.Authentication;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
-import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtility;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,7 +44,8 @@ import org.slf4j.LoggerFactory;
 /**
  * Default login module implementation that authenticates JCR {@code Credentials}
  * against the repository. Based on the credentials the {@link Principal}s
- * associated with user are retrieved from a configurable {@link PrincipalProvider}.
+ * associated with user are retrieved from a configurable
+ * {@link org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider}.
  *
  * <h3>Credentials</h3>
  *
@@ -60,7 +59,7 @@ import org.slf4j.LoggerFactory;
  *     expected value is a validated single {@code Credentials} object.</li>
  *     <li>If neither of the above variants provides Credentials this module
  *     tries to obtain them from the subject. See also
- *     {@link Subject#getSubject(java.security.AccessControlContext)}</li>
+ *     {@link javax.security.auth.Subject#getSubject(java.security.AccessControlContext)}</li>
  * </ul>
  *
  * This implementation of the {@code LoginModule} currently supports the following

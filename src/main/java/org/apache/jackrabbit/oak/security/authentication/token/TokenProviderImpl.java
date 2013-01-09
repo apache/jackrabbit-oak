@@ -159,6 +159,7 @@ public class TokenProviderImpl implements TokenProvider {
 
     @Override
     public TokenInfo createToken(String userId, Map<String, ?> attributes) {
+        String error = "Failed to create login token ";
         try {
             Authorizable user = userManager.getAuthorizable(userId);
             if (user != null && !user.isGroup()) {
@@ -199,13 +200,13 @@ public class TokenProviderImpl implements TokenProvider {
             }
 
         } catch (NoSuchAlgorithmException e) {
-            log.debug("Failed to create login token ", e.getMessage());
+            log.debug(error, e.getMessage());
         } catch (UnsupportedEncodingException e) {
-            log.debug("Failed to create login token ", e.getMessage());
+            log.debug(error, e.getMessage());
         } catch (CommitFailedException e) {
-            log.debug("Failed to create login token ", e.getMessage());
+            log.debug(error, e.getMessage());
         } catch (RepositoryException e) {
-            log.debug("Failed to create login token ", e.getMessage());
+            log.debug(error, e.getMessage());
         }
 
         return null;
@@ -333,7 +334,7 @@ public class TokenProviderImpl implements TokenProvider {
     /**
      * TokenInfo
      */
-    private static class TokenInfoImpl implements TokenInfo {
+    private static final class TokenInfoImpl implements TokenInfo {
 
         private final String token;
         private final String tokenPath;
@@ -390,12 +391,12 @@ public class TokenProviderImpl implements TokenProvider {
 
         @Override
         public boolean matches(TokenCredentials tokenCredentials) {
-            String token = tokenCredentials.getToken();
-            int pos = token.lastIndexOf(DELIM);
+            String tk = tokenCredentials.getToken();
+            int pos = tk.lastIndexOf(DELIM);
             if (pos > -1) {
-                token = token.substring(pos + 1);
+                tk = tk.substring(pos + 1);
             }
-            if (key == null || !PasswordUtility.isSame(key, token)) {
+            if (key == null || !PasswordUtility.isSame(key, tk)) {
                 return false;
             }
 
