@@ -31,7 +31,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Utility to generate and compare password hashes.
  */
-public class PasswordUtility {
+public final class PasswordUtility {
 
     private static final Logger log = LoggerFactory.getLogger(PasswordUtility.class);
 

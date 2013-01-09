@@ -25,7 +25,6 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
-import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,14 +32,12 @@ import org.slf4j.LoggerFactory;
 /**
  * AuthorizableIterator...
  */
-class AuthorizableIterator implements Iterator {
+final class AuthorizableIterator implements Iterator {
 
     private static final Logger log = LoggerFactory.getLogger(AuthorizableIterator.class);
 
     private final Iterator<Authorizable> authorizables;
     private final long size;
-
-    private Authorizable next;
 
     static AuthorizableIterator create(Iterator<String> authorizableOakPaths,
                                        UserManagerImpl userManager,
@@ -48,13 +45,6 @@ class AuthorizableIterator implements Iterator {
         Iterator it = Iterators.transform(authorizableOakPaths, new PathToAuthorizable(userManager, authorizableType));
         long size = getSize(authorizableOakPaths);
         return new AuthorizableIterator(Iterators.filter(it, Predicates.notNull()), size);
-    }
-
-    static AuthorizableIterator create(Iterator<Tree> authorizableTrees, UserManagerImpl userManager) {
-        Iterator it = Iterators.transform(authorizableTrees, new TreeToAuthorizable(userManager));
-        long size = getSize(authorizableTrees);
-
-        return new AuthorizableIterator(Iterators.filter(it, Predicates.<Object>notNull()), size);
     }
 
     private AuthorizableIterator(Iterator<Authorizable> authorizables, long size) {
@@ -115,25 +105,6 @@ class AuthorizableIterator implements Iterator {
                 log.debug("Failed to access authorizable " + jcrPath);
             }
             return null;
-        }
-    }
-
-    private static class TreeToAuthorizable implements Function<Tree, Authorizable> {
-
-        private final UserManagerImpl userManager;
-
-        public TreeToAuthorizable(UserManagerImpl userManager) {
-            this.userManager = userManager;
-        }
-
-        @Override
-        public Authorizable apply(Tree authorizableTree) {
-            try {
-                return userManager.getAuthorizable(authorizableTree);
-            } catch (RepositoryException e) {
-                log.debug("Failed to access authorizable " + authorizableTree.getPath());
-                return null;
-            }
         }
     }
 

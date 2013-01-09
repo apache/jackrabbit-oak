@@ -35,6 +35,7 @@ import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
@@ -273,7 +274,7 @@ public class UserManagerImpl implements UserManager {
     }
 
     //--------------------------------------------------------------------------
-    @CheckForNull
+    @Nonnull
     Tree getAuthorizableTree(String id) {
         Tree tree = userProvider.getAuthorizable(id);
         if (tree == null) {
@@ -292,7 +293,7 @@ public class UserManagerImpl implements UserManager {
 
     @Nonnull
     AuthorizableProperties getAuthorizableProperties(String id) throws RepositoryException {
-        return new AuthorizablePropertiesImpl(root, userProvider, id, namePathMapper);
+        return new AuthorizablePropertiesImpl(id, this, ReadOnlyNodeTypeManager.getInstance(root, NamePathMapper.DEFAULT));
     }
 
     @Nonnull
@@ -334,11 +335,11 @@ public class UserManagerImpl implements UserManager {
         }
     }
 
-    private void checkValidID(String ID) throws RepositoryException {
-        if (ID == null || ID.length() == 0) {
-            throw new IllegalArgumentException("Invalid ID " + ID);
-        } else if (getAuthorizable(ID) != null) {
-            throw new AuthorizableExistsException("Authorizable with ID " + ID + " already exists");
+    private void checkValidID(String id) throws RepositoryException {
+        if (id == null || id.length() == 0) {
+            throw new IllegalArgumentException("Invalid ID " + id);
+        } else if (getAuthorizable(id) != null) {
+            throw new AuthorizableExistsException("Authorizable with ID " + id + " already exists");
         }
     }
 

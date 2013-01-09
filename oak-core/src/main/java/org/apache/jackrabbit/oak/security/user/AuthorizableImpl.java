@@ -18,9 +18,7 @@ package org.apache.jackrabbit.oak.security.user;
 
 import java.util.Collections;
 import java.util.Iterator;
-import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
-import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 
@@ -28,6 +26,7 @@ import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.commons.iterator.RangeIteratorAdapter;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
@@ -51,21 +50,24 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
     private final String principalName;
     private final UserManagerImpl userManager;
 
-    private Node node;
     private AuthorizableProperties properties;
     private int hashCode;
 
-    AuthorizableImpl(String id, Tree tree, UserManagerImpl userManager) throws RepositoryException {
+    AuthorizableImpl(@Nonnull String id, @Nonnull Tree tree,
+                     @Nonnull UserManagerImpl userManager) throws RepositoryException {
         checkValidTree(tree);
+
         this.id = id;
-        if (tree.hasProperty(REP_PRINCIPAL_NAME)) {
-            principalName = tree.getProperty(REP_PRINCIPAL_NAME).getValue(STRING);
+        this.userManager = userManager;
+
+        PropertyState pNameProp = tree.getProperty(REP_PRINCIPAL_NAME);
+        if (pNameProp != null) {
+            principalName = pNameProp.getValue(STRING);
         } else {
             String msg = "Authorizable without principal name " + id;
             log.warn(msg);
             throw new RepositoryException(msg);
         }
-        this.userManager = userManager;
     }
 
     abstract void checkValidTree(Tree tree) throws RepositoryException;
@@ -185,11 +187,6 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
         return principalName;
     }
 
-    @CheckForNull
-    String getJcrName(String oakName) {
-        return userManager.getNamePathMapper().getJcrName(oakName);
-    }
-
     /**
      * @return The user manager associated with this authorizable.
      */
@@ -220,8 +217,8 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
     /**
      * Retrieve authorizable properties for property related operations.
      *
-     * @return
-     * @throws RepositoryException
+     * @return The authorizable properties for this user/group.
+     * @throws RepositoryException If an error occurs.
      */
     private AuthorizableProperties getAuthorizableProperties() throws RepositoryException {
         if (properties == null) {

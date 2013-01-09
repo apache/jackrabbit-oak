@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
@@ -23,6 +26,8 @@ import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtility;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Base class for {@link UserProvider} and {@link MembershipProvider}.
@@ -34,11 +39,15 @@ abstract class AuthorizableBaseProvider implements UserConstants {
     final IdentifierManager identifierManager;
 
     AuthorizableBaseProvider(Root root, ConfigurationParameters config) {
+        checkNotNull(root);
+        checkNotNull(config);
+
         this.root = root;
         this.config = config;
         this.identifierManager = new IdentifierManager(root);
     }
 
+    @CheckForNull
     Tree getByID(String authorizableId, AuthorizableType authorizableType) {
         Tree tree = identifierManager.getTree(getContentID(authorizableId));
         if (UserUtility.isType(tree, authorizableType)) {
@@ -48,6 +57,7 @@ abstract class AuthorizableBaseProvider implements UserConstants {
         }
     }
 
+    @CheckForNull
     Tree getByPath(String authorizableOakPath) {
         Tree tree = root.getTree(authorizableOakPath);
         if (UserUtility.isType(tree, AuthorizableType.AUTHORIZABLE)) {
@@ -57,10 +67,12 @@ abstract class AuthorizableBaseProvider implements UserConstants {
         }
     }
 
+    @Nonnull
     String getContentID(Tree authorizableTree) {
         return identifierManager.getIdentifier(authorizableTree);
     }
 
+    @Nonnull
     static String getContentID(String authorizableId) {
         return IdentifierManager.generateUUID(authorizableId.toLowerCase());
     }
