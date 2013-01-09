@@ -25,7 +25,7 @@ import org.apache.jackrabbit.api.security.principal.JackrabbitPrincipal;
 /**
  * Built-in principal group that has every other principal as member.
  */
-public class EveryonePrincipal implements JackrabbitPrincipal, java.security.acl.Group {
+public final class EveryonePrincipal implements JackrabbitPrincipal, java.security.acl.Group {
 
     public static final String NAME = "everyone";
 
