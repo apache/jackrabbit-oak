@@ -200,7 +200,6 @@ public class DefaultRevisionStoreTest {
     }
 
     @Test
-    @Ignore
     public void putTokenImpl() throws InterruptedException, ExecutionException {
         final Set<PutToken> tokens = Collections.synchronizedSet(new HashSet<PutToken>());
         Set<Future<?>> results = new HashSet<Future<?>>();
