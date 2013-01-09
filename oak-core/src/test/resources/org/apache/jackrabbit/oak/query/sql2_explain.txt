@@ -33,6 +33,9 @@ explain select * from [nt:base] where property([*], 'REFERENCE') = CAST('123' AS
 explain select * from [nt:base] where property(id, 'REFERENCE') = CAST('123' AS REFERENCE)
 [nt:base] as [nt:base] /* traverse "//*" where property([nt:base].[id], 'reference') = cast('123' as reference) */
 
+explain select b.[jcr:path] as [jcr:path], b.[jcr:score] as [jcr:score], b.* from [nt:base] as a inner join [nt:base] as b on ischildnode(a, b) where name(a) = 'yes' and isdescendantnode(a, '/test') and b.[x] is not null
+[nt:base] as [a] /* traverse "/test//*" where (name([a]) = cast('yes' as string)) and (isdescendantnode([a], [/test])) */ inner join [nt:base] as [b] /* traverse "//*" where [b].[x] is not null */ on ischildnode([a], [b])
+
 select * from [nt:base] where property([*], 'REFERENCE') = CAST('123' AS REFERENCE)
 /test/a
 
