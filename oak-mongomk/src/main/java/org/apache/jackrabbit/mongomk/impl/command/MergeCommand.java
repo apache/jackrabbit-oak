@@ -66,9 +66,11 @@ public class MergeCommand extends BaseCommand<String> {
 
         long branchRootId = Long.parseLong(branchId.substring(0, branchId.indexOf("-")));
 
-        // Merge nodes from head to branch.
+        // Merge changes, if any, from trunk to branch.
         Node currentHeadNode = getNode("/", currentHead);
-        ourRoot = mergeNodes(ourRoot, currentHeadNode, branchRootId);
+        if (currentHead != branchRootId) {
+            ourRoot = mergeNodes(ourRoot, currentHeadNode, branchRootId);
+        }
 
         String diff = new DiffBuilder(MongoUtil.wrap(currentHeadNode),
                 MongoUtil.wrap(ourRoot), "/", -1,
