@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.spi.security.authorization;
+package org.apache.jackrabbit.oak.security.authorization;
 
 import java.security.Principal;
 import java.util.ArrayList;
@@ -23,20 +23,16 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
-import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.Value;
 import javax.jcr.security.AccessControlEntry;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
 
-import com.google.common.base.Function;
-import com.google.common.collect.Collections2;
-import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
-import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
+import org.apache.jackrabbit.oak.spi.security.authorization.AbstractAccessControlList;
+import org.apache.jackrabbit.oak.spi.security.authorization.ACE;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
-import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionDefinition;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,29 +40,20 @@ import org.slf4j.LoggerFactory;
 /**
  * ACL... TODO
  */
-public class ACL implements JackrabbitAccessControlList {
+class ACL extends AbstractAccessControlList {
 
     private static final Logger log = LoggerFactory.getLogger(ACL.class);
 
-    private final String jcrPath;
-    private final List<ACE> entries;
-    private final RestrictionProvider restrictionProvider;
-    private final NamePathMapper namePathMapper;
+    private final List<JackrabbitAccessControlEntry> entries;
 
-    public ACL(String jcrPath, RestrictionProvider restrictionProvider, NamePathMapper namePathMapper) {
-        this(jcrPath, null, restrictionProvider, namePathMapper);
+    ACL(String jcrPath, List<JackrabbitAccessControlEntry> entries, RestrictionProvider restrictionProvider) {
+        super(jcrPath, restrictionProvider);
+
+        this.entries = (entries == null) ? new ArrayList<JackrabbitAccessControlEntry>() : entries;
     }
 
-    public ACL(String jcrPath, List<ACE> entries, RestrictionProvider restrictionProvider,
-               NamePathMapper namePathMapper) {
-        this.jcrPath = jcrPath;
-        this.entries = (entries == null) ? new ArrayList<ACE>() : entries;
-        this.restrictionProvider = restrictionProvider;
-        this.namePathMapper = namePathMapper;
-    }
-
-    public ACE[] getACEs() {
-        return entries.toArray(new ACE[entries.size()]);
+    JackrabbitAccessControlEntry[] getACEs() {
+        return entries.toArray(new JackrabbitAccessControlEntry[entries.size()]);
     }
 
     //--------------------------------------------------< AccessControlList >---
@@ -76,48 +63,14 @@ public class ACL implements JackrabbitAccessControlList {
     }
 
     @Override
-    public boolean addAccessControlEntry(Principal principal, Privilege[] privileges) throws AccessControlException, RepositoryException {
-        return addEntry(principal, privileges, true, Collections.<String, Value>emptyMap());
-    }
-
-    @Override
-    public void removeAccessControlEntry(AccessControlEntry ace) throws AccessControlException, RepositoryException {
-        checkACE(ace);
-        if (!entries.remove(ace)) {
+    public void removeAccessControlEntry(AccessControlEntry ace) throws RepositoryException {
+        JackrabbitAccessControlEntry entry = checkACE(ace);
+        if (!entries.remove(entry)) {
             throw new AccessControlException("Cannot remove AccessControlEntry " + ace);
         }
     }
 
-    //--------------------------------------< JackrabbitAccessControlPolicy >---
-    @Override
-    public String getPath() {
-        return jcrPath;
-    }
-
     //----------------------------------------< JackrabbitAccessControlList >---
-    @Override
-    public String[] getRestrictionNames() throws RepositoryException {
-        Set<RestrictionDefinition> supported = restrictionProvider.getSupportedRestrictions(jcrPath);
-        return Collections2.transform(supported, new Function<RestrictionDefinition, String>() {
-            @Override
-            public String apply(RestrictionDefinition definition) {
-                return namePathMapper.getJcrName(definition.getName());
-            }
-        }).toArray(new String[supported.size()]);
-
-    }
-
-    @Override
-    public int getRestrictionType(String restrictionName) throws RepositoryException {
-        String oakName = namePathMapper.getOakName(restrictionName);
-        for (RestrictionDefinition definition : restrictionProvider.getSupportedRestrictions(jcrPath)) {
-            if (definition.getName().equals(oakName)) {
-                return definition.getRequiredType();
-            }
-        }
-        return PropertyType.UNDEFINED;
-    }
-
     @Override
     public boolean isEmpty() {
         return entries.isEmpty();
@@ -129,12 +82,8 @@ public class ACL implements JackrabbitAccessControlList {
     }
 
     @Override
-    public boolean addEntry(Principal principal, Privilege[] privileges, boolean isAllow) throws AccessControlException, RepositoryException {
-        return addEntry(principal, privileges, isAllow, Collections.<String, Value>emptyMap());
-    }
-
-    @Override
-    public boolean addEntry(Principal principal, Privilege[] privileges, boolean isAllow, Map<String, Value> restrictions) throws AccessControlException, RepositoryException {
+    public boolean addEntry(Principal principal, Privilege[] privileges,
+                            boolean isAllow, Map<String, Value> restrictions) throws RepositoryException {
         // NOTE: validation and any kind of optimization of the entry list is
         // delegated to the commit validator
         Set<Restriction> rs;
@@ -146,7 +95,7 @@ public class ACL implements JackrabbitAccessControlList {
                 rs.add(restrictionProvider.createRestriction(jcrPath, name, restrictions.get(name)));
             }
         }
-        ACE entry = new ACE(principal, privileges, isAllow, rs, namePathMapper);
+        JackrabbitAccessControlEntry entry = new ACE(principal, privileges, isAllow, rs);
         if (entries.contains(entry)) {
             log.debug("Entry is already contained in policy -> no modification.");
             return false;
@@ -156,25 +105,22 @@ public class ACL implements JackrabbitAccessControlList {
     }
 
     @Override
-    public void orderBefore(AccessControlEntry srcEntry, AccessControlEntry destEntry) throws AccessControlException, UnsupportedRepositoryOperationException, RepositoryException {
-        checkACE(srcEntry);
-        if (destEntry != null) {
-            checkACE(destEntry);
-        }
+    public void orderBefore(AccessControlEntry srcEntry, AccessControlEntry destEntry) throws RepositoryException {
+        JackrabbitAccessControlEntry src = checkACE(srcEntry);
+        JackrabbitAccessControlEntry dest = (destEntry == null) ? null : checkACE(destEntry);
 
-        if (srcEntry.equals(destEntry)) {
+        if (src.equals(dest)) {
             log.debug("'srcEntry' equals 'destEntry' -> no reordering required.");
             return;
         }
 
-        int index = (destEntry == null) ? entries.size()-1 : entries.indexOf(destEntry);
+        int index = (dest == null) ? entries.size()-1 : entries.indexOf(dest);
         if (index < 0) {
             throw new AccessControlException("'destEntry' not contained in this AccessControlList.");
         } else {
-            ACE srcACE = (ACE) srcEntry;
-            if (entries.remove(srcACE)) {
+            if (entries.remove(src)) {
                 // re-insert the srcEntry at the new position.
-                entries.add(index, srcACE);
+                entries.add(index, src);
             } else {
                 // src entry not contained in this list.
                 throw new AccessControlException("srcEntry not contained in this AccessControlList");
@@ -226,9 +172,10 @@ public class ACL implements JackrabbitAccessControlList {
     }
 
     //------------------------------------------------------------< private >---
-    private static void checkACE(AccessControlEntry entry) throws AccessControlException {
+    private static JackrabbitAccessControlEntry checkACE(AccessControlEntry entry) throws AccessControlException {
         if (!(entry instanceof ACE)) {
             throw new AccessControlException("Invalid access control entry.");
         }
+        return (ACE) entry;
     }
 }

@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.spi.security.authorization;
 
 import java.security.Principal;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
 import javax.jcr.RepositoryException;
@@ -28,8 +27,6 @@ import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
-import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
 
 /**
@@ -41,36 +38,20 @@ public class ACE implements JackrabbitAccessControlEntry {
     private final Set<Privilege> privileges;
     private final boolean isAllow;
     private final Set<Restriction> restrictions;
-    private final NamePathMapper namePathMapper;
 
     private int hashCode;
 
-    public ACE(Principal principal, Privilege[] privileges, boolean isAllow,
-               Set<Restriction> restrictions, NamePathMapper namePathMapper) {
-        this(principal, ImmutableSet.copyOf(privileges), isAllow, restrictions, namePathMapper);
+    public ACE(Principal principal, Privilege[] privileges,
+               boolean isAllow, Set<Restriction> restrictions) {
+        this(principal, ImmutableSet.copyOf(privileges), isAllow, restrictions);
     }
 
-    public ACE(Principal principal, Set<Privilege> privileges, boolean isAllow,
-               Set<Restriction> restrictions, NamePathMapper namePathMapper) {
+    public ACE(Principal principal, Set<Privilege> privileges,
+               boolean isAllow, Set<Restriction> restrictions) {
         this.principal = principal;
         this.privileges = ImmutableSet.copyOf(privileges);
         this.isAllow = isAllow;
         this.restrictions = (restrictions == null) ? Collections.<Restriction>emptySet() : ImmutableSet.copyOf(restrictions);
-        this.namePathMapper = namePathMapper;
-    }
-
-    public String[] getPrivilegeNames() {
-        Collection<String> privNames = Collections2.transform(privileges, new Function<Privilege, String>() {
-            @Override
-            public String apply(Privilege privilege) {
-                return privilege.getName();
-            }
-        });
-        return privNames.toArray(new String[privNames.size()]);
-    }
-
-    public Set<Restriction> getRestrictionSet() {
-        return restrictions;
     }
 
     //-------------------------------------------------< AccessControlEntry >---
@@ -95,17 +76,16 @@ public class ACE implements JackrabbitAccessControlEntry {
         return Collections2.transform(restrictions, new Function<Restriction, String>() {
             @Override
             public String apply(Restriction restriction) {
-                return namePathMapper.getJcrName(restriction.getName());
+                return restriction.getJcrName();
             }
         }).toArray(new String[restrictions.size()]);
     }
 
     @Override
     public Value getRestriction(String restrictionName) throws RepositoryException {
-        String oakName = namePathMapper.getOakName(restrictionName);
         for (Restriction restriction : restrictions) {
-            if (restriction.getName().equals(oakName)) {
-                return ValueFactoryImpl.createValue(restriction.getProperty(), namePathMapper);
+            if (restriction.getJcrName().equals(restrictionName)) {
+                return restriction.getValue();
             }
         }
         return null;
