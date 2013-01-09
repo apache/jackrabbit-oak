@@ -122,7 +122,7 @@ class UserAuthentication implements Authentication {
 
     private boolean impersonate(AuthInfo info, User user) {
         try {
-            if (info.getUserID().equals(user.getID())) {
+            if (user.getID().equals(info.getUserID())) {
                 log.debug("User " + info.getUserID() + " wants to impersonate himself -> success.");
                 return true;
             } else {
