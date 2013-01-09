@@ -27,10 +27,10 @@ import java.util.NoSuchElementException;
  *
  * TODO move to query-commons ?
  */
-public class ResultIterator<T> implements Iterator<T> {
+public final class ResultIterator<T> implements Iterator<T> {
 
-    public final static int OFFSET_NONE = 0;
-    public final static int MAX_ALL = -1;
+    public static final int OFFSET_NONE = 0;
+    public static final int MAX_ALL = -1;
 
     private final Iterator<T> iterator;
     private final long offset;

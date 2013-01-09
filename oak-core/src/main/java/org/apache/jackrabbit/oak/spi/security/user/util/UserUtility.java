@@ -34,6 +34,8 @@ import static org.apache.jackrabbit.oak.api.Type.STRING;
  */
 public final class UserUtility implements UserConstants {
 
+    private UserUtility() {}
+
     @Nonnull
     public static String getAdminId(ConfigurationParameters parameters) {
         return parameters.getConfigValue(PARAM_ADMIN_ID, DEFAULT_ADMIN_ID);

@@ -22,7 +22,6 @@ import java.util.Iterator;
 import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import javax.jcr.PropertyType;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
@@ -56,7 +55,7 @@ import static org.apache.jackrabbit.oak.api.Type.WEAKREFERENCE;
  * characteristics:
  * <ul>
  *     <li>Multivalued property {@link #REP_MEMBERS}</li>
- *     <li>Property type: {@link PropertyType#WEAKREFERENCE}</li>
+ *     <li>Property type: {@link javax.jcr.PropertyType#WEAKREFERENCE}</li>
  *     <li>Used if the config option {@link org.apache.jackrabbit.oak.spi.security.user.UserConstants#PARAM_GROUP_MEMBERSHIP_SPLIT_SIZE} is missing or &lt;4</li>
  * </ul>
  *
@@ -66,7 +65,7 @@ import static org.apache.jackrabbit.oak.api.Type.WEAKREFERENCE;
  *
  * <ul>
  *     <li>Membership information stored underneath a {@link #REP_MEMBERS} node hierarchy</li>
- *     <li>Individual member information is stored each in a {@link PropertyType#WEAKREFERENCE}
+ *     <li>Individual member information is stored each in a {@link javax.jcr.PropertyType#WEAKREFERENCE}
  *     property</li>
  *     <li>Node hierarchy is split based on the {@link org.apache.jackrabbit.oak.spi.security.user.UserConstants#PARAM_GROUP_MEMBERSHIP_SPLIT_SIZE}
  *     configuration parameter.</li>
