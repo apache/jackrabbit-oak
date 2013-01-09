@@ -53,13 +53,24 @@ public interface IndexStoreStrategy {
             Iterable<String> values) throws CommitFailedException;
 
     /**
-     * Search for a given set of values
+     * Search for a given set of values.
      * 
      * @param index index node (may not be null)
      * @param values values to look for (null to check for property existence)
      * @return the set of paths corresponding to the given values
      */
+    @Deprecated
     Set<String> find(NodeState index, Iterable<String> values);
+    
+    /**
+     * Search for a given set of values.
+     * 
+     * @param indexName the name of the index (for logging)
+     * @param index index node (may not be null)
+     * @param values values to look for (null to check for property existence)
+     * @return an iterator of paths
+     */
+    Iterable<String> query(String indexName, NodeState index, Iterable<String> values);
 
     /**
      * Count the occurrence of a given set of values. Used in calculating the
