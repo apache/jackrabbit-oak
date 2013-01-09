@@ -24,6 +24,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
@@ -38,27 +39,23 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
     /** The underlying store to which this branch belongs */
     private final KernelNodeStore store;
 
-    /** Base state of this branch */
+    /** Root state of the base revision of this branch */
     private final NodeState base;
 
-    /** Revision from which to branch */
-    private final String headRevision;
+    /** Revision of the base state of this branch*/
+    private final String baseRevision;
 
-    /** Revision of this branch in the Microkernel, null if not yet branched */
-    private String branchRevision;
+    /** Root state of the head revision of this branch*/
+    private NodeState head;
 
-    /** Current root state of this branch */
-    private NodeState currentRoot;
-
-    /** Last state which was committed to this branch */
-    private NodeState committed;
+    /** Head revision of this branch, null if not yet branched*/
+    private String headRevision;
 
     KernelNodeStoreBranch(KernelNodeStore store, KernelNodeState root) {
         this.store = store;
-        this.headRevision = root.getRevision();
-        this.currentRoot = root;
-        this.base = currentRoot;
-        this.committed = currentRoot;
+        this.base = root;
+        this.baseRevision = root.getRevision();
+        this.head = root;
     }
 
     @Override
@@ -68,21 +65,23 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
 
     @Override
     public NodeState getRoot() {
-        return currentRoot;
+        checkNotMerged();
+        return head;
     }
 
     @Override
     public void setRoot(NodeState newRoot) {
-        if (!currentRoot.equals(newRoot)) {
-            currentRoot = newRoot;
+        checkNotMerged();
+        if (!head.equals(newRoot)) {
             JsopDiff diff = new JsopDiff(store.getKernel());
-            currentRoot.compareAgainstBaseState(committed, diff);
+            newRoot.compareAgainstBaseState(head, diff);
             commit(diff.toString());
         }
     }
 
     @Override
     public boolean move(String source, String target) {
+        checkNotMerged();
         if (getNode(source) == null) {
             // source does not exist
             return false;
@@ -103,6 +102,7 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
 
     @Override
     public boolean copy(String source, String target) {
+        checkNotMerged();
         if (getNode(source) == null) {
             // source does not exist
             return false;
@@ -123,23 +123,23 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
 
     @Override
     public NodeState merge() throws CommitFailedException {
+        checkNotMerged();
         CommitHook commitHook = store.getHook();
-        NodeState toCommit = commitHook.processCommit(base, currentRoot);
-        NodeState oldRoot = currentRoot;
+        NodeState toCommit = commitHook.processCommit(base, head);
+        NodeState oldRoot = head;
         setRoot(toCommit);
 
         try {
-            if (branchRevision == null) {
-                // Nothing was written to this branch: return initial node state.
-                branchRevision = null;
-                currentRoot = null;
-                return committed;
+            if (headRevision == null) {
+                // Nothing was written to this branch: return base state
+                head = null;  // Mark as merged
+                return base;
             }
             else {
                 MicroKernel kernel = store.getKernel();
-                String mergedRevision = kernel.merge(branchRevision, null);
-                branchRevision = null;
-                currentRoot = null;
+                String mergedRevision = kernel.merge(headRevision, null);
+                headRevision = null;
+                head = null;  // Mark as merged
                 return store.getRootState(mergedRevision);
             }
         }
@@ -150,6 +150,10 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
     }
 
     //------------------------------------------------------------< private >---
+
+    private void checkNotMerged() {
+        checkState(head != null, "Branch has already been merged");
+    }
 
     private NodeState getNode(String path) {
         checkArgument(path.startsWith("/"));
@@ -166,13 +170,12 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
 
     private void commit(String jsop) {
         MicroKernel kernel = store.getKernel();
-        if (branchRevision == null) {
+        if (headRevision == null) {
             // create the branch if this is the first commit
-            branchRevision = kernel.branch(headRevision);
+            headRevision = kernel.branch(baseRevision);
         }
 
-        branchRevision = kernel.commit("", jsop, branchRevision, null);
-        currentRoot = store.getRootState(branchRevision);
-        committed = currentRoot;
+        headRevision = kernel.commit("", jsop, headRevision, null);
+        head = store.getRootState(headRevision);
     }
 }

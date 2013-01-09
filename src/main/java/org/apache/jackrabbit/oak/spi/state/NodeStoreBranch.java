@@ -21,14 +21,16 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 
 /**
- * TODO document
+ * An instance of this class represents a private branch of the tree in a
+ * {@link NodeStore} to which transient changes can be applied and later merged
+ * back or discarded.
  */
 public interface NodeStoreBranch {
 
     /**
      * Returns the base state of this branch.
      *
-     * @return base node state
+     * @return root node state
      */
     @Nonnull
     NodeState getBase();
@@ -37,32 +39,36 @@ public interface NodeStoreBranch {
      * Returns the latest state of the branch.
      *
      * @return root node state
+     * @throws IllegalStateException if the branch is already merged
      */
     @Nonnull
     NodeState getRoot();
 
     /**
-     * Updates the state of the content tree.
+     * Updates the state of the content tree of this private branch.
      *
      * @param newRoot new root node state
+     * @throws IllegalStateException if the branch is already merged
      */
     void setRoot(NodeState newRoot);
 
     /**
-     * Moves a node.
+     * Moves a node in this private branch.
      *
      * @param source source path
      * @param target target path
      * @return  {@code true} iff the move succeeded
+     * @throws IllegalStateException if the branch is already merged
      */
     boolean move(String source, String target);
 
     /**
-     * Copies a node.
+     * Copies a node in this private branch.
      *
      * @param source source path
      * @param target target path
      * @return  {@code true} iff the copy succeeded
+     * @throws IllegalStateException if the branch is already merged
      */
     boolean copy(String source, String target);
 
@@ -71,6 +77,7 @@ public interface NodeStoreBranch {
      *
      * @return the node state resulting from the merge.
      * @throws CommitFailedException if the merge failed
+     * @throws IllegalStateException if the branch is already merged
      */
     @Nonnull
     NodeState merge() throws CommitFailedException;
