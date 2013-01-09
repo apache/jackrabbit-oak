@@ -14,19 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.security.principal;
+package org.apache.jackrabbit.oak.security.user;
 
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.PathMapper;
 import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
-import org.apache.jackrabbit.oak.spi.security.principal.TreeBasedPrincipal;
 
 /**
  * AdminPrincipal variant of the {@link TreeBasedPrincipal}.
  */
-public class AdminPrincipalImpl extends TreeBasedPrincipal implements AdminPrincipal {
+class AdminPrincipalImpl extends TreeBasedPrincipal implements AdminPrincipal {
 
-    public AdminPrincipalImpl(String principalName, Tree tree, PathMapper pathMapper) {
+    AdminPrincipalImpl(String principalName, Tree tree, PathMapper pathMapper) {
         super(principalName, tree, pathMapper);
     }
 }

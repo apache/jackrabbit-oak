@@ -17,21 +17,15 @@
 package org.apache.jackrabbit.oak.spi.security.principal;
 
 import java.security.Principal;
+import java.security.acl.Group;
 import java.util.Enumeration;
 
 import org.apache.jackrabbit.api.security.principal.JackrabbitPrincipal;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Built-in principal group that has every other principal as member.
  */
 public class EveryonePrincipal implements JackrabbitPrincipal, java.security.acl.Group {
-
-    /**
-     * logger instance
-     */
-    private static final Logger log = LoggerFactory.getLogger(EveryonePrincipal.class);
 
     public static final String NAME = "everyone";
 
@@ -81,7 +75,7 @@ public class EveryonePrincipal implements JackrabbitPrincipal, java.security.acl
     public boolean equals(Object obj) {
         if (obj == this) {
             return true;
-        } else if (obj instanceof JackrabbitPrincipal) {
+        } else if (obj instanceof JackrabbitPrincipal && obj instanceof Group) {
             JackrabbitPrincipal other = (JackrabbitPrincipal) obj;
             return NAME.equals(other.getName());
         }

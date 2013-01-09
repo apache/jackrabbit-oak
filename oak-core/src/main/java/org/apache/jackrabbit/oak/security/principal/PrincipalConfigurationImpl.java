@@ -34,11 +34,9 @@ import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 public class PrincipalConfigurationImpl extends SecurityConfiguration.Default implements PrincipalConfiguration {
 
     private final SecurityProvider securityProvider;
-    private final ConfigurationParameters options;
 
     public PrincipalConfigurationImpl(SecurityProvider securityProvider, ConfigurationParameters options) {
         this.securityProvider = securityProvider;
-        this.options = options;
     }
 
     @Nonnull

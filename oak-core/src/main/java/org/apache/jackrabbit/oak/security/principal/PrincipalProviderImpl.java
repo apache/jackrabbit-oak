@@ -140,19 +140,20 @@ public class PrincipalProviderImpl implements PrincipalProvider {
     }
 
     //--------------------------------------------------------------------------
-
     /**
      * Function to covert an authorizable tree to a principal.
      */
-    private final class AuthorizableToPrincipal implements Function<Authorizable, Principal> {
+    private static final class AuthorizableToPrincipal implements Function<Authorizable, Principal> {
         @Override
         public Principal apply(Authorizable authorizable) {
-            try {
-                return authorizable.getPrincipal();
-            } catch (RepositoryException e) {
-                log.debug(e.getMessage());
-                return null;
+            if (authorizable != null) {
+                try {
+                    return authorizable.getPrincipal();
+                } catch (RepositoryException e) {
+                    log.debug(e.getMessage());
+                }
             }
+            return null;
         }
     }
 }
