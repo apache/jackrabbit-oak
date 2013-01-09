@@ -20,8 +20,6 @@ import javax.annotation.Nonnull;
 import javax.jcr.Value;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 
 /**
  * Restriction... TODO
@@ -30,4 +28,7 @@ public interface Restriction extends RestrictionDefinition {
 
     @Nonnull
     PropertyState getProperty();
+
+    @Nonnull
+    Value getValue();
 }

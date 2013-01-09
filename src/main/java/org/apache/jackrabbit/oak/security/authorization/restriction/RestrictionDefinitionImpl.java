@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.security.authorization.restriction;
 
 import javax.annotation.Nonnull;
 
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionDefinition;
 
 /**
@@ -29,16 +30,26 @@ public class RestrictionDefinitionImpl implements RestrictionDefinition {
     private final int type;
     private final boolean isMandatory;
 
-    public RestrictionDefinitionImpl(String name, int type, boolean isMandatory) {
+    final NamePathMapper namePathMapper;
+
+    public RestrictionDefinitionImpl(String name, int type, boolean isMandatory,
+                                     NamePathMapper namePathMapper) {
         this.name = name;
         this.type = type;
         this.isMandatory = isMandatory;
+        this.namePathMapper = namePathMapper;
     }
 
     @Nonnull
     @Override
     public String getName() {
         return name;
+    }
+
+    @Nonnull
+    @Override
+    public String getJcrName() {
+        return namePathMapper.getJcrName(getName());
     }
 
     @Override
