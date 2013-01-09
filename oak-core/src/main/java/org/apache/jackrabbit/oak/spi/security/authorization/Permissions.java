@@ -24,6 +24,8 @@ import java.util.Map;
  */
 public final class Permissions {
 
+    private Permissions() {};
+
     public static final int NO_PERMISSION = 0;
 
     public static final int READ_NODE = 1;

@@ -30,11 +30,11 @@ import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restrict
 public interface AccessControlConfiguration extends SecurityConfiguration {
 
     @Nonnull
-    public AccessControlManager getAccessControlManager(Root root, NamePathMapper namePathMapper);
+    AccessControlManager getAccessControlManager(Root root, NamePathMapper namePathMapper);
 
     @Nonnull
-    public RestrictionProvider getRestrictionProvider(NamePathMapper namePathMapper);
+    RestrictionProvider getRestrictionProvider(NamePathMapper namePathMapper);
 
     @Nonnull
-    public PermissionProvider getPermissionProvider(NamePathMapper namePathMapper);
+    PermissionProvider getPermissionProvider(NamePathMapper namePathMapper);
 }

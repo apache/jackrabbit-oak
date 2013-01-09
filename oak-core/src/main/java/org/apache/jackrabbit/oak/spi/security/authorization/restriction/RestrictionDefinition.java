@@ -32,6 +32,14 @@ public interface RestrictionDefinition {
     String getName();
 
     /**
+     * The jcr name of this restriction definition.
+     *
+     * @return The jcr name.
+     */
+    @Nonnull
+    String getJcrName();
+
+    /**
      * The required type as defined by this definition.
      *
      * @return The required type which must be a valid {@link javax.jcr.PropertyType}.

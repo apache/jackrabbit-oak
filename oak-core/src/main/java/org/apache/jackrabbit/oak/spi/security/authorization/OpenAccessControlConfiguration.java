@@ -21,7 +21,6 @@ import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.Privilege;
-import javax.security.auth.Subject;
 
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -31,7 +30,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 /**
  * This class implements an {@link AccessControlConfiguration} which grants
- * full access to any {@link Subject}.
+ * full access to any {@link javax.security.auth.Subject}.
  */
 public class OpenAccessControlConfiguration extends SecurityConfiguration.Default
         implements AccessControlConfiguration {
