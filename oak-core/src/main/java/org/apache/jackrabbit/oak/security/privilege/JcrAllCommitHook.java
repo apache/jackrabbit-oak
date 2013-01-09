@@ -40,20 +40,17 @@ public class JcrAllCommitHook implements CommitHook, PrivilegeConstants {
     public NodeState processCommit(NodeState before, NodeState after) throws CommitFailedException {
         NodeBuilder builder = after.builder();
         after.compareAgainstBaseState(before, new PrivilegeDiff(null, null, builder));
-
         return builder.getNodeState();
     }
 
-    private class PrivilegeDiff extends EmptyNodeStateDiff {
+    private final class PrivilegeDiff extends EmptyNodeStateDiff {
 
         private static final String ROOT_PATH = "";
 
-        private final PrivilegeDiff parentDiff;
         private final String path;
         private final NodeBuilder nodeBuilder;
 
         private PrivilegeDiff(PrivilegeDiff parentDiff, String nodeName, NodeBuilder nodeBuilder) {
-            this.parentDiff = parentDiff;
             this.path = (nodeName == null) ? ROOT_PATH : parentDiff.path + '/' + nodeName;
             this.nodeBuilder = nodeBuilder;
         }

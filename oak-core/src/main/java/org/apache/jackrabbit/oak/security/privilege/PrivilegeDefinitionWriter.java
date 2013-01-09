@@ -66,7 +66,7 @@ class PrivilegeDefinitionWriter implements PrivilegeConstants {
             if (t instanceof RepositoryException) {
                 throw (RepositoryException) t;
             } else {
-                throw new RepositoryException(e.getMessage());
+                throw new RepositoryException(e);
             }
         }
     }

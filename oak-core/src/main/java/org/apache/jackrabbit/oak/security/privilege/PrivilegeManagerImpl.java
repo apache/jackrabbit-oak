@@ -45,13 +45,10 @@ import org.slf4j.LoggerFactory;
  */
 public class PrivilegeManagerImpl implements PrivilegeManager {
 
-    /**
-     * logger instance
-     */
     private static final Logger log = LoggerFactory.getLogger(PrivilegeManagerImpl.class);
 
-    final Root root;
-    final NamePathMapper namePathMapper;
+    private final Root root;
+    private final NamePathMapper namePathMapper;
 
     public PrivilegeManagerImpl(Root root, NamePathMapper namePathMapper) {
         this.root = root;
@@ -156,7 +153,7 @@ public class PrivilegeManagerImpl implements PrivilegeManager {
     /**
      * Privilege implementation based on a {@link org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeDefinition}.
      */
-    private class PrivilegeImpl implements Privilege {
+    private final class PrivilegeImpl implements Privilege {
 
         private final PrivilegeDefinition definition;
 

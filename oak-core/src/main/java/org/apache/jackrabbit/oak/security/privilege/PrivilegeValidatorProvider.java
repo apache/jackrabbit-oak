@@ -36,6 +36,6 @@ class PrivilegeValidatorProvider implements ValidatorProvider {
     @Nonnull
     @Override
     public Validator getRootValidator(NodeState before, NodeState after) {
-        return new SubtreeValidator(new PrivilegeValidator(before, after), JCR_SYSTEM, REP_PRIVILEGES);
+        return new SubtreeValidator(new PrivilegeValidator(before), JCR_SYSTEM, REP_PRIVILEGES);
     }
 }
