@@ -30,8 +30,8 @@ import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 public interface PrincipalConfiguration extends SecurityConfiguration {
 
     @Nonnull
-    public PrincipalManager getPrincipalManager(Session session, Root root, NamePathMapper namePathMapper);
+    PrincipalManager getPrincipalManager(Session session, Root root, NamePathMapper namePathMapper);
 
     @Nonnull
-    public PrincipalProvider getPrincipalProvider(Root root, NamePathMapper namePathMapper);
+    PrincipalProvider getPrincipalProvider(Root root, NamePathMapper namePathMapper);
 }

@@ -24,8 +24,6 @@ import java.util.List;
 import java.util.Set;
 
 import com.google.common.collect.Iterators;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -34,8 +32,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * providers into a single.
  */
 public class CompositePrincipalProvider implements PrincipalProvider {
-
-    private static final Logger log = LoggerFactory.getLogger(CompositePrincipalProvider.class);
 
     private final List<PrincipalProvider> providers;
 
