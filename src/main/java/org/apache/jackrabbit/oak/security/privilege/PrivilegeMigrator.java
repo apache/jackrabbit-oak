@@ -101,7 +101,7 @@ public class PrivilegeMigrator {
         for (PrivilegeDefinition def : PrivilegeXmlHandler.readDefinitions(src, nsRegistry)) {
             String privName = def.getName();
             if (definitions.containsKey(privName)) {
-                throw new RepositoryException("Duplicate entry for custom privilege with name " + privName.toString());
+                throw new RepositoryException("Duplicate entry for custom privilege with name " + privName);
             }
             definitions.put(privName, def);
         }
@@ -125,9 +125,6 @@ public class PrivilegeMigrator {
      */
     private static class PrivilegeXmlHandler {
 
-        private static final String TEXT_XML = "text/xml";
-        private static final String APPLICATION_XML = "application/xml";
-
         private static final String XML_PRIVILEGES = "privileges";
         private static final String XML_PRIVILEGE = "privilege";
         private static final String XML_CONTAINS = "contains";
@@ -136,8 +133,6 @@ public class PrivilegeMigrator {
         private static final String ATTR_ABSTRACT = "abstract";
 
         private static final String ATTR_XMLNS = "xmlns:";
-
-        private static DocumentBuilderFactory DOCUMENT_BUILDER_FACTORY = createFactory();
 
         private static DocumentBuilderFactory createFactory() {
             DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
@@ -219,7 +214,7 @@ public class PrivilegeMigrator {
          * @throws ParserConfigurationException
          */
         private static DocumentBuilder createDocumentBuilder() throws ParserConfigurationException {
-            DocumentBuilder builder = DOCUMENT_BUILDER_FACTORY.newDocumentBuilder();
+            DocumentBuilder builder = createFactory().newDocumentBuilder();
             builder.setErrorHandler(new DefaultHandler());
             return builder;
         }

@@ -42,7 +42,7 @@ class PrivilegeValidator implements PrivilegeConstants, Validator {
     private final Map<String, PrivilegeDefinition> definitions;
     private final PrivilegeDefinitionReaderImpl reader;
 
-    PrivilegeValidator(NodeState before, NodeState after) {
+    PrivilegeValidator(NodeState before) {
         NodeState privRootState = getPrivilegesRoot(before);
         if (privRootState != null) {
             Tree privilegesBefore = new ReadOnlyTree(privRootState);
