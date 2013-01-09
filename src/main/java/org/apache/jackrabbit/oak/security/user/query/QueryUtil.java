@@ -26,7 +26,7 @@ import org.apache.jackrabbit.oak.spi.security.user.util.UserUtility;
 /**
  * QueryUtil... TODO
  */
-public class QueryUtil {
+public final class QueryUtil {
 
     private QueryUtil() {}
 

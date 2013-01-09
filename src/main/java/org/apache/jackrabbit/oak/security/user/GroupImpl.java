@@ -148,7 +148,7 @@ class GroupImpl extends AuthorizableImpl implements Group {
     private Iterator<Authorizable> getMembers(boolean includeInherited) throws RepositoryException {
         UserManagerImpl userMgr = getUserManager();
         if (isEveryone()) {
-            String propName = getJcrName(REP_PRINCIPAL_NAME);
+            String propName = getUserManager().getNamePathMapper().getJcrName((REP_PRINCIPAL_NAME));
             return userMgr.findAuthorizables(propName, null, UserManager.SEARCH_TYPE_AUTHORIZABLE);
         } else {
             Iterator oakPaths = getMembershipProvider().getMembers(getTree(), AuthorizableType.AUTHORIZABLE, includeInherited);

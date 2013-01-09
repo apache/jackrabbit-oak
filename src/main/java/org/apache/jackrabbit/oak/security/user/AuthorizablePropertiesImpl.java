@@ -20,17 +20,16 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.nodetype.ConstraintViolationException;
-import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.PropertyDefinition;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -54,17 +53,15 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
 
     private static final Logger log = LoggerFactory.getLogger(AuthorizablePropertiesImpl.class);
 
-    private final UserProvider userProvider;
+    private final UserManagerImpl userManager;
     private final String id;
-    private final NamePathMapper namePathMapper;
     private final ReadOnlyNodeTypeManager nodeTypeManager;
 
-    AuthorizablePropertiesImpl(final Root root, UserProvider userProvider,
-                               String id, NamePathMapper namePathMapper) {
-        this.userProvider = userProvider;
+    AuthorizablePropertiesImpl(String id, UserManagerImpl userManager,
+                               ReadOnlyNodeTypeManager nodeTypeManager) {
+        this.userManager = userManager;
         this.id = id;
-        this.namePathMapper = namePathMapper;
-        this.nodeTypeManager = ReadOnlyNodeTypeManager.getInstance(root, NamePathMapper.DEFAULT);
+        this.nodeTypeManager = nodeTypeManager;
     }
 
     //---------------------------------------------< AuthorizableProperties >---
@@ -96,9 +93,7 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
     public boolean hasProperty(String relPath) throws RepositoryException {
         checkRelativePath(relPath);
 
-        Tree tree = getTree();
-        TreeLocation propertyLocation = getLocation(tree, relPath);
-        return propertyLocation.getProperty() != null && isAuthorizableProperty(tree, propertyLocation, true);
+        return isAuthorizableProperty(getTree(), getLocation(getTree(), relPath), true);
     }
 
     /**
@@ -110,16 +105,14 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
 
         Tree tree = getTree();
         Value[] values = null;
-        TreeLocation propertyLocation = getLocation(tree, relPath);
-        PropertyState property = propertyLocation.getProperty();
+        PropertyState property = getAuthorizableProperty(tree, getLocation(tree, relPath), true);
         if (property != null) {
-            if (isAuthorizableProperty(tree, propertyLocation, true)) {
-                if (property.isArray()) {
-                    List<Value> vs = ValueFactoryImpl.createValues(property, namePathMapper);
-                    values = vs.toArray(new Value[vs.size()]);
-                } else {
-                    values = new Value[]{ValueFactoryImpl.createValue(property, namePathMapper)};
-                }
+            NamePathMapper npMapper = userManager.getNamePathMapper();
+            if (property.isArray()) {
+                List<Value> vs = ValueFactoryImpl.createValues(property, npMapper);
+                values = vs.toArray(new Value[vs.size()]);
+            } else {
+                values = new Value[]{ValueFactoryImpl.createValue(property, npMapper)};
             }
         }
         return values;
@@ -143,11 +136,9 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
             // check if the property has already been created as multi valued
             // property before -> in this case remove in order to avoid
             // ValueFormatException.
-            if (parent.hasProperty(name)) {
-                PropertyState p = parent.getProperty(name);
-                if (p.isArray()) {
-                    parent.removeProperty(name);
-                }
+            PropertyState p = parent.getProperty(name);
+            if (p != null && p.isArray()) {
+                parent.removeProperty(name);
             }
             PropertyState propertyState = PropertyStates.createProperty(name, value);
             parent.setProperty(propertyState);
@@ -173,11 +164,9 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
             // check if the property has already been created as single valued
             // property before -> in this case remove in order to avoid
             // ValueFormatException.
-            if (parent.hasProperty(name)) {
-                PropertyState p = parent.getProperty(name);
-                if (!p.isArray()) {
-                    parent.removeProperty(name);
-                }
+            PropertyState p = parent.getProperty(name);
+            if (p != null && !p.isArray()) {
+                parent.removeProperty(name);
             }
             PropertyState propertyState = PropertyStates.createProperty(name, Arrays.asList(values));
             parent.setProperty(propertyState);
@@ -208,9 +197,9 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
     }
 
     //------------------------------------------------------------< private >---
-
+    @Nonnull
     private Tree getTree() {
-        return userProvider.getAuthorizable(id);
+        return userManager.getAuthorizableTree(id);
     }
 
     /**
@@ -223,36 +212,54 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
      * @param verifyAncestor If true the property is tested to be a descendant
      * of the node of this authorizable; otherwise it is expected that this
      * test has been executed by the caller.
-     * @return {@code true} if the given property is defined
+     * @return {@code true} if the given property is not protected and is defined
      * by the rep:authorizable node type or one of it's sub-node types;
      * {@code false} otherwise.
      * @throws RepositoryException If an error occurs.
      */
     private boolean isAuthorizableProperty(Tree authorizableTree, TreeLocation propertyLocation, boolean verifyAncestor) throws RepositoryException {
-        String authorizablePath = authorizableTree.getPath();
-        String propPath = propertyLocation.getPath();
-        if (verifyAncestor && !Text.isDescendant(authorizablePath, propPath)) {
-            log.debug("Attempt to access property outside of authorizable scope.");
-            return false;
+        return getAuthorizableProperty(authorizableTree, propertyLocation, verifyAncestor) != null;
+    }
+
+    /**
+     * Returns the valid authorizable property identified by the specified
+     * property location or {@code null} if that property does not exist or
+     * isn't a authorizable property because it is protected or outside of the
+     * scope of the {@code authorizableTree}.
+     *
+     * @param authorizableTree The tree of the target authorizable.
+     * @param propertyLocation Location to be tested.
+     * @param verifyAncestor If true the property is tested to be a descendant
+     * of the node of this authorizable; otherwise it is expected that this
+     * test has been executed by the caller.
+     * @return a valid authorizable property or {@code null} if no such property
+     * exists or fi the property is protected or not defined by the rep:authorizable
+     * node type or one of it's sub-node types.
+     * @throws RepositoryException If an error occurs.
+     */
+    @CheckForNull
+    private PropertyState getAuthorizableProperty(Tree authorizableTree, TreeLocation propertyLocation, boolean verifyAncestor) throws RepositoryException {
+        if (propertyLocation == null || TreeLocation.NULL == propertyLocation) {
+            return null;
         }
 
-        Tree parent = propertyLocation.getParent().getTree();
+        String authorizablePath = authorizableTree.getPath();
+        if (verifyAncestor && !Text.isDescendant(authorizablePath, propertyLocation.getPath())) {
+            log.debug("Attempt to access property outside of authorizable scope.");
+            return null;
+        }
+
         PropertyState property = propertyLocation.getProperty();
         if (property != null) {
+            Tree parent = propertyLocation.getParent().getTree();
             PropertyDefinition def = nodeTypeManager.getDefinition(parent, property);
-            if (def.isProtected()) {
-                return false;
-            } else if (authorizablePath.equals(parent.getPath())) {
-                NodeType declaringNt = def.getDeclaringNodeType();
-                return declaringNt.isNodeType(UserConstants.NT_REP_AUTHORIZABLE);
-            } else {
-                // another non-protected property somewhere in the subtree of this
-                // authorizable node -> is a property that can be set using #setProperty.
-                return true;
-            }
-        }
-        // property does not exist.
-        return false;
+            if (def.isProtected() || (authorizablePath.equals(parent.getPath())
+                    && !def.getDeclaringNodeType().isNodeType(UserConstants.NT_REP_AUTHORIZABLE))) {
+                return null;
+            } // else: non-protected property somewhere in the subtree of the user tree.
+        } // else: no such property.
+
+        return property;
     }
 
     private void checkProtectedProperty(Tree parent, String propertyName, boolean isArray, int type) throws RepositoryException {

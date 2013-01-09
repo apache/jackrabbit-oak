@@ -158,9 +158,6 @@ import static org.apache.jackrabbit.oak.api.Type.STRING;
  */
 class UserProvider extends AuthorizableBaseProvider {
 
-    /**
-     * logger instance
-     */
     private static final Logger log = LoggerFactory.getLogger(UserProvider.class);
 
     private static final String DELIMITER = "/";
@@ -174,7 +171,6 @@ class UserProvider extends AuthorizableBaseProvider {
         super(root, config);
 
         defaultDepth = config.getConfigValue(PARAM_DEFAULT_DEPTH, DEFAULT_DEPTH);
-
         groupPath = config.getConfigValue(PARAM_GROUP_PATH, DEFAULT_GROUP_PATH);
         userPath = config.getConfigValue(PARAM_USER_PATH, DEFAULT_USER_PATH);
     }

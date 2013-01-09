@@ -28,8 +28,7 @@ interface Condition {
     void accept(ConditionVisitor visitor) throws RepositoryException;
 
     //-----------------------------------------------------< Node Condition >---
-
-    static class Node implements Condition {
+    class Node implements Condition {
 
         private final String pattern;
 
@@ -47,8 +46,7 @@ interface Condition {
     }
 
     //-------------------------------------------------< Property Condition >---
-
-    static class Property implements Condition {
+    class Property implements Condition {
 
         private final String relPath;
         private final RelationOp op;
@@ -98,8 +96,7 @@ interface Condition {
     }
 
     //-------------------------------------------------< Contains Condition >---
-
-    static class Contains implements Condition {
+    class Contains implements Condition {
 
         private final String relPath;
         private final String searchExpr;
@@ -123,8 +120,7 @@ interface Condition {
     }
 
     //--------------------------------------------< Impersonation Condition >---
-
-    static class Impersonation implements Condition {
+    class Impersonation implements Condition {
 
         private final String name;
 
@@ -142,8 +138,7 @@ interface Condition {
     }
 
     //------------------------------------------------------< Not Condition >---
-
-    static class Not implements Condition {
+    class Not implements Condition {
 
         private final Condition condition;
 
@@ -161,8 +156,7 @@ interface Condition {
     }
 
     //-------------------------------------------------< Compound Condition >---
-
-    abstract static class Compound implements Condition, Iterable<Condition> {
+    abstract class Compound implements Condition, Iterable<Condition> {
 
         private final List<Condition> conditions = new ArrayList<Condition>();
 
@@ -177,8 +171,7 @@ interface Condition {
     }
 
     //------------------------------------------------------< And Condition >---
-
-    static class And extends Compound {
+    class And extends Compound {
 
         public And(Condition condition1, Condition condition2) {
             super(condition1, condition2);
@@ -190,8 +183,7 @@ interface Condition {
     }
 
     //-------------------------------------------------------< Or Condition >---
-
-    static class Or extends Compound {
+    class Or extends Compound {
 
         public Or(Condition condition1, Condition condition2) {
             super(condition1, condition2);

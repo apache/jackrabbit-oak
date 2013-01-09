@@ -29,7 +29,7 @@ public interface AuthorizableNodeName {
      *
      * @see AuthorizableNodeName.Default
      */
-    public AuthorizableNodeName DEFAULT = new Default();
+    AuthorizableNodeName DEFAULT = new Default();
 
     /**
      * Generates a node name from the specified {@code authorizableId}.
@@ -45,7 +45,7 @@ public interface AuthorizableNodeName {
      * {@link org.apache.jackrabbit.util.Text#escapeIllegalJcrChars(String) escaping}
      * any illegal JCR chars.
      */
-    public static final class Default implements AuthorizableNodeName {
+    final class Default implements AuthorizableNodeName {
 
         @Override
         public String generateNodeName(String authorizableId) {

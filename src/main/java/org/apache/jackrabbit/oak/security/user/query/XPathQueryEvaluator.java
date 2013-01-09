@@ -70,11 +70,6 @@ public class XPathQueryEvaluator implements ConditionVisitor {
             return Iterators.emptyIterator();
         }
 
-        statement.append(QueryUtil.getSearchRoot(builder.getSelectorType(), config))
-                .append("//element(*,")
-                .append(QueryUtil.getNodeTypeName(builder.getSelectorType()))
-                .append(')');
-
         Value bound = builder.getBound();
         Condition condition = builder.getCondition();
         String sortCol = builder.getSortProperty();
@@ -91,6 +86,10 @@ public class XPathQueryEvaluator implements ConditionVisitor {
                 }
             }
         }
+
+        String searchRoot = QueryUtil.getSearchRoot(builder.getSelectorType(), config);
+        String ntName = QueryUtil.getNodeTypeName(builder.getSelectorType());
+        statement.append(searchRoot).append("//element(*,").append(ntName).append(')');
 
         if (condition != null) {
             statement.append('[');
