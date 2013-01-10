@@ -52,7 +52,7 @@ import org.xml.sax.InputSource;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
 
 /**
- * {@code WorkspaceImpl}...
+ * TODO document
  */
 public class WorkspaceImpl implements JackrabbitWorkspace {
 

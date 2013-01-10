@@ -32,7 +32,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * {@code ItemImpl}...
+ * TODO document
  */
 abstract class ItemImpl<T extends ItemDelegate> extends AbstractItem {
 

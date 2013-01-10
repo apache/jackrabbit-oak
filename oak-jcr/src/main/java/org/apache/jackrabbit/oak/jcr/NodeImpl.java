@@ -55,7 +55,6 @@ import javax.jcr.nodetype.PropertyDefinition;
 import javax.jcr.version.Version;
 import javax.jcr.version.VersionException;
 import javax.jcr.version.VersionHistory;
-import javax.jcr.version.VersionManager;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
@@ -87,7 +86,9 @@ import static javax.jcr.Property.JCR_LOCK_IS_DEEP;
 import static javax.jcr.Property.JCR_LOCK_OWNER;
 
 /**
- * {@code NodeImpl}...
+ * TODO document
+ * 
+ * @param <T> the delegate type
  */
 public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Node {
 
