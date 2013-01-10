@@ -200,6 +200,17 @@ public class MongoNodeStore implements NodeStore {
     }
 
     /**
+     * Evicts the commit from the {@link #commitCache}.
+     *
+     * @param commit the commit.
+     */
+    public void evict(MongoCommit commit) {
+        if (commitCache.remove(commit.getRevisionId()) != null) {
+            LOG.debug("Removed commit {} from cache", commit.getRevisionId());
+        }
+    }
+
+    /**
      * Returns the commit from the cache or null if the commit is not in the cache.
      *
      * @param revisionId Commit revision id.
@@ -225,7 +236,7 @@ public class MongoNodeStore implements NodeStore {
         String key = path + "*" + branchId + "*" + revisionId;
         if (!nodeCache.containsKey(key)) {
             LOG.debug("Adding node to cache: {}", key);
-            nodeCache.put(key, node);
+            nodeCache.put(key, node.copy());
         }
     }
 

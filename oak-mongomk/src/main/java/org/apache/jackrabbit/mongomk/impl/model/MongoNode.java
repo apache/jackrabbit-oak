@@ -131,6 +131,13 @@ public class MongoNode extends BasicDBObject {
         put(KEY_REVISION_ID, revisionId);
     }
 
+    @Override
+    public MongoNode copy() {
+        MongoNode copy = new MongoNode();
+        copy.putAll((Map) super.copy());
+        return copy;
+    }
+
     //--------------------------------------------------------------------------
     //
     // These properties are used to keep track of changes but not persisted

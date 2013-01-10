@@ -60,6 +60,8 @@ public class CommitCommand extends BaseCommand<Long> {
     private MongoSync mongoSync;
     private Set<MongoNode> nodes;
     private Long revisionId;
+    private final Long initialBaseRevisionId;
+    private Long baseRevisionId;
     private String branchId;
 
     /**
@@ -71,14 +73,21 @@ public class CommitCommand extends BaseCommand<Long> {
     public CommitCommand(MongoNodeStore nodeStore, Commit commit) {
         super(nodeStore);
         this.commit = (MongoCommit)commit;
+        this.initialBaseRevisionId = commit.getBaseRevisionId();
     }
 
     @Override
     public Long execute() throws Exception {
+        int retries = 0;
         boolean success = false;
         do {
             mongoSync = new ReadAndIncHeadRevisionAction(nodeStore).execute();
             revisionId = mongoSync.getNextRevisionId() - 1;
+            if (initialBaseRevisionId != null) {
+                baseRevisionId = initialBaseRevisionId;
+            } else {
+                baseRevisionId = mongoSync.getHeadRevisionId();
+            }
             logger.debug("Committing @{} with diff: {}", revisionId, commit.getDiff());
             readValidCommits();
             readBranchIdFromBaseCommit();
@@ -90,9 +99,16 @@ public class CommitCommand extends BaseCommand<Long> {
             new SaveNodesAction(nodeStore, nodes).execute();
             new SaveCommitAction(nodeStore, commit).execute();
             success = saveAndSetHeadRevision();
+            if (!success) {
+                retries++;
+            }
         } while (!success);
 
-        logger.debug("Commit @{}: success", revisionId);
+        String msg = "Commit @{}: success";
+        if (retries > 0) {
+            msg += " with {} retries.";
+        }
+        logger.debug(msg, revisionId, retries);
         return revisionId;
     }
 
@@ -133,7 +149,7 @@ public class CommitCommand extends BaseCommand<Long> {
 
     private void createMongoNodes() throws Exception {
         CommitCommandInstructionVisitor visitor = new CommitCommandInstructionVisitor(
-                nodeStore, mongoSync.getHeadRevisionId(), validCommits);
+                nodeStore, baseRevisionId, validCommits);
         visitor.setBranchId(branchId);
 
         for (Instruction instruction : commit.getInstructions()) {
@@ -273,7 +289,7 @@ public class CommitCommand extends BaseCommand<Long> {
                 markAsFailed();
                 throw new ConflictingCommitException(message);
             } else {
-                logger.warn("Commit @{}: failed due to a conflicting commit."
+                logger.info("Commit @{}: failed due to a concurrent commit."
                         + " Affected paths: {}", revisionId, commit.getAffectedPaths());
                 markAsFailed();
                 return false;
@@ -303,6 +319,7 @@ public class CommitCommand extends BaseCommand<Long> {
         DBObject query = QueryBuilder.start("_id").is(commit.getObjectId("_id")).get();
         DBObject update = new BasicDBObject("$set", new BasicDBObject(MongoCommit.KEY_FAILED, Boolean.TRUE));
         WriteResult writeResult = commitCollection.update(query, update);
+        nodeStore.evict(commit);
         if (writeResult.getError() != null) {
             // FIXME This is potentially a bug that we need to handle.
             throw new Exception(String.format("Update wasn't successful: %s", writeResult));

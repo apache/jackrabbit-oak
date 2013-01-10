@@ -75,7 +75,6 @@ public class MongoMKCommitAddTest extends BaseMongoMicroKernelTest {
     }
 
     @Test
-    @Ignore // FIXME - due to CommitCommandInstructionVisitor add node change.
     public void addDuplicateNode() throws Exception {
         mk.commit("/", "+\"a\" : {}", null, null);
         try {
@@ -138,7 +137,6 @@ public class MongoMKCommitAddTest extends BaseMongoMicroKernelTest {
     }
 
     @Test
-    @Ignore // FIXME - due to CommitCommandInstructionVisitor add node change.
     public void setPropertyWithoutAddingNode() throws Exception {
         try {
             mk.commit("/", "^\"a/key1\" : \"value1\"", null, null);
