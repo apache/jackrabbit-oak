@@ -124,7 +124,7 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
             }
             indexEntry.setProperty("match", true);
         }
-        long matchCount = countMatchingLeaves(child.getNodeState());
+        long matchCount = countMatchingLeaves(child.getNodeState(), 0, 2);
         if (matchCount == 0) {
             index.removeNode(key);
         } else if (unique && matchCount > 1) {
@@ -132,13 +132,18 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
         }
     }
 
-    static int countMatchingLeaves(NodeState state) {
-        int count = 0;
+    static int countMatchingLeaves(NodeState state, int initialCount, int max) {
+        int count = initialCount;
         if (state.getProperty("match") != null) {
             count++;
         }
-        for (ChildNodeEntry entry : state.getChildNodeEntries()) {
-            count += countMatchingLeaves(entry.getNodeState());
+        if (count < max) {
+            for (ChildNodeEntry entry : state.getChildNodeEntries()) {
+                if (count >= max) {
+                    break;
+                }
+                count = countMatchingLeaves(entry.getNodeState(), count, max);
+            }
         }
         return count;
     }
@@ -169,15 +174,18 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
     }
     
     @Override
-    public int count(NodeState index, Iterable<String> values) {
+    public int count(NodeState index, Iterable<String> values, int max) {
         int count = 0;
         if (values == null) {
-            count += countMatchingLeaves(index);
+            count = countMatchingLeaves(index, count, max);
         } else {
             for (String p : values) {
+                if (count > max) {
+                    break;
+                }
                 NodeState s = index.getChildNode(p);
                 if (s != null) {
-                    count += countMatchingLeaves(s);
+                    count = countMatchingLeaves(s, count, max);
                 }
             }
         }
