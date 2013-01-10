@@ -24,7 +24,7 @@ import org.apache.jackrabbit.api.security.user.QueryBuilder;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 
-public class XPathQueryBuilder implements QueryBuilder<Condition> {
+class XPathQueryBuilder implements QueryBuilder<Condition> {
 
     private AuthorizableType selectorType = AuthorizableType.AUTHORIZABLE;
     private String groupName;
