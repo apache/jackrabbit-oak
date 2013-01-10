@@ -60,10 +60,10 @@ public class PasswordValidationActionTest extends AbstractSecurityTest {
     public void before() throws Exception {
         super.before();
 
-        root = admin.getLatestRoot();
+        root = adminSession.getLatestRoot();
 
         userManager = getSecurityProvider().getUserConfiguration().getUserManager(root, NamePathMapper.DEFAULT);
-        user = (User) userManager.getAuthorizable(admin.getAuthInfo().getUserID());
+        user = (User) userManager.getAuthorizable(adminSession.getAuthInfo().getUserID());
 
         testAction.reset();
         pwAction.setConstraint("^.*(?=.{8,})(?=.*[a-z])(?=.*[A-Z]).*");

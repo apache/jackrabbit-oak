@@ -58,7 +58,7 @@ public class UserManagerImplTest extends AbstractSecurityTest {
     public void before() throws Exception {
         super.before();
 
-        root = admin.getLatestRoot();
+        root = adminSession.getLatestRoot();
         userMgr = new UserManagerImpl(root, NamePathMapper.DEFAULT, getSecurityProvider());
     }
 
