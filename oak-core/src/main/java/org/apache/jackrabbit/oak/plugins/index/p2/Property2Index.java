@@ -143,7 +143,6 @@ class Property2Index implements QueryIndex {
                     break;
                 } else if (pr.first == null && pr.last == null) {
                     // "[property] is not null"
-                    // TODO don't load all entries in memory
                     paths = lookup.query(pr.propertyName, null);
                     break;
                 }
