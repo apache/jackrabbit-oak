@@ -52,8 +52,8 @@ public interface QueryEngine {
      *
      * @param statement the query statement
      * @param language the language
-     * @param limit the maximum result set size
-     * @param offset the number of rows to skip
+     * @param limit the maximum result set size (may not be negative)
+     * @param offset the number of rows to skip (may not be negative)
      * @param bindings the bind variable value bindings
      * @param namePathMapper the name and path mapper to use
      * @return the result
