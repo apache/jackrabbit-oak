@@ -38,7 +38,7 @@ public abstract class AbstractSecurityTest {
     private ContentRepository contentRepository;
 
     protected SecurityProvider securityProvider;
-    protected ContentSession admin;
+    protected ContentSession adminSession;
 
     @Before
     public void before() throws Exception {
@@ -47,14 +47,14 @@ public abstract class AbstractSecurityTest {
                 .with(getSecurityProvider())
                 .createContentRepository();
 
-        admin = login(getAdminCredentials());
+        adminSession = login(getAdminCredentials());
 
         Configuration.setConfiguration(getConfiguration());
     }
 
     @After
     public void after() throws Exception {
-        admin.close();
+        adminSession.close();
         Configuration.setConfiguration(null);
     }
 

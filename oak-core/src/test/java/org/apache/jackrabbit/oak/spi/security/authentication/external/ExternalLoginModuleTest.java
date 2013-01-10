@@ -63,7 +63,7 @@ public class ExternalLoginModuleTest extends AbstractSecurityTest {
             ids.add(group.getId());
         }
 
-        root = admin.getLatestRoot();
+        root = adminSession.getLatestRoot();
         userManager = securityProvider.getUserConfiguration().getUserManager(root, NamePathMapper.DEFAULT);
     }
 

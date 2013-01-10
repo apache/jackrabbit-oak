@@ -16,11 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.principal;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -43,6 +38,11 @@ import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.junit.Test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
 /**
  * PrincipalProviderImplTest...
  */
@@ -56,14 +56,14 @@ public class PrincipalProviderImplTest extends AbstractSecurityTest {
     public void before() throws Exception {
         super.before();
 
-        root = admin.getLatestRoot();
+        root = adminSession.getLatestRoot();
         userConfig = getSecurityProvider().getUserConfiguration();
         principalProvider = new PrincipalProviderImpl(root, userConfig, NamePathMapper.DEFAULT);
     }
 
     @Test
     public void testGetPrincipals() throws Exception {
-        String adminId = admin.getAuthInfo().getUserID();
+        String adminId = adminSession.getAuthInfo().getUserID();
         Set<? extends Principal> principals = principalProvider.getPrincipals(adminId);
 
         assertNotNull(principals);
