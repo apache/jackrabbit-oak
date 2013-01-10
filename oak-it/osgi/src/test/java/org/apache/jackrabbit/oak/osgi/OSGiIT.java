@@ -70,9 +70,7 @@ public class OSGiIT {
     }
 
     private String getConfigDir(){
-        File target = new File("target");
-        File configDir = new File(target,"test-config");
-        return configDir.getAbsolutePath();
+        return new File(new File("src", "test"), "config").getAbsolutePath();
     }
 
     private UrlProvisionOption jarBundle(String jar)

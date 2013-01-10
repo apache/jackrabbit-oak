@@ -36,15 +36,6 @@
   </properties>
 
   <build>
-      <resources>
-          <resource>
-              <directory>src/test/config</directory>
-              <includes>
-                  <include>*.cfg</include>
-              </includes>
-              <targetPath>${project.build.directory}/test-config</targetPath>
-          </resource>
-      </resources>
     <plugins>
       <plugin>
         <artifactId>maven-assembly-plugin</artifactId>
