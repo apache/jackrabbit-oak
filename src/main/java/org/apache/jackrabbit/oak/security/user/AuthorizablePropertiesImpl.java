@@ -182,12 +182,9 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
 
         Tree node = getTree();
         TreeLocation propertyLocation = node.getLocation().getChild(relPath);
-        PropertyState property = propertyLocation.getProperty();
-        if (property != null) {
+        if (propertyLocation.getProperty() != null) {
             if (isAuthorizableProperty(node, propertyLocation, true)) {
-                Tree parent = propertyLocation.getParent().getTree();
-                parent.removeProperty(property.getName());
-                return true;
+                return propertyLocation.remove();
             } else {
                 throw new ConstraintViolationException("Property " + relPath + " isn't a modifiable authorizable property");
             }
@@ -252,6 +249,10 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
         PropertyState property = propertyLocation.getProperty();
         if (property != null) {
             Tree parent = propertyLocation.getParent().getTree();
+            if (parent == null) {
+                log.debug("Unable to determine definition of authorizable property at " + propertyLocation.getPath());
+                return null;
+            }
             PropertyDefinition def = nodeTypeManager.getDefinition(parent, property);
             if (def.isProtected() || (authorizablePath.equals(parent.getPath())
                     && !def.getDeclaringNodeType().isNodeType(UserConstants.NT_REP_AUTHORIZABLE))) {
