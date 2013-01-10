@@ -58,7 +58,7 @@ public class UserAuthenticationTest extends AbstractSecurityTest {
     public void before() throws Exception {
         super.before();
 
-        root = admin.getLatestRoot();
+        root = adminSession.getLatestRoot();
 
         userId = "testUser";
         userManager = getSecurityProvider().getUserConfiguration().getUserManager(root, NamePathMapper.DEFAULT);
@@ -130,9 +130,9 @@ public class UserAuthenticationTest extends AbstractSecurityTest {
     @Test
     public void testAuthenticateInvalidImpersonationCredentials() throws Exception {
        List<Credentials> invalid = new ArrayList<Credentials>();
-        invalid.add(new ImpersonationCredentials(new GuestCredentials(), admin.getAuthInfo()));
-        invalid.add(new ImpersonationCredentials(new SimpleCredentials(admin.getAuthInfo().getUserID(), new char[0]), new TestAuthInfo()));
-        invalid.add(new ImpersonationCredentials(new SimpleCredentials("unknown", new char[0]), admin.getAuthInfo()));
+        invalid.add(new ImpersonationCredentials(new GuestCredentials(), adminSession.getAuthInfo()));
+        invalid.add(new ImpersonationCredentials(new SimpleCredentials(adminSession.getAuthInfo().getUserID(), new char[0]), new TestAuthInfo()));
+        invalid.add(new ImpersonationCredentials(new SimpleCredentials("unknown", new char[0]), adminSession.getAuthInfo()));
         invalid.add(new ImpersonationCredentials(new SimpleCredentials("unknown", new char[0]), new TestAuthInfo()));
 
         for (Credentials creds : invalid) {
@@ -148,7 +148,7 @@ public class UserAuthenticationTest extends AbstractSecurityTest {
     @Test
     public void testAuthenticateImpersonationCredentials() throws Exception {
         SimpleCredentials sc = new SimpleCredentials(userId, new char[0]);
-        assertTrue(authentication.authenticate(new ImpersonationCredentials(sc, admin.getAuthInfo())));
+        assertTrue(authentication.authenticate(new ImpersonationCredentials(sc, adminSession.getAuthInfo())));
     }
 
     @Test

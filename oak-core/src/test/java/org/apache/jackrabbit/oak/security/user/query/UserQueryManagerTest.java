@@ -56,7 +56,7 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
         UserConfiguration uc = securityProvider.getUserConfiguration();
         NamePathMapper npMapper = NamePathMapper.DEFAULT;
 
-        root = admin.getLatestRoot();
+        root = adminSession.getLatestRoot();
 
         UserManager userMgr = uc.getUserManager(root, npMapper);
         user = userMgr.createUser("testUser", "pw");

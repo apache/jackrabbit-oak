@@ -104,7 +104,7 @@ public class DefaultLoginModuleTest extends AbstractSecurityTest {
     public void testAnonymousLogin() throws Exception {
         String anonymousID = UserUtility.getAnonymousId(uc.getConfigurationParameters());
 
-        Root root = admin.getLatestRoot();
+        Root root = adminSession.getLatestRoot();
         UserManager userMgr = uc.getUserManager(root, NamePathMapper.DEFAULT);
 
         // verify initial user-content looks like expected
@@ -127,7 +127,7 @@ public class DefaultLoginModuleTest extends AbstractSecurityTest {
 
     @Test
     public void testUserLogin() throws Exception {
-        Root root = admin.getLatestRoot();
+        Root root = adminSession.getLatestRoot();
         UserManager userManager = uc.getUserManager(root, NamePathMapper.DEFAULT);
 
         ContentSession cs = null;
@@ -152,7 +152,7 @@ public class DefaultLoginModuleTest extends AbstractSecurityTest {
 
     @Test
     public void testSelfImpersonation() throws Exception {
-        Root root = admin.getLatestRoot();
+        Root root = adminSession.getLatestRoot();
         UserManager userManager = uc.getUserManager(root, NamePathMapper.DEFAULT);
 
         ContentSession cs = null;
@@ -188,7 +188,7 @@ public class DefaultLoginModuleTest extends AbstractSecurityTest {
 
     @Test
     public void testInvalidImpersonation() throws Exception {
-        Root root = admin.getLatestRoot();
+        Root root = adminSession.getLatestRoot();
         UserManager userManager = uc.getUserManager(root, NamePathMapper.DEFAULT);
 
         ContentSession cs = null;

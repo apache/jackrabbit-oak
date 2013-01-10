@@ -40,7 +40,7 @@ public abstract class AbstractTokenTest extends AbstractSecurityTest {
     public void before() throws Exception {
         super.before();
 
-        root = admin.getLatestRoot();
+        root = adminSession.getLatestRoot();
         tokenProvider = new TokenProviderImpl(root,
                 ConfigurationParameters.EMPTY,
                 getSecurityProvider().getUserConfiguration());
