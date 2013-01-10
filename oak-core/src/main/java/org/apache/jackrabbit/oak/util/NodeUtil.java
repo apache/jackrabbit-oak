@@ -22,6 +22,7 @@ import java.util.GregorianCalendar;
 import java.util.List;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
@@ -175,7 +176,7 @@ public class NodeUtil {
     }
 
     @CheckForNull
-    public String getString(String name, String defaultValue) {
+    public String getString(String name, @Nullable String defaultValue) {
         PropertyState property = tree.getProperty(name);
         if (property != null && !property.isArray()) {
             return property.getValue(Type.STRING);
@@ -208,7 +209,7 @@ public class NodeUtil {
     }
 
     @CheckForNull
-    public String getName(String name, String defaultValue) {
+    public String getName(String name, @Nullable String defaultValue) {
         PropertyState property = tree.getProperty(name);
         if (property != null && !property.isArray()) {
             return mapper.getJcrName(property.getValue(STRING));
