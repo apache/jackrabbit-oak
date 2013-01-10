@@ -23,6 +23,7 @@ import java.util.Iterator;
 import java.util.List;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
 
@@ -37,6 +38,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.security.principal.PrincipalImpl;
+import org.apache.jackrabbit.oak.security.user.query.UserQueryManager;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
@@ -124,7 +126,7 @@ public class UserManagerImpl implements UserManager {
     @Override
     public Iterator<Authorizable> findAuthorizables(Query query) throws RepositoryException {
         checkIsLive();
-        return getQueryManager().find(query);
+        return getQueryManager().findAuthorizables(query);
     }
 
     @Override
@@ -134,7 +136,8 @@ public class UserManagerImpl implements UserManager {
     }
 
     @Override
-    public User createUser(String userID, String password, Principal principal, String intermediatePath) throws RepositoryException {
+    public User createUser(String userID, String password, Principal principal,
+                           @Nullable String intermediatePath) throws RepositoryException {
         checkIsLive();
         checkValidID(userID);
         checkValidPrincipal(principal, false);
@@ -167,12 +170,12 @@ public class UserManagerImpl implements UserManager {
     }
 
     @Override
-    public Group createGroup(Principal principal, String intermediatePath) throws RepositoryException {
+    public Group createGroup(Principal principal, @Nullable String intermediatePath) throws RepositoryException {
         return createGroup(principal.getName(), principal, intermediatePath);
     }
 
     @Override
-    public Group createGroup(String groupID, Principal principal, String intermediatePath) throws RepositoryException {
+    public Group createGroup(String groupID, Principal principal, @Nullable String intermediatePath) throws RepositoryException {
         checkIsLive();
         checkValidID(groupID);
         checkValidPrincipal(principal, true);
@@ -384,7 +387,7 @@ public class UserManagerImpl implements UserManager {
 
     private UserQueryManager getQueryManager() {
         if (queryManager == null) {
-            queryManager = new UserQueryManager(this, root);
+            queryManager = new UserQueryManager(this, namePathMapper, config, root.getQueryEngine());
         }
         return queryManager;
     }
