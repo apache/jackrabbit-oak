@@ -66,8 +66,9 @@ public interface IndexStoreStrategy {
      * 
      * @param index the index node (may not be null)
      * @param values values to look for (null to check for property existence)
+     * @param max the maximum value to return
      * @return the aggregated count of occurrences for each provided value
      */
-    int count(NodeState index, Iterable<String> values);
+    int count(NodeState index, Iterable<String> values, int max);
 
 }
