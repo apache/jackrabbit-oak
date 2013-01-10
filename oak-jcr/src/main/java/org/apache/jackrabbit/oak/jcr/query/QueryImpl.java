@@ -114,11 +114,17 @@ public class QueryImpl implements Query {
 
     @Override
     public void setLimit(long limit) {
+        if (limit < 0) {
+            throw new IllegalArgumentException("Limit may not be negative, is: " + limit);
+        }
         this.limit = limit;
     }
 
     @Override
     public void setOffset(long offset) {
+        if (offset < 0) {
+            throw new IllegalArgumentException("Offset may not be negative, is: " + offset);
+        }
         this.offset = offset;
     }
 
