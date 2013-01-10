@@ -52,6 +52,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * </pre>
  */
 public class Property2IndexLookup {
+    
+    private static final int MAX_COST = 100;
 
     private final IndexStoreStrategy store = new ContentMirrorStoreStrategy();
 
@@ -99,19 +101,12 @@ public class Property2IndexLookup {
     }
 
     public double getCost(String name, PropertyValue value) {
-        // TODO the cost method is currently reading all the data - 
-        // is not supposed to do that, it is only supposed to estimate
         NodeState state = getIndexDataNode(root, name);
         if (state == null) {
             return Double.POSITIVE_INFINITY;
         }
-        double cost;
-        if (value == null) {
-            cost = store.count(state, null);
-        } else {
-            cost = store.count(state, Property2Index.encode(value));
-        }
-        return cost;
+        Iterable<String> it = value == null ? null : Property2Index.encode(value);
+        return store.count(state, it, MAX_COST);
     }
 
     /**

@@ -75,6 +75,12 @@ public class Property2IndexTest {
         assertEquals(ImmutableSet.of(), find(lookup, "foo", "ghi"));
         assertEquals(MANY, find(lookup, "foo", "xyz").size());
         assertEquals(MANY + 2, find(lookup, "foo", null).size());
+
+        assertEquals(Math.min(100, MANY), 
+                (int) lookup.getCost("foo", PropertyValues.newString("xyz")));
+        assertEquals(Math.min(100, MANY), 
+                (int) lookup.getCost("foo", null));
+
         
     }
     
