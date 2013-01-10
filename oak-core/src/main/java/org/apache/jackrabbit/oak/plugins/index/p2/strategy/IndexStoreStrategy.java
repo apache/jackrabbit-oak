@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.p2.strategy;
 
-import java.util.Set;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -51,16 +49,6 @@ public interface IndexStoreStrategy {
      */
     void insert(NodeBuilder index, String key, boolean unique,
             Iterable<String> values) throws CommitFailedException;
-
-    /**
-     * Search for a given set of values.
-     * 
-     * @param index index node (may not be null)
-     * @param values values to look for (null to check for property existence)
-     * @return the set of paths corresponding to the given values
-     */
-    @Deprecated
-    Set<String> find(NodeState index, Iterable<String> values);
     
     /**
      * Search for a given set of values.

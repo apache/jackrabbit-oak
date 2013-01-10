@@ -20,7 +20,6 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFIN
 
 import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
 
 import javax.annotation.Nullable;
 
@@ -33,8 +32,6 @@ import org.apache.jackrabbit.oak.plugins.index.p2.strategy.ContentMirrorStoreStr
 import org.apache.jackrabbit.oak.plugins.index.p2.strategy.IndexStoreStrategy;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-
-import com.google.common.collect.Sets;
 
 /**
  * Is responsible for querying the property index content.
@@ -90,28 +87,6 @@ public class Property2IndexLookup {
             node = node.getChildNode(it.next());
         }
         return false;
-    }
-
-    /**
-     * Searches for a given value within this index.
-     * 
-     * @param name the property name
-     * @param value the property value (null to check for property existence)
-     * @return the set of matched paths
-     */
-    @Deprecated
-    public Set<String> find(String name, PropertyValue value) {
-        NodeState state = getIndexDataNode(root, name);
-        if (state == null) {
-            throw new IllegalArgumentException("No index for " + name);
-        }
-        Set<String> paths = Sets.newHashSet();
-        if (value == null) {
-            paths.addAll(store.find(state, null));
-        } else {
-            paths.addAll(store.find(state, Property2Index.encode(value)));
-        }
-        return paths;
     }
     
     public Iterable<String> query(String name, PropertyValue value) {
