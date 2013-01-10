@@ -259,9 +259,12 @@ public class PrincipalManagerTest extends AbstractJCRTest {
             if (pcpl.equals(everyone)) {
                 continue;
             }
+
+            assertTrue(principalMgr.hasPrincipal(pcpl.getName()));
+
             PrincipalIterator it = principalMgr.findPrincipals(pcpl.getName());
             // search must find at least a single principal
-            assertTrue("findPrincipals does not find principal with filter " + pcpl.getName(), it.hasNext());
+            assertTrue("findPrincipals does not find principal with filter '" + pcpl.getName() + '\'', it.hasNext());
         }
     }
 
@@ -273,6 +276,8 @@ public class PrincipalManagerTest extends AbstractJCRTest {
                 continue;
             }
 
+            assertTrue(principalMgr.hasPrincipal(pcpl.getName()));
+
             if (isGroup(pcpl)) {
                 PrincipalIterator it = principalMgr.findPrincipals(pcpl.getName(),
                         PrincipalManager.SEARCH_TYPE_GROUP);
@@ -282,7 +287,7 @@ public class PrincipalManagerTest extends AbstractJCRTest {
                 PrincipalIterator it = principalMgr.findPrincipals(pcpl.getName(),
                         PrincipalManager.SEARCH_TYPE_NOT_GROUP);
                 // search must find at least a single matching non-group principal
-                assertTrue("findPrincipals does not find principal with filter " + pcpl.getName(), it.hasNext());
+                assertTrue("findPrincipals does not find principal with filter '" + pcpl.getName() + "' and type " + PrincipalManager.SEARCH_TYPE_NOT_GROUP, it.hasNext());
             }
         }
     }
@@ -295,8 +300,13 @@ public class PrincipalManagerTest extends AbstractJCRTest {
                 continue;
             }
 
+            assertTrue(principalMgr.hasPrincipal(pcpl.getName()));
+
             PrincipalIterator it = principalMgr.findPrincipals(pcpl.getName(), PrincipalManager.SEARCH_TYPE_ALL);
             PrincipalIterator it2 = principalMgr.findPrincipals(pcpl.getName());
+
+            assertTrue("Principal "+ pcpl.getName() + " not found", it.hasNext());
+            assertTrue("Principal "+ pcpl.getName() + " not found", it2.hasNext());
 
             // both search must reveal the same result and size
             assertTrue(it.getSize() == it2.getSize());
@@ -316,6 +326,7 @@ public class PrincipalManagerTest extends AbstractJCRTest {
     @Test
     public void testFindEveryone() {
         Principal everyone = principalMgr.getEveryone();
+        assertTrue(principalMgr.hasPrincipal(everyone.getName()));
 
         boolean containedInResult = false;
 

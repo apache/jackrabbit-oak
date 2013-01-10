@@ -235,13 +235,9 @@
       org.apache.jackrabbit.oak.jcr.security.user.GroupTest#testInheritedMembers                         <!-- OAK-343 -->
       org.apache.jackrabbit.oak.jcr.security.user.GroupTest#testCyclicGroups                             <!-- OAK-343 -->
       org.apache.jackrabbit.oak.jcr.security.user.AuthorizableTest#testRemoveListedAuthorizable          <!-- OAK-343 -->
-      org.apache.jackrabbit.oak.jcr.security.principal.PrincipalManagerTest#testGetPrincipals            <!-- principal search missing -->
-      org.apache.jackrabbit.oak.jcr.security.principal.PrincipalManagerTest#testGetGroupPrincipals       <!-- principal search missing -->
-      org.apache.jackrabbit.oak.jcr.security.principal.PrincipalManagerTest#testGetAllPrincipals         <!-- principal search missing -->
-      org.apache.jackrabbit.oak.jcr.security.principal.PrincipalManagerTest#testGroupMembers             <!-- principal search missing -->
-      org.apache.jackrabbit.oak.jcr.security.principal.PrincipalManagerTest#testGroupMembership          <!-- principal search missing -->
-      org.apache.jackrabbit.oak.jcr.security.principal.PrincipalManagerTest#testGetMembersConsistentWithMembership <!-- principal search missing -->
-      org.apache.jackrabbit.oak.jcr.security.principal.PrincipalManagerTest#testFindEveryone             <!-- principal search missing -->
+      org.apache.jackrabbit.oak.jcr.security.principal.PrincipalManagerTest#testFindPrincipal            <!-- OAK-545 -->
+      org.apache.jackrabbit.oak.jcr.security.principal.PrincipalManagerTest#testFindPrincipalByType      <!-- OAK-545 -->
+      org.apache.jackrabbit.oak.jcr.security.principal.PrincipalManagerTest#testFindPrincipalByTypeAll   <!-- OAK-545 -->
     </known.issues>
   </properties>
 
