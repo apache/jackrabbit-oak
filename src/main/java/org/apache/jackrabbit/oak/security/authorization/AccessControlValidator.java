@@ -27,6 +27,8 @@ import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeDefinition;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 /**
  * AccessControlValidator... TODO
  */
@@ -69,6 +71,8 @@ class AccessControlValidator implements Validator, AccessControlConstants {
     @Override
     public Validator childNodeAdded(String name, NodeState after) throws CommitFailedException {
         NodeUtil node = parentAfter.getChild(name);
+        checkNotNull(node);
+
         if (isAccessControlEntry(node)) {
             checkValidAccessControlEntry(node);
             return null;
@@ -81,6 +85,9 @@ class AccessControlValidator implements Validator, AccessControlConstants {
     public Validator childNodeChanged(String name, NodeState before, NodeState after) throws CommitFailedException {
         NodeUtil nodeBefore = parentBefore.getChild(name);
         NodeUtil nodeAfter = parentAfter.getChild(name);
+        checkNotNull(nodeBefore);
+        checkNotNull(nodeAfter);
+
         if (isAccessControlEntry(nodeAfter)) {
             checkValidAccessControlEntry(nodeAfter);
             return null;
@@ -122,8 +129,8 @@ class AccessControlValidator implements Validator, AccessControlConstants {
             fail("Missing privileges.");
         }
         for (String privilegeName : privilegeNames) {
-            if (!privilegeDefinitions.containsKey(privilegeName)) {
-                fail("Unknown privilege " + privilegeName);
+            if (privilegeName == null || !privilegeDefinitions.containsKey(privilegeName)) {
+                fail("Invalid privilege " + privilegeName);
             }
 
             PrivilegeDefinition def = privilegeDefinitions.get(privilegeName);
