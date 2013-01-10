@@ -61,7 +61,7 @@ import org.slf4j.LoggerFactory;
 import org.xml.sax.ContentHandler;
 
 /**
- * {@code SessionImpl}...
+ * TODO document
  */
 public class SessionImpl extends AbstractSession implements JackrabbitSession {
 

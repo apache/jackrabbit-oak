@@ -153,12 +153,12 @@ public class QueryResultImpl implements QueryResult {
     }
 
     @CheckForNull
-    NodeImpl getNode(String path) {
+    NodeImpl<NodeDelegate> getNode(String path) {
         if (path == null) {
             return null;
         }
         NodeDelegate d = sessionDelegate.getNode(path);
-        return d == null ? null : new NodeImpl(d);
+        return d == null ? null : new NodeImpl<NodeDelegate>(d);
     }
 
     String getLocalPath(String path) {
@@ -180,10 +180,10 @@ public class QueryResultImpl implements QueryResult {
             // throw new RepositoryException("Query contains more than one selector: " +
             //        Arrays.toString(getSelectorNames()));
         }
-        Iterator<NodeImpl> nodeIterator = new Iterator<NodeImpl>() {
+        Iterator<NodeImpl<NodeDelegate>> nodeIterator = new Iterator<NodeImpl<NodeDelegate>>() {
 
             private final Iterator<? extends ResultRow> it = result.getRows().iterator();
-            private NodeImpl current;
+            private NodeImpl<NodeDelegate> current;
 
             {
                 fetch();
@@ -207,11 +207,11 @@ public class QueryResultImpl implements QueryResult {
             }
 
             @Override
-            public NodeImpl next() {
+            public NodeImpl<NodeDelegate> next() {
                 if (current == null) {
                     throw new NoSuchElementException();
                 }
-                NodeImpl n = current;
+                NodeImpl<NodeDelegate> n = current;
                 fetch();
                 return n;
             }
@@ -222,7 +222,7 @@ public class QueryResultImpl implements QueryResult {
             }
 
         };
-        final PrefetchIterator<NodeImpl> prefIt = new  PrefetchIterator<NodeImpl>(
+        final PrefetchIterator<NodeImpl<NodeDelegate>> prefIt = new  PrefetchIterator<NodeImpl<NodeDelegate>>(
                 nodeIterator, 
                 PREFETCH_MIN, PREFETCH_TIMEOUT, PREFETCH_MAX, 
                 result.getSize());

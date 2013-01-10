@@ -47,7 +47,7 @@ import org.slf4j.LoggerFactory;
 import static com.google.common.base.Preconditions.checkArgument;
 
 /**
- * {@code PropertyImpl}...
+ * TODO document
  */
 public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property {
 

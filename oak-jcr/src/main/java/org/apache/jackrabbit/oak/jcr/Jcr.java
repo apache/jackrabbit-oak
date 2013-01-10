@@ -56,7 +56,7 @@ public class Jcr {
 
     private SecurityProvider securityProvider;
 
-    private Jcr(Oak oak) {
+    Jcr(Oak oak) {
         this.oak = oak;
 
         with(new InitialContent());
