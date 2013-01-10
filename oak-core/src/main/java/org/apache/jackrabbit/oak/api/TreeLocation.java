@@ -67,6 +67,14 @@ public interface TreeLocation {
         }
 
         /**
+         * @return Always {@code false}.
+         */
+        @Override
+        public boolean remove() {
+            return false;
+        }
+
+        /**
          * @return  {@code null}
          */
         @Override
@@ -135,5 +143,12 @@ public interface TreeLocation {
      */
     @CheckForNull
     String getPath();
+
+    /**
+     * Remove the underlying item.
+     *
+     * @return {@code true} if the item was removed, {@code false} otherwise.
+     */
+    boolean remove();
 
 }

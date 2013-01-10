@@ -623,6 +623,11 @@ public class TreeImpl implements Tree {
         }
 
         @Override
+        public boolean remove() {
+            return tree.remove();
+        }
+
+        @Override
         public Tree getTree() {
             return canRead(tree) ? tree : null;
         }
@@ -692,6 +697,7 @@ public class TreeImpl implements Tree {
          * Remove the underlying property
          * @return  {@code true} on success false otherwise
          */
+        @Override
         public boolean remove() {
             parent.tree.removeProperty(name);
             return true;
