@@ -266,6 +266,11 @@ public class ReadOnlyTree implements Tree {
         }
 
         @Override
+        public boolean remove() {
+            return false;
+        }
+
+        @Override
         public Tree getTree() {
             return tree;
         }
@@ -303,6 +308,11 @@ public class ReadOnlyTree implements Tree {
         @Override
         public String getPath() {
             return PathUtils.concat(parent.getPath(), name);
+        }
+
+        @Override
+        public boolean remove() {
+            return false;
         }
 
         @Override
