@@ -6,7 +6,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import org.apache.jackrabbit.mongomk.BaseMongoMicroKernelTest;
-import org.junit.Ignore;
+import org.json.simple.JSONObject;
 import org.junit.Test;
 
 /**
@@ -28,8 +28,6 @@ public class MongoMKCommitRemoveTest extends BaseMongoMicroKernelTest {
     }
 
     @Test
-    @Ignore
-    // According to OAK-507, this should not fail.
     public void removeNonExistentNode() throws Exception {
         try {
             mk.commit("/", "-\"a\"", null, null);
@@ -48,9 +46,10 @@ public class MongoMKCommitRemoveTest extends BaseMongoMicroKernelTest {
     @Test
     public void removeAndAddNode() throws Exception {
         String base = mk.commit("", "+\"/a\":{}", null, null);
-        mk.commit("", "-\"/a\"", base, null);
+        String rev = mk.commit("", "-\"/a\"", base, null);
         assertTrue(mk.nodeExists("/a", base));
-        mk.commit("", "+\"/a\":{}", base, null);
+        assertFalse(mk.nodeExists("/a", rev));
+        mk.commit("", "+\"/a\":{}", rev, null);
     }
 
     @Test

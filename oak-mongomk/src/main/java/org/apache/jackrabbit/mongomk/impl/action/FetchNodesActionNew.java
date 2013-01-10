@@ -203,14 +203,14 @@ public class FetchNodesActionNew extends BaseAction<Map<String, MongoNode>> {
             // Assuming that revision ids are ordered and nodes are fetched in
             // sorted order, first check if the path is already in the map.
             if (nodes.containsKey(path)) {
-                LOG.debug("Converted nodes @{} with path {} was not put into map"
-                        + " because a newer version is available", revisionId, path);
+                LOG.debug("Converted node @{} with path {} was not put into map"
+                        + " because a newer version is available", node.getRevisionId(), path);
                 continue;
             } else {
                 long revisionId = node.getRevisionId();
-                LOG.debug("Converting node {} ({})", path, revisionId);
+                LOG.debug("Converting node {} (@{})", path, revisionId);
 
-                if (!commits.containsKey(revisionId) && nodeStore.getFromCache(revisionId) != null) {
+                if (!commits.containsKey(revisionId) && nodeStore.getFromCache(revisionId) == null) {
                     LOG.debug("Fetching commit @{}", revisionId);
                     FetchCommitAction action = new FetchCommitAction(nodeStore, revisionId);
                     try {

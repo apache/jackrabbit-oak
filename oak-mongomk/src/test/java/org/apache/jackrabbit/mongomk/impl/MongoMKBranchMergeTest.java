@@ -330,19 +330,17 @@ public class MongoMKBranchMergeTest extends BaseMongoMicroKernelTest {
     }
 
     private String addNodes(String rev, String...nodes) {
-        String newRev = rev;
         for (String node : nodes) {
-            newRev = mk.commit("", "+\"" + node + "\":{}", rev, "");
+            rev = mk.commit("", "+\"" + node + "\":{}", rev, "");
         }
-        return newRev;
+        return rev;
     }
 
     private String removeNodes(String rev, String...nodes) {
-        String newRev = rev;
         for (String node : nodes) {
-            newRev = mk.commit("", "-\"" + node + "\"", rev, "");
+            rev = mk.commit("", "-\"" + node + "\"", rev, "");
         }
-        return newRev;
+        return rev;
     }
 
     private String setProp(String rev, String prop, Object value) {

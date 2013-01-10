@@ -85,18 +85,22 @@ public class FetchCommitsAction extends BaseAction<List<MongoCommit>> {
      * Sets the max number of entries that should be fetched.
      *
      * @param maxEntries The max number of entries.
+     * @return this action.
      */
-    public void setMaxEntries(int maxEntries) {
+    public FetchCommitsAction setMaxEntries(int maxEntries) {
         this.maxEntries = maxEntries;
+        return this;
     }
 
     /**
      * Sets whether the branch commits are included in the query.
      *
      * @param includeBranchCommits Whether the branch commits are included.
+     * @return this action.
      */
-    public void includeBranchCommits(boolean includeBranchCommits) {
+    public FetchCommitsAction includeBranchCommits(boolean includeBranchCommits) {
         this.includeBranchCommits = includeBranchCommits;
+        return this;
     }
 
     @Override
