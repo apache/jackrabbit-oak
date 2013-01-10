@@ -20,7 +20,6 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
@@ -32,7 +31,6 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import com.google.common.base.Charsets;
-import com.google.common.collect.Sets;
 
 /**
  * Provides a QueryIndex that does lookups against a property index
@@ -174,43 +172,6 @@ class Property2Index implements QueryIndex {
             }
         }
         return buff.toString();
-   }
-    
-    @Deprecated
-    public Cursor queryOld(Filter filter, NodeState root) {
-        Set<String> paths = null;
-
-        Property2IndexLookup lookup = new Property2IndexLookup(root);
-        for (PropertyRestriction pr : filter.getPropertyRestrictions()) {
-            // TODO support indexes on a path
-            // currently, only indexes on the root node are supported
-            if (lookup.isIndexed(pr.propertyName, "/")) {
-                Set<String> set = null;
-                // equality
-                if (pr.firstIncluding && pr.lastIncluding
-                    && pr.first != null && pr.first.equals(pr.last)) {
-                    // "[property] = $value"
-                    // TODO don't load all entries in memory
-                    set = lookup.find(pr.propertyName, pr.first);
-                } else if (pr.first == null && pr.last == null) {
-                    // "[property] is not null"
-                    // TODO don't load all entries in memory
-                    set = lookup.find(pr.propertyName, null);
-                }
-                // only keep the intersection
-                // TODO this requires all paths are loaded in memory
-                if (set != null) {
-                    if (paths == null) {
-                        paths = Sets.newHashSet(set);
-                    } else {
-                        paths.retainAll(set);
-                    }
-                }
-            }
-        }
-        if (paths == null) {
-            throw new IllegalStateException("Property index is used even when no index is available for filter " + filter);
-        }
-        return Cursors.newPathCursor(paths);
     }
+
 }

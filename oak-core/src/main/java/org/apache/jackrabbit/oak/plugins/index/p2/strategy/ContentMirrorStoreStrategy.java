@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.plugins.index.p2.strategy;
 
 import java.util.Collections;
 import java.util.Deque;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
@@ -143,26 +142,6 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
         }
         return count;
     }
-
-    @Override
-    @Deprecated    
-    public Set<String> find(NodeState index, Iterable<String> values) {
-        Set<String> paths = new HashSet<String>();
-        if (values == null) {
-            for (ChildNodeEntry child : index.getChildNodeEntries()) {
-                getMatchingPaths(child.getNodeState(), "", paths);
-            }
-        } else {
-            for (String p : values) {
-                NodeState property = index.getChildNode(p);
-                if (property != null) {
-                    // We have an entry for this value, so use it
-                    getMatchingPaths(property, "", paths);
-                }
-            }
-        }
-        return paths;
-    }
     
     @Override
     public Iterable<String> query(final String indexName, 
@@ -184,15 +163,32 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
                         }
                     }
                 }
-                // avoid duplicate entries
-                // TODO load entries lazily
-                Set<String> paths = Sets.newHashSet();
-                Iterators.addAll(paths, it);
-                return paths.iterator();
+                return it;
             }
         };
     }
     
+    @Override
+    public int count(NodeState index, Iterable<String> values) {
+        int count = 0;
+        if (values == null) {
+            count += countMatchingLeaves(index);
+        } else {
+            for (String p : values) {
+                NodeState s = index.getChildNode(p);
+                if (s != null) {
+                    count += countMatchingLeaves(s);
+                }
+            }
+        }
+        return count;
+    }
+    
+    static boolean matches(NodeState state) {
+        PropertyState ps = state.getProperty("match");
+        return ps != null && !ps.isArray() && ps.getValue(Type.BOOLEAN);
+    }
+
     /**
      * An iterator over paths within an index node.
      */
@@ -207,6 +203,11 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
         private String parentPath;
         private String currentPath;
         private boolean pathContainsValue;
+        
+        /**
+         * Keep the returned path, to avoid returning duplicate entries.
+         */
+        private final Set<String> knownPaths = Sets.newHashSet();
         
         PathIterator(String indexName) {
             this.indexName = indexName;
@@ -276,13 +277,21 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
                 fetchNext();
                 init = true;
             }
-            String result = currentPath;
-            fetchNext();
-            if (pathContainsValue) {
-                String value = PathUtils.elements(result).iterator().next();
-                result = PathUtils.relativize(value, result);
+            while (true) {
+                String result = currentPath;
+                fetchNext();
+                if (pathContainsValue) {
+                    String value = PathUtils.elements(result).iterator().next();
+                    result = PathUtils.relativize(value, result);
+                    // don't return duplicate paths:
+                    // Set.add returns true if the entry was new,
+                    // so if it returns false, it was already known
+                    if (!knownPaths.add(result)) {
+                        continue;
+                    }
+                }
+                return result;
             }
-            return result;
         }
 
         @Override
@@ -290,39 +299,6 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
             throw new UnsupportedOperationException();
         }
         
-    }
-
-    private void getMatchingPaths(NodeState state, String path,
-            Set<String> paths) {
-        if (matches(state)) {
-            paths.add(path);
-        }
-        for (ChildNodeEntry c : state.getChildNodeEntries()) {
-            String name = c.getName();
-            NodeState childState = c.getNodeState();
-            getMatchingPaths(childState, PathUtils.concat(path, name), paths);
-        }
-    }
-    
-    static boolean matches(NodeState state) {
-        PropertyState ps = state.getProperty("match");
-        return ps != null && !ps.isArray() && ps.getValue(Type.BOOLEAN);
-    }
-
-    @Override
-    public int count(NodeState index, Iterable<String> values) {
-        int count = 0;
-        if (values == null) {
-            count += countMatchingLeaves(index);
-        } else {
-            for (String p : values) {
-                NodeState s = index.getChildNode(p);
-                if (s != null) {
-                    count += countMatchingLeaves(s);
-                }
-            }
-        }
-        return count;
     }
 
 }
