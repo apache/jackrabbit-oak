@@ -17,14 +17,19 @@
 package org.apache.jackrabbit.oak.security.user.query;
 
 import javax.annotation.Nonnull;
+import javax.jcr.PropertyType;
+import javax.jcr.RepositoryException;
+import javax.jcr.Value;
 
+import org.apache.jackrabbit.api.security.user.QueryBuilder;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtility;
+import org.apache.jackrabbit.util.Text;
 
 /**
- * QueryUtil... TODO
+ * Common utilities used for user/group queries.
  */
 public final class QueryUtil {
 
@@ -67,6 +72,84 @@ public final class QueryUtil {
             return UserConstants.NT_REP_GROUP;
         } else {
             return UserConstants.NT_REP_AUTHORIZABLE;
+        }
+    }
+
+    /**
+     * Escape {@code string} for matching in jcr escaped node names
+     *
+     * @param string string to escape
+     * @return escaped string
+     */
+    @Nonnull
+    public static String escapeNodeName(String string) {
+        StringBuilder result = new StringBuilder();
+
+        int k = 0;
+        int j;
+        do {
+            j = string.indexOf('%', k);
+            if (j < 0) {
+                // jcr escape trail
+                result.append(Text.escapeIllegalJcrChars(string.substring(k)));
+            } else if (j > 0 && string.charAt(j - 1) == '\\') {
+                // literal occurrence of % -> jcr escape
+                result.append(Text.escapeIllegalJcrChars(string.substring(k, j) + '%'));
+            } else {
+                // wildcard occurrence of % -> jcr escape all but %
+                result.append(Text.escapeIllegalJcrChars(string.substring(k, j))).append('%');
+            }
+
+            k = j + 1;
+        } while (j >= 0);
+
+        return result.toString();
+    }
+
+    @Nonnull
+    public static String format(Value value) throws RepositoryException {
+        switch (value.getType()) {
+            case PropertyType.STRING:
+            case PropertyType.BOOLEAN:
+                return '\'' + value.getString() + '\'';
+
+            case PropertyType.LONG:
+            case PropertyType.DOUBLE:
+                return value.getString();
+
+            case PropertyType.DATE:
+                return "xs:dateTime('" + value.getString() + "')";
+
+            default:
+                throw new RepositoryException("Property of type " + PropertyType.nameFromValue(value.getType()) + " not supported");
+        }
+    }
+
+    @Nonnull
+    public static String escapeForQuery(String value) {
+        StringBuilder ret = new StringBuilder();
+        for (int i = 0; i < value.length(); i++) {
+            char c = value.charAt(i);
+            if (c == '\\') {
+                ret.append("\\\\");
+            } else if (c == '\'') {
+                ret.append("''");
+            } else {
+                ret.append(c);
+            }
+        }
+        return ret.toString();
+    }
+
+    @Nonnull
+    public static RelationOp getCollation(QueryBuilder.Direction direction) throws RepositoryException {
+        switch (direction) {
+            case ASCENDING:
+                return RelationOp.GT;
+            case DESCENDING:
+                return RelationOp.LT;
+            default:
+                throw new RepositoryException("Unknown sort order " + direction);
         }
     }
 }

@@ -16,37 +16,41 @@
  */
 package org.apache.jackrabbit.oak.security.user.query;
 
+import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 
-import com.google.common.base.Function;
+import com.google.common.base.Predicate;
 import org.apache.jackrabbit.api.security.user.Authorizable;
+import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
-import org.apache.jackrabbit.oak.api.ResultRow;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * ResultRowToAuthorizable... TODO
+ * GroupPredicate... TODO
  */
-class ResultRowToAuthorizable implements Function<ResultRow, Authorizable> {
+class GroupPredicate implements Predicate<Authorizable> {
 
-    private static final Logger log = LoggerFactory.getLogger(ResultRowToAuthorizable.class);
+    static final Logger log = LoggerFactory.getLogger(GroupPredicate.class);
 
-    private final UserManager userManager;
+    private final Group group;
+    private final boolean declaredMembersOnly;
 
-    ResultRowToAuthorizable(UserManager userManager) {
-        this.userManager = userManager;
+    GroupPredicate(UserManager userManager, String groupId, boolean declaredMembersOnly) throws RepositoryException {
+        Authorizable authorizable = userManager.getAuthorizable(groupId);
+        group = (authorizable == null || !authorizable.isGroup()) ? null : (Group) authorizable;
+        this.declaredMembersOnly = declaredMembersOnly;
     }
 
     @Override
-    public Authorizable apply(ResultRow row) {
-        if (row != null) {
+    public boolean apply(@Nullable Authorizable authorizable) {
+        if (group != null && authorizable != null) {
             try {
-                return userManager.getAuthorizableByPath(row.getPath());
+                return (declaredMembersOnly) ? group.isDeclaredMember(authorizable) : group.isMember(authorizable);
             } catch (RepositoryException e) {
-                log.debug("Failed to access authorizable " + row.getPath());
+                log.debug("Cannot determine group membership for {}", authorizable, e.getMessage());
             }
         }
-        return null;
+        return false;
     }
 }

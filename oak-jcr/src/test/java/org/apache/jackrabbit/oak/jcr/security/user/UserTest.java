@@ -127,7 +127,7 @@ public class UserTest extends AbstractUserTest {
         }
     }
 
-      @Test
+    @Test
     public void testLoginAfterChangePassword() throws RepositoryException {
         user.changePassword("changed");
         superuser.save();
@@ -266,6 +266,7 @@ public class UserTest extends AbstractUserTest {
         }
     }
 
+    @Test
     public void testLoginWithGetCredentials() throws RepositoryException, NotExecutableException {
         try {
             Credentials creds = user.getCredentials();
