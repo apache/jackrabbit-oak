@@ -16,6 +16,11 @@
  */
 package org.apache.jackrabbit.oak.security.principal;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -36,13 +41,7 @@ import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
-import org.junit.Ignore;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 
 /**
  * PrincipalProviderImplTest...
@@ -102,7 +101,6 @@ public class PrincipalProviderImplTest extends AbstractSecurityTest {
         }
     }
 
-    @Ignore("OAK-545") // TODO: OAK-545
     @Test
     public void testFindUserPrincipal() throws Exception {
         User testUser = null;
@@ -131,7 +129,6 @@ public class PrincipalProviderImplTest extends AbstractSecurityTest {
         }
     }
 
-    @Ignore("OAK-545") // TODO: OAK-545
     @Test
     public void testFindGroupPrincipal() throws Exception {
         Group testGroup = null;
@@ -199,7 +196,6 @@ public class PrincipalProviderImplTest extends AbstractSecurityTest {
         assertResult(principalProvider, nameHints, EveryonePrincipal.NAME, PrincipalManager.SEARCH_TYPE_NOT_GROUP, false);
     }
 
-    @Ignore("OAK-545") // TODO: OAK-545
     @Test
     public void testFindWithoutHint() throws Exception {
         User testUser = null;
