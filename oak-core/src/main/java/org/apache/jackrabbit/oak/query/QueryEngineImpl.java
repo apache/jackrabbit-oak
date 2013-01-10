@@ -138,6 +138,12 @@ public abstract class QueryEngineImpl implements QueryEngine {
     public Result executeQuery(String statement, String language, long limit,
             long offset, Map<String, ? extends PropertyValue> bindings,
             NamePathMapper namePathMapper) throws ParseException {
+        if (limit < 0) {
+            throw new IllegalArgumentException("Limit may not be negative, is: " + limit);
+        }
+        if (offset < 0) {
+            throw new IllegalArgumentException("Offset may not be negative, is: " + offset);
+        }
         Query q = parseQuery(statement, language);
         q.setRootTree(getRootTree());
         q.setRootState(getRootState());
