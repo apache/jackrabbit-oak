@@ -22,12 +22,19 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 
 import com.google.common.base.Function;
+import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Iterators;
+import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
+import org.apache.jackrabbit.api.security.user.Query;
+import org.apache.jackrabbit.api.security.user.QueryBuilder;
+import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -100,16 +107,30 @@ public class PrincipalProviderImpl implements PrincipalProvider {
     }
 
     @Override
-    public Iterator<? extends Principal> findPrincipals(String nameHint, int searchType) {
+    public Iterator<? extends Principal> findPrincipals(final String nameHint,
+                                                        final int searchType) {
         try {
-        Iterator<Authorizable> authorizables = userManager.findAuthorizables(UserConstants.REP_PRINCIPAL_NAME, nameHint, UserManager.SEARCH_TYPE_AUTHORIZABLE);
-        return Iterators.transform(
-                Iterators.filter(authorizables, Predicates.<Object>notNull()),
-                new AuthorizableToPrincipal());
+            Iterator<Authorizable> authorizables = findAuthorizables(nameHint, searchType);
+            Iterator<Principal> principals = Iterators.transform(
+                    Iterators.filter(authorizables, Predicates.<Object>notNull()),
+                    new AuthorizableToPrincipal());
+
+            if (matchesEveryone(nameHint, searchType)) {
+                principals = Iterators.concat(principals, Iterators.singletonIterator(EveryonePrincipal.getInstance()));
+                return Iterators.filter(principals, new EveryonePredicate());
+            } else {
+                return principals;
+            }
         } catch (RepositoryException e) {
             log.debug(e.getMessage());
             return Iterators.emptyIterator();
         }
+    }
+
+    @Nonnull
+    @Override
+    public Iterator<? extends Principal> findPrincipals(int searchType) {
+        return findPrincipals(null, searchType);
     }
 
     //------------------------------------------------------------< private >---
@@ -139,6 +160,51 @@ public class PrincipalProviderImpl implements PrincipalProvider {
         return groupPrincipals;
     }
 
+    private Iterator<Authorizable> findAuthorizables(final @Nullable String nameHint,
+                                                     final int searchType) throws RepositoryException {
+        Query userQuery = new Query() {
+            @Override
+            public <T> void build(QueryBuilder<T> builder) {
+                builder.setCondition(builder.like('@' +UserConstants.REP_PRINCIPAL_NAME, buildSearchPattern(nameHint)));
+                builder.setSelector(getAuthorizableClass(searchType));
+            }
+        };
+        return userManager.findAuthorizables(userQuery);
+    }
+
+
+    private static Class<? extends Authorizable> getAuthorizableClass(int searchType) {
+        switch (searchType) {
+            case PrincipalManager.SEARCH_TYPE_GROUP:
+                return org.apache.jackrabbit.api.security.user.Group.class;
+            case PrincipalManager.SEARCH_TYPE_NOT_GROUP:
+                return User.class;
+            case PrincipalManager.SEARCH_TYPE_ALL:
+                return Authorizable.class;
+            default:
+                throw new IllegalArgumentException("Invalid search type " + searchType);
+
+        }
+    }
+
+    private static String buildSearchPattern(String nameHint) {
+        if (nameHint == null) {
+            return "%";
+        } else {
+            StringBuilder sb = new StringBuilder();
+            sb.append('%');
+            sb.append(nameHint.replace("%", "\\%").replace("_", "\\_"));
+            sb.append('%');
+            return sb.toString();
+        }
+
+    }
+
+    private static boolean matchesEveryone(String nameHint, int searchType) {
+        return searchType != PrincipalManager.SEARCH_TYPE_NOT_GROUP &&
+                (nameHint == null || EveryonePrincipal.NAME.contains(nameHint));
+    }
+
     //--------------------------------------------------------------------------
     /**
      * Function to covert an authorizable tree to a principal.
@@ -154,6 +220,29 @@ public class PrincipalProviderImpl implements PrincipalProvider {
                 }
             }
             return null;
+        }
+    }
+
+    /**
+     * Predicate to make sure the everyone principal is only included once in
+     * the result set.
+     */
+    private final class EveryonePredicate implements Predicate<Principal> {
+        private boolean servedEveryone = false;
+        @Override
+        public boolean apply(@Nullable Principal principal) {
+            String pName = (principal == null) ? null : principal.getName();
+            if (EveryonePrincipal.NAME.equals(pName)) {
+                if (servedEveryone) {
+                    return false;
+                } else {
+                    servedEveryone = true;
+                    return true;
+                }
+            } else {
+                // not everyone
+                return true;
+            }
         }
     }
 }
