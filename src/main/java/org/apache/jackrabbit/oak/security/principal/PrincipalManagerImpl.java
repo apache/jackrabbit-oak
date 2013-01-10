@@ -58,8 +58,7 @@ public class PrincipalManagerImpl implements PrincipalManager {
 
     @Override
     public PrincipalIterator getPrincipals(int searchType) {
-        // TODO OAK-524
-        throw new UnsupportedOperationException("not implemented (see: OAK-524)");
+        return new PrincipalIteratorAdapter(principalProvider.findPrincipals(searchType));
     }
 
     @Override

@@ -90,4 +90,18 @@ public interface PrincipalProvider {
      */
     @Nonnull
     Iterator<? extends Principal> findPrincipals(String nameHint, int searchType);
+
+
+    /**
+     * Find all principals that match the search type.
+     *
+     * @param searchType Limit the search to certain types of principals. Valid
+     * values are any of
+     * <ul><li>{@link org.apache.jackrabbit.api.security.principal.PrincipalManager#SEARCH_TYPE_ALL}</li></ul>
+     * <ul><li>{@link org.apache.jackrabbit.api.security.principal.PrincipalManager#SEARCH_TYPE_NOT_GROUP}</li></ul>
+     * <ul><li>{@link org.apache.jackrabbit.api.security.principal.PrincipalManager#SEARCH_TYPE_GROUP}</li></ul>
+     * @return An iterator of principals.
+     */
+    @Nonnull
+    Iterator<? extends Principal> findPrincipals(int searchType);
 }

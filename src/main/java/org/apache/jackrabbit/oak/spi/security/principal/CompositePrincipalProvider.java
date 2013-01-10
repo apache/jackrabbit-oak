@@ -73,8 +73,17 @@ public class CompositePrincipalProvider implements PrincipalProvider {
         Iterator<? extends Principal>[] iterators = new Iterator[providers.size()];
         int i = 0;
         for (PrincipalProvider provider : providers) {
-            iterators[i++] = provider.findPrincipals(nameHint, searchType);
+            if (nameHint == null) {
+                iterators[i++] = provider.findPrincipals(searchType);
+            } else {
+                iterators[i++] = provider.findPrincipals(nameHint, searchType);
+            }
         }
         return Iterators.concat(iterators);
+    }
+
+    @Override
+    public Iterator<? extends Principal> findPrincipals(int searchType) {
+        return findPrincipals(null, searchType);
     }
 }
