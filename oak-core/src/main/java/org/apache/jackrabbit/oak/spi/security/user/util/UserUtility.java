@@ -19,15 +19,12 @@ package org.apache.jackrabbit.oak.spi.security.user.util;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.apache.jackrabbit.util.Text;
-
-import static org.apache.jackrabbit.oak.api.Type.STRING;
 
 /**
  * UserUtils... TODO
@@ -48,8 +45,8 @@ public final class UserUtility implements UserConstants {
 
     public static boolean isType(Tree authorizableTree, AuthorizableType type) {
         // FIXME: check for node type according to the specified type constraint
-        if (authorizableTree != null && authorizableTree.hasProperty(JcrConstants.JCR_PRIMARYTYPE)) {
-            String ntName = authorizableTree.getProperty(JcrConstants.JCR_PRIMARYTYPE).getValue(STRING);
+        if (authorizableTree != null) {
+            String ntName = new NodeUtil(authorizableTree).getPrimaryNodeTypeName();
             switch (type) {
                 case GROUP:
                     return NT_REP_GROUP.equals(ntName);
