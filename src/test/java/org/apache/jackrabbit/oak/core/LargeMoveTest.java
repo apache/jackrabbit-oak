@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.apache.jackrabbit.oak.core;
 
 import org.apache.jackrabbit.oak.Oak;
@@ -52,7 +53,6 @@ public class LargeMoveTest {
 
         createNodes(treeA, 10, 5);  // 111111 nodes in treeA
         root.commit();
-
     }
 
     private static void createNodes(Tree tree, int count, int depth) {
