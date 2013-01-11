@@ -27,6 +27,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
 
+import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.JcrConstants;
@@ -37,8 +38,10 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryPropertyBuilder;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.value.Conversions;
+import org.apache.jackrabbit.oak.spi.state.PropertyBuilder;
 import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -121,10 +124,20 @@ public class NodeUtil {
     }
 
     /**
-     * FIXME: workaround for OAK-426
-     * FIXME: does probably no work as intended
-     * rootNode.getOrAddTree("a/b/../../c/d/../../e/f", "");
-     * adds the three sub trees /a/b, /c/d and /e/f.
+     * TODO: clean up. workaround for OAK-426
+     *
+     * Create the tree at the specified relative path including all missing
+     * intermediate trees using the specified {@code primaryTypeName}. This
+     * method treats ".." parent element and "." as current element and
+     * resolves them accordingly; in case of a relative path containing parent
+     * elements this may lead to tree creating outside the tree structure
+     * defined by this {@code NodeUtil}.
+     *
+     * @param relativePath A relative OAK path that may contain parent and
+     * current elements.
+     * @param primaryTypeName A oak name of a primary node type that is used
+     * to create the missing trees.
+     * @return The node util of the tree at the specified {@code relativePath}.
      */
     @Nonnull
     public NodeUtil getOrAddTree(String relativePath, String primaryTypeName) {
@@ -135,13 +148,11 @@ public class NodeUtil {
             if (location.getTree() == null) {
                 NodeUtil target = this;
                 for (String segment : Text.explode(relativePath, '/')) {
-                    if (PathUtils.denotesCurrent(segment)) {
-                        continue;
-                    } else if (PathUtils.denotesParent(segment)) {
+                    if (PathUtils.denotesParent(segment)) {
                         target = target.getParent();
                     } else if (target.hasChild(segment)) {
                         target = target.getChild(segment);
-                    } else {
+                    } else if (!PathUtils.denotesCurrent(segment)) {
                         target = target.addChild(segment, primaryTypeName);
                     }
                 }
@@ -218,14 +229,14 @@ public class NodeUtil {
         }
     }
 
-    public void setName(String name, String value) {
+    public void setName(String propertyName, String value) {
         String oakName = getOakName(value);
-        tree.setProperty(name, oakName, NAME);
+        tree.setProperty(propertyName, oakName, NAME);
     }
 
     @CheckForNull
-    public String[] getNames(String name, String... defaultValues) {
-        String[] strings = getStrings(name);
+    public String[] getNames(String propertyName, String... defaultValues) {
+        String[] strings = getStrings(propertyName);
         if (strings == null) {
             strings = defaultValues;
         }
@@ -235,8 +246,13 @@ public class NodeUtil {
         return strings;
     }
 
-    public void setNames(String name, String... values) {
-        tree.setProperty(name, Arrays.asList(values), NAMES);
+    public void setNames(String propertyName, String... values) {
+        tree.setProperty(propertyName, Lists.transform(Arrays.asList(values), new Function<String, String>() {
+            @Override
+            public String apply(String jcrName) {
+                return getOakName(jcrName);
+            }
+        }), NAMES);
     }
 
     public void setDate(String name, long time) {
@@ -252,10 +268,6 @@ public class NodeUtil {
         } else {
             return defaultValue;
         }
-    }
-
-    public void setLong(String name, long value) {
-        tree.setProperty(name, value);
     }
 
     @Nonnull
@@ -276,10 +288,6 @@ public class NodeUtil {
         catch (RepositoryException e) {
             log.warn("Unable to convert a default value", e);
         }
-    }
-
-    public void setValues(String name, String[] values, int type) {
-        tree.setProperty(name, Arrays.asList(values), STRINGS);
     }
 
     @CheckForNull
@@ -303,11 +311,10 @@ public class NodeUtil {
 
     @Nonnull
     private String getOakName(String jcrName) {
-        String oakName = mapper.getOakName(jcrName);
+        String oakName = (jcrName == null) ? null : mapper.getOakName(jcrName);
         if (oakName == null) {
             throw new IllegalArgumentException(new RepositoryException("Invalid name:" + jcrName));
         }
         return oakName;
     }
-
 }

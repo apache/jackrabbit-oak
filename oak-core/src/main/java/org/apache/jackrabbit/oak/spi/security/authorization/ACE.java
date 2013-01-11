@@ -18,9 +18,13 @@ package org.apache.jackrabbit.oak.spi.security.authorization;
 
 import java.security.Principal;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Set;
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
+import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
 
 import com.google.common.base.Function;
@@ -39,15 +43,29 @@ public class ACE implements JackrabbitAccessControlEntry {
     private final boolean isAllow;
     private final Set<Restriction> restrictions;
 
+    private Set<String> aggrPrivNames;
     private int hashCode;
 
     public ACE(Principal principal, Privilege[] privileges,
-               boolean isAllow, Set<Restriction> restrictions) {
+               boolean isAllow, Set<Restriction> restrictions) throws AccessControlException {
         this(principal, ImmutableSet.copyOf(privileges), isAllow, restrictions);
     }
 
     public ACE(Principal principal, Set<Privilege> privileges,
-               boolean isAllow, Set<Restriction> restrictions) {
+               boolean isAllow, Set<Restriction> restrictions) throws AccessControlException {
+        if (principal == null || privileges == null) {
+            throw new AccessControlException();
+        }
+        // make sure no abstract privileges are passed.
+        for (Privilege privilege : privileges) {
+            if (privilege == null) {
+                throw new AccessControlException("Privilege " + privilege + " is null.");
+            }
+            if (privilege.isAbstract()) {
+                throw new AccessControlException("Privilege " + privilege + " is abstract.");
+            }
+        }
+
         this.principal = principal;
         this.privileges = ImmutableSet.copyOf(privileges);
         this.isAllow = isAllow;
@@ -55,11 +73,13 @@ public class ACE implements JackrabbitAccessControlEntry {
     }
 
     //-------------------------------------------------< AccessControlEntry >---
+    @Nonnull
     @Override
     public Principal getPrincipal() {
         return principal;
     }
 
+    @Nonnull
     @Override
     public Privilege[] getPrivileges() {
         return privileges.toArray(new Privilege[privileges.size()]);
@@ -71,6 +91,7 @@ public class ACE implements JackrabbitAccessControlEntry {
         return isAllow;
     }
 
+    @Nonnull
     @Override
     public String[] getRestrictionNames() throws RepositoryException {
         return Collections2.transform(restrictions, new Function<Restriction, String>() {
@@ -81,6 +102,7 @@ public class ACE implements JackrabbitAccessControlEntry {
         }).toArray(new String[restrictions.size()]);
     }
 
+    @CheckForNull
     @Override
     public Value getRestriction(String restrictionName) throws RepositoryException {
         for (Restriction restriction : restrictions) {
@@ -97,15 +119,12 @@ public class ACE implements JackrabbitAccessControlEntry {
      */
     @Override
     public int hashCode() {
-        if (hashCode == -1) {
+        if (hashCode == 0) {
             hashCode = buildHashCode();
         }
         return hashCode;
     }
 
-    /**
-     * @see Object#equals(Object)
-     */
     @Override
     public boolean equals(Object obj) {
         if (obj == this) {
@@ -114,16 +133,13 @@ public class ACE implements JackrabbitAccessControlEntry {
         if (obj instanceof ACE) {
             ACE other = (ACE) obj;
             return principal.equals(other.principal) &&
-                   privileges.equals(other.privileges) &&
+                   aggrPrivNames().equals(other.aggrPrivNames()) &&
                    isAllow == other.isAllow &&
                    restrictions.equals(other.restrictions);
         }
         return false;
     }
 
-    /**
-     * @see Object#toString()
-     */
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
@@ -141,9 +157,27 @@ public class ACE implements JackrabbitAccessControlEntry {
     private int buildHashCode() {
         int h = 17;
         h = 37 * h + principal.hashCode();
-        h = 37 * h + privileges.hashCode();
+        h = 37 * h + aggrPrivNames().hashCode();
         h = 37 * h + Boolean.valueOf(isAllow).hashCode();
         h = 37 * h + restrictions.hashCode();
         return h;
+    }
+
+    private Set<String> aggrPrivNames() {
+        if (aggrPrivNames == null) {
+            aggrPrivNames = new HashSet<String>();
+            for (Privilege priv : privileges) {
+                if (priv.isAggregate()) {
+                    for (Privilege aggr : priv.getAggregatePrivileges()) {
+                        if (!aggr.isAggregate()) {
+                           aggrPrivNames.add(aggr.getName());
+                        }
+                    }
+                } else {
+                    aggrPrivNames.add(priv.getName());
+                }
+            }
+        }
+        return aggrPrivNames;
     }
 }
