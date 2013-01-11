@@ -23,7 +23,6 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.security.AccessControlException;
 
-import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,11 +60,6 @@ public class EmptyRestrictionProvider implements RestrictionProvider {
         if (!restrictions.isEmpty()) {
             throw new AccessControlException("Implementation doesn't supported restrictions.");
         }
-    }
-
-    @Override
-    public void writeRestrictions(String jcrPath, Tree aceTree, JackrabbitAccessControlEntry ace) throws AccessControlException {
-        throw new AccessControlException("Implementation doesn't supported restrictions.");
     }
 
     @Override
