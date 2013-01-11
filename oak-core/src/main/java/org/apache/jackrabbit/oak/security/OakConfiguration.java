@@ -22,8 +22,6 @@ import javax.security.auth.login.Configuration;
 
 import org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * OakConfiguration... tmp solution missing repo-configuration in test-setup.
@@ -31,12 +29,7 @@ import org.slf4j.LoggerFactory;
  */
 public class OakConfiguration extends Configuration {
 
-    /**
-     * logger instance
-     */
-    private static final Logger log = LoggerFactory.getLogger(OakConfiguration.class);
-
-    ConfigurationParameters loginConfiguration;
+    private final ConfigurationParameters loginConfiguration;
 
     public OakConfiguration() {
         this(ConfigurationParameters.EMPTY);

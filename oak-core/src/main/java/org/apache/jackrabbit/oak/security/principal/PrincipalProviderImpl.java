@@ -160,7 +160,7 @@ public class PrincipalProviderImpl implements PrincipalProvider {
         return groupPrincipals;
     }
 
-    private Iterator<Authorizable> findAuthorizables(final @Nullable String nameHint,
+    private Iterator<Authorizable> findAuthorizables(@Nullable final String nameHint,
                                                      final int searchType) throws RepositoryException {
         Query userQuery = new Query() {
             @Override
@@ -211,7 +211,7 @@ public class PrincipalProviderImpl implements PrincipalProvider {
      */
     private static final class AuthorizableToPrincipal implements Function<Authorizable, Principal> {
         @Override
-        public Principal apply(Authorizable authorizable) {
+        public Principal apply(@Nullable Authorizable authorizable) {
             if (authorizable != null) {
                 try {
                     return authorizable.getPrincipal();
@@ -227,7 +227,7 @@ public class PrincipalProviderImpl implements PrincipalProvider {
      * Predicate to make sure the everyone principal is only included once in
      * the result set.
      */
-    private final class EveryonePredicate implements Predicate<Principal> {
+    private static final class EveryonePredicate implements Predicate<Principal> {
         private boolean servedEveryone = false;
         @Override
         public boolean apply(@Nullable Principal principal) {
