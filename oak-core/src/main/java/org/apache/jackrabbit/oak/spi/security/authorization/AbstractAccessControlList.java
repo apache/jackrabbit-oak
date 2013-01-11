@@ -18,14 +18,19 @@ package org.apache.jackrabbit.oak.spi.security.authorization;
 
 import java.security.Principal;
 import java.util.Collections;
+import java.util.List;
 import java.util.Set;
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
+import javax.jcr.security.AccessControlEntry;
 import javax.jcr.security.Privilege;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
+import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionDefinition;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
@@ -35,15 +40,21 @@ import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restrict
  */
 public abstract class AbstractAccessControlList implements JackrabbitAccessControlList {
 
-    protected final String jcrPath;
-    protected final RestrictionProvider restrictionProvider;
+    private final String jcrPath;
 
-    public AbstractAccessControlList(String jcrPath, RestrictionProvider restrictionProvider) {
+    public AbstractAccessControlList(String jcrPath) {
         this.jcrPath = jcrPath;
-        this.restrictionProvider = restrictionProvider;
     }
 
+    //------------------------------------------< AbstractAccessControlList >---
+    @Nonnull
+    public abstract List<JackrabbitAccessControlEntry> getEntries();
+
+    @Nonnull
+    public abstract RestrictionProvider getRestrictionProvider();
+
     //--------------------------------------< JackrabbitAccessControlPolicy >---
+    @CheckForNull
     @Override
     public String getPath() {
         return jcrPath;
@@ -52,14 +63,32 @@ public abstract class AbstractAccessControlList implements JackrabbitAccessContr
     //--------------------------------------------------< AccessControlList >---
 
     @Override
+    public AccessControlEntry[] getAccessControlEntries() throws RepositoryException {
+        List<JackrabbitAccessControlEntry> entries = getEntries();
+        return entries.toArray(new AccessControlEntry[entries.size()]);
+    }
+
+    @Override
     public boolean addAccessControlEntry(Principal principal, Privilege[] privileges) throws RepositoryException {
         return addEntry(principal, privileges, true, Collections.<String, Value>emptyMap());
     }
 
     //----------------------------------------< JackrabbitAccessControlList >---
+
+    @Override
+    public boolean isEmpty() {
+        return getEntries().isEmpty();
+    }
+
+    @Override
+    public int size() {
+        return getEntries().size();
+    }
+
+    @Nonnull
     @Override
     public String[] getRestrictionNames() throws RepositoryException {
-        Set<RestrictionDefinition> supported = restrictionProvider.getSupportedRestrictions(jcrPath);
+        Set<RestrictionDefinition> supported = getRestrictionProvider().getSupportedRestrictions(jcrPath);
         return Collections2.transform(supported, new Function<RestrictionDefinition, String>() {
             @Override
             public String apply(RestrictionDefinition definition) {
@@ -71,7 +100,7 @@ public abstract class AbstractAccessControlList implements JackrabbitAccessContr
 
     @Override
     public int getRestrictionType(String restrictionName) throws RepositoryException {
-        for (RestrictionDefinition definition : restrictionProvider.getSupportedRestrictions(jcrPath)) {
+        for (RestrictionDefinition definition : getRestrictionProvider().getSupportedRestrictions(jcrPath)) {
             if (definition.getJcrName().equals(restrictionName)) {
                 return definition.getRequiredType();
             }

@@ -23,6 +23,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.security.AccessControlEntry;
@@ -33,34 +34,36 @@ import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.oak.spi.security.authorization.AbstractAccessControlList;
 import org.apache.jackrabbit.oak.spi.security.authorization.ACE;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
-import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * ACL... TODO
  */
-class ACL extends AbstractAccessControlList {
+abstract class ACL extends AbstractAccessControlList {
 
     private static final Logger log = LoggerFactory.getLogger(ACL.class);
 
-    private final List<JackrabbitAccessControlEntry> entries;
+    private final List<JackrabbitAccessControlEntry> entries = new ArrayList<JackrabbitAccessControlEntry>();
 
-    ACL(String jcrPath, List<JackrabbitAccessControlEntry> entries, RestrictionProvider restrictionProvider) {
-        super(jcrPath, restrictionProvider);
-
-        this.entries = (entries == null) ? new ArrayList<JackrabbitAccessControlEntry>() : entries;
+    ACL(String jcrPath) {
+        this(jcrPath, null);
     }
 
-    JackrabbitAccessControlEntry[] getACEs() {
-        return entries.toArray(new JackrabbitAccessControlEntry[entries.size()]);
+    ACL(String jcrPath, List<JackrabbitAccessControlEntry> entries) {
+        super(jcrPath);
+        if (entries != null) {
+            this.entries.addAll(entries);
+        }
+    }
+
+    @Nonnull
+    @Override
+    public List<JackrabbitAccessControlEntry> getEntries() {
+        return entries;
     }
 
     //--------------------------------------------------< AccessControlList >---
-    @Override
-    public AccessControlEntry[] getAccessControlEntries() throws RepositoryException {
-        return getACEs();
-    }
 
     @Override
     public void removeAccessControlEntry(AccessControlEntry ace) throws RepositoryException {
@@ -71,15 +74,6 @@ class ACL extends AbstractAccessControlList {
     }
 
     //----------------------------------------< JackrabbitAccessControlList >---
-    @Override
-    public boolean isEmpty() {
-        return entries.isEmpty();
-    }
-
-    @Override
-    public int size() {
-        return entries.size();
-    }
 
     @Override
     public boolean addEntry(Principal principal, Privilege[] privileges,
@@ -92,7 +86,7 @@ class ACL extends AbstractAccessControlList {
         } else {
             rs = new HashSet<Restriction>(restrictions.size());
             for (String name : restrictions.keySet()) {
-                rs.add(restrictionProvider.createRestriction(jcrPath, name, restrictions.get(name)));
+                rs.add(getRestrictionProvider().createRestriction(getPath(), name, restrictions.get(name)));
             }
         }
         JackrabbitAccessControlEntry entry = new ACE(principal, privileges, isAllow, rs);
@@ -134,7 +128,6 @@ class ACL extends AbstractAccessControlList {
      * This class is mutable and not meant to be used as a hash key.
      *
      * @return always zero
-     * @see Object#hashCode()
      */
     @Override
     public int hashCode() {
@@ -146,7 +139,6 @@ class ACL extends AbstractAccessControlList {
      *
      * @param obj Object to test.
      * @return true if the path and the entries are equal; false otherwise.
-     * @see Object#equals(Object)
      */
     @Override
     public boolean equals(Object obj) {
@@ -155,7 +147,8 @@ class ACL extends AbstractAccessControlList {
         }
         if (obj instanceof ACL) {
             ACL acl = (ACL) obj;
-            return ((jcrPath == null) ? acl.jcrPath == null : jcrPath.equals(acl.jcrPath))
+            String path = getPath();
+            return ((path == null) ? acl.getPath() == null : path.equals(acl.getPath()))
                     && entries.equals(acl.entries);
         }
         return false;
@@ -164,7 +157,7 @@ class ACL extends AbstractAccessControlList {
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        sb.append("ACL: ").append(jcrPath).append("; ACEs: ");
+        sb.append("ACL: ").append(getPath()).append("; ACEs: ");
         for (AccessControlEntry ace : entries) {
             sb.append(ace.toString()).append(';');
         }
