@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.spi.security.authorization;
 
 import java.security.Principal;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -28,7 +27,8 @@ import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
 
 import com.google.common.collect.ImmutableList;
-import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
+import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
+import org.apache.jackrabbit.oak.spi.security.authorization.restriction.EmptyRestrictionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 
 /**
@@ -37,29 +37,29 @@ import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restrict
  */
 public class ImmutableACL extends AbstractAccessControlList {
 
-    private final List<AccessControlEntry> entries;
+    private final List<JackrabbitAccessControlEntry> entries;
+    private final RestrictionProvider restrictionProvider;
 
     private int hashCode;
 
     /**
      * Construct a new {@code UnmodifiableAccessControlList}
      *
-     * @param jcrPath
-     * @param entries
-     * @param restrictionProvider
+     * @param jcrPath The JCR path of this policy.
+     * @param entries The access control entries contained in this policy.
+     * @param restrictionProvider The restriction provider.
      */
-    public ImmutableACL(String jcrPath, List<? extends AccessControlEntry> entries,
+    public ImmutableACL(String jcrPath, List<? extends JackrabbitAccessControlEntry> entries,
                         RestrictionProvider restrictionProvider) {
-        super(jcrPath, restrictionProvider);
-        this.entries = (entries == null) ? Collections.<AccessControlEntry>emptyList() : ImmutableList.copyOf(entries);
+        super(jcrPath);
+
+        this.entries = (entries == null) ?
+                Collections.<JackrabbitAccessControlEntry>emptyList() :
+                ImmutableList.copyOf(entries);
+        this.restrictionProvider = (restrictionProvider == null) ? new EmptyRestrictionProvider() : restrictionProvider;
     }
 
     //--------------------------------------------------< AccessControlList >---
-
-    @Override
-    public AccessControlEntry[] getAccessControlEntries() throws RepositoryException {
-        return entries.toArray(new AccessControlEntry[entries.size()]);
-    }
 
     @Override
     public void removeAccessControlEntry(AccessControlEntry ace)
@@ -70,16 +70,6 @@ public class ImmutableACL extends AbstractAccessControlList {
     //----------------------------------------< JackrabbitAccessControlList >---
 
     @Override
-    public boolean isEmpty() {
-        return entries.isEmpty();
-    }
-
-    @Override
-    public int size() {
-        return entries.size();
-    }
-
-    @Override
     public boolean addEntry(Principal principal, Privilege[] privileges,
                             boolean isAllow, Map<String, Value> restrictions) throws AccessControlException {
         throw new AccessControlException("Immutable ACL. Use AccessControlManager#getPolicy or #getApplicablePolicies in order to obtain an modifiable ACL.");
@@ -88,6 +78,17 @@ public class ImmutableACL extends AbstractAccessControlList {
     @Override
     public void orderBefore(AccessControlEntry srcEntry, AccessControlEntry destEntry) throws AccessControlException {
         throw new AccessControlException("Immutable ACL. Use AccessControlManager#getPolicy or #getApplicablePolicy in order to obtain a modifiable ACL.");
+    }
+
+    //------------------------------------------< AbstractAccessControlList >---
+    @Override
+    public List<JackrabbitAccessControlEntry> getEntries() {
+        return entries;
+    }
+
+    @Override
+    public RestrictionProvider getRestrictionProvider() {
+        return restrictionProvider;
     }
 
     //-------------------------------------------------------------< Object >---
@@ -109,14 +110,11 @@ public class ImmutableACL extends AbstractAccessControlList {
         if (obj == this) {
             return true;
         }
-        if (obj instanceof JackrabbitAccessControlList) {
-            try {
-                JackrabbitAccessControlList acl = (JackrabbitAccessControlList) obj;
-                return ((jcrPath == null) ? acl.getPath() == null : jcrPath.equals(acl.getPath()))
-                        && entries.equals(Arrays.asList(acl.getAccessControlEntries()));
-            } catch (RepositoryException e) {
-                // failed to retrieve access control entries -> objects are not equal.
-            }
+        if (obj instanceof ImmutableACL) {
+            ImmutableACL other = (ImmutableACL) obj;
+            String path = getPath();
+            return ((path == null) ? other.getPath() == null : path.equals(other.getPath()))
+                    && entries.equals(other.entries);
         }
         return false;
     }
