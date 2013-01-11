@@ -255,7 +255,7 @@ public class MongoNodeStore implements NodeStore {
             return null;
         }
         LOG.debug("Returning node from cache: {}", key);
-        return node;
+        return node.copy();
     }
 
     private void init() {
