@@ -322,7 +322,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
         if (jcrPath == null) {
             tree = root.getTree("/");
         } else {
-            String oakPath = namePathMapper.getOakPath(jcrPath);
+            String oakPath = namePathMapper.getOakPathKeepIndex(jcrPath);
             if (oakPath == null) {
                 throw new RepositoryException("Failed to resolve JCR path " + jcrPath);
             }
