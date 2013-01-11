@@ -16,14 +16,11 @@
  */
 package org.apache.jackrabbit.mongomk.impl.command;
 
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.jackrabbit.mongomk.impl.MongoNodeStore;
 import org.apache.jackrabbit.mongomk.impl.action.FetchNodesActionNew;
 import org.apache.jackrabbit.mongomk.impl.model.MongoNode;
-import org.apache.jackrabbit.oak.commons.PathUtils;
 
 /**
  * {@code Command} for {@code MongoMicroKernel#nodeExists(String, String)}
@@ -59,42 +56,16 @@ public class NodeExistsCommand extends BaseCommand<Boolean> {
 
     @Override
     public Boolean execute() throws Exception {
-        // To check a path really exists, all the paths from root need to be checked.
-        Set<String> paths = new HashSet<String>();
-        char[] path = this.path.toCharArray();
-        StringBuilder current = new StringBuilder();
-        for (int i = 0; i < path.length; i++) {
-            if (i == 0) {
-                paths.add("/");
-            } else if (path[i] == '/') {
-                paths.add(current.toString());
-            }
-            current.append(path[i]);
-        }
-        paths.add(current.toString());
-
         if (revisionId == null) {
             revisionId = new GetHeadRevisionCommand(nodeStore).execute();
         }
 
-        FetchNodesActionNew action = new FetchNodesActionNew(nodeStore, paths, revisionId);
+        FetchNodesActionNew action = new FetchNodesActionNew(nodeStore, path, 0, revisionId);
         action.setBranchId(branchId);
-        //action.setValidCommits(validCommits);
 
         Map<String, MongoNode> pathAndNodeMap = action.execute();
-        String currentPath = this.path;
-        while (!PathUtils.denotesRoot(currentPath)) {
-            String childName = PathUtils.getName(currentPath);
-            String parentPath = PathUtils.getParentPath(currentPath);
-            MongoNode parentNode = pathAndNodeMap.get(parentPath);
-            if (parentNode == null || !parentNode.childExists(childName)) {
-                node = null;
-                return false;
-            }
-            currentPath = PathUtils.getParentPath(currentPath);
-        }
         node = pathAndNodeMap.get(this.path);
-        return true;
+        return node != null && !node.isDeleted();
     }
 
     /**

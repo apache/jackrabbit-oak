@@ -32,6 +32,7 @@ import com.mongodb.BasicDBObject;
 public class MongoNode extends BasicDBObject {
 
     public static final String KEY_CHILDREN = "children";
+    public static final String KEY_DELETED = "deleted";
     public static final String KEY_PATH = "path";
     public static final String KEY_PROPERTIES = "props";
     public static final String KEY_REVISION_ID = "revId";
@@ -101,6 +102,14 @@ public class MongoNode extends BasicDBObject {
         }
     }
 
+    public boolean isDeleted() {
+        return getBoolean(KEY_DELETED);
+    }
+
+    public void setDeleted() {
+        put(KEY_DELETED, Boolean.TRUE);
+    }
+
     public String getPath() {
         return getString(KEY_PATH);
     }
@@ -145,10 +154,18 @@ public class MongoNode extends BasicDBObject {
     //--------------------------------------------------------------------------
 
     public void addChild(String childName) {
+        if (removedChildren != null && removedChildren.contains(childName)) {
+            removedChildren.remove(childName);
+            return;
+        }
+
         if (addedChildren == null) {
             addedChildren = new LinkedList<String>();
         }
-        addedChildren.add(childName);
+
+        if (!addedChildren.contains(childName)) {
+            addedChildren.add(childName);
+        }
     }
 
     public List<String> getAddedChildren() {
@@ -156,10 +173,18 @@ public class MongoNode extends BasicDBObject {
     }
 
     public void removeChild(String childName) {
+        if (addedChildren != null && addedChildren.contains(childName)) {
+            addedChildren.remove(childName);
+            return;
+        }
+
         if (removedChildren == null) {
             removedChildren = new LinkedList<String>();
         }
-        removedChildren.add(childName);
+
+        if (!removedChildren.contains(childName)) {
+            removedChildren.add(childName);
+        }
     }
 
     public List<String> getRemovedChildren() {
@@ -237,5 +262,21 @@ public class MongoNode extends BasicDBObject {
         }
         sb.append(" }");
         return sb.toString();
+    }
+
+    public boolean hasPendingChanges() {
+        if (addedChildren != null && !addedChildren.isEmpty()) {
+            return true;
+        }
+        if (removedChildren != null && !removedChildren.isEmpty()) {
+            return true;
+        }
+        if (addedProps != null && !addedProps.isEmpty()) {
+            return true;
+        }
+        if (removedProps != null && !removedProps.isEmpty()) {
+            return true;
+        }
+        return false;
     }
 }
