@@ -38,10 +38,8 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.plugins.memory.MemoryPropertyBuilder;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.value.Conversions;
-import org.apache.jackrabbit.oak.spi.state.PropertyBuilder;
 import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -284,9 +282,8 @@ public class NodeUtil {
     public void setValues(String name, Value[] values) {
         try {
             tree.setProperty(PropertyStates.createProperty(name, Arrays.asList(values)));
-        }
-        catch (RepositoryException e) {
-            log.warn("Unable to convert a default value", e);
+        } catch (RepositoryException e) {
+            log.warn("Unable to convert values", e);
         }
     }
 

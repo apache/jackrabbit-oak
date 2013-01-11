@@ -32,10 +32,9 @@ public class RestrictionImpl extends RestrictionDefinitionImpl implements Restri
 
     private final PropertyState property;
 
-    public RestrictionImpl(@Nonnull PropertyState property, int requiredType,
-                           boolean isMandatory,
+    public RestrictionImpl(@Nonnull PropertyState property, boolean isMandatory,
                            @Nonnull NamePathMapper namePathMapper) {
-        super(property.getName(), requiredType, isMandatory, namePathMapper);
+        super(property.getName(), property.getType().tag(), isMandatory, namePathMapper);
         this.property = property;
     }
 

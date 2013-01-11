@@ -72,6 +72,11 @@ public class ACE implements JackrabbitAccessControlEntry {
         this.restrictions = (restrictions == null) ? Collections.<Restriction>emptySet() : ImmutableSet.copyOf(restrictions);
     }
 
+    @Nonnull
+    public Set<Restriction> getRestrictions() {
+        return restrictions;
+    }
+
     //-------------------------------------------------< AccessControlEntry >---
     @Nonnull
     @Override
