@@ -105,7 +105,7 @@ public class UserManagerImpl implements UserManager {
     @Override
     public Authorizable getAuthorizableByPath(String path) throws RepositoryException {
         checkIsLive();
-        String oakPath = namePathMapper.getOakPath(path);
+        String oakPath = namePathMapper.getOakPathKeepIndex(path);
         if (oakPath == null) {
             throw new RepositoryException("Invalid path " + path);
         }
@@ -143,7 +143,7 @@ public class UserManagerImpl implements UserManager {
         checkValidPrincipal(principal, false);
 
         if (intermediatePath != null) {
-            intermediatePath = namePathMapper.getOakPath(intermediatePath);
+            intermediatePath = namePathMapper.getOakPathKeepIndex(intermediatePath);
         }
         Tree userTree = userProvider.createUser(userID, intermediatePath);
         setPrincipal(userTree, principal);
@@ -181,7 +181,7 @@ public class UserManagerImpl implements UserManager {
         checkValidPrincipal(principal, true);
 
         if (intermediatePath != null) {
-            intermediatePath = namePathMapper.getOakPath(intermediatePath);
+            intermediatePath = namePathMapper.getOakPathKeepIndex(intermediatePath);
         }
         Tree groupTree = userProvider.createGroup(groupID, intermediatePath);
         setPrincipal(groupTree, principal);
