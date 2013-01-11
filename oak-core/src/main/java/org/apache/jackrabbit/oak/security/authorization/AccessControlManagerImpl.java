@@ -216,7 +216,17 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
                 NodeUtil aceNode = aclNode.addChild(nodeName, ntName);
                 aceNode.setString(REP_PRINCIPAL_NAME, ace.getPrincipal().getName());
                 aceNode.setNames(REP_PRIVILEGES, AccessControlUtils.namesFromPrivileges(ace.getPrivileges()));
-                restrictionProvider.writeRestrictions(absPath, aceNode.getTree(), ace);
+                Set<Restriction> restrictions;
+                if (ace instanceof ACE) {
+                    restrictions = ((ACE) ace).getRestrictions();
+                } else {
+                    String[] rNames = ace.getRestrictionNames();
+                    restrictions = new HashSet<Restriction>(rNames.length);
+                    for (String rName : rNames) {
+                        restrictions.add(restrictionProvider.createRestriction(acl.getPath(), rName, ace.getRestriction(rName)));
+                    }
+                }
+                restrictionProvider.writeRestrictions(absPath, aceNode.getTree(), restrictions);
             }
         }
     }
@@ -571,7 +581,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
             Set<Restriction> restrictions = super.readRestrictions(jcrPath, aceTree);
             String value = (jcrPath == null) ? "" : jcrPath;
             PropertyState nodePathProp = PropertyStates.createProperty(REP_NODE_PATH, value, Type.PATH);
-            restrictions.add(new RestrictionImpl(nodePathProp, PropertyType.PATH, true, namePathMapper));
+            restrictions.add(new RestrictionImpl(nodePathProp, true, namePathMapper));
             return restrictions;
         }
 

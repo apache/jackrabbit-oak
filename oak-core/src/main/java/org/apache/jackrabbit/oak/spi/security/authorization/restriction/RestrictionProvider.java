@@ -22,7 +22,6 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.security.AccessControlException;
 
-import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.oak.api.Tree;
 
 /**
@@ -34,14 +33,12 @@ public interface RestrictionProvider {
     Set<RestrictionDefinition> getSupportedRestrictions(String jcrPath);
 
     @Nonnull
-    Restriction createRestriction(String jcrPath, String jcrName, Value value) throws RepositoryException;
+    Restriction createRestriction(String jcrPath, @Nonnull String jcrName, @Nonnull Value value) throws RepositoryException;
 
     @Nonnull
-    Set<Restriction> readRestrictions(String jcrPath, Tree aceTree) throws AccessControlException;
+    Set<Restriction> readRestrictions(String jcrPath, @Nonnull Tree aceTree) throws AccessControlException;
 
     void writeRestrictions(String jcrPath, Tree aceTree, Set<Restriction> restrictions) throws AccessControlException;
 
-    void writeRestrictions(String jcrPath, Tree aceTree, JackrabbitAccessControlEntry entry) throws AccessControlException;
-
-    void validateRestrictions(String jcrPath, Tree aceTree) throws AccessControlException;
+    void validateRestrictions(String jcrPath, @Nonnull Tree aceTree) throws AccessControlException;
 }
