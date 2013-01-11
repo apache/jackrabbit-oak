@@ -116,7 +116,7 @@ public class UserQueryManager {
                     .append(sortDir.getDirection());
         }
 
-        if (builder.getGroupName() == null) {
+        if (builder.getGroupID() == null) {
             long offset = builder.getOffset();
             if (bound != null && offset > 0) {
                 log.warn("Found bound {} and offset {} in limit. Discarding offset.", bound, offset);
@@ -128,7 +128,7 @@ public class UserQueryManager {
             // and limit on the result set.
             Iterator<Authorizable> result = findAuthorizables(statement.toString(), Long.MAX_VALUE, 0);
             Predicate groupFilter = new GroupPredicate(userManager,
-                    builder.getGroupName(),
+                    builder.getGroupID(),
                     builder.isDeclaredMembersOnly());
             return ResultIterator.create(builder.getOffset(), builder.getMaxCount(),
                     Iterators.filter(result, groupFilter));
