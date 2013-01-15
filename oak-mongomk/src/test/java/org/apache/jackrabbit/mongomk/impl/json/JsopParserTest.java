@@ -277,7 +277,7 @@ public class JsopParserTest {
         }
 
         @Override
-        public void propertySet(String path, String key, Object value) {
+        public void propertySet(String path, String key, Object value, String rawValue) {
             this.propertiesSet.add(new Property(path, key, value));
         }
 

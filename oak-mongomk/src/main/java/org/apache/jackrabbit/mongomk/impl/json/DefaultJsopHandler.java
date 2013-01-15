@@ -74,8 +74,9 @@ public class DefaultJsopHandler {
      * @param path The path of the node where the property was set.
      * @param key The key of the property.
      * @param value The value of the property.
+     * @param rawValue The raw value of the property.
      */
-    public void propertySet(String path, String key, Object value) {
+    public void propertySet(String path, String key, Object value, String rawValue) {
         // No-op
     }
 }

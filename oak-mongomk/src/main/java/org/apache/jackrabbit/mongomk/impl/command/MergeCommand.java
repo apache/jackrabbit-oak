@@ -4,6 +4,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.jackrabbit.mk.json.JsopBuilder;
 import org.apache.jackrabbit.mk.model.tree.DiffBuilder;
 import org.apache.jackrabbit.mk.model.tree.NodeState;
 import org.apache.jackrabbit.mongomk.api.command.Command;
@@ -12,6 +13,8 @@ import org.apache.jackrabbit.mongomk.api.model.Node;
 import org.apache.jackrabbit.mongomk.impl.MongoNodeStore;
 import org.apache.jackrabbit.mongomk.impl.action.FetchCommitAction;
 import org.apache.jackrabbit.mongomk.impl.action.FetchHeadRevisionIdAction;
+import org.apache.jackrabbit.mongomk.impl.json.DefaultJsopHandler;
+import org.apache.jackrabbit.mongomk.impl.json.JsopParser;
 import org.apache.jackrabbit.mongomk.impl.model.CommitBuilder;
 import org.apache.jackrabbit.mongomk.impl.model.MongoCommit;
 import org.apache.jackrabbit.mongomk.impl.model.NodeImpl;
@@ -62,32 +65,65 @@ public class MergeCommand extends BaseCommand<String> {
         FetchHeadRevisionIdAction query2 = new FetchHeadRevisionIdAction(nodeStore);
         long currentHead = query2.execute();
 
-        Node ourRoot = getNode("/", rootNodeId, branchId);
-
         long branchRootId = Long.parseLong(branchId.substring(0, branchId.indexOf("-")));
 
-        // Merge changes, if any, from trunk to branch.
-        Node currentHeadNode = getNode("/", currentHead);
-        if (currentHead != branchRootId) {
-            ourRoot = mergeNodes(ourRoot, currentHeadNode, branchRootId);
+        Commit newCommit;
+        if (currentHead <= branchRootId) {
+            // no commits to trunk since branch was created
+            StringBuilder diff = new StringBuilder();
+            for (long rev = branchRootId + 1; rev <= commit.getRevisionId(); rev++) {
+                try {
+                    Commit c = new FetchCommitAction(nodeStore, rev).execute();
+                    if (branchId.equals(c.getBranchId())) {
+                        diff.append(normalizeDiff(c.getPath(), c.getDiff()));
+                    }
+                } catch (Exception e) {
+                    // commit does not exist
+                }
+            }
+            newCommit = CommitBuilder.build("", diff.toString(),
+                    MongoUtil.fromMongoRepresentation(currentHead), message);
+
+        } else {
+            Node ourRoot = getNode("/", rootNodeId, branchId);
+
+            // Merge changes, if any, from trunk to branch.
+            Node currentHeadNode = getNode("/", currentHead);
+            if (currentHead != branchRootId) {
+                ourRoot = mergeNodes(ourRoot, currentHeadNode, branchRootId);
+            }
+
+            String diff = new DiffBuilder(MongoUtil.wrap(currentHeadNode),
+                    MongoUtil.wrap(ourRoot), "/", -1,
+                    new SimpleMongoNodeStore(), "").build();
+
+            if (diff.isEmpty()) {
+                LOG.debug("Merge of empty branch {} with differing content hashes encountered, " +
+                        "ignore and keep current head {}", branchRevisionId, currentHead);
+                return MongoUtil.fromMongoRepresentation(currentHead);
+            }
+
+            newCommit = CommitBuilder.build("", diff,
+                    MongoUtil.fromMongoRepresentation(currentHead), message);
         }
-
-        String diff = new DiffBuilder(MongoUtil.wrap(currentHeadNode),
-                MongoUtil.wrap(ourRoot), "/", -1,
-                new SimpleMongoNodeStore(), "").build();
-
-        if (diff.isEmpty()) {
-            LOG.debug("Merge of empty branch {} with differing content hashes encountered, " +
-                    "ignore and keep current head {}", branchRevisionId, currentHead);
-            return MongoUtil.fromMongoRepresentation(currentHead);
-        }
-
-        Commit newCommit = CommitBuilder.build("", diff,
-                MongoUtil.fromMongoRepresentation(currentHead), message);
 
         Command<Long> command = new CommitCommandNew(nodeStore, newCommit);
         long revision = command.execute();
         return MongoUtil.fromMongoRepresentation(revision);
+    }
+
+    /**
+     * Normalizes a JSOP diff by appending the path to all pathStrings of the
+     * operations.
+     *
+     * @param path the root path of the diff.
+     * @param diff the JSOP diff.
+     * @return the JSOP diff based on an empty root path.
+     */
+    private String normalizeDiff(String path, String diff) throws Exception {
+        NormalizingJsopHandler handler = new NormalizingJsopHandler();
+        new JsopParser(path, diff, handler).parse();
+        return handler.getDiff();
     }
 
     private NodeImpl mergeNodes(Node ourRoot, Node theirRoot,
@@ -97,9 +133,7 @@ public class MergeCommand extends BaseCommand<String> {
         Node theirRootCopy = copy(theirRoot);
 
         // Recursively merge 'our' changes with 'their' changes...
-        NodeImpl mergedNode = mergeNode(baseRoot, ourRoot, theirRootCopy, "/");
-
-        return mergedNode;
+        return mergeNode(baseRoot, ourRoot, theirRootCopy, "/");
     }
 
     private NodeImpl mergeNode(Node baseNode, Node ourNode, Node theirNode,
@@ -196,5 +230,61 @@ public class MergeCommand extends BaseCommand<String> {
             copy.addChildNodeEntry(copy(child));
         }
         return copy;
+    }
+
+    private static class NormalizingJsopHandler extends DefaultJsopHandler {
+
+        private final StringBuilder builder = new StringBuilder();
+
+        @Override
+        public void nodeAdded(String parentPath, String name) {
+            builder.append("+");
+            builder.append(JsopBuilder.encode(concatPath(parentPath, name)));
+            builder.append(":{}");
+        }
+
+        @Override
+        public void nodeCopied(String rootPath,
+                               String oldPath,
+                               String newPath) {
+            builder.append("*");
+            builder.append(JsopBuilder.encode(concatPath(rootPath, oldPath)));
+            builder.append(":");
+            builder.append(JsopBuilder.encode(concatPath(rootPath, newPath)));
+        }
+
+        @Override
+        public void nodeMoved(String rootPath, String oldPath, String newPath) {
+            builder.append(">");
+            builder.append(JsopBuilder.encode(oldPath));
+            builder.append(":");
+            builder.append(JsopBuilder.encode(newPath));
+        }
+
+        @Override
+        public void nodeRemoved(String parentPath, String name) {
+            builder.append("-");
+            builder.append(JsopBuilder.encode(concatPath(parentPath, name)));
+        }
+
+        @Override
+        public void propertySet(String path, String key, Object value, String rawValue) {
+            builder.append("^");
+            builder.append(JsopBuilder.encode(concatPath(path, key)));
+            builder.append(":");
+            builder.append(rawValue);
+        }
+
+        private String concatPath(String parent, String child) {
+            if (parent.length() == 0) {
+                return child;
+            } else {
+                return PathUtils.concat(parent, child);
+            }
+        }
+
+        String getDiff() {
+            return builder.toString();
+        }
     }
 }
