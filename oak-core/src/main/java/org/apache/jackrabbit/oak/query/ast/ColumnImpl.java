@@ -55,7 +55,7 @@ public class ColumnImpl extends AstElement {
     }
 
     public PropertyValue currentProperty() {
-        if (propertyName == null) {
+        if (propertyName == null || propertyName.equals("*")) {
             // TODO for SELECT * FROM queries, currently return the path (for testing only)
             String p = selector.currentPath();
             if (p == null) {

@@ -78,7 +78,7 @@ select * from [nt:base] where id = '10'
 /test/a
 
 select [jcr:path], * from [nt:base] where id = '10'
-/test/a, null
+/test/a, /test/a
 
 explain select * from [nt:base] where id > '10'
 [nt:base] as [nt:base] /* traverse "//*" where [nt:base].[id] > cast('10' as string) */
