@@ -73,7 +73,7 @@ public class CommitBuilder {
     }
 
     /**
-     * The {@link DefaultJaopHandler} for the {@code JSOP} diff.
+     * The {@link DefaultJsopHandler} for the {@code JSOP} diff.
      */
     private static class CommitHandler extends DefaultJsopHandler {
         private final MongoCommit commit;
@@ -103,7 +103,7 @@ public class CommitBuilder {
         }
 
         @Override
-        public void propertySet(String path, String key, Object value) {
+        public void propertySet(String path, String key, Object value, String rawValue) {
             commit.addInstruction(new SetPropertyInstructionImpl(path,
                     MongoUtil.toMongoPropertyKey(key), value));
         }

@@ -123,7 +123,7 @@ public class JsopParser {
                     else { // Property.
                         String valueAsString = tokenizer.readRawValue().trim();
                         Object value = JsonUtil.toJsonValue(valueAsString);
-                        defaultHandler.propertySet(path, propName, value);
+                        defaultHandler.propertySet(path, propName, value, valueAsString);
                     }
                 } while (tokenizer.matches(','));
 
@@ -185,7 +185,7 @@ public class JsopParser {
         }
         String parentPath = PathUtils.getParentPath(targetPath);
         String propName = PathUtils.getName(targetPath);
-        defaultHandler.propertySet(parentPath, propName, JsonUtil.toJsonValue(value));
+        defaultHandler.propertySet(parentPath, propName, JsonUtil.toJsonValue(value), value);
     }
 
     private void parseOpRemoved() throws Exception {
