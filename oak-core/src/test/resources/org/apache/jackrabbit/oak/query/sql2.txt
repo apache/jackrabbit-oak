@@ -83,7 +83,7 @@ select * from [nt:base] where id = '10'
 /test/a
 
 select [jcr:path], * from [nt:base] where id = '10'
-/test/a, null
+/test/a, /test/a
 
 select * from [nt:base] where id > '10'
 /test/b

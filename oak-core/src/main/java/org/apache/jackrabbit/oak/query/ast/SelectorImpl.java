@@ -34,6 +34,7 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
@@ -47,6 +48,7 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 
 /**
  * A selector within a query.
@@ -253,6 +255,8 @@ public class SelectorImpl extends SourceImpl {
                 }
                 if (p.equals("..")) {
                     t = t.getParent();
+                } else if (p.equals(".")) {
+                    // same node
                 } else {
                     t = t.getChild(p);
                 }
@@ -270,6 +274,16 @@ public class SelectorImpl extends SourceImpl {
             }
             return PropertyValues.newString(local);
         }
+        if (propertyName.equals("*")) {
+            // TODO currently all property values are converted to strings - 
+            // this doesn't play well with the idea that the types may be different
+            List<String> values = new ArrayList<String>();
+            for (PropertyState p : t.getProperties()) {
+                Iterables.addAll(values, p.getValue(Type.STRINGS));
+            }
+            // "*"
+            return PropertyValues.newString(values);
+        } 
         return PropertyValues.create(t.getProperty(propertyName));
     }
 
