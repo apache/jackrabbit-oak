@@ -277,7 +277,6 @@ public class MongoMKBranchMergeTest extends BaseMongoMicroKernelTest {
     }
 
     @Test
-    @Ignore // FIXME - due to CommitCommandInstructionVisitor add node change.
     public void addExistingRootInBranch() {
         addNodes(null, "/root");
         assertNodesExist(null, "/root");
@@ -290,7 +289,6 @@ public class MongoMKBranchMergeTest extends BaseMongoMicroKernelTest {
     }
 
     @Test
-    @Ignore // FIXME - due to CommitCommandInstructionVisitor add node change.
     public void addExistingChildInBranch() {
         addNodes(null, "/root", "/root/child1");
         assertNodesExist(null, "/root", "/root/child1");
@@ -306,6 +304,7 @@ public class MongoMKBranchMergeTest extends BaseMongoMicroKernelTest {
     }
 
     @Test
+    @Ignore("Implementation specific behavior")
     public void emptyMergeCausesNoChange() {
         String rev1 = mk.commit("", "+\"/child1\":{}", null, "");
 
@@ -327,6 +326,16 @@ public class MongoMKBranchMergeTest extends BaseMongoMicroKernelTest {
             mk.merge(rev, "");
             fail("Exception expected");
         } catch (Exception expected) {}
+    }
+
+    @Test
+    public void movesInBranch() {
+        String rev = mk.commit("/", "+\"a\":{\"b\":{}}", null, null);
+        String branchRev = mk.branch(rev);
+        branchRev = mk.commit("/", ">\"a\":\"x\"^\"x/b/p\":1>\"x\":\"a\"", branchRev, null);
+        rev = mk.merge(branchRev, null);
+        assertNodesExist(rev, "/a", "/a/b");
+        assertPropExists(rev, "/a/b", "p");
     }
 
     private String addNodes(String rev, String...nodes) {

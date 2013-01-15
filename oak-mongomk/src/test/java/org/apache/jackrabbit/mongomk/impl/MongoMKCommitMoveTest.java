@@ -256,7 +256,6 @@ public class MongoMKCommitMoveTest extends BaseMongoMicroKernelTest {
     }
 
     @Test
-    @Ignore // FIXME - due to CommitCommandInstructionVisitor add node change.
     public void modifyParentAddPropertyAndMove() {
         mk.commit("/", "+\"a\":{}", null, null);
         mk.commit("/", "+\"b\" : {}\n"
@@ -303,7 +302,6 @@ public class MongoMKCommitMoveTest extends BaseMongoMicroKernelTest {
     }
 
     @Test
-    @Ignore // FIXME - due to CommitCommandInstructionVisitor add node change.
     public void modifyParentRemovePropertyAndMove() {
         mk.commit("/", "+\"a\":{ \"key1\" : \"value1\"}", null, null);
         mk.commit("/", "+\"b\" : {}\n"
@@ -317,5 +315,27 @@ public class MongoMKCommitMoveTest extends BaseMongoMicroKernelTest {
         String nodes = mk.getNodes("/", null, 1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
         JSONObject obj = parseJSONObject(nodes);
         assertPropertyNotExists(obj, "c/key1");
+    }
+
+    @Test
+    public void moveAndMoveBack() {
+        mk.commit("/", "+\"a\":{}", null, null);
+        mk.commit("/", ">\"a\":\"x\">\"x\":\"a\"", null, null);
+        assertNodesExist(null, "/a");
+    }
+
+    @Test
+    public void moveAndMoveBackWithChildren() {
+        mk.commit("/", "+\"a\":{\"b\":{}}", null, null);
+        mk.commit("/", ">\"a\":\"x\">\"x\":\"a\"", null, null);
+        assertNodesExist(null, "/a", "/a/b");
+    }
+
+    @Test
+    public void moveAndMoveBackWithSetProperties() {
+        mk.commit("/", "+\"a\":{\"b\":{}}", null, null);
+        mk.commit("/", ">\"a\":\"x\"^\"x/p\":1>\"x\":\"a\"", null, null);
+        assertNodesExist(null, "/a", "/a/b");
+        assertPropExists(null, "/a", "p");
     }
 }
