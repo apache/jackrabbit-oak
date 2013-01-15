@@ -764,11 +764,16 @@ public class UserQueryTest extends AbstractUserTest {
     private Group createGroup(String name) throws RepositoryException {
         Group group = userMgr.createGroup(name);
         groups.add(group);
+        // TODO: remove again once OAK-343 is fixed.
+        superuser.save();
         return group;
     }
 
     private User createUser(String name, String food, double weight, boolean cute) throws RepositoryException {
         User user = userMgr.createUser(name, "");
+        // TODO: remove again once OAK-343 is fixed.
+        superuser.save();
+
         user.setProperty("profile/food", vf.createValue(food));
         user.setProperty("profile/weight", vf.createValue(weight));
         user.setProperty("profile/cute", vf.createValue(cute));
