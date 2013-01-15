@@ -17,9 +17,10 @@
 package org.apache.jackrabbit.oak.spi.security.authorization;
 
 import java.security.Principal;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.security.AccessControlEntry;
@@ -28,7 +29,6 @@ import javax.jcr.security.Privilege;
 
 import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
-import org.apache.jackrabbit.oak.spi.security.authorization.restriction.EmptyRestrictionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 
 /**
@@ -49,14 +49,12 @@ public class ImmutableACL extends AbstractAccessControlList {
      * @param entries The access control entries contained in this policy.
      * @param restrictionProvider The restriction provider.
      */
-    public ImmutableACL(String jcrPath, List<? extends JackrabbitAccessControlEntry> entries,
-                        RestrictionProvider restrictionProvider) {
+    public ImmutableACL(@Nullable String jcrPath,
+                        @Nonnull List<? extends JackrabbitAccessControlEntry> entries,
+                        @Nonnull RestrictionProvider restrictionProvider) {
         super(jcrPath);
-
-        this.entries = (entries == null) ?
-                Collections.<JackrabbitAccessControlEntry>emptyList() :
-                ImmutableList.copyOf(entries);
-        this.restrictionProvider = (restrictionProvider == null) ? new EmptyRestrictionProvider() : restrictionProvider;
+        this.entries = ImmutableList.copyOf(entries);
+        this.restrictionProvider = restrictionProvider;
     }
 
     //--------------------------------------------------< AccessControlList >---
