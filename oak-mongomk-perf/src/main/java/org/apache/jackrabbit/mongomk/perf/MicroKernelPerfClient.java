@@ -64,7 +64,7 @@ public class MicroKernelPerfClient {
         }
 
         @Override
-        public void propertySet(String path, String key, Object value) {
+        public void propertySet(String path, String key, Object value, String rawValue) {
             List<String> properties = addedProperties.get(path);
             if (properties == null) {
                 properties = new LinkedList<String>();
