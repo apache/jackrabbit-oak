@@ -89,7 +89,7 @@ public class PropertyDelegate extends ItemDelegate {
      * Remove the property
      */
     public void remove() throws InvalidItemStateException {
-        getPropertyLocation().remove();
+        getLocation().remove();
     }
 
     //------------------------------------------------------------< private >---
