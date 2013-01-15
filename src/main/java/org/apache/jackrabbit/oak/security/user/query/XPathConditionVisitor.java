@@ -20,15 +20,11 @@ import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * XPATH based condition visitor.
  */
 class XPathConditionVisitor implements ConditionVisitor {
-
-    static final Logger log = LoggerFactory.getLogger(XPathConditionVisitor.class);
 
     private final StringBuilder statement;
     private final NamePathMapper namePathMapper;

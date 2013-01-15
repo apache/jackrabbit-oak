@@ -197,15 +197,13 @@ public class UserQueryManager {
         String path;
         String ntName;
         if (relPath.indexOf('/') == -1) {
-            // search for properties somewhere below an authorizable node
-            propName = namePathMapper.getOakName(relPath);
+            // search for properties somewhere in the authorizable tree
+            propName = relPath;
             path = null;
             ntName = null;
         } else {
-            // FIXME: proper normalization of the relative path
-            String oakPath = namePathMapper.getOakPath(relPath);
-            propName = Text.getName(oakPath);
-            path = Text.getRelativeParent(oakPath, 1);
+            propName = Text.getName(relPath);
+            path = Text.getRelativeParent(relPath, 1);
             ntName = QueryUtil.getNodeTypeName(type);
         }
 
