@@ -16,6 +16,10 @@
  */
 package org.apache.jackrabbit.mongomk.impl.action;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -88,6 +92,36 @@ public class FetchNodesActionTest extends BaseMongoMicroKernelTest {
                 revisionId1, revisionId3);
         Iterator<Node> expecteds = NodeBuilder.build(json).getChildNodeEntries(0, -1);
         NodeAssert.assertEquals(expecteds, actuals);
+    }
+
+    @Test
+    public void samePrefix() throws Exception {
+        addNode("a");
+        addNode("a/b");
+        addNode("a/bb");
+        long rev = addNode("a/b/c");
+
+        int depth = 0;
+        FetchNodesActionNew action = new FetchNodesActionNew(getNodeStore(),
+                "/a/b", depth, rev);
+        Map<String, MongoNode> nodes = action.execute();
+        assertEquals(1, nodes.size());
+        assertNotNull(nodes.get("/a/b"));
+
+        depth = 1;
+        action = new FetchNodesActionNew(getNodeStore(), "/a/b", depth, rev);
+        nodes = action.execute();
+        assertEquals(2, nodes.size());
+        assertNotNull(nodes.get("/a/b"));
+        assertNotNull(nodes.get("/a/b/c"));
+
+        depth = FetchNodesActionNew.LIMITLESS_DEPTH;
+        action = new FetchNodesActionNew(getNodeStore(), "/a/b", depth, rev);
+        nodes = action.execute();
+        assertEquals(2, nodes.size());
+        assertNotNull(nodes.get("/a/b"));
+        assertNotNull(nodes.get("/a/b/c"));
+        assertNull(nodes.get("/a/bb"));
     }
 
     // FIXME - Revisit this test.

@@ -161,24 +161,19 @@ public class FetchNodesAction extends BaseAction<Map<String, MongoNode>> {
     }
 
     private Pattern createPrefixRegExp(String path) {
-        StringBuilder sb = new StringBuilder();
-        String quotedPath = Pattern.quote(path);
-
-        if (depth < 0) {
-            sb.append("^");
-            sb.append(quotedPath);
-        } else if (depth > 0) {
-            sb.append("^");
-            if (!"/".equals(path)) {
-                sb.append(quotedPath);
-            }
-            sb.append("(/[^/]*)");
-            sb.append("{0,");
-            sb.append(depth);
-            sb.append("}$");
+        StringBuilder regex = new StringBuilder();
+        regex.append("^");
+        if (!"/".equals(path)) {
+            regex.append(Pattern.quote(path));
         }
+        regex.append("(/[^/]*)");
+        regex.append("{0,");
+        if (depth > 0) {
+            regex.append(depth);
+        }
+        regex.append("}$");
 
-        return Pattern.compile(sb.toString());
+        return Pattern.compile(regex.toString());
     }
 
     private Map<String, MongoNode> getMostRecentValidNodes(DBCursor dbCursor) {
