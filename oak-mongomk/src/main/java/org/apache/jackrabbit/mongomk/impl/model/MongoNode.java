@@ -265,20 +265,4 @@ public class MongoNode extends BasicDBObject {
         sb.append(" }");
         return sb.toString();
     }
-
-    public boolean hasPendingChanges() {
-        if (addedChildren != null && !addedChildren.isEmpty()) {
-            return true;
-        }
-        if (removedChildren != null && !removedChildren.isEmpty()) {
-            return true;
-        }
-        if (addedProps != null && !addedProps.isEmpty()) {
-            return true;
-        }
-        if (removedProps != null && !removedProps.isEmpty()) {
-            return true;
-        }
-        return false;
-    }
 }
