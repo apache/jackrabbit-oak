@@ -62,7 +62,7 @@ public class MicroKernelPerfMaster {
         }
 
         @Override
-        public void propertySet(String path, String key, Object value) {
+        public void propertySet(String path, String key, Object value, String rawValue) {
             try {
                 if (!PathUtils.denotesRoot(key)) {
                     JSONObject element = this.getObjectByPath(path);
