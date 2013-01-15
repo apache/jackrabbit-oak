@@ -225,7 +225,6 @@
       org.apache.jackrabbit.oak.jcr.security.user.EveryoneGroupTest#testMembers                                <!-- OAK-343 -->
       org.apache.jackrabbit.oak.jcr.security.user.FindAuthorizablesTest#testFindAuthorizableByAddedProperty    <!-- OAK-343 -->
       org.apache.jackrabbit.oak.jcr.security.user.FindAuthorizablesTest#testFindAuthorizableByRelativePath     <!-- OAK-343 -->
-      org.apache.jackrabbit.oak.jcr.security.user.UserQueryTest#testContains3                            <!-- query statement contains current path element -->
       org.apache.jackrabbit.oak.jcr.security.user.UserManagerTest#testGetNewAuthorizable                 <!-- OAK-343 -->
       org.apache.jackrabbit.oak.jcr.security.user.UserManagerTest#testCreateGroupWithExistingPrincipal2  <!-- OAK-343 -->
       org.apache.jackrabbit.oak.jcr.security.user.UserManagerTest#testCreateGroupWithExistingPrincipal3  <!-- OAK-343 -->
