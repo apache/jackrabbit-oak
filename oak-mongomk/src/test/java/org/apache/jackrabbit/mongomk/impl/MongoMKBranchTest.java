@@ -50,7 +50,7 @@ public class MongoMKBranchTest extends BaseMongoMicroKernelTest {
         String rev1 = mk.commit("", "+\"/child1\":{}", null, "");
 
         String branchRev1 = mk.branch(rev1);
-        String branchRev11 = mk.commit("/child1", "^\"foo\":1", branchRev1, "");
+        mk.commit("/child1", "^\"foo\":1", branchRev1, "");
 
         String rev2 = mk.commit("", "+\"/child2\":{}", null, "");
 

@@ -6,7 +6,6 @@ import static org.junit.Assert.fail;
 
 import org.apache.jackrabbit.mongomk.BaseMongoMicroKernelTest;
 import org.json.simple.JSONObject;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -329,6 +328,13 @@ public class MongoMKCommitMoveTest extends BaseMongoMicroKernelTest {
         mk.commit("/", "+\"a\":{\"b\":{}}", null, null);
         mk.commit("/", ">\"a\":\"x\">\"x\":\"a\"", null, null);
         assertNodesExist(null, "/a", "/a/b");
+    }
+
+    @Test
+    public void moveAndMoveBackWithAddedChildren() {
+        mk.commit("/", "+\"a\":{\"b\":{}}", null, null);
+        mk.commit("/", ">\"a\":\"x\"+\"x/c\":{}>\"x\":\"a\"", null, null);
+        assertNodesExist(null, "/a", "/a/b", "/a/c");
     }
 
     @Test
