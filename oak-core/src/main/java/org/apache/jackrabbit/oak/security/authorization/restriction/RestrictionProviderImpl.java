@@ -27,6 +27,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.security.AccessControlException;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -45,15 +46,17 @@ import org.apache.jackrabbit.util.Text;
  */
 public class RestrictionProviderImpl implements RestrictionProvider, AccessControlConstants {
 
+    private final NamePathMapper namePathMapper;
     private Map<String, RestrictionDefinition> supported;
-    private NamePathMapper namePathMapper;
 
     public RestrictionProviderImpl(NamePathMapper namePathMapper) {
-        RestrictionDefinition glob = new RestrictionDefinitionImpl(REP_GLOB, PropertyType.STRING, false, namePathMapper);
-        this.supported = Collections.singletonMap(REP_GLOB, glob);
         this.namePathMapper = namePathMapper;
+
+        RestrictionDefinition glob = new RestrictionDefinitionImpl(REP_GLOB, PropertyType.STRING, false, namePathMapper);
+        this.supported = ImmutableMap.of(REP_GLOB, glob);
     }
 
+    //------------------------------------------------< RestrictionProvider >---
     @Nonnull
     @Override
     public Set<RestrictionDefinition> getSupportedRestrictions(String jcrPath) {
@@ -66,8 +69,12 @@ public class RestrictionProviderImpl implements RestrictionProvider, AccessContr
 
     @Override
     public Restriction createRestriction(String jcrPath, String jcrName, Value value) throws RepositoryException {
+        if (jcrPath == null) {
+            throw new AccessControlException("Unsupported restriction: " + jcrName);
+        }
+
         String oakName = namePathMapper.getOakName(jcrName);
-        RestrictionDefinition definition = (jcrPath == null) ? null : supported.get(oakName);
+        RestrictionDefinition definition = supported.get(oakName);
         if (definition == null) {
             throw new AccessControlException("Unsupported restriction: " + jcrName);
         }
@@ -76,7 +83,7 @@ public class RestrictionProviderImpl implements RestrictionProvider, AccessContr
             throw new AccessControlException("Unsupported restriction: Expected value of type " + PropertyType.nameFromValue(definition.getRequiredType()));
         }
         PropertyState propertyState = PropertyStates.createProperty(oakName, value);
-        return new RestrictionImpl(propertyState, definition.isMandatory(), namePathMapper);
+        return createRestriction(propertyState, definition.isMandatory());
     }
 
     @Override
@@ -90,7 +97,7 @@ public class RestrictionProviderImpl implements RestrictionProvider, AccessContr
                 if (isRestrictionProperty(propName) && supported.containsKey(propName)) {
                     RestrictionDefinition def = supported.get(propName);
                     if (def.getRequiredType() == propertyState.getType().tag()) {
-                        restrictions.add(new RestrictionImpl(propertyState, def.isMandatory(), namePathMapper));
+                        restrictions.add(createRestriction(propertyState, def.isMandatory()));
                     }
                 }
             }
@@ -129,6 +136,11 @@ public class RestrictionProviderImpl implements RestrictionProvider, AccessContr
     }
 
     //------------------------------------------------------------< private >---
+    @Nonnull
+    private Restriction createRestriction(PropertyState propertyState, boolean isMandatory) {
+        return new RestrictionImpl(propertyState,  isMandatory, namePathMapper);
+    }
+
     @Nonnull
     private Tree getRestrictionsTree(Tree aceTree) {
         Tree restrictions;

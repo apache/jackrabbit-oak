@@ -17,9 +17,9 @@
 package org.apache.jackrabbit.oak.spi.security.authorization;
 
 import java.security.Principal;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
@@ -88,7 +88,7 @@ public abstract class AbstractAccessControlList implements JackrabbitAccessContr
     @Nonnull
     @Override
     public String[] getRestrictionNames() throws RepositoryException {
-        Set<RestrictionDefinition> supported = getRestrictionProvider().getSupportedRestrictions(jcrPath);
+        Collection<RestrictionDefinition> supported = getRestrictionProvider().getSupportedRestrictions(jcrPath);
         return Collections2.transform(supported, new Function<RestrictionDefinition, String>() {
             @Override
             public String apply(RestrictionDefinition definition) {
