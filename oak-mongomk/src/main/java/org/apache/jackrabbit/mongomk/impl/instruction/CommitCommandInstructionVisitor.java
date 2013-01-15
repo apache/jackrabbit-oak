@@ -145,7 +145,7 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
         String destParentPath = PathUtils.getParentPath(destPath);
         String destNodeName = PathUtils.getName(destPath);
 
-        MongoNode srcParent = getStoredNode(srcParentPath);
+        MongoNode srcParent = getStoredNode(srcParentPath, false);
         if (!srcParent.childExists(srcNodeName)) {
             throw new NotFoundException(srcPath);
         }
@@ -154,7 +154,7 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
             throw new RuntimeException("Node already exists at copy destination path: " + destPath);
         }
 
-        copy(getStoredNode(srcPath), destPath);
+        copy(getStoredNode(srcPath, false), destPath);
 
         // Finally, add to destParent.
         destParent.addChild(destNodeName);
@@ -194,6 +194,10 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
     }
 
     private MongoNode getStoredNode(String path) {
+        return getStoredNode(path, true);
+    }
+
+    private MongoNode getStoredNode(String path, boolean addToMap) {
         MongoNode node = pathNodeMap.get(path);
         if (node != null) {
             return node;
@@ -213,8 +217,9 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
         }
         node = existCommand.getNode();
         node.removeField("_id");
-        pathNodeMap.put(path, node);
-
+        if (addToMap) {
+            pathNodeMap.put(path, node);
+        }
         return node;
     }
 
@@ -252,7 +257,7 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
         for (String child : children) {
             String srcChildPath = PathUtils.concat(srcNode.getPath(), child);
             String destChildPath = PathUtils.concat(destPath, child);
-            copy(getStoredNode(srcChildPath), destChildPath);
+            copy(getStoredNode(srcChildPath, false), destChildPath);
         }
     }
 
