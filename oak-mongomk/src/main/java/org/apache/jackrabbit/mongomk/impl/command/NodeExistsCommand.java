@@ -65,7 +65,10 @@ public class NodeExistsCommand extends BaseCommand<Boolean> {
 
         Map<String, MongoNode> pathAndNodeMap = action.execute();
         node = pathAndNodeMap.get(this.path);
-        return node != null && !node.isDeleted();
+        if (node != null && node.isDeleted()) {
+            node = null;
+        }
+        return node != null;
     }
 
     /**

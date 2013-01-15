@@ -106,8 +106,12 @@ public class MongoNode extends BasicDBObject {
         return getBoolean(KEY_DELETED);
     }
 
-    public void setDeleted() {
-        put(KEY_DELETED, Boolean.TRUE);
+    public void setDeleted(boolean deleted) {
+        if (deleted) {
+            put(KEY_DELETED, Boolean.TRUE);
+        } else {
+            remove(KEY_DELETED);
+        }
     }
 
     public String getPath() {
@@ -154,8 +158,7 @@ public class MongoNode extends BasicDBObject {
     //--------------------------------------------------------------------------
 
     public void addChild(String childName) {
-        if (removedChildren != null && removedChildren.contains(childName)) {
-            removedChildren.remove(childName);
+        if (removedChildren != null && removedChildren.remove(childName)) {
             return;
         }
 
@@ -173,8 +176,7 @@ public class MongoNode extends BasicDBObject {
     }
 
     public void removeChild(String childName) {
-        if (addedChildren != null && addedChildren.contains(childName)) {
-            addedChildren.remove(childName);
+        if (addedChildren != null && addedChildren.remove(childName)) {
             return;
         }
 
