@@ -233,7 +233,7 @@ public class Cursors {
                     ChildNodeEntry entry = iterator.next();
 
                     readCount++;
-                    if (readCount % 100 == 0) {
+                    if (readCount % 1000 == 0) {
                         LOG.warn("Traversed " + readCount + " nodes with filter " + filter + "; consider creating an index or changing the query");
                     }
 

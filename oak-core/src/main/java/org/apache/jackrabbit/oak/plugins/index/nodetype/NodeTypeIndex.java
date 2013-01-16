@@ -71,7 +71,7 @@ class NodeTypeIndex implements QueryIndex, JcrConstants {
                     "NodeType index is used even when no index is available for filter " + filter);
         }
         return Cursors.newPathCursorDistinct(lookup.query(
-                resolveNodeType(root, filter.getNodeType())));
+                filter, resolveNodeType(root, filter.getNodeType())));
     }
     
     @Override
