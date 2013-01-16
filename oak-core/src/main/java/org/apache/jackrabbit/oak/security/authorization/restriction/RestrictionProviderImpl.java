@@ -59,8 +59,8 @@ public class RestrictionProviderImpl implements RestrictionProvider, AccessContr
     //------------------------------------------------< RestrictionProvider >---
     @Nonnull
     @Override
-    public Set<RestrictionDefinition> getSupportedRestrictions(String jcrPath) {
-        if (jcrPath == null) {
+    public Set<RestrictionDefinition> getSupportedRestrictions(String oakPath) {
+        if (oakPath == null) {
             return Collections.emptySet();
         } else {
             return ImmutableSet.copyOf(supported.values());
@@ -68,15 +68,15 @@ public class RestrictionProviderImpl implements RestrictionProvider, AccessContr
     }
 
     @Override
-    public Restriction createRestriction(String jcrPath, String jcrName, Value value) throws RepositoryException {
-        if (jcrPath == null) {
-            throw new AccessControlException("Unsupported restriction: " + jcrName);
+    public Restriction createRestriction(String oakPath, String jcrName, Value value) throws RepositoryException {
+        if (oakPath == null) {
+            throw new AccessControlException("Unsupported restriction: " + oakPath);
         }
 
         String oakName = namePathMapper.getOakName(jcrName);
         RestrictionDefinition definition = supported.get(oakName);
         if (definition == null) {
-            throw new AccessControlException("Unsupported restriction: " + jcrName);
+            throw new AccessControlException("Unsupported restriction: " + oakPath);
         }
         int requiredType = definition.getRequiredType();
         if (requiredType != PropertyType.UNDEFINED && requiredType != value.getType()) {
@@ -87,8 +87,8 @@ public class RestrictionProviderImpl implements RestrictionProvider, AccessContr
     }
 
     @Override
-    public Set<Restriction> readRestrictions(String jcrPath, Tree aceTree) throws AccessControlException {
-        if (jcrPath == null) {
+    public Set<Restriction> readRestrictions(String oakPath, Tree aceTree) throws AccessControlException {
+        if (oakPath == null) {
             return Collections.emptySet();
         } else {
             Set<Restriction> restrictions = new HashSet<Restriction>();
@@ -106,7 +106,7 @@ public class RestrictionProviderImpl implements RestrictionProvider, AccessContr
     }
 
     @Override
-    public void writeRestrictions(String jcrPath, Tree aceTree, Set<Restriction> restrictions) throws AccessControlException {
+    public void writeRestrictions(String oakPath, Tree aceTree, Set<Restriction> restrictions) throws AccessControlException {
         // validation of the restrictions is delegated to the commit hook
         // see #validateRestrictions below
         NodeUtil aceNode = new NodeUtil(aceTree);
@@ -117,9 +117,9 @@ public class RestrictionProviderImpl implements RestrictionProvider, AccessContr
     }
 
     @Override
-    public void validateRestrictions(String jcrPath, Tree aceTree) throws javax.jcr.security.AccessControlException {
+    public void validateRestrictions(String oakPath, Tree aceTree) throws javax.jcr.security.AccessControlException {
         Map<String,PropertyState> restrictionProperties = getRestrictionProperties(aceTree);
-        if (jcrPath == null && !restrictionProperties.isEmpty()) {
+        if (oakPath == null && !restrictionProperties.isEmpty()) {
             throw new AccessControlException("Restrictions not supported with 'null' path.");
         }
         for (String restrName : restrictionProperties.keySet()) {
@@ -143,11 +143,9 @@ public class RestrictionProviderImpl implements RestrictionProvider, AccessContr
 
     @Nonnull
     private Tree getRestrictionsTree(Tree aceTree) {
-        Tree restrictions;
-        if (aceTree.hasChild(REP_RESTRICTIONS)) {
-            restrictions = aceTree.getChild(REP_RESTRICTIONS);
-        } else {
-            // backwards compatibility
+        Tree restrictions = aceTree.getChild(REP_RESTRICTIONS);
+        if (restrictions == null) {
+            // no rep: restrictions tree -> read from aceTree for backwards compatibility
             restrictions = aceTree;
         }
         return restrictions;

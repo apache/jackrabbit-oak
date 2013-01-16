@@ -22,6 +22,7 @@ import java.util.Collections;
 import java.util.List;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
@@ -32,6 +33,7 @@ import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionDefinition;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 
@@ -40,13 +42,21 @@ import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restrict
  */
 public abstract class AbstractAccessControlList implements JackrabbitAccessControlList {
 
-    private final String jcrPath;
+    private final String oakPath;
+    private final NamePathMapper namePathMapper;
 
-    public AbstractAccessControlList(String jcrPath) {
-        this.jcrPath = jcrPath;
+    public AbstractAccessControlList(@Nullable String oakPath,
+                                     @Nonnull NamePathMapper namePathMapper) {
+        this.oakPath = oakPath;
+        this.namePathMapper = namePathMapper;
     }
 
     //------------------------------------------< AbstractAccessControlList >---
+    @CheckForNull
+    public String getOakPath() {
+        return oakPath;
+    }
+
     @Nonnull
     public abstract List<JackrabbitAccessControlEntry> getEntries();
 
@@ -57,7 +67,7 @@ public abstract class AbstractAccessControlList implements JackrabbitAccessContr
     @CheckForNull
     @Override
     public String getPath() {
-        return jcrPath;
+        return (oakPath == null) ? null : namePathMapper.getJcrPath(oakPath);
     }
 
     //--------------------------------------------------< AccessControlList >---
@@ -88,7 +98,7 @@ public abstract class AbstractAccessControlList implements JackrabbitAccessContr
     @Nonnull
     @Override
     public String[] getRestrictionNames() throws RepositoryException {
-        Collection<RestrictionDefinition> supported = getRestrictionProvider().getSupportedRestrictions(jcrPath);
+        Collection<RestrictionDefinition> supported = getRestrictionProvider().getSupportedRestrictions(getOakPath());
         return Collections2.transform(supported, new Function<RestrictionDefinition, String>() {
             @Override
             public String apply(RestrictionDefinition definition) {
@@ -100,7 +110,7 @@ public abstract class AbstractAccessControlList implements JackrabbitAccessContr
 
     @Override
     public int getRestrictionType(String restrictionName) throws RepositoryException {
-        for (RestrictionDefinition definition : getRestrictionProvider().getSupportedRestrictions(jcrPath)) {
+        for (RestrictionDefinition definition : getRestrictionProvider().getSupportedRestrictions(getOakPath())) {
             if (definition.getJcrName().equals(restrictionName)) {
                 return definition.getRequiredType();
             }

@@ -20,7 +20,6 @@ import java.security.Principal;
 import java.util.Enumeration;
 
 import org.apache.jackrabbit.api.security.principal.JackrabbitPrincipal;
-import org.apache.jackrabbit.oak.security.AbstractSecurityTest;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -28,7 +27,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
-public class EveryonePrincipalTest extends AbstractSecurityTest {
+public class EveryonePrincipalTest  {
 
     private final Principal everyone = EveryonePrincipal.getInstance();
 

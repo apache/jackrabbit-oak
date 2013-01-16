@@ -32,9 +32,8 @@ import javax.jcr.security.Privilege;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
-import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.security.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.security.authorization.AccessControlManagerImpl;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeConstants;
 import org.junit.Before;
@@ -57,6 +56,7 @@ public class ACETest extends AbstractSecurityTest {
     private AccessControlManager acMgr;
     private PrivilegeManager privMgr;
 
+    @Override
     @Before
     public void before() throws Exception {
         super.before();
@@ -65,7 +65,6 @@ public class ACETest extends AbstractSecurityTest {
                 return "TestPrincipal";
             }
         };
-        Root root = adminSession.getLatestRoot();
         // TODO
         //acMgr = securityProvider.getAccessControlConfiguration().getAccessControlManager(root, NamePathMapper.DEFAULT);
         acMgr = new AccessControlManagerImpl(root, NamePathMapper.DEFAULT, getSecurityProvider());

@@ -14,46 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.security.authentication.token;
+package org.apache.jackrabbit.oak.security.authorization;
 
-import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
-import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
-import org.junit.After;
 import org.junit.Before;
 
 /**
- * AbstractTokenTest...
+ * AccessControlManagerImplTest... TODO
  */
-public abstract class AbstractTokenTest extends AbstractSecurityTest {
+public class AccessControlManagerImplTest extends AbstractSecurityTest {
 
-    TokenProviderImpl tokenProvider;
-    String userId;
-
+    @Override
     @Before
     public void before() throws Exception {
         super.before();
-
-        root = adminSession.getLatestRoot();
-        tokenProvider = new TokenProviderImpl(root,
-                ConfigurationParameters.EMPTY,
-                getUserConfiguration());
-
-        userId = "testUser";
-        getUserManager().createUser(userId, "pw");
-        root.commit();
     }
 
-    @After
-    public void after() throws Exception {
-        try {
-            Authorizable a = getUserManager().getAuthorizable(userId);
-            if (a != null) {
-                a.remove();
-                root.commit();
-            }
-        } finally {
-            super.after();
-        }
-    }
 }

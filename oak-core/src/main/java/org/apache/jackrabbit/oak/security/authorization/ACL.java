@@ -31,6 +31,7 @@ import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.authorization.AbstractAccessControlList;
 import org.apache.jackrabbit.oak.spi.security.authorization.ACE;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
@@ -46,12 +47,12 @@ abstract class ACL extends AbstractAccessControlList {
 
     private final List<JackrabbitAccessControlEntry> entries = new ArrayList<JackrabbitAccessControlEntry>();
 
-    ACL(String jcrPath) {
-        this(jcrPath, null);
+    ACL(String oakPath, NamePathMapper namePathMapper) {
+        this(oakPath, null, namePathMapper);
     }
 
-    ACL(String jcrPath, List<JackrabbitAccessControlEntry> entries) {
-        super(jcrPath);
+    ACL(String oakPath, List<JackrabbitAccessControlEntry> entries, NamePathMapper namePathMapper) {
+        super(oakPath, namePathMapper);
         if (entries != null) {
             this.entries.addAll(entries);
         }
@@ -86,7 +87,7 @@ abstract class ACL extends AbstractAccessControlList {
         } else {
             rs = new HashSet<Restriction>(restrictions.size());
             for (String name : restrictions.keySet()) {
-                rs.add(getRestrictionProvider().createRestriction(getPath(), name, restrictions.get(name)));
+                rs.add(getRestrictionProvider().createRestriction(getOakPath(), name, restrictions.get(name)));
             }
         }
         JackrabbitAccessControlEntry entry = new ACE(principal, privileges, isAllow, rs);
@@ -147,8 +148,9 @@ abstract class ACL extends AbstractAccessControlList {
         }
         if (obj instanceof ACL) {
             ACL acl = (ACL) obj;
-            String path = getPath();
-            return ((path == null) ? acl.getPath() == null : path.equals(acl.getPath()))
+            String path = getOakPath();
+            String otherPath = acl.getOakPath();
+            return ((path == null) ? otherPath == null : path.equals(otherPath))
                     && entries.equals(acl.entries);
         }
         return false;
