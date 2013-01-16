@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.security;
+package org.apache.jackrabbit.oak;
 
 import javax.jcr.Credentials;
 import javax.jcr.NoSuchWorkspaceException;
@@ -22,11 +22,16 @@ import javax.jcr.SimpleCredentials;
 import javax.security.auth.login.Configuration;
 import javax.security.auth.login.LoginException;
 
-import org.apache.jackrabbit.oak.Oak;
+import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.nodetype.InitialContent;
+import org.apache.jackrabbit.oak.security.OakConfiguration;
+import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.junit.After;
 import org.junit.Before;
 
@@ -36,9 +41,12 @@ import org.junit.Before;
 public abstract class AbstractSecurityTest {
 
     private ContentRepository contentRepository;
+    private UserManager userManager;
 
+    protected NamePathMapper namePathMapper = NamePathMapper.DEFAULT;
     protected SecurityProvider securityProvider;
     protected ContentSession adminSession;
+    protected Root root;
 
     @Before
     public void before() throws Exception {
@@ -48,6 +56,7 @@ public abstract class AbstractSecurityTest {
                 .createContentRepository();
 
         adminSession = login(getAdminCredentials());
+        root = adminSession.getLatestRoot();
 
         Configuration.setConfiguration(getConfiguration());
     }
@@ -79,4 +88,15 @@ public abstract class AbstractSecurityTest {
         return new SimpleCredentials("admin", "admin".toCharArray());
     }
 
+
+    protected UserConfiguration getUserConfiguration() {
+        return getSecurityProvider().getUserConfiguration();
+    }
+
+    protected UserManager getUserManager() {
+        if (userManager == null) {
+            userManager = getUserConfiguration().getUserManager(root, namePathMapper);
+        }
+        return userManager;
+    }
 }

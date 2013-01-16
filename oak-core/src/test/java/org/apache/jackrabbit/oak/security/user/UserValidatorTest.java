@@ -24,11 +24,11 @@ import javax.jcr.RepositoryException;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.User;
+import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.security.AbstractSecurityTest;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.util.Text;
 import org.junit.After;
@@ -42,24 +42,20 @@ import static org.junit.Assert.fail;
  */
 public class UserValidatorTest extends AbstractSecurityTest {
 
-    private Root root;
-    private UserManagerImpl userMgr;
     private User user;
 
     @Before
     public void before() throws Exception {
         super.before();
 
-        root = adminSession.getLatestRoot();
-        userMgr = new UserManagerImpl(root, NamePathMapper.DEFAULT, getSecurityProvider());
-        user = userMgr.createUser("test", "pw");
+        user = getUserManager().createUser("test", "pw");
         root.commit();
     }
 
     @After
     public void after() throws Exception {
         try {
-            Authorizable a = userMgr.getAuthorizable("test");
+            Authorizable a = getUserManager().getAuthorizable("test");
             if (a != null) {
                 a.remove();
                 root.commit();
@@ -114,7 +110,7 @@ public class UserValidatorTest extends AbstractSecurityTest {
     @Test
     public void createWithoutPrincipalName() throws Exception {
         try {
-            User user = userMgr.createUser("withoutPrincipalName", "pw");
+            User user = getUserManager().createUser("withoutPrincipalName", "pw");
             // FIXME: use user.getPath instead (blocked by OAK-343)
             Tree tree = root.getTree("/rep:security/rep:authorizables/rep:users/t/te/test");
             tree.removeProperty(UserConstants.REP_PRINCIPAL_NAME);
@@ -131,7 +127,7 @@ public class UserValidatorTest extends AbstractSecurityTest {
     @Test
     public void createWithInvalidUUID() throws Exception {
         try {
-            User user = userMgr.createUser("withInvalidUUID", "pw");
+            User user = getUserManager().createUser("withInvalidUUID", "pw");
             // FIXME: use user.getPath instead (blocked by OAK-343)
             Tree tree = root.getTree("/rep:security/rep:authorizables/rep:users/t/te/test");
             tree.setProperty(JcrConstants.JCR_UUID, UUID.randomUUID().toString());
@@ -204,7 +200,8 @@ public class UserValidatorTest extends AbstractSecurityTest {
     @Test
     public void testRemoveAdminUser() throws Exception {
         try {
-            String adminId = userMgr.getConfig().getConfigValue(UserConstants.PARAM_ADMIN_ID, UserConstants.DEFAULT_ADMIN_ID);
+            String adminId = getConfig().getConfigValue(UserConstants.PARAM_ADMIN_ID, UserConstants.DEFAULT_ADMIN_ID);
+            UserManager userMgr = getUserManager();
             Authorizable admin = userMgr.getAuthorizable(adminId);
             if (admin == null) {
                 admin = userMgr.createUser(adminId, adminId);
@@ -224,7 +221,8 @@ public class UserValidatorTest extends AbstractSecurityTest {
     @Test
     public void testDisableAdminUser() throws Exception {
         try {
-            String adminId = userMgr.getConfig().getConfigValue(UserConstants.PARAM_ADMIN_ID, UserConstants.DEFAULT_ADMIN_ID);
+            String adminId = getConfig().getConfigValue(UserConstants.PARAM_ADMIN_ID, UserConstants.DEFAULT_ADMIN_ID);
+            UserManager userMgr =  getUserManager();
             Authorizable admin = userMgr.getAuthorizable(adminId);
             if (admin == null) {
                 admin = userMgr.createUser(adminId, adminId);
@@ -246,9 +244,9 @@ public class UserValidatorTest extends AbstractSecurityTest {
         List<String> invalid = new ArrayList<String>();
         invalid.add("/");
         invalid.add("/jcr:system");
-        String groupPath = userMgr.getConfig().getConfigValue(UserConstants.PARAM_GROUP_PATH, UserConstants.DEFAULT_GROUP_PATH);
+        String groupPath = getConfig().getConfigValue(UserConstants.PARAM_GROUP_PATH, UserConstants.DEFAULT_GROUP_PATH);
         invalid.add(groupPath);
-        String userPath = userMgr.getConfig().getConfigValue(UserConstants.PARAM_USER_PATH, UserConstants.DEFAULT_USER_PATH);
+        String userPath = getConfig().getConfigValue(UserConstants.PARAM_USER_PATH, UserConstants.DEFAULT_USER_PATH);
         invalid.add(Text.getRelativeParent(userPath, 1));
         invalid.add(user.getPath());
         invalid.add(user.getPath() + "/folder");
@@ -283,4 +281,7 @@ public class UserValidatorTest extends AbstractSecurityTest {
         }
     }
 
+    private ConfigurationParameters getConfig() {
+        return getUserConfiguration().getConfigurationParameters();
+    }
 }

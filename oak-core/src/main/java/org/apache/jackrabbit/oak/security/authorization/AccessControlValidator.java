@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restrict
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeDefinition;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.util.NodeUtil;
+import org.apache.jackrabbit.util.Text;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -142,7 +143,13 @@ class AccessControlValidator implements Validator, AccessControlConstants {
 
     private void checkValidRestrictions(NodeUtil aceNode) throws CommitFailedException {
         try {
-            String path = null; // TODO
+            String path;
+            String aclPath = parentAfter.getTree().getPath();
+            if (REP_REPO_POLICY.equals(Text.getName(aclPath))) {
+                path = null;
+            } else {
+                path = Text.getRelativeParent(aclPath, 1);
+            }
             restrictionProvider.validateRestrictions(path, aceNode.getTree());
         } catch (AccessControlException e) {
             throw new CommitFailedException(e);

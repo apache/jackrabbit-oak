@@ -21,9 +21,9 @@ import javax.jcr.GuestCredentials;
 import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.login.Configuration;
 
+import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.security.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.GuestLoginModule;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtility;
@@ -61,7 +61,7 @@ public class GuestDefaultLoginModuleTest extends AbstractSecurityTest {
         ContentSession cs = login(null);
         try {
             AuthInfo authInfo = cs.getAuthInfo();
-            String anonymousID = UserUtility.getAnonymousId(getSecurityProvider().getUserConfiguration().getConfigurationParameters());
+            String anonymousID = UserUtility.getAnonymousId(getUserConfiguration().getConfigurationParameters());
             assertEquals(anonymousID, authInfo.getUserID());
         } finally {
             cs.close();
@@ -73,7 +73,7 @@ public class GuestDefaultLoginModuleTest extends AbstractSecurityTest {
         ContentSession cs = login(new GuestCredentials());
         try {
             AuthInfo authInfo = cs.getAuthInfo();
-            String anonymousID = UserUtility.getAnonymousId(getSecurityProvider().getUserConfiguration().getConfigurationParameters());
+            String anonymousID = UserUtility.getAnonymousId(getUserConfiguration().getConfigurationParameters());
             assertEquals(anonymousID, authInfo.getUserID());
         } finally {
             cs.close();

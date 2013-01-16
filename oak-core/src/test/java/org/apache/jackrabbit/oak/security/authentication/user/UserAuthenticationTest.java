@@ -29,10 +29,8 @@ import javax.security.auth.login.LoginException;
 import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.AuthInfo;
-import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.security.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
 import org.junit.After;
 import org.junit.Before;
@@ -47,11 +45,7 @@ import static org.junit.Assert.fail;
  */
 public class UserAuthenticationTest extends AbstractSecurityTest {
 
-    private Root root;
-
-    private String userId;
-    private UserManager userManager;
-
+    private final String userId = "testUser";
     private UserAuthentication authentication;
 
     @Before
@@ -60,9 +54,7 @@ public class UserAuthenticationTest extends AbstractSecurityTest {
 
         root = adminSession.getLatestRoot();
 
-        userId = "testUser";
-        userManager = getSecurityProvider().getUserConfiguration().getUserManager(root, NamePathMapper.DEFAULT);
-
+        UserManager userManager = getUserManager();
         userManager.createUser(userId, "pw");
         root.commit();
 
@@ -72,7 +64,7 @@ public class UserAuthenticationTest extends AbstractSecurityTest {
     @After
     public void after() throws Exception {
         try {
-            Authorizable a = userManager.getAuthorizable(userId);
+            Authorizable a = getUserManager().getAuthorizable(userId);
             if (a != null) {
                 a.remove();
                 root.commit();
@@ -90,7 +82,7 @@ public class UserAuthenticationTest extends AbstractSecurityTest {
 
     @Test
     public void testAuthenticateWithoutUserId() throws Exception {
-        UserAuthentication authentication = new UserAuthentication(null, userManager);
+        UserAuthentication authentication = new UserAuthentication(null, getUserManager());
         assertFalse(authentication.authenticate(new SimpleCredentials(userId, "pw".toCharArray())));
     }
 

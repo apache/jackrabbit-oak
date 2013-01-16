@@ -24,11 +24,10 @@ import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
 
 import org.apache.jackrabbit.api.security.user.User;
-import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.security.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.security.user.UserConfigurationImpl;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
@@ -50,20 +49,14 @@ public class PasswordValidationActionTest extends AbstractSecurityTest {
     private PasswordValidationAction pwAction = new PasswordValidationAction();
     private TestAction testAction = new TestAction();
 
-    private Root root;
-    private UserManager userManager;
     private User user;
-
     private User testUser;
 
     @Before
     public void before() throws Exception {
         super.before();
 
-        root = adminSession.getLatestRoot();
-
-        userManager = getSecurityProvider().getUserConfiguration().getUserManager(root, NamePathMapper.DEFAULT);
-        user = (User) userManager.getAuthorizable(adminSession.getAuthInfo().getUserID());
+        user = (User) getUserManager().getAuthorizable(adminSession.getAuthInfo().getUserID());
 
         testAction.reset();
         pwAction.setConstraint("^.*(?=.{8,})(?=.*[a-z])(?=.*[A-Z]).*");
@@ -90,7 +83,7 @@ public class PasswordValidationActionTest extends AbstractSecurityTest {
 
     @Test
     public void testActionIsCalled() throws Exception {
-        testUser = userManager.createUser("testUser", "testUser12345");
+        testUser = getUserManager().createUser("testUser", "testUser12345");
         root.commit();
         assertEquals(1, testAction.onCreateCalled);
 
@@ -134,7 +127,7 @@ public class PasswordValidationActionTest extends AbstractSecurityTest {
     @Test
     public void testPasswordValidationActionOnCreate() throws Exception {
         String hashed = PasswordUtility.buildPasswordHash("DWkej32H");
-        testUser = userManager.createUser("testuser", hashed);
+        testUser = getUserManager().createUser("testuser", hashed);
         root.commit();
 
         String pwValue = root.getTree(testUser.getPath()).getProperty(UserConstants.REP_PASSWORD).getValue(Type.STRING);
@@ -144,7 +137,7 @@ public class PasswordValidationActionTest extends AbstractSecurityTest {
 
     @Test
     public void testPasswordValidationActionOnChange() throws Exception {
-        testUser = userManager.createUser("testuser", "testPw123456");
+        testUser = getUserManager().createUser("testuser", "testPw123456");
         root.commit();
         try {
             pwAction.setConstraint("abc");
