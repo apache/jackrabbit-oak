@@ -1,10 +1,25 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.jackrabbit.mongomk.impl.command;
 
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.jackrabbit.mk.json.JsopBuilder;
 import org.apache.jackrabbit.mk.model.tree.DiffBuilder;
 import org.apache.jackrabbit.mk.model.tree.NodeState;
 import org.apache.jackrabbit.mongomk.api.command.Command;
@@ -13,8 +28,8 @@ import org.apache.jackrabbit.mongomk.api.model.Node;
 import org.apache.jackrabbit.mongomk.impl.MongoNodeStore;
 import org.apache.jackrabbit.mongomk.impl.action.FetchCommitAction;
 import org.apache.jackrabbit.mongomk.impl.action.FetchHeadRevisionIdAction;
-import org.apache.jackrabbit.mongomk.impl.json.DefaultJsopHandler;
 import org.apache.jackrabbit.mongomk.impl.json.JsopParser;
+import org.apache.jackrabbit.mongomk.impl.json.NormalizingJsopHandler;
 import org.apache.jackrabbit.mongomk.impl.model.CommitBuilder;
 import org.apache.jackrabbit.mongomk.impl.model.MongoCommit;
 import org.apache.jackrabbit.mongomk.impl.model.NodeImpl;
@@ -81,7 +96,7 @@ public class MergeCommand extends BaseCommand<String> {
                     // commit does not exist
                 }
             }
-            newCommit = CommitBuilder.build("", diff.toString(),
+            newCommit = CommitBuilder.build("/", diff.toString(),
                     MongoUtil.fromMongoRepresentation(currentHead), message);
 
         } else {
@@ -232,59 +247,4 @@ public class MergeCommand extends BaseCommand<String> {
         return copy;
     }
 
-    private static class NormalizingJsopHandler extends DefaultJsopHandler {
-
-        private final StringBuilder builder = new StringBuilder();
-
-        @Override
-        public void nodeAdded(String parentPath, String name) {
-            builder.append("+");
-            builder.append(JsopBuilder.encode(concatPath(parentPath, name)));
-            builder.append(":{}");
-        }
-
-        @Override
-        public void nodeCopied(String rootPath,
-                               String oldPath,
-                               String newPath) {
-            builder.append("*");
-            builder.append(JsopBuilder.encode(concatPath(rootPath, oldPath)));
-            builder.append(":");
-            builder.append(JsopBuilder.encode(concatPath(rootPath, newPath)));
-        }
-
-        @Override
-        public void nodeMoved(String rootPath, String oldPath, String newPath) {
-            builder.append(">");
-            builder.append(JsopBuilder.encode(oldPath));
-            builder.append(":");
-            builder.append(JsopBuilder.encode(newPath));
-        }
-
-        @Override
-        public void nodeRemoved(String parentPath, String name) {
-            builder.append("-");
-            builder.append(JsopBuilder.encode(concatPath(parentPath, name)));
-        }
-
-        @Override
-        public void propertySet(String path, String key, Object value, String rawValue) {
-            builder.append("^");
-            builder.append(JsopBuilder.encode(concatPath(path, key)));
-            builder.append(":");
-            builder.append(rawValue);
-        }
-
-        private String concatPath(String parent, String child) {
-            if (parent.length() == 0) {
-                return child;
-            } else {
-                return PathUtils.concat(parent, child);
-            }
-        }
-
-        String getDiff() {
-            return builder.toString();
-        }
-    }
 }

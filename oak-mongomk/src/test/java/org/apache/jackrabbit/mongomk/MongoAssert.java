@@ -59,10 +59,11 @@ public class MongoAssert {
         DBCollection commitCollection = nodeStore.getCommitCollection();
         DBObject query = QueryBuilder.start(MongoCommit.KEY_REVISION_ID)
                 .is(commit.getRevisionId()).and(MongoCommit.KEY_MESSAGE)
-                .is(commit.getMessage()).and(MongoCommit.KEY_DIFF).is(commit.getDiff()).and(MongoCommit.KEY_PATH)
+                .is(commit.getMessage()).and(MongoCommit.KEY_PATH)
                 .is(commit.getPath()).and(MongoCommit.KEY_FAILED).notEquals(Boolean.TRUE).get();
         MongoCommit result = (MongoCommit) commitCollection.findOne(query);
         Assert.assertNotNull(result);
+        Assert.assertEquals(commit.getDiff(), result.getDiff());
     }
 
     public static void assertHeadRevision(long revisionId) {
