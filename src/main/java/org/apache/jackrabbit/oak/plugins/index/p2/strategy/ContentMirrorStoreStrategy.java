@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
+import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -149,12 +150,12 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
     }
     
     @Override
-    public Iterable<String> query(final String indexName, 
+    public Iterable<String> query(final Filter filter, final String indexName, 
             final NodeState index, final Iterable<String> values) {
         return new Iterable<String>() {
             @Override
             public Iterator<String> iterator() {
-                PathIterator it = new PathIterator(indexName);
+                PathIterator it = new PathIterator(filter, indexName);
                 if (values == null) {
                     it.setPathContainsValue(true);
                     it.enqueue(index.getChildNodeEntries().iterator());
@@ -202,6 +203,7 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
      */
     static class PathIterator implements Iterator<String> {
         
+        private final Filter filter;
         private final String indexName;
         private final Deque<Iterator<? extends ChildNodeEntry>> nodeIterators =
                 Queues.newArrayDeque();
@@ -217,7 +219,8 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
          */
         private final Set<String> knownPaths = Sets.newHashSet();
         
-        PathIterator(String indexName) {
+        PathIterator(Filter filter, String indexName) {
+            this.filter = filter;
             this.indexName = indexName;
             parentPath = "";
             currentPath = "/";
@@ -247,8 +250,8 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
                     ChildNodeEntry entry = iterator.next();
 
                     readCount++;
-                    if (readCount % 100 == 0) {
-                        LOG.warn("Traversed " + readCount + " nodes using index " + indexName);
+                    if (readCount % 1000 == 0) {
+                        LOG.warn("Traversed " + readCount + " nodes using index " + indexName + " with filter " + filter);
                     }
 
                     NodeState node = entry.getNodeState();

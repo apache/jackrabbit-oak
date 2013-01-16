@@ -100,7 +100,7 @@ public class IndexHookManagerTest {
     }
     
     private static Set<String> find(Property2IndexLookup lookup, String name, String value) {
-        return Sets.newHashSet(lookup.query(name, PropertyValues.newString(value)));
+        return Sets.newHashSet(lookup.query(null, name, PropertyValues.newString(value)));
     }
 
     /**

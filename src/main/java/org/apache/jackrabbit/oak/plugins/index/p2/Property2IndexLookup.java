@@ -30,6 +30,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.p2.strategy.ContentMirrorStoreStrategy;
 import org.apache.jackrabbit.oak.plugins.index.p2.strategy.IndexStoreStrategy;
+import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -91,13 +92,13 @@ public class Property2IndexLookup {
         return false;
     }
     
-    public Iterable<String> query(String name, PropertyValue value) {
+    public Iterable<String> query(Filter filter, String name, PropertyValue value) {
         NodeState state = getIndexDataNode(root, name);
         if (state == null) {
             throw new IllegalArgumentException("No index for " + name);
         }
         List<String> values = value == null ? null : Property2Index.encode(value);
-        return store.query(name, state, values);
+        return store.query(filter, name, state, values);
     }
 
     public double getCost(String name, PropertyValue value) {
