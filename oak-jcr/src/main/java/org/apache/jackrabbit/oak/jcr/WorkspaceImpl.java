@@ -99,7 +99,7 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
 
         sessionDelegate.checkProtectedNodes(Text.getRelativeParent(srcAbsPath, 1), Text.getRelativeParent(destAbsPath, 1));
 
-        String oakPath = sessionDelegate.getOakPathKeepIndexOrThrowNotFound(destAbsPath);
+        String oakPath = sessionDelegate.getOakPathKeepIndex(destAbsPath);
         String oakName = PathUtils.getName(oakPath);
         // handle index
         if (oakName.contains("[")) {
@@ -107,8 +107,8 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
         }
 
         sessionDelegate.copy(
-                sessionDelegate.getOakPathOrThrowNotFound(srcAbsPath),
-                sessionDelegate.getOakPathOrThrowNotFound(oakPath));
+                sessionDelegate.getOakPath(srcAbsPath),
+                sessionDelegate.getOakPath(oakPath));
     }
 
     @Override
@@ -127,7 +127,7 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
 
         sessionDelegate.checkProtectedNodes(Text.getRelativeParent(srcAbsPath, 1), Text.getRelativeParent(destAbsPath, 1));
 
-        String oakPath = sessionDelegate.getOakPathKeepIndexOrThrowNotFound(destAbsPath);
+        String oakPath = sessionDelegate.getOakPathKeepIndex(destAbsPath);
         String oakName = PathUtils.getName(oakPath);
         // handle index
         if (oakName.contains("[")) {
@@ -135,8 +135,8 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
         }
 
         sessionDelegate.move(
-                sessionDelegate.getOakPathOrThrowNotFound(srcAbsPath),
-                sessionDelegate.getOakPathOrThrowNotFound(oakPath),
+                sessionDelegate.getOakPath(srcAbsPath),
+                sessionDelegate.getOakPath(oakPath),
                 false);
     }
 

@@ -132,7 +132,7 @@ public class QueryImpl implements Query {
     public Node storeAsNode(String absPath) throws RepositoryException {
         manager.ensureIsAlive();
         SessionDelegate sessionDelegate = manager.getSessionDelegate();
-        String oakPath = sessionDelegate.getOakPathOrThrow(absPath);
+        String oakPath = sessionDelegate.getOakPath(absPath);
         String parent = PathUtils.getParentPath(oakPath);
         NodeDelegate parentDelegate = sessionDelegate.getNode(parent);
         if (parentDelegate == null) {
