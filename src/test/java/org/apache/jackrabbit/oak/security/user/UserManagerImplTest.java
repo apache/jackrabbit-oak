@@ -26,16 +26,15 @@ import javax.jcr.UnsupportedRepositoryOperationException;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.User;
+import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.security.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtility;
 import org.apache.jackrabbit.oak.util.NodeUtil;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -51,20 +50,32 @@ import static org.junit.Assert.fail;
  */
 public class UserManagerImplTest extends AbstractSecurityTest {
 
-    private Root root;
     private UserManagerImpl userMgr;
+    private String testUserId = "testUser";
 
     @Before
     public void before() throws Exception {
         super.before();
 
-        root = adminSession.getLatestRoot();
-        userMgr = new UserManagerImpl(root, NamePathMapper.DEFAULT, getSecurityProvider());
+        userMgr = new UserManagerImpl(root, namePathMapper, getSecurityProvider());
+    }
+
+    @After
+    public void after() throws Exception {
+        try {
+            Authorizable testUser = userMgr.getAuthorizable(testUserId);
+            if (testUser != null) {
+                testUser.remove();
+                root.commit();
+            }
+        } finally {
+            super.after();
+        }
     }
 
     @Test
     public void testSetPassword() throws Exception {
-        User user = userMgr.createUser("a", "pw");
+        User user = userMgr.createUser(testUserId, "pw");
         root.commit();
 
         List<String> pwds = new ArrayList<String>();
@@ -95,7 +106,7 @@ public class UserManagerImplTest extends AbstractSecurityTest {
 
     @Test
     public void setPasswordNull() throws Exception {
-        User user = userMgr.createUser("a", null);
+        User user = userMgr.createUser(testUserId, null);
         root.commit();
 
         Tree userTree = root.getTree(user.getPath());
@@ -116,7 +127,7 @@ public class UserManagerImplTest extends AbstractSecurityTest {
 
     @Test
     public void testGetPasswordHash() throws Exception {
-        User user = userMgr.createUser("a", null);
+        User user = userMgr.createUser(testUserId, null);
         root.commit();
 
         Tree userTree = root.getTree(user.getPath());
@@ -140,7 +151,7 @@ public class UserManagerImplTest extends AbstractSecurityTest {
 
     @Test
     public void testEnforceAuthorizableFolderHierarchy() throws RepositoryException, CommitFailedException {
-        User user = userMgr.createUser("testUser", null);
+        User user = userMgr.createUser(testUserId, null);
         root.commit();
 
         NodeUtil userNode = new NodeUtil(root.getTree(user.getPath()));

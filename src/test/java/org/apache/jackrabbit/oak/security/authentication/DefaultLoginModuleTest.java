@@ -26,17 +26,13 @@ import javax.security.auth.login.LoginException;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.security.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
-import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtility;
-import org.junit.Before;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -48,15 +44,6 @@ import static org.junit.Assert.fail;
  * LoginTest...
  */
 public class DefaultLoginModuleTest extends AbstractSecurityTest {
-
-    private UserConfiguration uc;
-
-    @Before
-    public void before() throws Exception {
-        super.before();
-
-        uc = getSecurityProvider().getUserConfiguration();
-    }
 
     @Override
     protected Configuration getConfiguration() {
@@ -93,7 +80,7 @@ public class DefaultLoginModuleTest extends AbstractSecurityTest {
         ContentSession cs = login(new GuestCredentials());
         try {
             AuthInfo authInfo = cs.getAuthInfo();
-            String anonymousID = UserUtility.getAnonymousId(uc.getConfigurationParameters());
+            String anonymousID = UserUtility.getAnonymousId(getUserConfiguration().getConfigurationParameters());
             assertEquals(anonymousID, authInfo.getUserID());
         } finally {
             cs.close();
@@ -102,10 +89,9 @@ public class DefaultLoginModuleTest extends AbstractSecurityTest {
 
     @Test
     public void testAnonymousLogin() throws Exception {
-        String anonymousID = UserUtility.getAnonymousId(uc.getConfigurationParameters());
+        String anonymousID = UserUtility.getAnonymousId(getUserConfiguration().getConfigurationParameters());
 
-        Root root = adminSession.getLatestRoot();
-        UserManager userMgr = uc.getUserManager(root, NamePathMapper.DEFAULT);
+        UserManager userMgr = getUserManager();
 
         // verify initial user-content looks like expected
         Authorizable anonymous = userMgr.getAuthorizable(anonymousID);
@@ -127,9 +113,7 @@ public class DefaultLoginModuleTest extends AbstractSecurityTest {
 
     @Test
     public void testUserLogin() throws Exception {
-        Root root = adminSession.getLatestRoot();
-        UserManager userManager = uc.getUserManager(root, NamePathMapper.DEFAULT);
-
+        UserManager userManager = getUserManager();
         ContentSession cs = null;
         User user = null;
         try {
@@ -152,9 +136,7 @@ public class DefaultLoginModuleTest extends AbstractSecurityTest {
 
     @Test
     public void testSelfImpersonation() throws Exception {
-        Root root = adminSession.getLatestRoot();
-        UserManager userManager = uc.getUserManager(root, NamePathMapper.DEFAULT);
-
+        UserManager userManager = getUserManager();
         ContentSession cs = null;
         User user = null;
         try {
@@ -188,9 +170,7 @@ public class DefaultLoginModuleTest extends AbstractSecurityTest {
 
     @Test
     public void testInvalidImpersonation() throws Exception {
-        Root root = adminSession.getLatestRoot();
-        UserManager userManager = uc.getUserManager(root, NamePathMapper.DEFAULT);
-
+        UserManager userManager = getUserManager();
         ContentSession cs = null;
         User user = null;
         try {
@@ -226,5 +206,4 @@ public class DefaultLoginModuleTest extends AbstractSecurityTest {
             }
         }
     }
-
 }

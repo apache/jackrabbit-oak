@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.spi.security.authorization.restriction;
 
 import java.util.Set;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.security.AccessControlException;
@@ -30,15 +31,16 @@ import org.apache.jackrabbit.oak.api.Tree;
 public interface RestrictionProvider {
 
     @Nonnull
-    Set<RestrictionDefinition> getSupportedRestrictions(String jcrPath);
+    Set<RestrictionDefinition> getSupportedRestrictions(@Nullable String oakPath);
 
     @Nonnull
-    Restriction createRestriction(String jcrPath, @Nonnull String jcrName, @Nonnull Value value) throws RepositoryException;
+    Restriction createRestriction(@Nullable String oakPath,
+                                  @Nonnull String jcrName, @Nonnull Value value) throws RepositoryException;
 
     @Nonnull
-    Set<Restriction> readRestrictions(String jcrPath, @Nonnull Tree aceTree) throws AccessControlException;
+    Set<Restriction> readRestrictions(@Nullable String oakPath, @Nonnull Tree aceTree) throws AccessControlException;
 
-    void writeRestrictions(String jcrPath, Tree aceTree, Set<Restriction> restrictions) throws AccessControlException;
+    void writeRestrictions(String oakPath, Tree aceTree, Set<Restriction> restrictions) throws AccessControlException;
 
-    void validateRestrictions(String jcrPath, @Nonnull Tree aceTree) throws AccessControlException;
+    void validateRestrictions(@Nullable String oakPath, @Nonnull Tree aceTree) throws AccessControlException;
 }

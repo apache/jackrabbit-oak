@@ -50,29 +50,29 @@ public class PrincipalRestrictionProvider implements RestrictionProvider, Access
 
     @Nonnull
     @Override
-    public Set<RestrictionDefinition> getSupportedRestrictions(String jcrPath) {
-        Set<RestrictionDefinition> definitions = new HashSet<RestrictionDefinition>(base.getSupportedRestrictions(jcrPath));
+    public Set<RestrictionDefinition> getSupportedRestrictions(String oakPath) {
+        Set<RestrictionDefinition> definitions = new HashSet<RestrictionDefinition>(base.getSupportedRestrictions(oakPath));
         definitions.add(new RestrictionDefinitionImpl(REP_NODE_PATH, PropertyType.PATH, true, namePathMapper));
         return definitions;
     }
 
     @Nonnull
     @Override
-    public Restriction createRestriction(String jcrPath, @Nonnull String jcrName, @Nonnull Value value) throws RepositoryException {
-        return base.createRestriction(jcrPath, jcrName, value);
+    public Restriction createRestriction(String oakPath, @Nonnull String jcrName, @Nonnull Value value) throws RepositoryException {
+        return base.createRestriction(oakPath, jcrName, value);
     }
 
     @Override
-    public Set<Restriction> readRestrictions(String jcrPath, Tree aceTree) throws AccessControlException {
-        Set<Restriction> restrictions = new HashSet<Restriction>(base.readRestrictions(jcrPath, aceTree));
-        String value = (jcrPath == null) ? "" : jcrPath;
+    public Set<Restriction> readRestrictions(String oakPath, Tree aceTree) throws AccessControlException {
+        Set<Restriction> restrictions = new HashSet<Restriction>(base.readRestrictions(oakPath, aceTree));
+        String value = (oakPath == null) ? "" : oakPath;
         PropertyState nodePathProp = PropertyStates.createProperty(REP_NODE_PATH, value, Type.PATH);
         restrictions.add(new RestrictionImpl(nodePathProp, true, namePathMapper));
         return restrictions;
     }
 
     @Override
-    public void writeRestrictions(String jcrPath, Tree aceTree, Set<Restriction> restrictions) throws AccessControlException {
+    public void writeRestrictions(String oakPath, Tree aceTree, Set<Restriction> restrictions) throws AccessControlException {
         Iterator<Restriction> it = restrictions.iterator();
         while (it.hasNext()) {
             Restriction r = it.next();
@@ -80,11 +80,11 @@ public class PrincipalRestrictionProvider implements RestrictionProvider, Access
                 it.remove();
             }
         }
-        base.writeRestrictions(jcrPath, aceTree, restrictions);
+        base.writeRestrictions(oakPath, aceTree, restrictions);
     }
 
     @Override
-    public void validateRestrictions(String jcrPath, @Nonnull Tree aceTree) throws AccessControlException {
-        base.validateRestrictions(jcrPath, aceTree);
+    public void validateRestrictions(String oakPath, @Nonnull Tree aceTree) throws AccessControlException {
+        base.validateRestrictions(oakPath, aceTree);
     }
 }

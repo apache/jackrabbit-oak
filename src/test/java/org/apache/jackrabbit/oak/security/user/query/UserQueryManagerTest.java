@@ -23,12 +23,9 @@ import javax.jcr.ValueFactory;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
-import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
-import org.apache.jackrabbit.oak.security.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
-import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -43,7 +40,6 @@ import static org.junit.Assert.assertTrue;
  */
 public class UserQueryManagerTest extends AbstractSecurityTest {
 
-    private Root root;
     private ValueFactory valueFactory;
     private UserQueryManager queryMgr;
     private User user;
@@ -53,18 +49,13 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
     public void before() throws Exception {
         super.before();
 
-        UserConfiguration uc = securityProvider.getUserConfiguration();
-        NamePathMapper npMapper = NamePathMapper.DEFAULT;
-
-        root = adminSession.getLatestRoot();
-
-        UserManager userMgr = uc.getUserManager(root, npMapper);
+        UserManager userMgr = getUserManager();
         user = userMgr.createUser("testUser", "pw");
         root.commit();
 
-        queryMgr = new UserQueryManager(userMgr, npMapper, uc.getConfigurationParameters(), root.getQueryEngine());
+        queryMgr = new UserQueryManager(userMgr, namePathMapper, getUserConfiguration().getConfigurationParameters(), root.getQueryEngine());
 
-        valueFactory = new ValueFactoryImpl(root.getBlobFactory(), npMapper);
+        valueFactory = new ValueFactoryImpl(root.getBlobFactory(), namePathMapper);
         propertyName = "testProperty";
     }
 

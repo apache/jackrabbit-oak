@@ -29,6 +29,7 @@ import javax.jcr.security.Privilege;
 
 import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 
 /**
@@ -45,14 +46,15 @@ public class ImmutableACL extends AbstractAccessControlList {
     /**
      * Construct a new {@code UnmodifiableAccessControlList}
      *
-     * @param jcrPath The JCR path of this policy.
+     * @param oakPath The Oak path of this policy or {@code null}.
      * @param entries The access control entries contained in this policy.
      * @param restrictionProvider The restriction provider.
      */
-    public ImmutableACL(@Nullable String jcrPath,
+    public ImmutableACL(@Nullable String oakPath,
                         @Nonnull List<? extends JackrabbitAccessControlEntry> entries,
-                        @Nonnull RestrictionProvider restrictionProvider) {
-        super(jcrPath);
+                        @Nonnull RestrictionProvider restrictionProvider,
+                        @Nonnull NamePathMapper namePathMapper) {
+        super(oakPath, namePathMapper);
         this.entries = ImmutableList.copyOf(entries);
         this.restrictionProvider = restrictionProvider;
     }
@@ -94,7 +96,7 @@ public class ImmutableACL extends AbstractAccessControlList {
     public int hashCode() {
         if (hashCode == 0) {
             int result = 17;
-            result = 37 * result + (getPath() != null ? getPath().hashCode() : 0);
+            result = 37 * result + (getOakPath() != null ? getOakPath().hashCode() : 0);
             for (AccessControlEntry entry : entries) {
                 result = 37 * result + entry.hashCode();
             }
@@ -110,8 +112,9 @@ public class ImmutableACL extends AbstractAccessControlList {
         }
         if (obj instanceof ImmutableACL) {
             ImmutableACL other = (ImmutableACL) obj;
-            String path = getPath();
-            return ((path == null) ? other.getPath() == null : path.equals(other.getPath()))
+            String path = getOakPath();
+            String otherPath = other.getOakPath();
+            return ((path == null) ? otherPath == null : path.equals(otherPath))
                     && entries.equals(other.entries);
         }
         return false;
