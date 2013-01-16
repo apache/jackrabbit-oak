@@ -278,13 +278,8 @@ public class SessionDelegate {
      * @throws RepositoryException if the name is invalid
      */
     @Nonnull
-    public String getOakNameOrThrow(String jcrName) throws RepositoryException {
-        String oakName = getNamePathMapper().getOakName(jcrName);
-        if (oakName != null) {
-            return oakName;
-        } else {
-            throw new RepositoryException("Invalid name: " + jcrName);
-        }
+    public String getOakName(String jcrName) throws RepositoryException {
+        return getNamePathMapper().getOakName(jcrName);
     }
 
     /**

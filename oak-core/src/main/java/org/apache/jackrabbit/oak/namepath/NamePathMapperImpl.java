@@ -18,8 +18,8 @@ package org.apache.jackrabbit.oak.namepath;
 
 import java.util.ArrayList;
 import java.util.List;
-
 import javax.annotation.Nonnull;
+import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.JcrPathParser.Listener;
@@ -52,8 +52,18 @@ public class NamePathMapperImpl implements NamePathMapper {
 
     //---------------------------------------------------------< NameMapper >---
     @Override
-    public String getOakName(String jcrName) {
-        return nameMapper.getOakName(jcrName);
+    public String getOakNameOrNull(String jcrName) {
+        return nameMapper.getOakNameOrNull(jcrName);
+    }
+
+    @Nonnull
+    @Override
+    public String getOakName(@Nonnull String jcrName) throws RepositoryException {
+        String oakName = getOakNameOrNull(jcrName);
+        if (oakName == null) {
+            throw new RepositoryException("Invalid jcr name " + jcrName);
+        }
+        return oakName;
     }
 
     @Override
@@ -210,7 +220,7 @@ public class NamePathMapperImpl implements NamePathMapper {
                     error("index > 1");
                     return false;
                 }
-                String p = nameMapper.getOakName(name);
+                String p = nameMapper.getOakNameOrNull(name);
                 if (p == null) {
                     error("Invalid name: " + name);
                     return false;

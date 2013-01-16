@@ -200,7 +200,7 @@ public class ValueFactoryImpl implements ValueFactory {
                 case PropertyType.BOOLEAN:
                     return createValue(Conversions.convert(value).toBoolean());
                 case PropertyType.NAME:
-                    String oakName = namePathMapper.getOakName(value);
+                    String oakName = namePathMapper.getOakNameOrNull(value);
                     if (oakName == null) {
                         throw new ValueFormatException("Invalid name: " + value);
                     }

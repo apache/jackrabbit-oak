@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.namepath;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.jcr.RepositoryException;
 
 /**
  * TODO document
@@ -33,7 +34,20 @@ public interface NameMapper {
      * @return Oak name, or {@code null}
      */
     @CheckForNull
-    String getOakName(@Nonnull String jcrName);
+    String getOakNameOrNull(@Nonnull String jcrName);
+
+    /**
+     * Returns the Oak name for the specified JCR name. In contrast to
+     * {@link #getOakNameOrNull(String)} this method will throw a {@code RepositoryException}
+     * if the JCR name is invalid and cannot be resolved.
+     *
+     * @param jcrName The JCR name to be converted.
+     * @return A valid Oak name.
+     * @throws RepositoryException If the JCR name cannot be resolved.
+     */
+    @Nonnull
+    String getOakName(@Nonnull String jcrName) throws RepositoryException;
+
 
     /**
      * Returns whether the mapper has prefix remappings; when there aren't

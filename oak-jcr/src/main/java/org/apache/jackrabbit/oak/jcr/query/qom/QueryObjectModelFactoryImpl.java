@@ -228,7 +228,7 @@ public class QueryObjectModelFactoryImpl implements QueryObjectModelFactory {
         if (jcrName == null) {
             return null;
         }
-        return queryManager.getSessionDelegate().getOakNameOrThrow(jcrName);
+        return queryManager.getSessionDelegate().getOakName(jcrName);
     }
 
 }
