@@ -59,11 +59,7 @@ public class NamePathMapperImpl implements NamePathMapper {
     @Nonnull
     @Override
     public String getOakName(@Nonnull String jcrName) throws RepositoryException {
-        String oakName = getOakNameOrNull(jcrName);
-        if (oakName == null) {
-            throw new RepositoryException("Invalid jcr name " + jcrName);
-        }
-        return oakName;
+        return nameMapper.getOakName(jcrName);
     }
 
     @Override
