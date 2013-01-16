@@ -16,9 +16,11 @@
  */
 package org.apache.jackrabbit.mongomk.impl.command;
 
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.jackrabbit.mk.model.tree.DiffBuilder;
 import org.apache.jackrabbit.mk.model.tree.NodeState;
@@ -27,6 +29,7 @@ import org.apache.jackrabbit.mongomk.api.model.Commit;
 import org.apache.jackrabbit.mongomk.api.model.Node;
 import org.apache.jackrabbit.mongomk.impl.MongoNodeStore;
 import org.apache.jackrabbit.mongomk.impl.action.FetchCommitAction;
+import org.apache.jackrabbit.mongomk.impl.action.FetchCommitsAction;
 import org.apache.jackrabbit.mongomk.impl.action.FetchHeadRevisionIdAction;
 import org.apache.jackrabbit.mongomk.impl.json.JsopParser;
 import org.apache.jackrabbit.mongomk.impl.json.NormalizingJsopHandler;
@@ -83,22 +86,11 @@ public class MergeCommand extends BaseCommand<String> {
         long branchRootId = Long.parseLong(branchId.substring(0, branchId.indexOf("-")));
 
         Commit newCommit;
-        if (currentHead <= branchRootId) {
-            // no commits to trunk since branch was created
-            StringBuilder diff = new StringBuilder();
-            for (long rev = branchRootId + 1; rev <= commit.getRevisionId(); rev++) {
-                try {
-                    Commit c = new FetchCommitAction(nodeStore, rev).execute();
-                    if (branchId.equals(c.getBranchId())) {
-                        diff.append(normalizeDiff(c.getPath(), c.getDiff()));
-                    }
-                } catch (Exception e) {
-                    // commit does not exist
-                }
-            }
+        String diff = getNonConflictingCommitsDiff(Math.max(currentHead, commit.getRevisionId()),
+                branchRootId, branchId);
+        if (diff != null) {
             newCommit = CommitBuilder.build("/", diff.toString(),
                     MongoUtil.fromMongoRepresentation(currentHead), message);
-
         } else {
             Node ourRoot = getNode("/", rootNodeId, branchId);
 
@@ -108,7 +100,7 @@ public class MergeCommand extends BaseCommand<String> {
                 ourRoot = mergeNodes(ourRoot, currentHeadNode, branchRootId);
             }
 
-            String diff = new DiffBuilder(MongoUtil.wrap(currentHeadNode),
+            diff = new DiffBuilder(MongoUtil.wrap(currentHeadNode),
                     MongoUtil.wrap(ourRoot), "/", -1,
                     new SimpleMongoNodeStore(), "").build();
 
@@ -125,6 +117,51 @@ public class MergeCommand extends BaseCommand<String> {
         Command<Long> command = new CommitCommandNew(nodeStore, newCommit);
         long revision = command.execute();
         return MongoUtil.fromMongoRepresentation(revision);
+    }
+
+    /**
+     * Checks whether there have been no conflicting commits on trunk since the
+     * branch was created and if so, returns the branch diff to be applied against
+     * trunk. Otherwise, it returns null.
+     *
+     * @param currentHead
+     * @param branchRootId
+     * @param branchId
+     * @return
+     */
+    private String getNonConflictingCommitsDiff(long currentHead, long branchRootId, String branchId) {
+        FetchCommitsAction action = new FetchCommitsAction(nodeStore, branchRootId + 1, currentHead);
+        List<MongoCommit> commits = action.execute();
+
+        Set<String> affectedPathsBranch = new HashSet<String>();
+        Set<String> affectedPathsTrunk = new HashSet<String>();
+        StringBuilder diff = new StringBuilder();
+
+        for (int i = commits.size() - 1; i >= 0; i--) {
+            MongoCommit commit = commits.get(i);
+            List<String> affectedPaths = commit.getAffectedPaths();
+            for (String affectedPath : affectedPaths) {
+                if (branchId.equals(commit.getBranchId())) {
+                    if (affectedPathsTrunk.contains(affectedPath)) {
+                        return null;
+                    }
+                    affectedPathsBranch.add(affectedPath);
+                } else if (commit.getBranchId() == null){
+                    if (affectedPathsBranch.contains(affectedPath)) {
+                        return null;
+                    }
+                    affectedPathsTrunk.add(affectedPath);
+                }
+            }
+            if (branchId.equals(commit.getBranchId())) {
+                try {
+                    diff.append(normalizeDiff(commit.getPath(), commit.getDiff()));
+                } catch (Exception e) {
+                    LOG.error("Normalization error", e);
+                }
+            }
+        }
+        return diff.length() > 0 ? diff.toString() : null;
     }
 
     /**
