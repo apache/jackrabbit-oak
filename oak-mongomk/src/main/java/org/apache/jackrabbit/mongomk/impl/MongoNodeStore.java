@@ -63,13 +63,35 @@ public class MongoNodeStore implements NodeStore {
     public static final String COLLECTION_NODES = "nodes";
     public static final String COLLECTION_SYNC = "sync";
 
+    private static final int COMMIT_CACHE_SIZE;
+    private static final int NODE_CACHE_SIZE;
+
+    static {
+        int commitCacheSize = 1000;
+        try {
+            commitCacheSize = Integer.parseInt(
+                    System.getProperty("mongomk.commitCacheSize", "" + commitCacheSize));
+        } catch (NumberFormatException e) {
+            // use default
+        }
+        COMMIT_CACHE_SIZE = commitCacheSize;
+        int nodeCacheSize = 10000;
+        try {
+            nodeCacheSize = Integer.parseInt(
+                    System.getProperty("mongomk.nodeCacheSize", "" + nodeCacheSize));
+        } catch (NumberFormatException e) {
+            // use default
+        }
+        NODE_CACHE_SIZE = nodeCacheSize;
+    }
+
     private static final Logger LOG = LoggerFactory.getLogger(MongoNodeStore.class);
 
     private final CommandExecutor commandExecutor;
     private final DB db;
 
-    private Map<Long, MongoCommit> commitCache = Collections.synchronizedMap(SimpleLRUCache.<Long, MongoCommit> newInstance(1000));
-    private Map<String, MongoNode> nodeCache = Collections.synchronizedMap(SimpleLRUCache.<String, MongoNode> newInstance(10000));
+    private Map<Long, MongoCommit> commitCache = Collections.synchronizedMap(SimpleLRUCache.<Long, MongoCommit> newInstance(COMMIT_CACHE_SIZE));
+    private Map<String, MongoNode> nodeCache = Collections.synchronizedMap(SimpleLRUCache.<String, MongoNode> newInstance(NODE_CACHE_SIZE));
 
     /**
      * Constructs a new {@code NodeStoreMongo}.
