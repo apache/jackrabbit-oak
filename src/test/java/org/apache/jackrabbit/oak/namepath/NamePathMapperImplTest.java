@@ -20,6 +20,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import javax.jcr.RepositoryException;
+
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.junit.Test;
 
@@ -68,8 +70,9 @@ public class NamePathMapperImplTest {
     }
 
     @Test
-    public void testEmptyName() {
+    public void testEmptyName() throws RepositoryException {
         assertEquals("", npMapper.getJcrName(""));
+        assertEquals("", npMapper.getOakNameOrNull(""));
         assertEquals("", npMapper.getOakName(""));
     }
 

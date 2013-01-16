@@ -68,7 +68,7 @@ class PropertyDefinitionTemplateImpl
     @Override
     public void setName(String name) throws ConstraintViolationException {
         JcrNameParser.checkName(name, true);
-        this.name = mapper.getJcrName(mapper.getOakName(name));
+        this.name = mapper.getJcrName(mapper.getOakNameOrNull(name));
     }
 
     @Override

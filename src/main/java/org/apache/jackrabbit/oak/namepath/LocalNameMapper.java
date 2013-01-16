@@ -16,12 +16,11 @@
  */
 package org.apache.jackrabbit.oak.namepath;
 
+import java.util.Map;
+import javax.annotation.CheckForNull;
+
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
-
-import java.util.Map;
-
-import javax.annotation.CheckForNull;
 
 /**
  * Name mapper with local namespace mappings.
@@ -79,7 +78,7 @@ public abstract class LocalNameMapper extends GlobalNameMapper {
     }
 
     @Override @CheckForNull
-    public String getOakName(String jcrName) {
+    public String getOakNameOrNull(String jcrName) {
         checkNotNull(jcrName);
 
         if (jcrName.startsWith("{")) {

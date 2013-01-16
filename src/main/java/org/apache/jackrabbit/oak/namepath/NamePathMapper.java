@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.namepath;
 
 import javax.annotation.Nonnull;
+import javax.jcr.RepositoryException;
 
 /**
  * The {@code NamePathMapper} interface combines {@code NameMapper} and
@@ -33,7 +34,13 @@ public interface NamePathMapper extends NameMapper, PathMapper {
     public class Default implements NamePathMapper {
 
         @Override
-        public String getOakName(String jcrName) {
+        public String getOakNameOrNull(String jcrName) {
+            return jcrName;
+        }
+
+        @Nonnull
+        @Override
+        public String getOakName(@Nonnull String jcrName) throws RepositoryException {
             return jcrName;
         }
 

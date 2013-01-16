@@ -164,7 +164,7 @@ final class NodeTypeTemplateImpl
     @Override
     public void setName(String name) throws ConstraintViolationException {
         JcrNameParser.checkName(name, false);
-        this.name = mapper.getJcrName(mapper.getOakName(name));
+        this.name = mapper.getJcrName(mapper.getOakNameOrNull(name));
     }
 
     @Override
@@ -219,7 +219,7 @@ final class NodeTypeTemplateImpl
         }
         else {
             JcrNameParser.checkName(name, false);
-            this.primaryItemName = mapper.getJcrName(mapper.getOakName(name));
+            this.primaryItemName = mapper.getJcrName(mapper.getOakNameOrNull(name));
         }
     }
 
@@ -237,7 +237,7 @@ final class NodeTypeTemplateImpl
         String[] n = new String[names.length];
         for (String name : names) {
             JcrNameParser.checkName(name, false);
-            n[k++] = mapper.getJcrName(mapper.getOakName(name));
+            n[k++] = mapper.getJcrName(mapper.getOakNameOrNull(name));
         }
         this.superTypeNames = n;
     }

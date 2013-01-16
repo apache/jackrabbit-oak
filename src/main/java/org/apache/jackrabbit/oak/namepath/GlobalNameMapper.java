@@ -16,13 +16,13 @@
  */
 package org.apache.jackrabbit.oak.namepath;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import java.util.Map;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.jcr.RepositoryException;
+
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Name mapper with no local prefix remappings. URI to prefix mappings
@@ -50,12 +50,22 @@ public abstract class GlobalNameMapper implements NameMapper {
     }
 
     @Override @CheckForNull
-    public String getOakName(@Nonnull String jcrName) {
+    public String getOakNameOrNull(@Nonnull String jcrName) {
         if (jcrName.startsWith("{")) {
             return getOakNameFromExpanded(jcrName);
         }
 
         return jcrName;
+    }
+
+    @Nonnull
+    @Override
+    public String getOakName(@Nonnull String jcrName) throws RepositoryException {
+        String oakName = getOakNameOrNull(jcrName);
+        if (oakName == null) {
+            throw new RepositoryException("Invalid jcr name " + jcrName);
+        }
+        return oakName;
     }
 
     @Override

@@ -225,7 +225,7 @@ class NodeTypeImpl implements NodeType {
 
     @Override
     public boolean isNodeType(String nodeTypeName) {
-        String oakName = node.getNameMapper().getOakName(nodeTypeName);
+        String oakName = node.getNameMapper().getOakNameOrNull(nodeTypeName);
         return internalIsNodeType(oakName);
     }
 
@@ -499,8 +499,8 @@ class NodeTypeImpl implements NodeType {
     }
 
     private boolean matches(String childNodeName, String name) {
-        String oakChildName = node.getNameMapper().getOakName(childNodeName);
-        String oakName = node.getNameMapper().getOakName(name);
+        String oakChildName = node.getNameMapper().getOakNameOrNull(childNodeName);
+        String oakName = node.getNameMapper().getOakNameOrNull(name);
         // TODO need a better way to handle SNS
         return oakChildName != null && oakChildName.startsWith(oakName);
     }

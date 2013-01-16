@@ -84,11 +84,7 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
      */
     @Nonnull
     protected final String getOakName(String jcrName) throws RepositoryException {
-        String oakName = getNamePathMapper().getOakName(jcrName);
-        if (oakName == null) {
-            throw new RepositoryException("Invalid JCR name " + jcrName);
-        }
-        return oakName;
+        return getNamePathMapper().getOakName(jcrName);
     }
 
     /**
