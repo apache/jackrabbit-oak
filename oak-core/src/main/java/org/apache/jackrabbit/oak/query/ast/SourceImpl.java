@@ -57,11 +57,17 @@ public abstract class SourceImpl extends AstElement {
     protected boolean join;
 
     /**
+     * Whether this selector is the left hand side of a left outer join.
+     * Right outer joins are converted to left outer join.
+     */
+    protected boolean outerJoinLeftHandSide;
+
+    /**
      * Whether this selector is the right hand side of a left outer join.
      * Right outer joins are converted to left outer join.
      */
-    protected boolean outerJoin;
-
+    protected boolean outerJoinRightHandSide;
+    
     /**
      * Set the complete constraint of the query (the WHERE ... condition).
      *
@@ -86,12 +92,14 @@ public abstract class SourceImpl extends AstElement {
     }
 
     /**
-     * Set whether this source is the right hand side of a left outer join.
+     * Set whether this source is the left hand side or right hand side of a left outer join.
      *
-     * @param outerJoin true if yes
+     * @param outerJoinLeftHandSide true if yes
+     * @param outerJoinRightHandSide true if yes
      */
-    public void setOuterJoin(boolean outerJoin) {
-        this.outerJoin = outerJoin;
+    public void setOuterJoin(boolean outerJoinLeftHandSide, boolean outerJoinRightHandSide) {
+        this.outerJoinLeftHandSide = outerJoinLeftHandSide;
+        this.outerJoinRightHandSide = outerJoinRightHandSide;
     }
 
     /**
