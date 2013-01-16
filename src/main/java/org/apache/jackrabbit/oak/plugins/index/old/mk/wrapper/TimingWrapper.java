@@ -346,8 +346,10 @@ public class TimingWrapper implements MicroKernel {
                 double c = count.getValue().count;
                 double max = count.getValue().max;
                 double total = count.getValue().total;
+                double avg = total / c;
                 if (c > 0) {
-                    log(count.getKey() + " --> count:" + c + " max: " + max + " total: " + total);
+                    log(count.getKey() + " --> count:" + c + " avg: " + avg
+                            + " max: " + max + " total: " + total);
                 }
             }
             System.out.println("Time: " + ((now - startTime) / 1000L));
