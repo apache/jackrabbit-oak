@@ -344,9 +344,9 @@ public class MongoMKBranchMergeTest extends BaseMongoMicroKernelTest {
     }
 
     @Test
-    @Ignore("OAK-535")
+    @Ignore("OAK-560")
     public void concurrentNonConflictingMerges() throws Exception {
-        int numThreads = 5;
+        int numThreads = 10;
         mk.commit("/", "+\"test\":{}", null, null);
         List<Thread> workers = new ArrayList<Thread>();
         final List<Exception> exceptions = Collections.synchronizedList(new ArrayList<Exception>());
@@ -357,7 +357,7 @@ public class MongoMKBranchMergeTest extends BaseMongoMicroKernelTest {
                 @Override
                 public void run() {
                     try {
-                        for (int i = 0; i < 100; i++) {
+                        for (int i = 0; i < 50; i++) {
                             String branchRev = mk.branch(null);
                             branchRev = mk.commit(path, "+\"node" + i + "\":{}", branchRev, null);
                             mk.merge(branchRev, null);
