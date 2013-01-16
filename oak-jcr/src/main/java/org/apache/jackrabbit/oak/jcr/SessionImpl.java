@@ -192,7 +192,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
         return dlg.perform(new SessionOperation<NodeImpl>() {
             @Override
             public NodeImpl perform() throws RepositoryException {
-                String oakPath = dlg.getOakPathOrThrow(absPath);
+                String oakPath = dlg.getOakPath(absPath);
                 NodeDelegate d = dlg.getNode(oakPath);
                 if (d == null) {
                     throw new PathNotFoundException("Node with path " + absPath + " does not exist.");
@@ -209,7 +209,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
         return dlg.perform(new SessionOperation<Boolean>() {
             @Override
             public Boolean perform() throws RepositoryException {
-                String oakPath = dlg.getOakPathOrThrow(absPath);
+                String oakPath = dlg.getOakPath(absPath);
                 return dlg.getNode(oakPath) != null;
             }
         });
@@ -223,7 +223,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
             return dlg.perform(new SessionOperation<PropertyImpl>() {
                 @Override
                 public PropertyImpl perform() throws RepositoryException {
-                    String oakPath = dlg.getOakPathOrThrowNotFound(absPath);
+                    String oakPath = dlg.getOakPath(absPath);
                     TreeLocation loc = dlg.getLocation(oakPath);
                     if (loc.getProperty() == null) {
                         throw new PathNotFoundException(absPath);
@@ -244,7 +244,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
             return dlg.perform(new SessionOperation<Boolean>() {
                 @Override
                 public Boolean perform() throws RepositoryException {
-                    String oakPath = dlg.getOakPathOrThrowNotFound(absPath);
+                    String oakPath = dlg.getOakPath(absPath);
                     TreeLocation loc = dlg.getLocation(oakPath);
                     return loc.getProperty() != null;
                 }
@@ -260,7 +260,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
             @Override
             public Void perform() throws RepositoryException {
                 dlg.checkProtectedNodes(Text.getRelativeParent(srcAbsPath, 1), Text.getRelativeParent(destAbsPath, 1));
-                String oakPath = dlg.getOakPathKeepIndexOrThrowNotFound(destAbsPath);
+                String oakPath = dlg.getOakPathKeepIndex(destAbsPath);
                 String oakName = PathUtils.getName(oakPath);
                 // handle index
                 if (oakName.contains("[")) {
@@ -268,8 +268,8 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
                 }
 
                 dlg.move(
-                        dlg.getOakPathOrThrowNotFound(srcAbsPath),
-                        dlg.getOakPathOrThrowNotFound(oakPath),
+                        dlg.getOakPath(srcAbsPath),
+                        dlg.getOakPath(oakPath),
                         true);
 
                 return null;
