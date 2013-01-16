@@ -253,7 +253,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                 if (ntName == null) {
                     DefinitionProvider dp = sessionDelegate.getDefinitionProvider();
                     try {
-                        String childName = sessionDelegate.getOakNameOrThrow(PathUtils.getName(relPath));
+                        String childName = sessionDelegate.getOakName(PathUtils.getName(relPath));
                         NodeDefinition def = dp.getDefinition(new NodeImpl<NodeDelegate>(parent), childName);
                         ntName = def.getDefaultPrimaryTypeName();
                     } catch (RepositoryException e) {
@@ -864,7 +864,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     public boolean isNodeType(final String nodeTypeName) throws RepositoryException {
         checkStatus();
 
-        String oakName = sessionDelegate.getOakNameOrThrow(nodeTypeName);
+        String oakName = sessionDelegate.getOakName(nodeTypeName);
         return sessionDelegate.getEffectiveNodeTypeProvider().isNodeType(dlg.getTree(), oakName);
     }
 

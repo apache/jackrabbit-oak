@@ -16,14 +16,18 @@
  */
 package org.apache.jackrabbit.oak.namepath;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-
-import org.junit.Test;
+import javax.jcr.RepositoryException;
 
 import com.google.common.collect.ImmutableMap;
+import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.fail;
 
 public class GlobalNameMapperTest {
 
@@ -42,57 +46,70 @@ public class GlobalNameMapperTest {
     };
 
     @Test
-    public void testEmptyName() {
+    public void testEmptyName() throws RepositoryException {
         assertEquals("", mapper.getJcrName(""));
+        assertEquals("", mapper.getOakNameOrNull(""));
         assertEquals("", mapper.getOakName(""));
     }
 
 
     @Test
-    public void testSimpleNames() {
-        assertEquals("foo", mapper.getOakName("foo"));
-        assertEquals("foo", mapper.getJcrName("foo"));
-        assertEquals("foo ", mapper.getOakName("foo "));
-        assertEquals("foo ", mapper.getJcrName("foo "));
-        assertEquals(" foo ", mapper.getOakName(" foo "));
-        assertEquals(" foo ", mapper.getJcrName(" foo "));
-        assertEquals("foo.bar", mapper.getOakName("foo.bar"));
-        assertEquals("foo.bar", mapper.getJcrName("foo.bar"));
-        assertEquals(".", mapper.getOakName("."));
-        assertEquals(".", mapper.getJcrName("."));
-        assertEquals("..", mapper.getOakName(".."));
-        assertEquals("..", mapper.getJcrName(".."));
-        assertEquals("/", mapper.getOakName("/"));
-        assertEquals("/", mapper.getJcrName("/"));
-        assertEquals(" ", mapper.getOakName(" "));
-        assertEquals(" ", mapper.getJcrName(" "));
+    public void testSimpleNames() throws RepositoryException {
+        List<String> simpleNames = new ArrayList<String>();
+        simpleNames.add("foo");
+        simpleNames.add(" foo ");
+        simpleNames.add("foo.bar");
+        simpleNames.add(".");
+        simpleNames.add("..");
+        simpleNames.add("/");
+        simpleNames.add(" ");
+
+        for (String name : simpleNames) {
+            assertEquals(name, mapper.getOakNameOrNull(name));
+            assertEquals(name, mapper.getOakName(name));
+            assertEquals(name, mapper.getJcrName(name));
+        }
     }
 
     @Test
-    public void testExpandedNames() {
-        assertEquals("foo", mapper.getOakName("{}foo"));
-        assertEquals("{foo", mapper.getOakName("{foo"));
-        assertEquals("{foo}", mapper.getOakName("{foo}"));
-        assertEquals("{0} foo", mapper.getOakName("{0} foo")); // OAK-509
-        assertEquals("{", mapper.getOakName("{"));
-        assertEquals("nt:base", mapper.getOakName("{http://www.jcp.org/jcr/nt/1.0}base"));
-        assertEquals("foo:bar", mapper.getOakName("{http://www.example.com/foo}bar"));
-        assertEquals("quu:bar", mapper.getOakName("{http://www.example.com/quu}bar"));
-        assertNull(mapper.getOakName("{http://www.example.com/bar}bar"));
+    public void testExpandedNames() throws RepositoryException {
+        Map<String, String> jcrToOak = new HashMap<String, String>();
+        jcrToOak.put("{}foo", "foo");
+        jcrToOak.put("{foo", "{foo");
+        jcrToOak.put("{foo}", "{foo}");
+        jcrToOak.put("{0} foo", "{0} foo"); // OAK-509
+        jcrToOak.put("{", "{");
+        jcrToOak.put("{http://www.jcp.org/jcr/nt/1.0}base", "nt:base");
+        jcrToOak.put("{http://www.example.com/foo}bar", "foo:bar");
+        jcrToOak.put("{http://www.example.com/quu}bar", "quu:bar");
+
+        for (String jcrName : jcrToOak.keySet()) {
+            assertEquals(jcrToOak.get(jcrName), mapper.getOakNameOrNull(jcrName));
+            assertEquals(jcrToOak.get(jcrName), mapper.getOakName(jcrName));
+        }
+
+        assertNull(mapper.getOakNameOrNull("{http://www.example.com/bar}bar"));
+        try {
+            mapper.getOakName("{http://www.example.com/bar}bar");
+            fail("RepositoryException expected");
+        } catch (RepositoryException e) {
+            // successs
+        }
     }
 
     @Test
-    public void testPrefixedNames() {
-        assertEquals("nt:base", mapper.getOakName("nt:base"));
-        assertEquals("nt:base", mapper.getJcrName("nt:base"));
-        assertEquals("foo: bar", mapper.getOakName("foo: bar"));
-        assertEquals("foo: bar", mapper.getJcrName("foo: bar"));
-        assertEquals("quu:bar ", mapper.getOakName("quu:bar "));
-        assertEquals("quu:bar ", mapper.getJcrName("quu:bar "));
-
+    public void testPrefixedNames() throws RepositoryException {
+        List<String> prefixed = new ArrayList<String>();
+        prefixed.add("nt:base");
+        prefixed.add("foo: bar");
+        prefixed.add("quu:bar ");
         // unknown prefixes are only captured by the NameValidator
-        assertEquals("unknown:bar", mapper.getOakName("unknown:bar"));
-        assertEquals("unknown:bar", mapper.getJcrName("unknown:bar"));
-    }
+        prefixed.add("unknown:bar");
 
+        for (String name : prefixed) {
+            assertEquals(name, mapper.getOakNameOrNull(name));
+            assertEquals(name, mapper.getOakName(name));
+            assertEquals(name, mapper.getJcrName(name));
+        }
+    }
 }

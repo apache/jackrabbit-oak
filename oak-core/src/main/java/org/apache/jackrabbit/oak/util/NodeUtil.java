@@ -308,7 +308,7 @@ public class NodeUtil {
 
     @Nonnull
     private String getOakName(String jcrName) {
-        String oakName = (jcrName == null) ? null : mapper.getOakName(jcrName);
+        String oakName = (jcrName == null) ? null : mapper.getOakNameOrNull(jcrName);
         if (oakName == null) {
             throw new IllegalArgumentException(new RepositoryException("Invalid name:" + jcrName));
         }

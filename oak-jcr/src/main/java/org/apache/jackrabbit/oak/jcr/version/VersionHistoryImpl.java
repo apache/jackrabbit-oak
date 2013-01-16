@@ -100,7 +100,7 @@ public class VersionHistoryImpl extends NodeImpl<VersionHistoryDelegate>
     @Override
     public Version getVersionByLabel(String label)
             throws VersionException, RepositoryException {
-        String oakLabel = sessionDelegate.getOakNameOrThrow(label);
+        String oakLabel = sessionDelegate.getOakName(label);
         return new VersionImpl(dlg.getVersionByLabel(oakLabel));
     }
 

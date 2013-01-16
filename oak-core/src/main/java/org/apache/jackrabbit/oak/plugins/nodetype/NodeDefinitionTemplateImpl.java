@@ -72,7 +72,7 @@ class NodeDefinitionTemplateImpl
     @Override
     public void setName(String name) throws ConstraintViolationException {
         JcrNameParser.checkName(name, true);
-        this.name = mapper.getJcrName(mapper.getOakName(name));
+        this.name = mapper.getJcrName(mapper.getOakNameOrNull(name));
     }
 
     @Override
@@ -155,7 +155,7 @@ class NodeDefinitionTemplateImpl
         }
         else {
             JcrNameParser.checkName(name, false);
-            this.defaultPrimaryTypeName = mapper.getJcrName(mapper.getOakName(name));
+            this.defaultPrimaryTypeName = mapper.getJcrName(mapper.getOakNameOrNull(name));
         }
     }
 
@@ -198,7 +198,7 @@ class NodeDefinitionTemplateImpl
         String[] n = new String[names.length];
         for (String name : names) {
             JcrNameParser.checkName(name, false);
-            n[k++] = mapper.getJcrName(mapper.getOakName(name));
+            n[k++] = mapper.getJcrName(mapper.getOakNameOrNull(name));
         }
         this.requiredPrimaryTypeNames = n;
     }
@@ -207,11 +207,11 @@ class NodeDefinitionTemplateImpl
     public void addRequiredPrimaryType(String name) throws ConstraintViolationException {
         JcrNameParser.checkName(name, false);
         if (requiredPrimaryTypeNames == null) {
-            requiredPrimaryTypeNames = new String[] { mapper.getJcrName(mapper.getOakName(name)) };
+            requiredPrimaryTypeNames = new String[] { mapper.getJcrName(mapper.getOakNameOrNull(name)) };
         } else {
             String[] names = new String[requiredPrimaryTypeNames.length + 1];
             System.arraycopy(requiredPrimaryTypeNames, 0, names, 0, requiredPrimaryTypeNames.length);
-            names[requiredPrimaryTypeNames.length] = mapper.getJcrName(mapper.getOakName(name));
+            names[requiredPrimaryTypeNames.length] = mapper.getJcrName(mapper.getOakNameOrNull(name));
             requiredPrimaryTypeNames = names;
         }
 

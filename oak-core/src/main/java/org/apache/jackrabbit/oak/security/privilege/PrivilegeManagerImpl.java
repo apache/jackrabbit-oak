@@ -24,7 +24,6 @@ import java.util.Set;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.InvalidItemStateException;
-import javax.jcr.NamespaceException;
 import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.security.AccessControlException;
@@ -83,12 +82,7 @@ public class PrivilegeManagerImpl implements PrivilegeManager {
         if (privilegeName == null || privilegeName.isEmpty()) {
             throw new RepositoryException("Invalid privilege name " + privilegeName);
         }
-        String oakName = getOakName(privilegeName);
-        if (oakName == null) {
-            throw new NamespaceException("Invalid privilege name " + privilegeName);
-        }
-
-        PrivilegeDefinition definition = new PrivilegeDefinitionImpl(oakName, isAbstract, getOakNames(declaredAggregateNames));
+        PrivilegeDefinition definition = new PrivilegeDefinitionImpl(getOakName(privilegeName), isAbstract, getOakNames(declaredAggregateNames));
         PrivilegeDefinitionWriter writer = new PrivilegeDefinitionWriter(getWriteRoot());
         writer.writeDefinition(definition);
 
@@ -98,6 +92,7 @@ public class PrivilegeManagerImpl implements PrivilegeManager {
     }
 
     //------------------------------------------------------------< private >---
+    @Nonnull
     private Root getWriteRoot() throws UnsupportedRepositoryOperationException {
         if (root instanceof RootImpl) {
             return ((RootImpl) root).getLatest();
@@ -106,6 +101,7 @@ public class PrivilegeManagerImpl implements PrivilegeManager {
         }
     }
 
+    @Nonnull
     private Set<String> getOakNames(String[] jcrNames) throws RepositoryException {
         Set<String> oakNames;
         if (jcrNames == null || jcrNames.length == 0) {
@@ -114,22 +110,19 @@ public class PrivilegeManagerImpl implements PrivilegeManager {
             oakNames = new HashSet<String>(jcrNames.length);
             for (String jcrName : jcrNames) {
                 String oakName = getOakName(jcrName);
-                if (oakName == null) {
-                    throw new RepositoryException("Invalid name " + jcrName);
-                }
                 oakNames.add(oakName);
             }
         }
         return oakNames;
     }
 
-    @CheckForNull
-    String getOakName(String jcrName) {
+    @Nonnull
+    private String getOakName(String jcrName) throws RepositoryException {
         return namePathMapper.getOakName(jcrName);
     }
 
     @Nonnull
-    Privilege getPrivilege(PrivilegeDefinition definition) {
+    private Privilege getPrivilege(PrivilegeDefinition definition) {
         return new PrivilegeImpl(definition);
     }
 
