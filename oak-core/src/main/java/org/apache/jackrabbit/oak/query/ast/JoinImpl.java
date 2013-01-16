@@ -78,7 +78,8 @@ public class JoinImpl extends SourceImpl {
             right.addJoinCondition(joinCondition, true);
             break;
         case LEFT_OUTER:
-            right.setOuterJoin(true);
+            left.setOuterJoin(true, false);
+            right.setOuterJoin(false, true);
             left.addJoinCondition(joinCondition, false);
             right.addJoinCondition(joinCondition, true);
             break;
@@ -90,7 +91,8 @@ public class JoinImpl extends SourceImpl {
             SourceImpl temp = left;
             left = right;
             right = temp;
-            right.setOuterJoin(true);
+            left.setOuterJoin(true, false);
+            right.setOuterJoin(false, true);
             left.addJoinCondition(joinCondition, false);
             right.addJoinCondition(joinCondition, true);
             break;
@@ -157,7 +159,7 @@ public class JoinImpl extends SourceImpl {
             }
             // for an outer join, if no matching result was found,
             // one row returned (with all values set to null)
-            if (right.outerJoin && leftNeedNext && !foundJoinedRow) {
+            if (right.outerJoinRightHandSide && leftNeedNext && !foundJoinedRow) {
                 return true;
             }
         }

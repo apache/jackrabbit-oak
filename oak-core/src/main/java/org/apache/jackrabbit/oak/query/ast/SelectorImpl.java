@@ -101,8 +101,10 @@ public class SelectorImpl extends SourceImpl {
         if (queryConstraint != null) {
             queryConstraint.restrictPushDown(this);
         }
-        for (JoinConditionImpl c : allJoinConditions) {
-            c.restrictPushDown(this);
+        if (!outerJoinLeftHandSide && !outerJoinRightHandSide) {
+            for (JoinConditionImpl c : allJoinConditions) {
+                c.restrictPushDown(this);
+            }
         }
         index = query.getBestIndex(createFilter());
     }

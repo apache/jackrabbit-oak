@@ -52,7 +52,7 @@ public class NotImpl extends ConstraintImpl {
 
     @Override
     public void restrict(FilterImpl f) {
-        if (f.getSelector().outerJoin) {
+        if (f.getSelector().outerJoinRightHandSide) {
             // we need to be careful with the condition 
             // "NOT (property IS NOT NULL)"
             // (which is the same as 
