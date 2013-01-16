@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.index.p2.strategy;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -53,12 +54,13 @@ public interface IndexStoreStrategy {
     /**
      * Search for a given set of values.
      * 
+     * @param filter the filter (used for logging)
      * @param indexName the name of the index (for logging)
      * @param index index node (may not be null)
      * @param values values to look for (null to check for property existence)
      * @return an iterator of paths
      */
-    Iterable<String> query(String indexName, NodeState index, Iterable<String> values);
+    Iterable<String> query(Filter filter, String indexName, NodeState index, Iterable<String> values);
 
     /**
      * Count the occurrence of a given set of values. Used in calculating the

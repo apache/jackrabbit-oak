@@ -139,11 +139,11 @@ class Property2Index implements QueryIndex {
                 if (pr.firstIncluding && pr.lastIncluding
                     && pr.first != null && pr.first.equals(pr.last)) {
                     // "[property] = $value"
-                    paths = lookup.query(pr.propertyName, pr.first);
+                    paths = lookup.query(filter, pr.propertyName, pr.first);
                     break;
                 } else if (pr.first == null && pr.last == null) {
                     // "[property] is not null"
-                    paths = lookup.query(pr.propertyName, null);
+                    paths = lookup.query(filter, pr.propertyName, null);
                     break;
                 }
             }

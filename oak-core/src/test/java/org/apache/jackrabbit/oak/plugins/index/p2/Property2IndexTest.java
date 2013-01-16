@@ -85,7 +85,7 @@ public class Property2IndexTest {
     }
     
     private static Set<String> find(Property2IndexLookup lookup, String name, String value) {
-        return Sets.newHashSet(lookup.query(name, value == null ? null : PropertyValues.newString(value)));
+        return Sets.newHashSet(lookup.query(null, name, value == null ? null : PropertyValues.newString(value)));
     }
 
     @Test

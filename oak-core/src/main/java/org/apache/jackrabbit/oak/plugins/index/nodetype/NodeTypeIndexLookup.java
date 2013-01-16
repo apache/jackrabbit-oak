@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.index.nodetype;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.plugins.index.p2.Property2IndexLookup;
+import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -74,15 +75,16 @@ class NodeTypeIndexLookup implements JcrConstants {
     /**
      * Returns the paths that match the given node types.
      *
+     * @param filter the filter (used for logging)
      * @param nodeTypes the names of the node types to match.
      * @return the matched paths (the result might contain duplicate entries)
      */
-    public Iterable<String> query(Iterable<String> nodeTypes) {
+    public Iterable<String> query(Filter filter, Iterable<String> nodeTypes) {
         final PropertyValue ntNames = PropertyValues.newName(nodeTypes);
         Property2IndexLookup lookup = new Property2IndexLookup(root);
         return Iterables.concat(
-                lookup.query(JCR_PRIMARYTYPE, ntNames),
-                lookup.query(JCR_MIXINTYPES, ntNames));
+                lookup.query(filter, JCR_PRIMARYTYPE, ntNames),
+                lookup.query(filter, JCR_MIXINTYPES, ntNames));
     }
 
 }
