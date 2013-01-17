@@ -299,7 +299,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
             return "/";
         } else {
             String oakPath = namePathMapper.getOakPathKeepIndex(jcrPath);
-            if (oakPath == null) {
+            if (oakPath == null || !PathUtils.isAbsolute(oakPath)) {
                 throw new RepositoryException("Failed to resolve JCR path " + jcrPath);
             }
             return oakPath;
@@ -322,7 +322,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
     }
 
     private void checkValidPath(String jcrPath) throws RepositoryException {
-        getTree(jcrPath);
+        getTree(getOakPath(jcrPath));
     }
 
     /**

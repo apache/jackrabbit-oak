@@ -115,6 +115,8 @@ public abstract class AbstractAccessControlList implements JackrabbitAccessContr
                 return definition.getRequiredType();
             }
         }
+        // for backwards compatibility with JR2 return undefined type for an
+        // unknown restriction name.
         return PropertyType.UNDEFINED;
     }
 

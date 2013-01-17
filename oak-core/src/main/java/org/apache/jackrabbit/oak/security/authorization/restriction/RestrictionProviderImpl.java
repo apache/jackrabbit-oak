@@ -145,7 +145,7 @@ public class RestrictionProviderImpl implements RestrictionProvider, AccessContr
     private Tree getRestrictionsTree(Tree aceTree) {
         Tree restrictions = aceTree.getChild(REP_RESTRICTIONS);
         if (restrictions == null) {
-            // no rep: restrictions tree -> read from aceTree for backwards compatibility
+            // no rep:restrictions tree -> read from aceTree for backwards compatibility
             restrictions = aceTree;
         }
         return restrictions;

@@ -59,7 +59,7 @@ public class ACE implements JackrabbitAccessControlEntry {
         // make sure no abstract privileges are passed.
         for (Privilege privilege : privileges) {
             if (privilege == null) {
-                throw new AccessControlException("Privilege " + privilege + " is null.");
+                throw new AccessControlException("Null Privilege.");
             }
             if (privilege.isAbstract()) {
                 throw new AccessControlException("Privilege " + privilege + " is abstract.");

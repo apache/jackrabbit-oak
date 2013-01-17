@@ -79,8 +79,12 @@ abstract class ACL extends AbstractAccessControlList {
     @Override
     public boolean addEntry(Principal principal, Privilege[] privileges,
                             boolean isAllow, Map<String, Value> restrictions) throws RepositoryException {
-        // NOTE: validation and any kind of optimization of the entry list is
-        // delegated to the commit validator
+        if (privileges == null || privileges.length == 0) {
+            throw new AccessControlException("Privileges may not be null nor an empty array");
+        }
+        // TODO: check again.
+        // NOTE: in contrast to jr2 any further validation and optimization of
+        // the entry list is delegated to the commit validator
         Set<Restriction> rs;
         if (restrictions == null) {
             rs = Collections.emptySet();

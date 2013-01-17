@@ -118,6 +118,9 @@ public class PrivilegeManagerImpl implements PrivilegeManager {
 
     @Nonnull
     private String getOakName(String jcrName) throws RepositoryException {
+        if (jcrName == null) {
+            throw new RepositoryException("Invalid privilege name 'null'");
+        }
         return namePathMapper.getOakName(jcrName);
     }
 
