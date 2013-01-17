@@ -224,9 +224,9 @@ public class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImp
             return false;
         }
 
-        String propString = propInfo.getName();
-        if (UserConstants.REP_PRINCIPAL_NAME.equals(propString)) {
-            if (!isValid(propString, def, UserConstants.NT_REP_AUTHORIZABLE, false)) {
+        String propName = propInfo.getName();
+        if (UserConstants.REP_PRINCIPAL_NAME.equals(propName)) {
+            if (!isValid(def, UserConstants.NT_REP_AUTHORIZABLE, false)) {
                 return false;
             }
 
@@ -247,8 +247,8 @@ public class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImp
                 }
             }
             return true;
-        } else if (UserConstants.REP_PASSWORD.equals(propString)) {
-            if (a.isGroup() || !isValid(propString, def, UserConstants.NT_REP_USER, false)) {
+        } else if (UserConstants.REP_PASSWORD.equals(propName)) {
+            if (a.isGroup() || !isValid(def, UserConstants.NT_REP_USER, false)) {
                 log.warn("Unexpected authorizable or definition for property rep:password");
                 return false;
             }
@@ -272,8 +272,8 @@ public class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImp
             }
             return true;
 
-        } else if (UserConstants.REP_IMPERSONATORS.equals(propString)) {
-            if (a.isGroup() || !isValid(propString, def, UserConstants.MIX_REP_IMPERSONATABLE, true)) {
+        } else if (UserConstants.REP_IMPERSONATORS.equals(propName)) {
+            if (a.isGroup() || !isValid(def, UserConstants.MIX_REP_IMPERSONATABLE, true)) {
                 log.warn("Unexpected authorizable or definition for property rep:impersonators");
                 return false;
             }
@@ -284,8 +284,8 @@ public class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImp
             referenceTracker.processedReference(new Impersonators(a.getID(), tvs));
             return true;
 
-        } else if (UserConstants.REP_DISABLED.equals(propString)) {
-            if (a.isGroup() || !isValid(propString, def, UserConstants.NT_REP_USER, false)) {
+        } else if (UserConstants.REP_DISABLED.equals(propName)) {
+            if (a.isGroup() || !isValid(def, UserConstants.NT_REP_USER, false)) {
                 log.warn("Unexpected authorizable or definition for property rep:disabled");
                 return false;
             }
@@ -293,8 +293,8 @@ public class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImp
             ((User) a).disable(propInfo.getTextValue().getString());
             return true;
 
-        } else if (UserConstants.REP_MEMBERS.equals(propString)) {
-            if (!a.isGroup() || !isValid(propString, def, UserConstants.NT_REP_GROUP, true)) {
+        } else if (UserConstants.REP_MEMBERS.equals(propName)) {
+            if (!a.isGroup() || !isValid(def, UserConstants.NT_REP_GROUP, true)) {
                 return false;
             }
             // since group-members are references to user/groups that potentially
@@ -400,8 +400,7 @@ public class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImp
         }
     }
 
-    private boolean isValid(String propertyName, PropertyDefinition definition,
-                            String oakNodeTypeName, boolean multipleStatus) {
+    private boolean isValid(PropertyDefinition definition, String oakNodeTypeName, boolean multipleStatus) {
         return multipleStatus == definition.isMultiple() &&
                definition.getDeclaringNodeType().isNodeType(namePathMapper.getJcrName(oakNodeTypeName));
     }
