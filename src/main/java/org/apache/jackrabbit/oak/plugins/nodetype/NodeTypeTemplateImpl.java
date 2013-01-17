@@ -16,165 +16,84 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype;
 
-import java.util.ArrayList;
 import java.util.List;
 
-import javax.jcr.RepositoryException;
-import javax.jcr.Value;
-import javax.jcr.ValueFactory;
-import javax.jcr.ValueFormatException;
+import javax.annotation.Nonnull;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.NodeDefinition;
 import javax.jcr.nodetype.NodeDefinitionTemplate;
-import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.NodeTypeDefinition;
-import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.nodetype.NodeTypeTemplate;
 import javax.jcr.nodetype.PropertyDefinition;
 import javax.jcr.nodetype.PropertyDefinitionTemplate;
 
-import org.apache.jackrabbit.commons.cnd.DefinitionBuilderFactory.AbstractNodeTypeDefinitionBuilder;
-import org.apache.jackrabbit.oak.namepath.JcrNameParser;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
-import org.apache.jackrabbit.value.ValueFactoryImpl;
 
-final class NodeTypeTemplateImpl
-    extends AbstractNodeTypeDefinitionBuilder<NodeTypeTemplate>
-    implements NodeTypeTemplate {
+import com.google.common.collect.Lists;
 
-    private final NodeTypeManager manager;
+final class NodeTypeTemplateImpl extends AbstractNamedTemplate
+        implements NodeTypeTemplate {
 
-    private final NameMapper mapper;
+    private static final PropertyDefinition[] EMPTY_PROPERTY_DEFINITION_ARRAY =
+            new PropertyDefinition[0];
 
-    private final ValueFactory factory;
+    private static final NodeDefinition[] EMPTY_NODE_DEFINITION_ARRAY =
+            new NodeDefinition[0];
 
-    private String primaryItemName;
+    protected boolean isMixin;
 
-    private String[] superTypeNames = new String[0];
+    protected boolean isOrderable;
 
-    private List<PropertyDefinitionTemplate> propertyDefinitionTemplates;
+    protected boolean isAbstract;
 
-    private List<NodeDefinitionTemplate> nodeDefinitionTemplates;
+    protected boolean queryable;
 
-    public NodeTypeTemplateImpl(NodeTypeManager manager, NameMapper mapper, ValueFactory factory) {
-        this.manager = manager;
-        this.mapper = mapper;
-        this.factory = factory;
-    }
+    private String primaryItemOakName = null; // not defined by default
+
+    @Nonnull
+    private String[] superTypeOakNames = new String[0];
+
+    private List<PropertyDefinitionTemplate> propertyDefinitionTemplates = null;
+
+    private List<NodeDefinitionTemplate> nodeDefinitionTemplates = null;
 
     public NodeTypeTemplateImpl(NameMapper mapper) {
-        this(null, mapper, ValueFactoryImpl.getInstance());
+        super(mapper);
     }
 
-    public NodeTypeTemplateImpl(
-            NodeTypeManager manager, NameMapper mapper, ValueFactory factory,
-            NodeTypeDefinition ntd) throws ConstraintViolationException {
-        this(manager, mapper, factory);
+    NodeTypeTemplateImpl(NameMapper mapper, NodeTypeDefinition definition)
+            throws ConstraintViolationException {
+        super(mapper, definition.getName());
 
-        setName(ntd.getName());
-        setAbstract(ntd.isAbstract());
-        setMixin(ntd.isMixin());
-        setOrderableChildNodes(ntd.hasOrderableChildNodes());
-        setQueryable(ntd.isQueryable());
-        String name = ntd.getPrimaryItemName();
-        if (name != null) {
-            setPrimaryItemName(name);
+        setMixin(definition.isMixin());
+        setOrderableChildNodes(definition.hasOrderableChildNodes());
+        setAbstract(definition.isAbstract());
+        setQueryable(definition.isQueryable());
+        String primaryItemName = definition.getPrimaryItemName();
+        if (primaryItemName != null) {
+            setPrimaryItemName(primaryItemName);
         }
-        setDeclaredSuperTypeNames(ntd.getDeclaredSupertypeNames());
+        setDeclaredSuperTypeNames(definition.getDeclaredSupertypeNames());
 
-        getPropertyDefinitionTemplates();  // Make sure propertyDefinitionTemplates is initialised
-        for (PropertyDefinition pd : ntd.getDeclaredPropertyDefinitions()) {
-            PropertyDefinitionTemplateImpl pdt = newPropertyDefinitionBuilder();
-            pdt.setDeclaringNodeType(pd.getDeclaringNodeType().getName());
-            pdt.setName(pd.getName());
-            pdt.setProtected(pd.isProtected());
-            pdt.setMandatory(pd.isMandatory());
-            pdt.setAutoCreated(pd.isAutoCreated());
-            pdt.setOnParentVersion(pd.getOnParentVersion());
-            pdt.setMultiple(pd.isMultiple());
-            pdt.setRequiredType(pd.getRequiredType());
-            pdt.setDefaultValues(pd.getDefaultValues());
-            pdt.setValueConstraints(pd.getValueConstraints());
-            pdt.setFullTextSearchable(pd.isFullTextSearchable());
-            pdt.setAvailableQueryOperators(pd.getAvailableQueryOperators());
-            pdt.setQueryOrderable(pd.isQueryOrderable());
-            pdt.build();
+        PropertyDefinition[] pds = definition.getDeclaredPropertyDefinitions();
+        if (pds != null) {
+            propertyDefinitionTemplates =
+                    Lists.newArrayListWithCapacity(pds.length);
+            for (int i = 0; pds != null && i < pds.length; i++) {
+                propertyDefinitionTemplates.add(
+                        new PropertyDefinitionTemplateImpl(mapper, pds[i]));
+            }
         }
 
-        getNodeDefinitionTemplates();   // Make sure nodeDefinitionTemplates is initialised
-        for (NodeDefinition nd : ntd.getDeclaredChildNodeDefinitions()) {
-            NodeDefinitionTemplateImpl ndt = newNodeDefinitionBuilder();
-            ndt.setDeclaringNodeType(nd.getDeclaringNodeType().getName());
-            ndt.setName(nd.getName());
-            ndt.setProtected(nd.isProtected());
-            ndt.setMandatory(nd.isMandatory());
-            ndt.setAutoCreated(nd.isAutoCreated());
-            ndt.setOnParentVersion(nd.getOnParentVersion());
-            ndt.setSameNameSiblings(nd.allowsSameNameSiblings());
-            ndt.setDefaultPrimaryTypeName(nd.getDefaultPrimaryTypeName());
-            ndt.setRequiredPrimaryTypeNames(nd.getRequiredPrimaryTypeNames());
-            ndt.build();
+        NodeDefinition[] nds = definition.getDeclaredChildNodeDefinitions();
+        if (nds != null) {
+            nodeDefinitionTemplates =
+                    Lists.newArrayListWithCapacity(nds.length);
+            for (int i = 0; i < nds.length; i++) {
+                nodeDefinitionTemplates.add(
+                        new NodeDefinitionTemplateImpl(mapper, nds[i]));
+            }
         }
-    }
-
-    @Override
-    public NodeTypeTemplate build() {
-        return this;
-    }
-
-    @Override
-    public PropertyDefinitionTemplateImpl newPropertyDefinitionBuilder() {
-        return new PropertyDefinitionTemplateImpl(mapper) {
-            @Override
-            protected Value createValue(String value, int type)
-                    throws ValueFormatException {
-                return factory.createValue(value, type);
-            }
-            @Override
-            public void build() {
-                getPropertyDefinitionTemplates().add(this);
-            }
-        };
-    }
-
-    @Override
-    public NodeDefinitionTemplateImpl newNodeDefinitionBuilder() {
-        return new NodeDefinitionTemplateImpl(mapper) {
-            @Override
-            protected NodeType getNodeType(String name)
-                    throws RepositoryException  {
-                if (manager != null) {
-                    return manager.getNodeType(name);
-                } else {
-                    return super.getNodeType(name);
-                }
-            }
-            @Override
-            public void build() {
-                getNodeDefinitionTemplates().add(this);
-            }
-        };
-    }
-
-    @Override
-    public String getName() {
-        return name;
-    }
-
-    @Override
-    public void setName(String name) throws ConstraintViolationException {
-        JcrNameParser.checkName(name, false);
-        this.name = mapper.getJcrName(mapper.getOakNameOrNull(name));
-    }
-
-    @Override
-    public boolean isAbstract() {
-        return isAbstract;
-    }
-
-    @Override
-    public void setAbstract(boolean abstractStatus) {
-        this.isAbstract = abstractStatus;
     }
 
     @Override
@@ -198,6 +117,16 @@ final class NodeTypeTemplateImpl
     }
 
     @Override
+    public boolean isAbstract() {
+        return isAbstract;
+    }
+
+    @Override
+    public void setAbstract(boolean abstractStatus) {
+        this.isAbstract = abstractStatus;
+    }
+
+    @Override
     public boolean isQueryable() {
         return queryable;
     }
@@ -209,78 +138,62 @@ final class NodeTypeTemplateImpl
 
     @Override
     public String getPrimaryItemName() {
-        return primaryItemName ;
+        return getJcrNameAllowNull(primaryItemOakName);
     }
 
     @Override
-    public void setPrimaryItemName(String name) throws ConstraintViolationException {
-        if (name == null) {
-            this.primaryItemName = null;
-        }
-        else {
-            JcrNameParser.checkName(name, false);
-            this.primaryItemName = mapper.getJcrName(mapper.getOakNameOrNull(name));
-        }
+    public void setPrimaryItemName(String jcrName)
+            throws ConstraintViolationException {
+        this.primaryItemOakName =
+                getOakNameAllowNullOrThrowConstraintViolation(jcrName);
     }
 
     @Override
     public String[] getDeclaredSupertypeNames() {
-        return superTypeNames;
+        return getJcrNamesAllowNull(superTypeOakNames);
     }
 
     @Override
-    public void setDeclaredSuperTypeNames(String[] names) throws ConstraintViolationException {
-        if (names == null) {
-            throw new ConstraintViolationException("null is not a valid array of JCR names");
-        }
-        int k = 0;
-        String[] n = new String[names.length];
-        for (String name : names) {
-            JcrNameParser.checkName(name, false);
-            n[k++] = mapper.getJcrName(mapper.getOakNameOrNull(name));
-        }
-        this.superTypeNames = n;
+    public void setDeclaredSuperTypeNames(String[] jcrNames)
+            throws ConstraintViolationException {
+        this.superTypeOakNames =
+                getOakNamesOrThrowConstraintViolation(jcrNames);
     }
 
     @Override
-    public void addSupertype(String name) throws RepositoryException {
-        JcrNameParser.checkName(name, false);
-        String[] names = new String[superTypeNames.length + 1];
-        System.arraycopy(superTypeNames, 0, names, 0, superTypeNames.length);
-        names[superTypeNames.length] = mapper.getJcrName(mapper.getOakName(name));
-        superTypeNames = names;
+    public PropertyDefinition[] getDeclaredPropertyDefinitions() {
+        if (propertyDefinitionTemplates != null) {
+            return propertyDefinitionTemplates.toArray(
+                    EMPTY_PROPERTY_DEFINITION_ARRAY);
+        } else {
+            return null;
+        }
     }
 
     @Override
     public List<PropertyDefinitionTemplate> getPropertyDefinitionTemplates() {
         if (propertyDefinitionTemplates == null) {
-            propertyDefinitionTemplates = new ArrayList<PropertyDefinitionTemplate>();
+            propertyDefinitionTemplates = Lists.newArrayList();
         }
         return propertyDefinitionTemplates;
     }
 
     @Override
+    public NodeDefinition[] getDeclaredChildNodeDefinitions() {
+        if (nodeDefinitionTemplates != null) {
+            return nodeDefinitionTemplates.toArray(
+                    EMPTY_NODE_DEFINITION_ARRAY);
+        } else {
+            return null;
+        }
+    }
+
+    @Override
     public List<NodeDefinitionTemplate> getNodeDefinitionTemplates() {
         if (nodeDefinitionTemplates == null) {
-            nodeDefinitionTemplates = new ArrayList<NodeDefinitionTemplate>();
+            nodeDefinitionTemplates = Lists.newArrayList();
         }
         return nodeDefinitionTemplates;
-    }
-
-    @Override
-    public PropertyDefinition[] getDeclaredPropertyDefinitions() {
-        return propertyDefinitionTemplates == null
-            ? null
-            : propertyDefinitionTemplates.toArray(
-                new PropertyDefinition[propertyDefinitionTemplates.size()]);
-    }
-
-    @Override
-    public NodeDefinition[] getDeclaredChildNodeDefinitions() {
-        return nodeDefinitionTemplates == null
-            ? null
-            : nodeDefinitionTemplates.toArray(
-                new NodeDefinition[nodeDefinitionTemplates.size()]);
     }
 
 }

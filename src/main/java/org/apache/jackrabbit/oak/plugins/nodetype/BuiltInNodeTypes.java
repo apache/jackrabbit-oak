@@ -16,15 +16,30 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype;
 
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
+
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.Map;
 
 import javax.annotation.Nonnull;
+import javax.jcr.NamespaceRegistry;
+import javax.jcr.RepositoryException;
+import javax.jcr.ValueFactory;
+import javax.jcr.nodetype.NodeTypeManager;
 
+import org.apache.jackrabbit.commons.cnd.CndImporter;
+import org.apache.jackrabbit.commons.cnd.ParseException;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.namepath.GlobalNameMapper;
+import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
+import org.apache.jackrabbit.oak.plugins.name.Namespaces;
+import org.apache.jackrabbit.oak.plugins.name.ReadWriteNamespaceRegistry;
+import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
+import com.google.common.base.Charsets;
 
 /**
  * <code>BuiltInNodeTypes</code> is a utility class that registers the built-in
@@ -32,7 +47,11 @@ import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_
  */
 public class BuiltInNodeTypes {
 
-    private final ReadWriteNodeTypeManager ntMgr;
+    private final NodeTypeManager ntMgr;
+
+    private final NamespaceRegistry nsReg;
+
+    private final ValueFactory vf;
 
     private BuiltInNodeTypes(final Root root) {
         this.ntMgr =  new ReadWriteNodeTypeManager() {
@@ -47,6 +66,25 @@ public class BuiltInNodeTypes {
                 return root;
             }
         };
+
+        this.nsReg = new ReadWriteNamespaceRegistry() {
+            @Override
+            protected Tree getReadTree() {
+                return root.getTree("/");
+            }
+            @Override
+            protected Root getWriteRoot() {
+                return root;
+            }
+        };
+
+        this.vf = new ValueFactoryImpl(null, new NamePathMapperImpl(
+                new GlobalNameMapper() {
+                    @Override
+                    protected Map<String, String> getNamespaceMap() {
+                        return Namespaces.getNamespaceMap(root.getTree("/"));
+                    }
+                }));
     }
 
     /**
@@ -60,24 +98,25 @@ public class BuiltInNodeTypes {
 
     private void registerBuiltinNodeTypes() {
         // FIXME: migrate custom node types as well.
-        if (!nodeTypesInContent()) {
+        try {
+            InputStream stream = BuiltInNodeTypes.class.getResourceAsStream("builtin_nodetypes.cnd");
             try {
-                InputStream stream = BuiltInNodeTypes.class.getResourceAsStream("builtin_nodetypes.cnd");
-                try {
-                    ntMgr.registerNodeTypes(new InputStreamReader(stream, "UTF-8"));
-                } finally {
-                    stream.close();
-                }
-            } catch (Exception e) {
-                throw new IllegalStateException(
-                        "Unable to load built-in node types", e);
+                CndImporter.registerNodeTypes(
+                        new InputStreamReader(stream, Charsets.UTF_8),
+                        "built-in node types", ntMgr, nsReg, vf, false);
+            } finally {
+                stream.close();
             }
+        } catch (IOException e) {
+            throw new IllegalStateException(
+                    "Unable to read built-in node types", e);
+        } catch (ParseException e) {
+            throw new IllegalStateException(
+                    "Unable to parse built-in node types", e);
+        } catch (RepositoryException e) {
+            throw new IllegalStateException(
+                    "Unable to register built-in node types", e);
         }
-    }
-
-    private boolean nodeTypesInContent() {
-        Tree types = ntMgr.getTypes();
-        return types != null && types.getChildrenCount() > 0;
     }
 
 }
