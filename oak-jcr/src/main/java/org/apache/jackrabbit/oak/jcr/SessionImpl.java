@@ -192,7 +192,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
         return dlg.perform(new SessionOperation<NodeImpl>() {
             @Override
             public NodeImpl perform() throws RepositoryException {
-                String oakPath = dlg.getOakPathOrThrow(absPath);
+                String oakPath = dlg.getOakPath(absPath);
                 NodeDelegate d = dlg.getNode(oakPath);
                 if (d == null) {
                     throw new PathNotFoundException("Node with path " + absPath + " does not exist.");
@@ -209,7 +209,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
         return dlg.perform(new SessionOperation<Boolean>() {
             @Override
             public Boolean perform() throws RepositoryException {
-                String oakPath = dlg.getOakPathOrThrow(absPath);
+                String oakPath = dlg.getOakPath(absPath);
                 return dlg.getNode(oakPath) != null;
             }
         });

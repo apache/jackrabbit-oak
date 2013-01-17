@@ -337,7 +337,7 @@ public class SessionDelegate {
      * @throws RepositoryException if the path can not be mapped
      */
     @Nonnull
-    public String getOakPathOrThrow(String jcrPath)
+    public String getOakPath(String jcrPath)
             throws RepositoryException {
         String oakPath = getOakPathOrNull(jcrPath);
         if (oakPath != null) {
