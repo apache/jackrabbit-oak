@@ -16,13 +16,22 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype;
 
+import static org.apache.jackrabbit.JcrConstants.JCR_AUTOCREATED;
+import static org.apache.jackrabbit.JcrConstants.JCR_MANDATORY;
+import static org.apache.jackrabbit.JcrConstants.JCR_NAME;
+import static org.apache.jackrabbit.JcrConstants.JCR_ONPARENTVERSION;
+import static org.apache.jackrabbit.JcrConstants.JCR_PROTECTED;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.ItemDefinition;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.version.OnParentVersionAction;
 
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 
 /**
@@ -56,6 +65,35 @@ abstract class ItemDefinitionTemplateImpl extends AbstractNamedTemplate
         setAutoCreated(definition.isAutoCreated());
         setOnParentVersion(definition.getOnParentVersion());
     }
+
+    /**
+     * Writes the contents of this item definition to the given tree node.
+     * Used when registering new node types.
+     *
+     * @param tree an {@code nt:propertyDefinition} or
+     *             {@code nt:childNodeDefinition} node
+     * @throws RepositoryException if this definition could not be written
+     */
+    void writeTo(Tree tree) throws RepositoryException {
+        if (!residual) {
+            String oakName = getOakName();
+            if (oakName == null) {
+                throw new RepositoryException("Unnamed item definition");
+            }
+            tree.setProperty(JCR_NAME, oakName, Type.NAME);
+        }
+
+        // TODO avoid (in validator?) unbounded recursive auto creation.
+        // See 3.7.2.3.5 Chained Auto-creation (OAK-411)
+        tree.setProperty(JCR_AUTOCREATED, isAutoCreated);
+        tree.setProperty(JCR_MANDATORY, isMandatory);
+        tree.setProperty(JCR_PROTECTED, isProtected);
+        tree.setProperty(
+                JCR_ONPARENTVERSION,
+                OnParentVersionAction.nameFromValue(onParentVersion));
+    }
+
+    //------------------------------------------------------------< public >--
 
     /**
      * Returns the name of this template, or {@code null} if the name

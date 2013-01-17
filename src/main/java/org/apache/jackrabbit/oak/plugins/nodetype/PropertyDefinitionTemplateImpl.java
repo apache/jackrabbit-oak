@@ -17,15 +17,28 @@
 package org.apache.jackrabbit.oak.plugins.nodetype;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.JcrConstants.JCR_DEFAULTVALUES;
+import static org.apache.jackrabbit.JcrConstants.JCR_MULTIPLE;
+import static org.apache.jackrabbit.JcrConstants.JCR_REQUIREDTYPE;
+import static org.apache.jackrabbit.JcrConstants.JCR_VALUECONSTRAINTS;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_AVAILABLE_QUERY_OPERATORS;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_IS_FULLTEXT_SEARCHABLE;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_IS_QUERY_ORDERABLE;
+
+import java.util.Arrays;
 
 import javax.jcr.PropertyType;
+import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.PropertyDefinition;
 import javax.jcr.nodetype.PropertyDefinitionTemplate;
 import javax.jcr.query.qom.QueryObjectModelConstants;
 
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 
 class PropertyDefinitionTemplateImpl extends ItemDefinitionTemplateImpl
         implements PropertyDefinitionTemplate {
@@ -58,7 +71,7 @@ class PropertyDefinitionTemplateImpl extends ItemDefinitionTemplateImpl
         super(mapper);
     }
 
-    public PropertyDefinitionTemplateImpl(
+    PropertyDefinitionTemplateImpl(
             NameMapper mapper, PropertyDefinition definition)
             throws ConstraintViolationException {
         super(mapper, definition);
@@ -70,6 +83,41 @@ class PropertyDefinitionTemplateImpl extends ItemDefinitionTemplateImpl
         setValueConstraints(definition.getValueConstraints());
         setDefaultValues(definition.getDefaultValues());
     }
+
+    /**
+     * Writes the contents of this property definition to the given tree node.
+     * Used when registering new node types.
+     *
+     * @param tree an {@code nt:propertyDefinition} node
+     * @throws RepositoryException if this definition could not be written
+     */
+    @Override
+    void writeTo(Tree tree) throws RepositoryException {
+        super.writeTo(tree);
+
+        tree.setProperty(
+                JCR_REQUIREDTYPE,
+                PropertyType.nameFromValue(requiredType).toUpperCase());
+        tree.setProperty(JCR_MULTIPLE, isMultiple);
+        tree.setProperty(JCR_IS_FULLTEXT_SEARCHABLE, fullTextSearchable);
+        tree.setProperty(JCR_IS_QUERY_ORDERABLE, queryOrderable);
+        tree.setProperty(
+                JCR_AVAILABLE_QUERY_OPERATORS,
+                Arrays.asList(queryOperators), Type.NAMES); // TODO: mapping?
+
+        if (valueConstraints != null) {
+            tree.setProperty(
+                    JCR_VALUECONSTRAINTS,
+                    Arrays.asList(valueConstraints), Type.STRINGS);
+        }
+
+        if (defaultValues != null) {
+            tree.setProperty(PropertyStates.createProperty(
+                    JCR_DEFAULTVALUES, Arrays.asList(defaultValues)));
+        }
+    }
+
+    //------------------------------------------------------------< public >--
 
     @Override
     public int getRequiredType() {
@@ -153,6 +201,12 @@ class PropertyDefinitionTemplateImpl extends ItemDefinitionTemplateImpl
             this.defaultValues = new Value[values.length];
             System.arraycopy(values, 0, defaultValues, 0, values.length);
         }
+    }
+
+    //------------------------------------------------------------< Object >--
+
+    public String toString() {
+        return String.format("PropertyDefinitionTemplate(%s)", getOakName());
     }
 
 }

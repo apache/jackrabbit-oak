@@ -47,7 +47,18 @@ abstract class AbstractNamedTemplate {
     }
 
     /**
-     * Returns the name of this template, or {@code null} if the name
+     * Returns the Oak name of this template, or {@code null} if the name
+     * has not yet been set.
+     *
+     * @return Oak name, or {@code null}
+     */
+    @CheckForNull
+    protected String getOakName() {
+        return oakName;
+    }
+
+    /**
+     * Returns the JCR name of this template, or {@code null} if the name
      * has not yet been set.
      *
      * @return JCR name, or {@code null}
