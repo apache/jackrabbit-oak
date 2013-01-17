@@ -269,6 +269,37 @@ public class AccessControlManagerImplTest extends AbstractSecurityTest {
     }
 
     @Test
+    public void testGetApplicablePoliciesWithCollidingNode() throws Exception {
+        NodeUtil testTree = new NodeUtil(root.getTree(testPath));
+        testTree.addChild(AccessControlConstants.REP_POLICY, JcrConstants.NT_UNSTRUCTURED);
+
+        AccessControlPolicyIterator itr = acMgr.getApplicablePolicies(testPath);
+        assertNotNull(itr);
+        assertFalse(itr.hasNext());
+    }
+
+    @Test
+    public void testGetApplicablePoliciesOnAclNode() throws Exception {
+        AccessControlPolicy policy = getApplicablePolicy(testPath);
+        acMgr.setPolicy(testPath, policy);
+
+        String aclPath = testPath + "/rep:policy";
+        assertNotNull(root.getTree(aclPath));
+
+        try {
+            AccessControlPolicyIterator itr = acMgr.getApplicablePolicies(aclPath);
+            fail("Getting applicable policies for ACL node.");
+        } catch (AccessControlException e) {
+            // success
+        }
+    }
+
+    @Test
+    public void testGetApplicablePoliciesOnAceNode() throws Exception {
+        // TODO
+    }
+
+    @Test
     public void testGetPoliciesNodeNotAccessControlled() throws Exception {
         AccessControlPolicy[] policies = acMgr.getPolicies(testPath);
         assertNotNull(policies);
