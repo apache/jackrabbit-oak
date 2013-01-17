@@ -36,8 +36,9 @@ public class RegistrationValidatorProvider implements ValidatorProvider {
     @Nonnull
     @Override
     public Validator getRootValidator(NodeState before, NodeState after) {
-        Validator validator = new RegistrationValidator(new ValidatingNodeTypeManager(before),
-                new ValidatingNodeTypeManager(after),
+        Validator validator = new RegistrationValidator(
+                ReadOnlyNodeTypeManager.getInstance(before),
+                ReadOnlyNodeTypeManager.getInstance(after),
                 new ReadOnlyTree(before), new ReadOnlyTree(after));
         return new SubtreeValidator(validator, JcrConstants.JCR_SYSTEM, NodeTypeConstants.JCR_NODE_TYPES);
     }

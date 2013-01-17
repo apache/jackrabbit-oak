@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.nodetype;
+package org.apache.jackrabbit.oak.plugins.nodetype.write;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_CHILDNODEDEFINITION;
 import static org.apache.jackrabbit.JcrConstants.JCR_HASORDERABLECHILDNODES;
@@ -50,7 +50,7 @@ import org.apache.jackrabbit.oak.namepath.NameMapper;
 
 import com.google.common.collect.Lists;
 
-class NodeTypeTemplateImpl extends AbstractNamedTemplate
+class NodeTypeTemplateImpl extends NamedTemplate
         implements NodeTypeTemplate {
 
     private static final PropertyDefinition[] EMPTY_PROPERTY_DEFINITION_ARRAY =

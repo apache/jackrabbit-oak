@@ -49,9 +49,13 @@ import org.apache.jackrabbit.commons.iterator.NodeTypeIteratorAdapter;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.core.ReadOnlyTree;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -118,6 +122,7 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
     }
 
     //--------------------------------------------------------------------------
+
     /**
      * Return a new instance of {@code ReadOnlyNodeTypeManager} that reads node
      * type information from the tree at {@link NodeTypeConstants#NODE_TYPES_PATH}.
@@ -138,6 +143,34 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
             @Override
             protected NamePathMapper getNamePathMapper() {
                 return namePathMapper;
+            }
+        };
+    }
+
+    /**
+     * Returns a read-only node type manager based on the types stored within
+     * the content tree starting at the given root node state.
+     *
+     * @param root root node state
+     * @return read-only node type manager
+     */
+    @Nonnull
+    public static ReadOnlyNodeTypeManager getInstance(NodeState root) {
+        Tree tree = new ReadOnlyTree(root);
+        for (String name : PathUtils.elements(NODE_TYPES_PATH)) {
+            tree = tree.getChild(name);
+            if (tree == null) {
+                // No node types in content, so use an empty node
+                tree = new ReadOnlyTree(MemoryNodeState.EMPTY_NODE);
+                break;
+            }
+        }
+
+        final Tree types = tree;
+        return new ReadOnlyNodeTypeManager() {
+            @Override
+            protected Tree getTypes() {
+                return types;
             }
         };
     }
@@ -196,24 +229,27 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
     }
 
     @Override
-    public NodeTypeTemplate createNodeTypeTemplate() {
-        return new NodeTypeTemplateImpl(getNamePathMapper());
+    public NodeTypeTemplate createNodeTypeTemplate()
+            throws RepositoryException {
+        throw new UnsupportedRepositoryOperationException();
     }
 
     @Override
     public NodeTypeTemplate createNodeTypeTemplate(NodeTypeDefinition ntd)
-            throws ConstraintViolationException {
-        return new NodeTypeTemplateImpl(getNamePathMapper(), ntd);
+            throws RepositoryException {
+        throw new UnsupportedRepositoryOperationException();
     }
 
     @Override
-    public NodeDefinitionTemplate createNodeDefinitionTemplate() {
-        return new NodeDefinitionTemplateImpl(getNamePathMapper());
+    public NodeDefinitionTemplate createNodeDefinitionTemplate()
+            throws RepositoryException {
+        throw new UnsupportedRepositoryOperationException();
     }
 
     @Override
-    public PropertyDefinitionTemplate createPropertyDefinitionTemplate() {
-        return new PropertyDefinitionTemplateImpl(getNamePathMapper());
+    public PropertyDefinitionTemplate createPropertyDefinitionTemplate()
+            throws RepositoryException {
+        throw new UnsupportedRepositoryOperationException();
     }
 
     /**
