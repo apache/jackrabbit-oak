@@ -16,205 +16,89 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import javax.jcr.RepositoryException;
-import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.nodetype.ConstraintViolationException;
+import javax.jcr.nodetype.NodeDefinition;
 import javax.jcr.nodetype.NodeDefinitionTemplate;
 import javax.jcr.nodetype.NodeType;
-import javax.jcr.nodetype.NodeTypeTemplate;
-import javax.jcr.version.OnParentVersionAction;
 
-import org.apache.jackrabbit.commons.cnd.DefinitionBuilderFactory.AbstractNodeDefinitionBuilder;
-import org.apache.jackrabbit.oak.namepath.JcrNameParser;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-class NodeDefinitionTemplateImpl
-        extends AbstractNodeDefinitionBuilder<NodeTypeTemplate>
+class NodeDefinitionTemplateImpl extends ItemDefinitionTemplateImpl
         implements NodeDefinitionTemplate {
 
-    private static final Logger log =
-            LoggerFactory.getLogger(NodeDefinitionTemplateImpl.class);
+    private boolean allowSameNameSiblings = false;
 
-    private String defaultPrimaryTypeName;
+    private String defaultPrimaryTypeOakName = null;
 
-    private final NameMapper mapper;
-    private String[] requiredPrimaryTypeNames;
-
-    protected NodeType getNodeType(String name) throws RepositoryException {
-        throw new UnsupportedRepositoryOperationException();
-    }
+    private String[] requiredPrimaryTypeOakNames = null;
 
     public NodeDefinitionTemplateImpl(NameMapper mapper) {
-        this.mapper = mapper;
-        onParent = OnParentVersionAction.COPY;
+        super(mapper);
     }
 
-    @Override
-    public void build() {
-        // do nothing by default
-    }
-
-    @Override
-    public NodeType getDeclaringNodeType() {
-        return null;
-    }
-
-    @Override
-    public void setDeclaringNodeType(String name) {
-        // ignore
-    }
-
-    @Override
-    public void setName(String name) throws ConstraintViolationException {
-        JcrNameParser.checkName(name, true);
-        this.name = mapper.getJcrName(mapper.getOakNameOrNull(name));
-    }
-
-    @Override
-    public boolean isAutoCreated() {
-        return autocreate;
-    }
-
-    @Override
-    public void setAutoCreated(boolean autocreate) {
-        this.autocreate = autocreate;
-    }
-
-    @Override
-    public boolean isProtected() {
-        return isProtected;
-    }
-
-    @Override
-    public void setProtected(boolean isProtected) {
-        this.isProtected = isProtected;
-    }
-
-    @Override
-    public boolean isMandatory() {
-        return isMandatory;
-    }
-
-    @Override
-    public void setMandatory(boolean isMandatory) {
-        this.isMandatory = isMandatory;
-    }
-
-    @Override
-    public int getOnParentVersion() {
-        return onParent;
-    }
-
-    @Override
-    public void setOnParentVersion(int onParent) {
-        this.onParent = onParent;
+    public NodeDefinitionTemplateImpl(
+            NameMapper mapper, NodeDefinition definition)
+            throws ConstraintViolationException {
+        super(mapper, definition);
+        setSameNameSiblings(definition.allowsSameNameSiblings());
+        setDefaultPrimaryTypeName(definition.getDefaultPrimaryTypeName());
+        setRequiredPrimaryTypeNames(definition.getRequiredPrimaryTypeNames());
     }
 
     @Override
     public boolean allowsSameNameSiblings() {
-        return allowSns;
+        return allowSameNameSiblings;
     }
 
     @Override
-    public void setSameNameSiblings(boolean allowSns) {
-        this.allowSns = allowSns;
+    public void setSameNameSiblings(boolean allowSameNameSiblings) {
+        this.allowSameNameSiblings = allowSameNameSiblings;
     }
 
-    @Override
-    public void setAllowsSameNameSiblings(boolean allowSns) {
-        setSameNameSiblings(allowSns);
-    }
-
+    /**
+     * Returns {@code null} since an item definition template is not
+     * attached to a live, already registered node type.
+     *
+     * @return {@code null}
+     */
     @Override
     public NodeType getDefaultPrimaryType() {
-        if (defaultPrimaryTypeName != null) {
-            try {
-                return getNodeType(defaultPrimaryTypeName);
-            } catch (RepositoryException e) {
-                log.warn("Unable to access default primary type "
-                        + defaultPrimaryTypeName + " of " + name, e);
-            }
-        }
         return null;
     }
 
     @Override
     public String getDefaultPrimaryTypeName() {
-        return defaultPrimaryTypeName;
+        return getJcrNameAllowNull(defaultPrimaryTypeOakName);
     }
 
     @Override
-    public void setDefaultPrimaryTypeName(String name) throws ConstraintViolationException {
-        if (name == null) {
-            this.defaultPrimaryTypeName = null;
-        }
-        else {
-            JcrNameParser.checkName(name, false);
-            this.defaultPrimaryTypeName = mapper.getJcrName(mapper.getOakNameOrNull(name));
-        }
+    public void setDefaultPrimaryTypeName(String jcrName)
+            throws ConstraintViolationException {
+        this.defaultPrimaryTypeOakName =
+                    getOakNameAllowNullOrThrowConstraintViolation(jcrName);
     }
 
-    @Override
-    public void setDefaultPrimaryType(String name) throws ConstraintViolationException {
-        setDefaultPrimaryTypeName(name);
-    }
-
+    /**
+     * Returns {@code null} since an item definition template is not
+     * attached to a live, already registered node type.
+     *
+     * @return {@code null}
+     */
     @Override
     public NodeType[] getRequiredPrimaryTypes() {
-        if (requiredPrimaryTypeNames == null) {
-            return null;
-        } else {
-            List<NodeType> types =
-                    new ArrayList<NodeType>(requiredPrimaryTypeNames.length);
-            for (String requiredPrimaryTypeName : requiredPrimaryTypeNames) {
-                try {
-                    types.add(getNodeType(requiredPrimaryTypeName));
-                }
-                catch (RepositoryException e) {
-                    log.warn("Unable to required primary primary type "
-                            + requiredPrimaryTypeName + " of " + name, e);
-                }
-            }
-            return types.toArray(new NodeType[types.size()]);
-        }
+        return null;
     }
 
     @Override
     public String[] getRequiredPrimaryTypeNames() {
-        return requiredPrimaryTypeNames;
+        return getJcrNamesAllowNull(requiredPrimaryTypeOakNames);
     }
 
     @Override
-    public void setRequiredPrimaryTypeNames(String[] names) throws ConstraintViolationException {
-        if (names == null) {
-            throw new ConstraintViolationException("null is not a valid array of JCR names");
-        }
-        int k = 0;
-        String[] n = new String[names.length];
-        for (String name : names) {
-            JcrNameParser.checkName(name, false);
-            n[k++] = mapper.getJcrName(mapper.getOakNameOrNull(name));
-        }
-        this.requiredPrimaryTypeNames = n;
-    }
-
-    @Override
-    public void addRequiredPrimaryType(String name) throws ConstraintViolationException {
-        JcrNameParser.checkName(name, false);
-        if (requiredPrimaryTypeNames == null) {
-            requiredPrimaryTypeNames = new String[] { mapper.getJcrName(mapper.getOakNameOrNull(name)) };
-        } else {
-            String[] names = new String[requiredPrimaryTypeNames.length + 1];
-            System.arraycopy(requiredPrimaryTypeNames, 0, names, 0, requiredPrimaryTypeNames.length);
-            names[requiredPrimaryTypeNames.length] = mapper.getJcrName(mapper.getOakNameOrNull(name));
-            requiredPrimaryTypeNames = names;
-        }
-
+    public void setRequiredPrimaryTypeNames(String[] jcrNames)
+            throws ConstraintViolationException {
+        this.requiredPrimaryTypeOakNames =
+                getOakNamesOrThrowConstraintViolation(jcrNames);
     }
 
 }

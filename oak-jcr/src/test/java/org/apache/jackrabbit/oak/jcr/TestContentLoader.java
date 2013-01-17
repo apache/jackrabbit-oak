@@ -29,12 +29,13 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
-import javax.jcr.nodetype.NodeTypeManager;
 
 import org.apache.jackrabbit.commons.JcrUtils;
+import org.apache.jackrabbit.commons.cnd.CndImporter;
 import org.apache.jackrabbit.commons.cnd.ParseException;
-import org.apache.jackrabbit.oak.plugins.nodetype.ReadWriteNodeTypeManager;
 import org.apache.jackrabbit.value.BinaryValue;
+
+import com.google.common.base.Charsets;
 
 public class TestContentLoader {
 
@@ -47,7 +48,7 @@ public class TestContentLoader {
         session.getWorkspace().getNamespaceRegistry().registerNamespace(
                 "test", "http://www.apache.org/jackrabbit/test");
 
-        registerTestNodeTypes(session.getWorkspace().getNodeTypeManager());
+        registerTestNodeTypes(session);
 
         Node data = getOrAddNode(session.getRootNode(), "testdata");
         addPropertyTestData(getOrAddNode(data, "property"));
@@ -64,13 +65,11 @@ public class TestContentLoader {
         session.save();
     }
 
-    private static void registerTestNodeTypes(NodeTypeManager ntm) throws RepositoryException, ParseException, IOException {
+    private static void registerTestNodeTypes(Session session) throws RepositoryException, ParseException, IOException {
         InputStream stream = TestContentLoader.class.getResourceAsStream("test_nodetypes.cnd");
         try {
-            if (!(ntm instanceof ReadWriteNodeTypeManager)) {
-                throw new IllegalArgumentException("Need ReadWriteNodeTypeManager");
-            }
-            ((ReadWriteNodeTypeManager)ntm).registerNodeTypes(new InputStreamReader(stream, "UTF-8"));
+            CndImporter.registerNodeTypes(
+                    new InputStreamReader(stream, Charsets.UTF_8), session);
         } finally {
             stream.close();
         }

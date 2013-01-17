@@ -16,104 +16,70 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import javax.jcr.PropertyType;
-import javax.jcr.RepositoryException;
-import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.Value;
 import javax.jcr.nodetype.ConstraintViolationException;
-import javax.jcr.nodetype.NodeType;
-import javax.jcr.nodetype.NodeTypeTemplate;
+import javax.jcr.nodetype.PropertyDefinition;
 import javax.jcr.nodetype.PropertyDefinitionTemplate;
-import javax.jcr.version.OnParentVersionAction;
+import javax.jcr.query.qom.QueryObjectModelConstants;
 
-import org.apache.jackrabbit.commons.cnd.DefinitionBuilderFactory.AbstractPropertyDefinitionBuilder;
-import org.apache.jackrabbit.oak.namepath.JcrNameParser;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 
-class PropertyDefinitionTemplateImpl
-        extends AbstractPropertyDefinitionBuilder<NodeTypeTemplate>
+class PropertyDefinitionTemplateImpl extends ItemDefinitionTemplateImpl
         implements PropertyDefinitionTemplate {
 
-    private String[] valueConstraints;
+    private static final String[] ALL_OPERATORS = new String[]{
+        QueryObjectModelConstants.JCR_OPERATOR_EQUAL_TO,
+        QueryObjectModelConstants.JCR_OPERATOR_GREATER_THAN,
+        QueryObjectModelConstants.JCR_OPERATOR_GREATER_THAN_OR_EQUAL_TO,
+        QueryObjectModelConstants.JCR_OPERATOR_LESS_THAN,
+        QueryObjectModelConstants.JCR_OPERATOR_LESS_THAN_OR_EQUAL_TO,
+        QueryObjectModelConstants.JCR_OPERATOR_LIKE,
+        QueryObjectModelConstants.JCR_OPERATOR_NOT_EQUAL_TO
+    };
 
-    private final NameMapper mapper;
-    private Value[] defaultValues;
+    private int requiredType = PropertyType.STRING;
 
-    public PropertyDefinitionTemplateImpl(NameMapper mapper) {
-        this.mapper = mapper;
-        onParent = OnParentVersionAction.COPY;
-        requiredType = PropertyType.STRING;
+    private boolean isMultiple = false;
+
+    private boolean fullTextSearchable = true;
+
+    private boolean queryOrderable = true;
+
+    private String[] queryOperators = ALL_OPERATORS;
+
+    private String[] valueConstraints = null;
+
+    private Value[] defaultValues = null;
+
+    PropertyDefinitionTemplateImpl(NameMapper mapper) {
+        super(mapper);
     }
 
-    protected Value createValue(String value, int type)
-            throws RepositoryException {
-        throw new UnsupportedRepositoryOperationException();
-    }
-
-    @Override
-    public void build() {
-        // do nothing by default
-    }
-
-    @Override
-    public NodeType getDeclaringNodeType() {
-        return null;
-    }
-
-    @Override
-    public void setDeclaringNodeType(String name) {
-        // ignore
-    }
-
-    @Override
-    public void setName(String name) throws ConstraintViolationException {
-        JcrNameParser.checkName(name, true);
-        this.name = mapper.getJcrName(mapper.getOakNameOrNull(name));
-    }
-
-    @Override
-    public boolean isAutoCreated() {
-        return autocreate;
-    }
-
-    @Override
-    public void setAutoCreated(boolean autocreate) {
-        this.autocreate = autocreate;
+    public PropertyDefinitionTemplateImpl(
+            NameMapper mapper, PropertyDefinition definition)
+            throws ConstraintViolationException {
+        super(mapper, definition);
+        setRequiredType(definition.getRequiredType());
+        setMultiple(definition.isMultiple());
+        setFullTextSearchable(definition.isFullTextSearchable());
+        setQueryOrderable(definition.isQueryOrderable());
+        setAvailableQueryOperators(definition.getAvailableQueryOperators());
+        setValueConstraints(definition.getValueConstraints());
+        setDefaultValues(definition.getDefaultValues());
     }
 
     @Override
-    public boolean isProtected() {
-        return isProtected;
+    public int getRequiredType() {
+        return requiredType;
     }
 
     @Override
-    public void setProtected(boolean isProtected) {
-        this.isProtected = isProtected;
-    }
-
-    @Override
-    public boolean isMandatory() {
-        return isMandatory;
-    }
-
-    @Override
-    public void setMandatory(boolean isMandatory) {
-        this.isMandatory = isMandatory;
-    }
-
-    @Override
-    public int getOnParentVersion() {
-        return onParent;
-    }
-
-    @Override
-    public void setOnParentVersion(int onParent) {
-        this.onParent = onParent;
-    }
-
-    @Override
-    public void setRequiredType(int requiredType) {
-        this.requiredType = requiredType;
+    public void setRequiredType(int type) {
+        PropertyType.nameFromValue(type); // validation
+        this.requiredType = type;
     }
 
     @Override
@@ -127,16 +93,6 @@ class PropertyDefinitionTemplateImpl
     }
 
     @Override
-    public boolean isQueryOrderable() {
-        return queryOrderable;
-    }
-
-    @Override
-    public void setQueryOrderable(boolean queryOrderable) {
-        this.queryOrderable = queryOrderable;
-    }
-
-    @Override
     public boolean isFullTextSearchable() {
         return fullTextSearchable;
     }
@@ -147,56 +103,55 @@ class PropertyDefinitionTemplateImpl
     }
 
     @Override
+    public boolean isQueryOrderable() {
+        return queryOrderable;
+    }
+
+    @Override
+    public void setQueryOrderable(boolean queryOrderable) {
+        this.queryOrderable = queryOrderable;
+    }
+
+    @Override
     public String[] getAvailableQueryOperators() {
         return queryOperators;
     }
 
     @Override
-    public void setAvailableQueryOperators(String[] queryOperators) {
-        this.queryOperators = queryOperators;
-    }
-
-    @Override
-    public Value[] getDefaultValues() {
-        return defaultValues;
-    }
-
-    @Override
-    public void setDefaultValues(Value[] defaultValues) {
-        this.defaultValues = defaultValues;
-    }
-
-    @Override
-    public void addDefaultValues(String value) throws RepositoryException {
-        if (defaultValues == null) {
-            defaultValues = new Value[] { createValue(value, getRequiredType()) };
-        } else {
-            Value[] values = new Value[defaultValues.length + 1];
-            System.arraycopy(defaultValues, 0, values, 0, defaultValues.length);
-            values[defaultValues.length] = createValue(value, getRequiredType());
-            defaultValues = values;
-        }
+    public void setAvailableQueryOperators(String[] operators) {
+        checkNotNull(operators);
+        this.queryOperators = new String[operators.length];
+        System.arraycopy(operators, 0, this.queryOperators, 0, operators.length);
     }
 
     @Override
     public String[] getValueConstraints() {
-        return valueConstraints;
+        return valueConstraints; // no problem if modified by client
     }
 
     @Override
     public void setValueConstraints(String[] constraints) {
-        this.valueConstraints = constraints;
+        if (constraints == null) {
+            this.valueConstraints = null;
+        } else {
+            this.valueConstraints = new String[constraints.length];
+            System.arraycopy(
+                    constraints, 0, valueConstraints, 0, constraints.length);
+        }
     }
 
     @Override
-    public void addValueConstraint(String constraint) {
-        if (valueConstraints == null) {
-            valueConstraints = new String[] { constraint };
+    public Value[] getDefaultValues() {
+        return defaultValues; // no problem if modified by client
+    }
+
+    @Override
+    public void setDefaultValues(Value[] values) {
+        if (values == null) {
+            this.defaultValues = null;
         } else {
-            String[] constraints = new String[valueConstraints.length + 1];
-            System.arraycopy(valueConstraints, 0, constraints, 0, valueConstraints.length);
-            constraints[valueConstraints.length] = constraint;
-            valueConstraints = constraints;
+            this.defaultValues = new Value[values.length];
+            System.arraycopy(values, 0, defaultValues, 0, values.length);
         }
     }
 

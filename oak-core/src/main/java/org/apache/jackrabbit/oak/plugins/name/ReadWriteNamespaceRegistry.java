@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.name;
 
+import java.util.Map;
+
 import javax.jcr.NamespaceException;
 import javax.jcr.RepositoryException;
 
@@ -73,6 +75,11 @@ public abstract class ReadWriteNamespaceRegistry
     @Override
     public void registerNamespace(String prefix, String uri)
             throws RepositoryException {
+        Map<String, String> map = Namespaces.getNamespaceMap(getReadTree());
+        if (uri.equals(map.get(prefix))) {
+            return; // Namespace already registered, so we do nothing
+        }
+
         try {
             Root root = getWriteRoot();
             Tree namespaces =
