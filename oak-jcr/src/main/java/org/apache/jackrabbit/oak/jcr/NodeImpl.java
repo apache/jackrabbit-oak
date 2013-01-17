@@ -223,7 +223,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
             public Node perform() throws RepositoryException {
                 String oakPath = sessionDelegate.getOakPathKeepIndexOrThrowNotFound(relPath);
                 String oakName = PathUtils.getName(oakPath);
-                String parentPath = sessionDelegate.getOakPathOrThrow(PathUtils.getParentPath(oakPath));
+                String parentPath = sessionDelegate.getOakPath(PathUtils.getParentPath(oakPath));
 
                 // handle index
                 if (oakName.contains("[")) {
@@ -767,7 +767,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         return sessionDelegate.perform(new SessionOperation<Boolean>() {
             @Override
             public Boolean perform() throws RepositoryException {
-                String oakPath = sessionDelegate.getOakPathOrThrow(relPath);
+                String oakPath = sessionDelegate.getOakPath(relPath);
                 return dlg.getChild(oakPath) != null;
             }
         });
@@ -780,7 +780,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         return sessionDelegate.perform(new SessionOperation<Boolean>() {
             @Override
             public Boolean perform() throws RepositoryException {
-                String oakPath = sessionDelegate.getOakPathOrThrow(relPath);
+                String oakPath = sessionDelegate.getOakPath(relPath);
                 return dlg.getProperty(oakPath) != null;
             }
         });
@@ -1099,8 +1099,8 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
      */
     @Override
     public boolean isLocked() throws RepositoryException {
-        String lockOwner = sessionDelegate.getOakPathOrThrow(JCR_LOCK_OWNER);
-        String lockIsDeep = sessionDelegate.getOakPathOrThrow(JCR_LOCK_IS_DEEP);
+        String lockOwner = sessionDelegate.getOakPath(JCR_LOCK_OWNER);
+        String lockIsDeep = sessionDelegate.getOakPath(JCR_LOCK_IS_DEEP);
 
         if (dlg.getProperty(lockOwner) != null) {
             return true;
@@ -1127,7 +1127,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
      */
     @Override
     public boolean holdsLock() throws RepositoryException {
-        String lockOwner = sessionDelegate.getOakPathOrThrow(JCR_LOCK_OWNER);
+        String lockOwner = sessionDelegate.getOakPath(JCR_LOCK_OWNER);
         return dlg.getProperty(lockOwner) != null;
     }
 
@@ -1149,8 +1149,8 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
             throws RepositoryException {
         final String userID = getSession().getUserID();
 
-        String lockOwner = sessionDelegate.getOakPathOrThrow(JCR_LOCK_OWNER);
-        String lockIsDeep = sessionDelegate.getOakPathOrThrow(JCR_LOCK_IS_DEEP);
+        String lockOwner = sessionDelegate.getOakPath(JCR_LOCK_OWNER);
+        String lockIsDeep = sessionDelegate.getOakPath(JCR_LOCK_IS_DEEP);
         try {
             ContentSession session = sessionDelegate.getContentSession();
             Root root = session.getLatestRoot();
@@ -1223,8 +1223,8 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
      */
     @Override
     public void unlock() throws RepositoryException {
-        String lockOwner = sessionDelegate.getOakPathOrThrow(JCR_LOCK_OWNER);
-        String lockIsDeep = sessionDelegate.getOakPathOrThrow(JCR_LOCK_IS_DEEP);
+        String lockOwner = sessionDelegate.getOakPath(JCR_LOCK_OWNER);
+        String lockIsDeep = sessionDelegate.getOakPath(JCR_LOCK_IS_DEEP);
         try {
             Root root = sessionDelegate.getContentSession().getLatestRoot();
             Tree tree = root.getTree(dlg.getPath());
@@ -1407,7 +1407,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     // FIXME OAK-505: hack to filter for a subset of supported mixins for now
     // this allows only harmless mixin types so that other code like addMixin gets test coverage
     private boolean isSupportedMixinName(String mixinName) throws RepositoryException {
-        String oakName = sessionDelegate.getOakPathOrThrow(mixinName);
+        String oakName = sessionDelegate.getOakPath(mixinName);
         return "mix:title".equals(oakName) ||
             NodeTypeConstants.MIX_REFERENCEABLE.equals(oakName) ||
             NodeTypeConstants.MIX_VERSIONABLE.equals(oakName) ||
@@ -1435,7 +1435,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                 }
                 // TODO: END
 
-                String jcrPrimaryType = sessionDelegate.getOakPathOrThrow(Property.JCR_PRIMARY_TYPE);
+                String jcrPrimaryType = sessionDelegate.getOakPath(Property.JCR_PRIMARY_TYPE);
                 Value value = sessionDelegate.getValueFactory().createValue(nodeTypeName, PropertyType.NAME);
                 dlg.setProperty(jcrPrimaryType, value);
                 return null;
@@ -1451,7 +1451,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         return sessionDelegate.perform(new SessionOperation<Property>() {
             @Override
             public Property perform() throws RepositoryException {
-                String oakName = sessionDelegate.getOakPathOrThrow(jcrName);
+                String oakName = sessionDelegate.getOakPath(jcrName);
                 if (value == null) {
                     if (hasProperty(jcrName)) {
                         Property property = getProperty(jcrName);
@@ -1491,7 +1491,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         return sessionDelegate.perform(new SessionOperation<Property>() {
             @Override
             public Property perform() throws RepositoryException {
-                String oakName = sessionDelegate.getOakPathOrThrow(jcrName);
+                String oakName = sessionDelegate.getOakPath(jcrName);
                 if (values == null) {
                     if (hasProperty(jcrName)) {
                         Property property = getProperty(jcrName);
