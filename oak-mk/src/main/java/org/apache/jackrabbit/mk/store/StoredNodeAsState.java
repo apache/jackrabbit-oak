@@ -32,9 +32,9 @@ import java.util.Map;
 
 class StoredNodeAsState extends AbstractNodeState {
 
-    private final StoredNode node;
+    final StoredNode node;
 
-    private final RevisionProvider provider;
+    final RevisionProvider provider;
 
     public StoredNodeAsState(StoredNode node, RevisionProvider provider) {
         this.node = node;
@@ -160,7 +160,7 @@ class StoredNodeAsState extends AbstractNodeState {
         }
     }
 
-    private ChildNode getChildNodeEntry(
+    ChildNode getChildNodeEntry(
             final ChildNodeEntry entry) {
         return new AbstractChildNode() {
             @Override
@@ -183,10 +183,7 @@ class StoredNodeAsState extends AbstractNodeState {
     public boolean equals(Object that) {
         if (that instanceof StoredNodeAsState) {
             StoredNodeAsState other = (StoredNodeAsState) that;
-            if (provider == other.provider
-                    && node.getId().equals(other.node.getId())) {
-                return true;
-            }
+            return node.getId().equals(other.node.getId());
         }
         return super.equals(that);
     }

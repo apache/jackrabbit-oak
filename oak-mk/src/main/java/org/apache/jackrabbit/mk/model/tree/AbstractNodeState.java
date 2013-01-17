@@ -113,16 +113,19 @@ public abstract class AbstractNodeState implements NodeState {
     }
 
     /**
-     * Returns a hash code that's compatible with how the
-     * {@link #equals(Object)} method is implemented. The current
-     * implementation simply returns zero for everything since
-     * {@link NodeState} instances are not intended for use as hash keys.
+     * Returns the hash code. This method is relatively expensive, and the
+     * returned value is not very distinct, as {@link NodeState} instances are
+     * not intended for use as hash keys.
      *
-     * @return hash code
+     * @return the hash code
      */
     @Override
     public int hashCode() {
-        return 0;
+        int hash = (int) getChildNodeCount();
+        for (PropertyState p : getProperties()) {
+            hash ^= p.hashCode();
+        }
+        return hash;
     }
 
 }

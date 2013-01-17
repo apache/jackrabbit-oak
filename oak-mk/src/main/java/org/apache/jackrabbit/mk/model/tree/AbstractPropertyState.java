@@ -48,16 +48,15 @@ public abstract class AbstractPropertyState implements PropertyState {
 
     /**
      * Returns a hash code that's compatible with how the
-     * {@link #equals(Object)} method is implemented. The current
-     * implementation simply returns the hash code of the property name
-     * since {@link PropertyState} instances are not intended for use as
-     * hash keys.
+     * {@link #equals(Object)} method is implemented. The current implementation
+     * simply returns the hash code of the property name and value.
+     * {@link PropertyState} instances are not intended for use as hash keys.
      *
      * @return hash code
      */
     @Override
     public int hashCode() {
-        return getName().hashCode();
+        return getName().hashCode() ^ getEncodedValue().hashCode();
     }
 
 }

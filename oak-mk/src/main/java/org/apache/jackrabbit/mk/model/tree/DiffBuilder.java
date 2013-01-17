@@ -46,9 +46,15 @@ public class DiffBuilder {
 
     public String build() throws Exception {
         final JsopBuilder buff = new JsopBuilder();
-        // maps (key: id of target node, value: path/to/target)
+
+        // maps (key: the target node, value: the path to the target)
         // for tracking added/removed nodes; this allows us
         // to detect 'move' operations
+
+        // TODO performance problem: this class uses NodeState as a hash key,
+        // which is not recommended because the hashCode and equals methods
+        // of those classes are slow
+
         final HashMap<NodeState, String> addedNodes = new HashMap<NodeState, String>();
         final HashMap<NodeState, String> removedNodes = new HashMap<NodeState, String>();
 
