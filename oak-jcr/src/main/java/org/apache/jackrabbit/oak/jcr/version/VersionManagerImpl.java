@@ -115,7 +115,7 @@ public class VersionManagerImpl implements VersionManager {
         return sessionDelegate.perform(new SessionOperation<Boolean>() {
             @Override
             public Boolean perform() throws RepositoryException {
-                String oakPath = sessionDelegate.getOakPath(absPath);
+                String oakPath = sessionDelegate.getOakPathOrThrowNotFound(absPath);
                 NodeDelegate nodeDelegate = sessionDelegate.getNode(oakPath);
                 if (nodeDelegate == null) {
                     throw new PathNotFoundException(absPath);
@@ -132,7 +132,7 @@ public class VersionManagerImpl implements VersionManager {
         return sessionDelegate.perform(new SessionOperation<VersionHistory>() {
             @Override
             public VersionHistory perform() throws RepositoryException {
-                String oakPath = sessionDelegate.getOakPath(absPath);
+                String oakPath = sessionDelegate.getOakPathOrThrowNotFound(absPath);
                 NodeDelegate nodeDelegate = sessionDelegate.getNode(oakPath);
                 if (nodeDelegate == null) {
                     throw new PathNotFoundException(absPath);
@@ -149,7 +149,7 @@ public class VersionManagerImpl implements VersionManager {
         return sessionDelegate.perform(new SessionOperation<Version>() {
             @Override
             public Version perform() throws RepositoryException {
-                String oakPath = sessionDelegate.getOakPath(absPath);
+                String oakPath = sessionDelegate.getOakPathOrThrowNotFound(absPath);
                 NodeDelegate nodeDelegate = sessionDelegate.getNode(oakPath);
                 if (nodeDelegate == null) {
                     throw new PathNotFoundException(absPath);
@@ -195,7 +195,7 @@ public class VersionManagerImpl implements VersionManager {
         sessionDelegate.perform(new SessionOperation<Void>() {
             @Override
             public Void perform() throws RepositoryException {
-                String oakPath = sessionDelegate.getOakPath(absPath);
+                String oakPath = sessionDelegate.getOakPathOrThrowNotFound(absPath);
                 NodeDelegate nodeDelegate = sessionDelegate.getNode(oakPath);
                 if (nodeDelegate == null) {
                     throw new PathNotFoundException(absPath);
@@ -218,7 +218,7 @@ public class VersionManagerImpl implements VersionManager {
         return sessionDelegate.perform(new SessionOperation<Version>() {
             @Override
             public Version perform() throws RepositoryException {
-                String oakPath = sessionDelegate.getOakPath(absPath);
+                String oakPath = sessionDelegate.getOakPathOrThrowNotFound(absPath);
                 NodeDelegate nodeDelegate = sessionDelegate.getNode(oakPath);
                 if (nodeDelegate == null) {
                     throw new PathNotFoundException(absPath);
