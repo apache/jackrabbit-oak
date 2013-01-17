@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.nodetype;
+package org.apache.jackrabbit.oak.plugins.nodetype.write;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_AUTOCREATED;
 import static org.apache.jackrabbit.JcrConstants.JCR_MANDATORY;
@@ -33,13 +33,14 @@ import javax.jcr.version.OnParentVersionAction;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
+import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 
 /**
  * Base class for the node and property definition template implementations
  * in this package. Takes care of the shared item definition attributes and
  * manages mappings between JCR and Oak names.
  */
-abstract class ItemDefinitionTemplateImpl extends AbstractNamedTemplate
+abstract class ItemDefinitionTemplate extends NamedTemplate
         implements ItemDefinition {
 
     private boolean residual = false;
@@ -52,11 +53,11 @@ abstract class ItemDefinitionTemplateImpl extends AbstractNamedTemplate
 
     protected boolean isMandatory = false;
 
-    protected ItemDefinitionTemplateImpl(NameMapper mapper) {
+    protected ItemDefinitionTemplate(NameMapper mapper) {
         super(mapper);
     }
 
-    protected ItemDefinitionTemplateImpl(
+    protected ItemDefinitionTemplate(
             NameMapper mapper, ItemDefinition definition)
             throws ConstraintViolationException {
         super(mapper, definition.getName());

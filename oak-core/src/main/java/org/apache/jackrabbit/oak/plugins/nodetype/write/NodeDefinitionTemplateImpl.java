@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.nodetype;
+package org.apache.jackrabbit.oak.plugins.nodetype.write;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_DEFAULTPRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_REQUIREDPRIMARYTYPES;
@@ -32,7 +32,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 
-class NodeDefinitionTemplateImpl extends ItemDefinitionTemplateImpl
+class NodeDefinitionTemplateImpl extends ItemDefinitionTemplate
         implements NodeDefinitionTemplate {
 
     private boolean allowSameNameSiblings = false;

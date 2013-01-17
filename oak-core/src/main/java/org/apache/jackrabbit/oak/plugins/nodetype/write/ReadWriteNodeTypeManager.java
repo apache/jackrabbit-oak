@@ -14,38 +14,41 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.nodetype;
+package org.apache.jackrabbit.oak.plugins.nodetype.write;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
 
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
+import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.NoSuchNodeTypeException;
+import javax.jcr.nodetype.NodeDefinitionTemplate;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.NodeTypeDefinition;
 import javax.jcr.nodetype.NodeTypeIterator;
+import javax.jcr.nodetype.NodeTypeTemplate;
+import javax.jcr.nodetype.PropertyDefinitionTemplate;
 
 import org.apache.jackrabbit.commons.iterator.NodeTypeIteratorAdapter;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.util.NodeUtil;
-
-import com.google.common.collect.Lists;
+import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 
 /**
  * {@code ReadWriteNodeTypeManager} extends the {@link ReadOnlyNodeTypeManager}
- * and add support for operations that modify node types:
+ * with support for operations that modify node types.
  * <ul>
  *     <li>{@link #registerNodeType(NodeTypeDefinition, boolean)}</li>
  *     <li>{@link #registerNodeTypes(NodeTypeDefinition[], boolean)}</li>
  *     <li>{@link #unregisterNodeType(String)}</li>
  *     <li>{@link #unregisterNodeTypes(String[])}</li>
+ *     <li>plus related template factory methods</li>
  * </ul>
  * Calling any of the above methods will result in a {@link #refresh()} callback
  * to e.g. inform an associated session that it should refresh to make the
@@ -94,60 +97,65 @@ public abstract class ReadWriteNodeTypeManager extends ReadOnlyNodeTypeManager {
     //----------------------------------------------------< NodeTypeManager >---
 
     @Override
-    public NodeType registerNodeType(NodeTypeDefinition ntd, boolean allowUpdate) throws RepositoryException {
-        // TODO proper node type registration... (OAK-66, OAK-411)
-        Root root = getWriteRoot();
-        Tree types = getOrCreateNodeTypes(root);
-        try {
-            NodeType type = internalRegister(types, ntd, allowUpdate);
-            root.commit();
-            refresh();
-            return type;
-        } catch (CommitFailedException e) {
-            throw new RepositoryException(e);
-        }
+    public NodeTypeTemplate createNodeTypeTemplate() {
+        return new NodeTypeTemplateImpl(getNamePathMapper());
     }
 
     @Override
-    public final NodeTypeIterator registerNodeTypes(NodeTypeDefinition[] ntds, boolean allowUpdate)
+    public NodeTypeTemplate createNodeTypeTemplate(NodeTypeDefinition ntd)
+            throws ConstraintViolationException {
+        return new NodeTypeTemplateImpl(getNamePathMapper(), ntd);
+    }
+
+    @Override
+    public NodeDefinitionTemplate createNodeDefinitionTemplate() {
+        return new NodeDefinitionTemplateImpl(getNamePathMapper());
+    }
+
+    @Override
+    public PropertyDefinitionTemplate createPropertyDefinitionTemplate() {
+        return new PropertyDefinitionTemplateImpl(getNamePathMapper());
+    }
+
+    @Override
+    public NodeType registerNodeType(
+            NodeTypeDefinition ntd, boolean allowUpdate)
             throws RepositoryException {
+        return registerNodeTypes(
+                new NodeTypeDefinition[] { ntd }, allowUpdate).nextNodeType();
+    }
+
+    @Override
+    public final NodeTypeIterator registerNodeTypes(
+            NodeTypeDefinition[] ntds, boolean allowUpdate)
+            throws RepositoryException {
+        // TODO proper node type registration... (OAK-66, OAK-411)
         // TODO handle inter-type dependencies (OAK-66, OAK-411)
         Root root = getWriteRoot();
         try {
-            List<NodeType> list = internalRegister(
-                    root, Arrays.asList(ntds), allowUpdate);
+            Tree tree = getOrCreateNodeTypes(root);
+            for (NodeTypeDefinition ntd : ntds) {
+                NodeTypeTemplateImpl template;
+                if (ntd instanceof NodeTypeTemplateImpl) {
+                    template = (NodeTypeTemplateImpl) ntd;
+                } else {
+                    // some external template implementation, copy before proceeding
+                    template = new NodeTypeTemplateImpl(getNamePathMapper(), ntd);
+                }
+                template.writeTo(tree, allowUpdate);
+            }
             root.commit();
+
             refresh();
-            return new NodeTypeIteratorAdapter(list);
+
+            List<NodeType> types = new ArrayList<NodeType>(ntds.length);
+            for (NodeTypeDefinition ntd : ntds) {
+                types.add(getNodeType(ntd.getName()));
+            }
+            return new NodeTypeIteratorAdapter(types);
         } catch (CommitFailedException e) {
             throw new RepositoryException(e);
         }
-    }
-
-    private List<NodeType> internalRegister(
-            Root root, Iterable<? extends NodeTypeDefinition> ntds,
-            boolean allowUpdate) throws RepositoryException {
-        Tree types = getOrCreateNodeTypes(root);
-        List<NodeType> list = Lists.newArrayList();
-        for (NodeTypeDefinition ntd : ntds) {
-            list.add(internalRegister(types, ntd, allowUpdate));
-        }
-        return list;
-    }
-
-    private NodeType internalRegister(
-            Tree types, NodeTypeDefinition ntd, boolean allowUpdate)
-            throws RepositoryException {
-        NodeTypeTemplateImpl template;
-        if (ntd instanceof NodeTypeTemplateImpl) {
-            template = (NodeTypeTemplateImpl) ntd;
-        } else {
-            // some external template implementation, copy before proceeding
-            template = new NodeTypeTemplateImpl(getNamePathMapper(), ntd);
-        }
-        Tree type = template.writeTo(types, allowUpdate);
-        NodeUtil node = new NodeUtil(type, getNamePathMapper());
-        return new NodeTypeImpl(this, getValueFactory(), node);
     }
 
     private static Tree getOrCreateNodeTypes(Root root) {

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.nodetype;
+package org.apache.jackrabbit.oak.plugins.nodetype.write;
 
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
 
@@ -45,7 +45,7 @@ import com.google.common.base.Charsets;
  * <code>BuiltInNodeTypes</code> is a utility class that registers the built-in
  * node types required for a JCR repository running on Oak.
  */
-public class BuiltInNodeTypes {
+class BuiltInNodeTypes {
 
     private final NodeTypeManager ntMgr;
 

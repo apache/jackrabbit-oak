@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.nodetype;
+package org.apache.jackrabbit.oak.plugins.nodetype.write;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.JcrConstants.JCR_DEFAULTVALUES;
@@ -40,7 +40,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 
-class PropertyDefinitionTemplateImpl extends ItemDefinitionTemplateImpl
+class PropertyDefinitionTemplateImpl extends ItemDefinitionTemplate
         implements PropertyDefinitionTemplate {
 
     private static final String[] ALL_OPERATORS = new String[]{
