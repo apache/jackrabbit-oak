@@ -53,10 +53,7 @@ public class ImmutableACLTest extends AbstractAccessControlListTest {
         super.before();
 
         testPrincipal = new PrincipalImpl("testPrincipal");
-        testPrivileges = new Privilege[] {
-                getPrivilegeManager().getPrivilege(PrivilegeConstants.JCR_READ),
-                getPrivilegeManager().getPrivilege(PrivilegeConstants.JCR_ADD_CHILD_NODES)
-        };
+        testPrivileges = privilegesFromNames(PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_ADD_CHILD_NODES);
     }
 
     @Override
@@ -120,7 +117,7 @@ public class ImmutableACLTest extends AbstractAccessControlListTest {
     public void testImmutable() throws Exception {
         List<JackrabbitAccessControlEntry> entries = new ArrayList<JackrabbitAccessControlEntry>();
         entries.add(new ACE(testPrincipal, testPrivileges, true, null));
-        entries.add(new ACE(testPrincipal, new Privilege[] {getPrivilegeManager().getPrivilege(PrivilegeConstants.JCR_LIFECYCLE_MANAGEMENT)}, false, null));
+        entries.add(new ACE(testPrincipal, privilegesFromNames(PrivilegeConstants.JCR_LIFECYCLE_MANAGEMENT), false, null));
 
         JackrabbitAccessControlList acl = createACL(entries);
         assertFalse(acl.isEmpty());
