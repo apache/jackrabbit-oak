@@ -159,16 +159,22 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
     public AccessControlPolicyIterator getApplicablePolicies(String absPath) throws RepositoryException {
         String oakPath = getOakPath(absPath);
         Tree tree = getTree(oakPath);
+
         AccessControlPolicy policy = null;
         NodeUtil aclNode = getAclNode(oakPath, tree);
         if (aclNode == null) {
-            // create an empty acl unless the node is protected or cannot have
-            // mixin set (e.g. due to a lock)
-            String mixinName = getMixinName(oakPath);
-            if (ntMgr.isNodeType(tree, mixinName) || ntMgr.getEffectiveNodeType(tree).supportsMixin(mixinName)) {
-                policy = new NodeACL(oakPath);
+            if (tree.hasChild(getAclName(oakPath))) {
+                // policy child node without tree being access controlled
+                log.warn("Colliding policy child without node being access controllable ({}).", absPath);
             } else {
-                log.warn("Node {} cannot be made access controllable.", absPath);
+                // create an empty acl unless the node is protected or cannot have
+                // mixin set (e.g. due to a lock)
+                String mixinName = getMixinName(oakPath);
+                if (ntMgr.isNodeType(tree, mixinName) || ntMgr.getEffectiveNodeType(tree).supportsMixin(mixinName)) {
+                    policy = new NodeACL(oakPath);
+                } else {
+                    log.warn("Node {} cannot be made access controllable.", absPath);
+                }
             }
         } // else: acl already present -> getPolicies must be used.
 
@@ -390,18 +396,20 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
         String aclName = getAclName(oakPath);
         String mixinName = getMixinName(oakPath);
 
-        if (isAccessControlled(accessControlledTree, mixinName) && accessControlledTree.hasChild(aclName)) {
+        if (isAccessControlled(accessControlledTree, mixinName)) {
             Tree aclTree = accessControlledTree.getChild(aclName);
-            List<JackrabbitAccessControlEntry> entries = new ArrayList<JackrabbitAccessControlEntry>();
-            for (Tree child : aclTree.getChildren()) {
-                if (isACE(child)) {
-                    entries.add(createACE(oakPath, child, restrictionProvider));
+            if (aclTree != null) {
+                List<JackrabbitAccessControlEntry> entries = new ArrayList<JackrabbitAccessControlEntry>();
+                for (Tree child : aclTree.getChildren()) {
+                    if (isACE(child)) {
+                        entries.add(createACE(oakPath, child, restrictionProvider));
+                    }
                 }
-            }
-            if (isReadOnly) {
-                acl = new ImmutableACL(oakPath, entries, restrictionProvider, namePathMapper);
-            } else {
-                acl = new NodeACL(oakPath, entries);
+                if (isReadOnly) {
+                    acl = new ImmutableACL(oakPath, entries, restrictionProvider, namePathMapper);
+                } else {
+                    acl = new NodeACL(oakPath, entries);
+                }
             }
         }
         return acl;
@@ -490,9 +498,15 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
     }
 
     @CheckForNull
-    private static NodeUtil getAclNode(String oakPath, Tree accessControlledTree) {
-        Tree policyTree = accessControlledTree.getChild(getAclName(oakPath));
-        return (policyTree == null) ? null : new NodeUtil(policyTree);
+    private NodeUtil getAclNode(String oakPath, Tree accessControlledTree) throws RepositoryException {
+        if (isAccessControlled(accessControlledTree, getMixinName(oakPath))) {
+            Tree policyTree = accessControlledTree.getChild(getAclName(oakPath));
+            if (policyTree != null) {
+                return new NodeUtil(policyTree);
+            }
+        }
+
+        return null;
     }
 
     @Nonnull
