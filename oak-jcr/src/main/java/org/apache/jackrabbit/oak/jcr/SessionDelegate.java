@@ -301,7 +301,7 @@ public class SessionDelegate {
      * @throws PathNotFoundException 
      */
     @Nonnull
-    public String getOakPathKeepIndex(String jcrPath) throws PathNotFoundException {
+    public String getOakPathKeepIndexOrThrowNotFound(String jcrPath) throws PathNotFoundException {
         String oakPath = getNamePathMapper().getOakPathKeepIndex(jcrPath);
         if (oakPath != null) {
             return oakPath;
@@ -319,12 +319,31 @@ public class SessionDelegate {
      * @throws PathNotFoundException if the path can not be mapped
      */
     @Nonnull
-    public String getOakPath(String jcrPath) throws PathNotFoundException {
+    public String getOakPathOrThrowNotFound(String jcrPath) throws PathNotFoundException {
         String oakPath = getOakPathOrNull(jcrPath);
         if (oakPath != null) {
             return oakPath;
         } else {
             throw new PathNotFoundException(jcrPath);
+        }
+    }
+
+    /**
+     * Returns the Oak path for the given JCR path, or throws a
+     * {@link RepositoryException} if the path can not be mapped.
+     *
+     * @param jcrPath JCR path
+     * @return Oak path
+     * @throws RepositoryException if the path can not be mapped
+     */
+    @Nonnull
+    public String getOakPathOrThrow(String jcrPath)
+            throws RepositoryException {
+        String oakPath = getOakPathOrNull(jcrPath);
+        if (oakPath != null) {
+            return oakPath;
+        } else {
+            throw new RepositoryException("Invalid name or path: " + jcrPath);
         }
     }
 
