@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.nodetype;
+package org.apache.jackrabbit.oak.plugins.nodetype.write;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -28,17 +28,17 @@ import org.apache.jackrabbit.oak.namepath.NameMapper;
  * Keeps track of the Oak name of this template and provides utility methods
  * for mapping between JCR and Oak names.
  */
-abstract class AbstractNamedTemplate {
+abstract class NamedTemplate {
 
     private final NameMapper mapper;
 
     private String oakName = null; // not defined by default
 
-    protected AbstractNamedTemplate(NameMapper mapper) {
+    protected NamedTemplate(NameMapper mapper) {
         this.mapper = mapper;
     }
 
-    protected AbstractNamedTemplate(NameMapper mapper, String jcrName)
+    protected NamedTemplate(NameMapper mapper, String jcrName)
             throws ConstraintViolationException {
         this(mapper);
         if (jcrName != null) {
@@ -56,6 +56,8 @@ abstract class AbstractNamedTemplate {
     protected String getOakName() {
         return oakName;
     }
+
+    //------------------------------------------------------------< public >--
 
     /**
      * Returns the JCR name of this template, or {@code null} if the name
@@ -78,6 +80,8 @@ abstract class AbstractNamedTemplate {
             throws ConstraintViolationException {
         this.oakName = getOakNameOrThrowConstraintViolation(jcrName);
     }
+
+    //-------------------------------------------< name handling utilities >--
 
     /**
      * Like {@link NameMapper#getJcrName(String)}, but allows the given Oak

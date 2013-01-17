@@ -35,7 +35,8 @@ public class TypeValidatorProvider implements ValidatorProvider {
 
     @Override
     public Validator getRootValidator(NodeState before, final NodeState after) {
-        ReadOnlyNodeTypeManager ntm = new ValidatingNodeTypeManager(after);
+        ReadOnlyNodeTypeManager ntm =
+                ReadOnlyNodeTypeManager.getInstance(after);
         final ReadOnlyTree root = new ReadOnlyTree(after);
         NamePathMapper mapper = new NamePathMapperImpl(new GlobalNameMapper() {
             @Override
