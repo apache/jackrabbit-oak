@@ -16,11 +16,20 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype;
 
+import static org.apache.jackrabbit.JcrConstants.JCR_DEFAULTPRIMARYTYPE;
+import static org.apache.jackrabbit.JcrConstants.JCR_REQUIREDPRIMARYTYPES;
+import static org.apache.jackrabbit.JcrConstants.JCR_SAMENAMESIBLINGS;
+
+import java.util.Arrays;
+
+import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.NodeDefinition;
 import javax.jcr.nodetype.NodeDefinitionTemplate;
 import javax.jcr.nodetype.NodeType;
 
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 
 class NodeDefinitionTemplateImpl extends ItemDefinitionTemplateImpl
@@ -44,6 +53,34 @@ class NodeDefinitionTemplateImpl extends ItemDefinitionTemplateImpl
         setDefaultPrimaryTypeName(definition.getDefaultPrimaryTypeName());
         setRequiredPrimaryTypeNames(definition.getRequiredPrimaryTypeNames());
     }
+
+    /**
+     * Writes the contents of this node definition to the given tree node.
+     * Used when registering new node types.
+     *
+     * @param tree an {@code nt:childNodeDefinition} node
+     * @throws RepositoryException if this definition could not be written
+     */
+    @Override
+    void writeTo(Tree tree) throws RepositoryException {
+        super.writeTo(tree);
+
+        tree.setProperty(JCR_SAMENAMESIBLINGS, allowSameNameSiblings);
+
+        if (requiredPrimaryTypeOakNames != null) {
+            tree.setProperty(
+                    JCR_REQUIREDPRIMARYTYPES,
+                    Arrays.asList(requiredPrimaryTypeOakNames), Type.NAMES);
+        }
+
+        if (defaultPrimaryTypeOakName != null) {
+            tree.setProperty(
+                    JCR_DEFAULTPRIMARYTYPE,
+                    defaultPrimaryTypeOakName, Type.NAME);
+        }
+    }
+
+    //------------------------------------------------------------< public >--
 
     @Override
     public boolean allowsSameNameSiblings() {
@@ -99,6 +136,12 @@ class NodeDefinitionTemplateImpl extends ItemDefinitionTemplateImpl
             throws ConstraintViolationException {
         this.requiredPrimaryTypeOakNames =
                 getOakNamesOrThrowConstraintViolation(jcrNames);
+    }
+
+    //------------------------------------------------------------< Object >--
+
+    public String toString() {
+        return String.format("PropertyDefinitionTemplate(%s)", getOakName());
     }
 
 }

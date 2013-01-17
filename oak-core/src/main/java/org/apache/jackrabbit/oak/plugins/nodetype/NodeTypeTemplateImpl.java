@@ -16,22 +16,41 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype;
 
+import static org.apache.jackrabbit.JcrConstants.JCR_CHILDNODEDEFINITION;
+import static org.apache.jackrabbit.JcrConstants.JCR_HASORDERABLECHILDNODES;
+import static org.apache.jackrabbit.JcrConstants.JCR_ISMIXIN;
+import static org.apache.jackrabbit.JcrConstants.JCR_NODETYPENAME;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYITEMNAME;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.JcrConstants.JCR_PROPERTYDEFINITION;
+import static org.apache.jackrabbit.JcrConstants.JCR_SUPERTYPES;
+import static org.apache.jackrabbit.JcrConstants.NT_CHILDNODEDEFINITION;
+import static org.apache.jackrabbit.JcrConstants.NT_NODETYPE;
+import static org.apache.jackrabbit.JcrConstants.NT_PROPERTYDEFINITION;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_IS_ABSTRACT;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_IS_QUERYABLE;
+
+import java.util.Arrays;
 import java.util.List;
 
 import javax.annotation.Nonnull;
+import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.NodeDefinition;
 import javax.jcr.nodetype.NodeDefinitionTemplate;
 import javax.jcr.nodetype.NodeTypeDefinition;
+import javax.jcr.nodetype.NodeTypeExistsException;
 import javax.jcr.nodetype.NodeTypeTemplate;
 import javax.jcr.nodetype.PropertyDefinition;
 import javax.jcr.nodetype.PropertyDefinitionTemplate;
 
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 
 import com.google.common.collect.Lists;
 
-final class NodeTypeTemplateImpl extends AbstractNamedTemplate
+class NodeTypeTemplateImpl extends AbstractNamedTemplate
         implements NodeTypeTemplate {
 
     private static final PropertyDefinition[] EMPTY_PROPERTY_DEFINITION_ARRAY =
@@ -53,11 +72,11 @@ final class NodeTypeTemplateImpl extends AbstractNamedTemplate
     @Nonnull
     private String[] superTypeOakNames = new String[0];
 
-    private List<PropertyDefinitionTemplate> propertyDefinitionTemplates = null;
+    private List<PropertyDefinitionTemplateImpl> propertyDefinitionTemplates = null;
 
-    private List<NodeDefinitionTemplate> nodeDefinitionTemplates = null;
+    private List<NodeDefinitionTemplateImpl> nodeDefinitionTemplates = null;
 
-    public NodeTypeTemplateImpl(NameMapper mapper) {
+    NodeTypeTemplateImpl(NameMapper mapper) {
         super(mapper);
     }
 
@@ -95,6 +114,80 @@ final class NodeTypeTemplateImpl extends AbstractNamedTemplate
             }
         }
     }
+
+    /**
+     * Writes this node type as an {@code nt:nodeType} child of the given
+     * parent node. An exception is thrown if the child node already exists,
+     * unless the {@code allowUpdate} flag is set, in which case the existing
+     * node is overwritten.
+     *
+     * @param parent parent node under which to write this node type
+     * @param allowUpdate whether to overwrite an existing type
+     * @throws RepositoryException if this type could not be written
+     */
+    Tree writeTo(Tree parent, boolean allowUpdate) throws RepositoryException {
+        String oakName = getOakName();
+
+        Tree type = parent.getChild(oakName);
+        if (type != null) {
+            if (allowUpdate) {
+                type.remove();
+            } else {
+                throw new NodeTypeExistsException(
+                        "Node type " + getName() + " already exists");
+            }
+        }
+        type = parent.addChild(oakName);
+
+        type.setProperty(JCR_PRIMARYTYPE, NT_NODETYPE, Type.NAME);
+        type.setProperty(JCR_NODETYPENAME, oakName, Type.NAME);
+
+        if (superTypeOakNames != null && superTypeOakNames.length > 0) {
+            type.setProperty(
+                    JCR_SUPERTYPES,
+                    Arrays.asList(superTypeOakNames), Type.NAMES);
+        }
+
+        type.setProperty(JCR_IS_ABSTRACT, isAbstract);
+        type.setProperty(JCR_IS_QUERYABLE, queryable);
+        type.setProperty(JCR_ISMIXIN, isMixin);
+
+        // TODO fail (in validator?) if not orderable but a supertype is orderable
+        // See 3.7.6.7 Node Type Attribute Subtyping Rules (OAK-411)
+        type.setProperty(JCR_HASORDERABLECHILDNODES, isOrderable);
+
+        // TODO fail (in validator?) if a supertype specifies a different primary item
+        // See 3.7.6.7 Node Type Attribute Subtyping Rules (OAK-411)
+        if (primaryItemOakName != null) {
+            type.setProperty(JCR_PRIMARYITEMNAME, primaryItemOakName, Type.NAME);
+        }
+
+        // TODO fail (in validator?) on invalid item definitions
+        // See 3.7.6.8 Item Definitions in Subtypes (OAK-411)
+        if (propertyDefinitionTemplates != null) {
+            int pdn = 1;
+            for (PropertyDefinitionTemplateImpl pdt : propertyDefinitionTemplates) {
+                Tree tree = type.addChild(JCR_PROPERTYDEFINITION + pdn++);
+                tree.setProperty(
+                        JCR_PRIMARYTYPE, NT_PROPERTYDEFINITION, Type.NAME);
+                pdt.writeTo(tree);
+            }
+        }
+
+        if (nodeDefinitionTemplates != null) {
+            int ndn = 1;
+            for (NodeDefinitionTemplateImpl ndt : nodeDefinitionTemplates) {
+                Tree tree = type.addChild(JCR_CHILDNODEDEFINITION + ndn++);
+                tree.setProperty(
+                        JCR_PRIMARYTYPE, NT_CHILDNODEDEFINITION, Type.NAME);
+                ndt.writeTo(tree);
+            }
+        }
+
+        return type;
+    }
+
+    //------------------------------------------------------------< public >--
 
     @Override
     public boolean isMixin() {
@@ -171,7 +264,7 @@ final class NodeTypeTemplateImpl extends AbstractNamedTemplate
     }
 
     @Override
-    public List<PropertyDefinitionTemplate> getPropertyDefinitionTemplates() {
+    public List<? extends PropertyDefinitionTemplate> getPropertyDefinitionTemplates() {
         if (propertyDefinitionTemplates == null) {
             propertyDefinitionTemplates = Lists.newArrayList();
         }
@@ -189,11 +282,17 @@ final class NodeTypeTemplateImpl extends AbstractNamedTemplate
     }
 
     @Override
-    public List<NodeDefinitionTemplate> getNodeDefinitionTemplates() {
+    public List<? extends NodeDefinitionTemplate> getNodeDefinitionTemplates() {
         if (nodeDefinitionTemplates == null) {
             nodeDefinitionTemplates = Lists.newArrayList();
         }
         return nodeDefinitionTemplates;
+    }
+
+    //------------------------------------------------------------< Object >--
+
+    public String toString() {
+        return String.format("NodeTypeTemplate(%s)", getOakName());
     }
 
 }

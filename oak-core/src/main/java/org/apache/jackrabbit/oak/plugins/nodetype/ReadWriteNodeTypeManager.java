@@ -16,62 +16,27 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype;
 
+import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
+
 import java.util.Arrays;
 import java.util.List;
 
 import javax.annotation.Nonnull;
-import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
-import javax.jcr.Value;
-import javax.jcr.nodetype.ItemDefinition;
 import javax.jcr.nodetype.NoSuchNodeTypeException;
-import javax.jcr.nodetype.NodeDefinition;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.NodeTypeDefinition;
-import javax.jcr.nodetype.NodeTypeExistsException;
 import javax.jcr.nodetype.NodeTypeIterator;
-import javax.jcr.nodetype.PropertyDefinition;
-import javax.jcr.version.OnParentVersionAction;
 
-import com.google.common.collect.Lists;
 import org.apache.jackrabbit.commons.iterator.NodeTypeIteratorAdapter;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 
-import static org.apache.jackrabbit.JcrConstants.JCR_AUTOCREATED;
-import static org.apache.jackrabbit.JcrConstants.JCR_CHILDNODEDEFINITION;
-import static org.apache.jackrabbit.JcrConstants.JCR_DEFAULTPRIMARYTYPE;
-import static org.apache.jackrabbit.JcrConstants.JCR_DEFAULTVALUES;
-import static org.apache.jackrabbit.JcrConstants.JCR_HASORDERABLECHILDNODES;
-import static org.apache.jackrabbit.JcrConstants.JCR_ISMIXIN;
-import static org.apache.jackrabbit.JcrConstants.JCR_MANDATORY;
-import static org.apache.jackrabbit.JcrConstants.JCR_MULTIPLE;
-import static org.apache.jackrabbit.JcrConstants.JCR_NAME;
-import static org.apache.jackrabbit.JcrConstants.JCR_NODETYPENAME;
-import static org.apache.jackrabbit.JcrConstants.JCR_ONPARENTVERSION;
-import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYITEMNAME;
-import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
-import static org.apache.jackrabbit.JcrConstants.JCR_PROPERTYDEFINITION;
-import static org.apache.jackrabbit.JcrConstants.JCR_PROTECTED;
-import static org.apache.jackrabbit.JcrConstants.JCR_REQUIREDPRIMARYTYPES;
-import static org.apache.jackrabbit.JcrConstants.JCR_REQUIREDTYPE;
-import static org.apache.jackrabbit.JcrConstants.JCR_SAMENAMESIBLINGS;
-import static org.apache.jackrabbit.JcrConstants.JCR_SUPERTYPES;
-import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
-import static org.apache.jackrabbit.JcrConstants.JCR_VALUECONSTRAINTS;
-import static org.apache.jackrabbit.JcrConstants.NT_CHILDNODEDEFINITION;
-import static org.apache.jackrabbit.JcrConstants.NT_NODETYPE;
-import static org.apache.jackrabbit.JcrConstants.NT_PROPERTYDEFINITION;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_AVAILABLE_QUERY_OPERATORS;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_IS_ABSTRACT;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_IS_FULLTEXT_SEARCHABLE;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_IS_QUERYABLE;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_IS_QUERY_ORDERABLE;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.RESIDUAL_NAME;
+import com.google.common.collect.Lists;
 
 /**
  * {@code ReadWriteNodeTypeManager} extends the {@link ReadOnlyNodeTypeManager}
@@ -173,111 +138,16 @@ public abstract class ReadWriteNodeTypeManager extends ReadOnlyNodeTypeManager {
     private NodeType internalRegister(
             Tree types, NodeTypeDefinition ntd, boolean allowUpdate)
             throws RepositoryException {
-        String jcrName = ntd.getName();
-        String oakName = getOakName(jcrName);
-
-        Tree type = types.getChild(oakName);
-        if (type != null) {
-            if (allowUpdate) {
-                type.remove();
-            } else {
-                throw new NodeTypeExistsException("Node type " + jcrName + " already exists");
-            }
+        NodeTypeTemplateImpl template;
+        if (ntd instanceof NodeTypeTemplateImpl) {
+            template = (NodeTypeTemplateImpl) ntd;
+        } else {
+            // some external template implementation, copy before proceeding
+            template = new NodeTypeTemplateImpl(getNamePathMapper(), ntd);
         }
-        type = types.addChild(oakName);
-
+        Tree type = template.writeTo(types, allowUpdate);
         NodeUtil node = new NodeUtil(type, getNamePathMapper());
-        node.setName(JCR_PRIMARYTYPE, NT_NODETYPE);
-        node.setName(JCR_NODETYPENAME, jcrName);
-        String[] superTypeNames = ntd.getDeclaredSupertypeNames();
-        if (superTypeNames != null && superTypeNames.length > 0) {
-            node.setNames(JCR_SUPERTYPES, ntd.getDeclaredSupertypeNames());
-        }
-        node.setBoolean(JCR_IS_ABSTRACT, ntd.isAbstract());
-        node.setBoolean(JCR_IS_QUERYABLE, ntd.isQueryable());
-        node.setBoolean(JCR_ISMIXIN, ntd.isMixin());
-
-        // TODO fail if not orderable but a supertype is orderable. See 3.7.6.7 Node Type Attribute Subtyping Rules (OAK-411)
-        node.setBoolean(JCR_HASORDERABLECHILDNODES, ntd.hasOrderableChildNodes());
-        String primaryItemName = ntd.getPrimaryItemName();
-
-        // TODO fail if a supertype specifies a different primary item. See 3.7.6.7 Node Type Attribute Subtyping Rules (OAK-411)
-        if (primaryItemName != null) {
-            node.setName(JCR_PRIMARYITEMNAME, primaryItemName);
-        }
-
-        // TODO fail on invalid item definitions. See 3.7.6.8 Item Definitions in Subtypes (OAK-411)
-        PropertyDefinition[] propertyDefinitions = ntd.getDeclaredPropertyDefinitions();
-        if (propertyDefinitions != null) {
-            int pdn = 1;
-            for (PropertyDefinition pd : propertyDefinitions) {
-                NodeUtil def = node.addChild(JCR_PROPERTYDEFINITION + pdn++, NT_PROPERTYDEFINITION);
-                internalRegisterPropertyDefinition(def, pd);
-            }
-        }
-
-        NodeDefinition[] nodeDefinitions = ntd.getDeclaredChildNodeDefinitions();
-        if (nodeDefinitions != null) {
-            int ndn = 1;
-            for (NodeDefinition nd : nodeDefinitions) {
-                NodeUtil def = node.addChild(JCR_CHILDNODEDEFINITION + ndn++, NT_CHILDNODEDEFINITION);
-                internalRegisterNodeDefinition(def, nd);
-            }
-        }
-
         return new NodeTypeImpl(this, getValueFactory(), node);
-    }
-
-    private static void internalRegisterItemDefinition(
-            NodeUtil node, ItemDefinition def) {
-        String name = def.getName();
-        if (!RESIDUAL_NAME.equals(name)) {
-            node.setName(JCR_NAME, name);
-        }
-
-        // TODO avoid unbounded recursive auto creation. See 3.7.2.3.5 Chained Auto-creation (OAK-411)
-        node.setBoolean(JCR_AUTOCREATED, def.isAutoCreated());
-        node.setBoolean(JCR_MANDATORY, def.isMandatory());
-        node.setBoolean(JCR_PROTECTED, def.isProtected());
-        node.setString(
-                JCR_ONPARENTVERSION,
-                OnParentVersionAction.nameFromValue(def.getOnParentVersion()));
-    }
-
-    private static void internalRegisterPropertyDefinition(
-            NodeUtil node, PropertyDefinition def) {
-        internalRegisterItemDefinition(node, def);
-
-        node.setString(
-                JCR_REQUIREDTYPE,
-                PropertyType.nameFromValue(def.getRequiredType()).toUpperCase());
-        node.setBoolean(JCR_MULTIPLE, def.isMultiple());
-        node.setBoolean(JCR_IS_FULLTEXT_SEARCHABLE, def.isFullTextSearchable());
-        node.setBoolean(JCR_IS_QUERY_ORDERABLE, def.isQueryOrderable());
-        node.setNames(JCR_AVAILABLE_QUERY_OPERATORS, def.getAvailableQueryOperators());
-
-        String[] constraints = def.getValueConstraints();
-        if (constraints != null) {
-            node.setStrings(JCR_VALUECONSTRAINTS, constraints);
-        }
-
-        Value[] values = def.getDefaultValues();
-        if (values != null) {
-            node.setValues(JCR_DEFAULTVALUES, values);
-        }
-    }
-
-    private static void internalRegisterNodeDefinition(NodeUtil node, NodeDefinition def) {
-        internalRegisterItemDefinition(node, def);
-
-        node.setBoolean(JCR_SAMENAMESIBLINGS, def.allowsSameNameSiblings());
-        node.setNames(
-                JCR_REQUIREDPRIMARYTYPES,
-                def.getRequiredPrimaryTypeNames());
-        String defaultPrimaryType = def.getDefaultPrimaryTypeName();
-        if (defaultPrimaryType != null) {
-            node.setName(JCR_DEFAULTPRIMARYTYPE, defaultPrimaryType);
-        }
     }
 
     private static Tree getOrCreateNodeTypes(Root root) {
