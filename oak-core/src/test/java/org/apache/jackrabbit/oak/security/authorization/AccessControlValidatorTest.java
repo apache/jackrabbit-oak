@@ -16,35 +16,40 @@
  */
 package org.apache.jackrabbit.oak.security.authorization;
 
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.spi.security.Context;
-import org.apache.jackrabbit.oak.util.NodeUtil;
+import org.junit.Test;
 
 /**
- * AccessControlContext... TODO
+ * AccessControlValidatorTest... TODO
  */
-class AccessControlContext implements Context, AccessControlConstants {
+public class AccessControlValidatorTest {
 
-    private static final Context INSTANCE = new AccessControlContext();
-
-    private AccessControlContext() {
+    @Test
+    public void testPropertyAdded() {
+        // TODO
     }
 
-    static Context getInstance() {
-        return INSTANCE;
+    @Test
+    public void testPropertyModified() {
+        // TODO
     }
 
-    //------------------------------------------------------------< Context >---
-    @Override
-    public boolean definesProperty(Tree parent, PropertyState property) {
-        return definesTree(parent);
+    @Test
+    public void testPropertyDeleted() {
+        // TODO
     }
 
-    @Override
-    public boolean definesTree(Tree tree) {
-        NodeUtil node = new NodeUtil(tree);
-        String ntName = node.getPrimaryNodeTypeName();
-        return AC_NODETYPE_NAMES.contains(ntName);
+    @Test
+    public void testChildNodeAdded() {
+        // TODO
+    }
+
+    @Test
+    public void testChildNodeModified() {
+        // TODO
+    }
+
+    @Test
+    public void testChildNodeDeleted() {
+        // TODO
     }
 }

@@ -49,7 +49,9 @@ public interface AccessControlConstants {
      */
     String NT_REP_RESTRICTIONS = "rep:Restrictions";
 
+    Collection<String> POLICY_NODE_NAMES = ImmutableSet.of(REP_POLICY, REP_REPO_POLICY);
+
     Collection<String> AC_PROPERTY_NAMES = ImmutableSet.of(REP_PRINCIPAL_NAME, REP_PRIVILEGES, REP_GLOB);
-    Collection<String> AC_NODE_NAMES = ImmutableSet.of(REP_POLICY, REP_REPO_POLICY);
-    Collection<String> AC_NODE_TYPE_NAMES = ImmutableSet.of(NT_REP_POLICY, NT_REP_ACL, NT_REP_ACE, NT_REP_DENY_ACE, NT_REP_GRANT_ACE, NT_REP_RESTRICTIONS);
+    Collection<String> AC_NODE_NAMES = ImmutableSet.of(REP_POLICY, REP_REPO_POLICY, REP_RESTRICTIONS);
+    Collection<String> AC_NODETYPE_NAMES = ImmutableSet.of(NT_REP_POLICY, NT_REP_ACL, NT_REP_ACE, NT_REP_DENY_ACE, NT_REP_GRANT_ACE, NT_REP_RESTRICTIONS);
 }

@@ -22,6 +22,7 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.core.ReadOnlyTree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
@@ -56,9 +57,13 @@ class AccessControlValidatorProvider implements ValidatorProvider {
 
         PrivilegeDefinitionReader reader = securityProvider.getPrivilegeConfiguration().getPrivilegeDefinitionReader(treeBefore);
         Map<String, PrivilegeDefinition> privilegeDefinitions = reader.readDefinitions();
+
         AccessControlConfiguration acConfig = securityProvider.getAccessControlConfiguration();
         RestrictionProvider restrictionProvider = acConfig.getRestrictionProvider(NamePathMapper.DEFAULT);
-        return new AccessControlValidator(rootBefore, rootAfter, privilegeDefinitions, restrictionProvider);
+
+        ReadOnlyNodeTypeManager ntMgr = ReadOnlyNodeTypeManager.getInstance(before);
+
+        return new AccessControlValidator(rootBefore, rootAfter, privilegeDefinitions, restrictionProvider, ntMgr);
     }
 
 }
