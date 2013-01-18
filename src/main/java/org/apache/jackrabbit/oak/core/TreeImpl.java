@@ -574,11 +574,10 @@ public class TreeImpl implements Tree {
 
     //-------------------------------------------------------< TreeLocation >---
 
-    public class NodeLocation implements TreeLocation {
-        private final TreeImpl tree;
+    public class NodeLocation extends AbstractNodeLocation<TreeImpl> {
 
         private NodeLocation(TreeImpl tree) {
-            this.tree = checkNotNull(tree);
+            super(tree);
         }
 
         @Override
@@ -618,11 +617,6 @@ public class TreeImpl implements Tree {
         }
 
         @Override
-        public String getPath() {
-            return tree.getPath();
-        }
-
-        @Override
         public boolean remove() {
             return tree.remove();
         }
@@ -631,50 +625,17 @@ public class TreeImpl implements Tree {
         public Tree getTree() {
             return canRead(tree) ? tree : null;
         }
-
-        @Override
-        public PropertyState getProperty() {
-            return null;
-        }
-
-        @Override
-        public Status getStatus() {
-            return tree.getStatus();
-        }
     }
 
-    public class PropertyLocation implements TreeLocation {
-        private final NodeLocation parent;
-        private final String name;
+    public class PropertyLocation extends AbstractPropertyLocation<NodeLocation> {
 
-        private PropertyLocation(NodeLocation parent, String name) {
-            this.parent = checkNotNull(parent);
-            this.name = checkNotNull(name);
-        }
-
-        @Override
-        public TreeLocation getParent() {
-            return parent;
-        }
-
-        @Override
-        public TreeLocation getChild(String relPath) {
-            return TreeLocation.NULL;
-        }
-
-        @Override
-        public String getPath() {
-            return PathUtils.concat(parent.getPath(), name);
-        }
-
-        @Override
-        public Tree getTree() {
-            return null;
+        private PropertyLocation(NodeLocation parentLocation, String name) {
+            super(parentLocation, name);
         }
 
         @Override
         public PropertyState getProperty() {
-            PropertyState property = parent.tree.internalGetProperty(name);
+            PropertyState property = parentLocation.tree.internalGetProperty(name);
             return canRead(property)
                 ? property
                 : null;
@@ -682,7 +643,7 @@ public class TreeImpl implements Tree {
 
         @Override
         public Status getStatus() {
-            return parent.tree.getPropertyStatus(name);
+            return parentLocation.tree.getPropertyStatus(name);
         }
 
         /**
@@ -690,7 +651,7 @@ public class TreeImpl implements Tree {
          * @param property The property to set
          */
         public <T> void set(PropertyState property) {
-            parent.tree.setProperty(property);
+            parentLocation.tree.setProperty(property);
         }
 
         /**
@@ -699,7 +660,7 @@ public class TreeImpl implements Tree {
          */
         @Override
         public boolean remove() {
-            parent.tree.removeProperty(name);
+            parentLocation.tree.removeProperty(name);
             return true;
         }
     }
