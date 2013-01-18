@@ -28,8 +28,6 @@ import javax.jcr.security.Privilege;
 
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
-import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
-import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.TestNameMapper;
 import org.apache.jackrabbit.oak.namepath.GlobalNameMapper;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
@@ -38,8 +36,6 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
 import org.apache.jackrabbit.oak.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionDefinition;
-import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
-import org.junit.Before;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -50,35 +46,12 @@ import static org.junit.Assert.assertTrue;
 /**
  * AbstractAccessControlListTest... TODO
  */
-public abstract class AbstractAccessControlListTest extends AbstractSecurityTest {
+public abstract class AbstractAccessControlListTest extends AbstractAccessControlTest {
 
     private final String testPath = "/testPath";
-    private PrivilegeManager privMgr;
-    private RestrictionProvider restrictionProvider;
-
-    @Override
-    @Before
-    public void before() throws Exception {
-        super.before();
-
-        privMgr = getSecurityProvider().getPrivilegeConfiguration().getPrivilegeManager(root, namePathMapper);
-        restrictionProvider = getSecurityProvider().getAccessControlConfiguration().getRestrictionProvider(namePathMapper);
-    }
 
     protected String getTestPath() {
         return testPath;
-    }
-
-    protected Privilege[] privilegesFromNames(String... privilegeNames) throws RepositoryException {
-        Privilege[] privs = new Privilege[privilegeNames.length];
-        for (int i = 0; i < privilegeNames.length; i++) {
-            privs[i] = privMgr.getPrivilege(privilegeNames[i]);
-        }
-        return privs;
-    }
-
-    protected RestrictionProvider getRestrictionProvider() {
-        return restrictionProvider;
     }
 
     protected AbstractAccessControlList createEmptyACL() {
@@ -102,7 +75,7 @@ public abstract class AbstractAccessControlListTest extends AbstractSecurityTest
         for (int i = 0; i < 3; i++) {
             entries.add(new ACE(
                     new PrincipalImpl("testPrincipal"+i),
-                    new Privilege[] {privMgr.getPrivilege(PrivilegeConstants.JCR_READ)},
+                    new Privilege[] {getPrivilegeManager().getPrivilege(PrivilegeConstants.JCR_READ)},
                     true, null));
         }
         return entries;
