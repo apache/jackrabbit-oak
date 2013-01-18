@@ -168,6 +168,7 @@ public final class PropertyValues {
                 return contains(p2.getValue(Type.BINARIES),
                         p2.getValue(Type.BINARY));
             }
+            break;
         default:
             if (p1.isArray() && !p2.isArray()) {
                 return contains(p1.getValue(Type.STRINGS),
