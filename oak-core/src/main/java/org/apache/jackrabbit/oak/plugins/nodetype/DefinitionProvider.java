@@ -59,7 +59,7 @@ public interface DefinitionProvider {
      *
      * @param parent The parent node.
      * @param targetNode The child node for which the definition is calculated.
-     * @return the defintion of the target node.
+     * @return the definition of the target node.
      * @throws ConstraintViolationException If no matching definition can be found.
      * @throws RepositoryException If another error occurs.
      */
