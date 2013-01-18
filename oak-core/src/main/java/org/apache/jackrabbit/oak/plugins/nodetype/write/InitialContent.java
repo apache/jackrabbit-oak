@@ -80,7 +80,7 @@ public class InitialContent implements RepositoryInitializer {
                         "propertyNames",
                         ImmutableList.of(JCR_PRIMARYTYPE, JCR_MIXINTYPES),
                         Type.STRINGS));
-            // FIXME: user-mgt related unique properties (rep:authorizableId, rep:principalName) are implementation detail and not generic for repo
+            // FIXME OAK-570:user-mgt related unique properties (rep:authorizableId, rep:principalName, rep:members) are implementation detail and not generic for repo
             // FIXME OAK-396: rep:principalName only needs to be unique if defined with user/group nodes -> add defining nt-info to uniqueness constraint otherwise ac-editing will fail.
             index.child("authorizableId")
                 .setProperty(JCR_PRIMARYTYPE, "oak:queryIndexDefinition", Type.NAME)
