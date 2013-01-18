@@ -16,6 +16,24 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype.write;
 
+import java.util.Arrays;
+import java.util.List;
+import javax.annotation.Nonnull;
+import javax.jcr.RepositoryException;
+import javax.jcr.nodetype.ConstraintViolationException;
+import javax.jcr.nodetype.NodeDefinition;
+import javax.jcr.nodetype.NodeDefinitionTemplate;
+import javax.jcr.nodetype.NodeTypeDefinition;
+import javax.jcr.nodetype.NodeTypeExistsException;
+import javax.jcr.nodetype.NodeTypeTemplate;
+import javax.jcr.nodetype.PropertyDefinition;
+import javax.jcr.nodetype.PropertyDefinitionTemplate;
+
+import com.google.common.collect.Lists;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.namepath.NameMapper;
+
 import static org.apache.jackrabbit.JcrConstants.JCR_CHILDNODEDEFINITION;
 import static org.apache.jackrabbit.JcrConstants.JCR_HASORDERABLECHILDNODES;
 import static org.apache.jackrabbit.JcrConstants.JCR_ISMIXIN;
@@ -29,26 +47,6 @@ import static org.apache.jackrabbit.JcrConstants.NT_NODETYPE;
 import static org.apache.jackrabbit.JcrConstants.NT_PROPERTYDEFINITION;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_IS_ABSTRACT;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_IS_QUERYABLE;
-
-import java.util.Arrays;
-import java.util.List;
-
-import javax.annotation.Nonnull;
-import javax.jcr.RepositoryException;
-import javax.jcr.nodetype.ConstraintViolationException;
-import javax.jcr.nodetype.NodeDefinition;
-import javax.jcr.nodetype.NodeDefinitionTemplate;
-import javax.jcr.nodetype.NodeTypeDefinition;
-import javax.jcr.nodetype.NodeTypeExistsException;
-import javax.jcr.nodetype.NodeTypeTemplate;
-import javax.jcr.nodetype.PropertyDefinition;
-import javax.jcr.nodetype.PropertyDefinitionTemplate;
-
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.namepath.NameMapper;
-
-import com.google.common.collect.Lists;
 
 class NodeTypeTemplateImpl extends NamedTemplate
         implements NodeTypeTemplate {
@@ -98,9 +96,9 @@ class NodeTypeTemplateImpl extends NamedTemplate
         if (pds != null) {
             propertyDefinitionTemplates =
                     Lists.newArrayListWithCapacity(pds.length);
-            for (int i = 0; pds != null && i < pds.length; i++) {
+            for (PropertyDefinition pd : pds) {
                 propertyDefinitionTemplates.add(
-                        new PropertyDefinitionTemplateImpl(mapper, pds[i]));
+                        new PropertyDefinitionTemplateImpl(mapper, pd));
             }
         }
 
@@ -108,9 +106,9 @@ class NodeTypeTemplateImpl extends NamedTemplate
         if (nds != null) {
             nodeDefinitionTemplates =
                     Lists.newArrayListWithCapacity(nds.length);
-            for (int i = 0; i < nds.length; i++) {
+            for (NodeDefinition nd : nds) {
                 nodeDefinitionTemplates.add(
-                        new NodeDefinitionTemplateImpl(mapper, nds[i]));
+                        new NodeDefinitionTemplateImpl(mapper, nd));
             }
         }
     }
@@ -123,6 +121,7 @@ class NodeTypeTemplateImpl extends NamedTemplate
      *
      * @param parent parent node under which to write this node type
      * @param allowUpdate whether to overwrite an existing type
+     * @return The node type tree.
      * @throws RepositoryException if this type could not be written
      */
     Tree writeTo(Tree parent, boolean allowUpdate) throws RepositoryException {
@@ -142,7 +141,7 @@ class NodeTypeTemplateImpl extends NamedTemplate
         type.setProperty(JCR_PRIMARYTYPE, NT_NODETYPE, Type.NAME);
         type.setProperty(JCR_NODETYPENAME, oakName, Type.NAME);
 
-        if (superTypeOakNames != null && superTypeOakNames.length > 0) {
+        if (superTypeOakNames.length > 0) {
             type.setProperty(
                     JCR_SUPERTYPES,
                     Arrays.asList(superTypeOakNames), Type.NAMES);
