@@ -27,7 +27,6 @@ import org.apache.jackrabbit.oak.TestNameMapper;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
 import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static java.util.Collections.singletonMap;
@@ -40,7 +39,6 @@ public class PropertyStatesTest {
         singletonMap("jcr-prefix", TestNameMapper.TEST_URI) ));
 
     @Test
-    @Ignore  // FIXME OAK-554
     public void namePropertyFromNameValue() throws RepositoryException {
         PropertyState nameProperty = PropertyStates.createProperty("name", "oak-prefix:value", PropertyType.NAME);
         Value nameValue = ValueFactoryImpl.createValue(nameProperty, namePathMapper);
@@ -49,7 +47,6 @@ public class PropertyStatesTest {
     }
 
     @Test
-    @Ignore  // FIXME OAK-554
     public void pathPropertyFromPathValue() throws RepositoryException {
         PropertyState pathProperty = PropertyStates.createProperty("path", "oak-prefix:a/oak-prefix:b", PropertyType.PATH);
         Value nameValue = ValueFactoryImpl.createValue(pathProperty, namePathMapper);
