@@ -113,7 +113,7 @@ class AccessControlImporter implements ProtectedNodeImporter, AccessControlConst
     public boolean start(Tree protectedParent) throws IllegalStateException, RepositoryException {
         checkInitialized();
 
-        // the acl node must have been added during the regular inport before
+        // the acl node must have been added during the regular import before
         // this importer is only successfully started if an valid ACL was created.
         acl = getACL(protectedParent);
         return acl != null;

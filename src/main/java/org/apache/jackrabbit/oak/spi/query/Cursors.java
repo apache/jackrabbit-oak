@@ -123,7 +123,7 @@ public class Cursors {
 
         @Override
         public IndexRow next() {
-            // TODO support jcr:score and possibly rep:exceprt
+            // TODO support jcr:score and possibly rep:excerpt
             String path = iterator.next();
             return new IndexRowImpl(isAbsolute(path) ? path : "/" + path);
         }
@@ -179,8 +179,8 @@ public class Cursors {
                     }
                 }
             }
-            Filter.PathRestriction restriciton = filter.getPathRestriction();
-            switch (restriciton) {
+            Filter.PathRestriction restriction = filter.getPathRestriction();
+            switch (restriction) {
             case EXACT:
             case ALL_CHILDREN:
                 nodeIterators.add(Iterators.singletonIterator(
@@ -199,7 +199,7 @@ public class Cursors {
                 parentPath = currentPath;
                 break;
             default:
-                throw new IllegalArgumentException("Unknown restriction: " + restriciton);
+                throw new IllegalArgumentException("Unknown restriction: " + restriction);
             }
         }
 

@@ -47,7 +47,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Abstract implementation of the {@link LoginModule} interface that can act
- * as base class for login modules that aim to autenticate subjects against
+ * as base class for login modules that aim to authenticate subjects against
  * information stored in the content repository.
  *
  * <h2>LoginModule Methods</h2>
