@@ -57,8 +57,6 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.util.NodeUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static javax.jcr.PropertyType.UNDEFINED;
@@ -75,8 +73,6 @@ import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_
  * {@link UnsupportedRepositoryOperationException}.
  */
 public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, EffectiveNodeTypeProvider, DefinitionProvider {
-
-    private static final Logger log = LoggerFactory.getLogger(ReadOnlyNodeTypeManager.class);
 
     /**
      * Returns the internal name for the specified JCR name.
@@ -128,6 +124,7 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
      * type information from the tree at {@link NodeTypeConstants#NODE_TYPES_PATH}.
      *
      * @param root The root to read node types from.
+     * @param namePathMapper The {@code NamePathMapper} to use.
      * @return a new instance of {@code ReadOnlyNodeTypeManager}.
      */
     @Nonnull
