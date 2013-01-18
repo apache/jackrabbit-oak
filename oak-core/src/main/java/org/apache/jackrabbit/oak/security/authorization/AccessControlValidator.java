@@ -16,11 +16,16 @@
  */
 package org.apache.jackrabbit.oak.security.authorization;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
+import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlException;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeDefinition;
@@ -37,16 +42,19 @@ class AccessControlValidator implements Validator, AccessControlConstants {
 
     private final NodeUtil parentBefore;
     private final NodeUtil parentAfter;
+
     private final Map<String, PrivilegeDefinition> privilegeDefinitions;
     private final RestrictionProvider restrictionProvider;
+    private final ReadOnlyNodeTypeManager ntMgr;
 
     AccessControlValidator(NodeUtil parentBefore, NodeUtil parentAfter,
                            Map<String, PrivilegeDefinition> privilegeDefinitions,
-                           RestrictionProvider restrictionProvider) {
+                           RestrictionProvider restrictionProvider, ReadOnlyNodeTypeManager ntMgr) {
         this.parentBefore = parentBefore;
         this.parentAfter = parentAfter;
         this.privilegeDefinitions = privilegeDefinitions;
         this.restrictionProvider = restrictionProvider;
+        this.ntMgr = ntMgr;
     }
 
     //----------------------------------------------------------< Validator >---
@@ -71,15 +79,11 @@ class AccessControlValidator implements Validator, AccessControlConstants {
 
     @Override
     public Validator childNodeAdded(String name, NodeState after) throws CommitFailedException {
-        NodeUtil node = parentAfter.getChild(name);
-        checkNotNull(node);
+        NodeUtil nodeAfter = parentAfter.getChild(name);
+        checkNotNull(nodeAfter);
 
-        if (isAccessControlEntry(node)) {
-            checkValidAccessControlEntry(node);
-            return null;
-        } else {
-            return new AccessControlValidator(null, node, privilegeDefinitions, restrictionProvider);
-        }
+        checkValidNode(parentAfter, nodeAfter);
+        return new AccessControlValidator(null, nodeAfter, privilegeDefinitions, restrictionProvider, ntMgr);
     }
 
     @Override
@@ -89,12 +93,8 @@ class AccessControlValidator implements Validator, AccessControlConstants {
         checkNotNull(nodeBefore);
         checkNotNull(nodeAfter);
 
-        if (isAccessControlEntry(nodeAfter)) {
-            checkValidAccessControlEntry(nodeAfter);
-            return null;
-        } else {
-            return new AccessControlValidator(nodeBefore, nodeAfter, privilegeDefinitions, restrictionProvider);
-        }
+        checkValidNode(parentAfter, nodeAfter);
+        return new AccessControlValidator(nodeBefore, nodeAfter, privilegeDefinitions, restrictionProvider, ntMgr);
     }
 
     @Override
@@ -104,12 +104,72 @@ class AccessControlValidator implements Validator, AccessControlConstants {
     }
 
     //------------------------------------------------------------< private >---
-    private boolean isAccessControlEntry(NodeUtil node) {
+
+    private void checkValidNode(NodeUtil parentAfter, NodeUtil nodeAfter) throws CommitFailedException {
+        if (isPolicy(nodeAfter)) {
+            checkValidPolicy(parentAfter, nodeAfter);
+        } else if (isAccessControlEntry(nodeAfter)) {
+            checkValidAccessControlEntry(nodeAfter);
+        } else if (REP_RESTRICTIONS.equals(nodeAfter.getName())) {
+            checkIsAccessControlEntry(parentAfter);
+            checkValidRestrictions(parentAfter);
+        }
+    }
+
+    private static boolean isPolicy(NodeUtil node) {
+        return POLICY_NODE_NAMES.contains(node.getName());
+    }
+
+    private static boolean isAccessControlEntry(NodeUtil node) {
         String ntName = node.getPrimaryNodeTypeName();
         return NT_REP_DENY_ACE.equals(ntName) || NT_REP_GRANT_ACE.equals(ntName);
     }
 
+    private static void checkIsAccessControlEntry(NodeUtil node) throws CommitFailedException {
+        if (!isAccessControlEntry(node)) {
+            fail("Access control entry node expected.");
+        }
+    }
+
+    private void checkValidPolicy(NodeUtil parent, NodeUtil policyNode) throws CommitFailedException {
+        String mixinType = (REP_REPO_POLICY.equals(policyNode.getName())) ?
+                MIX_REP_REPO_ACCESS_CONTROLLABLE :
+                MIX_REP_ACCESS_CONTROLLABLE;
+        checkValidAccessControlledNode(parent, mixinType);
+
+        Collection<String> validPolicyNames = (parent.isRoot()) ?
+                POLICY_NODE_NAMES :
+                Collections.singleton(REP_POLICY);
+        if (!validPolicyNames.contains(policyNode.getName())) {
+            fail("Invalid policy name " + policyNode.getName());
+        }
+    }
+
+    private void checkValidAccessControlledNode(NodeUtil accessControlledNode, String requiredMixin) throws CommitFailedException {
+        Tree accessControlledTree = accessControlledNode.getTree();
+        if (AC_NODETYPE_NAMES.contains(accessControlledNode.getPrimaryNodeTypeName())) {
+            fail("Access control policy within access control content (" + accessControlledTree.getPath() + ')');
+        }
+
+        String msg = "Isolated policy node. Parent is not of type " + requiredMixin;
+        try {
+            if (!ntMgr.isNodeType(accessControlledTree, requiredMixin)) {
+                fail(msg);
+            }
+        } catch (RepositoryException e) {
+            throw new CommitFailedException(msg, e);
+        }
+
+        if (MIX_REP_REPO_ACCESS_CONTROLLABLE.equals(requiredMixin) && !accessControlledTree.isRoot()) {
+            fail("Only root can store repository level policies.");
+        }
+    }
+
     private void checkValidAccessControlEntry(NodeUtil aceNode) throws CommitFailedException {
+        NodeUtil parent = aceNode.getParent();
+        if (parent == null || !NT_REP_ACL.equals(parent.getPrimaryNodeTypeName())) {
+            fail("Isolated access control entry at " + aceNode.getTree().getPath());
+        }
         checkValidPrincipal(aceNode.getString(REP_PRINCIPAL_NAME, null));
         checkValidPrivileges(aceNode.getNames(REP_PRIVILEGES));
         checkValidRestrictions(aceNode);
@@ -142,14 +202,17 @@ class AccessControlValidator implements Validator, AccessControlConstants {
     }
 
     private void checkValidRestrictions(NodeUtil aceNode) throws CommitFailedException {
+        String path;
+        NodeUtil aclNode = aceNode.getParent();
+        checkNotNull(aclNode);
+
+        String aclPath = aclNode.getTree().getPath();
+        if (REP_REPO_POLICY.equals(Text.getName(aclPath))) {
+            path = null;
+        } else {
+            path = Text.getRelativeParent(aclPath, 1);
+        }
         try {
-            String path;
-            String aclPath = parentAfter.getTree().getPath();
-            if (REP_REPO_POLICY.equals(Text.getName(aclPath))) {
-                path = null;
-            } else {
-                path = Text.getRelativeParent(aclPath, 1);
-            }
             restrictionProvider.validateRestrictions(path, aceNode.getTree());
         } catch (AccessControlException e) {
             throw new CommitFailedException(e);

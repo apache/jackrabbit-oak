@@ -30,11 +30,7 @@ import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
-import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
-import org.apache.jackrabbit.oak.AbstractSecurityTest;
-import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.security.authorization.AccessControlManagerImpl;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeConstants;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -50,11 +46,10 @@ import static org.junit.Assert.fail;
 /**
  * ACETest... TODO
  */
-public class ACETest extends AbstractSecurityTest {
+public class ACETest extends AbstractAccessControlTest {
 
     private Principal testPrincipal;
     private AccessControlManager acMgr;
-    private PrivilegeManager privMgr;
 
     @Override
     @Before
@@ -65,10 +60,8 @@ public class ACETest extends AbstractSecurityTest {
                 return "TestPrincipal";
             }
         };
-        // TODO
-        //acMgr = securityProvider.getAccessControlConfiguration().getAccessControlManager(root, NamePathMapper.DEFAULT);
-        acMgr = new AccessControlManagerImpl(root, NamePathMapper.DEFAULT, getSecurityProvider());
-        privMgr = securityProvider.getPrivilegeConfiguration().getPrivilegeManager(root, NamePathMapper.DEFAULT);
+
+        acMgr = getAccessControlManager();
     }
 
     private ACE createEntry(String[] privilegeNames, boolean isAllow)
@@ -341,7 +334,7 @@ public class ACETest extends AbstractSecurityTest {
                 }
             };
         try {
-            Privilege[] privs = new Privilege[] {invalidPriv, privMgr.getPrivilege(PrivilegeConstants.JCR_READ)};
+            Privilege[] privs = new Privilege[] {invalidPriv, acMgr.privilegeFromName(PrivilegeConstants.JCR_READ)};
             createEntry(testPrincipal, privs, true);
             fail("Invalid privilege");
         } catch (AccessControlException e) {

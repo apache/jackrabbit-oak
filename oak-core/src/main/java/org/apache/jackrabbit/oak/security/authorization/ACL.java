@@ -128,38 +128,6 @@ abstract class ACL extends AbstractAccessControlList {
     }
 
     //-------------------------------------------------------------< Object >---
-    /**
-     * Returns zero to satisfy the Object equals/hashCode contract.
-     * This class is mutable and not meant to be used as a hash key.
-     *
-     * @return always zero
-     */
-    @Override
-    public int hashCode() {
-        return 0;
-    }
-
-    /**
-     * Returns true if the path and the entries are equal; false otherwise.
-     *
-     * @param obj Object to test.
-     * @return true if the path and the entries are equal; false otherwise.
-     */
-    @Override
-    public boolean equals(Object obj) {
-        if (obj == this) {
-            return true;
-        }
-        if (obj instanceof ACL) {
-            ACL acl = (ACL) obj;
-            String path = getOakPath();
-            String otherPath = acl.getOakPath();
-            return ((path == null) ? otherPath == null : path.equals(otherPath))
-                    && entries.equals(acl.entries);
-        }
-        return false;
-    }
-
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();

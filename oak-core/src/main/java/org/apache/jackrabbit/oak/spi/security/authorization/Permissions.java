@@ -24,7 +24,7 @@ import java.util.Map;
  */
 public final class Permissions {
 
-    private Permissions() {};
+    private Permissions() {}
 
     public static final int NO_PERMISSION = 0;
 
@@ -70,8 +70,10 @@ public final class Permissions {
 
     public static final int READ = READ_NODE | READ_PROPERTY;
 
+    public static final int SET_PROPERTY = ADD_PROPERTY | MODIFY_PROPERTY | REMOVE_PROPERTY;
+
     public static final int ALL = (READ
-            | ADD_PROPERTY | MODIFY_PROPERTY | REMOVE_PROPERTY
+            | SET_PROPERTY
             | ADD_NODE | REMOVE_NODE
             | READ_ACCESS_CONTROL | MODIFY_ACCESS_CONTROL
             | NODE_TYPE_MANAGEMENT
@@ -89,8 +91,11 @@ public final class Permissions {
 
     private static final Map<Integer,String> PERMISSION_NAMES = new LinkedHashMap<Integer, String>();
     static {
+        PERMISSION_NAMES.put(ALL, "ALL");
+        PERMISSION_NAMES.put(READ, "READ");
         PERMISSION_NAMES.put(READ_NODE, "READ_NODE");
         PERMISSION_NAMES.put(READ_PROPERTY, "READ_PROPERTY");
+        PERMISSION_NAMES.put(SET_PROPERTY, "SET_PROPERTY");
         PERMISSION_NAMES.put(ADD_PROPERTY, "ADD_PROPERTY");
         PERMISSION_NAMES.put(MODIFY_PROPERTY, "MODIFY_PROPERTY");
         PERMISSION_NAMES.put(REMOVE_PROPERTY, "REMOVE_PROPERTY");
@@ -116,10 +121,13 @@ public final class Permissions {
             return PERMISSION_NAMES.get(permissions);
         } else {
             StringBuilder sb = new StringBuilder();
-            sb.append('|');
-            for (int key : PERMISSION_NAMES.keySet()) {
+            for (Map.Entry<Integer, String> entry : PERMISSION_NAMES.entrySet()) {
+                int key = entry.getKey();
                 if ((permissions & key) == key) {
-                    sb.append(PERMISSION_NAMES.get(key)).append('|');
+                    if (sb.length() != 0) {
+                        sb.append(',');
+                    }
+                    sb.append(entry.getValue());
                 }
             }
             return sb.toString();
