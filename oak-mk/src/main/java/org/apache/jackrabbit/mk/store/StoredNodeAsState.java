@@ -188,4 +188,8 @@ class StoredNodeAsState extends AbstractNodeState {
         return super.equals(that);
     }
 
+    @Override
+    public int hashCode() {
+        return node.getId().hashCode();
+    }
 }
