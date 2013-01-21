@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.mongomk.impl;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
 
@@ -298,7 +297,7 @@ public class MongoNodeStore implements NodeStore {
         options.put("unique", Boolean.TRUE);
         commitCollection.ensureIndex(index, options);
         MongoCommit commit = new MongoCommit();
-        commit.setAffectedPaths(Arrays.asList(new String[] { "/" }));
+        commit.setAffectedPaths(Collections.singleton("/"));
         commit.setBaseRevisionId(0L);
         commit.setDiff(INITIAL_COMMIT_DIFF);
         commit.setMessage(INITIAL_COMMIT_MESSAGE);

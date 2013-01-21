@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.mongomk.api.model;
 
 import java.util.List;
+import java.util.SortedSet;
 
 import org.apache.jackrabbit.mongomk.api.instruction.Instruction;
 
@@ -30,7 +31,7 @@ public interface Commit {
      *
      * @return The paths affected by the commit.
      */
-    List<String> getAffectedPaths();
+    SortedSet<String> getAffectedPaths();
 
     /**
      * Returns the base revision id the commit is based on.
