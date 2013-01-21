@@ -39,11 +39,8 @@ abstract class AuthorizableBaseProvider implements UserConstants {
     final IdentifierManager identifierManager;
 
     AuthorizableBaseProvider(Root root, ConfigurationParameters config) {
-        checkNotNull(root);
-        checkNotNull(config);
-
-        this.root = root;
-        this.config = config;
+        this.root = checkNotNull(root);
+        this.config = checkNotNull(config);
         this.identifierManager = new IdentifierManager(root);
     }
 

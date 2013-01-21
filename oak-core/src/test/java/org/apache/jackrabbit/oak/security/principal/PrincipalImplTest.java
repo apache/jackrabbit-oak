@@ -42,6 +42,7 @@ public class PrincipalImplTest {
     public void testEquals() {
         List<Principal> principals = new ArrayList<Principal>();
         principals.add(new PrincipalImpl("name"));
+        principals.add(new TestPrincipal("name"));
         principals.add(new JackrabbitPrincipal() {
             @Override
             public String getName() {
@@ -67,6 +68,13 @@ public class PrincipalImplTest {
 
         for (Principal p : principals) {
             assertFalse(principal.equals(p));
+        }
+    }
+
+    private class TestPrincipal extends PrincipalImpl {
+
+        public TestPrincipal(String name) {
+            super(name);
         }
     }
 }
