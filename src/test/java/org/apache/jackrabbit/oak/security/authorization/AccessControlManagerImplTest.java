@@ -36,13 +36,11 @@ import javax.jcr.security.Privilege;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.TestNameMapper;
-import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
 import org.apache.jackrabbit.oak.plugins.name.Namespaces;
-import org.apache.jackrabbit.oak.plugins.name.ReadWriteNamespaceRegistry;
 import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeConstants;
@@ -82,19 +80,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
     public void before() throws Exception {
         super.before();
 
-        NamespaceRegistry nsRegistry = new ReadWriteNamespaceRegistry() {
-            @Override
-            protected Root getWriteRoot() {
-                return root;
-            }
-
-            @Override
-            protected Tree getReadTree() {
-                return root.getTree("/");
-            }
-        };
-        nsRegistry.registerNamespace(TestNameMapper.TEST_PREFIX, TestNameMapper.TEST_URI);
-
+        registerNamespace(TestNameMapper.TEST_PREFIX, TestNameMapper.TEST_URI);
         nameMapper = new TestNameMapper(Namespaces.getNamespaceMap(root.getTree("/")));
         npMapper = new NamePathMapperImpl(nameMapper);
 
@@ -452,7 +438,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         assertNull(acl.getOakPath());
         assertFalse(acMgr.getApplicablePolicies(path).hasNext());
 
-        acMgr.removePolicy(null, acl);
+        acMgr.removePolicy(path, acl);
         assertEquals(0, acMgr.getPolicies(path).length);
         assertTrue(acMgr.getApplicablePolicies(path).hasNext());
     }

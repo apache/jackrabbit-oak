@@ -20,8 +20,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.security.Privilege;
@@ -58,12 +60,16 @@ public abstract class AbstractAccessControlListTest extends AbstractAccessContro
         return createACL(getTestPath(), Collections.<JackrabbitAccessControlEntry>emptyList(), namePathMapper);
     }
 
-    protected AbstractAccessControlList createACL(List<JackrabbitAccessControlEntry> entries) {
-        return createACL(getTestPath(), entries);
+    protected AbstractAccessControlList createACL(JackrabbitAccessControlEntry... entries) {
+        return createACL(getTestPath(), Lists.newArrayList(entries), namePathMapper);
     }
 
-    protected AbstractAccessControlList createACL(String jcrPath, List<JackrabbitAccessControlEntry> entries) {
-        return createACL(jcrPath, entries, namePathMapper);
+    protected AbstractAccessControlList createACL(List<JackrabbitAccessControlEntry> entries) {
+        return createACL(getTestPath(), entries, namePathMapper);
+    }
+
+    protected AbstractAccessControlList createACL(String jcrPath, JackrabbitAccessControlEntry... entries) {
+        return createACL(jcrPath, Lists.newArrayList(entries), namePathMapper);
     }
 
     protected abstract AbstractAccessControlList createACL(String jcrPath,
@@ -79,6 +85,18 @@ public abstract class AbstractAccessControlListTest extends AbstractAccessContro
                     true, null));
         }
         return entries;
+    }
+
+    protected static Privilege[] getAggregatedPrivileges(Privilege... privileges) {
+        Set<Privilege> aggr = new HashSet<Privilege>();
+        for (Privilege p : privileges) {
+            if (p.isAggregate()) {
+                aggr.addAll(Arrays.asList(p.getAggregatePrivileges()));
+            } else {
+                aggr.add(p);
+            }
+        }
+        return aggr.toArray(new Privilege[aggr.size()]);
     }
 
     @Test

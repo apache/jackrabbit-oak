@@ -488,9 +488,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
 
     @Nonnull
     private Principal getPrincipal(@Nonnull NodeUtil aceNode) {
-        String principalName = aceNode.getString(REP_PRINCIPAL_NAME, null);
-        checkNotNull(principalName);
-
+        String principalName = checkNotNull(aceNode.getString(REP_PRINCIPAL_NAME, null));
         Principal principal = principalProvider.getPrincipal(principalName);
         if (principal == null) {
             log.debug("Unknown principal " + principalName);
