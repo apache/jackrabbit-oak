@@ -25,6 +25,7 @@ import javax.jcr.Value;
 import javax.jcr.security.AccessControlEntry;
 import javax.jcr.security.Privilege;
 
+import com.google.common.collect.Lists;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
@@ -37,11 +38,16 @@ public final class TestACL extends AbstractAccessControlList {
     private final List<JackrabbitAccessControlEntry> entries = new ArrayList<JackrabbitAccessControlEntry>();
     private final RestrictionProvider restrictionProvider;
 
-    public TestACL(String jcrPath, List<JackrabbitAccessControlEntry> entries,
-                   RestrictionProvider restrictionProvider) {
+    public TestACL(String jcrPath, RestrictionProvider restrictionProvider,
+                   List<JackrabbitAccessControlEntry> entries) {
         super(jcrPath, NamePathMapper.DEFAULT);
         this.entries.addAll(entries);
         this.restrictionProvider = restrictionProvider;
+    }
+
+    public TestACL(String jcrPath, RestrictionProvider restrictionProvider,
+                   JackrabbitAccessControlEntry... entry) {
+        this(jcrPath, restrictionProvider, Lists.newArrayList(entry));
     }
 
     @Override

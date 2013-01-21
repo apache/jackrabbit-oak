@@ -17,9 +17,13 @@
 package org.apache.jackrabbit.oak.security.authorization.restriction;
 
 import javax.annotation.Nonnull;
+import javax.jcr.PropertyType;
 
+import com.google.common.base.Objects;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionDefinition;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * RestrictionDefinitionImpl... TODO
@@ -29,17 +33,34 @@ public class RestrictionDefinitionImpl implements RestrictionDefinition {
     private final String name;
     private final int type;
     private final boolean isMandatory;
+    private final NamePathMapper namePathMapper;
 
-    final NamePathMapper namePathMapper;
-
-    public RestrictionDefinitionImpl(String name, int type, boolean isMandatory,
-                                     NamePathMapper namePathMapper) {
-        this.name = name;
+    /**
+     * Create a new instance.
+     *
+     * @param name The oak name of the restriction definition.
+     * @param type The required type of this definition. Any valid JCR
+     * {@link javax.jcr.PropertyType} except {@link javax.jcr.PropertyType#UNDEFINED}
+     * is allowed.
+     * @param isMandatory A boolean indicating if the restriction is mandatory.
+     * @param namePathMapper The name path mapper used to calculate the JCR name.
+     */
+    public RestrictionDefinitionImpl(@Nonnull String name, int type, boolean isMandatory,
+                                     @Nonnull NamePathMapper namePathMapper) {
+        this.name = checkNotNull(name);
+        if (type == PropertyType.UNDEFINED) {
+            throw new IllegalArgumentException("'undefined' is not a valid required definition type.");
+        }
         this.type = type;
         this.isMandatory = isMandatory;
-        this.namePathMapper = namePathMapper;
+        this.namePathMapper = checkNotNull(namePathMapper);
     }
 
+    NamePathMapper getNamePathMapper() {
+        return namePathMapper;
+    }
+
+    //----------------------------------------------< RestrictionDefinition >---
     @Nonnull
     @Override
     public String getName() {
@@ -60,5 +81,26 @@ public class RestrictionDefinitionImpl implements RestrictionDefinition {
     @Override
     public boolean isMandatory() {
         return isMandatory;
+    }
+
+    //-------------------------------------------------------------< Object >---
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(name, type, isMandatory);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == this) {
+            return true;
+        }
+
+        if (o instanceof RestrictionDefinitionImpl) {
+            RestrictionDefinitionImpl other = (RestrictionDefinitionImpl) o;
+            return type == other.type && isMandatory == other.isMandatory && name.equals(other.name);
+        }
+
+        return false;
     }
 }

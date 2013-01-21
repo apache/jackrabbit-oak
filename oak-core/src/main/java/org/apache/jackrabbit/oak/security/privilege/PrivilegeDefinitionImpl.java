@@ -20,6 +20,7 @@ import java.util.Collections;
 import java.util.Set;
 import javax.annotation.Nonnull;
 
+import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeDefinition;
 
@@ -69,10 +70,7 @@ class PrivilegeDefinitionImpl implements PrivilegeDefinition {
     //-------------------------------------------------------------< Object >---
     @Override
     public int hashCode() {
-        int result = name.hashCode();
-        result = 31 * result + (isAbstract ? 1 : 0);
-        result = 31 * result + declaredAggregateNames.hashCode();
-        return result;
+        return Objects.hashCode(name, isAbstract(),  declaredAggregateNames);
     }
 
     @Override

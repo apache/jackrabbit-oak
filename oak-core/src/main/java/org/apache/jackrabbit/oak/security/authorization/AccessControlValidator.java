@@ -208,9 +208,7 @@ class AccessControlValidator implements Validator, AccessControlConstants {
 
     private void checkValidRestrictions(NodeUtil aceNode) throws CommitFailedException {
         String path;
-        NodeUtil aclNode = aceNode.getParent();
-        checkNotNull(aclNode);
-
+        NodeUtil aclNode = checkNotNull(aceNode.getParent());
         String aclPath = aclNode.getTree().getPath();
         if (REP_REPO_POLICY.equals(Text.getName(aclPath))) {
             path = null;

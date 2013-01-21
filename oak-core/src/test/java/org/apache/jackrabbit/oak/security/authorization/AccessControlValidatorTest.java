@@ -263,7 +263,7 @@ public class AccessControlValidatorTest extends AbstractAccessControlTest implem
         NodeUtil acl = createAcl();
 
         String privName = "invalidPrivilegeName";
-        NodeUtil invalidAce = createACE(acl, "invalid", NT_REP_GRANT_ACE, testPrincipal.getName(), privName);
+        createACE(acl, "invalid", NT_REP_GRANT_ACE, testPrincipal.getName(), privName);
         try {
             root.commit();
             fail("Creating an ACE with invalid privilege should fail.");
@@ -278,10 +278,8 @@ public class AccessControlValidatorTest extends AbstractAccessControlTest implem
         PrivilegeManager pMgr = getSecurityProvider().getPrivilegeConfiguration().getPrivilegeManager(root, getNamePathMapper());
         pMgr.registerPrivilege("abstractPrivilege", true, new String[0]);
 
-        root.rebase();
-
         NodeUtil acl = createAcl();
-        NodeUtil invalidAce = createACE(acl, "invalid", NT_REP_GRANT_ACE, testPrincipal.getName(), "abstractPrivilege");
+        createACE(acl, "invalid", NT_REP_GRANT_ACE, testPrincipal.getName(), "abstractPrivilege");
         try {
             root.commit();
             fail("Creating an ACE with an abstract privilege should fail.");
