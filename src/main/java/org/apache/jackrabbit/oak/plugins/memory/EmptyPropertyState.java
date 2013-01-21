@@ -142,8 +142,7 @@ public abstract class EmptyPropertyState implements PropertyState {
     public boolean equals(Object other) {
         if (this == other) {
             return true;
-        }
-        else if (other instanceof PropertyState) {
+        } else if (other instanceof PropertyState) {
             PropertyState that = (PropertyState) other;
             if (!getName().equals(that.getName())) {
                 return false;
@@ -154,13 +153,11 @@ public abstract class EmptyPropertyState implements PropertyState {
             if (getType().tag() == PropertyType.BINARY) {
                 return Iterables.elementsEqual(
                         getValue(BINARIES), that.getValue(BINARIES));
-            }
-            else {
+            } else {
                 return Iterables.elementsEqual(
                         getValue(STRINGS), that.getValue(STRINGS));
             }
-        }
-        else {
+        } else {
             return false;
         }
     }
@@ -183,8 +180,7 @@ public abstract class EmptyPropertyState implements PropertyState {
     public String toString() {
         if (isArray()) {
             return getName() + '=' + getValue(STRINGS);
-        }
-        else {
+        } else {
             return getName() + '=' + getValue(STRING);
         }
     }
