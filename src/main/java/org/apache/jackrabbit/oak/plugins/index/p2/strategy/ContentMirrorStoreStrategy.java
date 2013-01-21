@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.index.p2.strategy;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
@@ -125,28 +126,14 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
             }
             indexEntry.setProperty("match", true);
         }
-        long matchCount = countMatchingLeaves(child.getNodeState(), 0, 2);
+        CountingNodeVisitor v = new CountingNodeVisitor(2);
+        v.visit(child.getNodeState());
+        int matchCount = v.getCount();
         if (matchCount == 0) {
             index.removeNode(key);
         } else if (unique && matchCount > 1) {
             throw new CommitFailedException("Uniqueness constraint violated");
         }
-    }
-
-    static int countMatchingLeaves(NodeState state, int initialCount, int max) {
-        int count = initialCount;
-        if (state.getProperty("match") != null) {
-            count++;
-        }
-        if (count < max) {
-            for (ChildNodeEntry entry : state.getChildNodeEntries()) {
-                if (count >= max) {
-                    break;
-                }
-                count = countMatchingLeaves(entry.getNodeState(), count, max);
-            }
-        }
-        return count;
     }
     
     @Override
@@ -175,19 +162,31 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
     }
     
     @Override
-    public int count(NodeState index, Iterable<String> values, int max) {
+    public int count(NodeState index, List<String> values, int max) {
         int count = 0;
         if (values == null) {
-            count = countMatchingLeaves(index, count, max);
+            CountingNodeVisitor v = new CountingNodeVisitor(max);
+            v.visit(index);
+            count = v.getEstimatedCount();
         } else {
+            int size = values.size();
+            if (size == 0) {
+                return 0;
+            }
+            max = Math.max(10, max / size);
+            int i = 0;
             for (String p : values) {
-                if (count > max) {
+                if (count > max && i > 3) {
+                    count = count / size / i;
                     break;
                 }
                 NodeState s = index.getChildNode(p);
                 if (s != null) {
-                    count = countMatchingLeaves(s, count, max);
+                    CountingNodeVisitor v = new CountingNodeVisitor(max);
+                    v.visit(s);
+                    count += v.getEstimatedCount();
                 }
+                i++;
             }
         }
         return count;
@@ -308,6 +307,120 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
         @Override
         public void remove() {
             throw new UnsupportedOperationException();
+        }
+        
+    }
+    
+    /**
+     * A node visitor to recursively traverse a number of nodes.
+     */
+    interface NodeVisitor {
+        void visit(NodeState state);
+    }
+    
+    /**
+     * A node visitor that counts the number of matching nodes up to a given
+     * maximum, in order to estimate the number of matches.
+     */
+    static class CountingNodeVisitor implements NodeVisitor {
+        
+        /**
+         * The maximum number of matching nodes to count.
+         */
+        final int maxCount;
+        
+        /**
+         * The current count of matching nodes.
+         */
+        int count;
+        
+        /**
+         * The current depth (number of parent nodes).
+         */
+        int depth;
+        
+        /**
+         * The total number of child nodes per node, for those nodes that were
+         * fully traversed and do have child nodes. This value is used to
+         * calculate the average width.
+         */
+        long widthTotal;
+        
+        /**
+         * The number of nodes that were fully traversed and do have child
+         * nodes. This value is used to calculate the average width.
+         */
+        int widthCount;
+        
+        /**
+         * The sum of the depth of all matching nodes. This value is used to
+         * calculate the average depth.
+         */
+        long depthTotal;
+        
+        CountingNodeVisitor(int maxCount) {
+            this.maxCount = maxCount;
+        }
+
+        @Override
+        public void visit(NodeState state) {
+            if (state.getProperty("match") != null) {
+                count++;
+                depthTotal += depth;
+            }
+            if (count < maxCount) {
+                depth++;
+                int width = 0;
+                boolean finished = true;
+                for (ChildNodeEntry entry : state.getChildNodeEntries()) {
+                    if (count >= maxCount) {
+                        finished = false;
+                        break;
+                    }
+                    width++;
+                    visit(entry.getNodeState());
+                }
+                if (finished && width > 0) {
+                    widthTotal += width;
+                    widthCount++;
+                }
+                depth--;
+            }
+        }
+        
+        /**
+         * The number of matches (at most the maximum count).
+         * 
+         * @return the match count
+         */
+        int getCount() {
+            return count;
+        }
+        
+        /**
+         * The number of estimated matches. This value might be higher than the
+         * number of counted matches, if the maximum number of matches has been
+         * reached. It is based on the average depth of matches, and the average
+         * number of child nodes.
+         * 
+         * @return the estimated matches
+         */
+        int getEstimatedCount() {
+            if (count < maxCount) {
+                return count;
+            }
+            double averageDepth = (int) (depthTotal / count);
+            double averageWidth = 2;
+            if (widthCount > 0) {
+                averageWidth = (int) (widthTotal / widthCount);
+            }
+            // calculate with an average width of at least 2
+            averageWidth = Math.max(2, averageWidth);
+            // the number of estimated matches is calculated as the
+            // of a estimated
+            long estimatedNodes = (long) Math.pow(averageWidth, 2 * averageDepth);
+            estimatedNodes = Math.min(estimatedNodes, Integer.MAX_VALUE);
+            return Math.max(count, (int) estimatedNodes);
         }
         
     }

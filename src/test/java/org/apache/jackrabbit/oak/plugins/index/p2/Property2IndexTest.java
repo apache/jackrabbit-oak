@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.index.p2;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.Arrays;
@@ -76,12 +77,11 @@ public class Property2IndexTest {
         assertEquals(MANY, find(lookup, "foo", "xyz").size());
         assertEquals(MANY + 2, find(lookup, "foo", null).size());
 
-        assertEquals(Math.min(100, MANY), 
-                (int) lookup.getCost("foo", PropertyValues.newString("xyz")));
-        assertEquals(Math.min(100, MANY), 
-                (int) lookup.getCost("foo", null));
-
-        
+        double cost;
+        cost = lookup.getCost("foo", PropertyValues.newString("xyz"));
+        assertTrue("cost: " + cost, cost >= MANY);
+        cost = lookup.getCost("foo", null);
+        assertTrue("cost: " + cost, cost >= MANY);
     }
     
     private static Set<String> find(Property2IndexLookup lookup, String name, String value) {
