@@ -410,7 +410,7 @@ class HashDirectory implements ChildNodeEntries {
     }
     
     /**
-     * Entry inside this a directory's index.
+     * Entry inside this directory's index.
      */
     static interface IndexEntry {
         
@@ -422,7 +422,7 @@ class HashDirectory implements ChildNodeEntries {
     }
     
     /**
-     * Direct entry inside this a directory's index, pointing to a child node.
+     * Direct entry inside this directory's index, pointing to a child node.
      */
     static class NodeEntry extends ChildNodeEntry implements IndexEntry {
 
@@ -459,7 +459,7 @@ class HashDirectory implements ChildNodeEntries {
     }
     
     /**
-     * Container entry inside this a directory's index, pointing to either a
+     * Container entry inside this directory's index, pointing to either a
      * directory or a bucket.
      */
     static abstract class ContainerEntry implements IndexEntry {
@@ -524,7 +524,7 @@ class HashDirectory implements ChildNodeEntries {
                 return null;
             }
             if (other instanceof ChildNodeEntry) {
-                ChildNodeEntries container  = ((ContainerEntry) other).createCompatibleContainer();
+                ChildNodeEntries container  = createCompatibleContainer();
                 container.add((ChildNodeEntry) other);
                 return getContainer().getAdded(container);
             }
@@ -536,7 +536,7 @@ class HashDirectory implements ChildNodeEntries {
                 return null;
             }
             if (other instanceof ChildNodeEntry) {
-                ChildNodeEntries container = ((ContainerEntry) other).createCompatibleContainer();
+                ChildNodeEntries container = createCompatibleContainer();
                 container.add((ChildNodeEntry) other);
                 return getContainer().getModified(container);
             }
@@ -549,7 +549,7 @@ class HashDirectory implements ChildNodeEntries {
     }
     
     /**
-     * Directory entry inside this a directory's index, pointing to a directory on the
+     * Directory entry inside this directory's index, pointing to a directory on the
      * next level.
      */
     static class DirectoryEntry extends ContainerEntry {
@@ -596,7 +596,7 @@ class HashDirectory implements ChildNodeEntries {
     }
 
     /**
-     * Bucket entry inside this a directory's index, pointing to a bucket or leaf node.
+     * Bucket entry inside this directory's index, pointing to a bucket or leaf node.
      */
     static class BucketEntry extends ContainerEntry {
         
