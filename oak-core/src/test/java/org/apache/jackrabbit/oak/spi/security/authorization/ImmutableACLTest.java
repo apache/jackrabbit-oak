@@ -30,6 +30,7 @@ import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeConstants;
+import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 import org.junit.Before;
 import org.junit.Test;
@@ -128,7 +129,7 @@ public class ImmutableACLTest extends AbstractAccessControlListTest {
 
     @Test
     public void testEmptyIsImmutable() throws Exception {
-        JackrabbitAccessControlList acl = createACL(Collections.<JackrabbitAccessControlEntry>emptyList());
+        JackrabbitAccessControlList acl = createEmptyACL();
 
         assertTrue(acl.isEmpty());
         assertEquals(0, acl.size());
@@ -137,24 +138,63 @@ public class ImmutableACLTest extends AbstractAccessControlListTest {
     }
 
     @Test
+    public void testEqualsForEmpty() throws Exception {
+
+        JackrabbitAccessControlList acl = createEmptyACL();
+
+        assertEquals(acl, createEmptyACL());
+        assertFalse(acl.equals(createACL(new ACE(testPrincipal, testPrivileges, true, Collections.<Restriction>emptySet()))));
+        assertFalse(acl.equals(new TestACL(getTestPath(), getRestrictionProvider(), Collections.<JackrabbitAccessControlEntry>emptyList())));
+    }
+
+    @Test
     public void testEquals() throws Exception {
-        List<JackrabbitAccessControlEntry> entries = Collections.<JackrabbitAccessControlEntry>singletonList(new ACE(testPrincipal, testPrivileges, true, null));
+        RestrictionProvider rp = getRestrictionProvider();
+        ACE ace1 = new ACE(testPrincipal, privilegesFromNames(PrivilegeConstants.JCR_VERSION_MANAGEMENT), false, null);
+        ACE ace2 = new ACE(testPrincipal, testPrivileges, true, null);
+        ACE ace2b = new ACE(testPrincipal, getAggregatedPrivileges(testPrivileges), true, null);
 
-        JackrabbitAccessControlList empty = createACL(Collections.<JackrabbitAccessControlEntry>emptyList());
-        JackrabbitAccessControlList acl = createACL(entries);
+        JackrabbitAccessControlList acl = createACL(ace1, ace2);
+        JackrabbitAccessControlList repoAcl = createACL((String) null, ace1, ace2);
 
-        assertEquals(empty, createACL(Collections.<JackrabbitAccessControlEntry>emptyList()));
-        assertEquals(acl, createACL(entries));
+        assertEquals(acl, createACL(ace1, ace2));
+        assertEquals(acl, createACL(ace1, ace2b));
 
-        String testPath = getTestPath();
-        RestrictionProvider restrictionProvider = getRestrictionProvider();
+        assertEquals(repoAcl, createACL((String) null, ace1, ace2b));
 
-        assertFalse(empty.equals(acl));
-        assertFalse(acl.equals(empty));
-        assertFalse(acl.equals(createACL("/anotherPath", entries)));
-        assertFalse(acl.equals(new TestACL("/anotherPath", entries, restrictionProvider)));
-        assertFalse(acl.equals(new TestACL("/anotherPath", Collections.<JackrabbitAccessControlEntry>emptyList(), restrictionProvider)));
-        assertFalse(acl.equals(new TestACL(testPath, entries, restrictionProvider)));
-        assertFalse(empty.equals(new TestACL(testPath, Collections.<JackrabbitAccessControlEntry>emptyList(), restrictionProvider)));
+        assertFalse(acl.equals(createACL(ace2, ace1)));
+        assertFalse(acl.equals(repoAcl));
+        assertFalse(acl.equals(createEmptyACL()));
+        assertFalse(acl.equals(createACL("/anotherPath", ace1, ace2)));
+        assertFalse(acl.equals(new TestACL("/anotherPath", rp, ace1, ace2)));
+        assertFalse(acl.equals(new TestACL("/anotherPath", rp, ace1, ace2)));
+        assertFalse(acl.equals(new TestACL("/anotherPath", rp)));
+        assertFalse(acl.equals(new TestACL(getTestPath(), rp, ace1, ace2)));
+    }
+
+    @Test
+    public void testHashCode() throws Exception {
+        RestrictionProvider rp = getRestrictionProvider();
+        ACE ace1 = new ACE(testPrincipal, privilegesFromNames(PrivilegeConstants.JCR_VERSION_MANAGEMENT), false, null);
+        ACE ace2 = new ACE(testPrincipal, testPrivileges, true, null);
+        ACE ace2b = new ACE(testPrincipal, getAggregatedPrivileges(testPrivileges), true, null);
+
+        JackrabbitAccessControlList acl = createACL(ace1, ace2);
+        JackrabbitAccessControlList repoAcl = createACL((String) null, ace1, ace2);
+
+        int hc = acl.hashCode();
+        assertTrue(hc == createACL(ace1, ace2).hashCode());
+        assertTrue(hc == createACL(ace1, ace2b).hashCode());
+
+        assertTrue(repoAcl.hashCode() == createACL((String) null, ace1, ace2b).hashCode());
+
+        assertFalse(hc == createACL(ace2, ace1).hashCode());
+        assertFalse(hc == repoAcl.hashCode());
+        assertFalse(hc == createEmptyACL().hashCode());
+        assertFalse(hc == createACL("/anotherPath", ace1, ace2).hashCode());
+        assertFalse(hc == new TestACL("/anotherPath", rp, ace1, ace2).hashCode());
+        assertFalse(hc == new TestACL("/anotherPath", rp, ace1, ace2).hashCode());
+        assertFalse(hc == new TestACL("/anotherPath", rp).hashCode());
+        assertFalse(hc == new TestACL(getTestPath(), rp, ace1, ace2).hashCode());
     }
 }

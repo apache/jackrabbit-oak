@@ -28,6 +28,7 @@ import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
 
 import com.google.common.base.Function;
+import com.google.common.base.Objects;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
@@ -125,7 +126,7 @@ public class ACE implements JackrabbitAccessControlEntry {
     @Override
     public int hashCode() {
         if (hashCode == 0) {
-            hashCode = buildHashCode();
+            hashCode = Objects.hashCode(principal, aggrPrivNames(), isAllow, restrictions);
         }
         return hashCode;
     }
@@ -137,10 +138,10 @@ public class ACE implements JackrabbitAccessControlEntry {
         }
         if (obj instanceof ACE) {
             ACE other = (ACE) obj;
-            return principal.equals(other.principal) &&
-                   aggrPrivNames().equals(other.aggrPrivNames()) &&
-                   isAllow == other.isAllow &&
-                   restrictions.equals(other.restrictions);
+            return principal.equals(other.principal)
+                    && isAllow == other.isAllow
+                    && aggrPrivNames().equals(other.aggrPrivNames())
+                    && restrictions.equals(other.restrictions);
         }
         return false;
     }
@@ -154,20 +155,6 @@ public class ACE implements JackrabbitAccessControlEntry {
     }
 
     //------------------------------------------------------------< private >---
-    /**
-     * Build the hash code.
-     *
-     * @return the hash code.
-     */
-    private int buildHashCode() {
-        int h = 17;
-        h = 37 * h + principal.hashCode();
-        h = 37 * h + aggrPrivNames().hashCode();
-        h = 37 * h + Boolean.valueOf(isAllow).hashCode();
-        h = 37 * h + restrictions.hashCode();
-        return h;
-    }
-
     private Set<String> aggrPrivNames() {
         if (aggrPrivNames == null) {
             aggrPrivNames = new HashSet<String>();

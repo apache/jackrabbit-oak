@@ -16,12 +16,16 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization;
 
+import javax.jcr.NamespaceRegistry;
 import javax.jcr.RepositoryException;
 import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.name.ReadWriteNamespaceRegistry;
 import org.apache.jackrabbit.oak.security.authorization.AccessControlManagerImpl;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 
@@ -32,6 +36,21 @@ public abstract class AbstractAccessControlTest extends AbstractSecurityTest {
 
     private PrivilegeManager privMgr;
     private RestrictionProvider restrictionProvider;
+
+    protected void registerNamespace(String prefix, String uri) throws RepositoryException {
+        NamespaceRegistry nsRegistry = new ReadWriteNamespaceRegistry() {
+            @Override
+            protected Root getWriteRoot() {
+                return root;
+            }
+
+            @Override
+            protected Tree getReadTree() {
+                return root.getTree("/");
+            }
+        };
+        nsRegistry.registerNamespace(prefix, uri);
+    }
 
     protected NamePathMapper getNamePathMapper() {
         return namePathMapper;

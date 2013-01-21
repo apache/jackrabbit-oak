@@ -27,6 +27,7 @@ import javax.jcr.security.AccessControlEntry;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
 
+import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -49,6 +50,7 @@ public class ImmutableACL extends AbstractAccessControlList {
      * @param oakPath The Oak path of this policy or {@code null}.
      * @param entries The access control entries contained in this policy.
      * @param restrictionProvider The restriction provider.
+     * @param namePathMapper The {@link NamePathMapper} used for conversion.
      */
     public ImmutableACL(@Nullable String oakPath,
                         @Nonnull List<? extends JackrabbitAccessControlEntry> entries,
@@ -95,12 +97,7 @@ public class ImmutableACL extends AbstractAccessControlList {
     @Override
     public int hashCode() {
         if (hashCode == 0) {
-            int result = 17;
-            result = 37 * result + (getOakPath() != null ? getOakPath().hashCode() : 0);
-            for (AccessControlEntry entry : entries) {
-                result = 37 * result + entry.hashCode();
-            }
-            hashCode = result;
+            hashCode = Objects.hashCode(getOakPath(), entries);
         }
         return hashCode;
     }
@@ -112,9 +109,7 @@ public class ImmutableACL extends AbstractAccessControlList {
         }
         if (obj instanceof ImmutableACL) {
             ImmutableACL other = (ImmutableACL) obj;
-            String path = getOakPath();
-            String otherPath = other.getOakPath();
-            return ((path == null) ? otherPath == null : path.equals(otherPath))
+            return Objects.equal(getOakPath(), other.getOakPath())
                     && entries.equals(other.entries);
         }
         return false;
