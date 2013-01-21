@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.p2.strategy;
 
+import java.util.List;
+
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -71,6 +73,6 @@ public interface IndexStoreStrategy {
      * @param max the maximum value to return
      * @return the aggregated count of occurrences for each provided value
      */
-    int count(NodeState index, Iterable<String> values, int max);
+    int count(NodeState index, List<String> values, int max);
 
 }

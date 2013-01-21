@@ -106,7 +106,7 @@ public class Property2IndexLookup {
         if (state == null) {
             return Double.POSITIVE_INFINITY;
         }
-        Iterable<String> it = value == null ? null : Property2Index.encode(value);
+        List<String> it = value == null ? null : Property2Index.encode(value);
         return store.count(state, it, MAX_COST);
     }
 
