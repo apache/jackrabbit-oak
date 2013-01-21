@@ -31,7 +31,6 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.jcr.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.NodeImpl;
 import org.apache.jackrabbit.oak.jcr.PropertyDelegate;
-import org.apache.jackrabbit.oak.jcr.SessionDelegate;
 import org.apache.jackrabbit.oak.util.TODO;
 import org.apache.jackrabbit.oak.version.VersionConstants;
 
