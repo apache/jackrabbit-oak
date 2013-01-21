@@ -29,6 +29,7 @@ import org.apache.jackrabbit.mongomk.api.instruction.Instruction;
 import org.apache.jackrabbit.mongomk.api.model.Commit;
 import org.apache.jackrabbit.mongomk.impl.MongoNodeStore;
 import org.apache.jackrabbit.mongomk.impl.action.FetchCommitAction;
+import org.apache.jackrabbit.mongomk.impl.action.FetchHeadRevisionIdAction;
 import org.apache.jackrabbit.mongomk.impl.action.ReadAndIncHeadRevisionAction;
 import org.apache.jackrabbit.mongomk.impl.action.SaveAndSetHeadRevisionAction;
 import org.apache.jackrabbit.mongomk.impl.action.SaveCommitAction;
@@ -96,8 +97,14 @@ public class CommitCommandNew extends BaseCommand<Long> {
             readBranchIdFromBaseCommit();
             createMongoNodes();
             prepareCommit();
-            readExistingNodes();
-            mergeNodes();
+            // If base revision is older than the head revision, need to read
+            // and merge nodes at the head revision.
+            FetchHeadRevisionIdAction action = new FetchHeadRevisionIdAction(nodeStore, branchId);
+            long headRevisionId = action.execute();
+            if (baseRevisionId < headRevisionId) {
+                readExistingNodes();
+                mergeNodes();
+            }
             prepareMongoNodes();
             new SaveNodesAction(nodeStore, nodes.values()).execute();
             new SaveCommitAction(nodeStore, commit).execute();

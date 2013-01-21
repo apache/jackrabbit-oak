@@ -31,13 +31,26 @@ import com.mongodb.QueryBuilder;
  */
 public class FetchHeadRevisionIdAction extends BaseAction<Long> {
 
+    private final String branchId;
+
     /**
      * Constructs a new {@code FetchHeadRevisionIdAction}.
      *
      * @param nodeStore Node store.
      */
     public FetchHeadRevisionIdAction(MongoNodeStore nodeStore) {
+        this(nodeStore, null);
+    }
+
+    /**
+     * Constructs a new {@code FetchHeadRevisionIdAction}.
+     *
+     * @param nodeStore Node store.
+     * @param branchId Branch id.
+     */
+    public FetchHeadRevisionIdAction(MongoNodeStore nodeStore, String branchId) {
         super(nodeStore);
+        this.branchId = branchId;
     }
 
     @Override
@@ -46,15 +59,19 @@ public class FetchHeadRevisionIdAction extends BaseAction<Long> {
         MongoSync syncMongo = (MongoSync)headCollection.findOne();
         long headRevisionId = syncMongo.getHeadRevisionId();
 
-        // Find the first revision id that's not part of a branch.
         DBCollection collection = nodeStore.getCommitCollection();
-        DBObject query = QueryBuilder.start(MongoCommit.KEY_FAILED).notEquals(Boolean.TRUE)
-                .and(MongoCommit.KEY_REVISION_ID).lessThanEquals(headRevisionId)
-                .and(new BasicDBObject(MongoNode.KEY_BRANCH_ID, new BasicDBObject("$exists", false)))
-                .get();
+        QueryBuilder qb = QueryBuilder.start(MongoCommit.KEY_FAILED).notEquals(Boolean.TRUE)
+                .and(MongoCommit.KEY_REVISION_ID).lessThanEquals(headRevisionId);
+        if (branchId == null) {
+            qb = qb.and(new BasicDBObject(MongoNode.KEY_BRANCH_ID, new BasicDBObject("$exists", false)));
+        } else {
+            qb = qb.and(MongoNode.KEY_BRANCH_ID).is(branchId);
+        }
+
+        DBObject query = qb.get();
         DBObject fields = new BasicDBObject(MongoCommit.KEY_REVISION_ID, 1);
         DBObject orderBy = new BasicDBObject(MongoCommit.KEY_REVISION_ID, -1);
         MongoCommit commit = (MongoCommit)collection.findOne(query, fields, orderBy);
-        return commit.getRevisionId();
+        return commit != null? commit.getRevisionId() : 0L;
     }
 }
