@@ -175,4 +175,21 @@ public class MongoMKCommitAddTest extends BaseMongoMicroKernelTest {
         }
         if (debug) System.out.println("Final Result:" + commitMonitor);
     }
+
+    @Test
+    public void existingNodesMerged() throws Exception {
+        String rev = mk.commit("/", "+\"a\" : {}", null, null);
+        mk.commit("/", "+\"a/b\" : {}", null, null);
+        mk.commit("/", "^\"a/key1\" : \"value1\"", null, null);
+
+        // Commit to rev before key1 and b were added
+        mk.commit("/", "^\"a/key2\" : \"value2\"", rev, null);
+
+        // Check that key1 and b were merged
+        String nodes = mk.getNodes("/", null, 1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        JSONObject obj = parseJSONObject(nodes);
+        assertPropertyValue(obj, ":childNodeCount", 1L);
+        assertPropertyValue(obj, "a/key1", "value1");
+        assertPropertyValue(obj, "a/key2", "value2");
+    }
 }
