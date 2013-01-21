@@ -107,7 +107,8 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
 
         root.commit();
 
-        testPrincipal = new PrincipalImpl("admin"); // TODO
+        // TODO
+        testPrincipal = new PrincipalImpl("admin");
         testPrivileges = privilegesFromNames(Privilege.JCR_ADD_CHILD_NODES, Privilege.JCR_READ);
     }
 
