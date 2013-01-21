@@ -28,6 +28,9 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -52,7 +55,7 @@ public class MongoCommit extends BasicDBObject implements Commit {
     public static final String KEY_TIMESTAMP = "ts";
 
     private final List<Instruction> instructions;
-    private List<String> affectedPaths;
+    private SortedSet<String> affectedPaths;
 
     private static final long serialVersionUID = 6656294757102309827L;
 
@@ -72,16 +75,17 @@ public class MongoCommit extends BasicDBObject implements Commit {
 
     @Override
     @SuppressWarnings("unchecked")
-    public List<String> getAffectedPaths() {
+    public SortedSet<String> getAffectedPaths() {
         if (affectedPaths == null) {
-            affectedPaths = inflate((byte[]) get(KEY_AFFECTED_PATH));
+            affectedPaths = new TreeSet<String>(
+                    inflate((byte[]) get(KEY_AFFECTED_PATH)));
         }
-        return affectedPaths;
+        return Collections.unmodifiableSortedSet(affectedPaths);
     }
 
-    public void setAffectedPaths(List<String> affectedPaths) {
-        this.affectedPaths = affectedPaths;
-        put(KEY_AFFECTED_PATH, compress(affectedPaths));
+    public void setAffectedPaths(Set<String> affectedPaths) {
+        this.affectedPaths = new TreeSet<String>(affectedPaths);
+        put(KEY_AFFECTED_PATH, compress(this.affectedPaths));
     }
 
     @Override

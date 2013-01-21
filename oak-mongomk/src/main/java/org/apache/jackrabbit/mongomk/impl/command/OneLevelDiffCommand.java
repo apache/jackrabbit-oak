@@ -81,13 +81,13 @@ public class OneLevelDiffCommand extends BaseCommand<String> {
         // find out what changed below path
         List<MongoCommit> commits = getCommits(fromCommit, toCommit);
         Set<String> affectedPaths = new HashSet<String>();
+        String from = (PathUtils.denotesRoot(path) ? path : path + "/") + "\u0000";
+        String to = (PathUtils.denotesRoot(path) ? path : path + "/") + "\uFFFF";
         for (MongoCommit mc : commits) {
-            for (String p : mc.getAffectedPaths()) {
-                if (p.startsWith(path)) {
-                    int d = PathUtils.getDepth(p);
-                    if (d > pathDepth) {
-                        affectedPaths.add(PathUtils.getAncestorPath(p, d - pathDepth - 1));
-                    }
+            for (String p : mc.getAffectedPaths().subSet(from, to)) {
+                int d = PathUtils.getDepth(p);
+                if (d > pathDepth) {
+                    affectedPaths.add(PathUtils.getAncestorPath(p, d - pathDepth - 1));
                 }
             }
         }

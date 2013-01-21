@@ -21,6 +21,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.jackrabbit.mongomk.api.model.Commit;
 import org.apache.jackrabbit.mongomk.api.model.Node;
@@ -51,7 +52,7 @@ public class MongoAssert {
         MongoCommit result = (MongoCommit) commitCollection.findOne(query);
         Assert.assertNotNull(result);
 
-        List<String> actualPaths = result.getAffectedPaths();
+        Set<String> actualPaths = result.getAffectedPaths();
         Assert.assertEquals(new HashSet<String>(Arrays.asList(expectedPaths)), new HashSet<String>(actualPaths));
     }
 

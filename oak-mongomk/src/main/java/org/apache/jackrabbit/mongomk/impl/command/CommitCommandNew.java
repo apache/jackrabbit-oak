@@ -167,7 +167,7 @@ public class CommitCommandNew extends BaseCommand<Long> {
     }
 
     private void prepareCommit() throws Exception {
-        commit.setAffectedPaths(new LinkedList<String>(affectedPaths));
+        commit.setAffectedPaths(affectedPaths);
         commit.setBaseRevisionId(mongoSync.getHeadRevisionId());
         commit.setRevisionId(revisionId);
         if (commit.getBranchId() == null && branchId != null) {

@@ -139,7 +139,7 @@ public class MergeCommand extends BaseCommand<String> {
 
         for (int i = commits.size() - 1; i >= 0; i--) {
             MongoCommit commit = commits.get(i);
-            List<String> affectedPaths = commit.getAffectedPaths();
+            Set<String> affectedPaths = commit.getAffectedPaths();
             for (String affectedPath : affectedPaths) {
                 if (branchId.equals(commit.getBranchId())) {
                     if (affectedPathsTrunk.contains(affectedPath)) {

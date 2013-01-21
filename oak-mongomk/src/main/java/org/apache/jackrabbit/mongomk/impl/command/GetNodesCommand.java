@@ -21,6 +21,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.jackrabbit.mongomk.api.model.Node;
 import org.apache.jackrabbit.mongomk.impl.MongoNodeStore;
@@ -141,7 +142,7 @@ public class GetNodesCommand extends BaseCommand<Node> {
         for (ListIterator<MongoCommit> iterator = lastCommits.listIterator(); iterator.hasPrevious();) {
             MongoCommit commitMongo = iterator.previous();
             long revisionId = commitMongo.getRevisionId();
-            List<String> affectedPaths = commitMongo.getAffectedPaths();
+            Set<String> affectedPaths = commitMongo.getAffectedPaths();
             for (String path : affectedPaths) {
                 problematicNodes.put(path, revisionId);
             }
