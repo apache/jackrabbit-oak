@@ -211,7 +211,6 @@
       org.apache.jackrabbit.test.api.observation.NodeReorderTest#testNodeReorderMove                <!-- reorder not supported -->
       org.apache.jackrabbit.test.api.observation.NodeReorderTest#testNodeReorderSameName            <!-- reorder not supported -->
       org.apache.jackrabbit.test.api.observation.NodeReorderTest#testNodeReorderSameNameWithRemove  <!-- reorder not supported -->
-      org.apache.jackrabbit.test.api.observation.AddEventListenerTest#testNodeType
       org.apache.jackrabbit.test.api.observation.AddEventListenerTest#testNoLocalTrue
       org.apache.jackrabbit.test.api.observation.GetIdentifierTest#testNodeAdded
       org.apache.jackrabbit.test.api.observation.GetIdentifierTest#testNodeMoved

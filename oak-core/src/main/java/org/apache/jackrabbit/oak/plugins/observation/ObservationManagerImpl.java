@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.observation.EventJournal;
@@ -31,8 +32,11 @@ import javax.jcr.observation.ObservationManager;
 import com.google.common.base.Preconditions;
 import org.apache.jackrabbit.commons.iterator.EventListenerIteratorAdapter;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.core.RootImpl;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
+import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.spi.observation.ChangeExtractor;
 
 /**
@@ -44,12 +48,14 @@ public class ObservationManagerImpl implements ObservationManager {
     private final ScheduledExecutorService executor;
     private final Map<EventListener, ChangeProcessor> processors = new HashMap<EventListener, ChangeProcessor>();
     private final AtomicBoolean hasEvents = new AtomicBoolean(false);
+    private final ReadOnlyNodeTypeManager ntMgr;
 
     public ObservationManagerImpl(Root root, NamePathMapper namePathMapper, ScheduledExecutorService executor) {
         Preconditions.checkArgument(root instanceof RootImpl, "root must be of actual type RootImpl");
         this.root = ((RootImpl) root);
         this.namePathMapper = namePathMapper;
         this.executor = executor;
+        this.ntMgr = new NTMgr();
     }
 
     public synchronized void dispose() {
@@ -71,7 +77,8 @@ public class ObservationManagerImpl implements ObservationManager {
     @Override
     public synchronized void addEventListener(EventListener listener, int eventTypes, String absPath,
             boolean isDeep, String[] uuid, String[] nodeTypeName, boolean noLocal) throws RepositoryException {
-        ChangeFilter filter = new ChangeFilter(eventTypes, absPath, isDeep, uuid, nodeTypeName, noLocal);
+        ChangeFilter filter = new ChangeFilter(ntMgr, namePathMapper, eventTypes,
+                absPath, isDeep, uuid, nodeTypeName, noLocal);
         ChangeProcessor processor = processors.get(listener);
         if (processor == null) {
             processor = new ChangeProcessor(this, listener, filter);
@@ -124,5 +131,19 @@ public class ObservationManagerImpl implements ObservationManager {
 
     void setHasEvents() {
         hasEvents.set(true);
+    }
+
+    private final class NTMgr extends ReadOnlyNodeTypeManager {
+
+        @Override
+        protected Tree getTypes() {
+            return root.getTree(NodeTypeConstants.NODE_TYPES_PATH);
+        }
+
+        @Nonnull
+        @Override
+        protected NamePathMapper getNamePathMapper() {
+            return namePathMapper;
+        }
     }
 }
