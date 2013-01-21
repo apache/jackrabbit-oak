@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.plugins.value;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.util.Calendar;
-
 import javax.jcr.Binary;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
@@ -29,8 +28,6 @@ import javax.jcr.ValueFormatException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
@@ -39,7 +36,6 @@ import static com.google.common.base.Preconditions.checkState;
  * Implementation of {@link Value} based on {@code PropertyState}.
  */
 public class ValueImpl implements Value {
-    private static final Logger log = LoggerFactory.getLogger(ValueImpl.class);
 
     private final PropertyState propertyState;
     private final int index;
@@ -280,8 +276,7 @@ public class ValueImpl implements Value {
     public int hashCode() {
         if (getType() == PropertyType.BINARY) {
             return propertyState.getValue(Type.BINARY, index).hashCode();
-        }
-        else {
+        } else {
             return getOakString().hashCode();
         }
     }
