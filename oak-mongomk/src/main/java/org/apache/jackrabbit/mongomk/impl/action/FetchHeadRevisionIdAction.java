@@ -72,6 +72,6 @@ public class FetchHeadRevisionIdAction extends BaseAction<Long> {
         DBObject fields = new BasicDBObject(MongoCommit.KEY_REVISION_ID, 1);
         DBObject orderBy = new BasicDBObject(MongoCommit.KEY_REVISION_ID, -1);
         MongoCommit commit = (MongoCommit)collection.findOne(query, fields, orderBy);
-        return commit != null? commit.getRevisionId() : 0L;
+        return commit != null? commit.getRevisionId() : headRevisionId;
     }
 }
