@@ -36,6 +36,7 @@ import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
+import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.version.VersionConstants;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -142,12 +143,18 @@ public class VersionHook implements CommitHook {
         public void childNodeChanged(String name,
                                      NodeState before,
                                      NodeState after) {
+            if (NodeStateUtils.isHidden(name)) {
+                return;
+            }
             after.compareAgainstBaseState(before,
                     new VersionDiff(this, vMgr, nodeAfter.child(name)));
         }
 
         @Override
         public void childNodeDeleted(String name, NodeState before) {
+            if (NodeStateUtils.isHidden(name)) {
+                return;
+            }
             NodeState after = MemoryNodeState.EMPTY_NODE;
             after.compareAgainstBaseState(before,
                     new VersionDiff(this, vMgr, after.builder()));
