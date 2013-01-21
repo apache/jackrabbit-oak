@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.mk.store;
 
 import org.apache.jackrabbit.mk.model.ChildNodeEntries;
-import org.apache.jackrabbit.mk.model.ChildNodeEntriesMap;
 import org.apache.jackrabbit.mk.model.Id;
 import org.apache.jackrabbit.mk.model.MutableCommit;
 import org.apache.jackrabbit.mk.model.MutableNode;
