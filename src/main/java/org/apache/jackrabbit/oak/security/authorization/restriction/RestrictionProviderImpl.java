@@ -22,6 +22,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import javax.annotation.Nonnull;
+import javax.jcr.NamespaceRegistry;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
@@ -33,7 +34,6 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
-import org.apache.jackrabbit.oak.plugins.name.NamespaceConstants;
 import org.apache.jackrabbit.oak.security.authorization.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionDefinition;
@@ -122,10 +122,15 @@ public class RestrictionProviderImpl implements RestrictionProvider, AccessContr
         if (oakPath == null && !restrictionProperties.isEmpty()) {
             throw new AccessControlException("Restrictions not supported with 'null' path.");
         }
-        for (String restrName : restrictionProperties.keySet()) {
+        for (Map.Entry<String, PropertyState> entry : restrictionProperties.entrySet()) {
+            String restrName = entry.getKey();
             RestrictionDefinition def = supported.get(restrName);
-            if (def == null || restrictionProperties.get(restrName).getType().tag() != def.getRequiredType()) {
+            if (def == null) {
                 throw new AccessControlException("Unsupported restriction: " + restrName);
+            }
+            int type = entry.getValue().getType().tag();
+            if (type != def.getRequiredType()) {
+                throw new AccessControlException("Invalid restriction type '"+PropertyType.nameFromValue(type)+"'. Expected " + PropertyType.nameFromValue(def.getRequiredType()));
             }
         }
         for (RestrictionDefinition def : supported.values()) {
@@ -165,8 +170,7 @@ public class RestrictionProviderImpl implements RestrictionProvider, AccessContr
     }
 
     private static boolean isRestrictionProperty(String propertyName) {
-        String prefix = Text.getNamespacePrefix(propertyName);
-        return !NamespaceConstants.RESERVED_PREFIXES.contains(prefix)
-                && !AccessControlConstants.AC_PROPERTY_NAMES.contains(propertyName);
+        return !AccessControlConstants.ACE_PROPERTY_NAMES.contains(propertyName) &&
+                !NamespaceRegistry.PREFIX_JCR.equals(Text.getNamespacePrefix(propertyName));
     }
 }

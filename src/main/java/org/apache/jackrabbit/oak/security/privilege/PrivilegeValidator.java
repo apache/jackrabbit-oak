@@ -43,10 +43,9 @@ class PrivilegeValidator implements PrivilegeConstants, Validator {
     private final PrivilegeDefinitionReaderImpl reader;
 
     PrivilegeValidator(NodeState before) {
-        NodeState privRootState = getPrivilegesRoot(before);
-        if (privRootState != null) {
-            Tree privilegesBefore = new ReadOnlyTree(privRootState);
-            reader = new PrivilegeDefinitionReaderImpl(privilegesBefore);
+        Tree privTree = getPrivilegesTree(before);
+        if (privTree != null) {
+            reader = new PrivilegeDefinitionReaderImpl(privTree);
             definitions = reader.readDefinitions();
         } else {
             reader = null;
@@ -206,10 +205,11 @@ class PrivilegeValidator implements PrivilegeConstants, Validator {
         }
     }
 
-    private static NodeState getPrivilegesRoot(NodeState rootState) {
-        NodeState system = rootState.getChildNode(JcrConstants.JCR_SYSTEM);
+    private static Tree getPrivilegesTree(NodeState rootState) {
+        Tree root = new ReadOnlyTree(rootState);
+        Tree system = root.getChild(JcrConstants.JCR_SYSTEM);
         if (system != null) {
-            return system.getChildNode(REP_PRIVILEGES);
+            return system.getChild(REP_PRIVILEGES);
         }
         return null;
     }

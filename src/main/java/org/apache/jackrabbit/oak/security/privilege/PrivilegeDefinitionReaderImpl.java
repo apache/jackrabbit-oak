@@ -20,15 +20,19 @@ import java.util.HashMap;
 import java.util.Map;
 import javax.annotation.Nonnull;
 
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeDefinition;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeDefinitionReader;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.security.privilege.PrivilegeConstants.PRIVILEGES_PATH;
 import static org.apache.jackrabbit.oak.security.privilege.PrivilegeConstants.REP_AGGREGATES;
 import static org.apache.jackrabbit.oak.security.privilege.PrivilegeConstants.REP_IS_ABSTRACT;
+import static org.apache.jackrabbit.oak.security.privilege.PrivilegeConstants.REP_PRIVILEGES;
 
 
 /**
@@ -39,12 +43,19 @@ class PrivilegeDefinitionReaderImpl implements PrivilegeDefinitionReader {
 
     private final Tree privilegesTree;
 
-    PrivilegeDefinitionReaderImpl(Tree privilegesTree) {
-        this.privilegesTree = privilegesTree;
+    PrivilegeDefinitionReaderImpl(@Nonnull Tree privilegesTree) {
+        if (privilegesTree.isRoot()) {
+            TreeLocation location = privilegesTree.getLocation().getChild(JcrConstants.JCR_SYSTEM+'/'+REP_PRIVILEGES);
+            this.privilegesTree = checkNotNull(location.getTree());
+        } else if (PRIVILEGES_PATH.equals(privilegesTree.getPath())) {
+            this.privilegesTree = privilegesTree;
+        } else {
+            throw new IllegalArgumentException("Illegal privilege tree " + privilegesTree);
+        }
     }
 
-    PrivilegeDefinitionReaderImpl(Root root) {
-        this(root.getTree(PRIVILEGES_PATH));
+    PrivilegeDefinitionReaderImpl(@Nonnull Root root) {
+        this(checkNotNull(root.getTree(PRIVILEGES_PATH)));
     }
 
     //------------------------------------------< PrivilegeDefinitionReader >---
