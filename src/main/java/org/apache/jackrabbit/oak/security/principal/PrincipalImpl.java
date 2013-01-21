@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.principal;
 
-import java.security.Principal;
-
 import org.apache.jackrabbit.api.security.principal.JackrabbitPrincipal;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -30,8 +28,7 @@ public class PrincipalImpl implements JackrabbitPrincipal {
     private final String name;
 
     public PrincipalImpl(String name) {
-        checkNotNull(name);
-        this.name = name;
+        this.name = checkNotNull(name);
     }
 
     //----------------------------------------------------------< Principal >---
@@ -51,7 +48,7 @@ public class PrincipalImpl implements JackrabbitPrincipal {
             return true;
         }
         if (obj instanceof JackrabbitPrincipal) {
-            return name.equals(((Principal) obj).getName());
+            return name.equals(((JackrabbitPrincipal) obj).getName());
         }
         return false;
     }
