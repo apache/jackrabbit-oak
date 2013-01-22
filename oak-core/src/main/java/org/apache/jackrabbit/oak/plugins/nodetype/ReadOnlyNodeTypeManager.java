@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.Node;
@@ -49,7 +50,6 @@ import org.apache.jackrabbit.commons.iterator.NodeTypeIteratorAdapter;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.ReadOnlyTree;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -153,17 +153,13 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
      */
     @Nonnull
     public static ReadOnlyNodeTypeManager getInstance(NodeState root) {
-        Tree tree = new ReadOnlyTree(root);
-        for (String name : PathUtils.elements(NODE_TYPES_PATH)) {
-            tree = tree.getChild(name);
-            if (tree == null) {
-                // No node types in content, so use an empty node
-                tree = new ReadOnlyTree(MemoryNodeState.EMPTY_NODE);
-                break;
-            }
-        }
+        Tree tree = new ReadOnlyTree(root).getLocation()
+                .getChild(NODE_TYPES_PATH.substring(1)).getTree();
 
-        final Tree types = tree;
+        final Tree types = tree == null
+            ? new ReadOnlyTree(MemoryNodeState.EMPTY_NODE)  // No node types in content, use an empty node
+            : tree;
+
         return new ReadOnlyNodeTypeManager() {
             @Override
             protected Tree getTypes() {
