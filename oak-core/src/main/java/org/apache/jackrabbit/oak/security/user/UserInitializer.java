@@ -18,16 +18,20 @@ package org.apache.jackrabbit.oak.security.user;
 
 import javax.jcr.RepositoryException;
 
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.core.RootImpl;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,6 +48,15 @@ import org.slf4j.LoggerFactory;
  *     <li>An administrator user using {@link UserConstants#PARAM_ANONYMOUS_ID}
  *     or {@link UserConstants#DEFAULT_ANONYMOUS_ID} if the config option is
  *     missing.</li>
+ * </ul>
+ *
+ * In addition this initializer sets up index definitions for the following
+ * user related properties:
+ *
+ * <ul>
+ *     <li>{@link UserConstants#REP_AUTHORIZABLE_ID}</li>
+ *     <li>{@link UserConstants#REP_PRINCIPAL_NAME}</li>
+ *     <li>{@link UserConstants#REP_MEMBERS}</li>
  * </ul>
  */
 public class UserInitializer implements RepositoryInitializer, UserConstants {
@@ -68,19 +81,23 @@ public class UserInitializer implements RepositoryInitializer, UserConstants {
         UserManager userManager = userConfiguration.getUserManager(root, NamePathMapper.DEFAULT);
 
         try {
-            boolean modified = false;
+            NodeUtil rootTree = new NodeUtil(root.getTree("/"));
+            NodeUtil index = rootTree.getOrAddChild(IndexConstants.INDEX_DEFINITIONS_NAME, JcrConstants.NT_UNSTRUCTURED);
+            IndexUtils.createIndexDefinition(index, "authorizableId", true, UserConstants.REP_AUTHORIZABLE_ID);
+            // FIXME OAK-396: rep:principalName only needs to be unique if defined with user/group nodes -> add defining nt-info to uniqueness constraint otherwise ac-editing will fail.
+            IndexUtils.createIndexDefinition(index, "principalName", true, UserConstants.REP_PRINCIPAL_NAME);
+            IndexUtils.createIndexDefinition(index, "members", false, UserConstants.REP_MEMBERS);
+
             String adminId = userConfiguration.getConfigurationParameters().getConfigValue(PARAM_ADMIN_ID, DEFAULT_ADMIN_ID);
             if (userManager.getAuthorizable(adminId) == null) {
                 // TODO: init admin with null password and force application to set it.
                 userManager.createUser(adminId, adminId);
-                modified = true;
             }
             String anonymousId = userConfiguration.getConfigurationParameters().getConfigValue(PARAM_ANONYMOUS_ID, DEFAULT_ANONYMOUS_ID);
             if (userManager.getAuthorizable(anonymousId) == null) {
                 userManager.createUser(anonymousId, null);
-                modified = true;
             }
-            if (modified) {
+            if (root.hasPendingChanges()) {
                 root.commit();
             }
         } catch (RepositoryException e) {

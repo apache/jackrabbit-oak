@@ -23,7 +23,6 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.core.RootImpl;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
-import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
@@ -80,25 +79,6 @@ public class InitialContent implements RepositoryInitializer {
                         "propertyNames",
                         ImmutableList.of(JCR_PRIMARYTYPE, JCR_MIXINTYPES),
                         Type.STRINGS));
-            // FIXME OAK-570:user-mgt related unique properties (rep:authorizableId, rep:principalName, rep:members) are implementation detail and not generic for repo
-            // FIXME OAK-396: rep:principalName only needs to be unique if defined with user/group nodes -> add defining nt-info to uniqueness constraint otherwise ac-editing will fail.
-            index.child("authorizableId")
-                .setProperty(JCR_PRIMARYTYPE, "oak:queryIndexDefinition", Type.NAME)
-                .setProperty("type", "p2")
-                .setProperty("propertyNames", UserConstants.REP_AUTHORIZABLE_ID)
-                .setProperty("reindex", true)
-                .setProperty("unique", true);
-            index.child("principalName")
-                .setProperty(JCR_PRIMARYTYPE, "oak:queryIndexDefinition", Type.NAME)
-                .setProperty("type", "p2")
-                .setProperty("propertyNames", UserConstants.REP_PRINCIPAL_NAME)
-                .setProperty("reindex", true)
-                .setProperty("unique", true);
-            index.child("members")
-                .setProperty(JCR_PRIMARYTYPE, "oak:queryIndexDefinition", Type.NAME)
-                .setProperty("type", "p2")
-                .setProperty("propertyNames", UserConstants.REP_MEMBERS)
-                .setProperty("reindex", true);
         }
         try {
             branch.setRoot(root.getNodeState());
