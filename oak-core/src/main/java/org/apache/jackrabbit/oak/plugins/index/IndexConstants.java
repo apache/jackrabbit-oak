@@ -31,4 +31,14 @@ public interface IndexConstants {
 
     String REINDEX_PROPERTY_NAME = "reindex";
 
+    /**
+     * Marks a unique property index.
+     */
+    String UNIQUE = "unique";
+
+    /**
+     * Defines the names of the properties that are covered by a specific
+     * property index definition.
+     */
+    String PROPERTY_NAMES = "propertyNames";
 }
