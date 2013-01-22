@@ -14,26 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.spi.security.authentication.external;
+package org.apache.jackrabbit.oak.security.authentication.ldap;
 
-import java.security.Principal;
-import java.util.Map;
-import java.util.Set;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalGroup;
 
-/**
- * ExternalUser... TODO
- */
-public interface ExternalUser {
+public class LdapGroup extends LdapUser implements ExternalGroup {
 
-    String getId();
-
-    String getPassword();
-
-    Principal getPrincipal();
-
-    String getPath();
-
-    Set<? extends ExternalGroup> getGroups();
-
-    Map<String, ?> getProperties();
+    public LdapGroup(String dn, LdapSearch search) {
+        super(dn, null, search);
+        this.setDN(dn);
+    }
 }
