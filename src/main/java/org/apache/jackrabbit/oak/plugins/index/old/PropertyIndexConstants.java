@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.old;
 
+import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
 
 public interface PropertyIndexConstants {
@@ -50,6 +51,6 @@ public interface PropertyIndexConstants {
     /**
      * Marks a unique index.
      */
-    String UNIQUE = "unique";
+    String UNIQUE = IndexConstants.UNIQUE;
 
 }

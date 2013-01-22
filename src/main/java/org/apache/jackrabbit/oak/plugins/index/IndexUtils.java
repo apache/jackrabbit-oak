@@ -16,9 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
-import static org.apache.jackrabbit.oak.api.Type.STRING;
-import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -26,6 +23,10 @@ import java.util.List;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.util.NodeUtil;
+
+import static org.apache.jackrabbit.oak.api.Type.STRING;
+import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 
 /**
  * TODO document
@@ -33,10 +34,31 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 public class IndexUtils implements IndexConstants {
 
     /**
+     * Create a new property2 index definition below the given {@code indexNode}.
+     *
+     * @param indexNode
+     * @param indexDefName
+     * @param unique
+     * @param propertyNames
+     */
+    public static void createIndexDefinition(NodeUtil indexNode,
+                                             String indexDefName,
+                                             boolean unique,
+                                             String... propertyNames) {
+        NodeUtil entry = indexNode.getOrAddChild(indexDefName, IndexConstants.INDEX_DEFINITIONS_NODE_TYPE);
+        entry.setString(IndexConstants.TYPE_PROPERTY_NAME, "p2");
+        entry.setBoolean(IndexConstants.REINDEX_PROPERTY_NAME, true);
+        if (unique) {
+            entry.setBoolean(IndexConstants.UNIQUE, true);
+        }
+        entry.setNames(IndexConstants.PROPERTY_NAMES, propertyNames);
+    }
+
+    /**
      * Builds a list of the existing index definitions.
      * 
      * Checks only children of the provided state for an index definitions
-     * container node, aka a node named {@link INDEX_DEFINITIONS_NAME}
+     * container node, aka a node named {@link #INDEX_DEFINITIONS_NAME}
      * 
      * @return
      */
