@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.mk.testing;
 
 import java.util.Arrays;
+import java.util.Collections;
 
 import org.apache.jackrabbit.mongomk.impl.MongoConnection;
 import org.apache.jackrabbit.mongomk.impl.model.MongoCommit;
@@ -40,7 +41,7 @@ public class MongoClearCollections {
 
     /**
      * Removes all documents from nodes collection.
-     * 
+     *
      * @param mongoConnection
      */
     public static void clearNodesCollection(MongoConnection mongoConnection) {
@@ -59,7 +60,7 @@ public class MongoClearCollections {
 
     /**
      * Removes all documents from commits collection.
-     * 
+     *
      * @param mongoConnection
      */
     public static void clearCommitsCollection(MongoConnection mongoConnection) {
@@ -71,7 +72,7 @@ public class MongoClearCollections {
         commitCollection.remove(new BasicDBObject());
 
         MongoCommit commit = new MongoCommit();
-        commit.setAffectedPaths(Arrays.asList(new String[] { "/" }));
+        commit.setAffectedPaths(Collections.singleton("/"));
         commit.setBaseRevisionId(0L);
         commit.setDiff(INITIAL_COMMIT_DIFF);
         commit.setMessage(INITIAL_COMMIT_MESSAGE);
@@ -82,7 +83,7 @@ public class MongoClearCollections {
 
     /**
      * Removes all documents from head collection.
-     * 
+     *
      * @param mongoConnection
      */
     public static void clearHeadCollection(MongoConnection mongoConnection) {
@@ -100,7 +101,7 @@ public class MongoClearCollections {
 
     /**
      * Removes all documents from all microkernel collections.
-     * 
+     *
      * @param mongoConnection
      */
     public static void clearAllCollections(MongoConnection mongoConnection) {
