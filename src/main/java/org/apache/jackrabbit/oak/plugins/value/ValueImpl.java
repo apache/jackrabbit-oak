@@ -231,14 +231,14 @@ public class ValueImpl implements Value {
      * @see javax.jcr.Value#getStream()
      */
     @Override
-    public InputStream getStream() throws IllegalStateException, RepositoryException {
+    public InputStream getStream() throws IllegalStateException {
         if (stream == null) {
             stream = getNewStream();
         }
         return stream;
     }
 
-    InputStream getNewStream() throws RepositoryException {
+    InputStream getNewStream() {
         return propertyState.getValue(Type.BINARY, index).getNewStream();
     }
 
