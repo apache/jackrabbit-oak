@@ -55,7 +55,7 @@ public interface RevisionStore extends RevisionProvider {
     
     /**
      * Put a new head commit. Must be called while holding a lock on the head.
-     * 
+     *
      * @param token
      *            put token
      * @param commit
@@ -63,7 +63,7 @@ public interface RevisionStore extends RevisionProvider {
      * @param branchRootId
      *            former branch root id, if this is a merge; otherwise
      *            {@code null}
-     * @return branchRevId
+     * @param branchRevId
      *            current branch head, i.e. last commit on this branch, 
      *            if this is a merge; otherwise {@code null}
      * @return head commit id
