@@ -20,6 +20,7 @@ import org.apache.jackrabbit.mongomk.impl.MongoNodeStore;
 import org.apache.jackrabbit.mongomk.impl.model.MongoCommit;
 
 import com.mongodb.DBCollection;
+import com.mongodb.WriteConcern;
 import com.mongodb.WriteResult;
 
 /**
@@ -43,7 +44,7 @@ public class SaveCommitAction extends BaseAction<Boolean> {
     @Override
     public Boolean execute() throws Exception {
         DBCollection commitCollection = nodeStore.getCommitCollection();
-        WriteResult writeResult = commitCollection.insert(commitMongo);
+        WriteResult writeResult = commitCollection.insert(commitMongo, WriteConcern.SAFE);
         if (writeResult.getError() != null) {
             throw new Exception(String.format("Insertion wasn't successful: %s", writeResult));
         }
