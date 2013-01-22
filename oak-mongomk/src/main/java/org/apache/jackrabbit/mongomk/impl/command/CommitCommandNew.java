@@ -46,6 +46,7 @@ import com.mongodb.BasicDBObject;
 import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
 import com.mongodb.QueryBuilder;
+import com.mongodb.WriteConcern;
 import com.mongodb.WriteResult;
 
 /**
@@ -340,7 +341,8 @@ public class CommitCommandNew extends BaseCommand<Long> {
         DBCollection commitCollection = nodeStore.getCommitCollection();
         DBObject query = QueryBuilder.start("_id").is(commit.getObjectId("_id")).get();
         DBObject update = new BasicDBObject("$set", new BasicDBObject(MongoCommit.KEY_FAILED, Boolean.TRUE));
-        WriteResult writeResult = commitCollection.update(query, update);
+        WriteResult writeResult = commitCollection.update(query, update,
+                false /*upsert*/, false /*multi*/, WriteConcern.SAFE);
         nodeStore.evict(commit);
         if (writeResult.getError() != null) {
             // FIXME This is potentially a bug that we need to handle.
