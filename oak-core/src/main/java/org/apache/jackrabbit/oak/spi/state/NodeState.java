@@ -16,10 +16,10 @@
  */
 package org.apache.jackrabbit.oak.spi.state;
 
-import org.apache.jackrabbit.oak.api.PropertyState;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+
+import org.apache.jackrabbit.oak.api.PropertyState;
 
 /**
  * A node in a content tree consists of child nodes and properties, each
@@ -172,12 +172,12 @@ public interface NodeState {
      * across different states of the same node.
      * <p/>
      * <i>Note on cost and performance:</i> while it is possible to iterate over
-     * all child <code>NodeState</code>s with the two methods {@link
+     * all child {@code NodeState}s with the two methods {@link
      * #getChildNodeNames()} and {@link #getChildNode(String)}, this method is
      * considered more efficient because an implementation can potentially
-     * perform the retrieval of the name and <code>NodeState</code> in one call.
+     * perform the retrieval of the name and {@code NodeState} in one call.
      * This results in O(n) vs. O(n log n) when iterating over the child node
-     * names and then look up the <code>NodeState</code> by name.
+     * names and then look up the {@code NodeState} by name.
      *
      * @return child node entries in some stable order
      */
