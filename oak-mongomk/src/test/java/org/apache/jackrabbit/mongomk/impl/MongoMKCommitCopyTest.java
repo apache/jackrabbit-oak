@@ -219,7 +219,6 @@ public class MongoMKCommitCopyTest extends BaseMongoMicroKernelTest {
     }
 
     @Test
-    @Ignore // FIXME - due to CommitCommandInstructionVisitor add node change.
     public void modifyParentAddPropertyAndCopy() {
         mk.commit("/", "+\"a\":{}", null, null);
         mk.commit("/", "+\"b\" : {}\n"
@@ -257,7 +256,6 @@ public class MongoMKCommitCopyTest extends BaseMongoMicroKernelTest {
     }
 
     @Test
-    @Ignore // FIXME - due to CommitCommandInstructionVisitor add node change.
     public void modifyParentRemovePropertyAndCopy() {
         mk.commit("/", "+\"a\":{ \"key1\" : \"value1\"}", null, null);
         mk.commit("/", "+\"b\" : {}\n"
