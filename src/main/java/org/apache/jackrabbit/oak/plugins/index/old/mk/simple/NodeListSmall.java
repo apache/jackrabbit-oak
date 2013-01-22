@@ -26,7 +26,7 @@ import org.apache.jackrabbit.mk.json.JsopBuilder;
 import org.apache.jackrabbit.mk.json.JsopWriter;
 import org.apache.jackrabbit.oak.plugins.index.old.mk.ExceptionFactory;
 import org.apache.jackrabbit.oak.plugins.index.old.mk.simple.NodeImpl.ChildVisitor;
-import org.apache.jackrabbit.oak.util.ArrayUtils;
+import org.apache.jackrabbit.oak.plugins.index.old.ArrayUtils;
 import org.apache.jackrabbit.mk.util.IOUtils;
 
 /**

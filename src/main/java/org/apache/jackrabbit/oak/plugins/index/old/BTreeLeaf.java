@@ -20,7 +20,6 @@ import java.util.Arrays;
 
 import org.apache.jackrabbit.mk.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.util.ArrayUtils;
 
 /**
  * An index leaf page.
