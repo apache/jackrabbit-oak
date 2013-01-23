@@ -33,6 +33,7 @@ import javax.naming.directory.SearchControls;
 import javax.naming.directory.SearchResult;
 import javax.security.auth.login.LoginException;
 
+import com.google.common.collect.ImmutableMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,19 +42,19 @@ public class JndiLdapSearch implements LdapSearch {
     private static final Logger log = LoggerFactory.getLogger(JndiLdapSearch.class);
 
     private final LdapSettings settings;
-    private final Hashtable ldapEnvironment;
+    private final Map<String,String> ldapEnvironment;
 
     public JndiLdapSearch(LdapSettings settings) {
         this.settings = settings;
         this.ldapEnvironment = createEnvironment(settings);
     }
 
-    private static Hashtable createEnvironment(LdapSettings settings) {
-        Hashtable env = new Hashtable();
+    private static Map createEnvironment(LdapSettings settings) {
+        Map<String,String> env = new HashMap<String,String>();
         env.put(Context.INITIAL_CONTEXT_FACTORY, "com.sun.jndi.ldap.LdapCtxFactory");
         StringBuilder url = new StringBuilder();
         url.append("ldap://").append(settings.getHost()).append(':').append(settings.getPort());
-        env.put(Context.PROVIDER_URL, url);
+        env.put(Context.PROVIDER_URL, url.toString());
         if (settings.isSecure()) {
             env.put(Context.SECURITY_PROTOCOL, "ssl");
         }
@@ -61,13 +62,12 @@ public class JndiLdapSearch implements LdapSearch {
         String authPw = settings.getAuthPw();
         if (authDn == null || authDn.length() == 0) {
             env.put(Context.SECURITY_AUTHENTICATION, "none");
-        }
-        else {
+        } else {
             env.put(Context.SECURITY_AUTHENTICATION, "simple");
             env.put(Context.SECURITY_PRINCIPAL, authDn);
-            env.put(Context.SECURITY_CREDENTIALS,authPw);
+            env.put(Context.SECURITY_CREDENTIALS, authPw);
         }
-        return env;
+        return ImmutableMap.copyOf(env);
     }
 
     private Object parseAttributeValue(Attribute attribute) throws NamingException {
@@ -78,8 +78,7 @@ public class JndiLdapSearch implements LdapSearch {
                 values.add(String.valueOf(attribute.get(k)));
             }
             return values;
-        }
-        else {
+        } else {
             return String.valueOf(attribute.get());
         }
     }
@@ -89,8 +88,8 @@ public class JndiLdapSearch implements LdapSearch {
         NamingEnumeration<? extends Attribute> namingEnumeration = attributes.getAll();
         Map<String, Object> properties = new HashMap<String, Object>();
         Map<String, String> syncMap = user instanceof LdapGroup ?
-                this.settings.getGroupAttributes() : this.settings.getUserAttributes();
-        while ( namingEnumeration.hasMore() ) {
+                settings.getGroupAttributes() : settings.getUserAttributes();
+        while (namingEnumeration.hasMore()) {
             Attribute attribute = namingEnumeration.next();
             String key = attribute.getID();
             if (syncMap.containsKey(key)) {
@@ -112,7 +111,7 @@ public class JndiLdapSearch implements LdapSearch {
         List<SearchResult> tmp = new ArrayList<SearchResult>();
         InitialDirContext context = null;
         try {
-            context = new InitialDirContext(this.ldapEnvironment);
+            context = new InitialDirContext(new Hashtable<String,String>(ldapEnvironment));
             NamingEnumeration<SearchResult> namingEnumeration = context.search(baseDN, filter, attributes, constraints);
             while (namingEnumeration.hasMore()) {
                 tmp.add(namingEnumeration.next());
@@ -159,37 +158,37 @@ public class JndiLdapSearch implements LdapSearch {
 
     private List<SearchResult> searchUser(String id)
             throws NamingException {
-        Set<String> attributeSet = new HashSet<String>(this.settings.getUserAttributes().keySet());
-        attributeSet.add(this.settings.getUserIdAttribute());
+        Set<String> attributeSet = new HashSet<String>(settings.getUserAttributes().keySet());
+        attributeSet.add(settings.getUserIdAttribute());
         String[] attributes = new String[attributeSet.size()];
         attributeSet.toArray(attributes);
-        return this.search(this.settings.getUserRoot(),
-                this.compileSearchFilter(this.settings.getUserFilter(), this.settings.getUserIdAttribute() + '=' + id),
+        return search(settings.getUserRoot(),
+                compileSearchFilter(settings.getUserFilter(), settings.getUserIdAttribute() + '=' + id),
                 SearchControls.SUBTREE_SCOPE,
                 attributes);
     }
 
     private List<SearchResult> searchGroups(String dn)
             throws NamingException {
-        Set<String> attributeSet = new HashSet<String>(this.settings.getGroupAttributes().keySet());
+        Set<String> attributeSet = new HashSet<String>(settings.getGroupAttributes().keySet());
         String[] attributes = new String[attributeSet.size()];
         attributeSet.toArray(attributes);
-        return search(this.settings.getGroupRoot(),
-                this.compileSearchFilter(this.settings.getGroupFilter(), this.settings.getGroupMembershipAttribute() + '=' + dn),
+        return search(settings.getGroupRoot(),
+                compileSearchFilter(settings.getGroupFilter(), settings.getGroupMembershipAttribute() + '=' + dn),
                 SearchControls.SUBTREE_SCOPE,
                 attributes);
     }
 
     private boolean findUser(LdapUser user, String id) {
         try {
-            List<SearchResult> entries = this.searchUser(id);
+            List<SearchResult> entries = searchUser(id);
             if (!entries.isEmpty()) {
                 SearchResult entry = entries.get(0);
                 user.setDN(entry.getNameInNamespace());
-                this.initProperties(user, entry.getAttributes());
+                initProperties(user, entry.getAttributes());
                 return true;
-            } else  if (id.contains("\\")) {
-                return this.findUser(user, id.substring(id.indexOf('\\') + 1));
+            } else if (id.contains("\\")) {
+                return findUser(user, id.substring(id.indexOf('\\') + 1));
             }
         } catch (NamingException e) {
             //TODO
@@ -199,7 +198,7 @@ public class JndiLdapSearch implements LdapSearch {
 
     @Override
     public boolean findUser(LdapUser user) {
-        return this.findUser(user, user.getId());
+        return findUser(user, user.getId());
     }
 
     @Override
@@ -207,11 +206,11 @@ public class JndiLdapSearch implements LdapSearch {
         final HashSet<LdapGroup> groups = new HashSet<LdapGroup>();
         List<SearchResult> ldapEntries;
         try {
-            ldapEntries = this.searchGroups(user.getDN());
+            ldapEntries = searchGroups(user.getDN());
             for (SearchResult entry : ldapEntries) {
                 LdapGroup group = new LdapGroup(entry.getNameInNamespace(), this);
                 groups.add(group);
-                this.initProperties(group, entry.getAttributes());
+                initProperties(group, entry.getAttributes());
             }
         } catch (NamingException e) {
             //TODO
@@ -222,7 +221,7 @@ public class JndiLdapSearch implements LdapSearch {
     @Override
     public void authenticate(LdapUser user) throws LoginException {
         try {
-            Hashtable env = new Hashtable(this.ldapEnvironment);
+            Hashtable<String,String> env = new Hashtable<String,String>(ldapEnvironment);
             env.put(Context.SECURITY_PRINCIPAL, user.getDN());
             env.put(Context.SECURITY_CREDENTIALS, user.getPassword());
             //TODO
