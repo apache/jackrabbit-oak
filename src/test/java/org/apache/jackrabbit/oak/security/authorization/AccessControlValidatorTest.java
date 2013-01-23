@@ -44,6 +44,7 @@ public class AccessControlValidatorTest extends AbstractAccessControlTest implem
     private final String aceName = "validAce";
 
     private Principal testPrincipal;
+    private Principal testPrincipal2;
 
     @Before
     public void before() throws Exception {
@@ -56,6 +57,7 @@ public class AccessControlValidatorTest extends AbstractAccessControlTest implem
 
         // TODO
         testPrincipal = new PrincipalImpl("testPrincipal");
+        testPrincipal2 = new PrincipalImpl("anotherPrincipal");
     }
 
     @After
@@ -264,7 +266,7 @@ public class AccessControlValidatorTest extends AbstractAccessControlTest implem
         NodeUtil acl = createAcl();
 
         String privName = "invalidPrivilegeName";
-        createACE(acl, "invalid", NT_REP_GRANT_ACE, testPrincipal.getName(), privName);
+        createACE(acl, "invalid", NT_REP_GRANT_ACE, testPrincipal2.getName(), privName);
         try {
             root.commit();
             fail("Creating an ACE with invalid privilege should fail.");
@@ -280,7 +282,7 @@ public class AccessControlValidatorTest extends AbstractAccessControlTest implem
         pMgr.registerPrivilege("abstractPrivilege", true, new String[0]);
 
         NodeUtil acl = createAcl();
-        createACE(acl, "invalid", NT_REP_GRANT_ACE, testPrincipal.getName(), "abstractPrivilege");
+        createACE(acl, "invalid", NT_REP_GRANT_ACE, testPrincipal2.getName(), "abstractPrivilege");
         try {
             root.commit();
             fail("Creating an ACE with an abstract privilege should fail.");
