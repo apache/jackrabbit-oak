@@ -97,21 +97,35 @@ public class EquiJoinConditionImpl extends JoinConditionImpl {
     public void restrict(FilterImpl f) {
         if (f.getSelector() == selector1) {
             PropertyValue p2 = selector2.currentProperty(property2Name);
+            if (p2 == null && f.isPreparing() && selector2.isPrepared()) {
+                // during the prepare phase, if the selector is already
+                // prepared, then we would know the value
+                p2 = PropertyValues.newString(KNOWN_VALUE);
+            }
             if (p2 != null) {
-                if (!p2.isArray()) {
+                if (p2.isArray()) {
                     // TODO support join on multi-valued properties
-                    f.restrictProperty(property1Name, Operator.EQUAL, p2);
+                    p2 = null;
                 }
             }
+            // always set the condition, even if unkown ( -> is not null)
+            f.restrictProperty(property1Name, Operator.EQUAL, p2);
         }
         if (f.getSelector() == selector2) {
             PropertyValue p1 = selector1.currentProperty(property1Name);
+            if (p1 == null && f.isPreparing() && selector1.isPrepared()) {
+                // during the prepare phase, if the selector is already
+                // prepared, then we would know the value
+                p1 = PropertyValues.newString(KNOWN_VALUE);
+            }
             if (p1 != null) {
-                if (!p1.isArray()) {
+                if (p1.isArray()) {
                     // TODO support join on multi-valued properties
-                    f.restrictProperty(property2Name, Operator.EQUAL, p1);
+                    p1 = null;
                 }
             }
+            // always set the condition, even if unkown ( -> is not null)
+            f.restrictProperty(property2Name, Operator.EQUAL, p1);
         }
     }
 

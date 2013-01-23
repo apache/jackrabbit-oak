@@ -81,6 +81,11 @@ public class SameNodeJoinConditionImpl extends JoinConditionImpl {
     public void restrict(FilterImpl f) {
         if (f.getSelector() == selector1) {
             String p2 = selector2.currentPath();
+            if (p2 == null && f.isPreparing() && selector2.isPrepared()) {
+                // during the prepare phase, if the selector is already
+                // prepared, then we would know the value
+                p2 = KNOWN_PATH;
+            }
             if (p2 != null) {
                 if (selector2Path.equals(".")) {
                     f.restrictPath(p2, Filter.PathRestriction.EXACT);
@@ -93,6 +98,11 @@ public class SameNodeJoinConditionImpl extends JoinConditionImpl {
         }
         if (f.getSelector() == selector2) {
             String p1 = selector1.currentPath();
+            if (p1 == null && f.isPreparing() && selector1.isPrepared()) {
+                // during the prepare phase, if the selector is already
+                // prepared, then we would know the value
+                p1 = KNOWN_PATH;
+            }
             if (p1 != null) {
                 if (selector2Path.equals(".")) {
                     f.restrictPath(p1, Filter.PathRestriction.EXACT);

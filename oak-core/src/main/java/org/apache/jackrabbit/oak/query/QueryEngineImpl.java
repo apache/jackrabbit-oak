@@ -176,11 +176,14 @@ public abstract class QueryEngineImpl implements QueryEngine {
                 best = index;
             }
         }
-        if (best == null) {
-            if (LOG.isDebugEnabled()) {
-                LOG.debug("no indexes found - using TraversingIndex; indexProvider: " + indexProvider);
-            }
-            best = new TraversingIndex();
+        QueryIndex index = new TraversingIndex();
+        double cost = index.getCost(filter, rootState);
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("cost for " + index.getIndexName() + " is " + cost);
+        }
+        if (cost < bestCost) {
+            bestCost = cost;
+            best = index;
         }
         return best;
     }

@@ -75,12 +75,25 @@ public class FilterImpl implements Filter {
      * Only return distinct values.
      */
     private boolean distinct;
+    
+    /**
+     * Set during the prepare phase of a query.
+     */
+    private boolean preparing;
 
     // TODO support "order by"
 
     public FilterImpl(SelectorImpl selector, String queryStatement) {
         this.selector = selector;
         this.queryStatement = queryStatement;
+    }
+    
+    public void setPreparing(boolean preparing) {
+        this.preparing = preparing;
+    }
+    
+    public boolean isPreparing() {
+        return preparing;
     }
 
     /**
