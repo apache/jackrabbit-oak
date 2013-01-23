@@ -16,12 +16,9 @@
  */
 package org.apache.jackrabbit.mongomk.impl.action;
 
+import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 import org.apache.jackrabbit.mongomk.impl.MongoNodeStore;
 import org.apache.jackrabbit.mongomk.impl.model.MongoCommit;
@@ -137,38 +134,17 @@ public class FetchCommitsAction extends BaseAction<List<MongoCommit>> {
     }
 
     private List<MongoCommit> convertToCommits(DBCursor dbCursor) {
-        Map<Long, MongoCommit> commits = new HashMap<Long, MongoCommit>();
-        while (dbCursor.hasNext()) {
-            MongoCommit commitMongo = (MongoCommit) dbCursor.next();
-            commits.put(commitMongo.getRevisionId(), commitMongo);
-        }
-        dbCursor.close();
-
-        List<MongoCommit> validCommits = new LinkedList<MongoCommit>();
-        if (commits.isEmpty()) {
-            return validCommits;
-        }
-
-        Set<Long> revisions = commits.keySet();
-        long currentRevision = (toRevisionId != -1 && revisions.contains(toRevisionId)) ?
-                toRevisionId : Collections.max(revisions);
-
-        while (true) {
-            MongoCommit commitMongo = commits.get(currentRevision);
-            if (commitMongo == null) {
-                break;
+        try {
+            List<MongoCommit> commits = new ArrayList<MongoCommit>();
+            while (dbCursor.hasNext()) {
+                commits.add((MongoCommit) dbCursor.next());
             }
-            validCommits.add(commitMongo);
-            long baseRevision = commitMongo.getBaseRevisionId();
-            if (currentRevision == 0L || baseRevision < fromRevisionId) {
-                break;
-            }
-            currentRevision = baseRevision;
+            LOG.debug("Found list of valid revisions for max revision {}: {}",
+                    toRevisionId, commits);
+
+            return commits;
+        } finally {
+            dbCursor.close();
         }
-
-        LOG.debug("Found list of valid revisions for max revision {}: {}",
-                toRevisionId, validCommits);
-
-        return validCommits;
     }
 }

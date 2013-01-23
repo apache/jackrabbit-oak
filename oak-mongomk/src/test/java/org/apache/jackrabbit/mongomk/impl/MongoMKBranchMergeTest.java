@@ -344,7 +344,6 @@ public class MongoMKBranchMergeTest extends BaseMongoMicroKernelTest {
     }
 
     @Test
-    @Ignore("OAK-560")
     public void concurrentNonConflictingMerges() throws Exception {
         int numThreads = 10;
         mk.commit("/", "+\"test\":{}", null, null);

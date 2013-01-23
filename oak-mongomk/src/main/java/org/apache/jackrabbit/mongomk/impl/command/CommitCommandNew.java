@@ -169,7 +169,8 @@ public class CommitCommandNew extends BaseCommand<Long> {
 
     private void prepareCommit() throws Exception {
         commit.setAffectedPaths(affectedPaths);
-        commit.setBaseRevisionId(mongoSync.getHeadRevisionId());
+        commit.setBaseRevisionId(branchId == null?
+                mongoSync.getHeadRevisionId() : baseRevisionId);
         commit.setRevisionId(revisionId);
         if (commit.getBranchId() == null && branchId != null) {
             commit.setBranchId(branchId);
@@ -192,9 +193,13 @@ public class CommitCommandNew extends BaseCommand<Long> {
 
         existingNodes = new HashMap<String, MongoNode>();
         for (String path : affectedPaths) {
-            NodeExistsCommand command = new NodeExistsCommand(
-                    nodeStore, path, mongoSync.getHeadRevisionId());
-            command.setBranchId(branchId);
+            NodeExistsCommand command;
+            if (branchId == null) {
+                command = new NodeExistsCommand(nodeStore, path, mongoSync.getHeadRevisionId());
+            } else {
+                command = new NodeExistsCommand(nodeStore, path, baseRevisionId);
+                command.setBranchId(branchId);
+            }
             if (command.execute()) {
                 existingNodes.put(path, command.getNode());
             }
@@ -298,6 +303,11 @@ public class CommitCommandNew extends BaseCommand<Long> {
      * @throws Exception If an exception happens.
      */
     protected boolean saveAndSetHeadRevision() throws Exception {
+        // Don't update the head revision id for branches.
+        if (branchId != null) {
+            return true;
+        }
+
         long assumedHeadRevision = this.mongoSync.getHeadRevisionId();
         MongoSync mongoSync = new SaveAndSetHeadRevisionAction(nodeStore,
                 assumedHeadRevision, revisionId).execute();
