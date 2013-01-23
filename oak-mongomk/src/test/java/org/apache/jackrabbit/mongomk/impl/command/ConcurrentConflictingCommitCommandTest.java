@@ -26,6 +26,7 @@ import org.apache.jackrabbit.mongomk.BaseMongoMicroKernelTest;
 import org.apache.jackrabbit.mongomk.api.model.Commit;
 import org.apache.jackrabbit.mongomk.impl.MongoNodeStore;
 import org.apache.jackrabbit.mongomk.impl.model.CommitBuilder;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.fail;
@@ -155,6 +156,44 @@ public class ConcurrentConflictingCommitCommandTest extends BaseMongoMicroKernel
     }
 
     /**
+     * Tests the following scenario:
+     * -Commit /a but not increment head revision. This saves node /a and updates
+     * root node's children to /a but does not publish commit yet.
+     * -Commit /c/d. This basically adds a new commit and increments head revision.
+     * -Commit /b. This commit will think that /a is a valid child of the root.
+     * -Commit /a wakes up and tries to increment head revision but fails due to
+     * concurrent commit. It retries the operation but gets a "There's already
+     * a child node with name 'a'" error due to previous commit.
+     */
+    @Test
+    @Ignore("OAK-566")
+    public void leakedInvalidChild() throws Exception {
+        mk.commit("/", "+\"c\" : {}", null, null);
+        int n = 3;
+        CountDownLatch latch = new CountDownLatch(n - 1);
+        CommitCommandNew cmd1 = new WaitingCommitCommand(getNodeStore(),
+                CommitBuilder.build("/", "+\"a\" : {}", null), latch);
+        CommitCommandNew cmd2 = new NotifyingCommitCommand(getNodeStore(),
+                CommitBuilder.build("/", "+\"c/d\" : {}", null), latch);
+        CommitCommandNew cmd3 = new NotifyingCommitCommand(getNodeStore(),
+                CommitBuilder.build("/", "+\"b\" : {}", null), latch);
+
+        ExecutorService executorService = Executors.newFixedThreadPool(n);
+        Future<Long> future1 = executorService.submit(new CommitCallable(cmd1));
+        Thread.sleep(1000); // To make sure commit /a started waiting.
+        Future<Long> future2 = executorService.submit(new CommitCallable(cmd2));
+        Thread.sleep(1000); // To make sure commit /c/d incremented the head revision.
+        Future<Long> future3 = executorService.submit(new CommitCallable(cmd3));
+        try {
+            future1.get();
+            future2.get();
+            future3.get();
+        } catch (Exception e) {
+            fail("Not expected: " + e);
+        }
+    }
+
+    /**
      * A CommitCommand that simply waits on the waitLock until notified.
      */
     private static class WaitingCommitCommand extends CommitCommandNew {
@@ -219,7 +258,7 @@ public class ConcurrentConflictingCommitCommandTest extends BaseMongoMicroKernel
 
         @Override
         public Long call() throws Exception {
-            return command.execute();
+            return new DefaultCommandExecutor().execute(command);
         }
     }
 }
