@@ -66,12 +66,22 @@ public class DescendantNodeJoinConditionImpl extends JoinConditionImpl {
     public void restrict(FilterImpl f) {
         if (f.getSelector() == ancestorSelector) {
             String d = descendantSelector.currentPath();
+            if (d == null && f.isPreparing() && descendantSelector.isPrepared()) {
+                // during the prepare phase, if the selector is already
+                // prepared, then we would know the value
+                d = KNOWN_PATH;
+            }
             if (d != null) {
                 f.restrictPath(PathUtils.getParentPath(d), Filter.PathRestriction.PARENT);
             }
         }
         if (f.getSelector() == descendantSelector) {
             String a = ancestorSelector.currentPath();
+            if (a == null && f.isPreparing() && ancestorSelector.isPrepared()) {
+                // during the prepare phase, if the selector is already
+                // prepared, then we would know the value
+                a = KNOWN_PATH;
+            }
             if (a != null) {
                 f.restrictPath(a, Filter.PathRestriction.DIRECT_CHILDREN);
             }

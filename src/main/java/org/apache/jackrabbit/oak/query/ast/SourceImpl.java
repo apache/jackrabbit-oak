@@ -141,8 +141,8 @@ public abstract class SourceImpl extends AstElement {
     public abstract String getPlan(NodeState rootState);
 
     /**
-     * Prepare executing the query. This method will decide which index to use.
-     *
+     * Prepare executing the query (recursively). This method will decide which
+     * index to use.
      */
     public abstract void prepare();
 
