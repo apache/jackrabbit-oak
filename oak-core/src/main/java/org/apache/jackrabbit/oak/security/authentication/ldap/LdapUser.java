@@ -20,6 +20,8 @@ import java.security.Principal;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUser;
@@ -36,61 +38,64 @@ public class LdapUser implements ExternalUser {
     private Set<LdapGroup> groups;
     private Map<String, ?> properties = new HashMap<String, Object>();
 
-    public LdapUser(String uid, String pwd, LdapSearch search) {
+    public LdapUser(@Nonnull String uid, @Nullable String pwd, @Nonnull LdapSearch search) {
         this.uid = uid;
         this.pwd = pwd;
         this.search = search;
     }
 
+    //-------------------------------------------------------< ExternalUser >---
     @Override
     public String getId() {
-        return this.uid;
+        return uid;
     }
 
     @Override
     public String getPassword() {
-        return this.pwd;
+        return pwd;
     }
 
     @Override
     public Principal getPrincipal() {
-        if (this.principal == null) {
-            this.principal = new PrincipalImpl(this.uid);
+        if (principal == null) {
+            principal = new PrincipalImpl(uid);
         }
-        return this.principal;
+        return principal;
     }
 
     @Override
     public String getPath() {
         //TODO also support splitdn mode
-        if (this.path == null) {
-            this.path = this.getDN();
+        if (path == null) {
+            path = getDN();
         }
-        return this.path;
+        return path;
     }
 
     @Override
     public Set<LdapGroup> getGroups() {
-        if (this.groups == null) {
-            this.groups = this.search.findGroups(this);
+        if (groups == null) {
+            groups = search.findGroups(this);
         }
-        return this.groups;
+        return groups;
     }
 
     @Override
     public Map<String, ?> getProperties() {
-        return this.properties;
+        return properties;
     }
 
-    public void setProperties(Map<String, ?> properties) {
+    //--------------------------------------------------------------------------
+
+    void setProperties(Map<String, ?> properties) {
         this.properties = properties;
     }
 
-    public String getDN() {
-        return this.dn;
+    String getDN() {
+        return dn;
     }
 
-    public void setDN(String dn) {
+    void setDN(String dn) {
         this.dn = dn;
     }
 }
