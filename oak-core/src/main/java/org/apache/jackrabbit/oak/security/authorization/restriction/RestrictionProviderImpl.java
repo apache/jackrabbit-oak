@@ -109,10 +109,12 @@ public class RestrictionProviderImpl implements RestrictionProvider, AccessContr
     public void writeRestrictions(String oakPath, Tree aceTree, Set<Restriction> restrictions) throws AccessControlException {
         // validation of the restrictions is delegated to the commit hook
         // see #validateRestrictions below
-        NodeUtil aceNode = new NodeUtil(aceTree);
-        NodeUtil rNode = aceNode.getOrAddChild(REP_RESTRICTIONS, NT_REP_RESTRICTIONS);
-        for (Restriction restriction : restrictions) {
-            rNode.getTree().setProperty(restriction.getProperty());
+        if (!restrictions.isEmpty()) {
+            NodeUtil aceNode = new NodeUtil(aceTree);
+            NodeUtil rNode = aceNode.getOrAddChild(REP_RESTRICTIONS, NT_REP_RESTRICTIONS);
+            for (Restriction restriction : restrictions) {
+                rNode.getTree().setProperty(restriction.getProperty());
+            }
         }
     }
 
