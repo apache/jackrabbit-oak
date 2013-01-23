@@ -309,33 +309,30 @@ public class RepositoryTest extends AbstractRepositoryTest {
 
     @Test
     public void getNodes() throws RepositoryException {
+        Node test = getNode(TEST_PATH);
+        test.addNode("foo");
+        test.addNode("bar");
+        test.addNode("baz");
+        getAdminSession().save();
+
         Set<String> nodeNames = new HashSet<String>() {{
             add("bar");
             add("added");
-            add(TEST_NODE);
+            add("baz");
         }};
 
-        Node root = getNode("/");
-        root.addNode("added");         // transiently added
-        root.getNode("foo").remove();  // transiently removed
-        root.getNode("bar").remove();  // transiently removed and...
-        root.addNode("bar");           // ... added again
-        NodeIterator nodes = root.getNodes();
-        // FIXME: use a test subtree to avoid excluding default content
-        int expected = 3
-                + (root.hasNode("jcr:system") ? 1 : 0)
-                + (root.hasNode("rep:security") ? 1 : 0)
-                + (root.hasNode("oak-index") ? 1 : 0)
-                + (root.hasNode("oak:index") ? 1 : 0);
-        assertEquals(expected, nodes.getSize());
+        test = getNode(TEST_PATH);
+        test.addNode("added");         // transiently added
+        test.getNode("foo").remove();  // transiently removed
+        test.getNode("bar").remove();  // transiently removed and...
+        test.addNode("bar");           // ... added again
+
+        NodeIterator nodes = test.getNodes();
+        assertEquals(3, nodes.getSize());
+
         while (nodes.hasNext()) {
             String name = nodes.nextNode().getName();
-            if (!name.equals("jcr:system")
-                    && !name.equals("rep:security")
-                    && !name.equals("oak-index")
-                    && !name.equals("oak:index")) {
-                assertTrue(nodeNames.remove(name));
-            }
+            assertTrue(nodeNames.remove(name));
         }
 
         assertTrue(nodeNames.isEmpty());
