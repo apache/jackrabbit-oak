@@ -16,12 +16,14 @@
  */
 package org.apache.jackrabbit.oak.security.authentication.ldap;
 
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalGroup;
 
 public class LdapGroup extends LdapUser implements ExternalGroup {
 
-    public LdapGroup(String dn, LdapSearch search) {
+    public LdapGroup(@Nonnull String dn, @Nonnull LdapSearch search) {
         super(dn, null, search);
-        this.setDN(dn);
+        setDN(dn);
     }
 }

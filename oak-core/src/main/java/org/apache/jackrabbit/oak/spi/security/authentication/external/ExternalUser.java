@@ -19,21 +19,29 @@ package org.apache.jackrabbit.oak.spi.security.authentication.external;
 import java.security.Principal;
 import java.util.Map;
 import java.util.Set;
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 
 /**
  * ExternalUser... TODO
  */
 public interface ExternalUser {
 
+    @Nonnull
     String getId();
 
+    @CheckForNull
     String getPassword();
 
+    @Nonnull
     Principal getPrincipal();
 
+    @Nonnull
     String getPath();
 
+    @Nonnull
     Set<? extends ExternalGroup> getGroups();
 
+    @Nonnull
     Map<String, ?> getProperties();
 }

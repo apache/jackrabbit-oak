@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.authentication.ldap;
 
+import java.util.Map;
 import javax.jcr.Credentials;
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.Subject;
@@ -24,14 +25,8 @@ import javax.security.auth.login.LoginException;
 
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalLoginModule;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUser;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.Map;
 
 public final class LdapLoginModule extends ExternalLoginModule {
-
-    private static final Logger log = LoggerFactory.getLogger(ExternalLoginModule.class);
 
     private Credentials credentials;
     private LdapUser ldapUser;
@@ -39,55 +34,58 @@ public final class LdapLoginModule extends ExternalLoginModule {
 
     private LdapSearch search;
 
+    //--------------------------------------------------------< LoginModule >---
     @Override
     public void initialize(Subject subject, CallbackHandler callbackHandler, Map<String, ?> sharedState, Map<String, ?> options) {
         super.initialize(subject, callbackHandler, sharedState, options);
         //TODO
-        this.search = new JndiLdapSearch(new LdapSettings(options));
-    }
-
-    @Override
-    protected boolean loginSucceeded() {
-        return this.success;
-    }
-
-    @Override
-    protected ExternalUser getExternalUser() {
-        if (this.ldapUser == null) {
-            Credentials creds = getCredentials();
-            if (creds instanceof SimpleCredentials) {
-                String uid = ((SimpleCredentials) creds).getUserID();
-                char[] pwd = ((SimpleCredentials) creds).getPassword();
-                this.ldapUser = new LdapUser(uid, new String(pwd), this.search);
-            }
-        }
-        return this.ldapUser;
+        search = new JndiLdapSearch(new LdapSettings(options));
     }
 
     @Override
     public boolean login() throws LoginException {
         getExternalUser();
-        if (this.ldapUser != null && this.search.findUser(this.ldapUser)) {
-            this.search.authenticate(this.ldapUser);
-            this.success = true;
+        if (ldapUser != null && search.findUser(ldapUser)) {
+            search.authenticate(ldapUser);
+            success = true;
         }
-        return this.success;
+        return success;
     }
 
+    //------------------------------------------------< AbstractLoginModule >---
     @Override
     protected Credentials getCredentials() {
-        if (this.credentials == null) {
-            this.credentials = super.getCredentials();
+        if (credentials == null) {
+            credentials = super.getCredentials();
         }
-        return this.credentials;
+        return credentials;
     }
 
     @Override
     protected void clearState() {
         super.clearState();
-        this.success = false;
-        this.credentials = null;
-        this.ldapUser = null;
-        this.search = null;
+        success = false;
+        credentials = null;
+        ldapUser = null;
+        search = null;
+    }
+
+    //------------------------------------------------< ExternalLoginModule >---
+    @Override
+    protected boolean loginSucceeded() {
+        return success;
+    }
+
+    @Override
+    protected ExternalUser getExternalUser() {
+        if (ldapUser == null) {
+            Credentials creds = getCredentials();
+            if (creds instanceof SimpleCredentials) {
+                String uid = ((SimpleCredentials) creds).getUserID();
+                char[] pwd = ((SimpleCredentials) creds).getPassword();
+                ldapUser = new LdapUser(uid, new String(pwd), search);
+            }
+        }
+        return ldapUser;
     }
 }
