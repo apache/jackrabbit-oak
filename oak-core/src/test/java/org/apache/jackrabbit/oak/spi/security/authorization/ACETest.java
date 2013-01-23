@@ -56,13 +56,13 @@ public class ACETest extends AbstractAccessControlTest {
     @Before
     public void before() throws Exception {
         super.before();
+
+        acMgr = getAccessControlManager(root);
         testPrincipal = new Principal() {
             public String getName() {
                 return "TestPrincipal";
             }
         };
-
-        acMgr = getAccessControlManager();
     }
 
     private ACE createEntry(String... privilegeNames)

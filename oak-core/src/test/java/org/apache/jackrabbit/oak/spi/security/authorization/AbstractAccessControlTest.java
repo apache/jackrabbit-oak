@@ -17,9 +17,9 @@
 package org.apache.jackrabbit.oak.spi.security.authorization;
 
 import javax.jcr.NamespaceRegistry;
-import javax.jcr.RepositoryException;
 import javax.jcr.security.Privilege;
 
+import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.Root;
@@ -37,7 +37,7 @@ public abstract class AbstractAccessControlTest extends AbstractSecurityTest {
     private PrivilegeManager privMgr;
     private RestrictionProvider restrictionProvider;
 
-    protected void registerNamespace(String prefix, String uri) throws RepositoryException {
+    protected void registerNamespace(String prefix, String uri) throws Exception {
         NamespaceRegistry nsRegistry = new ReadWriteNamespaceRegistry() {
             @Override
             protected Root getWriteRoot() {
@@ -56,7 +56,7 @@ public abstract class AbstractAccessControlTest extends AbstractSecurityTest {
         return namePathMapper;
     }
 
-    protected Privilege[] privilegesFromNames(String... privilegeNames) throws RepositoryException {
+    protected Privilege[] privilegesFromNames(String... privilegeNames) throws Exception {
         Privilege[] privs = new Privilege[privilegeNames.length];
         for (int i = 0; i < privilegeNames.length; i++) {
             privs[i] = getPrivilegeManager().getPrivilege(privilegeNames[i]);
@@ -64,7 +64,7 @@ public abstract class AbstractAccessControlTest extends AbstractSecurityTest {
         return privs;
     }
 
-    protected AccessControlManagerImpl getAccessControlManager() {
+    protected JackrabbitAccessControlManager getAccessControlManager(Root root) {
         // TODO
         //acMgr = securityProvider.getAccessControlConfiguration().getAccessControlManager(root, NamePathMapper.DEFAULT);
         return new AccessControlManagerImpl(root, getNamePathMapper(), getSecurityProvider());

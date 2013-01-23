@@ -90,7 +90,6 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
 
         NodeUtil rootNode = new NodeUtil(root.getTree("/"), npMapper);
         rootNode.addChild(testName, JcrConstants.NT_UNSTRUCTURED);
-
         root.commit();
 
         // TODO
