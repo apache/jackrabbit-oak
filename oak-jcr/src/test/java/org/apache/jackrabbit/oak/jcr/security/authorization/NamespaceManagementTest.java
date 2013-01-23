@@ -31,8 +31,6 @@ import org.junit.Test;
 
 /**
  * NamespaceManagementTest... TODO
- *
- * copied from jr2x RepositoryOperationTest
  */
 @Ignore("OAK-51")
 public class NamespaceManagementTest extends AbstractEvaluationTest {
@@ -44,7 +42,7 @@ public class NamespaceManagementTest extends AbstractEvaluationTest {
     protected void setUp() throws Exception {
         super.setUp();
 
-        assertPrivilege(null, JCR_NAMESPACE_MANAGEMENT, false);
+        assertHasPrivilege(null, JCR_NAMESPACE_MANAGEMENT, false);
     }
 
     @Override
@@ -85,7 +83,7 @@ public class NamespaceManagementTest extends AbstractEvaluationTest {
     @Test
     public void testRegisterNamespace() throws Exception {
         try {
-            Workspace testWsp = getTestSession().getWorkspace();
+            Workspace testWsp = testSession.getWorkspace();
             testWsp.getNamespaceRegistry().registerNamespace(getNewNamespacePrefix(testWsp), getNewNamespaceURI(testWsp));
             fail("Namespace registration should be denied.");
         } catch (AccessDeniedException e) {
@@ -96,16 +94,16 @@ public class NamespaceManagementTest extends AbstractEvaluationTest {
     @Test
     public void testRegisterNamespaceWithPrivilege() throws Exception {
         modify(null, JCR_NAMESPACE_MANAGEMENT.toString(), true);
-        assertPrivilege(null, JCR_NAMESPACE_MANAGEMENT, true);
+        assertHasPrivilege(null, JCR_NAMESPACE_MANAGEMENT, true);
 
         try {
-            Workspace testWsp = getTestSession().getWorkspace();
+            Workspace testWsp = testSession.getWorkspace();
             testWsp.getNamespaceRegistry().registerNamespace(getNewNamespacePrefix(testWsp), getNewNamespaceURI(testWsp));
         } finally {
             modify(null, JCR_NAMESPACE_MANAGEMENT.toString(), false);
         }
 
-        assertPrivilege(null, JCR_NAMESPACE_MANAGEMENT, false);
+        assertHasPrivilege(null, JCR_NAMESPACE_MANAGEMENT, false);
     }
 
     @Test
@@ -115,7 +113,7 @@ public class NamespaceManagementTest extends AbstractEvaluationTest {
         wsp.getNamespaceRegistry().registerNamespace(pfx, getNewNamespaceURI(wsp));
 
         try {
-            Workspace testWsp = getTestSession().getWorkspace();
+            Workspace testWsp = testSession.getWorkspace();
             testWsp.getNamespaceRegistry().unregisterNamespace(pfx);
             fail("Namespace unregistration should be denied.");
         } catch (AccessDeniedException e) {

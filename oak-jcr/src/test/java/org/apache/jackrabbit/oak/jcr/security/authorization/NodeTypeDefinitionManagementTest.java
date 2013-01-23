@@ -29,8 +29,6 @@ import org.junit.Test;
 
 /**
  * NodeTypeDefinitionManagementTest... TODO
- *
- * copied from jr2x RepositoryOperationTest
  */
 @Ignore("OAK-51")
 public class NodeTypeDefinitionManagementTest extends AbstractEvaluationTest {
@@ -41,7 +39,7 @@ public class NodeTypeDefinitionManagementTest extends AbstractEvaluationTest {
     protected void setUp() throws Exception {
         super.setUp();
 
-        assertPrivilege(null, JCR_NODE_TYPE_DEFINITION_MANAGEMENT, false);
+        assertHasPrivilege(null, JCR_NODE_TYPE_DEFINITION_MANAGEMENT, false);
     }
 
     @Override
@@ -59,7 +57,7 @@ public class NodeTypeDefinitionManagementTest extends AbstractEvaluationTest {
 
     @Test
     public void testRegisterNodeType() throws Exception {
-        Workspace testWsp = getTestSession().getWorkspace();
+        Workspace testWsp = testSession.getWorkspace();
         NodeTypeManager ntm = testWsp.getNodeTypeManager();
         NodeTypeTemplate ntd = ntm.createNodeTypeTemplate();
         ntd.setName("testNodeType");
@@ -101,10 +99,10 @@ public class NodeTypeDefinitionManagementTest extends AbstractEvaluationTest {
     @Test
     public void testRegisterNodeTypeWithPrivilege() throws Exception {
         modify(null, JCR_NODE_TYPE_DEFINITION_MANAGEMENT.toString(), true);
-        assertPrivilege(null, JCR_NODE_TYPE_DEFINITION_MANAGEMENT, true);
+        assertHasPrivilege(null, JCR_NODE_TYPE_DEFINITION_MANAGEMENT, true);
 
         try {
-            Workspace testWsp = getTestSession().getWorkspace();
+            Workspace testWsp = testSession.getWorkspace();
             NodeTypeManager ntm = testWsp.getNodeTypeManager();
             NodeTypeTemplate ntd = ntm.createNodeTypeTemplate();
             ntd.setName("testNodeType");
@@ -121,7 +119,7 @@ public class NodeTypeDefinitionManagementTest extends AbstractEvaluationTest {
             modify(null, JCR_NODE_TYPE_DEFINITION_MANAGEMENT.toString(), false);
         }
 
-        assertPrivilege(null, JCR_NODE_TYPE_DEFINITION_MANAGEMENT, false);
+        assertHasPrivilege(null, JCR_NODE_TYPE_DEFINITION_MANAGEMENT, false);
     }
 
     @Test
@@ -132,7 +130,7 @@ public class NodeTypeDefinitionManagementTest extends AbstractEvaluationTest {
         ntd.setMixin(true);
         ntm.registerNodeType(ntd, true);
 
-        Workspace testWsp = getTestSession().getWorkspace();
+        Workspace testWsp = testSession.getWorkspace();
         try {
             try {
                 NodeTypeManager testNtm = testWsp.getNodeTypeManager();

@@ -30,8 +30,6 @@ import org.junit.Test;
 
 /**
  * PrivilegeManagementTest... TODO
- *
- * copied from jr2x RepositoryOperationTest
  */
 @Ignore("OAK-51")
 public class PrivilegeManagementTest extends AbstractEvaluationTest {
@@ -43,7 +41,7 @@ public class PrivilegeManagementTest extends AbstractEvaluationTest {
         super.setUp();
 
         // test user must not be allowed
-        assertPrivilege(null, REP_PRIVILEGE_MANAGEMENT, false);
+        assertHasPrivilege(null, REP_PRIVILEGE_MANAGEMENT, false);
     }
 
     @Override
@@ -79,7 +77,7 @@ public class PrivilegeManagementTest extends AbstractEvaluationTest {
     @Test
     public void testRegisterPrivilege() throws Exception {
         try {
-            Workspace testWsp = getTestSession().getWorkspace();
+            Workspace testWsp = testSession.getWorkspace();
             ((JackrabbitWorkspace) testWsp).getPrivilegeManager().registerPrivilege(getNewPrivilegeName(testWsp), false, new String[0]);
             fail("Privilege registration should be denied.");
         } catch (AccessDeniedException e) {
@@ -90,14 +88,14 @@ public class PrivilegeManagementTest extends AbstractEvaluationTest {
     @Test
     public void testRegisterPrivilegeWithPrivilege() throws Exception {
         modify(null, REP_PRIVILEGE_MANAGEMENT, true);
-        assertPrivilege(null, REP_PRIVILEGE_MANAGEMENT, true);
+        assertHasPrivilege(null, REP_PRIVILEGE_MANAGEMENT, true);
 
         try {
-            Workspace testWsp = getTestSession().getWorkspace();
+            Workspace testWsp = testSession.getWorkspace();
             ((JackrabbitWorkspace) testWsp).getPrivilegeManager().registerPrivilege(getNewPrivilegeName(testWsp), false, new String[0]);        } finally {
             modify(null, REP_PRIVILEGE_MANAGEMENT, false);
         }
 
-        assertPrivilege(null, REP_PRIVILEGE_MANAGEMENT, false);
+        assertHasPrivilege(null, REP_PRIVILEGE_MANAGEMENT, false);
     }
 }

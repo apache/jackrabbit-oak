@@ -16,13 +16,8 @@
  */
 package org.apache.jackrabbit.oak.jcr.security.authorization;
 
-import java.util.Collections;
-import java.util.Map;
+import javax.jcr.AccessDeniedException;
 import javax.jcr.Node;
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-import javax.jcr.Value;
-import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.Privilege;
 
 import org.junit.Before;
@@ -35,13 +30,6 @@ import org.junit.Test;
 @Ignore("OAK-51")
 public class MoveTest extends AbstractEvaluationTest {
 
-    private Privilege[] readPrivileges;
-
-    private Session testSession;
-    private AccessControlManager testAcManager;
-
-    private String path;
-    private String nodePath2;
     private String nodePath3;
 
     @Override
@@ -49,60 +37,123 @@ public class MoveTest extends AbstractEvaluationTest {
     protected void setUp() throws Exception {
         super.setUp();
 
-        readPrivileges = privilegesFromName(Privilege.JCR_READ);
-        testSession = getTestSession();
-        testAcManager = getTestAccessControlManager();
-
-        // create some nodes below the test root in order to apply ac-stuff
-        Node node = testRootNode.addNode(nodeName1, testNodeType);
-        Node node2 = node.addNode(nodeName2, testNodeType);
-        Node node3 = node2.addNode(nodeName3);
-        superuser.save();
-
+        Node node3 = testRootNode.getNode(childNPath).addNode(nodeName3);
         nodePath3 = node3.getPath();
-
         superuser.save();
-
-        path = node.getPath();
-        nodePath2 = node2.getPath();
-
-        /*
-        precondition:
-        testuser must have READ-only permission on test-node and below
-        */
-        checkReadOnly(path);
-        checkReadOnly(nodePath2);
     }
 
-    private Map<String, Value> createGlobRestriction(String value) throws RepositoryException {
-        return Collections.singletonMap("rep:glob", getTestSession().getValueFactory().createValue(value));
+    @Test
+    public void testSessionMove() throws Exception {
+        String destPath = path + '/' + nodeName1;
+
+        // give 'add_child_nodes' and 'nt-management' privilege
+        // -> not sufficient privileges for a move
+        allow(path, privilegesFromNames(new String[] {Privilege.JCR_ADD_CHILD_NODES, Privilege.JCR_NODE_TYPE_MANAGEMENT}));
+        try {
+            testSession.move(childNPath, destPath);
+            testSession.save();
+            fail("Move requires add and remove permission.");
+        } catch (AccessDeniedException e) {
+            // success.
+        }
+
+        // add 'remove_child_nodes' at 'path
+        // -> not sufficient for a move since 'remove_node' privilege is missing
+        //    on the move-target
+        allow(path, privilegesFromName(Privilege.JCR_REMOVE_CHILD_NODES));
+        try {
+            testSession.move(childNPath, destPath);
+            testSession.save();
+            fail("Move requires add and remove permission.");
+        } catch (AccessDeniedException e) {
+            // success.
+        }
+
+        // allow 'remove_node' at childNPath
+        // -> now move must succeed
+        allow(childNPath, privilegesFromName(Privilege.JCR_REMOVE_NODE));
+        testSession.move(childNPath, destPath);
+        testSession.save();
+
+        // withdraw  'add_child_nodes' privilege on former src-parent
+        // -> moving child-node back must fail
+        deny(path, privilegesFromName(Privilege.JCR_ADD_CHILD_NODES));
+        try {
+            testSession.move(destPath, childNPath);
+            testSession.save();
+            fail("Move requires add and remove permission.");
+        } catch (AccessDeniedException e) {
+            // success.
+        }
+    }
+
+    @Test
+    public void testWorkspaceMove() throws Exception {
+        String destPath = path + '/' + nodeName1;
+
+        // give 'add_child_nodes', 'nt-mgmt' privilege
+        // -> not sufficient privileges for a move.
+        allow(path, privilegesFromNames(new String[] {Privilege.JCR_ADD_CHILD_NODES,
+                Privilege.JCR_NODE_TYPE_MANAGEMENT}));
+        try {
+            testSession.getWorkspace().move(childNPath, destPath);
+            fail("Move requires add and remove permission.");
+        } catch (AccessDeniedException e) {
+            // success.
+        }
+
+        // add 'remove_child_nodes' at 'path
+        // -> no sufficient for a move since 'remove_node' privilege is missing
+        //    on the move-target
+        allow(path, privilegesFromName(Privilege.JCR_REMOVE_CHILD_NODES));
+        try {
+            testSession.getWorkspace().move(childNPath, destPath);
+            fail("Move requires add and remove permission.");
+        } catch (AccessDeniedException e) {
+            // success.
+        }
+
+        // allow 'remove_node' at childNPath
+        // -> now move must succeed
+        allow(childNPath, privilegesFromName(Privilege.JCR_REMOVE_NODE));
+        testSession.getWorkspace().move(childNPath, destPath);
+
+        // withdraw  'add_child_nodes' privilege on former src-parent
+        // -> moving child-node back must fail
+        deny(path, privilegesFromName(Privilege.JCR_ADD_CHILD_NODES));
+        try {
+            testSession.getWorkspace().move(destPath, childNPath);
+            fail("Move requires add and remove permission.");
+        } catch (AccessDeniedException e) {
+            // success.
+        }
     }
 
     @Test
     public void testMoveAccessControlledNode() throws Exception {
         // permissions defined @ childNode
         // -> revoke read permission
-        deny(nodePath2, readPrivileges);
+        deny(childNPath, readPrivileges);
 
-        assertFalse(testSession.nodeExists(nodePath2));
-        assertFalse(testAcManager.hasPrivileges(nodePath2, readPrivileges));
+        assertFalse(testSession.nodeExists(childNPath));
+        assertFalse(testAcMgr.hasPrivileges(childNPath, readPrivileges));
         assertFalse(testSession.nodeExists(nodePath3));
-        assertFalse(testAcManager.hasPrivileges(nodePath3, readPrivileges));
+        assertFalse(testAcMgr.hasPrivileges(nodePath3, readPrivileges));
 
         // move the ancestor node
         String movedChildNPath = path + "/movedNode";
         String movedNode3Path = movedChildNPath + '/' + nodeName3;
 
-        superuser.move(nodePath2, movedChildNPath);
+        superuser.move(childNPath, movedChildNPath);
         superuser.save();
 
         // expected behavior:
         // the AC-content present on childNode is still enforced both on
         // the node itself and on the subtree.
         assertFalse(testSession.nodeExists(movedChildNPath));
-        assertFalse(testAcManager.hasPrivileges(movedChildNPath, readPrivileges));
+        assertFalse(testAcMgr.hasPrivileges(movedChildNPath, readPrivileges));
         assertFalse(testSession.nodeExists(movedNode3Path));
-        assertFalse(testAcManager.hasPrivileges(movedNode3Path, readPrivileges));
+        assertFalse(testAcMgr.hasPrivileges(movedNode3Path, readPrivileges));
     }
 
     @Test
@@ -112,29 +163,29 @@ public class MoveTest extends AbstractEvaluationTest {
         deny(nodePath3, readPrivileges);
 
         assertFalse(testSession.nodeExists(nodePath3));
-        assertFalse(testAcManager.hasPrivileges(nodePath3, readPrivileges));
+        assertFalse(testAcMgr.hasPrivileges(nodePath3, readPrivileges));
 
         // move the ancestor node
         String movedChildNPath = path + "/movedNode";
         String movedNode3Path = movedChildNPath + '/' + nodeName3;
 
-        superuser.move(nodePath2, movedChildNPath);
+        superuser.move(childNPath, movedChildNPath);
         superuser.save();
 
         // expected behavior:
         // the AC-content present on node3 is still enforced
         assertFalse(testSession.nodeExists(movedNode3Path));
-        assertFalse(testAcManager.hasPrivileges(movedNode3Path, readPrivileges));
+        assertFalse(testAcMgr.hasPrivileges(movedNode3Path, readPrivileges));
     }
 
     @Test
     public void testMoveWithDifferentEffectiveAc() throws Exception {
         // @path read is denied, @childNode its allowed again
         deny(path, readPrivileges);
-        allow(nodePath2, readPrivileges);
+        allow(childNPath, readPrivileges);
 
         assertTrue(testSession.nodeExists(nodePath3));
-        assertTrue(testAcManager.hasPrivileges(nodePath3, readPrivileges));
+        assertTrue(testAcMgr.hasPrivileges(nodePath3, readPrivileges));
 
         // move the ancestor node
         String movedPath = path + "/movedNode";
@@ -145,44 +196,44 @@ public class MoveTest extends AbstractEvaluationTest {
         // expected behavior:
         // due to move node3 should not e visible any more
         assertFalse(testSession.nodeExists(movedPath));
-        assertFalse(testAcManager.hasPrivileges(movedPath, readPrivileges));
+        assertFalse(testAcMgr.hasPrivileges(movedPath, readPrivileges));
     }
 
     @Test
     public void testMoveNodeWithGlobRestriction() throws Exception {
         // permissions defined @ path
         // restriction: remove read priv to nodeName3 node
-        deny(nodePath2, readPrivileges, createGlobRestriction('/' +nodeName3));
+        deny(childNPath, readPrivileges, createGlobRestriction('/' +nodeName3));
 
         assertFalse(testSession.nodeExists(nodePath3));
-        assertFalse(testAcManager.hasPrivileges(nodePath3, readPrivileges));
+        assertFalse(testAcMgr.hasPrivileges(nodePath3, readPrivileges));
 
         String movedChildNPath = path + "/movedNode";
         String movedNode3Path = movedChildNPath + '/' + nodeName3;
 
-        superuser.move(nodePath2, movedChildNPath);
+        superuser.move(childNPath, movedChildNPath);
         superuser.save();
 
         assertFalse(testSession.nodeExists(movedNode3Path));
-        assertFalse(testAcManager.hasPrivileges(movedNode3Path, readPrivileges));
+        assertFalse(testAcMgr.hasPrivileges(movedNode3Path, readPrivileges));
     }
 
     @Test
     public void testMoveNodeWithGlobRestriction2() throws Exception {
         // permissions defined @ path
         // restriction: remove read priv to nodeName3 node
-        deny(nodePath2, readPrivileges, createGlobRestriction('/' + nodeName3));
+        deny(childNPath, readPrivileges, createGlobRestriction('/' + nodeName3));
 
         // don't fill the per-session read-cache by calling Session.nodeExists
-        assertFalse(testAcManager.hasPrivileges(nodePath3, readPrivileges));
+        assertFalse(testAcMgr.hasPrivileges(nodePath3, readPrivileges));
 
         String movedChildNPath = path + "/movedNode";
         String movedNode3Path = movedChildNPath + '/' + nodeName3;
 
-        superuser.move(nodePath2, movedChildNPath);
+        superuser.move(childNPath, movedChildNPath);
         superuser.save();
 
         assertFalse(testSession.nodeExists(movedNode3Path));
-        assertFalse(testAcManager.hasPrivileges(movedNode3Path, readPrivileges));
+        assertFalse(testAcMgr.hasPrivileges(movedNode3Path, readPrivileges));
     }
 }
