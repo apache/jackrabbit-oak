@@ -33,9 +33,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 /**
- * VersionManagementTest... TODO
- *
- * copied and modified from jr2x VersionTest
+ * Test access control evaluation for version operations.
  */
 @Ignore("OAK-51")
 public class VersionManagementTest extends AbstractEvaluationTest {
@@ -51,7 +49,7 @@ public class VersionManagementTest extends AbstractEvaluationTest {
         super.setUp();
 
         versionPrivileges = privilegesFromName(Privilege.JCR_VERSION_MANAGEMENT);
-        assertFalse(getTestAccessControlManager().hasPrivileges(VERSIONSTORE, versionPrivileges));
+        assertFalse(testAcMgr.hasPrivileges(VERSIONSTORE, versionPrivileges));
     }
 
     private Node createVersionableNode(Node parent) throws Exception {
@@ -173,7 +171,7 @@ public class VersionManagementTest extends AbstractEvaluationTest {
         Version v = n.checkin();
         n.checkout();
 
-        assertFalse(getTestAccessControlManager().hasPrivileges(n.getPath(), versionPrivileges));
+        assertFalse(testAcMgr.hasPrivileges(n.getPath(), versionPrivileges));
         allow(SYSTEM, versionPrivileges);
 
         try {
@@ -208,14 +206,14 @@ public class VersionManagementTest extends AbstractEvaluationTest {
         Version v2 = n.checkin();
         n.checkout();
 
-        assertFalse(getTestAccessControlManager().hasPrivileges(n.getPath(), versionPrivileges));
+        assertFalse(testAcMgr.hasPrivileges(n.getPath(), versionPrivileges));
         deny(SYSTEM, privilegesFromName(Privilege.JCR_READ));
 
         try {
             // version information must still be accessible
-            assertTrue(getTestSession().nodeExists(v.getPath()));
-            assertTrue(getTestSession().nodeExists(v2.getPath()));
-            assertTrue(getTestSession().nodeExists(vh.getPath()));
+            assertTrue(testSession.nodeExists(v.getPath()));
+            assertTrue(testSession.nodeExists(v2.getPath()));
+            assertTrue(testSession.nodeExists(vh.getPath()));
 
         } finally {
             JackrabbitAccessControlList systemAcl = AccessControlUtils.getAccessControlList(acMgr, SYSTEM);
@@ -272,25 +270,25 @@ public class VersionManagementTest extends AbstractEvaluationTest {
         modify(n.getPath(), Privilege.JCR_READ, false);
 
         // versionable node is not readable any more for test session.
-        assertFalse(getTestSession().nodeExists(n.getPath()));
+        assertFalse(testSession.nodeExists(n.getPath()));
 
         // access version history directly => should fail
         try {
-            VersionHistory history = (VersionHistory) getTestSession().getNode(vhPath);
+            VersionHistory history = (VersionHistory) testSession.getNode(vhPath);
             fail("Access to version history should be denied if versionable node is not accessible");
         } catch (AccessDeniedException e) {
             // success
         }
 
         try {
-            VersionHistory history = (VersionHistory) getTestSession().getNodeByIdentifier(vhUUID);
+            VersionHistory history = (VersionHistory) testSession.getNodeByIdentifier(vhUUID);
             fail("Access to version history should be denied if versionable node is not accessible");
         } catch (AccessDeniedException e) {
             // success
         }
 
         try {
-            VersionHistory history = (VersionHistory) getTestSession().getNodeByUUID(vhUUID);
+            VersionHistory history = (VersionHistory) testSession.getNodeByUUID(vhUUID);
             fail("Access to version history should be denied if versionable node is not accessible");
         } catch (AccessDeniedException e) {
             // success
@@ -317,7 +315,7 @@ public class VersionManagementTest extends AbstractEvaluationTest {
         history.addVersionLabel(v.getName(), "testLabel", false);
         history.addVersionLabel(v2.getName(), "testLabel", true);
 
-        VersionManager vMgr = getTestSession().getWorkspace().getVersionManager();
+        VersionManager vMgr = testSession.getWorkspace().getVersionManager();
         history = vMgr.getVersionHistory(testNode.getPath());
         history.addVersionLabel(v.getName(), "testLabel", true);
     }

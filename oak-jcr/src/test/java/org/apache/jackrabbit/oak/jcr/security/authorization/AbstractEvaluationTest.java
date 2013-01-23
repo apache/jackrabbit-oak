@@ -24,6 +24,7 @@ import java.util.Set;
 import java.util.UUID;
 import javax.jcr.Credentials;
 import javax.jcr.Node;
+import javax.jcr.Property;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
@@ -54,13 +55,25 @@ public abstract class AbstractEvaluationTest extends AbstractAccessControlTest {
 
     protected static final String REP_WRITE = "rep:write";
 
+    protected Privilege[] readPrivileges;
+    protected Privilege[] modPropPrivileges;
+    protected Privilege[] readWritePrivileges;
+    protected Privilege[] repWritePrivileges;
+
+    protected String path;
+    protected String childNPath;
+    protected String childNPath2;
+    protected String childPPath;
+    protected String childchildPPath;
+    protected String siblingPath;
+
     protected User testUser;
     protected Credentials creds;
-
     protected Group testGroup;
 
-    private Session testSession;
-    private AccessControlManager testAccessControlManager;
+    protected Session testSession;
+    protected AccessControlManager testAcMgr;
+
     private Node trn;
     private Set<String> toClear = new HashSet<String>();
 
@@ -68,18 +81,43 @@ public abstract class AbstractEvaluationTest extends AbstractAccessControlTest {
     @Before
     protected void setUp() throws Exception {
         super.setUp();
-        try {
-            UserManager uMgr = getUserManager(superuser);
-            // create the testUser
-            String uid = "testUser" + UUID.randomUUID();
-            creds = new SimpleCredentials(uid, uid.toCharArray());
 
-            testUser = uMgr.createUser(uid, uid);
-            superuser.save();
-        } catch (Exception e) {
-            superuser.logout();
-            throw e;
-        }
+        readPrivileges = privilegesFromName(Privilege.JCR_READ);
+        modPropPrivileges = privilegesFromName(Privilege.JCR_MODIFY_PROPERTIES);
+        readWritePrivileges = privilegesFromNames(new String[]{Privilege.JCR_READ, REP_WRITE});
+        repWritePrivileges = privilegesFromName(REP_WRITE);
+
+        UserManager uMgr = getUserManager(superuser);
+        // create the testUser
+        String uid = "testUser" + UUID.randomUUID();
+        creds = new SimpleCredentials(uid, uid.toCharArray());
+        testUser = uMgr.createUser(uid, uid);
+
+        testSession = getTestSession();
+        testAcMgr = getAccessControlManager(testSession);
+
+        // create some nodes below the test root in order to apply ac-stuff
+        Node node = testRootNode.addNode(nodeName1, testNodeType);
+        Node cn1 = node.addNode(nodeName2, testNodeType);
+        Property cp1 = node.setProperty(propertyName1, "anyValue");
+        Node cn2 = node.addNode(nodeName3, testNodeType);
+        Property ccp1 = cn1.setProperty(propertyName1, "childNodeProperty");
+        Node n2 = testRootNode.addNode(nodeName2, testNodeType);
+        superuser.save();
+
+        path = node.getPath();
+        childNPath = cn1.getPath();
+        childNPath2 = cn2.getPath();
+        childPPath = cp1.getPath();
+        childchildPPath = ccp1.getPath();
+        siblingPath = n2.getPath();
+
+        /*
+        precondition:
+        testuser must have READ-only permission on test-node and below
+        */
+        assertReadOnly(path);
+        assertReadOnly(childNPath);
     }
 
     @Override
@@ -107,6 +145,13 @@ public abstract class AbstractEvaluationTest extends AbstractAccessControlTest {
         }
     }
 
+    private Session getTestSession() throws RepositoryException {
+        if (testSession == null) {
+            testSession = getHelper().getRepository().login(creds);
+        }
+        return testSession;
+    }
+
     protected static UserManager getUserManager(Session session) throws
             NotExecutableException {
         if (!(session instanceof JackrabbitSession)) {
@@ -117,20 +162,6 @@ public abstract class AbstractEvaluationTest extends AbstractAccessControlTest {
         } catch (RepositoryException e) {
             throw new NotExecutableException();
         }
-    }
-
-    protected Session getTestSession() throws RepositoryException {
-        if (testSession == null) {
-            testSession = getHelper().getRepository().login(creds);
-        }
-        return testSession;
-    }
-
-    protected AccessControlManager getTestAccessControlManager() throws Exception {
-        if (testAccessControlManager == null) {
-            testAccessControlManager = getAccessControlManager(getTestSession());
-        }
-        return testAccessControlManager;
     }
 
     protected Group getTestGroup() throws Exception {
@@ -145,18 +176,32 @@ public abstract class AbstractEvaluationTest extends AbstractAccessControlTest {
 
     protected Node getTestNode() throws RepositoryException {
         if (trn == null) {
-            trn = getTestSession().getNode(testRootNode.getPath());
+            trn = testSession.getNode(testRootNode.getPath());
         }
         return trn;
     }
 
-    protected void assertPrivilege(String path, String privName, boolean isAllow) throws Exception {
-        Privilege[] privs = privilegesFromName(privName.toString());
-        assertEquals(isAllow, getTestAccessControlManager().hasPrivileges(path, privs));
+    protected String getActions(String... actions) {
+        StringBuilder sb = new StringBuilder();
+        for (String action : actions) {
+            if (sb.length() > 0) {
+                sb.append(',');
+            }
+            sb.append(action);
+        }
+        return sb.toString();
+    }
+    protected Map<String, Value> createGlobRestriction(String value) throws RepositoryException {
+        return Collections.singletonMap("rep:glob", testSession.getValueFactory().createValue(value));
     }
 
-    protected void checkReadOnly(String path) throws Exception {
-        Privilege[] privs = getTestAccessControlManager().getPrivileges(path);
+    protected void assertHasPrivilege(String path, String privName, boolean isAllow) throws Exception {
+        Privilege[] privs = privilegesFromName(privName.toString());
+        assertEquals(isAllow, testAcMgr.hasPrivileges(path, privs));
+    }
+
+    protected void assertReadOnly(String path) throws Exception {
+        Privilege[] privs = testAcMgr.getPrivileges(path);
         assertArrayEquals(privilegesFromName(Privilege.JCR_READ), privs);
     }
 
@@ -188,9 +233,9 @@ public abstract class AbstractEvaluationTest extends AbstractAccessControlTest {
     }
 
     protected JackrabbitAccessControlList allow(String nPath, Principal principal,
-                                                Privilege[] privileges, Map<String, Value> restrictions)
+                                                Privilege[] privileges)
             throws Exception {
-        return modify(nPath, principal, privileges, true, restrictions);
+        return modify(nPath, principal, privileges, true, EMPTY_RESTRICTIONS);
     }
 
     protected JackrabbitAccessControlList deny(String nPath, Privilege[] privileges)
@@ -203,8 +248,8 @@ public abstract class AbstractEvaluationTest extends AbstractAccessControlTest {
         return modify(nPath, testUser.getPrincipal(), privileges, false, restrictions);
     }
 
-    protected JackrabbitAccessControlList deny(String nPath, Principal principal, Privilege[] privileges, Map<String, Value> restrictions)
+    protected JackrabbitAccessControlList deny(String nPath, Principal principal, Privilege[] privileges)
             throws Exception {
-        return modify(nPath, principal, privileges, false, restrictions);
+        return modify(nPath, principal, privileges, false, EMPTY_RESTRICTIONS);
     }
 }

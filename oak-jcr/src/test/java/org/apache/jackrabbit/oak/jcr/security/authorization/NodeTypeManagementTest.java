@@ -21,7 +21,6 @@ import java.io.InputStream;
 import javax.jcr.AccessDeniedException;
 import javax.jcr.ImportUUIDBehavior;
 import javax.jcr.Node;
-import javax.jcr.Session;
 import javax.jcr.Workspace;
 import javax.jcr.security.Privilege;
 
@@ -32,8 +31,6 @@ import org.junit.Test;
 
 /**
  * NodeTypeManagementTest... TODO
- *
- * copied from jr2.x NodeTypeTest
  */
 @Ignore("OAK-51")
 public class NodeTypeManagementTest extends AbstractEvaluationTest {
@@ -52,14 +49,14 @@ public class NodeTypeManagementTest extends AbstractEvaluationTest {
         }
         superuser.save();
         
-        mixinName = getTestSession().getNamespacePrefix(NS_MIX_URI) + ":referenceable";
-        childNode = getTestSession().getNode(child.getPath());
+        mixinName = testSession.getNamespacePrefix(NS_MIX_URI) + ":referenceable";
+        childNode = testSession.getNode(child.getPath());
+
+        assertReadOnly(childNode.getPath());
     }
 
     @Test
     public void testCanAddMixin() throws Exception {
-        checkReadOnly(childNode.getPath());
-
         assertFalse(childNode.canAddMixin(mixinName));
 
         modify(childNode.getPath(), Privilege.JCR_NODE_TYPE_MANAGEMENT, true);
@@ -71,8 +68,6 @@ public class NodeTypeManagementTest extends AbstractEvaluationTest {
 
     @Test
     public void testAddMixin() throws Exception {
-        checkReadOnly(childNode.getPath());
-
         try {
             childNode.addMixin(mixinName);
             superuser.save();
@@ -90,8 +85,6 @@ public class NodeTypeManagementTest extends AbstractEvaluationTest {
     public void testRemoveMixin() throws Exception {
         ((Node) superuser.getItem(childNode.getPath())).addMixin(mixinName);
         superuser.save();
-
-        checkReadOnly(childNode.getPath());
 
         try {
             childNode.removeMixin(mixinName);
@@ -116,15 +109,13 @@ public class NodeTypeManagementTest extends AbstractEvaluationTest {
         superuser.save();
 
         try {
-            checkReadOnly(childNode.getPath());
-
             try {
                 childNode.setPrimaryType(ntName);
                 superuser.save();
                 fail("TestSession does not have sufficient privileges to change the primary type.");
             } catch (AccessDeniedException e) {
                 // success
-                getTestSession().refresh(false); // TODO: see JCR-1916
+                testSession.refresh(false); // TODO: see JCR-1916
             }
 
             modify(childNode.getPath(), Privilege.JCR_NODE_TYPE_MANAGEMENT, true);
@@ -146,8 +137,6 @@ public class NodeTypeManagementTest extends AbstractEvaluationTest {
      */
     @Test
     public void testAddNode() throws Exception {
-        checkReadOnly(childNode.getPath());
-
         // with simple write privilege a child node can be added BUT no
         // node type must be specified.
         modify(childNode.getPath(), Privilege.JCR_WRITE, true);
@@ -180,12 +169,11 @@ public class NodeTypeManagementTest extends AbstractEvaluationTest {
 
     @Test
     public void testCopy() throws Exception {
-        Workspace wsp = getTestSession().getWorkspace();
+        Workspace wsp = testSession.getWorkspace();
         String parentPath = childNode.getParent().getPath();
         String srcPath = childNode.getPath();
         String destPath = parentPath + '/' + nodeName3;
 
-        checkReadOnly(parentPath);
         try {
             wsp.copy(srcPath, destPath);
             fail("Missing write privilege.");
@@ -209,12 +197,11 @@ public class NodeTypeManagementTest extends AbstractEvaluationTest {
 
     @Test
     public void testWorkspaceMove() throws Exception {
-        Workspace wsp = getTestSession().getWorkspace();
+        Workspace wsp = testSession.getWorkspace();
         String parentPath = childNode.getParent().getPath();
         String srcPath = childNode.getPath();
         String destPath = parentPath + '/' + nodeName3;
 
-        checkReadOnly(parentPath);
         try {
             wsp.move(srcPath, destPath);
             fail("Missing write privilege.");
@@ -238,15 +225,13 @@ public class NodeTypeManagementTest extends AbstractEvaluationTest {
 
     @Test
     public void testSessionMove() throws Exception {
-        Session s = getTestSession();
         String parentPath = childNode.getParent().getPath();
         String srcPath = childNode.getPath();
         String destPath = parentPath + '/' + nodeName3;
 
-        checkReadOnly(parentPath);
         try {
-            s.move(srcPath, destPath);
-            s.save();
+            testSession.move(srcPath, destPath);
+            testSession.save();
             fail("Missing write privilege.");
         } catch (AccessDeniedException e) {
             // success
@@ -255,8 +240,8 @@ public class NodeTypeManagementTest extends AbstractEvaluationTest {
         // with simple write privilege moving a node is not allowed.
         modify(parentPath, Privilege.JCR_WRITE, true);
         try {
-            s.move(srcPath, destPath);
-            s.save();
+            testSession.move(srcPath, destPath);
+            testSession.save();
             fail("Missing privilege jcr:nodeTypeManagement.");
         } catch (AccessDeniedException e) {
             // success
@@ -264,50 +249,46 @@ public class NodeTypeManagementTest extends AbstractEvaluationTest {
 
         // adding jcr:nodeTypeManagement privilege will grant permission to move.
         modify(parentPath, REP_WRITE, true);
-        s.move(srcPath, destPath);
-        s.save();
+        testSession.move(srcPath, destPath);
+        testSession.save();
     }
 
     @Test
     public void testSessionImportXML() throws Exception {
-        Session s = getTestSession();
         String parentPath = childNode.getPath();
-
-        checkReadOnly(parentPath);
         try {
-            s.importXML(parentPath, getXmlForImport(), ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW);
-            s.save();
+            testSession.importXML(parentPath, getXmlForImport(), ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW);
+            testSession.save();
             fail("Missing write privilege.");
         } catch (AccessDeniedException e) {
             // success
         } finally {
-            s.refresh(false);
+            testSession.refresh(false);
         }
 
         // with simple write privilege moving a node is not allowed.
         modify(parentPath, Privilege.JCR_WRITE, true);
         try {
-            s.importXML(parentPath, getXmlForImport(), ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW);
-            s.save();
+            testSession.importXML(parentPath, getXmlForImport(), ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW);
+            testSession.save();
             fail("Missing privilege jcr:nodeTypeManagement.");
         } catch (AccessDeniedException e) {
             // success
         } finally {
-            s.refresh(false);
+            testSession.refresh(false);
         }
 
         // adding jcr:nodeTypeManagement privilege will grant permission to move.
         modify(parentPath, REP_WRITE, true);
-        s.importXML(parentPath, getXmlForImport(), ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW);
-        s.save();
+        testSession.importXML(parentPath, getXmlForImport(), ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW);
+        testSession.save();
     }
 
     @Test
     public void testWorkspaceImportXML() throws Exception {
-        Workspace wsp = getTestSession().getWorkspace();
+        Workspace wsp = testSession.getWorkspace();
         String parentPath = childNode.getPath();
 
-        checkReadOnly(parentPath);
         try {
             wsp.importXML(parentPath, getXmlForImport(), ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW);
             fail("Missing write privilege.");
