@@ -308,7 +308,7 @@ public class Query {
         prepare();
         Iterator<ResultRowImpl> it;
         if (explain) {
-            String plan = source.getPlan(rootState);
+            String plan = getPlan();
             columns = new ColumnImpl[] { new ColumnImpl("explain", "plan", "plan")};
             ResultRowImpl r = new ResultRowImpl(this,
                     new String[0], 
@@ -317,7 +317,7 @@ public class Query {
             it = Arrays.asList(r).iterator();
         } else {
             if (LOG.isDebugEnabled()) {
-                LOG.debug("plan: " + source.getPlan(rootState));
+                LOG.debug("plan: " + getPlan());
             }
             if (orderings == null) {
                 // can apply limit and offset directly
@@ -436,6 +436,15 @@ public class Query {
             }
         }
         return comp;
+    }
+    
+    /**
+     * Get the query plan. The query must already be prepared.
+     * 
+     * @return the query plan
+     */
+    private String getPlan() {
+        return source.getPlan(rootState);
     }
 
     void prepare() {

@@ -176,9 +176,9 @@ public class JsopUtil {
                     String value = TypeCodes.decodeName(split, jsonString);
                     if (type == PropertyType.BINARY) {
                         throw new UnsupportedOperationException();
-                    } else if(type == PropertyType.DOUBLE) {
+                    } else if (type == PropertyType.DOUBLE) {
                         values.add(Conversions.convert(value).toDouble());
-                    } else if(type == PropertyType.DECIMAL) {
+                    } else if (type == PropertyType.DECIMAL) {
                         values.add(Conversions.convert(value).toDecimal());
                     } else {
                         values.add(value);

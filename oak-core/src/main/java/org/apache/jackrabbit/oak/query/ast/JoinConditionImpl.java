@@ -19,11 +19,36 @@ import org.apache.jackrabbit.oak.query.index.FilterImpl;
  * The base class for join conditions.
  */
 public abstract class JoinConditionImpl extends AstElement {
+    
+    /**
+     * A path with 6 elements, which is the expected average for a join.
+     */
+    protected static final String KNOWN_PATH = "/path/from/the/join/selector";
 
+    protected static final String KNOWN_VALUE = "valueFromTheJoinSelector";
+
+    /**
+     * Evaluate the result using the currently set values.
+     * 
+     * @return true if the constraint matches
+     */
     public abstract boolean evaluate();
-
+    
+    /**
+     * Apply the condition to the filter, further restricting the filter if
+     * possible. This may also verify the data types are compatible, and that
+     * paths are valid.
+     * 
+     * @param f the filter
+     */
     public abstract void restrict(FilterImpl f);
 
-    public abstract void restrictPushDown(SelectorImpl selectorImpl);
+    /**
+     * Push as much of the condition down to this selector, further restricting
+     * the selector condition if possible.
+     * 
+     * @param s the selector
+     */
+    public abstract void restrictPushDown(SelectorImpl s);
 
 }
