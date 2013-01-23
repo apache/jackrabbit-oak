@@ -650,7 +650,7 @@ public class TreeImpl implements Tree {
          * Set the underlying property
          * @param property The property to set
          */
-        public <T> void set(PropertyState property) {
+        public void set(PropertyState property) {
             parentLocation.tree.setProperty(property);
         }
 
