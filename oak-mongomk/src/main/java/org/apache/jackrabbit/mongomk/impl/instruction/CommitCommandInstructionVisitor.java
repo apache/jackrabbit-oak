@@ -34,12 +34,16 @@ import org.apache.jackrabbit.mongomk.impl.exception.NotFoundException;
 import org.apache.jackrabbit.mongomk.impl.model.MongoCommit;
 import org.apache.jackrabbit.mongomk.impl.model.MongoNode;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This class reads in the instructions generated from JSON, applies basic checks
  * and creates a node map for {@code CommitCommandMongo} to work on later.
  */
 public class CommitCommandInstructionVisitor implements InstructionVisitor {
+
+    private static final Logger log = LoggerFactory.getLogger(CommitCommandInstructionVisitor.class);
 
     // the revision this commit is based on
     private final long baseRevisionId;
@@ -216,6 +220,7 @@ public class CommitCommandInstructionVisitor implements InstructionVisitor {
             throw new NotFoundException(path + " @rev" + baseRevisionId);
         }
         node = existCommand.getNode();
+        log.debug("Read node @{}: {}", baseRevisionId, node);
         node.removeField("_id");
         if (addToMap) {
             pathNodeMap.put(path, node);
