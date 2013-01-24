@@ -76,9 +76,9 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
     @Override
     @Nonnull
     public Node getParent() throws RepositoryException {
-        return sessionDelegate.perform(new SessionOperation<NodeImpl>() {
+        return sessionDelegate.perform(new SessionOperation<NodeImpl<?>>() {
             @Override
-            public NodeImpl perform() throws RepositoryException {
+            public NodeImpl<?> perform() throws RepositoryException {
                 NodeDelegate parent = dlg.getParent();
                 if (parent == null) {
                     throw new AccessDeniedException();
