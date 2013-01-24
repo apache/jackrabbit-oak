@@ -84,6 +84,8 @@ public class Oak {
 
     private ConflictHandler conflictHandler;
 
+    private String defaultWorkspaceName;
+
     public Oak(MicroKernel kernel) {
         this.kernel = kernel;
     }
@@ -92,10 +94,24 @@ public class Oak {
         this(new MicroKernelImpl());
     }
 
+    /**
+     * Sets the default workspace name that should be used in case of login
+     * with {@code null} workspace name. If this method has not been called
+     * some internal default value will be used.
+     *
+     * @param defaultWorkspaceName The name of the default workspace.
+     * @return this builder.
+     */
+    @Nonnull
+    public Oak with(@Nonnull String defaultWorkspaceName) {
+        this.defaultWorkspaceName = defaultWorkspaceName;
+        return this;
+    }
+
     @Nonnull
     public Oak with(@Nonnull RepositoryInitializer initializer) {
-       initializers.add(checkNotNull(initializer));
-       return this;
+        initializers.add(checkNotNull(initializer));
+        return this;
     }
 
     /**
@@ -233,6 +249,7 @@ public class Oak {
 
         return new ContentRepositoryImpl(
                 store,
+                defaultWorkspaceName,
                 conflictHandler,
                 CompositeQueryIndexProvider.compose(queryIndexProviders),
                 securityProvider);
