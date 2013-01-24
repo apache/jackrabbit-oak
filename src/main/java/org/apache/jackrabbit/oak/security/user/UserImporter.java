@@ -34,6 +34,7 @@ import javax.jcr.nodetype.PropertyDefinition;
 
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
+import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.Impersonation;
@@ -47,7 +48,6 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
-import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.xml.NodeInfo;
 import org.apache.jackrabbit.oak.spi.xml.PropInfo;
@@ -390,8 +390,8 @@ public class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImp
     }
 
     @Nonnull
-    private PrincipalProvider getPrincipalProvider() throws RepositoryException {
-        return userManager.getPrincipalProvider();
+    private PrincipalManager getPrincipalManager() throws RepositoryException {
+        return userManager.getPrincipalManager();
     }
 
     private void checkInitialized() {
@@ -586,7 +586,7 @@ public class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImp
                 if (!imp.grantImpersonation(new PrincipalImpl(principalName))) {
                     handleFailure("Failed to grant impersonation for " + principalName + " on " + a);
                     if (importBehavior == ImportBehavior.BESTEFFORT &&
-                            getPrincipalProvider().getPrincipal(principalName) == null) {
+                            getPrincipalManager().getPrincipal(principalName) == null) {
                         log.info("ImportBehavior.BESTEFFORT: Remember non-existing impersonator for special processing.");
                         nonExisting.add(principalName);
                     }

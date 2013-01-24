@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization;
 
+import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -54,6 +55,11 @@ public abstract class AbstractAccessControlListTest extends AbstractAccessContro
 
     protected String getTestPath() {
         return testPath;
+    }
+
+    protected Principal getTestPrincipal() {
+        // TODO: add proper implementation
+        return new PrincipalImpl("admin");
     }
 
     protected AbstractAccessControlList createEmptyACL() {

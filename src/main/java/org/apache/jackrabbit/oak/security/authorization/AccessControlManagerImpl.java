@@ -43,6 +43,7 @@ import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
+import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.commons.iterator.AccessControlPolicyIteratorAdapter;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -64,7 +65,6 @@ import org.apache.jackrabbit.oak.spi.security.authorization.ACE;
 import org.apache.jackrabbit.oak.spi.security.authorization.ImmutableACL;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
-import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.state.PropertyBuilder;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.apache.jackrabbit.util.ISO9075;
@@ -85,7 +85,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
     private final NamePathMapper namePathMapper;
 
     private final PrivilegeManager privilegeManager;
-    private final PrincipalProvider principalProvider;
+    private final PrincipalManager principalManager;
     private final RestrictionProvider restrictionProvider;
     private final ReadOnlyNodeTypeManager ntMgr;
 
@@ -95,7 +95,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
         this.namePathMapper = namePathMapper;
 
         privilegeManager = securityProvider.getPrivilegeConfiguration().getPrivilegeManager(root, namePathMapper);
-        principalProvider = securityProvider.getPrincipalConfiguration().getPrincipalProvider(root, namePathMapper);
+        principalManager = securityProvider.getPrincipalConfiguration().getPrincipalManager(root, namePathMapper);
         restrictionProvider = securityProvider.getAccessControlConfiguration().getRestrictionProvider(namePathMapper);
         ntMgr = ReadOnlyNodeTypeManager.getInstance(root, namePathMapper);
     }
@@ -489,7 +489,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
     @Nonnull
     private Principal getPrincipal(@Nonnull NodeUtil aceNode) {
         String principalName = checkNotNull(aceNode.getString(REP_PRINCIPAL_NAME, null));
-        Principal principal = principalProvider.getPrincipal(principalName);
+        Principal principal = principalManager.getPrincipal(principalName);
         if (principal == null) {
             log.debug("Unknown principal " + principalName);
             principal = new PrincipalImpl(principalName);
@@ -565,20 +565,32 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
         public RestrictionProvider getRestrictionProvider() {
             return restrictionProvider;
         }
+
+        @Override
+        PrincipalManager getPrincipalManager() {
+            return principalManager;
+        }
+
+        @Override
+        PrivilegeManager getPrivilegeManager() {
+            return privilegeManager;
+        }
     }
 
-    private class PrincipalACL extends ACL {
+    private class PrincipalACL extends NodeACL {
 
-        private final RestrictionProvider restrictionProvider;
-        private PrincipalACL(String oakPath, List<JackrabbitAccessControlEntry> entries, RestrictionProvider restrictionProvider) {
-            super(oakPath, entries, namePathMapper);
-            this.restrictionProvider = restrictionProvider;
+        private final RestrictionProvider rProvider;
+
+        private PrincipalACL(String oakPath, List<JackrabbitAccessControlEntry> entries,
+                             RestrictionProvider restrictionProvider) {
+            super(oakPath, entries);
+            rProvider = restrictionProvider;
         }
 
         @Nonnull
         @Override
         public RestrictionProvider getRestrictionProvider() {
-            return restrictionProvider;
+            return rProvider;
         }
     }
 }

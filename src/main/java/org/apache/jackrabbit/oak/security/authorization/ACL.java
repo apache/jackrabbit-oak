@@ -31,9 +31,11 @@ import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
+import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
+import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.spi.security.authorization.AbstractAccessControlList;
 import org.apache.jackrabbit.oak.spi.security.authorization.ACE;
+import org.apache.jackrabbit.oak.spi.security.authorization.AbstractAccessControlList;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -58,6 +60,11 @@ abstract class ACL extends AbstractAccessControlList {
         }
     }
 
+    abstract PrincipalManager getPrincipalManager();
+
+    abstract PrivilegeManager getPrivilegeManager();
+
+    //------------------------------------------< AbstractAccessControlList >---
     @Nonnull
     @Override
     public List<JackrabbitAccessControlEntry> getEntries() {
@@ -82,9 +89,15 @@ abstract class ACL extends AbstractAccessControlList {
         if (privileges == null || privileges.length == 0) {
             throw new AccessControlException("Privileges may not be null nor an empty array");
         }
-        // TODO: check again.
-        // NOTE: in contrast to jr2 any further validation and optimization of
-        // the entry list is delegated to the commit validator
+        for (Privilege p : privileges) {
+            getPrivilegeManager().getPrivilege(p.getName());
+        }
+
+        if (principal == null || !getPrincipalManager().hasPrincipal(principal.getName())) {
+            String msg = "Unknown principal " + ((principal == null) ? "null" : principal.getName());
+            throw new AccessControlException(msg);
+        }
+
         Set<Restriction> rs;
         if (restrictions == null) {
             rs = Collections.emptySet();
