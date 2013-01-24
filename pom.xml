@@ -23,7 +23,7 @@
   <parent>
     <groupId>org.apache.jackrabbit</groupId>
     <artifactId>oak-parent</artifactId>
-    <version>0.6-SNAPSHOT</version>
+    <version>0.7-SNAPSHOT</version>
     <relativePath>oak-parent/pom.xml</relativePath>
   </parent>
 
@@ -54,9 +54,9 @@
   </modules>
 
   <scm>
-    <connection>scm:svn:http://svn.apache.org/repos/asf/jackrabbit/oak/branches/0.6</connection>
-    <developerConnection>scm:svn:https://svn.apache.org/repos/asf/jackrabbit/oak/branches/0.6</developerConnection>
-    <url>http://svn.apache.org/viewvc/jackrabbit/oak/branches/0.6</url>
+    <connection>scm:svn:http://svn.apache.org/repos/asf/jackrabbit/oak/trunk</connection>
+    <developerConnection>scm:svn:https://svn.apache.org/repos/asf/jackrabbit/oak/trunk</developerConnection>
+    <url>http://svn.apache.org/viewvc/jackrabbit/oak/trunk</url>
   </scm>
 
   <build>
