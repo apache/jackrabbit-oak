@@ -20,7 +20,6 @@ import java.security.Principal;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import javax.annotation.Nonnull;
 import javax.jcr.Value;
 import javax.jcr.security.AccessControlEntry;
 import javax.jcr.security.AccessControlException;
@@ -28,6 +27,8 @@ import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
+import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
+import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.security.principal.PrincipalImpl;
@@ -37,8 +38,8 @@ import org.apache.jackrabbit.oak.spi.security.authorization.AbstractAccessContro
 import org.apache.jackrabbit.oak.spi.security.authorization.AbstractAccessControlListTest;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
+import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -54,6 +55,9 @@ import static org.junit.Assert.fail;
  */
 public class ACLTest extends AbstractAccessControlListTest{
 
+    private PrivilegeManager privilegeManager;
+    private PrincipalManager principalManager;
+
     private AbstractAccessControlList emptyAcl;
     private Principal testPrincipal;
     private Privilege[] testPrivileges;
@@ -63,13 +67,12 @@ public class ACLTest extends AbstractAccessControlListTest{
     public void before() throws Exception {
         super.before();
 
-        emptyAcl = createEmptyACL();
-        testPrincipal = getTestPrincipal("testUser");
-        testPrivileges = privilegesFromNames(PrivilegeConstants.JCR_ADD_CHILD_NODES, PrivilegeConstants.JCR_LOCK_MANAGEMENT);
-    }
+        privilegeManager = getPrivilegeManager();
+        principalManager = getSecurityProvider().getPrincipalConfiguration().getPrincipalManager(root, getNamePathMapper());
 
-    private Principal getTestPrincipal(String name) {
-        return new PrincipalImpl(name);
+        emptyAcl = createEmptyACL();
+        testPrincipal = getTestPrincipal();
+        testPrivileges = privilegesFromNames(PrivilegeConstants.JCR_ADD_CHILD_NODES, PrivilegeConstants.JCR_LOCK_MANAGEMENT);
     }
 
     @Override
@@ -77,15 +80,21 @@ public class ACLTest extends AbstractAccessControlListTest{
         String path = (jcrPath == null) ? null : namePathMapper.getOakPathKeepIndex(jcrPath);
         final RestrictionProvider rp = getRestrictionProvider();
         return new ACL(path, entries, namePathMapper) {
-            @Nonnull
             @Override
             public RestrictionProvider getRestrictionProvider() {
                 return rp;
             }
+            @Override
+            PrincipalManager getPrincipalManager() {
+                return principalManager;
+            }
+            @Override
+            PrivilegeManager getPrivilegeManager() {
+                return privilegeManager;
+            }
         };
     }
 
-    @Ignore // TODO: principal not yet validated
     @Test
     public void testAddInvalidEntry() throws Exception {
         Principal unknownPrincipal = new PrincipalImpl("unknown");
@@ -113,7 +122,6 @@ public class ACLTest extends AbstractAccessControlListTest{
         }
     }
 
-    @Ignore // TODO: privileges not yet validated upon addACE
     @Test
     public void testAddEntryWithInvalidPrivilege() throws Exception {
         try {
@@ -208,7 +216,7 @@ public class ACLTest extends AbstractAccessControlListTest{
         AbstractAccessControlList acl = createEmptyACL();
         acl.addAccessControlEntry(testPrincipal, read);
         acl.addEntry(testPrincipal, write, false);
-        acl.addAccessControlEntry(getTestPrincipal("p2"), write);
+        acl.addAccessControlEntry(EveryonePrincipal.getInstance(), write);
 
         List<JackrabbitAccessControlEntry> entries = acl.getEntries();
         assertEquals(3, entries.size());
@@ -228,7 +236,7 @@ public class ACLTest extends AbstractAccessControlListTest{
         AbstractAccessControlList acl = createEmptyACL();
         acl.addAccessControlEntry(testPrincipal, read);
         acl.addEntry(testPrincipal, write, false);
-        acl.addAccessControlEntry(getTestPrincipal("p2"), write);
+        acl.addAccessControlEntry(EveryonePrincipal.getInstance(), write);
 
         AccessControlEntry[] entries = acl.getAccessControlEntries();
 
@@ -256,7 +264,7 @@ public class ACLTest extends AbstractAccessControlListTest{
         Privilege[] write = privilegesFromNames(PrivilegeConstants.JCR_WRITE);
 
         emptyAcl.addAccessControlEntry(testPrincipal, read);
-        emptyAcl.addAccessControlEntry(getTestPrincipal("p2"), write);
+        emptyAcl.addAccessControlEntry(EveryonePrincipal.getInstance(), write);
 
         AccessControlEntry invalid = new ACE(testPrincipal, write, false, Collections.<Restriction>emptySet());
         try {

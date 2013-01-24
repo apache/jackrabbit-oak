@@ -24,6 +24,7 @@ import javax.jcr.RepositoryException;
 import javax.security.auth.Subject;
 
 import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
+import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Impersonation;
 import org.apache.jackrabbit.api.security.user.User;
@@ -33,7 +34,6 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalIteratorAdapter;
-import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,11 +51,11 @@ class ImpersonationImpl implements Impersonation, UserConstants {
     private static final Logger log = LoggerFactory.getLogger(ImpersonationImpl.class);
 
     private final UserImpl user;
-    private final PrincipalProvider principalProvider;
+    private final PrincipalManager principalManager;
 
     ImpersonationImpl(UserImpl user) throws RepositoryException {
         this.user = user;
-        this.principalProvider = user.getUserManager().getPrincipalProvider();
+        this.principalManager = user.getUserManager().getPrincipalManager();
     }
 
     //------------------------------------------------------< Impersonation >---
@@ -70,7 +70,7 @@ class ImpersonationImpl implements Impersonation, UserConstants {
         } else {
             Set<Principal> s = new HashSet<Principal>();
             for (final String pName : impersonators) {
-                Principal p = principalProvider.getPrincipal(pName);
+                Principal p = principalManager.getPrincipal(pName);
                 if (p == null) {
                     log.debug("Impersonator " + pName + " does not correspond to a known Principal.");
                     p = new PrincipalImpl(pName);
@@ -88,7 +88,7 @@ class ImpersonationImpl implements Impersonation, UserConstants {
     @Override
     public boolean grantImpersonation(Principal principal) throws RepositoryException {
         String principalName = principal.getName();
-        Principal p = principalProvider.getPrincipal(principalName);
+        Principal p = principalManager.getPrincipal(principalName);
         if (p == null) {
             log.debug("Cannot grant impersonation to an unknown principal.");
             return false;

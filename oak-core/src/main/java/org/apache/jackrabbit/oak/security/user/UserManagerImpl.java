@@ -27,6 +27,7 @@ import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
 
+import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.AuthorizableExistsException;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -42,7 +43,6 @@ import org.apache.jackrabbit.oak.security.user.query.UserQueryManager;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
-import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
@@ -310,8 +310,8 @@ public class UserManagerImpl implements UserManager {
     }
 
     @Nonnull
-    PrincipalProvider getPrincipalProvider() throws RepositoryException {
-        return securityProvider.getPrincipalConfiguration().getPrincipalProvider(root, namePathMapper);
+    PrincipalManager getPrincipalManager() throws RepositoryException {
+        return securityProvider.getPrincipalConfiguration().getPrincipalManager(root, namePathMapper);
     }
 
     @Nonnull

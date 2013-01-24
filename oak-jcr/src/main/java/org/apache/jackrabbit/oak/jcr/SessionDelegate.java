@@ -500,7 +500,7 @@ public class SessionDelegate {
     PrincipalManager getPrincipalManager() throws RepositoryException {
         if (principalManager == null) {
             if (securityProvider != null) {
-                principalManager = securityProvider.getPrincipalConfiguration().getPrincipalManager(session, root, getNamePathMapper());
+                principalManager = securityProvider.getPrincipalConfiguration().getPrincipalManager(root, getNamePathMapper());
             } else {
                 throw new UnsupportedRepositoryOperationException("Principal management not supported.");
             }
