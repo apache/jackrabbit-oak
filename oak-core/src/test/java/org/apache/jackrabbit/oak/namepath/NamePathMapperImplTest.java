@@ -22,14 +22,12 @@ import java.util.Map;
 
 import javax.jcr.RepositoryException;
 
+import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.junit.Test;
 
-import com.google.common.collect.ImmutableMap;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
 public class NamePathMapperImplTest {
@@ -65,7 +63,10 @@ public class NamePathMapperImplTest {
         invalid.add('[' + uuid + "]/a/b/c");
 
         for (String jcrPath : invalid) {
-            assertNull(npMapper.getOakPath(jcrPath));
+            try {
+                npMapper.getOakPath(jcrPath);
+                fail("Expected IllegalArgumentException for path: " + jcrPath);
+            } catch (IllegalArgumentException ignore) {}
         }
     }
 
@@ -168,11 +169,14 @@ public class NamePathMapperImplTest {
 
     @Test
     public void testInvalidJcrPaths() {
-        assertNull(npMapper.getOakPath("//"));
-        assertNull(npMapper.getOakPath("/foo//"));
-        assertNull(npMapper.getOakPath("/..//"));
-        assertNull(npMapper.getOakPath("/.."));
-        assertNull(npMapper.getOakPath("/foo/../.."));
+        String[] paths = {"//", "/foo//", "/..//", "/..", "/foo/../.."};
+
+        for (String path : paths) {
+            try {
+                npMapper.getOakPath(path);
+                fail("Expected IllegalArgumentException for path " + path);
+            } catch (IllegalArgumentException ignore) {}
+        }
     }
 
     @Test
