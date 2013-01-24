@@ -40,7 +40,7 @@
     <project.reporting.outputEncoding>
       ${project.build.sourceEncoding}
     </project.reporting.outputEncoding>
-    <jackrabbit.version>2.6-SNAPSHOT</jackrabbit.version>
+    <jackrabbit.version>2.7-SNAPSHOT</jackrabbit.version>
     <guava.version>13.0.1</guava.version>
     <mongo.host>127.0.0.1</mongo.host>
     <mongo.port>27017</mongo.port>
@@ -104,6 +104,12 @@
           <artifactId>maven-deploy-plugin</artifactId>
           <configuration>
             <skip>${skip.deployment}</skip>
+          </configuration>
+        </plugin>
+        <plugin>
+          <artifactId>maven-release-plugin</artifactId>
+          <configuration>
+            <autoVersionSubmodules>true</autoVersionSubmodules>
           </configuration>
         </plugin>
         <plugin>
