@@ -62,7 +62,6 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.ItemNameMatcher;
 import org.apache.jackrabbit.commons.iterator.NodeIteratorAdapter;
@@ -946,9 +945,13 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                 ntm.getNodeType(mixinName); // throws on not found
                 // TODO: END
 
-                return isSupportedMixinName(mixinName) && isCheckedOut();
+                return getEffectiveNodeType().supportsMixin(mixinName);
             }
         });
+    }
+
+    private EffectiveNodeType getEffectiveNodeType() throws RepositoryException {
+        return sessionDelegate.getEffectiveNodeTypeProvider().getEffectiveNodeType(this);
     }
 
     @Override
@@ -1402,16 +1405,6 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     private void autoCreateNode(NodeDefinition definition)
             throws RepositoryException {
         addNode(definition.getName(), definition.getDefaultPrimaryTypeName());
-    }
-
-    // FIXME OAK-505: hack to filter for a subset of supported mixins for now
-    // this allows only harmless mixin types so that other code like addMixin gets test coverage
-    private boolean isSupportedMixinName(String mixinName) throws RepositoryException {
-        String oakName = sessionDelegate.getOakPath(mixinName);
-        return "mix:title".equals(oakName) ||
-            NodeTypeConstants.MIX_REFERENCEABLE.equals(oakName) ||
-            NodeTypeConstants.MIX_VERSIONABLE.equals(oakName) ||
-            NodeTypeConstants.MIX_LOCKABLE.equals(oakName);
     }
 
     private void checkValidWorkspace(String workspaceName) throws RepositoryException {
