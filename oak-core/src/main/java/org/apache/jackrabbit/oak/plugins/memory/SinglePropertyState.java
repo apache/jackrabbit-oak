@@ -90,16 +90,13 @@ abstract class SinglePropertyState<T> extends EmptyPropertyState {
         if (type.isArray()) {
             if (getType() == type.getBaseType()) {
                 return (S) singleton(getValue());
-            }
-            else {
+            } else {
                 return (S) singleton(convertTo(type.getBaseType()));
             }
-        }
-        else {
+        } else {
             if (getType() == type) {
                 return (S) getValue();
-            }
-            else {
+            } else {
                 return convertTo(type);
             }
         }
