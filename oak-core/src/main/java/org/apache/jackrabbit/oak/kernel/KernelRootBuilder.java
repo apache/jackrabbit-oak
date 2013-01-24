@@ -44,7 +44,7 @@ class KernelRootBuilder extends MemoryNodeBuilder {
 
     private final MicroKernel kernel;
 
-    private String baseRevision;
+    private final String baseRevision;
 
     private String branchRevision;
 
