@@ -26,7 +26,6 @@ import org.apache.jackrabbit.mongomk.BaseMongoMicroKernelTest;
 import org.apache.jackrabbit.mongomk.api.model.Commit;
 import org.apache.jackrabbit.mongomk.impl.MongoNodeStore;
 import org.apache.jackrabbit.mongomk.impl.model.CommitBuilder;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.fail;
@@ -166,7 +165,6 @@ public class ConcurrentConflictingCommitCommandTest extends BaseMongoMicroKernel
      * a child node with name 'a'" error due to previous commit.
      */
     @Test
-    @Ignore("OAK-566")
     public void leakedInvalidChild() throws Exception {
         mk.commit("/", "+\"c\" : {}", null, null);
         int n = 3;

@@ -29,7 +29,6 @@ import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mongomk.AbstractMongoConnectionTest;
 import org.apache.jackrabbit.mongomk.impl.blob.MongoGridFSBlobStore;
 import org.junit.After;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.mongodb.DB;
@@ -67,7 +66,6 @@ public class MongoMKConcurrentAddTest extends AbstractMongoConnectionTest {
      * threads do not overlap / conflict.
      */
     @Test
-    @Ignore("OAK-566")
     public void testConcurrentAdd() throws Exception {
         // create workers
         List<Callable<String>> cs = new LinkedList<Callable<String>>();
