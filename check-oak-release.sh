@@ -103,7 +103,7 @@ echo "[INFO] Step 3. Compare svn tag with src zip file contents"
 
 echo "[INFO] Doing svn checkout, please wait..."
 SVNTAGDIR="$WORKDIR/tag-svn/jackrabbit-oak-$VERSION"
-svn --quiet export "https://svn.apache.org/repos/asf/jackrabbit/oak/tags/$VERSION" "$SVNTAGDIR"
+svn --quiet export "https://svn.apache.org/repos/asf/jackrabbit/oak/tags/jackrabbit-oak-$VERSION" "$SVNTAGDIR"
 
 echo "[INFO] Unzipping src zip file, please wait..."
 ZIPTAG="$WORKDIR/tag-zip"
