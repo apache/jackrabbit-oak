@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.spi.security.principal;
 
 import javax.annotation.Nonnull;
-import javax.jcr.Session;
 
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.api.Root;
@@ -30,7 +29,7 @@ import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 public interface PrincipalConfiguration extends SecurityConfiguration {
 
     @Nonnull
-    PrincipalManager getPrincipalManager(Session session, Root root, NamePathMapper namePathMapper);
+    PrincipalManager getPrincipalManager(Root root, NamePathMapper namePathMapper);
 
     @Nonnull
     PrincipalProvider getPrincipalProvider(Root root, NamePathMapper namePathMapper);

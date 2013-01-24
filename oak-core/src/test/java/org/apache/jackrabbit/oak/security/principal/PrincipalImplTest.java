@@ -71,9 +71,11 @@ public class PrincipalImplTest {
         }
     }
 
+    //--------------------------------------------------------------------------
+
     private class TestPrincipal extends PrincipalImpl {
 
-        public TestPrincipal(String name) {
+        private TestPrincipal(String name) {
             super(name);
         }
     }

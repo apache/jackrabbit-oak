@@ -32,6 +32,7 @@ import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
+import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -39,7 +40,6 @@ import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfiguration;
-import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.xml.NodeInfo;
 import org.apache.jackrabbit.oak.spi.xml.PropInfo;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedNodeImporter;
@@ -65,7 +65,7 @@ class AccessControlImporter implements ProtectedNodeImporter, AccessControlConst
 
     private NamePathMapper namePathMapper;
     private AccessControlManager acMgr;
-    private PrincipalProvider principalProvider;
+    private PrincipalManager principalManager;
     private ReadOnlyNodeTypeManager ntMgr;
 
     private boolean initialized = false;
@@ -93,7 +93,7 @@ class AccessControlImporter implements ProtectedNodeImporter, AccessControlConst
             } else {
                 acMgr = session.getAccessControlManager();
             }
-            principalProvider = securityProvider.getPrincipalConfiguration().getPrincipalProvider(root, namePathMapper);
+            principalManager = securityProvider.getPrincipalConfiguration().getPrincipalManager(root, namePathMapper);
             ntMgr = ReadOnlyNodeTypeManager.getInstance(root, namePathMapper);
             initialized = true;
         } catch (RepositoryException e) {
@@ -231,7 +231,7 @@ class AccessControlImporter implements ProtectedNodeImporter, AccessControlConst
 
         private void setPrincipal(TextValue txtValue) {
             String principalName = txtValue.getString();
-            principal = principalProvider.getPrincipal(principalName);
+            principal = principalManager.getPrincipal(principalName);
             // TODO: review handling of unknown principals
             if (principal == null) {
                 principal = new PrincipalImpl(principalName);
