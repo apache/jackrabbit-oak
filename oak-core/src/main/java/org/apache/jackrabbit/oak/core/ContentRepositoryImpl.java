@@ -41,10 +41,12 @@ import org.slf4j.LoggerFactory;
  */
 public class ContentRepositoryImpl implements ContentRepository {
 
-    /** Logger instance */
+    /**
+     * Logger instance
+     */
     private static final Logger LOG = LoggerFactory.getLogger(ContentRepositoryImpl.class);
 
-    // TODO: retrieve default wsp-name from configuration
+    // FIXME OAK-589 : retrieve default wsp-name from configuration
     private static final String DEFAULT_WORKSPACE_NAME = "default";
 
     private final SecurityProvider securityProvider;
@@ -56,11 +58,11 @@ public class ContentRepositoryImpl implements ContentRepository {
      * Creates an content repository instance based on the given, already
      * initialized components.
      *
-     * @param nodeStore the node store this repository is based upon.
-     * @param conflictHandler The conflict handler.
-     * @param indexProvider index provider
+     * @param nodeStore        the node store this repository is based upon.
+     * @param conflictHandler  The conflict handler.
+     * @param indexProvider    index provider
      * @param securityProvider The configured security provider or {@code null} if
-     * default implementations should be used.
+     *                         default implementations should be used.
      */
     public ContentRepositoryImpl(NodeStore nodeStore,
                                  ConflictHandler conflictHandler,
