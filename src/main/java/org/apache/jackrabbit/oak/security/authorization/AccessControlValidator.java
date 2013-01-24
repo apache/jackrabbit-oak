@@ -184,10 +184,8 @@ class AccessControlValidator implements Validator, AccessControlConstants {
         if (principalName == null || principalName.isEmpty()) {
             fail("Missing principal name.");
         }
-        // TODO
-        // if (!principalMgr.hasPrincipal(principal.getName())) {
-        //     throw new AccessControlException("Principal " + principal.getName() + " does not exist.");
-        // }
+        // validity of principal is only a JCR specific contract and will not be
+        // enforced on the oak level.
     }
 
     private void checkValidPrivileges(String[] privilegeNames) throws CommitFailedException {
