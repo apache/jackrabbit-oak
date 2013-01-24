@@ -34,7 +34,7 @@ public interface IndexConstants {
     /**
      * Marks a unique property index.
      */
-    String UNIQUE = "unique";
+    String UNIQUE_PROPERTY_NAME = "unique";
 
     /**
      * Defines the names of the properties that are covered by a specific

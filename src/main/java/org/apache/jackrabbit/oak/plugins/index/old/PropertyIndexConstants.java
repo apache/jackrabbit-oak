@@ -51,6 +51,6 @@ public interface PropertyIndexConstants {
     /**
      * Marks a unique index.
      */
-    String UNIQUE = IndexConstants.UNIQUE;
+    String UNIQUE = IndexConstants.UNIQUE_PROPERTY_NAME;
 
 }

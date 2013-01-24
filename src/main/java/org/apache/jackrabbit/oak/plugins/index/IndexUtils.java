@@ -49,9 +49,9 @@ public class IndexUtils implements IndexConstants {
         entry.setString(IndexConstants.TYPE_PROPERTY_NAME, "p2");
         entry.setBoolean(IndexConstants.REINDEX_PROPERTY_NAME, true);
         if (unique) {
-            entry.setBoolean(IndexConstants.UNIQUE, true);
+            entry.setBoolean(IndexConstants.UNIQUE_PROPERTY_NAME, true);
         }
-        entry.setNames(IndexConstants.PROPERTY_NAMES, propertyNames);
+        entry.setStrings(IndexConstants.PROPERTY_NAMES, propertyNames);
     }
 
     /**
