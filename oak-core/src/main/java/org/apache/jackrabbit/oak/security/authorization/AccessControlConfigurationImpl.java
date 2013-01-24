@@ -27,6 +27,7 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.security.authorization.restriction.RestrictionProviderImpl;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
+import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
@@ -75,6 +76,12 @@ public class AccessControlConfigurationImpl extends SecurityConfiguration.Defaul
     @Override
     public PermissionProvider getPermissionProvider(NamePathMapper namePathMapper) {
         return new PermissionProviderImpl();
+    }
+
+    @Nonnull
+    @Override
+    public RepositoryInitializer getRepositoryInitializer() {
+        return new AccessControlInitializer();
     }
 
     @Nonnull
