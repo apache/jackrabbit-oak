@@ -46,11 +46,11 @@ public class ConcurrentCommitCommandTest extends BaseMongoMicroKernelTest {
         final Object waitLock = new Object();
 
         // create the commands
-        List<CommitCommandNew> commands = new ArrayList<CommitCommandNew>(numOfConcurrentThreads);
+        List<CommitCommand> commands = new ArrayList<CommitCommand>(numOfConcurrentThreads);
         for (int i = 0; i < numOfConcurrentThreads; ++i) {
             Commit commit = CommitBuilder.build("/", "+\"" + i + "\" : {}",
                     "This is a concurrent commit");
-            CommitCommandNew command = new CommitCommandNew(getNodeStore(), commit) {
+            CommitCommand command = new CommitCommand(getNodeStore(), commit) {
                 @Override
                 protected boolean saveAndSetHeadRevision() throws Exception {
                     try {
@@ -73,7 +73,7 @@ public class ConcurrentCommitCommandTest extends BaseMongoMicroKernelTest {
         ExecutorService executorService = Executors.newFixedThreadPool(numOfConcurrentThreads);
         final List<Long> revisionIds = new LinkedList<Long>();
         for (int i = 0; i < numOfConcurrentThreads; ++i) {
-            final CommitCommandNew command = commands.get(i);
+            final CommitCommand command = commands.get(i);
             Runnable runnable = new Runnable() {
 
                 @Override
@@ -109,7 +109,7 @@ public class ConcurrentCommitCommandTest extends BaseMongoMicroKernelTest {
         List<String> lastChildren = new LinkedList<String>();
         for (int i = 0; i < numOfConcurrentThreads; ++i) {
             Long revisionId = revisionIds.get(i);
-            GetNodesCommandNew command2 = new GetNodesCommandNew(getNodeStore(),
+            GetNodesCommand command2 = new GetNodesCommand(getNodeStore(),
                     "/", revisionId);
             Node root = command2.execute();
 

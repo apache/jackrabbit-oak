@@ -16,19 +16,14 @@
  */
 package org.apache.jackrabbit.mongomk.impl.command;
 
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.jackrabbit.mongomk.api.model.Node;
 import org.apache.jackrabbit.mongomk.impl.MongoNodeStore;
-import org.apache.jackrabbit.mongomk.impl.action.FetchCommitsAction;
 import org.apache.jackrabbit.mongomk.impl.action.FetchNodesAction;
 import org.apache.jackrabbit.mongomk.impl.command.exception.InconsistentNodeHierarchyException;
-import org.apache.jackrabbit.mongomk.impl.model.MongoCommit;
 import org.apache.jackrabbit.mongomk.impl.model.MongoNode;
 import org.apache.jackrabbit.mongomk.impl.model.NodeImpl;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -47,10 +42,8 @@ public class GetNodesCommand extends BaseCommand<Node> {
     private String branchId;
     private int depth = FetchNodesAction.LIMITLESS_DEPTH;
     private Long revisionId;
-    private List<MongoCommit> lastCommits;
 
     private Map<String, MongoNode> pathAndNodeMap;
-    private Map<String, Long> problematicNodes;
     private Node rootNode;
 
     /**
@@ -60,8 +53,9 @@ public class GetNodesCommand extends BaseCommand<Node> {
      * @param path The root path of the nodes to get.
      * @param revisionId The revision id or null for head revision.
      */
-    public GetNodesCommand(MongoNodeStore nodeStore, String path,
-            Long revisionId) {
+    public GetNodesCommand(MongoNodeStore nodeStore,
+                           String path,
+                           Long revisionId) {
         super(nodeStore);
         this.path = path;
         this.revisionId = revisionId;
@@ -87,15 +81,16 @@ public class GetNodesCommand extends BaseCommand<Node> {
 
     @Override
     public Node execute() throws Exception {
-        readLastCommits();
-        deriveProblematicNodes();
+        if (revisionId == null) {
+            revisionId = new GetHeadRevisionCommand(nodeStore).execute();
+        }
         readRootNode();
         return rootNode;
     }
 
     private void readRootNode() throws InconsistentNodeHierarchyException {
         readNodesByPath();
-        boolean verified = verifyProblematicNodes() && verifyNodeHierarchy();
+        boolean verified = verifyNodeHierarchy();
         if (!verified) {
             throw new InconsistentNodeHierarchyException();
         }
@@ -136,43 +131,9 @@ public class GetNodesCommand extends BaseCommand<Node> {
         return node;
     }
 
-    private void deriveProblematicNodes() {
-        problematicNodes = new HashMap<String, Long>();
-
-        for (ListIterator<MongoCommit> iterator = lastCommits.listIterator(); iterator.hasPrevious();) {
-            MongoCommit commitMongo = iterator.previous();
-            long revisionId = commitMongo.getRevisionId();
-            Set<String> affectedPaths = commitMongo.getAffectedPaths();
-            for (String path : affectedPaths) {
-                problematicNodes.put(path, revisionId);
-            }
-        }
-    }
-
-    private void readLastCommits() throws Exception {
-        if (revisionId == null) {
-            revisionId = new GetHeadRevisionCommand(nodeStore).execute();
-        }
-
-        boolean commitExists = false;
-        lastCommits = new FetchCommitsAction(nodeStore, revisionId).execute();
-        for (MongoCommit commit : lastCommits) {
-            if (commit.getRevisionId().equals(revisionId)) {
-                commitExists = true;
-                break;
-            }
-        }
-        if (!commitExists) {
-            throw new Exception(String.format("Commit with revision %d could not be found",
-                    revisionId));
-        }
-    }
-
     private void readNodesByPath() {
-        FetchNodesAction query = new FetchNodesAction(nodeStore, path, revisionId);
+        FetchNodesAction query = new FetchNodesAction(nodeStore, path, depth, revisionId);
         query.setBranchId(branchId);
-        query.setValidCommits(lastCommits);
-        query.setDepth(depth);
         pathAndNodeMap = query.execute();
     }
 
@@ -210,22 +171,5 @@ public class GetNodesCommand extends BaseCommand<Node> {
         }
 
         return verified;
-    }
-
-    private boolean verifyProblematicNodes() {
-        for (Map.Entry<String, Long> entry : problematicNodes.entrySet()) {
-            String path = entry.getKey();
-            Long revisionId = entry.getValue();
-            MongoNode nodeMongo = pathAndNodeMap.get(path);
-            if (nodeMongo != null) {
-                if (!revisionId.equals(nodeMongo.getRevisionId())) {
-                    LOG.error("Node could not be verified because revisionIds"
-                            + " did not match: {} (expected) vs {} (actual)",
-                            revisionId, nodeMongo.getRevisionId());
-                    return false;
-                }
-            }
-        }
-        return true;
     }
 }
