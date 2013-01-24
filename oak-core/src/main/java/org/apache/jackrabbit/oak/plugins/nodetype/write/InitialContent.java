@@ -21,7 +21,8 @@ import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.core.RootImpl;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -32,8 +33,8 @@ import com.google.common.collect.ImmutableList;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
+import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
 import static org.apache.jackrabbit.JcrConstants.JCR_VERSIONSTORAGE;
-import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
 
 /**
  * {@code InitialContent} implements a {@link RepositoryInitializer} and
@@ -62,23 +63,12 @@ public class InitialContent implements RepositoryInitializer {
                 .setProperty(JCR_PRIMARYTYPE, "rep:Activities", Type.NAME);
         }
 
-        if (!root.hasChildNode("oak:index")) {
-            NodeBuilder index = root.child("oak:index");
-            index.setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, Type.NAME); // TODO: use proper node type
-            index.child("uuid")
-                .setProperty(JCR_PRIMARYTYPE, "oak:queryIndexDefinition", Type.NAME)
-                .setProperty("type", "p2")
-                .setProperty("propertyNames", "jcr:uuid")
-                .setProperty("reindex", true)
-                .setProperty("unique", true);
-            index.child("nodetype")
-                .setProperty(JCR_PRIMARYTYPE, "oak:queryIndexDefinition", Type.NAME)
-                .setProperty("type", "p2")
-                .setProperty("reindex", true)
-                .setProperty(PropertyStates.createProperty(
-                        "propertyNames",
-                        ImmutableList.of(JCR_PRIMARYTYPE, JCR_MIXINTYPES),
-                        Type.STRINGS));
+        if (!root.hasChildNode(IndexConstants.INDEX_DEFINITIONS_NAME)) {
+            NodeBuilder index = IndexUtils.getOrCreateOakIndex(root);
+
+            IndexUtils.createIndexDefinition(index, "uuid", true, true, ImmutableList.<String>of(JCR_UUID));
+            IndexUtils.createIndexDefinition(index, "nodetype", true, false,
+                    ImmutableList.of(JCR_PRIMARYTYPE, JCR_MIXINTYPES));
         }
         try {
             branch.setRoot(root.getNodeState());
