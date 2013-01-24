@@ -207,7 +207,7 @@ public class MongoCommit extends BasicDBObject implements Commit {
                 data.add(new String(buffer, "UTF-8"));
             }
         } catch (IOException e) {
-            // FIXME: shoulnd't actually happen with byte[] and UTF-8
+            // FIXME: shouldn't actually happen with byte[] and UTF-8
             throw new RuntimeException(e);
         }
         return data;
@@ -228,7 +228,7 @@ public class MongoCommit extends BasicDBObject implements Commit {
             out.close();
             return byteOut.toByteArray();
         } catch (IOException e) {
-            // FIXME: shoulnd't actually happen with byte[] and UTF-8
+            // FIXME: shouldn't actually happen with byte[] and UTF-8
             throw new RuntimeException(e);
         }
     }
