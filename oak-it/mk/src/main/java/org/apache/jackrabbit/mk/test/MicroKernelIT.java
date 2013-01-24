@@ -16,15 +16,6 @@
  */
 package org.apache.jackrabbit.mk.test;
 
-import org.apache.jackrabbit.mk.api.MicroKernelException;
-import org.apache.jackrabbit.mk.test.util.TestInputStream;
-import org.apache.jackrabbit.mk.util.MicroKernelInputStream;
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -33,6 +24,15 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
+
+import org.apache.jackrabbit.mk.api.MicroKernelException;
+import org.apache.jackrabbit.mk.test.util.TestInputStream;
+import org.apache.jackrabbit.mk.util.MicroKernelInputStream;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -652,7 +652,7 @@ public class MicroKernelIT extends AbstractMicroKernelIT {
 
         // populate siblings
         Random rand = new Random();
-        StringBuffer sb = new StringBuffer("+\"/testRoot\":{");
+        StringBuilder sb = new StringBuilder("+\"/testRoot\":{");
         for (int i = 0; i < NUM_SIBLINGS; i++) {
             String name = "n" + rand.nextLong();
             siblingNames.add(name);
