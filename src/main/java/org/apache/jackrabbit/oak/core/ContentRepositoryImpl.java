@@ -21,7 +21,6 @@ import javax.jcr.Credentials;
 import javax.jcr.NoSuchWorkspaceException;
 import javax.security.auth.login.LoginException;
 
-import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.spi.commit.ConflictHandler;
@@ -36,7 +35,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * {@link MicroKernel}-based implementation of
+ * {@code MicroKernel}-based implementation of
  * the {@link ContentRepository} interface.
  */
 public class ContentRepositoryImpl implements ContentRepository {
@@ -46,9 +45,9 @@ public class ContentRepositoryImpl implements ContentRepository {
      */
     private static final Logger LOG = LoggerFactory.getLogger(ContentRepositoryImpl.class);
 
-    // FIXME OAK-589 : retrieve default wsp-name from configuration
     private static final String DEFAULT_WORKSPACE_NAME = "default";
 
+    private final String defaultWorkspaceName;
     private final SecurityProvider securityProvider;
     private final QueryIndexProvider indexProvider;
     private final NodeStore nodeStore;
@@ -59,16 +58,19 @@ public class ContentRepositoryImpl implements ContentRepository {
      * initialized components.
      *
      * @param nodeStore        the node store this repository is based upon.
+     * @param defaultWorkspaceName the default workspace name;
      * @param conflictHandler  The conflict handler.
      * @param indexProvider    index provider
      * @param securityProvider The configured security provider or {@code null} if
      *                         default implementations should be used.
      */
     public ContentRepositoryImpl(NodeStore nodeStore,
+                                 String defaultWorkspaceName,
                                  ConflictHandler conflictHandler,
                                  QueryIndexProvider indexProvider,
                                  SecurityProvider securityProvider) {
         this.nodeStore = nodeStore;
+        this.defaultWorkspaceName = (defaultWorkspaceName == null) ? DEFAULT_WORKSPACE_NAME : defaultWorkspaceName;
         this.conflictHandler = conflictHandler;
         this.indexProvider = indexProvider != null ? indexProvider : new CompositeQueryIndexProvider();
         this.securityProvider = securityProvider;
@@ -79,7 +81,7 @@ public class ContentRepositoryImpl implements ContentRepository {
     public ContentSession login(Credentials credentials, String workspaceName)
             throws LoginException, NoSuchWorkspaceException {
         if (workspaceName == null) {
-            workspaceName = DEFAULT_WORKSPACE_NAME;
+            workspaceName = defaultWorkspaceName;
         }
 
         // TODO: support multiple workspaces. See OAK-118
