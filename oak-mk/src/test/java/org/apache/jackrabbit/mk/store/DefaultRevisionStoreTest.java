@@ -134,6 +134,7 @@ public class DefaultRevisionStoreTest {
      * 
      * @throws Exception if an error occurs
      */
+    @Ignore
     @Test
     public void testConcurrentGC() throws Exception {
         ScheduledExecutorService gcExecutor = Executors.newScheduledThreadPool(1);
