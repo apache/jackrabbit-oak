@@ -135,9 +135,9 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     public Node getRootNode() throws RepositoryException {
         ensureIsAlive();
 
-        return dlg.perform(new SessionOperation<NodeImpl>() {
+        return dlg.perform(new SessionOperation<NodeImpl<?>>() {
             @Override
-            public NodeImpl perform() throws AccessDeniedException {
+            public NodeImpl<?> perform() throws AccessDeniedException {
                 NodeDelegate nd = dlg.getRootNode();
                 if (nd == null) {
                     throw new AccessDeniedException("Root node is not accessible.");
@@ -159,9 +159,9 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     public Node getNodeByIdentifier(final String id) throws RepositoryException {
         ensureIsAlive();
 
-        return dlg.perform(new SessionOperation<NodeImpl>() {
+        return dlg.perform(new SessionOperation<NodeImpl<?>>() {
             @Override
-            public NodeImpl perform() throws RepositoryException {
+            public NodeImpl<?> perform() throws RepositoryException {
                 NodeDelegate d = dlg.getNodeByIdentifier(id);
                 if (d == null) {
                     throw new ItemNotFoundException("Node with id " + id + " does not exist.");
@@ -189,9 +189,9 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     public Node getNode(final String absPath) throws RepositoryException {
         ensureIsAlive();
 
-        return dlg.perform(new SessionOperation<NodeImpl>() {
+        return dlg.perform(new SessionOperation<NodeImpl<?>>() {
             @Override
-            public NodeImpl perform() throws RepositoryException {
+            public NodeImpl<?> perform() throws RepositoryException {
                 String oakPath = dlg.getOakPath(absPath);
                 NodeDelegate d = dlg.getNode(oakPath);
                 if (d == null) {

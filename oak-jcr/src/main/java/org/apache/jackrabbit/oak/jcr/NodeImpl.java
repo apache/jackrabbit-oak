@@ -274,7 +274,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                     throw new ItemExistsException();
                 }
 
-                NodeImpl childNode = new NodeImpl<NodeDelegate>(added);
+                NodeImpl<?> childNode = new NodeImpl<NodeDelegate>(added);
                 childNode.internalSetPrimaryType(ntName);
                 childNode.autoCreateItems();
                 return childNode;
@@ -474,9 +474,9 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     public Node getNode(final String relPath) throws RepositoryException {
         checkStatus();
 
-        return sessionDelegate.perform(new SessionOperation<NodeImpl>() {
+        return sessionDelegate.perform(new SessionOperation<NodeImpl<?>>() {
             @Override
-            public NodeImpl perform() throws RepositoryException {
+            public NodeImpl<?> perform() throws RepositoryException {
                 String oakPath = sessionDelegate.getOakPathOrThrowNotFound(relPath);
 
                 NodeDelegate nd = dlg.getChild(oakPath);

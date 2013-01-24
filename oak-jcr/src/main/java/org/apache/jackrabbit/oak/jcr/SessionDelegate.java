@@ -544,7 +544,7 @@ public class SessionDelegate {
 
     void checkProtectedNodes(String... absJcrPaths) throws RepositoryException {
         for (String absPath : absJcrPaths) {
-            NodeImpl node = (NodeImpl) session.getNode(absPath);
+            NodeImpl<?> node = (NodeImpl<?>) session.getNode(absPath);
             node.checkProtected();
         }
     }
