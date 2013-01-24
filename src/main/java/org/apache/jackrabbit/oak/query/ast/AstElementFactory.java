@@ -21,11 +21,11 @@ import org.apache.jackrabbit.oak.api.PropertyValue;
 public class AstElementFactory {
 
     public AndImpl and(ConstraintImpl constraint1, ConstraintImpl constraint2) {
-        return new AndImpl((ConstraintImpl) constraint1, (ConstraintImpl) constraint2);
+        return new AndImpl(constraint1, constraint2);
     }
 
     public OrderingImpl ascending(DynamicOperandImpl operand) {
-        return new OrderingImpl((DynamicOperandImpl) operand, Order.ASCENDING);
+        return new OrderingImpl(operand, Order.ASCENDING);
     }
 
     public BindVariableValueImpl bindVariable(String bindVariableName) {
@@ -46,7 +46,7 @@ public class AstElementFactory {
     }
 
     public ComparisonImpl comparison(DynamicOperandImpl operand1, Operator operator, StaticOperandImpl operand2) {
-        return new ComparisonImpl((DynamicOperandImpl) operand1, operator, (StaticOperandImpl) operand2);
+        return new ComparisonImpl(operand1, operator, operand2);
     }
 
     public DescendantNodeImpl descendantNode(String selectorName, String path) {
@@ -101,11 +101,11 @@ public class AstElementFactory {
     }
 
     public NotImpl not(ConstraintImpl constraint) {
-        return new NotImpl((ConstraintImpl) constraint);
+        return new NotImpl(constraint);
     }
 
     public OrImpl or(ConstraintImpl constraint1, ConstraintImpl constraint2) {
-        return new OrImpl((ConstraintImpl) constraint1, (ConstraintImpl) constraint2);
+        return new OrImpl(constraint1, constraint2);
     }
 
     public PropertyExistenceImpl propertyExistence(String selectorName, String propertyName) {
