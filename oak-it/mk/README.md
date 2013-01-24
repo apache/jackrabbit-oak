@@ -2,7 +2,7 @@ MicroKernel integration tests
 =============================
 
 This component contains integration tests for the `MicroKernel` interface
-as defined in the `oak-mk` component. The test suite is by default executed
+as defined in the `oak-mk-api` component. The test suite is by default executed
 against the default MicroKernel implementation included in that same
 component, but you can also use this test suite against any other
 implementations as described below.
