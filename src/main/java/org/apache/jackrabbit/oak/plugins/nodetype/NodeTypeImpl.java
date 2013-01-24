@@ -99,7 +99,7 @@ class NodeTypeImpl implements NodeType {
 
     @Override
     public String[] getDeclaredSupertypeNames() {
-        return node.getNames(JCR_SUPERTYPES, new String[0]);
+        return node.getNames(JCR_SUPERTYPES);
     }
 
     @Override
