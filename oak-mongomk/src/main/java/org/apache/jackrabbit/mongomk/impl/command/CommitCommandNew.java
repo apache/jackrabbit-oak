@@ -85,7 +85,7 @@ public class CommitCommandNew extends BaseCommand<Long> {
     @Override
     public Long execute() throws Exception {
         int retries = 0;
-        boolean success = false;
+        boolean success;
         do {
             mongoSync = new ReadAndIncHeadRevisionAction(nodeStore).execute();
             revisionId = mongoSync.getNextRevisionId() - 1;
@@ -353,6 +353,7 @@ public class CommitCommandNew extends BaseCommand<Long> {
         DBObject update = new BasicDBObject("$set", new BasicDBObject(MongoCommit.KEY_FAILED, Boolean.TRUE));
         WriteResult writeResult = commitCollection.update(query, update,
                 false /*upsert*/, false /*multi*/, WriteConcern.SAFE);
+        logger.debug("Marked @{} failed", revisionId);
         nodeStore.evict(commit);
         if (writeResult.getError() != null) {
             // FIXME This is potentially a bug that we need to handle.
