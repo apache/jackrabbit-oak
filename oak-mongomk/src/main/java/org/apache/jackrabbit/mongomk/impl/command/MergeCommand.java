@@ -89,7 +89,7 @@ public class MergeCommand extends BaseCommand<String> {
         String diff = getNonConflictingCommitsDiff(Math.max(currentHead, commit.getRevisionId()),
                 branchRootId, branchId);
         if (diff != null) {
-            newCommit = CommitBuilder.build("/", diff.toString(),
+            newCommit = CommitBuilder.build("/", diff,
                     MongoUtil.fromMongoRepresentation(currentHead), message);
         } else {
             Node ourRoot = getNode("/", rootNodeId, branchId);
