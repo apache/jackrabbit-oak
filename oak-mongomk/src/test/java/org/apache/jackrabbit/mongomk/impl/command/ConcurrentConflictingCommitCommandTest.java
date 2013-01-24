@@ -42,9 +42,9 @@ public class ConcurrentConflictingCommitCommandTest extends BaseMongoMicroKernel
     public void rootUpdate() throws Exception {
         int n = 2;
         CountDownLatch latch = new CountDownLatch(n - 1);
-        CommitCommandNew cmd1 = new WaitingCommitCommand(getNodeStore(),
+        CommitCommand cmd1 = new WaitingCommitCommand(getNodeStore(),
                 CommitBuilder.build("/", "+\"a1\" : {}", null), latch);
-        CommitCommandNew cmd2 = new NotifyingCommitCommand(getNodeStore(),
+        CommitCommand cmd2 = new NotifyingCommitCommand(getNodeStore(),
                 CommitBuilder.build("/", "+\"a2\" : {}", null), latch);
 
         ExecutorService executorService = Executors.newFixedThreadPool(n);
@@ -70,9 +70,9 @@ public class ConcurrentConflictingCommitCommandTest extends BaseMongoMicroKernel
 
         int n = 2;
         CountDownLatch latch = new CountDownLatch(n - 1);
-        CommitCommandNew cmd1 = new WaitingCommitCommand(getNodeStore(),
+        CommitCommand cmd1 = new WaitingCommitCommand(getNodeStore(),
                 CommitBuilder.build("/", "+\"a1/b1\" : {}", null), latch);
-        CommitCommandNew cmd2 = new NotifyingCommitCommand(getNodeStore(),
+        CommitCommand cmd2 = new NotifyingCommitCommand(getNodeStore(),
                 CommitBuilder.build("/", "+\"a2/b1\" : {}", null), latch);
 
         ExecutorService executorService = Executors.newFixedThreadPool(n);
@@ -99,11 +99,11 @@ public class ConcurrentConflictingCommitCommandTest extends BaseMongoMicroKernel
 
         int n = 3;
         CountDownLatch latch = new CountDownLatch(n - 1);
-        CommitCommandNew cmd1 = new WaitingCommitCommand(getNodeStore(),
+        CommitCommand cmd1 = new WaitingCommitCommand(getNodeStore(),
                 CommitBuilder.build("/", "+\"a1/b1\" : {}", null), latch);
-        CommitCommandNew cmd2 = new NotifyingCommitCommand(getNodeStore(),
+        CommitCommand cmd2 = new NotifyingCommitCommand(getNodeStore(),
                 CommitBuilder.build("/", "+\"a2/b1\" : {}", null), latch);
-        CommitCommandNew cmd3 = new NotifyingCommitCommand(getNodeStore(),
+        CommitCommand cmd3 = new NotifyingCommitCommand(getNodeStore(),
                 CommitBuilder.build("/", "+\"a3/b1\" : {}", null), latch);
 
 
@@ -132,11 +132,11 @@ public class ConcurrentConflictingCommitCommandTest extends BaseMongoMicroKernel
 
         int n = 3;
         CountDownLatch latch = new CountDownLatch(n - 1);
-        CommitCommandNew cmd1 = new WaitingCommitCommand(getNodeStore(),
+        CommitCommand cmd1 = new WaitingCommitCommand(getNodeStore(),
                 CommitBuilder.build("/", "+\"a1/b1\" : {}", null), latch);
-        CommitCommandNew cmd2 = new NotifyingCommitCommand(getNodeStore(),
+        CommitCommand cmd2 = new NotifyingCommitCommand(getNodeStore(),
                 CommitBuilder.build("/", "+\"a2/b1\" : {}", null), latch);
-        CommitCommandNew cmd3 = new NotifyingCommitCommand(getNodeStore(),
+        CommitCommand cmd3 = new NotifyingCommitCommand(getNodeStore(),
                 CommitBuilder.build("/", "+\"a1/b2\" : {}", null), latch);
 
 
@@ -169,11 +169,11 @@ public class ConcurrentConflictingCommitCommandTest extends BaseMongoMicroKernel
         mk.commit("/", "+\"c\" : {}", null, null);
         int n = 3;
         CountDownLatch latch = new CountDownLatch(n - 1);
-        CommitCommandNew cmd1 = new WaitingCommitCommand(getNodeStore(),
+        CommitCommand cmd1 = new WaitingCommitCommand(getNodeStore(),
                 CommitBuilder.build("/", "+\"a\" : {}", null), latch);
-        CommitCommandNew cmd2 = new NotifyingCommitCommand(getNodeStore(),
+        CommitCommand cmd2 = new NotifyingCommitCommand(getNodeStore(),
                 CommitBuilder.build("/", "+\"c/d\" : {}", null), latch);
-        CommitCommandNew cmd3 = new NotifyingCommitCommand(getNodeStore(),
+        CommitCommand cmd3 = new NotifyingCommitCommand(getNodeStore(),
                 CommitBuilder.build("/", "+\"b\" : {}", null), latch);
 
         ExecutorService executorService = Executors.newFixedThreadPool(n);
@@ -194,7 +194,7 @@ public class ConcurrentConflictingCommitCommandTest extends BaseMongoMicroKernel
     /**
      * A CommitCommand that simply waits on the waitLock until notified.
      */
-    private static class WaitingCommitCommand extends CommitCommandNew {
+    private static class WaitingCommitCommand extends CommitCommand {
 
         private final CountDownLatch latch;
 
@@ -219,7 +219,7 @@ public class ConcurrentConflictingCommitCommandTest extends BaseMongoMicroKernel
     /**
      * A CommitCommand that notifies on the waitLock.
      */
-    private static class NotifyingCommitCommand extends CommitCommandNew {
+    private static class NotifyingCommitCommand extends CommitCommand {
 
         private final CountDownLatch latch;
 
@@ -248,9 +248,9 @@ public class ConcurrentConflictingCommitCommandTest extends BaseMongoMicroKernel
      */
     private static class CommitCallable implements Callable<Long> {
 
-        private final CommitCommandNew command;
+        private final CommitCommand command;
 
-        public CommitCallable(CommitCommandNew  command) {
+        public CommitCallable(CommitCommand command) {
             this.command = command;
         }
 

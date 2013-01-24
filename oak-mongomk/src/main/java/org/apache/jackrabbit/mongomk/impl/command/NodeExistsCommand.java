@@ -19,7 +19,7 @@ package org.apache.jackrabbit.mongomk.impl.command;
 import java.util.Map;
 
 import org.apache.jackrabbit.mongomk.impl.MongoNodeStore;
-import org.apache.jackrabbit.mongomk.impl.action.FetchNodesActionNew;
+import org.apache.jackrabbit.mongomk.impl.action.FetchNodesAction;
 import org.apache.jackrabbit.mongomk.impl.model.MongoNode;
 
 /**
@@ -60,7 +60,7 @@ public class NodeExistsCommand extends BaseCommand<Boolean> {
             revisionId = new GetHeadRevisionCommand(nodeStore).execute();
         }
 
-        FetchNodesActionNew action = new FetchNodesActionNew(nodeStore, path, 0, revisionId);
+        FetchNodesAction action = new FetchNodesAction(nodeStore, path, 0, revisionId);
         action.setBranchId(branchId);
 
         Map<String, MongoNode> pathAndNodeMap = action.execute();

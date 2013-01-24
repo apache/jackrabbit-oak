@@ -97,7 +97,7 @@ public class DiffCommand extends BaseCommand<String> {
     }
 
     private Node getNode(String path, long revisionId) throws Exception {
-        GetNodesCommandNew command = new GetNodesCommandNew(nodeStore, path, revisionId);
+        GetNodesCommand command = new GetNodesCommand(nodeStore, path, revisionId);
         return command.execute();
     }
 }

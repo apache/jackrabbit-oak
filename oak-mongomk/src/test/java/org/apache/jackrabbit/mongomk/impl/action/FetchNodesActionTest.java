@@ -104,21 +104,21 @@ public class FetchNodesActionTest extends BaseMongoMicroKernelTest {
         long rev = addNode("a/b/c");
 
         int depth = 0;
-        FetchNodesActionNew action = new FetchNodesActionNew(getNodeStore(),
+        FetchNodesAction action = new FetchNodesAction(getNodeStore(),
                 "/a/b", depth, rev);
         Map<String, MongoNode> nodes = action.execute();
         assertEquals(1, nodes.size());
         assertNotNull(nodes.get("/a/b"));
 
         depth = 1;
-        action = new FetchNodesActionNew(getNodeStore(), "/a/b", depth, rev);
+        action = new FetchNodesAction(getNodeStore(), "/a/b", depth, rev);
         nodes = action.execute();
         assertEquals(2, nodes.size());
         assertNotNull(nodes.get("/a/b"));
         assertNotNull(nodes.get("/a/b/c"));
 
-        depth = FetchNodesActionNew.LIMITLESS_DEPTH;
-        action = new FetchNodesActionNew(getNodeStore(), "/a/b", depth, rev);
+        depth = FetchNodesAction.LIMITLESS_DEPTH;
+        action = new FetchNodesAction(getNodeStore(), "/a/b", depth, rev);
         nodes = action.execute();
         assertEquals(2, nodes.size());
         assertNotNull(nodes.get("/a/b"));
@@ -249,7 +249,7 @@ public class FetchNodesActionTest extends BaseMongoMicroKernelTest {
     }
 
     private List<Node> createAndExecuteQuery(long revisionId, Set<String> paths, int depth) {
-        FetchNodesActionNew query = new FetchNodesActionNew(getNodeStore(), paths, revisionId);
+        FetchNodesAction query = new FetchNodesAction(getNodeStore(), paths, revisionId);
         return toNode(query.execute());
     }
 
