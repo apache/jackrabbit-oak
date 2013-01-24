@@ -28,8 +28,6 @@ import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -51,8 +49,6 @@ public class ExternalLoginModuleTest extends AbstractSecurityTest {
 
     private UserManager userManager;
 
-    private Root root;
-
     @Before
     public void before() throws Exception {
         super.before();
@@ -62,9 +58,7 @@ public class ExternalLoginModuleTest extends AbstractSecurityTest {
         for (ExternalGroup group : TestLoginModule.externalGroups) {
             ids.add(group.getId());
         }
-
-        root = adminSession.getLatestRoot();
-        userManager = securityProvider.getUserConfiguration().getUserManager(root, NamePathMapper.DEFAULT);
+        userManager = getUserManager();
     }
 
     @After
@@ -83,19 +77,17 @@ public class ExternalLoginModuleTest extends AbstractSecurityTest {
         }
     }
 
-
-
     @Test
     public void testLoginFailed() throws Exception {
-       try {
-           ContentSession cs = login(new SimpleCredentials("unknown", new char[0]));
-           cs.close();
-           fail("login failure expected");
-       } catch (LoginException e) {
-           // success
-       } finally {
-           assertNull(userManager.getAuthorizable(userId));
-       }
+        try {
+            ContentSession cs = login(new SimpleCredentials("unknown", new char[0]));
+            cs.close();
+            fail("login failure expected");
+        } catch (LoginException e) {
+            // success
+        } finally {
+            assertNull(userManager.getAuthorizable(userId));
+        }
     }
 
     @Test
@@ -148,7 +140,7 @@ public class ExternalLoginModuleTest extends AbstractSecurityTest {
 
     @Test
     public void testSyncCreateUserAndGroups() throws Exception {
-        options.put(ExternalLoginModule.PARAM_SYNC_MODE, new String[] {SyncMode.CREATE_USER,SyncMode.CREATE_GROUP});
+        options.put(ExternalLoginModule.PARAM_SYNC_MODE, new String[]{SyncMode.CREATE_USER, SyncMode.CREATE_GROUP});
 
         ContentSession cs = null;
         try {
@@ -209,7 +201,7 @@ public class ExternalLoginModuleTest extends AbstractSecurityTest {
 
     @Test
     public void testSyncUpdateAndGroups() throws Exception {
-        options.put(ExternalLoginModule.PARAM_SYNC_MODE, new String[] {SyncMode.UPDATE, SyncMode.CREATE_GROUP});
+        options.put(ExternalLoginModule.PARAM_SYNC_MODE, new String[]{SyncMode.UPDATE, SyncMode.CREATE_GROUP});
 
         // create user upfront in order to test update mode
         ExternalUser externalUser = TestLoginModule.externalUser;
@@ -296,11 +288,8 @@ public class ExternalLoginModuleTest extends AbstractSecurityTest {
                         TestLoginModule.class.getName(),
                         AppConfigurationEntry.LoginModuleControlFlag.REQUIRED,
                         options);
-                return new AppConfigurationEntry[] {entry};
+                return new AppConfigurationEntry[]{entry};
             }
         };
     }
-
-
-
 }
