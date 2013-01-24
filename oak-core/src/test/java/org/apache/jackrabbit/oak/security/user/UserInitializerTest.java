@@ -111,7 +111,7 @@ public class UserInitializerTest extends AbstractSecurityTest {
         assertNotNull(tree);
         NodeUtil node = new NodeUtil(tree);
 
-        assertEquals(isUnique, node.getBoolean(IndexConstants.UNIQUE));
+        assertEquals(isUnique, node.getBoolean(IndexConstants.UNIQUE_PROPERTY_NAME));
         assertArrayEquals(new String[] {propName}, node.getNames(IndexConstants.PROPERTY_NAMES));
     }
 }
