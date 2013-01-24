@@ -52,9 +52,9 @@ echo "[INFO] "
 
 ## 1. check sha from release email against src.zip.sha file
 
-downloaded_sha=$(cat `find "$WORKDIR" -type f | grep "jackrabbit-oak-$VERSION-src.zip.sha"`)
+downloaded_sha=$(cat `find "$WORKDIR" -type f | grep "jackrabbit-oak-$VERSION-src.zip.sha"` | tr -d '[[:space:]]')
 echo "[INFO] Step 1. Check release cheksum"
-if [ $SHA = $downloaded_sha ]; then
+if [ "$SHA" = "$downloaded_sha" ]; then
   echo "[INFO] Release checksum matches provided checksum."
 else
   echo "[ERROR] Release checksum does not match provided checksum!"
@@ -85,7 +85,7 @@ do
       echo "[ERROR] $n.$tp NOT FOUND"
       exit 1
     else
-      A="`cat "$f.$tp" 2>/dev/null`"
+      A="`cat "$f.$tp" | tr -d '[[:space:]]' 2>/dev/null`"
       B="`openssl "$hash" "$f" 2>/dev/null | sed 's/.*= *//' `"
       if [ $A = $B ]; then
         echo "[INFO] $n.$tp is OK"
