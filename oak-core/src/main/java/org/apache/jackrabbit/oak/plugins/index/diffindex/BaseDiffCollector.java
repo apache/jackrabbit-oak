@@ -21,6 +21,7 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.state.EmptyNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -122,18 +123,16 @@ public abstract class BaseDiffCollector implements DiffCollector {
 
         @Override
         public void childNodeAdded(String name, NodeState after) {
-            if (NodeStateUtils.isHidden(name) || isDone()) {
-                return;
-            }
-            testNodeState(after, name);
+            childNodeChanged(name, MemoryNodeState.EMPTY_NODE, after);
         }
 
         @Override
         public void childNodeChanged(String name, NodeState before,
                 NodeState after) {
-            if (isDone()) {
+            if (NodeStateUtils.isHidden(name) || isDone()) {
                 return;
             }
+            testNodeState(after, name);
             after.compareAgainstBaseState(before,
                     new DiffCollectorNodeStateDiff(collector, filter, this,
                             concat(path, name), results));
