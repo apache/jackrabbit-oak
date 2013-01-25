@@ -30,11 +30,12 @@ import javax.security.auth.Subject;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.BlobFactory;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.QueryEngine;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.commit.DefaultConflictHandler;
+import org.apache.jackrabbit.oak.plugins.index.diffindex.UUIDDiffIndexProviderWrapper;
 import org.apache.jackrabbit.oak.query.QueryEngineImpl;
 import org.apache.jackrabbit.oak.spi.commit.ConflictHandler;
 import org.apache.jackrabbit.oak.spi.observation.ChangeExtractor;
@@ -128,7 +129,7 @@ public class RootImpl implements Root {
      */
     public Root getLatest() {
         checkLive();
-        RootImpl root = new RootImpl(store, null, subject, accConfiguration, indexProvider) {
+        RootImpl root = new RootImpl(store, null, subject, accConfiguration, getIndexProvider()) {
             @Override
             protected void checkLive() {
                 RootImpl.this.checkLive();
@@ -291,13 +292,13 @@ public class RootImpl implements Root {
     @Override
     public QueryEngine getQueryEngine() {
         checkLive();
-        return new QueryEngineImpl(indexProvider) {
+        return new QueryEngineImpl(getIndexProvider()) {
 
             @Override
             protected NodeState getRootState() {
                 return rootTree.getNodeState();
             }
-            
+
             @Override
             protected Root getRootTree() {
                 return RootImpl.this;
@@ -318,6 +319,14 @@ public class RootImpl implements Root {
                 return store.createBlob(inputStream);
             }
         };
+    }
+
+    private QueryIndexProvider getIndexProvider() {
+        if (hasPendingChanges()) {
+            return new UUIDDiffIndexProviderWrapper(indexProvider,
+                    getBaseState(), rootTree.getNodeState());
+        }
+        return indexProvider;
     }
 
     //-----------------------------------------------------------< internal >---
