@@ -41,12 +41,12 @@ class BinaryImpl implements Binary {
     //-------------------------------------------------------------< Binary >---
 
     @Override
-    public InputStream getStream() throws RepositoryException {
+    public InputStream getStream() {
         return value.getNewStream();
     }
 
     @Override
-    public int read(byte[] b, long position) throws IOException, RepositoryException {
+    public int read(byte[] b, long position) throws IOException {
         InputStream stream = value.getNewStream();
         try {
             if (position != stream.skip(position)) {
