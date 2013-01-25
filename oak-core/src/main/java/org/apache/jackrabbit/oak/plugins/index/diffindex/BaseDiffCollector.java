@@ -22,7 +22,6 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.spi.query.Filter;
-import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.EmptyNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
@@ -32,7 +31,7 @@ public abstract class BaseDiffCollector implements DiffCollector {
     private final NodeState before;
     private final NodeState after;
 
-    private final Set<String> results;
+    private Set<String> results;
     protected boolean init = false;
 
     /**
@@ -69,59 +68,94 @@ public abstract class BaseDiffCollector implements DiffCollector {
     }
 
     public void collect(final Filter filter) {
-        after.compareAgainstBaseState(before, new EmptyNodeStateDiff() {
-
-            @Override
-            public void childNodeAdded(String name, NodeState after) {
-                if (NodeStateUtils.isHidden(name) || init) {
-                    return;
-                }
-                testNodeState(after, name);
-            }
-
-            @Override
-            public void childNodeChanged(String name, NodeState before,
-                    NodeState after) {
-                if (init) {
-                    return;
-                }
-                for (ChildNodeEntry entry : after.getChildNodeEntries()) {
-                    if (init) {
-                        break;
-                    }
-                    if (!before.hasChildNode(entry.getName())) {
-                        testNodeState(entry.getNodeState(),
-                                concat(name, entry.getName()));
-                    }
-                }
-            }
-
-            private void testNodeState(NodeState nodeState, String currentPath) {
-                if (init) {
-                    return;
-                }
-                boolean match = match(nodeState, filter);
-                if (match) {
-                    results.add(currentPath);
-                    if (isUnique()) {
-                        init = true;
-                        return;
-                    }
-                }
-                for (ChildNodeEntry entry : nodeState.getChildNodeEntries()) {
-                    if (!NodeStateUtils.isHidden(entry.getName())) {
-                        testNodeState(entry.getNodeState(),
-                                concat(currentPath, entry.getName()));
-                    }
-                }
-            }
-        });
+        DiffCollectorNodeStateDiff diff = new DiffCollectorNodeStateDiff(this,
+                filter);
+        after.compareAgainstBaseState(before, diff);
+        this.results = new HashSet<String>(diff.getResults());
+        this.init = true;
     }
 
-    protected abstract boolean match(NodeState state, Filter filter);
+    abstract boolean match(NodeState state, Filter filter);
 
     protected boolean isUnique() {
         return false;
+    }
+
+    private static class DiffCollectorNodeStateDiff extends EmptyNodeStateDiff {
+
+        private final BaseDiffCollector collector;
+        private final Filter filter;
+        private final Set<String> results;
+
+        private final DiffCollectorNodeStateDiff parent;
+        private final String path;
+        private boolean done;
+
+        DiffCollectorNodeStateDiff(BaseDiffCollector collector, Filter filter) {
+            this(collector, filter, null, "", new HashSet<String>());
+        }
+
+        private DiffCollectorNodeStateDiff(BaseDiffCollector collector,
+                Filter filter, DiffCollectorNodeStateDiff parent, String path,
+                Set<String> results) {
+            this.collector = collector;
+            this.filter = filter;
+            this.parent = parent;
+            this.path = path;
+            this.results = results;
+        }
+
+        private boolean isDone() {
+            if (parent != null) {
+                return parent.isDone();
+            }
+            return done;
+        }
+
+        private void setDone() {
+            if (parent != null) {
+                parent.setDone();
+                return;
+            }
+            done = true;
+        }
+
+        @Override
+        public void childNodeAdded(String name, NodeState after) {
+            if (NodeStateUtils.isHidden(name) || isDone()) {
+                return;
+            }
+            testNodeState(after, name);
+        }
+
+        @Override
+        public void childNodeChanged(String name, NodeState before,
+                NodeState after) {
+            if (isDone()) {
+                return;
+            }
+            after.compareAgainstBaseState(before,
+                    new DiffCollectorNodeStateDiff(collector, filter, this,
+                            concat(path, name), results));
+        }
+
+        private void testNodeState(NodeState nodeState, String currentPath) {
+            if (isDone()) {
+                return;
+            }
+            boolean match = collector.match(nodeState, filter);
+            if (match) {
+                results.add(concat(path, currentPath));
+                if (collector.isUnique()) {
+                    setDone();
+                    return;
+                }
+            }
+        }
+
+        Set<String> getResults() {
+            return results;
+        }
     }
 
 }
