@@ -143,7 +143,7 @@ public class FilterTest {
     public void pathRestrictions() throws Exception {
         FilterImpl f = new FilterImpl(null, null);
         assertEquals("/", f.getPath());
-        assertEquals(Filter.PathRestriction.ALL_CHILDREN,
+        assertEquals(Filter.PathRestriction.NO_RESTRICTION,
                 f.getPathRestriction());
 
         f.restrictPath("/test", Filter.PathRestriction.ALL_CHILDREN);
