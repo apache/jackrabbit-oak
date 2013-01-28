@@ -22,14 +22,16 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFIN
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.p2.Property2Index.TYPE;
+import static com.google.common.collect.Lists.newArrayList;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
+
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -54,6 +56,11 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
  */
 class Property2IndexDiff implements IndexHook {
 
+    protected static String propertyNames = "propertyNames";
+
+    protected static String declaringNodeTypes = "declaringNodeTypes";
+
+    
     private final IndexStoreStrategy store = new ContentMirrorStoreStrategy();
 
     /**
@@ -138,21 +145,45 @@ class Property2IndexDiff implements IndexHook {
      */
     private Iterable<Property2IndexUpdate> getIndexes(String name) {
         List<Property2IndexUpdate> indexes = updates.get(name);
-        if (indexes != null) {
-            return indexes;
-        } else {
+        if (indexes == null) {
             return ImmutableList.of();
         }
+        List<Property2IndexUpdate> filtered = new ArrayList<Property2IndexUpdate>();
+        for (Property2IndexUpdate pi : indexes) {
+            if (pi.getNodeTypeNames() == null
+                    || pi.getNodeTypeNames().isEmpty()) {
+                filtered.add(pi);
+                continue;
+            }
+            PropertyState ps = node.getProperty(JCR_PRIMARYTYPE);
+            String type = ps != null && !ps.isArray() ? ps
+                    .getValue(Type.STRING) : null;
+            if (type != null) {
+                for (String typeName : pi.getNodeTypeNames()) {
+                    if (typeName.equals(type)) {
+                        filtered.add(pi);
+                        break;
+                    }
+                }
+            }
+        }
+        return filtered;
     }
 
     private void update(NodeBuilder builder, String indexName) {
-        PropertyState ps = builder.getProperty("propertyNames");
+        List<String> typeNames = ImmutableList.of();
+        PropertyState appliesTo = builder.getProperty(declaringNodeTypes);
+        if (appliesTo != null) {
+            typeNames = newArrayList(appliesTo.getValue(Type.STRINGS));
+        }
+        PropertyState ps = builder.getProperty(propertyNames);
+
         Iterable<String> propertyNames = ps != null ? ps.getValue(Type.STRINGS)
                 : ImmutableList.of(indexName);
         for (String pname : propertyNames) {
             List<Property2IndexUpdate> list = this.updates.get(pname);
             if (list == null) {
-                list = Lists.newArrayList();
+                list = newArrayList();
                 this.updates.put(pname, list);
             }
             boolean exists = false;
@@ -163,7 +194,7 @@ class Property2IndexDiff implements IndexHook {
                 }
             }
             if (!exists) {
-                list.add(new Property2IndexUpdate(getPath(), builder, store));
+                list.add(new Property2IndexUpdate(getPath(), builder, store, typeNames));
             }
         }
     }

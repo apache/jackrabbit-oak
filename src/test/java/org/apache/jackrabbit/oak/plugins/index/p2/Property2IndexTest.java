@@ -23,6 +23,7 @@ import static org.junit.Assert.fail;
 import java.util.Arrays;
 import java.util.Set;
 
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexHook;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
@@ -130,8 +131,105 @@ public class Property2IndexTest {
         } catch (IllegalArgumentException e) {
             // expected: no index for "pqr"
         }
-
     }
 
+    @Test
+    public void testUnique() throws Exception {
+
+        NodeState root = MemoryNodeState.EMPTY_NODE;
+
+        // Add index definition
+        NodeBuilder builder = root.builder();
+        builder.child("oak:index")
+                .child("fooIndex")
+                .setProperty("jcr:primaryType", "oak:queryIndexDefinition",
+                        Type.NAME)
+                .setProperty("type", "p2")
+                .setProperty("unique", "true")
+                .setProperty("propertyNames", Arrays.asList("foo"),
+                        Type.STRINGS);
+
+        NodeState before = builder.getNodeState();
+        builder = before.builder();
+        builder.child("a").setProperty("foo", "abc");
+        builder.child("b").setProperty("foo", Arrays.asList("abc", "def"),
+                Type.STRINGS);
+        NodeState after = builder.getNodeState();
+
+        IndexHook p = new Property2IndexDiff(builder);
+        after.compareAgainstBaseState(before, p);
+        try {
+            p.apply();
+            fail("Unique constraint should be respected");
+        } catch (CommitFailedException e) {
+            // expected
+        } finally {
+            p.close();
+        }
+    }
+
+    @Test
+    public void testUniqueByTypeOK() throws Exception {
+
+        NodeState root = MemoryNodeState.EMPTY_NODE;
+
+        // Add index definition
+        NodeBuilder builder = root.builder();
+        builder.child("oak:index").child("fooIndex")
+                .setProperty("jcr:primaryType", "oak:queryIndexDefinition", Type.NAME)
+                .setProperty("type", "p2")
+                .setProperty("unique", "true")
+                .setProperty("propertyNames", Arrays.asList("foo"), Type.STRINGS)
+                .setProperty(Property2IndexDiff.declaringNodeTypes, Arrays.asList("typeFoo"), Type.STRINGS);
+        NodeState before = builder.getNodeState();
+        builder = before.builder();
+        builder.child("a")
+                .setProperty("jcr:primaryType", "typeFoo", Type.NAME)
+                .setProperty("foo", "abc");
+        builder.child("b")
+                .setProperty("jcr:primaryType", "typeBar", Type.NAME)
+                .setProperty("foo", "abc");
+        NodeState after = builder.getNodeState();
+
+        IndexHook p = new Property2IndexDiff(builder);
+        after.compareAgainstBaseState(before, p);
+        p.apply();
+        p.close();
+    }
+
+    @Test
+    public void testUniqueByTypeKO() throws Exception {
+
+        NodeState root = MemoryNodeState.EMPTY_NODE;
+
+        // Add index definition
+        NodeBuilder builder = root.builder();
+        builder.child("oak:index").child("fooIndex")
+                .setProperty("jcr:primaryType", "oak:queryIndexDefinition", Type.NAME)
+                .setProperty("type", "p2")
+                .setProperty("unique", "true")
+                .setProperty("propertyNames", Arrays.asList("foo"), Type.STRINGS)
+                .setProperty(Property2IndexDiff.declaringNodeTypes, Arrays.asList("typeFoo"), Type.STRINGS);
+        NodeState before = builder.getNodeState();
+        builder = before.builder();
+        builder.child("a")
+                .setProperty("jcr:primaryType", "typeFoo", Type.NAME)
+                .setProperty("foo", "abc");
+        builder.child("b")
+                .setProperty("jcr:primaryType", "typeFoo", Type.NAME)
+                .setProperty("foo", "abc");
+        NodeState after = builder.getNodeState();
+
+        IndexHook p = new Property2IndexDiff(builder);
+        after.compareAgainstBaseState(before, p);
+        try {
+            p.apply();
+            fail("Unique constraint should be respected");
+        } catch (CommitFailedException e) {
+            // expected
+        } finally {
+            p.close();
+        }
+    }
 
 }

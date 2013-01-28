@@ -38,7 +38,7 @@ import com.google.common.base.Charsets;
  * <p>
  * To define a property index on a subtree you have to add an <code>oak:index</code> node.
  * 
- * Under it follows the index definition node that:
+ * Next (as a child node) follows the index definition node that:
  * <ul>
  * <li>must be of type <code>oak:queryIndexDefinition</code></li>
  * <li>must have the <code>type</code> property set to <b><code>p2</code></b></li>
@@ -46,10 +46,12 @@ import com.google.common.base.Charsets;
  * </ul>
  * </p>
  * <p>
- * Optionally you can specify the uniqueness constraint on a property index by
- * setting the <code>unique</code> flag to <code>true</code>.
+ * Optionally you can specify
+ * <ul> 
+ * <li> a uniqueness constraint on a property index by setting the <code>unique</code> flag to <code>true</code></li>
+ * <li> that the property index only applies to a certain node type by setting the <code>declaringNodeTypes</code> property</li>
+ * </ul>
  * </p>
- * 
  * <p>
  * Note: <code>propertyNames</code> can be a list of properties, and it is optional.in case it is missing, the node name will be used as a property name reference value
  * </p>
@@ -66,6 +68,7 @@ import com.google.common.base.Charsets;
  *         .setProperty("jcr:primaryType", "oak:queryIndexDefinition", Type.NAME)
  *         .setProperty("type", "p2")
  *         .setProperty("propertyNames", "jcr:uuid")
+ *         .setProperty("declaringNodeTypes", "mix:referenceable")
  *         .setProperty("unique", true)
  *         .setProperty("reindex", true);
  * }
