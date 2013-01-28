@@ -27,14 +27,14 @@ import com.mongodb.DBObject;
 import com.mongodb.QueryBuilder;
 
 /**
- * An action for fetching the head revision.
+ * An action for fetching the head revision for trunk or a branch.
  */
 public class FetchHeadRevisionIdAction extends BaseAction<Long> {
 
     private final String branchId;
 
     /**
-     * Constructs a new {@code FetchHeadRevisionIdAction}.
+     * Constructs a new {@code FetchHeadRevisionIdAction} for trunk.
      *
      * @param nodeStore Node store.
      */
@@ -43,7 +43,7 @@ public class FetchHeadRevisionIdAction extends BaseAction<Long> {
     }
 
     /**
-     * Constructs a new {@code FetchHeadRevisionIdAction}.
+     * Constructs a new {@code FetchHeadRevisionIdAction} for branch.
      *
      * @param nodeStore Node store.
      * @param branchId Branch id.
@@ -58,16 +58,14 @@ public class FetchHeadRevisionIdAction extends BaseAction<Long> {
         DBCollection headCollection = nodeStore.getSyncCollection();
         MongoSync syncMongo = (MongoSync)headCollection.findOne();
         long headRevisionId = syncMongo.getHeadRevisionId();
+        if (branchId == null) {
+            return headRevisionId;
+        }
 
         DBCollection collection = nodeStore.getCommitCollection();
         QueryBuilder qb = QueryBuilder.start(MongoCommit.KEY_FAILED).notEquals(Boolean.TRUE)
-                .and(MongoCommit.KEY_REVISION_ID).lessThanEquals(headRevisionId);
-        if (branchId == null) {
-            qb = qb.and(new BasicDBObject(MongoNode.KEY_BRANCH_ID, new BasicDBObject("$exists", false)));
-        } else {
-            qb = qb.and(MongoNode.KEY_BRANCH_ID).is(branchId);
-        }
-
+                .and(MongoCommit.KEY_REVISION_ID).lessThanEquals(headRevisionId)
+                .and(MongoNode.KEY_BRANCH_ID).is(branchId);
         DBObject query = qb.get();
         DBObject fields = new BasicDBObject(MongoCommit.KEY_REVISION_ID, 1);
         DBObject orderBy = new BasicDBObject(MongoCommit.KEY_REVISION_ID, -1);
