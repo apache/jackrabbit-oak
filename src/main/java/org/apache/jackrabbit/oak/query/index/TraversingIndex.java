@@ -37,6 +37,9 @@ public class TraversingIndex implements QueryIndex {
 
     @Override
     public double getCost(Filter filter, NodeState rootState) {
+        if (filter.isAlwaysFalse()) {
+            return 0;
+        }
         String path = filter.getPath();
         // TODO estimate or read the node count
         double nodeCount = 10000000;

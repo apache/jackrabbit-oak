@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.query.index.IndexRowImpl;
 import org.apache.jackrabbit.oak.query.index.TraversingIndex;
+import org.apache.jackrabbit.oak.spi.query.Filter.PathRestriction;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
@@ -37,7 +38,6 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.Queues;
 
 import static org.apache.jackrabbit.oak.commons.PathUtils.isAbsolute;
-import static org.apache.jackrabbit.oak.spi.query.Filter.PathRestriction.ALL_CHILDREN;
 
 /**
  * This utility class provides factory methods to create commonly used types of
@@ -165,6 +165,12 @@ public class Cursors {
             currentPath = "/";
             NodeState parent = null;
             NodeState node = rootState;
+            
+            if (filter.isAlwaysFalse()) {
+                // nothing can match this filter, leave nodes empty
+                return;
+            }
+
             if (!path.equals("/")) {
                 for (String name : path.substring(1).split("/")) {
                     parentPath = currentPath;
@@ -181,6 +187,7 @@ public class Cursors {
             }
             Filter.PathRestriction restriction = filter.getPathRestriction();
             switch (restriction) {
+            case NO_RESTRICTION:
             case EXACT:
             case ALL_CHILDREN:
                 nodeIterators.add(Iterators.singletonIterator(
@@ -245,7 +252,9 @@ public class Cursors {
                     }
                     currentPath = PathUtils.concat(parentPath, name);
 
-                    if (filter.getPathRestriction() == ALL_CHILDREN) {
+                    PathRestriction r = filter.getPathRestriction();
+                    if (r == PathRestriction.ALL_CHILDREN || 
+                            r == PathRestriction.NO_RESTRICTION) {
                         nodeIterators.addLast(node.getChildNodeEntries().iterator());
                         parentPath = currentPath;
                     }
