@@ -17,9 +17,8 @@
 package org.apache.jackrabbit.oak.jcr.tck;
 
 import junit.framework.Test;
-import org.apache.jackrabbit.test.ConcurrentTestSuite;
 
-public class LockIT extends ConcurrentTestSuite {
+public class LockIT extends TCKBase {
 
     public static Test suite() {
         return new LockIT();
@@ -27,6 +26,10 @@ public class LockIT extends ConcurrentTestSuite {
 
     public LockIT() {
         super("JCR lock tests");
+    }
+
+    @Override
+    protected void addTests() {
         addTest(org.apache.jackrabbit.test.api.lock.TestAll.suite());
     }
 }
