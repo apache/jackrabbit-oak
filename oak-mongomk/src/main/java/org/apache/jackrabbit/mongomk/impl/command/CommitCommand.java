@@ -95,14 +95,7 @@ public class CommitCommand extends BaseCommand<Long> {
             readBranchIdFromBaseCommit();
             createMongoNodes();
             prepareCommit();
-            // If base revision is older than the head revision, need to read
-            // and merge nodes at the head revision.
-            FetchHeadRevisionIdAction action = new FetchHeadRevisionIdAction(nodeStore, branchId);
-            long headRevisionId = action.execute();
-            if (baseRevisionId < headRevisionId) {
-                readExistingNodes();
-                mergeNodes();
-            }
+            readAndMergeExistingNodes();
             prepareMongoNodes();
             new SaveNodesAction(nodeStore, nodes.values()).execute();
             new SaveCommitAction(nodeStore, commit).execute();
@@ -174,6 +167,23 @@ public class CommitCommand extends BaseCommand<Long> {
         }
         commit.removeField("_id"); // In case this is a retry.
     }
+
+    private void readAndMergeExistingNodes() throws Exception {
+        // If base revision is older than the head revision, need to read
+        // and merge nodes at the head revision.
+        long headRevisionId;
+        if (branchId == null) {
+            headRevisionId = mongoSync.getHeadRevisionId();
+        } else {
+            headRevisionId = new FetchHeadRevisionIdAction(nodeStore, branchId).execute();
+        }
+
+        if (baseRevisionId < headRevisionId) {
+            readExistingNodes();
+            mergeNodes();
+        }
+    }
+
 
 //    private void readExistingNodes() {
 //        FetchNodesAction action = new FetchNodesAction(nodeStore, affectedPaths,
