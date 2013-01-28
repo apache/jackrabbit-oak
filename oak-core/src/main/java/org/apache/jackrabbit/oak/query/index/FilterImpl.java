@@ -56,7 +56,7 @@ public class FilterImpl implements Filter {
      */
     private String path = "/";
 
-    private PathRestriction pathRestriction = PathRestriction.ALL_CHILDREN;
+    private PathRestriction pathRestriction = PathRestriction.NO_RESTRICTION;
 
     /**
      *  The node type, or null if not set.
@@ -141,6 +141,7 @@ public class FilterImpl implements Filter {
         alwaysFalse = true;
     }
 
+    @Override
     public boolean isAlwaysFalse() {
         return alwaysFalse;
     }
@@ -170,6 +171,8 @@ public class FilterImpl implements Filter {
             return false;
         }
         switch (pathRestriction) {
+        case NO_RESTRICTION:
+            return true;
         case EXACT:
             return path.matches(this.path);
         case PARENT:
@@ -292,8 +295,12 @@ public class FilterImpl implements Filter {
         // calculating the intersection of path restrictions
         // this is ugly code, but I don't currently see a radically simpler method
         switch (addedPathRestriction) {
+        case NO_RESTRICTION:
+            break;
         case PARENT:
             switch (pathRestriction) {
+            case NO_RESTRICTION:
+                break;
             case PARENT:
                 // ignore as it's fast anyway
                 // (would need to loop to find a common ancestor)
@@ -311,6 +318,8 @@ public class FilterImpl implements Filter {
             break;
         case EXACT:
             switch (pathRestriction) {
+            case NO_RESTRICTION:
+                break;
             case PARENT:
                 if (!PathUtils.isAncestor(addedPath, path)) {
                     setAlwaysFalse();
@@ -337,6 +346,10 @@ public class FilterImpl implements Filter {
             break;
         case ALL_CHILDREN:
             switch (pathRestriction) {
+            case NO_RESTRICTION:
+                path = addedPath;
+                pathRestriction = PathRestriction.ALL_CHILDREN;
+                break;
             case PARENT:
             case EXACT:
                 if (!PathUtils.isAncestor(addedPath, path)) {
@@ -359,6 +372,10 @@ public class FilterImpl implements Filter {
             break;
         case DIRECT_CHILDREN:
             switch (pathRestriction) {
+            case NO_RESTRICTION:
+                path = addedPath;
+                pathRestriction = PathRestriction.DIRECT_CHILDREN;
+                break;
             case PARENT:
                 if (!PathUtils.isAncestor(addedPath, path)) {
                     setAlwaysFalse();

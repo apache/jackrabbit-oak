@@ -91,6 +91,14 @@ public interface Filter {
      */
     @Nullable
     String getQueryStatement();
+    
+    /**
+     * If the filter condition can not possibly match any row, due to a
+     * contradiction in the query (for example "x=1 and x=2").
+     * 
+     * @return true if the filter condition can not match any row
+     */
+    boolean isAlwaysFalse();
 
     /**
      * A restriction for a property.
@@ -146,9 +154,14 @@ public interface Filter {
      * The path restriction type.
      */
     enum PathRestriction {
+        
+        /**
+         * All nodes.
+         */
+        NO_RESTRICTION("*"),
 
         /**
-         * A parent of this node
+         * A parent of this node.
          */
         PARENT("/.."),
 
@@ -163,7 +176,8 @@ public interface Filter {
         DIRECT_CHILDREN("/*"),
 
         /**
-         * All direct and indirect child nodes.
+         * All direct and indirect child nodes (excluding the node with the
+         * given path).
          */
         ALL_CHILDREN("//*");
 

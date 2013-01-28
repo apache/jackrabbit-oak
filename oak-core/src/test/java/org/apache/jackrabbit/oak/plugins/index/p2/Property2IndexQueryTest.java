@@ -20,6 +20,7 @@ import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -39,6 +40,12 @@ public class Property2IndexQueryTest extends AbstractQueryTest {
     @Test
     public void sql2Index() throws Exception {
         test("sql2_index.txt");
+    }
+
+    @Test
+    @Ignore("OAK-590")
+    public void sql2Explain() throws Exception {
+        test("sql2_explain.txt");
     }
 
 }
