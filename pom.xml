@@ -176,7 +176,7 @@ A staged Maven repository is available for review at:
 
 The command for running automated checks against this release candidate is:
 
-    $ sh check-oak-release.sh ${project.version} ${checksum}
+    $ sh check-release.sh oak ${project.version} ${checksum}
 
 Please vote on releasing this package as Apache Jackrabbit Oak ${project.version}.
 The vote is open for the next 72 hours and passes if a majority of at
@@ -191,11 +191,12 @@ The release candidate has been prepared in:
 
     ${basedir}/target/${project.version}
 
-Please deploy it to dist.apache.org like this:
+Please deploy it to https://dist.apache.org/repos/dist/dev/jackrabbit/oak/:
 
-    cp -r ${basedir}/target/${project.version} jackrabbit-dev/oak
-    svn add jackrabbit-dev/oak/${project.version}
-    svn commit -m 'Apache Jackrabbit ${project.version} release candidate' jackrabbit-dev/oak/${project.version}
+    cd /path/to/jackrabbit-dev
+    cp -r ${basedir}/target/${project.version} oak/${project.version}
+    svn add oak/${project.version}
+    svn commit -m 'Apache Jackrabbit Oak ${project.version} release candidate' oak/${project.version}
 
 A release vote template has been generated for you:
 
