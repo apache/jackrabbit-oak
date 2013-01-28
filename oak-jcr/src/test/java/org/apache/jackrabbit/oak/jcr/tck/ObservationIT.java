@@ -17,9 +17,8 @@
 package org.apache.jackrabbit.oak.jcr.tck;
 
 import junit.framework.Test;
-import org.apache.jackrabbit.test.ConcurrentTestSuite;
 
-public class ObservationIT extends ConcurrentTestSuite {
+public class ObservationIT extends TCKBase {
 
     public static Test suite() {
         return new ObservationIT();
@@ -27,6 +26,10 @@ public class ObservationIT extends ConcurrentTestSuite {
 
     public ObservationIT() {
         super("JCR observation tests");
+    }
+
+    @Override
+    protected void addTests() {
         addTest(org.apache.jackrabbit.test.api.observation.TestAll.suite());
     }
 }

@@ -17,9 +17,8 @@
 package org.apache.jackrabbit.oak.jcr.tck;
 
 import junit.framework.Test;
-import org.apache.jackrabbit.test.ConcurrentTestSuite;
 
-public class RetentionIT extends ConcurrentTestSuite {
+public class RetentionIT extends TCKBase {
 
     public static Test suite() {
         return new RetentionIT();
@@ -27,6 +26,10 @@ public class RetentionIT extends ConcurrentTestSuite {
 
     public RetentionIT() {
         super("JCR retention tests");
+    }
+
+    @Override
+    protected void addTests() {
         addTest(org.apache.jackrabbit.test.api.retention.TestAll.suite());
     }
 }

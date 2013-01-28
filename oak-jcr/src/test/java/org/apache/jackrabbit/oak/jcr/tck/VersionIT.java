@@ -17,9 +17,8 @@
 package org.apache.jackrabbit.oak.jcr.tck;
 
 import junit.framework.Test;
-import org.apache.jackrabbit.test.ConcurrentTestSuite;
 
-public class VersionIT extends ConcurrentTestSuite {
+public class VersionIT extends TCKBase {
 
     public static Test suite() {
         return new VersionIT();
@@ -27,6 +26,11 @@ public class VersionIT extends ConcurrentTestSuite {
 
     public VersionIT() {
         super("JCR version tests");
+    }
+
+    @Override
+    protected void addTests() {
         addTest(org.apache.jackrabbit.test.api.version.TestAll.suite());
-        addTest(org.apache.jackrabbit.test.api.version.simple.TestAll.suite());    }
+        addTest(org.apache.jackrabbit.test.api.version.simple.TestAll.suite());
+    }
 }

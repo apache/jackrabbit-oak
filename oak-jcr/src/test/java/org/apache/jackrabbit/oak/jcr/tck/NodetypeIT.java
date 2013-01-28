@@ -17,9 +17,8 @@
 package org.apache.jackrabbit.oak.jcr.tck;
 
 import junit.framework.Test;
-import org.apache.jackrabbit.test.ConcurrentTestSuite;
 
-public class NodetypeIT extends ConcurrentTestSuite {
+public class NodetypeIT extends TCKBase {
 
     public static Test suite() {
         return new NodetypeIT();
@@ -27,6 +26,10 @@ public class NodetypeIT extends ConcurrentTestSuite {
 
     public NodetypeIT() {
         super("JCR node type tests");
+    }
+
+    @Override
+    protected void addTests() {
         addTest(org.apache.jackrabbit.test.api.nodetype.TestAll.suite());
     }
 }
