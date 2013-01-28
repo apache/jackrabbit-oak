@@ -51,6 +51,13 @@ class Property2IndexUpdate {
     private final String path;
 
     /**
+     * The node types that this index applies to. If <code>null</code> or
+     * <code>empty</code> then the node type of the indexed node is ignored
+     * 
+     */
+    private final List<String> nodeTypeNames;
+
+    /**
      * The node where the index definition is stored.
      */
     private final NodeBuilder node;
@@ -69,16 +76,27 @@ class Property2IndexUpdate {
      */
     private final Map<String, Set<String>> remove;
 
-    public Property2IndexUpdate(String path, NodeBuilder node, IndexStoreStrategy store) {
+    public Property2IndexUpdate(String path, NodeBuilder node,
+            IndexStoreStrategy store) {
+        this(path, node, store, null);
+    }
+
+    public Property2IndexUpdate(String path, NodeBuilder node,
+            IndexStoreStrategy store, List<String> nodeTypeNames) {
         this.path = path;
         this.node = node;
         this.store = store;
         this.insert = Maps.newHashMap();
         this.remove = Maps.newHashMap();
+        this.nodeTypeNames = nodeTypeNames;
     }
 
     String getPath() {
         return path;
+    }
+
+    public List<String> getNodeTypeNames() {
+        return nodeTypeNames;
     }
 
     /**
