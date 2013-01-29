@@ -97,13 +97,14 @@ public class CommitCommand extends BaseCommand<Long> {
             prepareCommit();
             readAndMergeExistingNodes();
             prepareMongoNodes();
-            new SaveNodesAction(nodeStore, nodes.values()).execute();
-            new SaveCommitAction(nodeStore, commit).execute();
-            success = saveAndSetHeadRevision();
+            success = saveNodesAndCommits();
             if (success) {
-                cacheNodes();
-            } else {
-                retries++;
+                success = saveAndSetHeadRevision();
+                if (success) {
+                    cacheNodes();
+                } else {
+                    retries++;
+                }
             }
         } while (!success);
 
@@ -113,6 +114,17 @@ public class CommitCommand extends BaseCommand<Long> {
         }
         logger.debug(msg, revisionId, retries);
         return revisionId;
+    }
+
+    private boolean saveNodesAndCommits() throws Exception {
+        long headRevisionId = new FetchHeadRevisionIdAction(nodeStore, branchId).execute();
+        if (branchId == null && headRevisionId != mongoSync.getHeadRevisionId()) {
+            // Head revision moved on in trunk in the meantime, no need to save
+            return false;
+        }
+        new SaveNodesAction(nodeStore, nodes.values()).execute();
+        new SaveCommitAction(nodeStore, commit).execute();
+        return true;
     }
 
     @Override
@@ -183,7 +195,6 @@ public class CommitCommand extends BaseCommand<Long> {
             mergeNodes();
         }
     }
-
 
 //    private void readExistingNodes() {
 //        FetchNodesAction action = new FetchNodesAction(nodeStore, affectedPaths,
