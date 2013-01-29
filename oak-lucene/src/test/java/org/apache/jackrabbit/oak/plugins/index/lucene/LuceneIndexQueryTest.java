@@ -53,7 +53,6 @@ public class LuceneIndexQueryTest extends AbstractQueryTest {
     }
 
     @Test
-    @Ignore("OAK-420")
     public void sql2() throws Exception {
         test("sql2.txt");
     }
@@ -94,7 +93,6 @@ public class LuceneIndexQueryTest extends AbstractQueryTest {
     }
 
     @Test
-    @Ignore("OAK-420")
     public void ischildnodeTest() throws Exception {
         JsopUtil.apply(
                 root,

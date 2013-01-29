@@ -20,7 +20,6 @@ import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.util.Version;
-import org.apache.tika.Tika;
 
 public interface LuceneIndexConstants extends IndexConstants {
 
@@ -31,7 +30,5 @@ public interface LuceneIndexConstants extends IndexConstants {
     Version VERSION = Version.LUCENE_40;
 
     Analyzer ANALYZER = new StandardAnalyzer(VERSION);
-
-    Tika TIKA = new Tika();
 
 }

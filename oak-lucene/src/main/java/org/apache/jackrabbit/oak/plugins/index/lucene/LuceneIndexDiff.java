@@ -32,6 +32,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.ReadOnlyBuilder;
+import org.apache.tika.config.TikaConfig;
+import org.apache.tika.parser.AutoDetectParser;
+import org.apache.tika.parser.Parser;
 
 /**
  * {@link IndexHook} implementation that is responsible for keeping the
@@ -52,6 +55,9 @@ public class LuceneIndexDiff implements IndexHook, LuceneIndexConstants {
 
     private final Map<String, LuceneIndexUpdate> updates;
 
+    private final Parser parser = new AutoDetectParser(
+            TikaConfig.getDefaultConfig());
+
     private LuceneIndexDiff(LuceneIndexDiff parent, NodeBuilder node,
             String name, String path, Map<String, LuceneIndexUpdate> updates) {
         this.parent = parent;
@@ -66,7 +72,7 @@ public class LuceneIndexDiff implements IndexHook, LuceneIndexConstants {
                 NodeBuilder child = index.child(indexName);
                 if (isIndexNode(child) && !this.updates.containsKey(getPath())) {
                     this.updates.put(getPath(), new LuceneIndexUpdate(
-                            getPath(), child));
+                            getPath(), child, parser));
                 }
             }
         }

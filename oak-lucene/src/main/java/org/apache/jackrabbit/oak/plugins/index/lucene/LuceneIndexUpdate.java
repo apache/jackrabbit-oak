@@ -22,6 +22,7 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newPath
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
@@ -29,6 +30,7 @@ import java.util.TreeSet;
 
 import javax.jcr.PropertyType;
 
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -40,11 +42,20 @@ import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.SerialMergeScheduler;
 import org.apache.lucene.search.PrefixQuery;
-import org.apache.tika.exception.TikaException;
+import org.apache.tika.metadata.Metadata;
+import org.apache.tika.mime.MediaType;
+import org.apache.tika.parser.ParseContext;
+import org.apache.tika.parser.Parser;
+import org.apache.tika.sax.WriteOutContentHandler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
 class LuceneIndexUpdate implements Closeable, LuceneIndexConstants {
+
+    private static final Logger log = LoggerFactory
+            .getLogger(LuceneIndexUpdate.class);
 
     private static IndexWriterConfig getIndexWriterConfig() {
         // FIXME: Hack needed to make Lucene work in an OSGi environment
@@ -62,6 +73,16 @@ class LuceneIndexUpdate implements Closeable, LuceneIndexConstants {
 
     private static final IndexWriterConfig config = getIndexWriterConfig();
 
+    /**
+     * Parser used for extracting text content from binary properties for full
+     * text indexing.
+     */
+    private final Parser parser;
+    /**
+     * The media types supported by the parser used.
+     */
+    private Set<MediaType> supportedMediaTypes;
+
     private final String path;
 
     private final NodeBuilder index;
@@ -70,9 +91,10 @@ class LuceneIndexUpdate implements Closeable, LuceneIndexConstants {
 
     private final Set<String> remove = new TreeSet<String>();
 
-    public LuceneIndexUpdate(String path, NodeBuilder index) {
+    public LuceneIndexUpdate(String path, NodeBuilder index, Parser parser) {
         this.path = path;
         this.index = index;
+        this.parser = parser;
     }
 
     public void insert(String path, NodeBuilder value) {
@@ -155,27 +177,18 @@ class LuceneIndexUpdate implements Closeable, LuceneIndexConstants {
             path = "/" + path;
         }
         writer.updateDocument(newPathTerm(path), makeDocument(path, state));
-        // for (ChildNodeEntry entry : state.getChildNodeEntries()) {
-        // if (NodeStateUtils.isHidden(entry.getName())) {
-        // continue;
-        // }
-        // addSubtreeWriter(writer, concat(path, entry.getName()),
-        // entry.getNodeState(), paths);
-        // }
     }
 
-    private static Document makeDocument(String path, NodeState state) {
+    private Document makeDocument(String path, NodeState state) {
         Document document = new Document();
         document.add(newPathField(path));
         for (PropertyState property : state.getProperties()) {
-            String pname = property.getName();
             switch (property.getType().tag()) {
             case PropertyType.BINARY:
-                for (Blob v : property.getValue(Type.BINARIES)) {
-                    document.add(newPropertyField(pname, parseStringValue(v)));
-                }
+                addBinaryValue(document, property, state);
                 break;
             default:
+                String pname = property.getName();
                 for (String v : property.getValue(Type.STRINGS)) {
                     document.add(newPropertyField(pname, v));
                 }
@@ -185,13 +198,74 @@ class LuceneIndexUpdate implements Closeable, LuceneIndexConstants {
         return document;
     }
 
-    private static String parseStringValue(Blob v) {
-        try {
-            return TIKA.parseToString(v.getNewStream());
-        } catch (IOException e) {
-        } catch (TikaException e) {
+    private void addBinaryValue(Document doc, PropertyState property,
+            NodeState state) {
+        String type = getOrNull(state, JcrConstants.JCR_MIMETYPE);
+        if (type == null || !isSupportedMediaType(type)) {
+            return;
         }
-        return "";
+        Metadata metadata = new Metadata();
+        metadata.set(Metadata.CONTENT_TYPE, type);
+        // jcr:encoding is not mandatory
+        String encoding = getOrNull(state, JcrConstants.JCR_ENCODING);
+        if (encoding != null) {
+            metadata.set(Metadata.CONTENT_ENCODING, encoding);
+        }
+
+        String name = property.getName();
+        for (Blob v : property.getValue(Type.BINARIES)) {
+            doc.add(newPropertyField(name, parseStringValue(v, metadata)));
+        }
+    }
+
+    private static String getOrNull(NodeState state, String name) {
+        PropertyState p = state.getProperty(name);
+        if (p != null) {
+            return p.getValue(Type.STRING);
+        }
+        return null;
+    }
+
+    /**
+     * Returns <code>true</code> if the provided type is among the types
+     * supported by the Tika parser we are using.
+     *
+     * @param type  the type to check.
+     * @return whether the type is supported by the Tika parser we are using.
+     */
+    private boolean isSupportedMediaType(final String type) {
+        if (supportedMediaTypes == null) {
+            supportedMediaTypes = parser.getSupportedTypes(null);
+        }
+        return supportedMediaTypes.contains(MediaType.parse(type));
+    }
+
+    private String parseStringValue(Blob v, Metadata metadata) {
+        WriteOutContentHandler handler = new WriteOutContentHandler();
+        try {
+            InputStream stream = v.getNewStream();
+            try {
+                parser.parse(stream, handler, metadata, new ParseContext());
+            } finally {
+                stream.close();
+            }
+        } catch (LinkageError e) {
+            // Capture and ignore errors caused by extraction libraries
+            // not being present. This is equivalent to disabling
+            // selected media types in configuration, so we can simply
+            // ignore these errors.
+        } catch (Throwable t) {
+            // Capture and report any other full text extraction problems.
+            // The special STOP exception is used for normal termination.
+            if (!handler.isWriteLimitReached(t)) {
+                log.debug("Failed to extract text from a binary property."
+                        + " This is a fairly common case, and nothing to"
+                        + " worry about. The stack trace is included to"
+                        + " help improve the text extraction feature.", t);
+                return "TextExtractionError";
+            }
+        }
+        return handler.toString();
     }
 
     @Override
