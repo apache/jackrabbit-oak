@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.jcr;
 
 import java.io.IOException;
 import java.io.InputStream;
-
 import javax.annotation.Nonnull;
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.RepositoryException;
@@ -44,8 +43,6 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.name.ReadWriteNamespaceRegistry;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.ReadWriteNodeTypeManager;
 import org.apache.jackrabbit.util.Text;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.xml.sax.ContentHandler;
 import org.xml.sax.InputSource;
 
@@ -55,11 +52,6 @@ import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_
  * TODO document
  */
 public class WorkspaceImpl implements JackrabbitWorkspace {
-
-    /**
-     * logger instance
-     */
-    private static final Logger log = LoggerFactory.getLogger(WorkspaceImpl.class);
 
     private final SessionDelegate sessionDelegate;
     private final QueryManagerImpl queryManager;
@@ -163,10 +155,12 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
             protected Tree getReadTree() {
                 return sessionDelegate.getRoot().getTree("/");
             }
+
             @Override
             protected Root getWriteRoot() {
                 return sessionDelegate.getContentSession().getLatestRoot();
             }
+
             @Override
             protected void refresh() throws RepositoryException {
                 getSession().refresh(true);
@@ -224,7 +218,7 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
         ensureIsAlive();
 
         // TODO -> SPI
-        return new String[] {getName()};
+        return new String[]{getName()};
     }
 
     @Override
