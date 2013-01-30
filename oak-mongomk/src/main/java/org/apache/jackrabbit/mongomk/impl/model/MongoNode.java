@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.mongomk.impl.model;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -148,6 +149,11 @@ public class MongoNode extends BasicDBObject {
     public MongoNode copy() {
         MongoNode copy = new MongoNode();
         copy.putAll((Map) super.copy());
+        List<String> children = getChildren();
+        if (children != null) {
+            copy.put(KEY_CHILDREN, new ArrayList<String>(children));
+        }
+        copy.put(KEY_PROPERTIES, new HashMap<String, Object>(getProperties()));
         return copy;
     }
 
