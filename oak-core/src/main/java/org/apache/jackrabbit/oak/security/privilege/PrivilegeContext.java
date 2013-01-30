@@ -24,15 +24,17 @@ import org.apache.jackrabbit.oak.util.NodeUtil;
 /**
  * PrivilegeContext... TODO
  */
-class PrivilegeContext implements Context {
+final class PrivilegeContext implements Context {
 
     private static final Context INSTANCE = new PrivilegeContext();
 
-    private PrivilegeContext() {}
+    private PrivilegeContext() {
+    }
 
     static Context getInstance() {
         return INSTANCE;
     }
+
     //------------------------------------------------------------< Context >---
     @Override
     public boolean definesProperty(Tree parent, PropertyState property) {
