@@ -14,46 +14,49 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.spi.security.authorization;
+package org.apache.jackrabbit.oak.security.authorization.permission;
+
+import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 
 /**
- * AllPermissions... TODO
+ * NoPermissions... TODO
  */
-public final class AllPermissions implements CompiledPermissions {
+public final class NoPermissions implements CompiledPermissions {
 
-    private static final CompiledPermissions INSTANCE = new AllPermissions();
+    private static final CompiledPermissions INSTANCE = new NoPermissions();
 
-    private AllPermissions() {}
+    private NoPermissions() {
+    }
 
-    public static CompiledPermissions getInstance() {
+    public static final CompiledPermissions getInstance() {
         return INSTANCE;
     }
 
     @Override
-    public boolean canRead(Tree tree) {
-        return true;
+    public boolean canRead(@Nonnull Tree tree) {
+        return false;
     }
 
     @Override
-    public boolean canRead(Tree tree, PropertyState property) {
-        return true;
+    public boolean canRead(@Nonnull Tree tree, @Nonnull PropertyState property) {
+        return false;
     }
 
     @Override
-    public boolean isGranted(int permissions) {
-        return true;
+    public boolean isGranted(long permissions) {
+        return false;
     }
 
     @Override
-    public boolean isGranted(Tree tree, int permissions) {
-        return true;
+    public boolean isGranted(long permissions, @Nonnull Tree tree) {
+        return false;
     }
 
     @Override
-    public boolean isGranted(Tree parent, PropertyState property, int permissions) {
-        return true;
+    public boolean isGranted(long permissions, @Nonnull Tree parent, @Nonnull PropertyState property) {
+        return false;
     }
 }

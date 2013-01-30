@@ -81,7 +81,9 @@ class AccessControlImporter implements ProtectedNodeImporter, AccessControlConst
     //----------------------------------------------< ProtectedItemImporter >---
 
     @Override
-    public boolean init(Session session, Root root, NamePathMapper namePathMapper, boolean isWorkspaceImport, int uuidBehavior, ReferenceChangeTracker referenceTracker) {
+    public boolean init(Session session, Root root, NamePathMapper namePathMapper,
+                        boolean isWorkspaceImport, int uuidBehavior,
+                        ReferenceChangeTracker referenceTracker) {
         if (initialized) {
             throw new IllegalStateException("Already initialized");
         }
@@ -110,7 +112,7 @@ class AccessControlImporter implements ProtectedNodeImporter, AccessControlConst
     //----------------------------------------------< ProtectedNodeImporter >---
 
     @Override
-    public boolean start(Tree protectedParent) throws IllegalStateException, RepositoryException {
+    public boolean start(Tree protectedParent) throws RepositoryException {
         checkInitialized();
 
         // the acl node must have been added during the regular import before
@@ -208,7 +210,7 @@ class AccessControlImporter implements ProtectedNodeImporter, AccessControlConst
     @CheckForNull
     private JackrabbitAccessControlList getACL(String path) throws RepositoryException {
         JackrabbitAccessControlList acl = null;
-        for (AccessControlPolicy p: acMgr.getPolicies(path)) {
+        for (AccessControlPolicy p : acMgr.getPolicies(path)) {
             if (p instanceof JackrabbitAccessControlList) {
                 acl = (JackrabbitAccessControlList) p;
                 break;

@@ -74,7 +74,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
 
     /**
      * Local namespace remappings. Prefixes as keys and namespace URIs as values.
-     * <p>
+     * <p/>
      * This map is only accessed from synchronized methods (see
      * <a href="https://issues.apache.org/jira/browse/JCR-1793">JCR-1793</a>).
      */
@@ -227,8 +227,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
                     TreeLocation loc = dlg.getLocation(oakPath);
                     if (loc.getProperty() == null) {
                         throw new PathNotFoundException(absPath);
-                    }
-                    else {
+                    } else {
                         return new PropertyImpl(new PropertyDelegate(dlg, loc));
                     }
                 }
@@ -339,7 +338,8 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
             return dlg.getLockManager().getLockTokens();
         } catch (RepositoryException e) {
             log.warn("Unable to retrieve lock tokens for this session: {}", e.getMessage());
-            return new String[0];        }
+            return new String[0];
+        }
     }
 
     /**
@@ -358,19 +358,15 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     public boolean hasPermission(String absPath, String actions) throws RepositoryException {
         ensureIsAlive();
 
-        String oakPath = dlg.getOakPathOrNull(absPath);
+        String oakPath = dlg.getNamePathMapper().getOakPathKeepIndex(absPath);
         if (oakPath == null) {
-            // TODO should we throw an exception here?
-            return TODO.unimplemented().returnValue(false);
+            throw new RepositoryException("Invalid JCR path: " + absPath);
         }
 
         // TODO implement hasPermission
         return TODO.unimplemented().returnValue(true);
     }
 
-    /**
-     * @see javax.jcr.Session#checkPermission(String, String)
-     */
     @Override
     public void checkPermission(String absPath, String actions) throws AccessControlException, RepositoryException {
         if (!hasPermission(absPath, actions)) {
@@ -395,35 +391,43 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
             public void setPolicy(String absPath, AccessControlPolicy policy) throws AccessControlException {
                 throw new AccessControlException(policy.toString());
             }
+
             @Override
             public void removePolicy(String absPath, AccessControlPolicy policy) throws AccessControlException {
                 throw new AccessControlException(policy.toString());
             }
+
             @Override
             public Privilege privilegeFromName(String privilegeName)
                     throws AccessControlException, RepositoryException {
                 return dlg.getPrivilegeManager().getPrivilege(privilegeName);
             }
+
             @Override
             public boolean hasPrivileges(String absPath, Privilege[] privileges) {
                 return true;
             }
+
             @Override
             public Privilege[] getSupportedPrivileges(String absPath) {
                 return new Privilege[0];
             }
+
             @Override
             public Privilege[] getPrivileges(String absPath) {
                 return new Privilege[0];
             }
+
             @Override
             public AccessControlPolicy[] getPolicies(String absPath) {
                 return new AccessControlPolicy[0];
             }
+
             @Override
             public AccessControlPolicy[] getEffectivePolicies(String absPath) {
                 return new AccessControlPolicy[0];
             }
+
             @Override
             public AccessControlPolicyIterator getApplicablePolicies(String absPath) {
                 return AccessControlPolicyIteratorAdapter.EMPTY;
@@ -561,7 +565,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
      * Ensure that this session is alive and throw an exception otherwise.
      *
      * @throws RepositoryException if this session has been rendered invalid
-     * for some reason (e.g. if this session has been closed explicitly by logout)
+     *                             for some reason (e.g. if this session has been closed explicitly by logout)
      */
     private void ensureIsAlive() throws RepositoryException {
         // check session status

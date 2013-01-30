@@ -14,24 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.spi.security.authorization;
+package org.apache.jackrabbit.oak.security.authorization;
 
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Tree;
+import javax.annotation.Nonnull;
+
+import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.spi.commit.CommitHook;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
- * CompiledPermissions... TODO
+ * {@code CommitHook} implementation that processes any modification made to
+ * access control content and updates persisted permission caches associated
+ * with access control related data stored in the repository.
  */
-public interface CompiledPermissions {
+class PermissionHook implements CommitHook {
 
-    boolean canRead(Tree tree);
-
-    boolean canRead(Tree tree, PropertyState property);
-
-    boolean isGranted(int permissions);
-
-    boolean isGranted(Tree tree, int permissions);
-
-    boolean isGranted(Tree parent, PropertyState property, int permissions);
-
+    @Nonnull
+    @Override
+    public NodeState processCommit(NodeState before, NodeState after) throws CommitFailedException {
+        // TODO OAK-526: add implementation
+        return after;
+    }
 }

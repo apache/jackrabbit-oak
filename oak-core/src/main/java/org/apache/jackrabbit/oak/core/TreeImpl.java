@@ -48,19 +48,29 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 
 public class TreeImpl implements Tree {
 
-    /** Internal and hidden property that contains the child order */
+    /**
+     * Internal and hidden property that contains the child order
+     */
     static final String OAK_CHILD_ORDER = ":childOrder";
 
-    /** Underlying {@code Root} of this {@code Tree} instance */
+    /**
+     * Underlying {@code Root} of this {@code Tree} instance
+     */
     private final RootImpl root;
 
-    /** Parent of this tree. Null for the root. */
+    /**
+     * Parent of this tree. Null for the root.
+     */
     private TreeImpl parent;
 
-    /** Name of this tree */
+    /**
+     * Name of this tree
+     */
     private String name;
 
-    /** Lazily initialised {@code NodeBuilder} for the underlying node state */
+    /**
+     * Lazily initialised {@code NodeBuilder} for the underlying node state
+     */
     NodeBuilder nodeBuilder;
 
     private TreeImpl(RootImpl root, TreeImpl parent, String name) {
@@ -405,8 +415,8 @@ public class TreeImpl implements Tree {
 
         NodeState parentBaseState = parent.getBaseState();
         return parentBaseState == null
-            ? null
-            : parentBaseState.getChildNode(name);
+                ? null
+                : parentBaseState.getChildNode(name);
     }
 
     @Nonnull
@@ -423,8 +433,8 @@ public class TreeImpl implements Tree {
      * Move this tree to the parent at {@code destParent} with the new name
      * {@code destName}.
      *
-     * @param destParent  new parent for this tree
-     * @param destName  new name for this tree
+     * @param destParent new parent for this tree
+     * @param destName   new name for this tree
      */
     void moveTo(TreeImpl destParent, String destName) {
         if (isRemoved()) {
@@ -445,7 +455,7 @@ public class TreeImpl implements Tree {
      *
      * @param path the path to the child
      * @return a {@link Tree} instance for the child at {@code path} or
-     * {@code null} if no such tree exits or if the tree is not accessible.
+     *         {@code null} if no such tree exits or if the tree is not accessible.
      */
     @CheckForNull
     TreeImpl getTree(String path) {
@@ -488,8 +498,8 @@ public class TreeImpl implements Tree {
 
     private TreeImpl internalGetChild(String childName) {
         return getNodeBuilder().hasChildNode(childName)
-            ? new TreeImpl(root, this, childName)
-            : null;
+                ? new TreeImpl(root, this, childName)
+                : null;
     }
 
     private PropertyState internalGetProperty(String propertyName) {
@@ -506,14 +516,14 @@ public class TreeImpl implements Tree {
     private boolean canRead(Tree tree) {
         // FIXME: access control eval must have full access to the tree
         // FIXME: special handling for access control item and version content
-        return root.getPermissions().canRead(tree);
+        return root.getPermissionProvider().canRead(tree);
     }
 
     private boolean canRead(PropertyState property) {
         // FIXME: access control eval must have full access to the tree/property
         // FIXME: special handling for access control item and version content
         return (property != null)
-                && root.getPermissions().canRead(this, property)
+                && root.getPermissionProvider().canRead(this, property)
                 && !NodeStateUtils.isHidden(property.getName());
     }
 
@@ -583,8 +593,8 @@ public class TreeImpl implements Tree {
         @Override
         public TreeLocation getParent() {
             return tree.parent == null
-                ? TreeLocation.NULL
-                : new NodeLocation(tree.parent);
+                    ? TreeLocation.NULL
+                    : new NodeLocation(tree.parent);
         }
 
         @Override
@@ -607,12 +617,11 @@ public class TreeImpl implements Tree {
             PropertyState property = child.internalGetProperty(name);
             if (property != null) {
                 return new PropertyLocation(new NodeLocation(child), name);
-            }
-            else {
+            } else {
                 child = child.internalGetChild(name);
                 return child == null
-                    ? TreeLocation.NULL
-                    : new NodeLocation(child);
+                        ? TreeLocation.NULL
+                        : new NodeLocation(child);
             }
         }
 
@@ -637,8 +646,8 @@ public class TreeImpl implements Tree {
         public PropertyState getProperty() {
             PropertyState property = parentLocation.tree.internalGetProperty(name);
             return canRead(property)
-                ? property
-                : null;
+                    ? property
+                    : null;
         }
 
         @Override
@@ -648,6 +657,7 @@ public class TreeImpl implements Tree {
 
         /**
          * Set the underlying property
+         *
          * @param property The property to set
          */
         public void set(PropertyState property) {
@@ -656,7 +666,8 @@ public class TreeImpl implements Tree {
 
         /**
          * Remove the underlying property
-         * @return  {@code true} on success false otherwise
+         *
+         * @return {@code true} on success false otherwise
          */
         @Override
         public boolean remove() {

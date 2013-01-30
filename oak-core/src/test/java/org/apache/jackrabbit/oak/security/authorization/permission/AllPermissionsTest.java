@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.spi.security.authorization;
+package org.apache.jackrabbit.oak.security.authorization.permission;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -22,6 +22,7 @@ import java.util.List;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.spi.security.authorization.Permissions;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -71,12 +72,12 @@ public class AllPermissionsTest extends AbstractSecurityTest {
             Tree tree = root.getTree(path);
             assertNotNull(tree);
 
-            assertTrue(all.isGranted(tree, Permissions.ALL));
+            assertTrue(all.isGranted(Permissions.ALL, tree));
             for (PropertyState prop : tree.getProperties()) {
-                assertTrue(all.isGranted(tree, prop, Permissions.ALL));
+                assertTrue(all.isGranted(Permissions.ALL, tree, prop));
             }
             for (Tree child : tree.getChildren()) {
-                assertTrue(all.isGranted(child, Permissions.ALL));
+                assertTrue(all.isGranted(Permissions.ALL, child));
             }
         }
     }
