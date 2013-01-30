@@ -31,19 +31,12 @@ import org.apache.jackrabbit.oak.spi.security.authentication.LoginContext;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginContextProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfiguration;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * {@code MicroKernel}-based implementation of
  * the {@link ContentRepository} interface.
  */
 public class ContentRepositoryImpl implements ContentRepository {
-
-    /**
-     * Logger instance
-     */
-    private static final Logger LOG = LoggerFactory.getLogger(ContentRepositoryImpl.class);
 
     private static final String DEFAULT_WORKSPACE_NAME = "default";
 
@@ -57,12 +50,12 @@ public class ContentRepositoryImpl implements ContentRepository {
      * Creates an content repository instance based on the given, already
      * initialized components.
      *
-     * @param nodeStore        the node store this repository is based upon.
+     * @param nodeStore            the node store this repository is based upon.
      * @param defaultWorkspaceName the default workspace name;
-     * @param conflictHandler  The conflict handler.
-     * @param indexProvider    index provider
-     * @param securityProvider The configured security provider or {@code null} if
-     *                         default implementations should be used.
+     * @param conflictHandler      The conflict handler.
+     * @param indexProvider        index provider
+     * @param securityProvider     The configured security provider or {@code null} if
+     *                             default implementations should be used.
      */
     public ContentRepositoryImpl(NodeStore nodeStore,
                                  String defaultWorkspaceName,
