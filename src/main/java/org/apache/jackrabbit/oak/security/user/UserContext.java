@@ -25,11 +25,12 @@ import org.apache.jackrabbit.oak.util.NodeUtil;
 /**
  * UserContext... TODO
  */
-class UserContext implements Context {
+final class UserContext implements Context {
 
     private static final Context INSTANCE = new UserContext();
 
-    private UserContext() {}
+    private UserContext() {
+    }
 
     static Context getInstance() {
         return INSTANCE;
