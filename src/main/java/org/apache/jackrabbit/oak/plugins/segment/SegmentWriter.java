@@ -16,8 +16,15 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
+import java.io.IOException;
+import java.io.InputStream;
+
 public interface SegmentWriter {
 
     RecordId writeString(String string);
+
+    RecordId writeStream(InputStream stream) throws IOException;
+
+    RecordId writeBytes(byte[] bytes, int offset, int length);
 
 }
