@@ -253,7 +253,7 @@ public class ReadOnlyTree implements Tree {
 
     //-------------------------------------------------------< TreeLocation >---
 
-    private class NodeLocation extends AbstractNodeLocation<ReadOnlyTree> {
+    private final class NodeLocation extends AbstractNodeLocation<ReadOnlyTree> {
 
         private NodeLocation(ReadOnlyTree tree) {
             super(tree);
@@ -310,7 +310,7 @@ public class ReadOnlyTree implements Tree {
         }
     }
 
-    private class PropertyLocation extends AbstractPropertyLocation<NodeLocation> {
+    private final class PropertyLocation extends AbstractPropertyLocation<NodeLocation> {
 
         private PropertyLocation(NodeLocation parentLocation, String name) {
             super(parentLocation, name);

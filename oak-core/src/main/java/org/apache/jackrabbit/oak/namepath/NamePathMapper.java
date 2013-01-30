@@ -25,13 +25,13 @@ import javax.jcr.RepositoryException;
  */
 public interface NamePathMapper extends NameMapper, PathMapper {
 
-    public NamePathMapper DEFAULT = new Default();
+    NamePathMapper DEFAULT = new Default();
 
     /**
      * Default implementation that doesn't perform any conversions for cases
      * where a mapper object only deals with oak internal names and paths.
      */
-    public class Default implements NamePathMapper {
+    class Default implements NamePathMapper {
 
         @Override
         public String getOakNameOrNull(String jcrName) {
