@@ -20,7 +20,6 @@ import javax.annotation.Nonnull;
 import javax.security.auth.login.Configuration;
 
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.security.OakConfiguration;
 import org.apache.jackrabbit.oak.security.authentication.token.TokenProviderImpl;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
@@ -69,7 +68,9 @@ public class AuthenticationConfigurationImpl extends SecurityConfiguration.Defau
             log.info("Failed to retrieve login configuration: using default. " + e);
         }
         if (loginConfig == null) {
-            loginConfig = new OakConfiguration(options); // TODO: define configuration structure
+            // TODO: define configuration structure
+            // TODO: review if having a default is desirable or if login should fail without valid login configuration.
+            loginConfig = ConfigurationUtil.getDefaultConfiguration(options);
         }
         return new LoginContextProviderImpl(appName, loginConfig, nodeStore, indexProvider, securityProvider);
     }

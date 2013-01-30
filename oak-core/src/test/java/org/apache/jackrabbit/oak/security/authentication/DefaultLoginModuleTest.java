@@ -16,10 +16,8 @@
  */
 package org.apache.jackrabbit.oak.security.authentication;
 
-import java.util.Collections;
 import javax.jcr.GuestCredentials;
 import javax.jcr.SimpleCredentials;
-import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.login.Configuration;
 import javax.security.auth.login.LoginException;
 
@@ -29,7 +27,7 @@ import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtility;
@@ -47,17 +45,7 @@ public class DefaultLoginModuleTest extends AbstractSecurityTest {
 
     @Override
     protected Configuration getConfiguration() {
-        return new Configuration() {
-            @Override
-            public AppConfigurationEntry[] getAppConfigurationEntry(String s) {
-                AppConfigurationEntry defaultEntry = new AppConfigurationEntry(
-                        LoginModuleImpl.class.getName(),
-                        AppConfigurationEntry.LoginModuleControlFlag.REQUIRED,
-                        Collections.<String, Object>emptyMap());
-
-                return new AppConfigurationEntry[] {defaultEntry};
-            }
-        };
+        return ConfigurationUtil.getDefaultConfiguration(ConfigurationParameters.EMPTY);
     }
 
     @Test
