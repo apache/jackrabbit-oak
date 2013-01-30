@@ -16,8 +16,14 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
+import java.io.InputStream;
+
 public interface SegmentReader {
 
     String readString(RecordId recordId);
+
+    InputStream readStream(RecordId recordId);
+
+    void readBytes(RecordId recordId, byte[] bytes, int offset, int length);
 
 }
