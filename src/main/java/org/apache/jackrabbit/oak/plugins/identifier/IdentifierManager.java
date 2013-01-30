@@ -87,15 +87,6 @@ public class IdentifierManager {
         }
     }
 
-    /**
-     *
-     * @param uuid
-     * @throws IllegalArgumentException If the specified uuid has an invalid format.
-     */
-    public static void checkUUIDFormat(String uuid) throws IllegalArgumentException {
-        UUID.fromString(uuid);
-    }
-
     @Nonnull
     public String getIdentifier(Tree tree) {
         PropertyState property = tree.getProperty(JcrConstants.JCR_UUID);
@@ -113,7 +104,7 @@ public class IdentifierManager {
      *
      * @param identifier The identifier of the Node such as exposed by {@link javax.jcr.Node#getIdentifier()}
      * @return The tree with the given {@code identifier} or {@code null} if no
-     * such tree exists or isn't accessible to the content session.
+     *         such tree exists or isn't accessible to the content session.
      */
     @CheckForNull
     public Tree getTree(String identifier) {
@@ -133,7 +124,7 @@ public class IdentifierManager {
      *
      * @param identifier The identifier of the Tree such as exposed by {@link javax.jcr.Node#getIdentifier()}
      * @return The tree with the given {@code identifier} or {@code null} if no
-     * such tree exists or isn't accessible to the content session.
+     *         such tree exists or isn't accessible to the content session.
      */
     @CheckForNull
     public String getPath(String identifier) {
@@ -154,7 +145,7 @@ public class IdentifierManager {
      *
      * @param referenceValue A (weak) reference value.
      * @return The tree with the given {@code identifier} or {@code null} if no
-     * such tree exists or isn't accessible to the content session.
+     *         such tree exists or isn't accessible to the content session.
      */
     @CheckForNull
     public String getPath(PropertyState referenceValue) {
@@ -170,16 +161,16 @@ public class IdentifierManager {
      * Searches all reference properties to the specified {@code tree} that match
      * the given name and node type constraints.
      *
-     * @param weak  if {@code true} only weak references are returned. Otherwise only
-     *              hard references are returned.
-     * @param tree The tree for which references should be searched.
-     * @param propertyName A name constraint for the reference properties;
-     * {@code null} if no constraint should be enforced.
+     * @param weak          if {@code true} only weak references are returned. Otherwise only
+     *                      hard references are returned.
+     * @param tree          The tree for which references should be searched.
+     * @param propertyName  A name constraint for the reference properties;
+     *                      {@code null} if no constraint should be enforced.
      * @param nodeTypeNames Node type constraints to be enforced when using
-     * for reference properties; the specified names are expected to be internal
-     * oak names.
+     *                      for reference properties; the specified names are expected to be internal
+     *                      oak names.
      * @return A set of oak paths of those reference properties referring to the
-     * specified {@code tree} and matching the constraints.
+     *         specified {@code tree} and matching the constraints.
      */
     @Nonnull
     public Set<String> getReferences(boolean weak, Tree tree, final String propertyName, final String... nodeTypeNames) {
@@ -250,8 +241,7 @@ public class IdentifierManager {
                         }
                     }
                     return false;
-                }
-                else {
+                } else {
                     return uuid.equals(pState.getValue(STRING));
                 }
             }
