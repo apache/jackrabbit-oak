@@ -28,7 +28,7 @@ import javax.annotation.Nonnull;
  * takes place within this function, so when the parameter is an illegal path,
  * the the result of this method is undefined.
  */
-public class PathUtils {
+public final class PathUtils {
 
     private PathUtils() {
         // utility class
@@ -101,6 +101,8 @@ public class PathUtils {
      * If nth <= 0, the path argument is returned as is.
      *
      * @param path the path
+     * @param nth  indicates the ancestor level for which the path should be
+     *             calculated.
      * @return the ancestor path
      */
     @Nonnull
@@ -236,7 +238,7 @@ public class PathUtils {
     /**
      * Concatenate path elements.
      *
-     * @param parentPath the parent path
+     * @param parentPath    the parent path
      * @param relativePaths the relative path elements to add
      * @return the concatenated path
      */
@@ -268,7 +270,7 @@ public class PathUtils {
      * Concatenate path elements.
      *
      * @param parentPath the parent path
-     * @param subPath the subPath path to add
+     * @param subPath    the subPath path to add
      * @return the concatenated path
      */
     @Nonnull
@@ -295,7 +297,7 @@ public class PathUtils {
      * Check if a path is a (direct or indirect) ancestor of another path.
      *
      * @param ancestor the ancestor path
-     * @param path the potential offspring path
+     * @param path     the potential offspring path
      * @return true if the path is an offspring of the ancestor
      */
     public static boolean isAncestor(String ancestor, String path) {
@@ -320,7 +322,7 @@ public class PathUtils {
      * holds.
      *
      * @param parentPath parent pth
-     * @param path path to relativize
+     * @param path       path to relativize
      * @return relativized path
      */
     @Nonnull
@@ -345,7 +347,7 @@ public class PathUtils {
     /**
      * Get the index of the next slash.
      *
-     * @param path the path
+     * @param path  the path
      * @param index the starting index
      * @return the index of the next slash (possibly the starting index), or -1
      *         if not found
