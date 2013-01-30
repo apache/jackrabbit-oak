@@ -584,7 +584,7 @@ public class TreeImpl implements Tree {
 
     //-------------------------------------------------------< TreeLocation >---
 
-    public class NodeLocation extends AbstractNodeLocation<TreeImpl> {
+    private final class NodeLocation extends AbstractNodeLocation<TreeImpl> {
 
         private NodeLocation(TreeImpl tree) {
             super(tree);
@@ -636,7 +636,8 @@ public class TreeImpl implements Tree {
         }
     }
 
-    public class PropertyLocation extends AbstractPropertyLocation<NodeLocation> {
+    // TODO: OAK-599 (accessed by PropertyDelegate)
+    public final class PropertyLocation extends AbstractPropertyLocation<NodeLocation> {
 
         private PropertyLocation(NodeLocation parentLocation, String name) {
             super(parentLocation, name);
