@@ -47,8 +47,6 @@ import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Lists.newArrayList;
@@ -62,8 +60,6 @@ import static com.google.common.collect.Lists.newArrayList;
  * @since Oak 0.6
  */
 public class Oak {
-
-    private static final Logger log = LoggerFactory.getLogger(Oak.class);
 
     private final MicroKernel kernel;
 
@@ -202,7 +198,8 @@ public class Oak {
     @Nonnull
     public Oak with(@Nonnull final Validator validator) {
         return with(new ValidatorProvider() {
-            @Override @Nonnull
+            @Override
+            @Nonnull
             public Validator getRootValidator(
                     NodeState before, NodeState after) {
                 return validator;
@@ -259,11 +256,11 @@ public class Oak {
      * Creates a content repository with the given configuration
      * and logs in to the default workspace with no credentials,
      * returning the resulting content session.
-     * <p>
+     * <p/>
      * This method exists mostly as a convenience for one-off tests,
      * as there's no way to create other sessions for accessing the
      * same repository.
-     * <p>
+     * <p/>
      * There is typically no need to explicitly close the returned
      * session unless the repository has explicitly been configured
      * to reserve some resources until all sessions have been closed.
@@ -286,11 +283,11 @@ public class Oak {
      * Creates a content repository with the given configuration
      * and returns a {@link Root} instance after logging in to the
      * default workspace with no credentials.
-     * <p>
+     * <p/>
      * This method exists mostly as a convenience for one-off tests, as
      * the returned root is the only way to access the session or the
      * repository.
-     * <p>
+     * <p/>
      * Note that since there is no way to close the underlying content
      * session, this method should only be used when no components that
      * require sessions to be closed have been configured. The repository
