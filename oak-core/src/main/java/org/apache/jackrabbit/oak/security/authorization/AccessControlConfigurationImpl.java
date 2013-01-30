@@ -16,13 +16,16 @@
  */
 package org.apache.jackrabbit.oak.security.authorization;
 
+import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.jcr.security.AccessControlManager;
 
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.security.authorization.restriction.RestrictionProviderImpl;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
@@ -63,6 +66,7 @@ public class AccessControlConfigurationImpl extends SecurityConfiguration.Defaul
     //-----------------------------------------< AccessControlConfiguration >---
     @Override
     public AccessControlManager getAccessControlManager(Root root, NamePathMapper namePathMapper) {
+        // TODO OAK-51
         throw new UnsupportedOperationException("not yet implemented");
     }
 
@@ -74,8 +78,16 @@ public class AccessControlConfigurationImpl extends SecurityConfiguration.Defaul
 
     @Nonnull
     @Override
-    public PermissionProvider getPermissionProvider(NamePathMapper namePathMapper) {
-        return new PermissionProviderImpl();
+    public PermissionProvider getPermissionProvider(Root root, Set<Principal> principals) {
+        // TODO OAK-51
+        return new TmpPermissionProvider(root, principals, securityProvider);
+    }
+
+    @Nonnull
+    @Override
+    public PermissionProvider getPermissionProvider(Tree rootTree, Set<Principal> principals) {
+        // TODO OAK-51
+        return new TmpPermissionProvider(rootTree, principals, securityProvider);
     }
 
     @Nonnull
@@ -87,7 +99,7 @@ public class AccessControlConfigurationImpl extends SecurityConfiguration.Defaul
     @Nonnull
     @Override
     public List<CommitHook> getCommitHooks() {
-        return Collections.<CommitHook>singletonList(new AccessControlHook());
+        return Collections.<CommitHook>singletonList(new PermissionHook());
     }
 
     @Override

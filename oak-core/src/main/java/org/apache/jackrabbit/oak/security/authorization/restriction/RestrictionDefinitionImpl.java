@@ -28,7 +28,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 /**
  * RestrictionDefinitionImpl... TODO
  */
-public class RestrictionDefinitionImpl implements RestrictionDefinition {
+class RestrictionDefinitionImpl implements RestrictionDefinition {
 
     private final String name;
     private final int type;
@@ -38,15 +38,15 @@ public class RestrictionDefinitionImpl implements RestrictionDefinition {
     /**
      * Create a new instance.
      *
-     * @param name The oak name of the restriction definition.
-     * @param type The required type of this definition. Any valid JCR
-     * {@link javax.jcr.PropertyType} except {@link javax.jcr.PropertyType#UNDEFINED}
-     * is allowed.
-     * @param isMandatory A boolean indicating if the restriction is mandatory.
+     * @param name           The oak name of the restriction definition.
+     * @param type           The required type of this definition. Any valid JCR
+     *                       {@link javax.jcr.PropertyType} except {@link javax.jcr.PropertyType#UNDEFINED}
+     *                       is allowed.
+     * @param isMandatory    A boolean indicating if the restriction is mandatory.
      * @param namePathMapper The name path mapper used to calculate the JCR name.
      */
-    public RestrictionDefinitionImpl(@Nonnull String name, int type, boolean isMandatory,
-                                     @Nonnull NamePathMapper namePathMapper) {
+    RestrictionDefinitionImpl(@Nonnull String name, int type, boolean isMandatory,
+                              @Nonnull NamePathMapper namePathMapper) {
         this.name = checkNotNull(name);
         if (type == PropertyType.UNDEFINED) {
             throw new IllegalArgumentException("'undefined' is not a valid required definition type.");

@@ -20,13 +20,12 @@ import java.security.Principal;
 import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.jcr.security.AccessControlManager;
-import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 /**
  * This class implements an {@link AccessControlConfiguration} which grants
@@ -48,17 +47,13 @@ public class OpenAccessControlConfiguration extends SecurityConfiguration.Defaul
 
     @Nonnull
     @Override
-    public PermissionProvider getPermissionProvider(NamePathMapper namePathMapper) {
-        return new PermissionProvider() {
-            @Override
-            public Permissions getPermissions(Set<Privilege> privileges) {
-                throw new UnsupportedOperationException();
-            }
+    public PermissionProvider getPermissionProvider(Root root, Set<Principal> principals) {
+        return OpenPermissionProvider.getInstance();
+    }
 
-            @Override
-            public CompiledPermissions getCompiledPermissions(NodeStore nodeStore, Set<Principal> principals) {
-                return AllPermissions.getInstance();
-            }
-        };
+    @Nonnull
+    @Override
+    public PermissionProvider getPermissionProvider(Tree rootTree, Set<Principal> principals) {
+        return OpenPermissionProvider.getInstance();
     }
 }

@@ -24,26 +24,21 @@ import javax.annotation.Nonnull;
 import javax.security.auth.Subject;
 
 import org.apache.jackrabbit.oak.core.ReadOnlyTree;
-import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
-import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfiguration;
-import org.apache.jackrabbit.oak.spi.security.authorization.CompiledPermissions;
+import org.apache.jackrabbit.oak.spi.security.authorization.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.util.NodeUtil;
 
 /**
  * PermissionValidatorProvider... TODO
  */
 class PermissionValidatorProvider implements ValidatorProvider {
 
-    private final SecurityProvider securityProvider;
     private final AccessControlConfiguration acConfiguration;
 
     PermissionValidatorProvider(SecurityProvider securityProvider) {
-        this.securityProvider = securityProvider;
         this.acConfiguration = securityProvider.getAccessControlConfiguration();
     }
 
@@ -53,23 +48,10 @@ class PermissionValidatorProvider implements ValidatorProvider {
     public Validator getRootValidator(NodeState before, NodeState after) {
         Subject subject = Subject.getSubject(AccessController.getContext());
         Set<Principal> principals = (subject != null) ? subject.getPrincipals() : Collections.<Principal>emptySet();
-        CompiledPermissions permissions = acConfiguration.getPermissionProvider(NamePathMapper.DEFAULT).getCompiledPermissions(/*TODO*/null, principals);
 
-        NodeUtil rootBefore = new NodeUtil(new ReadOnlyTree(before));
-        NodeUtil rootAfter = new NodeUtil(new ReadOnlyTree(after));
-        return new PermissionValidator(rootBefore, rootAfter, permissions, this);
-    }
+        ReadOnlyTree beforeTree = new ReadOnlyTree(before);
+        PermissionProvider pp = acConfiguration.getPermissionProvider(beforeTree, principals);
 
-    //-----------------------------------------------------------< internal >---
-    Context getUserContext() {
-        return securityProvider.getUserConfiguration().getContext();
-    }
-
-    Context getPrivilegeContext() {
-        return securityProvider.getPrivilegeConfiguration().getContext();
-    }
-
-    Context getAccessControlContext() {
-        return acConfiguration.getContext();
+        return new PermissionValidator(beforeTree, new ReadOnlyTree(after), pp, this);
     }
 }

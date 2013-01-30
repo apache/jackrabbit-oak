@@ -21,7 +21,6 @@ import java.util.List;
 import java.util.Map;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.security.AccessControlEntry;
 import javax.jcr.security.AccessControlException;
@@ -47,10 +46,10 @@ public class ImmutableACL extends AbstractAccessControlList {
     /**
      * Construct a new {@code UnmodifiableAccessControlList}
      *
-     * @param oakPath The Oak path of this policy or {@code null}.
-     * @param entries The access control entries contained in this policy.
+     * @param oakPath             The Oak path of this policy or {@code null}.
+     * @param entries             The access control entries contained in this policy.
      * @param restrictionProvider The restriction provider.
-     * @param namePathMapper The {@link NamePathMapper} used for conversion.
+     * @param namePathMapper      The {@link NamePathMapper} used for conversion.
      */
     public ImmutableACL(@Nullable String oakPath,
                         @Nonnull List<? extends JackrabbitAccessControlEntry> entries,
@@ -64,8 +63,7 @@ public class ImmutableACL extends AbstractAccessControlList {
     //--------------------------------------------------< AccessControlList >---
 
     @Override
-    public void removeAccessControlEntry(AccessControlEntry ace)
-            throws AccessControlException, RepositoryException {
+    public void removeAccessControlEntry(AccessControlEntry ace) throws AccessControlException {
         throw new AccessControlException("Immutable ACL. Use AccessControlManager#getApplicablePolicies in order to obtain an modifiable ACL.");
     }
 

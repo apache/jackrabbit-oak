@@ -14,54 +14,47 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.security.authorization;
-
-import java.security.Principal;
-import java.util.Set;
+package org.apache.jackrabbit.oak.security.authorization.permission;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.spi.security.authorization.CompiledPermissions;
-import org.apache.jackrabbit.oak.spi.security.authorization.Permissions;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 /**
- * TODO
+ * AllPermissions... TODO
  */
-class CompiledPermissionImpl implements CompiledPermissions {
+public final class AllPermissions implements CompiledPermissions {
 
-    CompiledPermissionImpl(NodeStore nodeStore, Set<Principal> principals) {
+    private static final CompiledPermissions INSTANCE = new AllPermissions();
 
+    private AllPermissions() {
+    }
+
+    public static CompiledPermissions getInstance() {
+        return INSTANCE;
     }
 
     @Override
     public boolean canRead(Tree tree) {
-        // TODO
         return true;
     }
 
     @Override
     public boolean canRead(Tree tree, PropertyState property) {
-        // TODO
         return true;
     }
 
     @Override
-    public boolean isGranted(int permissions) {
-        // TODO
-        return false;
+    public boolean isGranted(long permissions) {
+        return true;
     }
 
     @Override
-    public boolean isGranted(Tree tree, int permissions) {
-        // TODO
-        return (permissions == Permissions.READ_NODE);
+    public boolean isGranted(long permissions, Tree tree) {
+        return true;
     }
 
     @Override
-    public boolean isGranted(Tree parent, PropertyState property, int permissions) {
-        // TODO
-        return (permissions == Permissions.READ_PROPERTY);
+    public boolean isGranted(long permissions, Tree parent, PropertyState property) {
+        return true;
     }
-
 }

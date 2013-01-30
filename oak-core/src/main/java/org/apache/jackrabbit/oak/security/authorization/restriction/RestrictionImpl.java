@@ -29,12 +29,12 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
 
-public class RestrictionImpl extends RestrictionDefinitionImpl implements Restriction {
+class RestrictionImpl extends RestrictionDefinitionImpl implements Restriction {
 
     private final PropertyState property;
 
-    public RestrictionImpl(@Nonnull PropertyState property, boolean isMandatory,
-                           @Nonnull NamePathMapper namePathMapper) {
+    RestrictionImpl(@Nonnull PropertyState property, boolean isMandatory,
+                    @Nonnull NamePathMapper namePathMapper) {
         super(property.getName(), property.getType().tag(), isMandatory, namePathMapper);
         this.property = property;
     }
