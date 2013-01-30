@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.api;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.jcr.Credentials;
 import javax.jcr.NoSuchWorkspaceException;
 import javax.security.auth.login.LoginException;
@@ -24,17 +25,17 @@ import javax.security.auth.login.LoginException;
 /**
  * Oak content repository. The repository may be local or remote, or a cluster
  * of any size. These deployment details are all hidden behind this interface.
- * <p>
+ * <p/>
  * All access to the repository happens through authenticated
  * {@link ContentSession} instances acquired through the
  * {@link #login(Credentials, String)} method, which is why that is the only
  * method of this interface.
- * <p>
+ * <p/>
  * Starting and stopping ContentRepository instances is the responsibility
  * of each particular deployment and not covered by this interface.
  * Repository clients should use a deployment-specific mechanism (JNDI,
  * OSGi service, etc.) to acquire references to ContentRepository instances.
- * <p>
+ * <p/>
  * This interface is thread-safe.
  */
 public interface ContentRepository {
@@ -44,20 +45,20 @@ public interface ContentRepository {
      * out-of-band information and, if successful, returns a
      * {@link ContentSession} instance for accessing repository content
      * inside the specified workspace as the authenticated user.
-     * <p>
+     * <p/>
      * TODO: Determine whether ContentSessions should cover a single
      * workspace or the entire repository.
-     * <p>
+     * <p/>
      * The exact type of access credentials is undefined, as this method
      * simply acts as a generic messenger between clients and pluggable
      * login modules that take care of the actual authentication. See
      * the documentation of relevant login modules for the kind of access
      * credentials they expect.
-     * <p>
+     * <p/>
      * TODO: Instead of the explicit access credentials, should this method
      * rather take the arguments to be passed to the relevant
      * JAAS {@link javax.security.auth.login.LoginContext} constructor?
-     * <p>
+     * <p/>
      * The client must explicitly {@link ContentSession#close()} the
      * returned session once it is no longer used. The recommended access
      * pattern is:
@@ -71,14 +72,15 @@ public interface ContentRepository {
      * }
      * </pre>
      *
-     * @param credentials access credentials, or {@code null}
-     * @param workspaceName
+     * @param credentials   access credentials, or {@code null}
+     * @param workspaceName The workspace name or {@code null} if the default
+     *                      workspace should be used.
      * @return authenticated repository session
-     * @throws LoginException if authentication failed
-     * @throws NoSuchWorkspaceException
+     * @throws LoginException           if authentication failed
+     * @throws NoSuchWorkspaceException if the specified workspace name is invalid.
      */
     @Nonnull
-    ContentSession login(Credentials credentials, String workspaceName)
+    ContentSession login(@Nullable Credentials credentials, @Nullable String workspaceName)
             throws LoginException, NoSuchWorkspaceException;
 
 }
