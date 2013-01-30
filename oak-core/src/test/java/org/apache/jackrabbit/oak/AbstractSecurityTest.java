@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak;
 
+import javax.annotation.Nullable;
 import javax.jcr.Credentials;
 import javax.jcr.NoSuchWorkspaceException;
 import javax.jcr.SimpleCredentials;
@@ -28,10 +29,12 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
-import org.apache.jackrabbit.oak.security.OakConfiguration;
 import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
+import org.apache.jackrabbit.oak.security.authentication.ConfigurationUtil;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
+import org.apache.jackrabbit.oak.spi.security.user.util.UserUtility;
 import org.junit.After;
 import org.junit.Before;
 
@@ -52,6 +55,9 @@ public abstract class AbstractSecurityTest {
     public void before() throws Exception {
         contentRepository = new Oak()
                 .with(new InitialContent())
+                        // FIXME: specify index provider (waiting for OAK-396 and OAK-343)
+//                .with(new Property2IndexHookProvider())
+//                .with(new Property2IndexProvider())
                 .with(getSecurityProvider())
                 .createContentRepository();
 
@@ -75,17 +81,17 @@ public abstract class AbstractSecurityTest {
     }
 
     protected Configuration getConfiguration() {
-        return new OakConfiguration();
+        return ConfigurationUtil.getDefaultConfiguration(ConfigurationParameters.EMPTY);
     }
 
-    protected ContentSession login(Credentials credentials)
+    protected ContentSession login(@Nullable Credentials credentials)
             throws LoginException, NoSuchWorkspaceException {
         return contentRepository.login(credentials, null);
     }
 
     protected Credentials getAdminCredentials() {
-        // TODO retrieve from config
-        return new SimpleCredentials("admin", "admin".toCharArray());
+        String adminId = UserUtility.getAdminId(getUserConfiguration().getConfigurationParameters());
+        return new SimpleCredentials(adminId, adminId.toCharArray());
     }
 
 
