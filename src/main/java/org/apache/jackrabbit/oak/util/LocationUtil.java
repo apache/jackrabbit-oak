@@ -27,7 +27,10 @@ import org.apache.jackrabbit.util.Text;
 /**
  * LocationUtil... FIXME: workaround for OAK-426
  */
-public class LocationUtil {
+public final class LocationUtil {
+
+    private LocationUtil() {
+    }
 
     @Nonnull
     public static TreeLocation getTreeLocation(TreeLocation parentLocation, String relativePath) {
