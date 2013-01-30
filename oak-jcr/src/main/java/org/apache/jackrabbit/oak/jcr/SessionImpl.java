@@ -368,7 +368,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     }
 
     @Override
-    public void checkPermission(String absPath, String actions) throws AccessControlException, RepositoryException {
+    public void checkPermission(String absPath, String actions) throws RepositoryException {
         if (!hasPermission(absPath, actions)) {
             throw new AccessControlException("Access control violation: path = " + absPath + ", actions = " + actions);
         }
