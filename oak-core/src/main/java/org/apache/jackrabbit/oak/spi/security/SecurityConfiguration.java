@@ -55,7 +55,7 @@ public interface SecurityConfiguration {
     /**
      * Default implementation that provides empty validators/parameters.
      */
-    public static class Default implements SecurityConfiguration {
+    class Default implements SecurityConfiguration {
 
         @Nonnull
         @Override

@@ -220,7 +220,7 @@ class AccessControlImporter implements ProtectedNodeImporter, AccessControlConst
     }
 
     //--------------------------------------------------------------------------
-    private class MutableEntry {
+    private final class MutableEntry {
 
         final boolean isAllow;
         Principal principal;
