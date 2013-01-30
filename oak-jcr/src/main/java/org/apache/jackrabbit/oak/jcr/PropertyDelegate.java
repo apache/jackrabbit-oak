@@ -43,7 +43,8 @@ public class PropertyDelegate extends ItemDelegate {
 
     /**
      * Get the value of the property
-     * @return  the value of the property
+     *
+     * @return the value of the property
      * @throws InvalidItemStateException
      */
     @Nonnull
@@ -53,7 +54,8 @@ public class PropertyDelegate extends ItemDelegate {
 
     /**
      * Get the values of the property
-     * @return  the values of the property
+     *
+     * @return the values of the property
      * @throws InvalidItemStateException
      */
     @Nonnull
@@ -63,7 +65,8 @@ public class PropertyDelegate extends ItemDelegate {
 
     /**
      * Determine whether the property is multi valued
-     * @return  {@code true} if multi valued
+     *
+     * @return {@code true} if multi valued
      */
     public boolean isMultivalue() throws InvalidItemStateException {
         return getPropertyState().isArray();
@@ -71,6 +74,7 @@ public class PropertyDelegate extends ItemDelegate {
 
     /**
      * Set the value of the property
+     *
      * @param value
      */
     public void setValue(Value value) throws RepositoryException {
@@ -79,6 +83,7 @@ public class PropertyDelegate extends ItemDelegate {
 
     /**
      * Set the values of the property
+     *
      * @param values
      */
     public void setValues(Iterable<Value> values) throws RepositoryException {
@@ -96,13 +101,14 @@ public class PropertyDelegate extends ItemDelegate {
 
     @Nonnull
     private PropertyState getPropertyState() throws InvalidItemStateException {
-        PropertyState property = getPropertyLocation().getProperty();
+        PropertyState property = getLocation().getProperty();
         if (property == null) {
             throw new InvalidItemStateException();
         }
         return property;
     }
 
+    // TODO: OAK-599
     @Nonnull
     private PropertyLocation getPropertyLocation() throws InvalidItemStateException {
         TreeLocation location = getLocation();
