@@ -80,7 +80,7 @@ public class KernelNodeStore implements NodeStore {
     public KernelNodeStore(MicroKernel kernel) {
         this.kernel = checkNotNull(kernel);
         try {
-            this.root = cache.get(kernel.getHeadRevision() + "/");
+            this.root = cache.get(kernel.getHeadRevision() + '/');
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -91,7 +91,7 @@ public class KernelNodeStore implements NodeStore {
         return hook;
     }
 
-    public void setHook(CommitHook hook) {
+    public void setHook(@Nonnull CommitHook hook) {
         this.hook = checkNotNull(hook);
     }
 
@@ -100,7 +100,7 @@ public class KernelNodeStore implements NodeStore {
         return observer;
     }
 
-    public void setObserver(Observer observer) {
+    public void setObserver(@Nonnull Observer observer) {
         this.observer = checkNotNull(observer);
     }
 
@@ -130,8 +130,7 @@ public class KernelNodeStore implements NodeStore {
         try {
             String blobId = kernel.write(inputStream);
             return new KernelBlob(blobId, kernel);
-        }
-        catch (MicroKernelException e) {
+        } catch (MicroKernelException e) {
             throw new IOException(e);
         }
     }
