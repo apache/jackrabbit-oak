@@ -36,6 +36,6 @@ public interface RepositoryInitializer {
      *
      * @param store node store of the repository
      */
-    public void initialize(NodeStore store);
+    void initialize(NodeStore store);
 
 }
