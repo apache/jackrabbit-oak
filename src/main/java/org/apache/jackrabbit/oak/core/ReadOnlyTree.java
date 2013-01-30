@@ -19,8 +19,11 @@
 package org.apache.jackrabbit.oak.core;
 
 import java.util.Iterator;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.api.Type;
@@ -33,24 +36,67 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 public class ReadOnlyTree implements Tree {
 
-    /** Parent of this tree, {@code null} for the root */
+    /**
+     * Parent of this tree, {@code null} for the root
+     */
     private final ReadOnlyTree parent;
 
-    /** Name of this tree */
+    /**
+     * Name of this tree
+     */
     private final String name;
 
-    /** Underlying node state */
+    /**
+     * Path of this tree
+     */
+    private final String path;
+
+    /**
+     * Underlying node state
+     */
     private final NodeState state;
 
-    public ReadOnlyTree(NodeState root) {
-        this(null, "", root);
+    public ReadOnlyTree(NodeState rootState) {
+        this(null, "", rootState);
     }
 
-    public ReadOnlyTree(ReadOnlyTree parent, String name, NodeState state) {
+    public ReadOnlyTree(@Nullable ReadOnlyTree parent, @Nonnull String name, @Nonnull NodeState state) {
         this.parent = parent;
         this.name = checkNotNull(name);
+        this.path = buildPath(parent, name);
         this.state = checkNotNull(state);
         checkArgument(!name.isEmpty() || parent == null);
+    }
+
+    private static String buildPath(ReadOnlyTree parent, String name) {
+        if (parent == null) {
+            return "/";
+        } else if (parent.isRoot()) {
+            return parent.path + name;
+        } else {
+            StringBuilder sb = new StringBuilder();
+            sb.append(parent.path).append('/').append(name);
+            return sb.toString();
+        }
+    }
+
+    public static ReadOnlyTree createFromRoot(Root root) {
+        if (root instanceof RootImpl) {
+            return new ReadOnlyTree(((RootImpl) root).getBaseState());
+        } else {
+            throw new IllegalArgumentException("Unsupported Root implementation.");
+        }
+    }
+
+    public static ReadOnlyTree createFromRootTree(Tree rootTree) {
+        if (rootTree instanceof ReadOnlyTree) {
+            return (ReadOnlyTree) rootTree;
+        } else if (rootTree instanceof TreeImpl) {
+            TreeImpl impl = (TreeImpl) rootTree;
+            return new ReadOnlyTree(null, "", impl.getNodeState());
+        } else {
+            throw new IllegalArgumentException("Unsupported Tree implementation");
+        }
     }
 
     @Override
@@ -65,21 +111,7 @@ public class ReadOnlyTree implements Tree {
 
     @Override
     public String getPath() {
-        if (isRoot()) {
-            // shortcut
-            return "/";
-        }
-
-        StringBuilder sb = new StringBuilder();
-        buildPath(sb);
-        return sb.toString();
-    }
-
-    private void buildPath(StringBuilder sb) {
-        if (!isRoot()) {
-            parent.buildPath(sb);
-            sb.append('/').append(name);
-        }
+        return path;
     }
 
     @Override
@@ -149,8 +181,9 @@ public class ReadOnlyTree implements Tree {
     /**
      * This implementation does not respect ordered child nodes, but always
      * returns them in some implementation specific order.
-     *
+     * <p/>
      * TODO: respect orderable children (needed?)
+     *
      * @return the children.
      */
     @Override
@@ -165,6 +198,7 @@ public class ReadOnlyTree implements Tree {
                     public boolean hasNext() {
                         return iterator.hasNext();
                     }
+
                     @Override
                     public Tree next() {
                         ChildNodeEntry entry = iterator.next();
@@ -172,6 +206,7 @@ public class ReadOnlyTree implements Tree {
                                 ReadOnlyTree.this,
                                 entry.getName(), entry.getNodeState());
                     }
+
                     @Override
                     public void remove() {
                         throw new UnsupportedOperationException();

@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.security.authorization;
 import java.util.Collection;
 
 import com.google.common.collect.ImmutableSet;
+import org.apache.jackrabbit.JcrConstants;
 
 /**
  * AccessControlConstants... TODO
@@ -31,6 +32,7 @@ public interface AccessControlConstants {
     String REP_PRINCIPAL_NAME = "rep:principalName";
     String REP_GLOB = "rep:glob";
     String REP_NODE_PATH = "rep:nodePath";
+
     /**
      * @since OAK 1.0
      */
@@ -44,10 +46,39 @@ public interface AccessControlConstants {
     String NT_REP_ACE = "rep:ACE";
     String NT_REP_GRANT_ACE = "rep:GrantACE";
     String NT_REP_DENY_ACE = "rep:DenyACE";
+
     /**
      * @since OAK 1.0
      */
     String NT_REP_RESTRICTIONS = "rep:Restrictions";
+
+    /**
+     * @since OAK 1.0
+     */
+    String NT_REP_PERMISSIONS = "rep:Permissions";
+    /**
+     * @since OAK 1.0
+     */
+    String REP_PERMISSION_STORE = "rep:permissionStore";
+    /**
+     * @since OAK 1.0
+     */
+    String PERMISSIONS_STORE_PATH = JcrConstants.JCR_SYSTEM + '/' + REP_PERMISSION_STORE;
+
+
+    /**
+     * @since OAK 1.0
+     */
+    String MIX_REP_VERSIONABLE_INFO = "rep:VersionableInfo";
+    String REP_VERSIONABLE_INFO = "rep:versionableInfo";
+    /**
+     * @since OAK 1.0
+     */
+    String REP_WORKSPACE_NAME = "rep:workspaceName";
+    /**
+     * @since OAK 1.0
+     */
+    String REP_VERSIONABLE_PATH = "rep:versionablePath";
 
     Collection<String> POLICY_NODE_NAMES = ImmutableSet.of(REP_POLICY, REP_REPO_POLICY);
 

@@ -16,12 +16,12 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization;
 
-import java.security.Principal;
 import java.util.Set;
 import javax.annotation.Nonnull;
-import javax.jcr.security.Privilege;
+import javax.annotation.Nullable;
 
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Tree;
 
 /**
  * PermissionProvider... TODO
@@ -29,9 +29,23 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 public interface PermissionProvider {
 
     @Nonnull
-    Permissions getPermissions(Set<Privilege> privileges);
+    Set<String> getPrivilegeNames(@Nullable Tree tree);
 
-    // TODO define how permissions eval is bound to a particular revision/branch. (passing Tree?)
-    @Nonnull
-    CompiledPermissions getCompiledPermissions(NodeStore nodeStore, Set<Principal> principals);
+    boolean hasPrivileges(@Nullable Tree tree, String... privilegeNames);
+
+    boolean canRead(@Nonnull Tree tree);
+
+    boolean canRead(@Nonnull Tree tree, @Nonnull PropertyState property);
+
+    boolean isGranted(long permissions);
+
+    boolean isGranted(@Nonnull Tree tree, long permissions);
+
+    boolean isGranted(@Nonnull Tree parent, @Nonnull PropertyState property, long permissions);
+
+    boolean hasPermission(@Nonnull String oakPath, @Nonnull String jcrActions);
+
+    long getPermission(@Nonnull Tree tree, long defaultPermission);
+
+    long getPermission(@Nonnull Tree parent, @Nonnull PropertyState propertyState, long defaultPermission);
 }

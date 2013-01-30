@@ -23,7 +23,6 @@ import java.io.InputStream;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.Collections;
-
 import javax.annotation.Nonnull;
 import javax.security.auth.Subject;
 
@@ -33,7 +32,6 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.TreeLocation;
-import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.commit.DefaultConflictHandler;
 import org.apache.jackrabbit.oak.plugins.index.diffindex.UUIDDiffIndexProviderWrapper;
 import org.apache.jackrabbit.oak.query.QueryEngineImpl;
@@ -42,8 +40,8 @@ import org.apache.jackrabbit.oak.spi.observation.ChangeExtractor;
 import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfiguration;
-import org.apache.jackrabbit.oak.spi.security.authorization.CompiledPermissions;
 import org.apache.jackrabbit.oak.spi.security.authorization.OpenAccessControlConfiguration;
+import org.apache.jackrabbit.oak.spi.security.authorization.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.SystemPrincipal;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -63,7 +61,9 @@ public class RootImpl implements Root {
      */
     private static final int PURGE_LIMIT = 100;
 
-    /** The underlying store to which this root belongs */
+    /**
+     * The underlying store to which this root belongs
+     */
     private final NodeStore store;
 
     private final Subject subject;
@@ -73,10 +73,14 @@ public class RootImpl implements Root {
      */
     private final AccessControlConfiguration accConfiguration;
 
-    /** Current branch this root operates on */
+    /**
+     * Current branch this root operates on
+     */
     private NodeStoreBranch branch;
 
-    /** Current root {@code Tree} */
+    /**
+     * Current root {@code Tree}
+     */
     private TreeImpl rootTree;
 
     /**
@@ -92,11 +96,11 @@ public class RootImpl implements Root {
     /**
      * New instance bases on a given {@link NodeStore} and a workspace
      *
-     * @param store         node store
-     * @param workspaceName name of the workspace
-     * @param subject       the subject.
-     * @param accConfiguration   the access control context provider.
-     * @param indexProvider the query index provider.
+     * @param store            node store
+     * @param workspaceName    name of the workspace
+     * @param subject          the subject.
+     * @param accConfiguration the access control context provider.
+     * @param indexProvider    the query index provider.
      */
     @SuppressWarnings("UnusedParameters")
     public RootImpl(NodeStore store,
@@ -236,16 +240,16 @@ public class RootImpl implements Root {
         purgePendingChanges();
         CommitFailedException exception = Subject.doAs(
                 getCombinedSubject(), new PrivilegedAction<CommitFailedException>() {
-                    @Override
-                    public CommitFailedException run() {
-                        try {
-                            branch.merge();
-                            return null;
-                        } catch (CommitFailedException e) {
-                            return e;
-                        }
-                    }
-                });
+            @Override
+            public CommitFailedException run() {
+                try {
+                    branch.merge();
+                    return null;
+                } catch (CommitFailedException e) {
+                    return e;
+                }
+            }
+        });
         if (exception != null) {
             throw exception;
         }
@@ -257,8 +261,7 @@ public class RootImpl implements Root {
         Subject accSubject = Subject.getSubject(AccessController.getContext());
         if (accSubject == null) {
             return subject;
-        }
-        else {
+        } else {
             Subject combinedSubject = new Subject(false,
                     subject.getPrincipals(), subject.getPublicCredentials(), subject.getPrivateCredentials());
             combinedSubject.getPrincipals().addAll(accSubject.getPrincipals());
@@ -333,6 +336,7 @@ public class RootImpl implements Root {
 
     /**
      * Returns the node state from which the current branch was created.
+     *
      * @return base node state
      */
     @Nonnull
@@ -352,8 +356,8 @@ public class RootImpl implements Root {
         }
     }
 
-    CompiledPermissions getPermissions() {
-        return accConfiguration.getPermissionProvider(NamePathMapper.DEFAULT).getCompiledPermissions(store, subject.getPrincipals());
+    PermissionProvider getPermissionProvider() {
+        return accConfiguration.getPermissionProvider(this, subject.getPrincipals());
     }
 
     //------------------------------------------------------------< private >---
