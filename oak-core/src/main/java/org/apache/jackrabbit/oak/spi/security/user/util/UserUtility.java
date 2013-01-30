@@ -31,7 +31,8 @@ import org.apache.jackrabbit.util.Text;
  */
 public final class UserUtility implements UserConstants {
 
-    private UserUtility() {}
+    private UserUtility() {
+    }
 
     @Nonnull
     public static String getAdminId(ConfigurationParameters parameters) {
@@ -60,7 +61,7 @@ public final class UserUtility implements UserConstants {
     }
 
     @CheckForNull
-    public static AuthorizableType getType(NodeUtil authorizableNode) {
+    public static AuthorizableType getType(@Nonnull NodeUtil authorizableNode) {
         String ntName = authorizableNode.getPrimaryNodeTypeName();
         if (ntName != null) {
             if (UserConstants.NT_REP_GROUP.equals(ntName)) {

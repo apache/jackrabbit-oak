@@ -50,9 +50,9 @@ import static org.apache.jackrabbit.oak.api.Type.STRING;
 /**
  * User provider implementation and manager for group memberships with the
  * following characteristics:
- *
+ * <p/>
  * <h1>UserProvider</h1>
- *
+ * <p/>
  * <h2>User and Group Creation</h2>
  * This implementation creates the JCR nodes corresponding the a given
  * authorizable ID with the following behavior:
@@ -100,31 +100,31 @@ import static org.apache.jackrabbit.oak.api.Type.STRING;
  * <h3>Conflicts</h3>
  *
  * <ul>
- *     <li>If the authorizable node to be created would collide with an existing
- *     folder the conflict is resolved by using the colling folder as target.</li>
- *     <li>The current implementation asserts that authorizable nodes are always
- *     created underneath an node of type {@code rep:AuthorizableFolder}. If this
- *     condition is violated a {@code ConstraintViolationException} is thrown.</li>
- *     <li>If the specified intermediate path results in an authorizable node
- *     being located outside of the configured content structure a
- *     {@code ConstraintViolationException} is thrown.</li>
+ * <li>If the authorizable node to be created would collide with an existing
+ * folder the conflict is resolved by using the colling folder as target.</li>
+ * <li>The current implementation asserts that authorizable nodes are always
+ * created underneath an node of type {@code rep:AuthorizableFolder}. If this
+ * condition is violated a {@code ConstraintViolationException} is thrown.</li>
+ * <li>If the specified intermediate path results in an authorizable node
+ * being located outside of the configured content structure a
+ * {@code ConstraintViolationException} is thrown.</li>
  * </ul>
  *
  * <h3>Configuration Options</h3>
  * <ul>
- *     <li>{@link UserConstants#PARAM_USER_PATH}: Underneath this structure
- *     all user nodes are created. Default value is
- *     "/rep:security/rep:authorizables/rep:users"</li>
- *     <li>{@link UserConstants#PARAM_GROUP_PATH}: Underneath this structure
- *     all group nodes are created. Default value is
- *     "/rep:security/rep:authorizables/rep:groups"</li>
- *     <li>{@link UserConstants#PARAM_DEFAULT_DEPTH}: A positive {@code integer}
- *     greater than zero defining the depth of the default structure that is
- *     always created. Default value: 2</li>
- *     <li>{@link UserConstants#PARAM_AUTHORIZABLE_NODE_NAME}: An implementation
- *     of {@link AuthorizableNodeName} used to create a node name for a given
- *     authorizableId. By {@link AuthorizableNodeName.Default default} the
- *     ID itself is used as node name. (since OAK 1.0)</li>
+ * <li>{@link UserConstants#PARAM_USER_PATH}: Underneath this structure
+ * all user nodes are created. Default value is
+ * "/rep:security/rep:authorizables/rep:users"</li>
+ * <li>{@link UserConstants#PARAM_GROUP_PATH}: Underneath this structure
+ * all group nodes are created. Default value is
+ * "/rep:security/rep:authorizables/rep:groups"</li>
+ * <li>{@link UserConstants#PARAM_DEFAULT_DEPTH}: A positive {@code integer}
+ * greater than zero defining the depth of the default structure that is
+ * always created. Default value: 2</li>
+ * <li>{@link UserConstants#PARAM_AUTHORIZABLE_NODE_NAME}: An implementation
+ * of {@link AuthorizableNodeName} used to create a node name for a given
+ * authorizableId. By {@link AuthorizableNodeName.Default default} the
+ * ID itself is used as node name. (since OAK 1.0)</li>
  * </ul>
  *
  * <h3>Compatibility with Jackrabbit 2.x</h3>
@@ -132,8 +132,8 @@ import static org.apache.jackrabbit.oak.api.Type.STRING;
  * Due to the fact that this JCR implementation is expected to deal with huge amount
  * of child nodes the following configuration options are no longer supported:
  * <ul>
- *     <li>autoExpandTree</li>
- *     <li>autoExpandSize</li>
+ * <li>autoExpandTree</li>
+ * <li>autoExpandSize</li>
  * </ul>
  *
  * <h2>User and Group Access</h2>
@@ -227,7 +227,7 @@ class UserProvider extends AuthorizableBaseProvider {
     }
 
     @CheckForNull
-    static String getAuthorizableId(Tree authorizableTree) {
+    static String getAuthorizableId(@Nonnull Tree authorizableTree) {
         checkNotNull(authorizableTree);
         if (UserUtility.isType(authorizableTree, AuthorizableType.AUTHORIZABLE)) {
             PropertyState idProp = authorizableTree.getProperty(UserConstants.REP_AUTHORIZABLE_ID);
@@ -262,15 +262,15 @@ class UserProvider extends AuthorizableBaseProvider {
      * configured user or group path. Note that Authorizable nodes are never
      * nested.
      *
-     * @param authorizableId The desired authorizable ID.
-     * @param nodeName The name of the authorizable node.
-     * @param isGroup Flag indicating whether the new authorizable is a group or a user.
+     * @param authorizableId   The desired authorizable ID.
+     * @param nodeName         The name of the authorizable node.
+     * @param isGroup          Flag indicating whether the new authorizable is a group or a user.
      * @param intermediatePath An optional intermediate path.
      * @return The folder node.
      * @throws RepositoryException If an error occurs
      */
     private NodeUtil createFolderNodes(String authorizableId, String nodeName,
-                                   boolean isGroup, String intermediatePath) throws RepositoryException {
+                                       boolean isGroup, String intermediatePath) throws RepositoryException {
         String authRoot = (isGroup) ? groupPath : userPath;
         NodeUtil folder;
         Tree authTree = root.getTree(authRoot);
@@ -279,7 +279,7 @@ class UserProvider extends AuthorizableBaseProvider {
             for (String name : Text.explode(authRoot, '/', false)) {
                 folder = folder.getOrAddChild(name, NT_REP_AUTHORIZABLE_FOLDER);
             }
-        }  else {
+        } else {
             folder = new NodeUtil(authTree);
         }
 
@@ -309,7 +309,7 @@ class UserProvider extends AuthorizableBaseProvider {
             if (!intermediatePath.startsWith(authRoot)) {
                 throw new ConstraintViolationException("Attempt to create authorizable outside of configured tree");
             } else {
-                intermediatePath = intermediatePath.substring(authRoot.length()+1);
+                intermediatePath = intermediatePath.substring(authRoot.length() + 1);
             }
         }
 
@@ -324,7 +324,7 @@ class UserProvider extends AuthorizableBaseProvider {
                     segment.append(authorizableId.charAt(i));
                 } else {
                     // escapedID is too short -> append the last char again
-                    segment.append(authorizableId.charAt(idLength-1));
+                    segment.append(authorizableId.charAt(idLength - 1));
                 }
                 sb.append(DELIMITER).append(Text.escapeIllegalJcrChars(segment.toString()));
             }

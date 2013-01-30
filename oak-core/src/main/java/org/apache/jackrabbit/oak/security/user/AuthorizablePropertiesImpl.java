@@ -206,12 +206,12 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
      *
      * @param authorizableTree The tree of the target authorizable.
      * @param propertyLocation Location to be tested.
-     * @param verifyAncestor If true the property is tested to be a descendant
-     * of the node of this authorizable; otherwise it is expected that this
-     * test has been executed by the caller.
+     * @param verifyAncestor   If true the property is tested to be a descendant
+     *                         of the node of this authorizable; otherwise it is expected that this
+     *                         test has been executed by the caller.
      * @return {@code true} if the given property is not protected and is defined
-     * by the rep:authorizable node type or one of it's sub-node types;
-     * {@code false} otherwise.
+     *         by the rep:authorizable node type or one of it's sub-node types;
+     *         {@code false} otherwise.
      * @throws RepositoryException If an error occurs.
      */
     private boolean isAuthorizableProperty(Tree authorizableTree, TreeLocation propertyLocation, boolean verifyAncestor) throws RepositoryException {
@@ -226,17 +226,21 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
      *
      * @param authorizableTree The tree of the target authorizable.
      * @param propertyLocation Location to be tested.
-     * @param verifyAncestor If true the property is tested to be a descendant
-     * of the node of this authorizable; otherwise it is expected that this
-     * test has been executed by the caller.
+     * @param verifyAncestor   If true the property is tested to be a descendant
+     *                         of the node of this authorizable; otherwise it is expected that this
+     *                         test has been executed by the caller.
      * @return a valid authorizable property or {@code null} if no such property
-     * exists or fi the property is protected or not defined by the rep:authorizable
-     * node type or one of it's sub-node types.
+     *         exists or fi the property is protected or not defined by the rep:authorizable
+     *         node type or one of it's sub-node types.
      * @throws RepositoryException If an error occurs.
      */
     @CheckForNull
     private PropertyState getAuthorizableProperty(Tree authorizableTree, TreeLocation propertyLocation, boolean verifyAncestor) throws RepositoryException {
-        if (propertyLocation == null || TreeLocation.NULL == propertyLocation) {
+        if (propertyLocation == null) {
+            return null;
+        }
+        PropertyState property = propertyLocation.getProperty();
+        if (property == null) {
             return null;
         }
 
@@ -246,19 +250,16 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
             return null;
         }
 
-        PropertyState property = propertyLocation.getProperty();
-        if (property != null) {
-            Tree parent = propertyLocation.getParent().getTree();
-            if (parent == null) {
-                log.debug("Unable to determine definition of authorizable property at " + propertyLocation.getPath());
-                return null;
-            }
-            PropertyDefinition def = nodeTypeManager.getDefinition(parent, property);
-            if (def.isProtected() || (authorizablePath.equals(parent.getPath())
-                    && !def.getDeclaringNodeType().isNodeType(UserConstants.NT_REP_AUTHORIZABLE))) {
-                return null;
-            } // else: non-protected property somewhere in the subtree of the user tree.
-        } // else: no such property.
+        Tree parent = propertyLocation.getParent().getTree();
+        if (parent == null) {
+            log.debug("Unable to determine definition of authorizable property at " + propertyLocation.getPath());
+            return null;
+        }
+        PropertyDefinition def = nodeTypeManager.getDefinition(parent, property);
+        if (def.isProtected() || (authorizablePath.equals(parent.getPath())
+                && !def.getDeclaringNodeType().isNodeType(UserConstants.NT_REP_AUTHORIZABLE))) {
+            return null;
+        } // else: non-protected property somewhere in the subtree of the user tree.
 
         return property;
     }
@@ -278,7 +279,7 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
      * @param relPath A relative path.
      * @return The corresponding node.
      * @throws RepositoryException If an error occurs or if {@code relPath} refers
-     * to a node that is outside of the scope of this authorizable.
+     *                             to a node that is outside of the scope of this authorizable.
      */
     @Nonnull
     private Tree getOrCreateTargetTree(String relPath) throws RepositoryException {

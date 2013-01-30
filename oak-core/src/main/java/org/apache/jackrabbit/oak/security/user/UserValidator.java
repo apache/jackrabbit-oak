@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.jcr.nodetype.ConstraintViolationException;
 
 import org.apache.jackrabbit.JcrConstants;
@@ -25,12 +27,14 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.commit.DefaultValidator;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
-import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtility;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
+import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtility;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtility;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.apache.jackrabbit.util.Text;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Validator that enforces user management specific constraints. Please note that
@@ -51,7 +55,7 @@ class UserValidator extends DefaultValidator implements UserConstants {
         this.parentAfter = parentAfter;
         this.provider = provider;
 
-        authorizableType = UserUtility.getType(parentAfter);
+        authorizableType = (parentAfter == null) ? null : UserUtility.getType(parentAfter);
     }
 
     //----------------------------------------------------------< Validator >---
@@ -68,7 +72,7 @@ class UserValidator extends DefaultValidator implements UserConstants {
             fail(msg);
         }
 
-        if (JcrConstants.JCR_UUID.equals(name) && !isValidUUID(after.getValue(Type.STRING))) {
+        if (JcrConstants.JCR_UUID.equals(name) && !isValidUUID(parentAfter, after.getValue(Type.STRING))) {
             String msg = "Invalid jcr:uuid for authorizable " + parentAfter.getName();
             fail(msg);
         }
@@ -84,9 +88,12 @@ class UserValidator extends DefaultValidator implements UserConstants {
         if (REP_PRINCIPAL_NAME.equals(name) || REP_AUTHORIZABLE_ID.equals(name)) {
             String msg = "Authorizable property " + name + " may not be altered after user/group creation.";
             fail(msg);
-        } else if (JcrConstants.JCR_UUID.equals(name) && !isValidUUID(after.getValue(Type.STRING))) {
-            String msg = "Invalid jcr:uuid for authorizable " + parentAfter.getName();
-            fail(msg);
+        } else if (JcrConstants.JCR_UUID.equals(name)) {
+            checkNotNull(parentAfter);
+            if (!isValidUUID(parentAfter, after.getValue(Type.STRING))) {
+                String msg = "Invalid jcr:uuid for authorizable " + parentAfter.getName();
+                fail(msg);
+            }
         }
 
         if (isUser(parentBefore) && REP_PASSWORD.equals(name) && PasswordUtility.isPlainTextPassword(after.getValue(Type.STRING))) {
@@ -111,7 +118,8 @@ class UserValidator extends DefaultValidator implements UserConstants {
 
     @Override
     public Validator childNodeAdded(String name, NodeState after) throws CommitFailedException {
-        NodeUtil node = parentAfter.getChild(name);
+        NodeUtil node = checkNotNull(parentAfter.getChild(name));
+
         AuthorizableType type = UserUtility.getType(node);
         String authRoot = UserUtility.getAuthorizableRootPath(provider.getConfig(), type);
         if (authRoot != null) {
@@ -143,39 +151,39 @@ class UserValidator extends DefaultValidator implements UserConstants {
 
     //------------------------------------------------------------< private >---
 
-    private boolean isAdminUser(NodeUtil userNode) {
-        if (isUser(userNode)) {
+    private boolean isAdminUser(@Nullable NodeUtil userNode) {
+        if (userNode != null && isUser(userNode)) {
             String id = UserProvider.getAuthorizableId(userNode.getTree());
-            return id != null && UserUtility.getAdminId(provider.getConfig()).equals(id);
+            return UserUtility.getAdminId(provider.getConfig()).equals(id);
         } else {
             return false;
         }
     }
 
-    private boolean isValidUUID(String uuid) {
-        String id = UserProvider.getAuthorizableId(parentAfter.getTree());
+    private static boolean isValidUUID(@Nonnull NodeUtil parent, @Nonnull String uuid) {
+        String id = UserProvider.getAuthorizableId(parent.getTree());
         return uuid.equals(UserProvider.getContentID(id));
     }
 
-    private static boolean isUser(NodeUtil node) {
-        return node.hasPrimaryNodeTypeName(NT_REP_USER);
+    private static boolean isUser(@Nullable NodeUtil node) {
+        return node != null && node.hasPrimaryNodeTypeName(NT_REP_USER);
     }
 
     /**
      * Make sure user and group nodes are located underneath the configured path
      * and that path consists of rep:authorizableFolder nodes.
      *
-     * @param userNode
-     * @param pathConstraint
-     * @throws CommitFailedException
+     * @param node           The node representing a user or group.
+     * @param pathConstraint The path constraint.
+     * @throws CommitFailedException If the hierarchy isn't valid.
      */
-    private static void assertHierarchy(NodeUtil userNode, String pathConstraint) throws CommitFailedException {
-        if (!Text.isDescendant(pathConstraint, userNode.getTree().getPath())) {
+    private static void assertHierarchy(@Nonnull NodeUtil node, @Nonnull String pathConstraint) throws CommitFailedException {
+        if (!Text.isDescendant(pathConstraint, node.getTree().getPath())) {
             String msg = "Attempt to create user/group outside of configured scope " + pathConstraint;
             fail(msg);
         }
-        NodeUtil parent = userNode.getParent();
-        while (!parent.getTree().isRoot()) {
+        NodeUtil parent = node.getParent();
+        while (parent != null && !parent.getTree().isRoot()) {
             if (!parent.hasPrimaryNodeTypeName(NT_REP_AUTHORIZABLE_FOLDER)) {
                 String msg = "Cannot create user/group: Intermediate folders must be of type rep:AuthorizableFolder.";
                 fail(msg);
@@ -184,7 +192,7 @@ class UserValidator extends DefaultValidator implements UserConstants {
         }
     }
 
-    private static void fail(String msg) throws CommitFailedException {
+    private static void fail(@Nonnull String msg) throws CommitFailedException {
         Exception e = new ConstraintViolationException(msg);
         throw new CommitFailedException(e);
     }
