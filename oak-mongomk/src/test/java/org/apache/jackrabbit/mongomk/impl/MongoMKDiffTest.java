@@ -18,7 +18,6 @@ package org.apache.jackrabbit.mongomk.impl;
 
 import org.apache.jackrabbit.mongomk.BaseMongoMicroKernelTest;
 import org.json.simple.JSONObject;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.assertFalse;
@@ -31,9 +30,7 @@ import static org.junit.Assert.assertTrue;
 public class MongoMKDiffTest extends BaseMongoMicroKernelTest {
 
     @Test
-    @Ignore("OAK-596")
     public void oak_596() {
-        String rev0 = mk.getHeadRevision();
         String rev1 = mk.commit("/", "+\"node1\":{\"node2\":{\"prop1\":\"val1\",\"prop2\":\"val2\"}}", null, null);
         String rev2 = mk.commit("/", "^\"node1/node2/prop1\":\"val1 new\" ^\"node1/node2/prop2\":null", null, null);
 
