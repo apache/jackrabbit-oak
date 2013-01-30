@@ -17,8 +17,8 @@
 package org.apache.jackrabbit.mongomk.impl.command;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -30,19 +30,21 @@ import org.apache.jackrabbit.mongomk.api.model.Commit;
 import org.apache.jackrabbit.mongomk.impl.MongoNodeStore;
 import org.apache.jackrabbit.mongomk.impl.action.FetchCommitAction;
 import org.apache.jackrabbit.mongomk.impl.action.FetchHeadRevisionIdAction;
+import org.apache.jackrabbit.mongomk.impl.action.FetchNodesAction;
 import org.apache.jackrabbit.mongomk.impl.action.ReadAndIncHeadRevisionAction;
 import org.apache.jackrabbit.mongomk.impl.action.SaveAndSetHeadRevisionAction;
 import org.apache.jackrabbit.mongomk.impl.action.SaveCommitAction;
 import org.apache.jackrabbit.mongomk.impl.action.SaveNodesAction;
+import org.apache.jackrabbit.mongomk.impl.command.exception.ConcurrentCommitException;
 import org.apache.jackrabbit.mongomk.impl.command.exception.ConflictingCommitException;
 import org.apache.jackrabbit.mongomk.impl.instruction.CommitCommandInstructionVisitor;
 import org.apache.jackrabbit.mongomk.impl.model.MongoCommit;
 import org.apache.jackrabbit.mongomk.impl.model.MongoNode;
 import org.apache.jackrabbit.mongomk.impl.model.MongoSync;
+import org.bson.types.ObjectId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.mongodb.BasicDBObject;
 import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
 import com.mongodb.QueryBuilder;
@@ -66,6 +68,7 @@ public class CommitCommand extends BaseCommand<Long> {
     private final Long initialBaseRevisionId;
     private Long baseRevisionId;
     private String branchId;
+    private int retries;
 
     /**
      * Constructs a new {@code CommitCommandMongo}.
@@ -81,32 +84,28 @@ public class CommitCommand extends BaseCommand<Long> {
 
     @Override
     public Long execute() throws Exception {
-        int retries = 0;
-        boolean success;
-        do {
-            mongoSync = new ReadAndIncHeadRevisionAction(nodeStore).execute();
-            revisionId = mongoSync.getNextRevisionId() - 1;
-            if (initialBaseRevisionId != null) {
-                baseRevisionId = initialBaseRevisionId;
-            } else {
-                baseRevisionId = mongoSync.getHeadRevisionId();
-            }
-            logger.debug("Committing @{} with diff: {}", revisionId, commit.getDiff());
-            readBranchIdFromBaseCommit();
-            createMongoNodes();
-            prepareCommit();
-            readAndMergeExistingNodes();
-            prepareMongoNodes();
-            success = saveNodesAndCommits();
-            if (success) {
-                success = saveAndSetHeadRevision();
-                if (success) {
-                    cacheNodes();
-                } else {
-                    retries++;
-                }
-            }
-        } while (!success);
+        mongoSync = new ReadAndIncHeadRevisionAction(nodeStore).execute();
+        revisionId = mongoSync.getNextRevisionId() - 1;
+        if (initialBaseRevisionId != null) {
+            baseRevisionId = initialBaseRevisionId;
+        } else {
+            baseRevisionId = mongoSync.getHeadRevisionId();
+        }
+        logger.debug("Committing @{} with diff: {}", revisionId, commit.getDiff());
+        readBranchIdFromBaseCommit();
+        createMongoNodes();
+        prepareCommit();
+        readAndMergeExistingNodes();
+        prepareMongoNodes();
+        try {
+            saveNodesAndCommits();
+            saveAndSetHeadRevision();
+            cacheNodes();
+        } catch (ConcurrentCommitException e) {
+            retries++;
+            logger.debug("Commit @{}: failure. Retries:" + retries);
+            throw e;
+        }
 
         String msg = "Commit @{}: success";
         if (retries > 0) {
@@ -116,17 +115,6 @@ public class CommitCommand extends BaseCommand<Long> {
         return revisionId;
     }
 
-    private boolean saveNodesAndCommits() throws Exception {
-        long headRevisionId = new FetchHeadRevisionIdAction(nodeStore, branchId).execute();
-        if (branchId == null && headRevisionId != mongoSync.getHeadRevisionId()) {
-            // Head revision moved on in trunk in the meantime, no need to save
-            return false;
-        }
-        new SaveNodesAction(nodeStore, nodes.values()).execute();
-        new SaveCommitAction(nodeStore, commit).execute();
-        return true;
-    }
-
     @Override
     public int getNumOfRetries() {
         return 100;
@@ -134,7 +122,7 @@ public class CommitCommand extends BaseCommand<Long> {
 
     @Override
     public boolean needsRetry(Exception e) {
-        return e instanceof ConflictingCommitException;
+        return e instanceof ConcurrentCommitException;
     }
 
     private void readBranchIdFromBaseCommit() throws Exception {
@@ -196,63 +184,54 @@ public class CommitCommand extends BaseCommand<Long> {
         }
     }
 
-//    private void readExistingNodes() {
-//        FetchNodesAction action = new FetchNodesAction(nodeStore, affectedPaths,
-//                mongoSync.getHeadRevisionId());
-//        action.setBranchId(branchId);
-//        existingNodes = action.execute();
-//    }
-
-    // FIXME - Performance, This seems to be faster for commits than the old method.
     private void readExistingNodes() throws Exception {
         if (affectedPaths == null || affectedPaths.isEmpty()) {
             existingNodes = Collections.emptyMap();
+            return;
         }
 
-        existingNodes = new HashMap<String, MongoNode>();
-        for (String path : affectedPaths) {
-            NodeExistsCommand command;
-            if (branchId == null) {
-                command = new NodeExistsCommand(nodeStore, path, mongoSync.getHeadRevisionId());
-            } else {
-                command = new NodeExistsCommand(nodeStore, path, baseRevisionId);
-                command.setBranchId(branchId);
-            }
-            if (command.execute()) {
-                existingNodes.put(path, command.getNode());
-            }
-        }
+        long revisionId = branchId == null? mongoSync.getHeadRevisionId() : baseRevisionId;
+        FetchNodesAction action = new FetchNodesAction(nodeStore, affectedPaths, revisionId);
+        action.setBranchId(branchId);
+        existingNodes = action.execute();
     }
 
-    private void mergeNodes() {
+    private void mergeNodes() throws ConflictingCommitException {
         for (MongoNode committingNode : nodes.values()) {
             MongoNode existingNode = existingNodes.get(committingNode.getPath());
-            if (existingNode != null) {
-                if(logger.isDebugEnabled()){
-                    logger.debug("Found existing node to merge: {}", existingNode.getPath());
-                    logger.debug("Existing node: {}", existingNode);
-                    logger.debug("Committing node: {}", committingNode);
-                }
-                Map<String, Object> existingProperties = existingNode.getProperties();
-                if (!existingProperties.isEmpty()) {
-                    committingNode.setProperties(existingProperties);
-
-                    logger.debug("Merged properties for {}: {}", existingNode.getPath(),
-                            existingProperties);
-                }
-
-                List<String> existingChildren = existingNode.getChildren();
-                if (existingChildren != null) {
-                    committingNode.setChildren(existingChildren);
-
-                    logger.debug("Merged children for {}: {}", existingNode.getPath(), existingChildren);
-                }
-
-                logger.debug("Merged node for {}: {}", existingNode.getPath(), committingNode);
-            } else {
-                // FIXME: this may also mean a node we modify has
-                // been removed in the meantime
+            if (existingNode == null) {
+                continue; // Nothing to merge.
             }
+
+            if (logger.isDebugEnabled()){
+                logger.debug("Found existing node to merge: {}", existingNode.getPath());
+                logger.debug("Existing node: {}", existingNode);
+                logger.debug("Committing node: {}", committingNode);
+            }
+
+            // FIXME - More sophisticated conflict handing is needed.
+            if (existingNode.isDeleted() && !committingNode.isDeleted()) {
+                // A node we modify has been deleted in the meantime.
+                throw new ConflictingCommitException("Node has been deleted in the meantime: "
+                        + existingNode.getPath());
+            }
+
+            Map<String, Object> existingProperties = existingNode.getProperties();
+            if (!existingProperties.isEmpty()) {
+                committingNode.setProperties(existingProperties);
+
+                logger.debug("Merged properties for {}: {}", existingNode.getPath(),
+                        existingProperties);
+            }
+
+            List<String> existingChildren = existingNode.getChildren();
+            if (existingChildren != null) {
+                committingNode.setChildren(existingChildren);
+
+                logger.debug("Merged children for {}: {}", existingNode.getPath(), existingChildren);
+            }
+
+            logger.debug("Merged node for {}: {}", existingNode.getPath(), committingNode);
         }
     }
 
@@ -314,68 +293,66 @@ public class CommitCommand extends BaseCommand<Long> {
         }
     }
 
+    private void saveNodesAndCommits() throws Exception {
+        long headRevisionId = new FetchHeadRevisionIdAction(nodeStore, branchId).execute();
+        if (branchId == null && headRevisionId != mongoSync.getHeadRevisionId()) {
+            // Head revision moved on in trunk in the meantime, no need to save
+            throw new ConcurrentCommitException();
+        }
+        new SaveNodesAction(nodeStore, nodes.values()).execute();
+        new SaveCommitAction(nodeStore, commit).execute();
+    }
+
     /**
      * Protected for testing purposed only.
      *
      * @return True if the operation was successful.
      * @throws Exception If an exception happens.
      */
-    protected boolean saveAndSetHeadRevision() throws Exception {
+    protected void saveAndSetHeadRevision() throws Exception {
         // Don't update the head revision id for branches.
         if (branchId != null) {
-            return true;
+            return;
         }
 
-        long assumedHeadRevision = this.mongoSync.getHeadRevisionId();
+        long assumedHeadRevision = mongoSync.getHeadRevisionId();
         MongoSync mongoSync = new SaveAndSetHeadRevisionAction(nodeStore,
                 assumedHeadRevision, revisionId).execute();
-        if (mongoSync == null) {
-            // There have been commit(s) in the meantime. If it's a conflicting
-            // update, retry the whole operation and count against number of retries.
-            // If not, need to retry again (in order to write commits and nodes properly)
-            // but don't count these retries against number of retries.
-            if (conflictingCommitsExist(assumedHeadRevision)) {
-                String message = String.format("Commit @%s: failed due to a conflicting commit."
-                        + " Affected paths: %s", revisionId, commit.getAffectedPaths());
-                logger.warn(message);
-                markAsFailed();
-                throw new ConflictingCommitException(message);
-            } else {
-                logger.info("Commit @{}: failed due to a concurrent commit." + " Affected paths: {}", revisionId, commit.getAffectedPaths());
-                markAsFailed();
-                return false;
-            }
+        if (mongoSync == null) { // There have been concurrent commit(s).
+            cleanupCommitAndNodes();
+            throw new ConcurrentCommitException();
         }
-        return true;
     }
 
-    private boolean conflictingCommitsExist(long baseRevisionId) {
-        QueryBuilder queryBuilder = QueryBuilder.start(MongoCommit.KEY_FAILED).notEquals(Boolean.TRUE)
-                .and(MongoCommit.KEY_BASE_REVISION_ID).is(baseRevisionId)
-                .and(MongoCommit.KEY_REVISION_ID).greaterThan(0L)
-                .and(MongoCommit.KEY_REVISION_ID).notEquals(revisionId);
-        DBObject query = queryBuilder.get();
+    private void cleanupCommitAndNodes() throws Exception {
+
+        logger.debug("Cleaning up commit and nodes related to Commit @{}", revisionId);
+
+        // Clean up the commit.
         DBCollection collection = nodeStore.getCommitCollection();
-        MongoCommit conflictingCommit = (MongoCommit)collection.findOne(query);
-        for (String affectedPath : conflictingCommit.getAffectedPaths()) {
-            if (affectedPaths.contains(affectedPath)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private void markAsFailed() throws Exception {
-        DBCollection commitCollection = nodeStore.getCommitCollection();
         DBObject query = QueryBuilder.start("_id").is(commit.getObjectId("_id")).get();
-        DBObject update = new BasicDBObject("$set", new BasicDBObject(MongoCommit.KEY_FAILED, Boolean.TRUE));
-        WriteResult writeResult = commitCollection.update(query, update,
-                false /*upsert*/, false /*multi*/, WriteConcern.SAFE);
-        logger.debug("Marked @{} failed", revisionId);
-        nodeStore.evict(commit);
+
+        WriteResult writeResult = collection.remove(query, WriteConcern.SAFE);
         if (writeResult.getError() != null) {
-            // FIXME This is potentially a bug that we need to handle.
-            throw new Exception(String.format("Update wasn't successful: %s", writeResult));
+            throw new Exception(String.format("Remove wasn't successful: %s", writeResult));
+        }
+
+        // Collect ids for the nodes
+        Collection<MongoNode> nodesCollection = nodes.values();
+        int nodesSize = nodesCollection.size();
+        DBObject[] nodesArray = nodesCollection.toArray(new DBObject[nodesSize]);
+        ObjectId[] objectIds = new ObjectId[nodesSize];
+        for (int i = 0; i < nodesSize; i++) {
+            objectIds[i] = (ObjectId)nodesArray[i].get("_id");
+        }
+
+        // Clean up nodes.
+        collection = nodeStore.getNodeCollection();
+        query = QueryBuilder.start("_id").in(objectIds).get();
+
+        writeResult = collection.remove(query, WriteConcern.SAFE);
+        if (writeResult.getError() != null) {
+            throw new Exception(String.format("Remove wasn't successful: %s", writeResult));
         }
     }
 
