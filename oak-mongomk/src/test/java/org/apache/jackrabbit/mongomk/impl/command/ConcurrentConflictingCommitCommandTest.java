@@ -60,6 +60,31 @@ public class ConcurrentConflictingCommitCommandTest extends BaseMongoMicroKernel
     }
 
     /**
+     * Test that concurrent conflicting update to root ends up with a "There's
+     * already a child" exception in the second try.
+     */
+    @Test
+    public void rootUpdate2() throws Exception {
+        int n = 2;
+        CountDownLatch latch = new CountDownLatch(n - 1);
+        CommitCommand cmd1 = new WaitingCommitCommand(getNodeStore(),
+                CommitBuilder.build("/", "+\"a1\" : {}", null), latch);
+        CommitCommand cmd2 = new NotifyingCommitCommand(getNodeStore(),
+                CommitBuilder.build("/", "+\"a1\" : {}", null), latch);
+
+        ExecutorService executorService = Executors.newFixedThreadPool(n);
+        Future<Long> future1 = executorService.submit(new CommitExecutorCallable(cmd1));
+        Thread.sleep(1000);
+        Future<Long> future2 = executorService.submit(new CommitExecutorCallable(cmd2));
+        try {
+            future1.get();
+            future2.get();
+        } catch (Exception expected) {
+            // cmd2 tries to add /a1 again, so this is expected.
+        }
+    }
+
+    /**
      * Test that a commit does not end up with a conflict exception when there
      * is another concurrent commit with a disjoint affected path.
      */
@@ -177,11 +202,11 @@ public class ConcurrentConflictingCommitCommandTest extends BaseMongoMicroKernel
                 CommitBuilder.build("/", "+\"b\" : {}", null), latch);
 
         ExecutorService executorService = Executors.newFixedThreadPool(n);
-        Future<Long> future1 = executorService.submit(new CommitCallable(cmd1));
+        Future<Long> future1 = executorService.submit(new CommitExecutorCallable(cmd1));
         Thread.sleep(1000); // To make sure commit /a started waiting.
-        Future<Long> future2 = executorService.submit(new CommitCallable(cmd2));
+        Future<Long> future2 = executorService.submit(new CommitExecutorCallable(cmd2));
         Thread.sleep(1000); // To make sure commit /c/d incremented the head revision.
-        Future<Long> future3 = executorService.submit(new CommitCallable(cmd3));
+        Future<Long> future3 = executorService.submit(new CommitExecutorCallable(cmd3));
         try {
             future1.get();
             future2.get();
@@ -244,13 +269,30 @@ public class ConcurrentConflictingCommitCommandTest extends BaseMongoMicroKernel
     }
 
     /**
-     * A Callable test simply executes the command.
+     * A Callable that simply executes the command.
      */
     private static class CommitCallable implements Callable<Long> {
 
         private final CommitCommand command;
 
         public CommitCallable(CommitCommand command) {
+            this.command = command;
+        }
+
+        @Override
+        public Long call() throws Exception {
+            return command.execute();
+        }
+    }
+
+    /**
+     * A Callable that executes the command with the default command executor.
+     */
+    private static class CommitExecutorCallable implements Callable<Long> {
+
+        private final CommitCommand command;
+
+        public CommitExecutorCallable(CommitCommand command) {
             this.command = command;
         }
 
