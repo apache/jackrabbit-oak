@@ -16,12 +16,18 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
+import java.util.UUID;
+
 public interface SegmentStore {
 
-    Journal getJournal(String name);
+    RecordId getHead(String journal);
 
-    SegmentReader getReader();
+    boolean updateHead(String journal, RecordId base, RecordId head);
 
-    SegmentWriter getWriter();
+    byte[] readSegment(UUID segmentId);
+
+    void createSegment(UUID segmentId, byte[] data, int offset, int length);
+
+    void deleteSegment(UUID segmentId);
 
 }
