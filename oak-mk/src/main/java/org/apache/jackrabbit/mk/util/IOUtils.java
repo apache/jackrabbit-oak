@@ -29,15 +29,22 @@ import java.net.Socket;
 public class IOUtils {
 
     /**
+     * Avoid instantiation
+     */
+    private IOUtils() {
+    }
+
+    /**
      * Try to read the given number of bytes to the buffer. This method reads
      * until the maximum number of bytes have been read or until the end of
      * file.
      *
-     * @param in the input stream
+     * @param in     the input stream
      * @param buffer the output buffer
-     * @param off the offset in the buffer
-     * @param max the number of bytes to read at most
+     * @param off    the offset in the buffer
+     * @param max    the number of bytes to read at most
      * @return the number of bytes read, 0 meaning EOF
+     * @throws java.io.IOException If an error occurs.
      */
     public static int readFully(InputStream in, byte[] buffer, int off, int max) throws IOException {
         int len = Math.min(max, buffer.length);
@@ -57,11 +64,11 @@ public class IOUtils {
     /**
      * Skip a number of bytes in an input stream.
      *
-     * @param in the input stream
+     * @param in   the input stream
      * @param skip the number of bytes to skip
      * @throws EOFException if the end of file has been reached before all bytes
      *                      could be skipped
-     * @throws IOException if an IO exception occurred while skipping
+     * @throws IOException  if an IO exception occurred while skipping
      */
     public static void skipFully(InputStream in, long skip) throws IOException {
         while (skip > 0) {
@@ -78,7 +85,7 @@ public class IOUtils {
      * UTF-8 encoded string.
      *
      * @param out the data output stream
-     * @param s the string (maximum length about 2 GB)
+     * @param s   the string (maximum length about 2 GB)
      */
     public static void writeString(OutputStream out, String s) throws IOException {
         writeBytes(out, s.getBytes("UTF-8"));
@@ -99,7 +106,7 @@ public class IOUtils {
      * Write a byte array. This will first write the length as 4 bytes, and then
      * the actual bytes.
      *
-     * @param out the data output stream
+     * @param out  the data output stream
      * @param data the byte array
      */
     public static void writeBytes(OutputStream out, byte[] data) throws IOException {
@@ -117,7 +124,7 @@ public class IOUtils {
     public static byte[] readBytes(InputStream in) throws IOException {
         int len = readVarInt(in);
         byte[] data = new byte[len];
-        for (int pos = 0; pos < len;) {
+        for (int pos = 0; pos < len; ) {
             int l = in.read(data, pos, data.length - pos);
             if (l < 0) {
                 throw new EOFException();
@@ -131,7 +138,7 @@ public class IOUtils {
      * Write a variable size integer. Negative values need 5 bytes.
      *
      * @param out the output stream
-     * @param x the value
+     * @param x   the value
      */
     public static void writeVarInt(OutputStream out, int x) throws IOException {
         while ((x & ~0x7f) != 0) {
@@ -153,7 +160,7 @@ public class IOUtils {
             return x;
         }
         x &= 0x7f;
-        for (int s = 7;; s += 7) {
+        for (int s = 7; ; s += 7) {
             int b = in.read();
             if (b < 0) {
                 throw new EOFException();
@@ -171,7 +178,7 @@ public class IOUtils {
      * Negative values need 10 bytes.
      *
      * @param out the output stream
-     * @param x the value
+     * @param x   the value
      */
     public static void writeVarLong(OutputStream out, long x) throws IOException {
         while ((x & ~0x7f) != 0) {
@@ -185,7 +192,7 @@ public class IOUtils {
      * Write a long (8 bytes).
      *
      * @param out the output stream
-     * @param x the value
+     * @param x   the value
      */
     public static void writeLong(OutputStream out, long x) throws IOException {
         writeInt(out, (int) (x >>> 32));
@@ -206,7 +213,7 @@ public class IOUtils {
      * Write an integer (4 bytes).
      *
      * @param out the output stream
-     * @param x the value
+     * @param x   the value
      */
     public static void writeInt(OutputStream out, int x) throws IOException {
         out.write((byte) (x >> 24));
@@ -223,9 +230,9 @@ public class IOUtils {
      */
     public static int readInt(InputStream in) throws IOException {
         return ((in.read() & 0xff) << 24) +
-            ((in.read() & 0xff) << 16) +
-            ((in.read() & 0xff) << 8) +
-            (in.read() & 0xff);
+                ((in.read() & 0xff) << 16) +
+                ((in.read() & 0xff) << 8) +
+                (in.read() & 0xff);
     }
 
     /**
@@ -240,7 +247,7 @@ public class IOUtils {
             return x;
         }
         x &= 0x7f;
-        for (int s = 7;; s += 7) {
+        for (int s = 7; ; s += 7) {
             long b = in.read();
             if (b < 0) {
                 throw new EOFException();
@@ -270,7 +277,7 @@ public class IOUtils {
 
     /**
      * Unconditionally close a {@code Closeable}.
-     * <p>
+     * <p/>
      * Equivalent to {@link Closeable#close()}, except any exceptions will be ignored.
      * This is typically used in finally blocks.
      *
@@ -288,7 +295,7 @@ public class IOUtils {
 
     /**
      * Unconditionally close a {@code Socket}.
-     * <p>
+     * <p/>
      * Equivalent to {@link Socket#close()}, except any exceptions will be ignored.
      * This is typically used in finally blocks.
      *
@@ -307,12 +314,12 @@ public class IOUtils {
     /**
      * Copy bytes from an {@code InputStream} to an
      * {@code OutputStream}.
-     * <p>
+     * <p/>
      * This method buffers the input internally, so there is no need to use a
      * {@code BufferedInputStream}.
      *
      * @param input  the {@code InputStream} to read from
-     * @param output  the {@code OutputStream} to write to
+     * @param output the {@code OutputStream} to write to
      * @return the number of bytes copied
      * @throws IOException if an I/O error occurs
      */
