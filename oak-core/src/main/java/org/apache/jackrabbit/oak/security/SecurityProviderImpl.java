@@ -33,12 +33,8 @@ import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfigu
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class SecurityProviderImpl implements SecurityProvider {
-
-    private static final Logger log = LoggerFactory.getLogger(SecurityProviderImpl.class);
 
     public static final String PARAM_AUTHENTICATION_OPTIONS = "org.apache.jackrabbit.oak.authentication.options";
     public static final String PARAM_PRINCIPAL_OPTIONS = "org.apache.jackrabbit.oak.principal.options";
@@ -96,8 +92,8 @@ public class SecurityProviderImpl implements SecurityProvider {
     }
 
     //------------------------------------------------------------< private >---
+
     /**
-     *
      * @param name
      * @return
      */

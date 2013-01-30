@@ -614,7 +614,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
         }
     }
 
-    private class PrincipalACL extends NodeACL {
+    private final class PrincipalACL extends NodeACL {
 
         private final RestrictionProvider rProvider;
 
