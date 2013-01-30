@@ -16,18 +16,31 @@
  */
 package org.apache.jackrabbit.mongomk.impl;
 
+import org.apache.jackrabbit.mongomk.BaseMongoMicroKernelTest;
+import org.json.simple.JSONObject;
+import org.junit.Ignore;
+import org.junit.Test;
+
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-
-import org.apache.jackrabbit.mongomk.BaseMongoMicroKernelTest;
-import org.json.simple.JSONObject;
-import org.junit.Test;
 
 /**
  * Tests for MicroKernel#diff
  */
 public class MongoMKDiffTest extends BaseMongoMicroKernelTest {
+
+    @Test
+    @Ignore("OAK-596")
+    public void oak_596() {
+        String rev0 = mk.getHeadRevision();
+        String rev1 = mk.commit("/", "+\"node1\":{\"node2\":{\"prop1\":\"val1\",\"prop2\":\"val2\"}}", null, null);
+        String rev2 = mk.commit("/", "^\"node1/node2/prop1\":\"val1 new\" ^\"node1/node2/prop2\":null", null, null);
+
+        String diff = mk.diff(rev1, rev2, "/node1/node2", 0);
+        assertTrue(diff.contains("^\"/node1/node2/prop2\":null"));
+        assertTrue(diff.contains("^\"/node1/node2/prop1\":\"val1 new\""));
+    }
 
     @Test
     public void addPathOneLevel() {
