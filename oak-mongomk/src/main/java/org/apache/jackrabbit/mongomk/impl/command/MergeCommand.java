@@ -114,9 +114,7 @@ public class MergeCommand extends BaseCommand<String> {
                     MongoUtil.fromMongoRepresentation(currentHead), message);
         }
 
-        Command<Long> command = new CommitCommand(nodeStore, newCommit);
-        long revision = command.execute();
-        return MongoUtil.fromMongoRepresentation(revision);
+        return nodeStore.commit(newCommit);
     }
 
     /**

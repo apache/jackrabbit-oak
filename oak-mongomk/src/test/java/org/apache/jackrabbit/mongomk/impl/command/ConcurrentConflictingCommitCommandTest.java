@@ -73,9 +73,9 @@ public class ConcurrentConflictingCommitCommandTest extends BaseMongoMicroKernel
                 CommitBuilder.build("/", "+\"a1\" : {}", null), latch);
 
         ExecutorService executorService = Executors.newFixedThreadPool(n);
-        Future<Long> future1 = executorService.submit(new CommitExecutorCallable(cmd1));
+        Future<Long> future1 = executorService.submit(new CommitCallable(cmd1));
         Thread.sleep(1000);
-        Future<Long> future2 = executorService.submit(new CommitExecutorCallable(cmd2));
+        Future<Long> future2 = executorService.submit(new CommitCallable(cmd2));
         try {
             future1.get();
             future2.get();
@@ -202,11 +202,11 @@ public class ConcurrentConflictingCommitCommandTest extends BaseMongoMicroKernel
                 CommitBuilder.build("/", "+\"b\" : {}", null), latch);
 
         ExecutorService executorService = Executors.newFixedThreadPool(n);
-        Future<Long> future1 = executorService.submit(new CommitExecutorCallable(cmd1));
+        Future<Long> future1 = executorService.submit(new CommitCallable(cmd1));
         Thread.sleep(1000); // To make sure commit /a started waiting.
-        Future<Long> future2 = executorService.submit(new CommitExecutorCallable(cmd2));
+        Future<Long> future2 = executorService.submit(new CommitCallable(cmd2));
         Thread.sleep(1000); // To make sure commit /c/d incremented the head revision.
-        Future<Long> future3 = executorService.submit(new CommitExecutorCallable(cmd3));
+        Future<Long> future3 = executorService.submit(new CommitCallable(cmd3));
         try {
             future1.get();
             future2.get();
@@ -230,13 +230,12 @@ public class ConcurrentConflictingCommitCommandTest extends BaseMongoMicroKernel
         }
 
         @Override
-        protected boolean saveAndSetHeadRevision() throws Exception {
+        protected void saveAndSetHeadRevision() throws Exception {
             try {
                 latch.await();
-                return super.saveAndSetHeadRevision();
+                super.saveAndSetHeadRevision();
             } catch (InterruptedException e) {
                 e.printStackTrace();
-                return false;
             }
         }
     }
@@ -255,13 +254,11 @@ public class ConcurrentConflictingCommitCommandTest extends BaseMongoMicroKernel
         }
 
         @Override
-        protected boolean saveAndSetHeadRevision() throws Exception {
+        protected void saveAndSetHeadRevision() throws Exception {
             try {
-                boolean result = super.saveAndSetHeadRevision();
-                return result;
+                super.saveAndSetHeadRevision();
             } catch (InterruptedException e) {
                 e.printStackTrace();
-                return false;
             } finally {
                 latch.countDown();
             }
@@ -276,23 +273,6 @@ public class ConcurrentConflictingCommitCommandTest extends BaseMongoMicroKernel
         private final CommitCommand command;
 
         public CommitCallable(CommitCommand command) {
-            this.command = command;
-        }
-
-        @Override
-        public Long call() throws Exception {
-            return command.execute();
-        }
-    }
-
-    /**
-     * A Callable that executes the command with the default command executor.
-     */
-    private static class CommitExecutorCallable implements Callable<Long> {
-
-        private final CommitCommand command;
-
-        public CommitExecutorCallable(CommitCommand command) {
             this.command = command;
         }
 

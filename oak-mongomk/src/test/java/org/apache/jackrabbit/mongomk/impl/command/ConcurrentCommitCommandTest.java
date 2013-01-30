@@ -52,16 +52,15 @@ public class ConcurrentCommitCommandTest extends BaseMongoMicroKernelTest {
                     "This is a concurrent commit");
             CommitCommand command = new CommitCommand(getNodeStore(), commit) {
                 @Override
-                protected boolean saveAndSetHeadRevision() throws Exception {
+                protected void saveAndSetHeadRevision() throws Exception {
                     try {
                         synchronized (waitLock) {
                             waitLock.wait();
                         }
 
-                        return super.saveAndSetHeadRevision();
+                        super.saveAndSetHeadRevision();
                     } catch (InterruptedException e) {
                         e.printStackTrace();
-                        return false;
                     }
                 };
             };
