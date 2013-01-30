@@ -24,7 +24,7 @@ import org.apache.jackrabbit.oak.util.NodeUtil;
 /**
  * AccessControlContext... TODO
  */
-class AccessControlContext implements Context, AccessControlConstants {
+final class AccessControlContext implements Context, AccessControlConstants {
 
     private static final Context INSTANCE = new AccessControlContext();
 
