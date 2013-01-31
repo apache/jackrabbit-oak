@@ -28,7 +28,7 @@ import org.apache.jackrabbit.oak.security.privilege.PrivilegeConstants;
 /**
  * OpenPermissionProvider... TODO
  */
-public class OpenPermissionProvider implements PermissionProvider {
+public final class OpenPermissionProvider implements PermissionProvider {
 
     private static final PermissionProvider INSTANCE = new OpenPermissionProvider();
 
