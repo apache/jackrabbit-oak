@@ -637,7 +637,7 @@ public class TreeImpl implements Tree {
     }
 
     // TODO: OAK-599 (accessed by PropertyDelegate)
-    public final class PropertyLocation extends AbstractPropertyLocation<NodeLocation> {
+    public final class PropertyLocation extends AbstractPropertyLocation<TreeImpl, NodeLocation> {
 
         private PropertyLocation(NodeLocation parentLocation, String name) {
             super(parentLocation, name);
