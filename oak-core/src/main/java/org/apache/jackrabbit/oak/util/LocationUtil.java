@@ -36,7 +36,7 @@ public final class LocationUtil {
     public static TreeLocation getTreeLocation(TreeLocation parentLocation, String relativePath) {
         TreeLocation targetLocation = parentLocation;
         String[] segments = Text.explode(relativePath, '/', false);
-        for (int i = 0; i < segments.length && targetLocation != TreeLocation.NULL; i++) {
+        for (int i = 0; i < segments.length && targetLocation.exists(); i++) {
             String segment = segments[i];
             if (PathUtils.denotesCurrent(segment)) {
                 continue;

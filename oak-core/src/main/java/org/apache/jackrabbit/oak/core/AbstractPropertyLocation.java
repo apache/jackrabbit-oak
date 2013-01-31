@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.core;
 
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 
@@ -42,7 +43,13 @@ abstract class AbstractPropertyLocation<T extends Tree, L extends AbstractNodeLo
 
     @Override
     public TreeLocation getChild(String relPath) {
-        return TreeLocation.NULL;
+        return NullLocation.NULL;
+    }
+
+    @Override
+    public boolean exists() {
+        Status status = getStatus();
+        return status != null && status != Status.REMOVED && getProperty() != null;
     }
 
     @Override
