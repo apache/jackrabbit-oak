@@ -253,7 +253,7 @@ public class ReadOnlyTree implements Tree {
         @Override
         public TreeLocation getParent() {
             return tree.parent == null
-                    ? TreeLocation.NULL
+                    ? NullLocation.NULL
                     : new NodeLocation(tree.parent);
         }
 
@@ -269,7 +269,7 @@ public class ReadOnlyTree implements Tree {
             for (String name : PathUtils.elements(parentPath)) {
                 child = child.getChild(name);
                 if (child == null) {
-                    return TreeLocation.NULL;
+                    return NullLocation.NULL;
                 }
             }
 
@@ -280,7 +280,7 @@ public class ReadOnlyTree implements Tree {
             } else {
                 child = child.getChild(name);
                 return child == null
-                        ? TreeLocation.NULL
+                        ? NullLocation.NULL
                         : new NodeLocation(child);
             }
         }

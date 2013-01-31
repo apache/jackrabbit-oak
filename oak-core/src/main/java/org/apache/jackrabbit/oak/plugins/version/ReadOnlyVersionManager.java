@@ -177,6 +177,8 @@ public abstract class ReadOnlyVersionManager {
             PropertyState p = t.getProperty(VersionConstants.JCR_ISCHECKEDOUT);
             if (p != null) {
                 return p.getValue(Type.BOOLEAN);
+            } else if (t.isRoot()) {
+                return true;
             }
         } else {
             // FIXME: this actually means access to the tree is restricted
@@ -187,12 +189,7 @@ public abstract class ReadOnlyVersionManager {
             // it is in fact read-only because of a checked-in ancestor.
         }
         // otherwise return checkedOut status of parent
-        if (location.getParent() == TreeLocation.NULL) {
-            // root tree
-            return true;
-        } else {
-            return isCheckedOut(location.getParent());
-        }
+        return isCheckedOut(location.getParent());
     }
 
     /**

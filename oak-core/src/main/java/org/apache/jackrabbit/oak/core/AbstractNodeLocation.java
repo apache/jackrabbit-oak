@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.core;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.api.TreeLocation;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -31,6 +32,12 @@ abstract class AbstractNodeLocation<T extends Tree> implements TreeLocation {
 
     AbstractNodeLocation(T tree) {
         this.tree = checkNotNull(tree);
+    }
+
+    @Override
+    public boolean exists() {
+        Status status = getStatus();
+        return status != null && status != Status.REMOVED && getTree() != null;
     }
 
     @Override
