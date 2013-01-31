@@ -36,21 +36,21 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
- * <code>ReadOnlyVersionManager</code> provides implementations for read-only
+ * {@code ReadOnlyVersionManager} provides implementations for read-only
  * version operations modeled after the ones available in {@link javax.jcr.version.VersionManager}.
  */
 public abstract class ReadOnlyVersionManager {
 
     /**
      * @return the read-only {@link Tree} for the jcr:versionStorage node. The
-     *         returned <code>Tree</code> instance must be up-to-date with the
-     *         <code>Root</code> returned by {@link #getWorkspaceRoot()}.
+     *         returned {@code Tree} instance must be up-to-date with the
+     *         {@code Root} returned by {@link #getWorkspaceRoot()}.
      */
     @Nonnull
     protected abstract Tree getVersionStorageTree();
 
     /**
-     * @return the <code>Root</code> of the workspace.
+     * @return the {@code Root} of the workspace.
      */
     @Nonnull
     protected abstract Root getWorkspaceRoot();
@@ -62,8 +62,8 @@ public abstract class ReadOnlyVersionManager {
     protected abstract ReadOnlyNodeTypeManager getNodeTypeManager();
 
     /**
-     * Returns <code>true</code> if the tree is checked out; otherwise
-     * <code>false</code>.
+     * Returns {@code true} if the tree is checked out; otherwise
+     * {@code false}.
      *
      * @param tree the tree to check.
      * @return whether the tree is checked out or not.
@@ -73,8 +73,8 @@ public abstract class ReadOnlyVersionManager {
     }
 
     /**
-     * Returns <code>true</code> if the tree at the given absolute Oak path is
-     * checked out; otherwise <code>false</code>.
+     * Returns {@code true} if the tree at the given absolute Oak path is
+     * checked out; otherwise {@code false}.
      *
      * @param absOakPath an absolute path.
      * @return whether the tree at the given location is checked out or not.
@@ -85,10 +85,10 @@ public abstract class ReadOnlyVersionManager {
 
     /**
      * Returns the tree representing the version history of the given
-     * versionable tree or <code>null</code> if none exists yet.
+     * versionable tree or {@code null} if none exists yet.
      *
      * @param versionable the versionable tree.
-     * @return the version history or <code>null</code> if none exists yet.
+     * @return the version history or {@code null} if none exists yet.
      * @throws UnsupportedRepositoryOperationException
      *                             if the versionable tree is not actually
      *                             versionable.
@@ -107,7 +107,7 @@ public abstract class ReadOnlyVersionManager {
     }
 
     /**
-     * Returns the path of the version history for the given <code>uuid</code>.
+     * Returns the path of the version history for the given {@code uuid}.
      * The returned path is relative to the version storage tree as returned
      * by {@link #getVersionStorageTree()}.
      *
@@ -126,11 +126,11 @@ public abstract class ReadOnlyVersionManager {
 
     /**
      * Returns the tree representing the base version of the given versionable
-     * tree or <code>null</code> if none exists yet. This is the case when a
+     * tree or {@code null} if none exists yet. This is the case when a
      * versionable node is created, but is not yet saved.
      *
      * @param versionable the versionable tree.
-     * @return the tree representing the base version or <code>null</code>.
+     * @return the tree representing the base version or {@code null}.
      * @throws UnsupportedRepositoryOperationException
      *                             if the versionable tree is not actually
      *                             versionable.
@@ -193,7 +193,7 @@ public abstract class ReadOnlyVersionManager {
     }
 
     /**
-     * Checks if the given <code>tree</code> is versionable and throws a {@link
+     * Checks if the given {@code tree} is versionable and throws a {@link
      * UnsupportedRepositoryOperationException} if it is not.
      *
      * @param tree the tree to check.
@@ -215,11 +215,11 @@ public abstract class ReadOnlyVersionManager {
     }
 
     /**
-     * Returns <code>true</code> if the given <code>tree</code> is of type
-     * <code>mix:versionable</code>; <code>false</code> otherwise.
+     * Returns {@code true} if the given {@code tree} is of type
+     * {@code mix:versionable}; {@code false} otherwise.
      *
      * @param tree the tree to check.
-     * @return whether the <code>tree</code> is versionable.
+     * @return whether the {@code tree} is versionable.
      * @throws RepositoryException if an error occurs while checking the node
      *                             type of the tree.
      */
