@@ -49,12 +49,14 @@ import org.slf4j.LoggerFactory;
 
 /**
  * PermissionProviderImpl... TODO
+ * <p/>
+ * FIXME: permissions need to be refreshed if something changes in the permission tree
  */
 public class PermissionProviderImpl implements PermissionProvider, AccessControlConstants {
 
     private static final Logger log = LoggerFactory.getLogger(PermissionProviderImpl.class);
 
-    private final ReadOnlyTree rootTree;
+    private final Root root;
     private final SecurityProvider securityProvider;
 
     private final String workspaceName = "default"; // FIXME: use proper workspace as associated with the root
@@ -63,18 +65,14 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
 
     public PermissionProviderImpl(@Nonnull Root root, @Nonnull Set<Principal> principals,
                                   @Nonnull SecurityProvider securityProvider) {
-        this(ReadOnlyTree.createFromRoot(root), principals, securityProvider);
-    }
-
-    public PermissionProviderImpl(@Nonnull Tree rootTree, @Nonnull Set<Principal> principals,
-                                  @Nonnull SecurityProvider securityProvider) {
-        this.rootTree = ReadOnlyTree.createFromRootTree(rootTree);
+        this.root = root;
         this.securityProvider = securityProvider;
         if (principals.contains(SystemPrincipal.INSTANCE) || isAdmin(principals)) {
             compiledPermissions = AllPermissions.getInstance();
         } else {
             String relativePath = PERMISSIONS_STORE_PATH + '/' + workspaceName;
-            ReadOnlyTree permissionsTree = getPermissionsRoot(this.rootTree, relativePath);
+            ReadOnlyTree rootTree = ReadOnlyTree.createFromRoot(root);
+            ReadOnlyTree permissionsTree = getPermissionsRoot(rootTree, relativePath);
             if (permissionsTree == null) {
                 compiledPermissions = NoPermissions.getInstance();
             } else {
@@ -153,7 +151,7 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
 
     @Override
     public boolean hasPermission(@Nonnull String oakPath, String jcrActions) {
-        TreeLocation location = rootTree.getLocation().getChild(oakPath.substring(1));
+        TreeLocation location = root.getLocation(oakPath);
         long permissions = Permissions.getPermissions(jcrActions, location);
 
         // TODO
@@ -248,8 +246,7 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
             log.warn("Unable to determine path of the versionable node.");
             return null;
         } else {
-            String relPath = versionablePath.substring(1);
-            return rootTree.getLocation().getChild(relPath).getTree();
+            return root.getLocation(versionablePath).getTree();
         }
     }
 

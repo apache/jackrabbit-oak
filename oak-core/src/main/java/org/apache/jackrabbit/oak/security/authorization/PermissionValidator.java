@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.authorization;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.AccessDeniedException;
 
@@ -26,8 +27,6 @@ import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.security.authorization.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.Permissions;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * PermissionValidator... TODO
@@ -98,9 +97,8 @@ class PermissionValidator implements Validator {
 
     //------------------------------------------------------------< private >---
 
-    private Validator checkPermissions(Tree tree, boolean isBefore, long defaultPermission) throws CommitFailedException {
-        checkNotNull(tree);
-
+    private Validator checkPermissions(@Nonnull Tree tree, boolean isBefore,
+                                       long defaultPermission) throws CommitFailedException {
         long permission = permissionProvider.getPermission(tree, defaultPermission);
         if (Permissions.isRepositoryPermission(permission)) {
             if (!permissionProvider.isGranted(permission)) {
@@ -117,7 +115,8 @@ class PermissionValidator implements Validator {
         }
     }
 
-    private void checkPermissions(Tree parent, PropertyState property, long defaultPermission) throws CommitFailedException {
+    private void checkPermissions(@Nonnull Tree parent, @Nonnull PropertyState property,
+                                  long defaultPermission) throws CommitFailedException {
         long permission = permissionProvider.getPermission(parent, property, defaultPermission);
         if (!permissionProvider.isGranted(parent, property, permission)) {
             throw new CommitFailedException(new AccessDeniedException());
