@@ -47,11 +47,6 @@ public class ReadOnlyTree implements Tree {
     private final String name;
 
     /**
-     * Path of this tree
-     */
-    private final String path;
-
-    /**
      * Underlying node state
      */
     private final NodeState state;
@@ -63,21 +58,8 @@ public class ReadOnlyTree implements Tree {
     public ReadOnlyTree(@Nullable ReadOnlyTree parent, @Nonnull String name, @Nonnull NodeState state) {
         this.parent = parent;
         this.name = checkNotNull(name);
-        this.path = buildPath(parent, name);
         this.state = checkNotNull(state);
         checkArgument(!name.isEmpty() || parent == null);
-    }
-
-    private static String buildPath(ReadOnlyTree parent, String name) {
-        if (parent == null) {
-            return "/";
-        } else if (parent.isRoot()) {
-            return parent.path + name;
-        } else {
-            StringBuilder sb = new StringBuilder();
-            sb.append(parent.path).append('/').append(name);
-            return sb.toString();
-        }
     }
 
     public static ReadOnlyTree createFromRoot(Root root) {
@@ -102,7 +84,21 @@ public class ReadOnlyTree implements Tree {
 
     @Override
     public String getPath() {
-        return path;
+        if (isRoot()) {
+            // shortcut
+            return "/";
+        }
+
+        StringBuilder sb = new StringBuilder();
+        buildPath(sb);
+        return sb.toString();
+    }
+
+    private void buildPath(StringBuilder sb) {
+        if (parent != null) {
+            parent.buildPath(sb);
+            sb.append('/').append(name);
+        }
     }
 
     @Override
