@@ -26,7 +26,7 @@ import java.net.Socket;
 /**
  * Input/output utility methods.
  */
-public class IOUtils {
+public final class IOUtils {
 
     /**
      * Avoid instantiation
@@ -86,6 +86,7 @@ public class IOUtils {
      *
      * @param out the data output stream
      * @param s   the string (maximum length about 2 GB)
+     * @throws IOException if an IO exception occurred while writing
      */
     public static void writeString(OutputStream out, String s) throws IOException {
         writeBytes(out, s.getBytes("UTF-8"));
@@ -97,6 +98,7 @@ public class IOUtils {
      *
      * @param in the data input stream
      * @return the string
+     * @throws IOException if an IO exception occurred while reading
      */
     public static String readString(InputStream in) throws IOException {
         return new String(readBytes(in), "UTF-8");
@@ -108,6 +110,7 @@ public class IOUtils {
      *
      * @param out  the data output stream
      * @param data the byte array
+     * @throws IOException if an IO exception occurred while writing.
      */
     public static void writeBytes(OutputStream out, byte[] data) throws IOException {
         writeVarInt(out, data.length);
@@ -120,6 +123,7 @@ public class IOUtils {
      *
      * @param in the data input stream
      * @return the bytes
+     * @throws IOException if an IO exception occurred while reading from the stream.
      */
     public static byte[] readBytes(InputStream in) throws IOException {
         int len = readVarInt(in);
@@ -139,6 +143,7 @@ public class IOUtils {
      *
      * @param out the output stream
      * @param x   the value
+     * @throws IOException if an IO exception occurred while writing.
      */
     public static void writeVarInt(OutputStream out, int x) throws IOException {
         while ((x & ~0x7f) != 0) {
@@ -153,6 +158,7 @@ public class IOUtils {
      *
      * @param in the input stream
      * @return the integer
+     * @throws IOException if an IO exception occurred while reading.
      */
     public static int readVarInt(InputStream in) throws IOException {
         int x = (byte) in.read();
@@ -179,6 +185,7 @@ public class IOUtils {
      *
      * @param out the output stream
      * @param x   the value
+     * @throws IOException if an IO exception occurred while writing.
      */
     public static void writeVarLong(OutputStream out, long x) throws IOException {
         while ((x & ~0x7f) != 0) {
@@ -193,6 +200,7 @@ public class IOUtils {
      *
      * @param out the output stream
      * @param x   the value
+     * @throws IOException if an IO exception occurred while writing.
      */
     public static void writeLong(OutputStream out, long x) throws IOException {
         writeInt(out, (int) (x >>> 32));
@@ -204,6 +212,7 @@ public class IOUtils {
      *
      * @param in the input stream
      * @return the value
+     * @throws IOException if an IO exception occurred while reading.
      */
     public static long readLong(InputStream in) throws IOException {
         return ((long) (readInt(in)) << 32) + (readInt(in) & 0xffffffffL);
@@ -214,6 +223,7 @@ public class IOUtils {
      *
      * @param out the output stream
      * @param x   the value
+     * @throws IOException if an IO exception occurred while writing.
      */
     public static void writeInt(OutputStream out, int x) throws IOException {
         out.write((byte) (x >> 24));
@@ -227,6 +237,7 @@ public class IOUtils {
      *
      * @param in the input stream
      * @return the value
+     * @throws IOException if an IO exception occurred while reading.
      */
     public static int readInt(InputStream in) throws IOException {
         return ((in.read() & 0xff) << 24) +
@@ -240,6 +251,7 @@ public class IOUtils {
      *
      * @param in the input stream
      * @return the long
+     * @throws IOException if an IO exception occurred while reading.
      */
     public static long readVarLong(InputStream in) throws IOException {
         long x = (byte) in.read();
