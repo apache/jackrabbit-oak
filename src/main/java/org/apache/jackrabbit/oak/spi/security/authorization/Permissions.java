@@ -169,7 +169,7 @@ public final class Permissions {
             permissions |= ADD_PROPERTY | MODIFY_PROPERTY;
         }
         if (s.remove(Session.ACTION_REMOVE)) {
-            if (location == TreeLocation.NULL) {
+            if (!location.exists()) {
                 permissions |= REMOVE;
             } else if (location.getProperty() == null) {
                 permissions |= REMOVE_NODE;

@@ -593,7 +593,7 @@ public class TreeImpl implements Tree {
         @Override
         public TreeLocation getParent() {
             return tree.parent == null
-                    ? TreeLocation.NULL
+                    ? NullLocation.NULL
                     : new NodeLocation(tree.parent);
         }
 
@@ -609,7 +609,7 @@ public class TreeImpl implements Tree {
             for (String name : PathUtils.elements(parentPath)) {
                 child = child.internalGetChild(name);
                 if (child == null) {
-                    return TreeLocation.NULL;
+                    return NullLocation.NULL;
                 }
             }
 
@@ -620,7 +620,7 @@ public class TreeImpl implements Tree {
             } else {
                 child = child.internalGetChild(name);
                 return child == null
-                        ? TreeLocation.NULL
+                        ? NullLocation.NULL
                         : new NodeLocation(child);
             }
         }
