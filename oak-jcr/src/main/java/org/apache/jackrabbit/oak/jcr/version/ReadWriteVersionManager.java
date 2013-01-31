@@ -29,7 +29,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.plugins.version.ReadOnlyVersionManager;
-import org.apache.jackrabbit.oak.version.VersionConstants;
+import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 

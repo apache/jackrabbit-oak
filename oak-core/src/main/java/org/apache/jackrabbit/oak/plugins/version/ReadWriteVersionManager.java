@@ -59,7 +59,7 @@ import static org.apache.jackrabbit.JcrConstants.NT_FROZENNODE;
 import static org.apache.jackrabbit.JcrConstants.NT_VERSION;
 import static org.apache.jackrabbit.JcrConstants.NT_VERSIONHISTORY;
 import static org.apache.jackrabbit.JcrConstants.NT_VERSIONLABELS;
-import static org.apache.jackrabbit.oak.version.VersionConstants.REP_VERSIONSTORAGE;
+import static org.apache.jackrabbit.oak.plugins.version.VersionConstants.REP_VERSIONSTORAGE;
 
 /**
  * TODO document

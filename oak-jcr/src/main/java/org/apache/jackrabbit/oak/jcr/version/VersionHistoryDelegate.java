@@ -35,7 +35,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.jcr.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.PropertyDelegate;
 import org.apache.jackrabbit.oak.jcr.SessionDelegate;
-import org.apache.jackrabbit.oak.version.VersionConstants;
+import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterators;
