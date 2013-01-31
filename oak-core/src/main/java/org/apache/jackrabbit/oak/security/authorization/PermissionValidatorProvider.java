@@ -23,6 +23,7 @@ import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.security.auth.Subject;
 
+import org.apache.jackrabbit.oak.core.ReadOnlyRoot;
 import org.apache.jackrabbit.oak.core.ReadOnlyTree;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
@@ -49,9 +50,9 @@ class PermissionValidatorProvider implements ValidatorProvider {
         Subject subject = Subject.getSubject(AccessController.getContext());
         Set<Principal> principals = (subject != null) ? subject.getPrincipals() : Collections.<Principal>emptySet();
 
-        ReadOnlyTree beforeTree = new ReadOnlyTree(before);
-        PermissionProvider pp = acConfiguration.getPermissionProvider(beforeTree, principals);
+        ReadOnlyRoot root = new ReadOnlyRoot(before);
+        PermissionProvider pp = acConfiguration.getPermissionProvider(root, principals);
 
-        return new PermissionValidator(beforeTree, new ReadOnlyTree(after), pp, this);
+        return new PermissionValidator(new ReadOnlyTree(before), new ReadOnlyTree(after), pp, this);
     }
 }

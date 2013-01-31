@@ -25,7 +25,6 @@ import javax.annotation.Nonnull;
 import javax.jcr.security.AccessControlManager;
 
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.security.authorization.restriction.RestrictionProviderImpl;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
@@ -81,13 +80,6 @@ public class AccessControlConfigurationImpl extends SecurityConfiguration.Defaul
     public PermissionProvider getPermissionProvider(Root root, Set<Principal> principals) {
         // TODO OAK-51
         return new TmpPermissionProvider(root, principals, securityProvider);
-    }
-
-    @Nonnull
-    @Override
-    public PermissionProvider getPermissionProvider(Tree rootTree, Set<Principal> principals) {
-        // TODO OAK-51
-        return new TmpPermissionProvider(rootTree, principals, securityProvider);
     }
 
     @Nonnull

@@ -83,19 +83,10 @@ public class ReadOnlyTree implements Tree {
     public static ReadOnlyTree createFromRoot(Root root) {
         if (root instanceof RootImpl) {
             return new ReadOnlyTree(((RootImpl) root).getBaseState());
+        } else if (root instanceof ReadOnlyRoot) {
+            return ((ReadOnlyRoot) root).getTree("/");
         } else {
             throw new IllegalArgumentException("Unsupported Root implementation.");
-        }
-    }
-
-    public static ReadOnlyTree createFromRootTree(Tree rootTree) {
-        if (rootTree instanceof ReadOnlyTree) {
-            return (ReadOnlyTree) rootTree;
-        } else if (rootTree instanceof TreeImpl) {
-            TreeImpl impl = (TreeImpl) rootTree;
-            return new ReadOnlyTree(null, "", impl.getNodeState());
-        } else {
-            throw new IllegalArgumentException("Unsupported Tree implementation");
         }
     }
 

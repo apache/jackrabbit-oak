@@ -16,40 +16,48 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.plugins.version;
+package org.apache.jackrabbit.oak.core;
 
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.BlobFactory;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.TreeLocation;
+import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
 /**
- * TODO document
+ * Simple implementation of the Root interface that only supports simple read
+ * operations (excluding query) based on the NodeState (or ReadOnly tree)
+ * passed to the constructor.
+ * <p/>
+ * TODO: proper handle node state lifecycle that has an impact on this root.
  */
-class SimpleRoot implements Root {
+public final class ReadOnlyRoot implements Root {
 
-    private final Tree rootTree;
+    private final ReadOnlyTree rootTree;
 
-    SimpleRoot(Tree rootTree) {
+    public ReadOnlyRoot(NodeState rootState) {
+        this(new ReadOnlyTree(rootState));
+    }
+
+    public ReadOnlyRoot(ReadOnlyTree rootTree) {
         checkArgument(rootTree.isRoot());
         this.rootTree = rootTree;
     }
 
     @Override
-    public Tree getTree(String path) {
-        return getLocation(path).getTree();
+    public ReadOnlyTree getTree(String path) {
+        return (ReadOnlyTree) getLocation(path).getTree();
     }
 
     @Nonnull
     @Override
     public TreeLocation getLocation(String path) {
-        checkArgument(path.startsWith("/"));
+        checkArgument(PathUtils.isAbsolute(path));
         return rootTree.getLocation().getChild(path.substring(1));
     }
 
@@ -76,7 +84,7 @@ class SimpleRoot implements Root {
     }
 
     @Override
-    public void commit() throws CommitFailedException {
+    public void commit() {
         throw new UnsupportedOperationException();
     }
 
