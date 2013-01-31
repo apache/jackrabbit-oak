@@ -44,8 +44,4 @@ public interface PermissionProvider {
     boolean isGranted(@Nonnull Tree parent, @Nonnull PropertyState property, long permissions);
 
     boolean hasPermission(@Nonnull String oakPath, @Nonnull String jcrActions);
-
-    long getPermission(@Nonnull Tree tree, long defaultPermission);
-
-    long getPermission(@Nonnull Tree parent, @Nonnull PropertyState propertyState, long defaultPermission);
 }

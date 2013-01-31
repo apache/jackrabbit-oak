@@ -79,14 +79,4 @@ public class OpenPermissionProvider implements PermissionProvider {
     public boolean hasPermission(@Nonnull String oakPath, String jcrActions) {
         return true;
     }
-
-    @Override
-    public long getPermission(@Nonnull Tree tree, long defaultPermission) {
-        return Permissions.ALL;
-    }
-
-    @Override
-    public long getPermission(@Nonnull Tree parent, @Nonnull PropertyState propertyState, long defaultPermission) {
-        return Permissions.ALL;
-    }
 }

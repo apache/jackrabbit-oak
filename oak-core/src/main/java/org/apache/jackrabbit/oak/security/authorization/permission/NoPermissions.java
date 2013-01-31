@@ -31,7 +31,7 @@ public final class NoPermissions implements CompiledPermissions {
     private NoPermissions() {
     }
 
-    public static final CompiledPermissions getInstance() {
+    public static CompiledPermissions getInstance() {
         return INSTANCE;
     }
 
@@ -51,12 +51,17 @@ public final class NoPermissions implements CompiledPermissions {
     }
 
     @Override
-    public boolean isGranted(long permissions, @Nonnull Tree tree) {
+    public boolean isGranted(@Nonnull Tree tree, long permissions) {
         return false;
     }
 
     @Override
-    public boolean isGranted(long permissions, @Nonnull Tree parent, @Nonnull PropertyState property) {
+    public boolean isGranted(@Nonnull Tree parent, @Nonnull PropertyState property, long permissions) {
+        return false;
+    }
+
+    @Override
+    public boolean isGranted(@Nonnull String path, long permissions) {
         return false;
     }
 }

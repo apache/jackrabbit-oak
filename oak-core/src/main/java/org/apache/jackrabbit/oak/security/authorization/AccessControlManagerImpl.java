@@ -71,6 +71,7 @@ import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restrict
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 import org.apache.jackrabbit.oak.spi.state.PropertyBuilder;
 import org.apache.jackrabbit.oak.util.NodeUtil;
+import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.apache.jackrabbit.util.ISO9075;
 import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
@@ -341,7 +342,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
         checkPermission(tree);
 
         // check if the tree is access controlled
-        String ntName = new NodeUtil(tree).getPrimaryNodeTypeName();
+        String ntName = TreeUtil.getPrimaryTypeName(tree);
         if (AC_NODETYPE_NAMES.contains(ntName)) {
             throw new AccessControlException("Tree " + tree.getPath() + " defines access control content.");
         }
@@ -457,10 +458,9 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
     @Nonnull
     private JackrabbitAccessControlEntry createACE(String oakPath, Tree aceTree,
                                                    RestrictionProvider restrictionProvider) throws RepositoryException {
-        NodeUtil aceNode = new NodeUtil(aceTree);
-        boolean isAllow = aceNode.hasPrimaryNodeTypeName(NT_REP_GRANT_ACE);
+        boolean isAllow = NT_REP_GRANT_ACE.equals(TreeUtil.getPrimaryTypeName(aceTree));
         Set<Restriction> restrictions = restrictionProvider.readRestrictions(oakPath, aceTree);
-        return new ACE(getPrincipal(aceNode), getPrivileges(aceNode), isAllow, restrictions);
+        return new ACE(getPrincipal(aceTree), getPrivileges(aceTree), isAllow, restrictions);
     }
 
     @Nonnull
@@ -496,8 +496,8 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
     }
 
     @Nonnull
-    private Principal getPrincipal(@Nonnull NodeUtil aceNode) {
-        String principalName = checkNotNull(aceNode.getString(REP_PRINCIPAL_NAME, null));
+    private Principal getPrincipal(@Nonnull Tree aceTree) {
+        String principalName = checkNotNull(TreeUtil.getString(aceTree, REP_PRINCIPAL_NAME));
         Principal principal = principalManager.getPrincipal(principalName);
         if (principal == null) {
             log.debug("Unknown principal " + principalName);
@@ -507,8 +507,8 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
     }
 
     @Nonnull
-    private Set<Privilege> getPrivileges(@Nonnull NodeUtil aceNode) throws RepositoryException {
-        String[] privNames = aceNode.getNames(REP_PRIVILEGES);
+    private Set<Privilege> getPrivileges(@Nonnull Tree aceTree) throws RepositoryException {
+        String[] privNames = TreeUtil.getStrings(aceTree, REP_PRIVILEGES);
         Set<Privilege> privileges = new HashSet<Privilege>(privNames.length);
         for (String name : privNames) {
             privileges.add(privilegeManager.getPrivilege(name));

@@ -72,12 +72,12 @@ public class AllPermissionsTest extends AbstractSecurityTest {
             Tree tree = root.getTree(path);
             assertNotNull(tree);
 
-            assertTrue(all.isGranted(Permissions.ALL, tree));
+            assertTrue(all.isGranted(tree, Permissions.ALL));
             for (PropertyState prop : tree.getProperties()) {
-                assertTrue(all.isGranted(Permissions.ALL, tree, prop));
+                assertTrue(all.isGranted(tree, prop, Permissions.ALL));
             }
             for (Tree child : tree.getChildren()) {
-                assertTrue(all.isGranted(Permissions.ALL, child));
+                assertTrue(all.isGranted(child, Permissions.ALL));
             }
         }
     }

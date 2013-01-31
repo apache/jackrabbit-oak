@@ -16,13 +16,16 @@
  */
 package org.apache.jackrabbit.oak.security.authorization;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.AccessDeniedException;
 
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.security.authorization.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.Permissions;
@@ -44,17 +47,24 @@ class PermissionValidator implements Validator {
     private final PermissionProvider permissionProvider;
     private final PermissionValidatorProvider provider;
 
+    private final long permission;
+
     PermissionValidator(Tree parentBefore, Tree parentAfter,
                         PermissionProvider permissionProvider,
                         PermissionValidatorProvider provider) {
-        this.permissionProvider = permissionProvider;
-        this.parentBefore = parentBefore;
-        this.parentAfter = parentAfter;
-        this.provider = provider;
+        this(parentBefore, parentAfter, permissionProvider, provider,
+                Permissions.getPermission(getPath(parentBefore, parentAfter), Permissions.NO_PERMISSION));
     }
 
-    private Validator nextValidator(@Nullable Tree parentBefore, @Nullable Tree parentAfter) {
-        return new PermissionValidator(parentBefore, parentAfter, permissionProvider, provider);
+    PermissionValidator(Tree parentBefore, Tree parentAfter,
+                        PermissionProvider permissionProvider,
+                        PermissionValidatorProvider provider,
+                        long permission) {
+        this.permissionProvider = permissionProvider;
+        this.provider = provider;
+        this.parentBefore = parentBefore;
+        this.parentAfter = parentAfter;
+        this.permission = permission;
     }
 
     //----------------------------------------------------------< Validator >---
@@ -96,17 +106,20 @@ class PermissionValidator implements Validator {
     }
 
     //------------------------------------------------------------< private >---
+    private Validator nextValidator(@Nullable Tree parentBefore, @Nullable Tree parentAfter) {
+        return new PermissionValidator(parentBefore, parentAfter, permissionProvider, provider, permission);
+    }
 
     private Validator checkPermissions(@Nonnull Tree tree, boolean isBefore,
                                        long defaultPermission) throws CommitFailedException {
-        long permission = permissionProvider.getPermission(tree, defaultPermission);
-        if (Permissions.isRepositoryPermission(permission)) {
-            if (!permissionProvider.isGranted(permission)) {
+        long toTest = getPermission(tree, defaultPermission);
+        if (Permissions.isRepositoryPermission(toTest)) {
+            if (!permissionProvider.isGranted(toTest)) {
                 throw new CommitFailedException(new AccessDeniedException());
             }
             return null; // no need for further validation down the subtree
         } else {
-            if (!permissionProvider.isGranted(tree, permission)) {
+            if (!permissionProvider.isGranted(tree, toTest)) {
                 throw new CommitFailedException(new AccessDeniedException());
             }
             return (isBefore) ?
@@ -117,9 +130,63 @@ class PermissionValidator implements Validator {
 
     private void checkPermissions(@Nonnull Tree parent, @Nonnull PropertyState property,
                                   long defaultPermission) throws CommitFailedException {
-        long permission = permissionProvider.getPermission(parent, property, defaultPermission);
-        if (!permissionProvider.isGranted(parent, property, permission)) {
+        long toTest = getPermission(parent, property, defaultPermission);
+        if (!permissionProvider.isGranted(parent, property, toTest)) {
             throw new CommitFailedException(new AccessDeniedException());
         }
+    }
+
+    @CheckForNull
+    private static String getPath(@Nullable Tree parentBefore, @Nullable Tree parentAfter) {
+        String path = null;
+        if (parentBefore != null) {
+            path = parentBefore.getPath();
+        } else if (parentAfter != null) {
+            path = parentAfter.getPath();
+        }
+        return path;
+    }
+
+    public long getPermission(@Nonnull Tree tree, long defaultPermission) {
+        if (permission != Permissions.NO_PERMISSION) {
+            return permission;
+        }
+        long perm;
+        if (provider.getAccessControlContext().definesTree(tree)) {
+            perm = Permissions.MODIFY_ACCESS_CONTROL;
+        } else if (provider.getUserContext().definesTree(tree)) {
+            perm = Permissions.USER_MANAGEMENT;
+        } else {
+            // TODO: identify renaming/move of nodes that only required MODIFY_CHILD_NODE_COLLECTION permission
+            perm = defaultPermission;
+        }
+        return perm;
+    }
+
+    public long getPermission(@Nonnull Tree parent, @Nonnull PropertyState propertyState, long defaultPermission) {
+        if (permission != Permissions.NO_PERMISSION) {
+            return permission;
+        }
+        String name = propertyState.getName();
+        long perm;
+        if (JcrConstants.JCR_PRIMARYTYPE.equals(name) || JcrConstants.JCR_MIXINTYPES.equals(name)) {
+            // FIXME: distinguish between autocreated and user-supplied modification (?)
+            perm = Permissions.NODE_TYPE_MANAGEMENT;
+        } else if (isLockProperty(name)) {
+            perm = Permissions.LOCK_MANAGEMENT;
+        } else if (VersionConstants.VERSION_PROPERTY_NAMES.contains(name)) {
+            perm = Permissions.VERSION_MANAGEMENT;
+        } else if (provider.getAccessControlContext().definesProperty(parent, propertyState)) {
+            perm = Permissions.MODIFY_ACCESS_CONTROL;
+        } else if (provider.getUserContext().definesProperty(parent, propertyState)) {
+            perm = Permissions.USER_MANAGEMENT;
+        } else {
+            perm = defaultPermission;
+        }
+        return perm;
+    }
+
+    private static boolean isLockProperty(String name) {
+        return JcrConstants.JCR_LOCKISDEEP.equals(name) || JcrConstants.JCR_LOCKOWNER.equals(name);
     }
 }

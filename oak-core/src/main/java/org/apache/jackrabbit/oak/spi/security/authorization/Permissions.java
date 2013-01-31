@@ -21,9 +21,14 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
+import javax.annotation.Nullable;
 import javax.jcr.Session;
 
 import org.apache.jackrabbit.oak.api.TreeLocation;
+import org.apache.jackrabbit.oak.plugins.name.NamespaceConstants;
+import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
+import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
+import org.apache.jackrabbit.oak.security.privilege.PrivilegeConstants;
 
 /**
  * Permissions... TODO
@@ -157,29 +162,56 @@ public final class Permissions {
     }
 
     public static long getPermissions(String jcrActions, TreeLocation location) {
-        Set<String> s = new HashSet<String>(Arrays.asList(jcrActions.split(",")));
+        Set<String> actions = new HashSet<String>(Arrays.asList(jcrActions.split(",")));
         int permissions = 0;
-        if (s.remove(Session.ACTION_READ)) {
-            permissions |= READ;
-        }
-        if (s.remove(Session.ACTION_ADD_NODE)) {
-            permissions |= ADD_NODE;
-        }
-        if (s.remove(Session.ACTION_SET_PROPERTY)) {
-            permissions |= ADD_PROPERTY | MODIFY_PROPERTY;
-        }
-        if (s.remove(Session.ACTION_REMOVE)) {
+        if (actions.remove(Session.ACTION_READ)) {
             if (!location.exists()) {
-                permissions |= REMOVE;
-            } else if (location.getProperty() == null) {
-                permissions |= REMOVE_NODE;
+                permissions |= READ;
+            } else if (location.getProperty() != null) {
+                permissions |= READ_PROPERTY;
             } else {
-                permissions |= REMOVE_PROPERTY;
+                permissions |= READ_NODE;
             }
         }
-        if (!s.isEmpty()) {
-            throw new IllegalArgumentException("Unknown actions: " + s);
+        if (actions.remove(Session.ACTION_ADD_NODE)) {
+            permissions |= ADD_NODE;
+        }
+        if (actions.remove(Session.ACTION_SET_PROPERTY)) {
+            if (location.getProperty() == null) {
+                permissions |= ADD_PROPERTY;
+            } else {
+                permissions |= MODIFY_PROPERTY;
+            }
+        }
+        if (actions.remove(Session.ACTION_REMOVE)) {
+            if (!location.exists()) {
+                permissions |= REMOVE;
+            } else if (location.getProperty() != null) {
+                permissions |= REMOVE_PROPERTY;
+            } else {
+                permissions |= REMOVE_NODE;
+            }
+        }
+        if (!actions.isEmpty()) {
+            throw new IllegalArgumentException("Unknown actions: " + actions);
         }
         return permissions;
+    }
+
+    public static long getPermission(@Nullable String path, long defaultPermission) {
+        long permission;
+        if (NamespaceConstants.NAMESPACES_PATH.equals(path)) {
+            permission = Permissions.NAMESPACE_MANAGEMENT;
+        } else if (NodeTypeConstants.NODE_TYPES_PATH.equals(path)) {
+            permission = Permissions.NODE_TYPE_DEFINITION_MANAGEMENT;
+        } else if (VersionConstants.SYSTEM_PATHS.contains(path)) {
+            permission = Permissions.VERSION_MANAGEMENT;
+        } else if (PrivilegeConstants.PRIVILEGES_PATH.equals(path)) {
+            permission = Permissions.PRIVILEGE_MANAGEMENT;
+        } else {
+            // TODO: workspace-mgt
+            permission = defaultPermission;
+        }
+        return permission;
     }
 }
