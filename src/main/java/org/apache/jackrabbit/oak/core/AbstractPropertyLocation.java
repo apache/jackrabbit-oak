@@ -25,7 +25,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 /**
  * AbstractPropertyLocation... TODO
  */
-abstract class AbstractPropertyLocation<L extends AbstractNodeLocation> implements TreeLocation {
+abstract class AbstractPropertyLocation<T extends Tree, L extends AbstractNodeLocation<T>> implements TreeLocation {
 
     protected final L parentLocation;
     protected final String name;
