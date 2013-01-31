@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.security.privilege;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.Context;
-import org.apache.jackrabbit.oak.util.NodeUtil;
+import org.apache.jackrabbit.oak.util.TreeUtil;
 
 /**
  * PrivilegeContext... TODO
@@ -43,7 +43,6 @@ final class PrivilegeContext implements Context {
 
     @Override
     public boolean definesTree(Tree tree) {
-        NodeUtil node = new NodeUtil(tree);
-        return node.hasPrimaryNodeTypeName(PrivilegeConstants.NT_REP_PRIVILEGE);
+        return PrivilegeConstants.NT_REP_PRIVILEGE.equals(TreeUtil.getPrimaryTypeName(tree));
     }
 }
