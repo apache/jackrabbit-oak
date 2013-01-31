@@ -25,7 +25,6 @@ import javax.jcr.Value;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.TreeLocation;
-import org.apache.jackrabbit.oak.core.TreeImpl.PropertyLocation;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 
@@ -78,7 +77,9 @@ public class PropertyDelegate extends ItemDelegate {
      * @param value
      */
     public void setValue(Value value) throws RepositoryException {
-        getPropertyLocation().set(PropertyStates.createProperty(getName(), value));
+        if (!getLocation().set(PropertyStates.createProperty(getName(), value))) {
+            throw new InvalidItemStateException();
+        }
     }
 
     /**
@@ -87,7 +88,9 @@ public class PropertyDelegate extends ItemDelegate {
      * @param values
      */
     public void setValues(Iterable<Value> values) throws RepositoryException {
-        getPropertyLocation().set(PropertyStates.createProperty(getName(), values));
+        if (!getLocation().set(PropertyStates.createProperty(getName(), values))) {
+            throw new InvalidItemStateException();
+        }
     }
 
     /**
@@ -106,16 +109,6 @@ public class PropertyDelegate extends ItemDelegate {
             throw new InvalidItemStateException();
         }
         return property;
-    }
-
-    // TODO: OAK-599
-    @Nonnull
-    private PropertyLocation getPropertyLocation() throws InvalidItemStateException {
-        TreeLocation location = getLocation();
-        if (!(location instanceof PropertyLocation)) {
-            throw new InvalidItemStateException();
-        }
-        return (PropertyLocation) location;
     }
 
 }

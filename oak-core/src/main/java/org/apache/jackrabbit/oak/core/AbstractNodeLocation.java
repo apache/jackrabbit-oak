@@ -54,4 +54,9 @@ abstract class AbstractNodeLocation<T extends Tree> implements TreeLocation {
     public Tree.Status getStatus() {
         return tree.getStatus();
     }
+
+    @Override
+    public boolean set(PropertyState property) {
+        return false;
+    }
 }
