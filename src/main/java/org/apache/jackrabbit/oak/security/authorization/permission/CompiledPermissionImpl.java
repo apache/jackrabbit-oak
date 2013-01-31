@@ -51,7 +51,9 @@ public class CompiledPermissionImpl implements CompiledPermissions, AccessContro
         EntriesBuilder builder = new EntriesBuilder();
         for (Principal principal : principals) {
             Tree t = permissionsTree.getChild(Text.escapeIllegalJcrChars(principal.getName()));
-            builder.addEntry(principal, t);
+            if (t != null) {
+                builder.addEntry(principal, t);
+            }
         }
         userEntries = builder.userEntries.build();
         groupEntries = builder.groupEntries.build();
@@ -117,7 +119,7 @@ public class CompiledPermissionImpl implements CompiledPermissions, AccessContro
         private final List<String> restrictions;
         private final long permissions;
 
-        Entry(NodeUtil node) {
+        private Entry(NodeUtil node) {
             isAllow = node.hasPrimaryNodeTypeName(NT_REP_GRANT_ACE);
             privilegeNames = node.getStrings(REP_PRIVILEGES);
             restrictions = null; // TODO
@@ -128,10 +130,10 @@ public class CompiledPermissionImpl implements CompiledPermissions, AccessContro
 
     private static final class EntriesBuilder {
 
-        ImmutableSortedMap.Builder<Key, Entry> userEntries = ImmutableSortedMap.naturalOrder();
-        ImmutableSortedMap.Builder<Key, Entry> groupEntries = ImmutableSortedMap.naturalOrder();
+        private ImmutableSortedMap.Builder<Key, Entry> userEntries = ImmutableSortedMap.naturalOrder();
+        private ImmutableSortedMap.Builder<Key, Entry> groupEntries = ImmutableSortedMap.naturalOrder();
 
-        private void addEntry(Principal principal, Tree entryTree) {
+        private void addEntry(@Nonnull Principal principal, @Nonnull Tree entryTree) {
             NodeUtil node = new NodeUtil(entryTree);
             Entry entry = new Entry(node);
             if (entry.permissions != Permissions.NO_PERMISSION) {
