@@ -636,8 +636,7 @@ public class TreeImpl implements Tree {
         }
     }
 
-    // TODO: OAK-599 (accessed by PropertyDelegate)
-    public final class PropertyLocation extends AbstractPropertyLocation<TreeImpl, NodeLocation> {
+    private final class PropertyLocation extends AbstractPropertyLocation<TreeImpl, NodeLocation> {
 
         private PropertyLocation(NodeLocation parentLocation, String name) {
             super(parentLocation, name);
@@ -656,13 +655,10 @@ public class TreeImpl implements Tree {
             return parentLocation.tree.getPropertyStatus(name);
         }
 
-        /**
-         * Set the underlying property
-         *
-         * @param property The property to set
-         */
-        public void set(PropertyState property) {
+        @Override
+        public boolean set(PropertyState property) {
             parentLocation.tree.setProperty(property);
+            return true;
         }
 
         /**
