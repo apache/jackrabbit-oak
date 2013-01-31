@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.security.authorization;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.Context;
-import org.apache.jackrabbit.oak.util.NodeUtil;
+import org.apache.jackrabbit.oak.util.TreeUtil;
 
 /**
  * AccessControlContext... TODO
@@ -43,8 +43,7 @@ final class AccessControlContext implements Context, AccessControlConstants {
 
     @Override
     public boolean definesTree(Tree tree) {
-        NodeUtil node = new NodeUtil(tree);
-        String ntName = node.getPrimaryNodeTypeName();
+        String ntName = TreeUtil.getPrimaryTypeName(tree);
         return AC_NODETYPE_NAMES.contains(ntName);
     }
 }

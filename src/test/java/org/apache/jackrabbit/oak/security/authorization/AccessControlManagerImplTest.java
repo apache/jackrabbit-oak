@@ -50,6 +50,7 @@ import org.apache.jackrabbit.oak.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.AbstractAccessControlTest;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.util.NodeUtil;
+import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -69,7 +70,7 @@ import static org.junit.Assert.fail;
 public class AccessControlManagerImplTest extends AbstractAccessControlTest implements AccessControlConstants {
 
     private final String testName = TestNameMapper.TEST_PREFIX + ":testRoot";
-    private final String testPath = '/' +testName;
+    private final String testPath = '/' + testName;
 
     private Principal testPrincipal;
     private Privilege[] testPrivileges;
@@ -210,7 +211,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
 
         List<String> testPaths = new ArrayList<String>();
         testPaths.add('/' + TestNameMapper.TEST_LOCAL_PREFIX + ":testRoot");
-        testPaths.add("/{"+ TestNameMapper.TEST_URI+"}testRoot");
+        testPaths.add("/{" + TestNameMapper.TEST_URI + "}testRoot");
 
         AccessControlManager acMgr = getAccessControlManager(getLocalNamePathMapper());
         for (String path : testPaths) {
@@ -259,7 +260,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
     public void testPrivilegeFromUnknownName() throws Exception {
         List<String> invalid = new ArrayList<String>();
         invalid.add("unknownPrivilege");
-        invalid.add('{' + NamespaceRegistry.NAMESPACE_JCR+"}unknown");
+        invalid.add('{' + NamespaceRegistry.NAMESPACE_JCR + "}unknown");
 
         for (String privilegeName : invalid) {
             try {
@@ -417,7 +418,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
 
         ACL acl = (ACL) policies[0];
         List<String> principalNames = new ArrayList<String>();
-        for (AccessControlEntry ace :acl.getEntries()) {
+        for (AccessControlEntry ace : acl.getEntries()) {
             principalNames.add(ace.getPrincipal().getName());
         }
         assertTrue(principalNames.remove("invalidPrincipal"));
@@ -588,14 +589,14 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         Tree tree = root2.getTree(testPath);
         assertTrue(tree.hasChild(REP_POLICY));
         Tree policyTree = tree.getChild(REP_POLICY);
-        assertEquals(NT_REP_ACL, new NodeUtil(policyTree).getPrimaryNodeTypeName());
+        assertEquals(NT_REP_ACL, TreeUtil.getPrimaryTypeName(policyTree));
         assertEquals(2, policyTree.getChildrenCount());
 
         Iterator<Tree> children = policyTree.getChildren().iterator();
-        NodeUtil ace = new NodeUtil(children.next());
-        assertEquals(NT_REP_GRANT_ACE, ace.getPrimaryNodeTypeName());
-        assertEquals(testPrincipal.getName(), ace.getString(REP_PRINCIPAL_NAME, null));
-        assertArrayEquals(testPrivileges, privilegesFromNames(ace.getNames(REP_PRIVILEGES)));
+        Tree ace = children.next();
+        assertEquals(NT_REP_GRANT_ACE, TreeUtil.getPrimaryTypeName(ace));
+        assertEquals(testPrincipal.getName(), TreeUtil.getString(ace, REP_PRINCIPAL_NAME));
+        assertArrayEquals(testPrivileges, privilegesFromNames(TreeUtil.getStrings(ace, REP_PRIVILEGES)));
         assertFalse(ace.hasChild(REP_RESTRICTIONS));
 
         NodeUtil ace2 = new NodeUtil(children.next());

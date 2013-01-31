@@ -27,8 +27,8 @@ import org.apache.jackrabbit.oak.core.ReadOnlyRoot;
 import org.apache.jackrabbit.oak.core.ReadOnlyTree;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
+import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
-import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -37,10 +37,13 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  */
 class PermissionValidatorProvider implements ValidatorProvider {
 
-    private final AccessControlConfiguration acConfiguration;
+    private final SecurityProvider securityProvider;
+
+    private Context acCtx;
+    private Context userCtx;
 
     PermissionValidatorProvider(SecurityProvider securityProvider) {
-        this.acConfiguration = securityProvider.getAccessControlConfiguration();
+        this.securityProvider = securityProvider;
     }
 
     //--------------------------------------------------< ValidatorProvider >---
@@ -51,8 +54,24 @@ class PermissionValidatorProvider implements ValidatorProvider {
         Set<Principal> principals = (subject != null) ? subject.getPrincipals() : Collections.<Principal>emptySet();
 
         ReadOnlyRoot root = new ReadOnlyRoot(before);
-        PermissionProvider pp = acConfiguration.getPermissionProvider(root, principals);
+        PermissionProvider pp = securityProvider.getAccessControlConfiguration().getPermissionProvider(root, principals);
 
         return new PermissionValidator(new ReadOnlyTree(before), new ReadOnlyTree(after), pp, this);
+    }
+
+    //--------------------------------------------------------------------------
+
+    Context getAccessControlContext() {
+        if (acCtx == null) {
+            acCtx = securityProvider.getAccessControlConfiguration().getContext();
+        }
+        return acCtx;
+    }
+
+    Context getUserContext() {
+        if (userCtx == null) {
+            userCtx = securityProvider.getUserConfiguration().getContext();
+        }
+        return userCtx;
     }
 }

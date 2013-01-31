@@ -123,7 +123,7 @@ public class NodeUtil {
 
     /**
      * TODO: clean up. workaround for OAK-426
-     *
+     * <p/>
      * Create the tree at the specified relative path including all missing
      * intermediate trees using the specified {@code primaryTypeName}. This
      * method treats ".." parent element and "." as current element and
@@ -131,10 +131,10 @@ public class NodeUtil {
      * elements this may lead to tree creating outside the tree structure
      * defined by this {@code NodeUtil}.
      *
-     * @param relativePath A relative OAK path that may contain parent and
-     * current elements.
+     * @param relativePath    A relative OAK path that may contain parent and
+     *                        current elements.
      * @param primaryTypeName A oak name of a primary node type that is used
-     * to create the missing trees.
+     *                        to create the missing trees.
      * @return The node util of the tree at the specified {@code relativePath}.
      */
     @Nonnull
@@ -167,7 +167,7 @@ public class NodeUtil {
 
     @CheckForNull
     public String getPrimaryNodeTypeName() {
-        return getString(JcrConstants.JCR_PRIMARYTYPE, null);
+        return TreeUtil.getPrimaryTypeName(tree);
     }
 
     public void removeProperty(String name) {

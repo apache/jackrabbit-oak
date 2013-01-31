@@ -23,15 +23,15 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import com.google.common.base.Strings;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.ReadOnlyTree;
-import org.apache.jackrabbit.oak.plugins.name.NamespaceConstants;
-import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
 import org.apache.jackrabbit.oak.security.authorization.permission.AllPermissions;
 import org.apache.jackrabbit.oak.security.authorization.permission.CompiledPermissionImpl;
@@ -43,6 +43,7 @@ import org.apache.jackrabbit.oak.spi.security.authorization.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.Permissions;
 import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.SystemPrincipal;
+import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,13 +52,15 @@ import org.slf4j.LoggerFactory;
  * PermissionProviderImpl... TODO
  * <p/>
  * FIXME: permissions need to be refreshed if something changes in the permission tree
+ * FIXME: define read/write access patterns on version-store content
+ * FIXME: proper access permissions on activity-store and configuration-store
  */
 public class PermissionProviderImpl implements PermissionProvider, AccessControlConstants {
 
     private static final Logger log = LoggerFactory.getLogger(PermissionProviderImpl.class);
 
     private final Root root;
-    private final SecurityProvider securityProvider;
+    private final Context acContext;
 
     private final String workspaceName = "default"; // FIXME: use proper workspace as associated with the root
 
@@ -65,8 +68,8 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
 
     public PermissionProviderImpl(@Nonnull Root root, @Nonnull Set<Principal> principals,
                                   @Nonnull SecurityProvider securityProvider) {
-        this.root = root;
-        this.securityProvider = securityProvider;
+        this.root = root; // FIXME: assert that root has full access.
+        this.acContext = securityProvider.getAccessControlConfiguration().getContext();
         if (principals.contains(SystemPrincipal.INSTANCE) || isAdmin(principals)) {
             compiledPermissions = AllPermissions.getInstance();
         } else {
@@ -96,12 +99,10 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
 
     @Override
     public boolean canRead(@Nonnull Tree tree) {
-        if (getAccessControlContext().definesTree(tree)) {
-            return compiledPermissions.isGranted(Permissions.READ_ACCESS_CONTROL, tree);
+        if (acContext.definesTree(tree)) {
+            return compiledPermissions.isGranted(tree, Permissions.READ_ACCESS_CONTROL);
         } else if (isVersionContent(tree)) {
-            // TODO: add proper implementation
-            Tree versionableTree = getVersionableTree(tree);
-            return versionableTree != null && compiledPermissions.canRead(versionableTree);
+            return canReadVersionContent(tree, null);
         } else {
             return compiledPermissions.canRead(tree);
         }
@@ -109,12 +110,10 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
 
     @Override
     public boolean canRead(@Nonnull Tree tree, @Nonnull PropertyState property) {
-        if (getAccessControlContext().definesTree(tree)) {
-            return compiledPermissions.isGranted(Permissions.READ_ACCESS_CONTROL, tree, property);
+        if (acContext.definesTree(tree)) {
+            return compiledPermissions.isGranted(tree, property, Permissions.READ_ACCESS_CONTROL);
         } else if (isVersionContent(tree)) {
-            // TODO: add proper implementation
-            Tree versionableTree = getVersionableTree(tree);
-            return versionableTree != null && compiledPermissions.canRead(versionableTree, property);
+            return canReadVersionContent(tree, property);
         } else {
             return compiledPermissions.canRead(tree, property);
         }
@@ -127,88 +126,35 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
 
     @Override
     public boolean isGranted(@Nonnull Tree tree, long permissions) {
-        if (Permissions.includes(permissions, Permissions.VERSION_MANAGEMENT)) {
-            // FIXME: path to check for permission must be adjusted to be
-            // FIXME: the one of the versionable node instead of the target parent in case of version-store is affected.
-        } else if (Permissions.includes(permissions, Permissions.READ_NODE)) {
-            // TODO
+        if (isVersionContent(tree)) {
+            return compiledPermissions.isGranted(getVersionablePath(tree, null), permissions);
+        } else {
+            return compiledPermissions.isGranted(tree, permissions);
         }
-
-        return compiledPermissions.isGranted(permissions, tree);
     }
 
     @Override
     public boolean isGranted(@Nonnull Tree parent, @Nonnull PropertyState property, long permissions) {
-        if (Permissions.includes(permissions, Permissions.VERSION_MANAGEMENT)) {
-            // FIXME: path to check for permission must be adjusted to be
-            // FIXME: the one of the versionable node instead of the target parent in case of version-store is affected.
-        } else if (Permissions.includes(permissions, Permissions.READ_PROPERTY)) {
-            // TODO
+        if (isVersionContent(parent)) {
+            return compiledPermissions.isGranted(getVersionablePath(parent, property), permissions);
+        } else {
+            return compiledPermissions.isGranted(parent, property, permissions);
         }
-
-        return compiledPermissions.isGranted(permissions, parent, property);
     }
 
     @Override
     public boolean hasPermission(@Nonnull String oakPath, String jcrActions) {
         TreeLocation location = root.getLocation(oakPath);
         long permissions = Permissions.getPermissions(jcrActions, location);
-
-        // TODO
-        return false;
-    }
-
-    @Override
-    public long getPermission(@Nonnull Tree tree, long defaultPermission) {
-        String path = tree.getPath();
-        long permission;
-        if (isNamespaceDefinition(path)) {
-            permission = Permissions.NAMESPACE_MANAGEMENT;
-        } else if (isNodeTypeDefinition(path)) {
-            permission = Permissions.NODE_TYPE_DEFINITION_MANAGEMENT;
-        } else if (isVersionContent(tree)) {
-            permission = Permissions.VERSION_MANAGEMENT;
-        } else if (getPrivilegeContext().definesTree(tree)) {
-            permission = Permissions.PRIVILEGE_MANAGEMENT;
-        } else if (getAccessControlContext().definesTree(tree)) {
-            permission = Permissions.MODIFY_ACCESS_CONTROL;
-        } else if (getUserContext().definesTree(tree)) {
-            permission = Permissions.USER_MANAGEMENT;
+        if (!location.exists()) {
+            // TODO: deal with version content
+            // FIXME: non-existing locations currently return null-path
+            return compiledPermissions.isGranted(location.getPath(), permissions);
+        } else if (location.getProperty() != null) {
+            return isGranted(location.getTree(), location.getProperty(), permissions);
         } else {
-            // TODO  - workspace management
-            // TODO: identify renaming/move of nodes that only required MODIFY_CHILD_NODE_COLLECTION permission
-            permission = defaultPermission;
+            return isGranted(location.getTree(), permissions);
         }
-        return permission;
-    }
-
-    @Override
-    public long getPermission(@Nonnull Tree parent, @Nonnull PropertyState propertyState, long defaultPermission) {
-        String parentPath = parent.getPath();
-        String name = propertyState.getName();
-
-        long permission;
-        if (JcrConstants.JCR_PRIMARYTYPE.equals(name) || JcrConstants.JCR_MIXINTYPES.equals(name)) {
-            // FIXME: distinguish between autocreated and user-supplied modification (?)
-            permission = Permissions.NODE_TYPE_MANAGEMENT;
-        } else if (isLockProperty(name)) {
-            permission = Permissions.LOCK_MANAGEMENT;
-        } else if (isNamespaceDefinition(parentPath)) {
-            permission = Permissions.NAMESPACE_MANAGEMENT;
-        } else if (isNodeTypeDefinition(parentPath)) {
-            permission = Permissions.NODE_TYPE_DEFINITION_MANAGEMENT;
-        } else if (isVersionProperty(parent, propertyState)) {
-            permission = Permissions.VERSION_MANAGEMENT;
-        } else if (getPrivilegeContext().definesProperty(parent, propertyState)) {
-            permission = Permissions.PRIVILEGE_MANAGEMENT;
-        } else if (getAccessControlContext().definesProperty(parent, propertyState)) {
-            permission = Permissions.MODIFY_ACCESS_CONTROL;
-        } else if (getUserContext().definesProperty(parent, propertyState)) {
-            permission = Permissions.USER_MANAGEMENT;
-        } else {
-            permission = defaultPermission;
-        }
-        return permission;
     }
 
     //--------------------------------------------------------------------------
@@ -228,82 +174,56 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
         return (tree == null) ? null : (ReadOnlyTree) tree;
     }
 
-    @CheckForNull
-    private Tree getVersionableTree(Tree versionStoreTree) {
-        String locationPath = workspaceName + '/' + REP_VERSIONABLE_PATH;
-        String versionablePath = null;
-        Tree t = versionStoreTree;
-        while (versionablePath == null && !JcrConstants.JCR_VERSIONSTORAGE.equals(t.getName())) {
-            if (t.hasChild(REP_VERSIONABLE_INFO)) {
-                PropertyState prop = t.getLocation().getChild(locationPath).getProperty();
-                if (prop != null) {
-                    versionablePath = prop.getValue(Type.PATH);
-                }
-            }
-            t = t.getParent();
-        }
-        if (versionablePath == null || versionablePath.isEmpty()) {
-            log.warn("Unable to determine path of the versionable node.");
-            return null;
+    private boolean canReadVersionContent(@Nonnull Tree versionStoreTree, @Nullable PropertyState property) {
+        String versionablePath = getVersionablePath(versionStoreTree, property);
+        if (versionablePath != null) {
+            long permission = (property == null) ? Permissions.READ_NODE : Permissions.READ_PROPERTY;
+            return compiledPermissions.isGranted(versionablePath, permission);
         } else {
-            return root.getLocation(versionablePath).getTree();
+            return false;
         }
     }
 
-    // FIXME: versionable-info not detected
-    private static boolean isVersionContent(Tree tree) {
+    @CheckForNull
+    private String getVersionablePath(@Nonnull Tree versionStoreTree, @Nullable PropertyState property) {
+        String versionablePath = null;
+        Tree t = versionStoreTree;
+        while (!JcrConstants.JCR_SYSTEM.equals(t.getName())) {
+            if (JcrConstants.NT_VERSIONHISTORY.equals(TreeUtil.getPrimaryTypeName(t))) {
+                PropertyState prop = t.getProperty(workspaceName);
+                if (prop != null) {
+                    versionablePath = prop.getValue(Type.PATH);
+                    if (t != versionStoreTree) {
+                        String rel = PathUtils.relativize(t.getPath(), versionStoreTree.getPath());
+                        String propName = (property == null) ? "" : property.getName();
+                        versionablePath = PathUtils.concat(versionablePath, rel, propName);
+                    }
+                }
+                break;
+            }// FIXME: handle activities and configurations
+            t = t.getParent();
+        }
+
+        if (versionablePath == null || versionablePath.length() == 0) {
+            log.warn("Unable to determine path of the versionable node.");
+        }
+        return Strings.emptyToNull(versionablePath);
+    }
+
+    private static boolean isVersionContent(@Nonnull Tree tree) {
         if (tree.isRoot()) {
             return false;
         }
         if (VersionConstants.VERSION_NODE_NAMES.contains(tree.getName())) {
             return true;
-        } else if (VersionConstants.VERSION_NODE_TYPE_NAMES.contains(getPrimaryTypeName(tree))) {
+        } else if (VersionConstants.VERSION_NODE_TYPE_NAMES.contains(TreeUtil.getPrimaryTypeName(tree))) {
             return true;
         } else {
-            String path = tree.getPath();
-            return VersionConstants.SYSTEM_PATHS.contains(Text.getAbsoluteParent(path, 1));
+            return isVersionContent(tree.getPath());
         }
     }
 
-    // FIXME: versionable-info not detected
-    private static boolean isVersionProperty(Tree parent, PropertyState property) {
-        if (VersionConstants.VERSION_PROPERTY_NAMES.contains(property.getName())) {
-            return true;
-        } else {
-            return isVersionContent(parent);
-        }
-    }
-
-    private static boolean isLockProperty(String name) {
-        return JcrConstants.JCR_LOCKISDEEP.equals(name) || JcrConstants.JCR_LOCKOWNER.equals(name);
-    }
-
-    private static boolean isNamespaceDefinition(String path) {
-        return Text.isDescendant(NamespaceConstants.NAMESPACES_PATH, path);
-    }
-
-    private static boolean isNodeTypeDefinition(String path) {
-        return Text.isDescendant(NodeTypeConstants.NODE_TYPES_PATH, path);
-    }
-
-    private Context getUserContext() {
-        return securityProvider.getUserConfiguration().getContext();
-    }
-
-    private Context getPrivilegeContext() {
-        return securityProvider.getPrivilegeConfiguration().getContext();
-    }
-
-    private Context getAccessControlContext() {
-        return securityProvider.getAccessControlConfiguration().getContext();
-    }
-
-    private static String getPrimaryTypeName(Tree tree) {
-        PropertyState property = tree.getProperty(JcrConstants.JCR_PRIMARYTYPE);
-        if (property != null && !property.isArray()) {
-            return property.getValue(Type.STRING);
-        } else {
-            return null;
-        }
+    private static boolean isVersionContent(@Nonnull String path) {
+        return VersionConstants.SYSTEM_PATHS.contains(Text.getAbsoluteParent(path, 1));
     }
 }

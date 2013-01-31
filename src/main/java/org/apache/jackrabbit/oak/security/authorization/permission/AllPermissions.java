@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 
@@ -49,12 +51,17 @@ public final class AllPermissions implements CompiledPermissions {
     }
 
     @Override
-    public boolean isGranted(long permissions, Tree tree) {
+    public boolean isGranted(Tree tree, long permissions) {
         return true;
     }
 
     @Override
-    public boolean isGranted(long permissions, Tree parent, PropertyState property) {
+    public boolean isGranted(Tree parent, PropertyState property, long permissions) {
+        return true;
+    }
+
+    @Override
+    public boolean isGranted(@Nonnull String path, long permissions) {
         return true;
     }
 }

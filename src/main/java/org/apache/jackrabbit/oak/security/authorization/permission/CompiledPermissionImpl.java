@@ -59,12 +59,12 @@ public class CompiledPermissionImpl implements CompiledPermissions, AccessContro
 
     @Override
     public boolean canRead(Tree tree) {
-        return isGranted(Permissions.READ_NODE, tree);
+        return isGranted(tree, Permissions.READ_NODE);
     }
 
     @Override
     public boolean canRead(Tree tree, PropertyState property) {
-        return isGranted(Permissions.READ_PROPERTY, tree, property);
+        return isGranted(tree, property, Permissions.READ_PROPERTY);
     }
 
     @Override
@@ -74,13 +74,19 @@ public class CompiledPermissionImpl implements CompiledPermissions, AccessContro
     }
 
     @Override
-    public boolean isGranted(long permissions, Tree tree) {
+    public boolean isGranted(Tree tree, long permissions) {
         // TODO
         return false;
     }
 
     @Override
-    public boolean isGranted(long permissions, Tree parent, PropertyState property) {
+    public boolean isGranted(Tree parent, PropertyState property, long permissions) {
+        // TODO
+        return false;
+    }
+
+    @Override
+    public boolean isGranted(String path, long permissions) {
         // TODO
         return false;
     }

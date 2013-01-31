@@ -65,20 +65,10 @@ public interface AccessControlConstants {
      */
     String PERMISSIONS_STORE_PATH = JcrConstants.JCR_SYSTEM + '/' + REP_PERMISSION_STORE;
 
-
     /**
      * @since OAK 1.0
      */
-    String MIX_REP_VERSIONABLE_INFO = "rep:VersionableInfo";
-    String REP_VERSIONABLE_INFO = "rep:versionableInfo";
-    /**
-     * @since OAK 1.0
-     */
-    String REP_WORKSPACE_NAME = "rep:workspaceName";
-    /**
-     * @since OAK 1.0
-     */
-    String REP_VERSIONABLE_PATH = "rep:versionablePath";
+    String MIX_REP_VERSIONABLE_PATH = "rep:VersionablePath";
 
     Collection<String> POLICY_NODE_NAMES = ImmutableSet.of(REP_POLICY, REP_REPO_POLICY);
 
