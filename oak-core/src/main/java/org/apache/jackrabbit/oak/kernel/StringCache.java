@@ -20,7 +20,7 @@ import java.util.Map;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
-import org.apache.jackrabbit.oak.version.VersionConstants;
+import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
 
 import com.google.common.collect.ImmutableMap;
 
