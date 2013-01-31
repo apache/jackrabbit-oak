@@ -29,7 +29,7 @@ import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtility;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtility;
-import org.apache.jackrabbit.oak.util.NodeUtil;
+import org.apache.jackrabbit.oak.util.TreeUtil;
 
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 
@@ -141,7 +141,6 @@ class UserImpl extends AuthorizableImpl implements User {
     //------------------------------------------------------------< private >---
     @CheckForNull
     private String getPasswordHash() {
-        NodeUtil n = new NodeUtil(getTree());
-        return n.getString(UserConstants.REP_PASSWORD, null);
+        return TreeUtil.getString(getTree(), UserConstants.REP_PASSWORD);
     }
 }

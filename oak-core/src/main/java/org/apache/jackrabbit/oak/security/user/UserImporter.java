@@ -55,7 +55,7 @@ import org.apache.jackrabbit.oak.spi.xml.ProtectedNodeImporter;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedPropertyImporter;
 import org.apache.jackrabbit.oak.spi.xml.ReferenceChangeTracker;
 import org.apache.jackrabbit.oak.spi.xml.TextValue;
-import org.apache.jackrabbit.oak.util.NodeUtil;
+import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -115,7 +115,7 @@ import static org.apache.jackrabbit.oak.api.Type.STRINGS;
  * </li>
  * </ul>
  */
-public class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter {
+public class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, UserConstants {
 
     private static final Logger log = LoggerFactory.getLogger(UserImporter.class);
 
@@ -225,8 +225,8 @@ public class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImp
         }
 
         String propName = propInfo.getName();
-        if (UserConstants.REP_PRINCIPAL_NAME.equals(propName)) {
-            if (!isValid(def, UserConstants.NT_REP_AUTHORIZABLE, false)) {
+        if (REP_PRINCIPAL_NAME.equals(propName)) {
+            if (!isValid(def, NT_REP_AUTHORIZABLE, false)) {
                 return false;
             }
 
@@ -247,8 +247,8 @@ public class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImp
                 }
             }
             return true;
-        } else if (UserConstants.REP_PASSWORD.equals(propName)) {
-            if (a.isGroup() || !isValid(def, UserConstants.NT_REP_USER, false)) {
+        } else if (REP_PASSWORD.equals(propName)) {
+            if (a.isGroup() || !isValid(def, NT_REP_USER, false)) {
                 log.warn("Unexpected authorizable or definition for property rep:password");
                 return false;
             }
@@ -262,7 +262,7 @@ public class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImp
             processed, otherwise postpone it.
             */
             if (parent.getStatus() == Tree.Status.NEW) {
-                if (parent.hasProperty(UserConstants.REP_PRINCIPAL_NAME)) {
+                if (parent.hasProperty(REP_PRINCIPAL_NAME)) {
                     userManager.onCreate((User) a, pw);
                 } else {
                     // principal name not yet available -> remember the pw
@@ -272,8 +272,8 @@ public class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImp
             }
             return true;
 
-        } else if (UserConstants.REP_IMPERSONATORS.equals(propName)) {
-            if (a.isGroup() || !isValid(def, UserConstants.MIX_REP_IMPERSONATABLE, true)) {
+        } else if (REP_IMPERSONATORS.equals(propName)) {
+            if (a.isGroup() || !isValid(def, MIX_REP_IMPERSONATABLE, true)) {
                 log.warn("Unexpected authorizable or definition for property rep:impersonators");
                 return false;
             }
@@ -284,8 +284,8 @@ public class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImp
             referenceTracker.processedReference(new Impersonators(a.getID(), tvs));
             return true;
 
-        } else if (UserConstants.REP_DISABLED.equals(propName)) {
-            if (a.isGroup() || !isValid(def, UserConstants.NT_REP_USER, false)) {
+        } else if (REP_DISABLED.equals(propName)) {
+            if (a.isGroup() || !isValid(def, NT_REP_USER, false)) {
                 log.warn("Unexpected authorizable or definition for property rep:disabled");
                 return false;
             }
@@ -293,8 +293,8 @@ public class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImp
             ((User) a).disable(propInfo.getTextValue().getString());
             return true;
 
-        } else if (UserConstants.REP_MEMBERS.equals(propName)) {
-            if (!a.isGroup() || !isValid(def, UserConstants.NT_REP_GROUP, true)) {
+        } else if (REP_MEMBERS.equals(propName)) {
+            if (!a.isGroup() || !isValid(def, NT_REP_GROUP, true)) {
                 return false;
             }
             // since group-members are references to user/groups that potentially
@@ -333,14 +333,12 @@ public class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImp
     // ---------------------------------------------< ProtectedNodeImporter >---
     @Override
     public boolean start(Tree protectedParent) throws RepositoryException {
-        String repMembers = namePathMapper.getJcrName(UserConstants.NT_REP_MEMBERS);
-        NodeUtil parentNode = new NodeUtil(protectedParent);
-        if (parentNode.hasPrimaryNodeTypeName(repMembers)) {
-            NodeUtil groupNode = parentNode;
-            while (!groupNode.isRoot() && groupNode.hasPrimaryNodeTypeName(repMembers)) {
-                groupNode = groupNode.getParent();
+        if (NT_REP_MEMBERS.equals(TreeUtil.getPrimaryTypeName(protectedParent))) {
+            Tree groupTree = protectedParent;
+            while (!groupTree.isRoot() && NT_REP_MEMBERS.equals(TreeUtil.getPrimaryTypeName(groupTree))) {
+                groupTree = groupTree.getParent();
             }
-            Authorizable auth = userManager.getAuthorizable(groupNode.getTree());
+            Authorizable auth = userManager.getAuthorizable(groupTree);
             if (auth == null) {
                 log.debug("Cannot handle protected node " + protectedParent + ". It nor one of its parents represent a valid Authorizable.");
                 return false;
@@ -357,7 +355,7 @@ public class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImp
     public void startChildInfo(NodeInfo childInfo, List<PropInfo> propInfos) throws RepositoryException {
         checkNotNull(currentMembership);
 
-        if (UserConstants.NT_REP_MEMBERS.equals(childInfo.getPrimaryTypeName())) {
+        if (NT_REP_MEMBERS.equals(childInfo.getPrimaryTypeName())) {
             for (PropInfo prop : propInfos) {
                 for (TextValue tv : prop.getTextValues()) {
                     String name = namePathMapper.getJcrName(prop.getName());
@@ -365,7 +363,7 @@ public class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImp
                 }
             }
         } else {
-            log.warn("{} is not of type {}", childInfo.getString(), UserConstants.NT_REP_MEMBERS);
+            log.warn("{} is not of type {}", childInfo.getString(), NT_REP_MEMBERS);
         }
     }
 
@@ -402,19 +400,20 @@ public class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImp
 
     private boolean isValid(PropertyDefinition definition, String oakNodeTypeName, boolean multipleStatus) {
         return multipleStatus == definition.isMultiple() &&
-               definition.getDeclaringNodeType().isNodeType(namePathMapper.getJcrName(oakNodeTypeName));
+                definition.getDeclaringNodeType().isNodeType(namePathMapper.getJcrName(oakNodeTypeName));
     }
 
     /**
      * Handling the import behavior
      *
      * @param msg The message to log a warning in case of {@link ImportBehavior#IGNORE}
-     * or {@link ImportBehavior#BESTEFFORT}
-     * @throws javax.jcr.nodetype.ConstraintViolationException If the import
-     * behavior is {@link ImportBehavior#ABORT}.
+     *            or {@link ImportBehavior#BESTEFFORT}
+     * @throws javax.jcr.nodetype.ConstraintViolationException
+     *          If the import
+     *          behavior is {@link ImportBehavior#ABORT}.
      */
-    private void handleFailure(String msg) throws ConstraintViolationException{
-        switch(importBehavior){
+    private void handleFailure(String msg) throws ConstraintViolationException {
+        switch (importBehavior) {
             case ImportBehavior.IGNORE:
             case ImportBehavior.BESTEFFORT:
                 log.warn(msg);
@@ -428,6 +427,7 @@ public class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImp
     }
 
     //------------------------------------------------------< inner classes >---
+
     /**
      * Inner class used to postpone import of group membership to the very end
      * of the import. This allows to import membership of user/groups that
@@ -596,13 +596,13 @@ public class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImp
             if (!nonExisting.isEmpty()) {
                 Tree userTree = root.getTree(a.getPath());
                 // copy over all existing impersonators to the nonExisting list
-                PropertyState impersonators = userTree.getProperty(UserConstants.REP_PRINCIPAL_NAME);
+                PropertyState impersonators = userTree.getProperty(REP_PRINCIPAL_NAME);
                 for (String existing : impersonators.getValue(STRINGS)) {
                     nonExisting.add(existing);
                 }
                 // and write back the complete list including those principal
                 // names that are unknown to principal provider.
-                userTree.setProperty(UserConstants.REP_PRINCIPAL_NAME, nonExisting, Type.STRINGS);
+                userTree.setProperty(REP_PRINCIPAL_NAME, nonExisting, Type.STRINGS);
             }
         }
     }
