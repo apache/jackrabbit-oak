@@ -97,4 +97,12 @@ public interface TreeLocation {
      */
     boolean remove();
 
+    /**
+     * Set the underlying property of this {@code TreeLocation}. If the underlying item is
+     * not a property, this method return {@code false}.
+     * @param property The property to set
+     * @return {@code true} if the property state was set, {@code false} otherwise.
+     */
+    boolean set(PropertyState property);
+
 }

@@ -97,4 +97,11 @@ final class NullLocation implements TreeLocation {
         return null;
     }
 
+    /**
+     * @return {@code false}
+     */
+    @Override
+    public boolean set(PropertyState property) {
+        return false;
+    }
 }

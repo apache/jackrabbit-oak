@@ -321,5 +321,10 @@ public class ReadOnlyTree implements Tree {
         public Status getStatus() {
             return Status.EXISTING;
         }
+
+        @Override
+        public boolean set(PropertyState property) {
+            return false;
+        }
     }
 }
