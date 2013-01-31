@@ -23,6 +23,7 @@ import javax.jcr.nodetype.ConstraintViolationException;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.commit.DefaultValidator;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
@@ -31,7 +32,7 @@ import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtility;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtility;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.util.NodeUtil;
+import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.apache.jackrabbit.util.Text;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -44,13 +45,13 @@ import static com.google.common.base.Preconditions.checkNotNull;
  */
 class UserValidator extends DefaultValidator implements UserConstants {
 
-    private final NodeUtil parentBefore;
-    private final NodeUtil parentAfter;
+    private final Tree parentBefore;
+    private final Tree parentAfter;
     private final UserValidatorProvider provider;
 
     private final AuthorizableType authorizableType;
 
-    UserValidator(NodeUtil parentBefore, NodeUtil parentAfter, UserValidatorProvider provider) {
+    UserValidator(Tree parentBefore, Tree parentAfter, UserValidatorProvider provider) {
         this.parentBefore = parentBefore;
         this.parentAfter = parentAfter;
         this.provider = provider;
@@ -118,19 +119,19 @@ class UserValidator extends DefaultValidator implements UserConstants {
 
     @Override
     public Validator childNodeAdded(String name, NodeState after) throws CommitFailedException {
-        NodeUtil node = checkNotNull(parentAfter.getChild(name));
+        Tree tree = checkNotNull(parentAfter.getChild(name));
 
-        AuthorizableType type = UserUtility.getType(node);
+        AuthorizableType type = UserUtility.getType(tree);
         String authRoot = UserUtility.getAuthorizableRootPath(provider.getConfig(), type);
         if (authRoot != null) {
-            assertHierarchy(node, authRoot);
+            assertHierarchy(tree, authRoot);
             // assert rep:principalName is present (that should actually by covered
             // by node type validator)
-            if (node.getString(REP_PRINCIPAL_NAME, null) == null) {
+            if (TreeUtil.getString(tree, REP_PRINCIPAL_NAME) == null) {
                 fail("Mandatory property rep:principalName missing.");
             }
         }
-        return new UserValidator(null, node, provider);
+        return new UserValidator(null, tree, provider);
     }
 
     @Override
@@ -141,7 +142,7 @@ class UserValidator extends DefaultValidator implements UserConstants {
 
     @Override
     public Validator childNodeDeleted(String name, NodeState before) throws CommitFailedException {
-        NodeUtil node = parentBefore.getChild(name);
+        Tree node = parentBefore.getChild(name);
         if (isAdminUser(node)) {
             String msg = "The admin user cannot be removed.";
             fail(msg);
@@ -151,40 +152,40 @@ class UserValidator extends DefaultValidator implements UserConstants {
 
     //------------------------------------------------------------< private >---
 
-    private boolean isAdminUser(@Nullable NodeUtil userNode) {
-        if (userNode != null && isUser(userNode)) {
-            String id = UserProvider.getAuthorizableId(userNode.getTree());
+    private boolean isAdminUser(@Nullable Tree userTree) {
+        if (userTree != null && isUser(userTree)) {
+            String id = UserProvider.getAuthorizableId(userTree);
             return UserUtility.getAdminId(provider.getConfig()).equals(id);
         } else {
             return false;
         }
     }
 
-    private static boolean isValidUUID(@Nonnull NodeUtil parent, @Nonnull String uuid) {
-        String id = UserProvider.getAuthorizableId(parent.getTree());
+    private static boolean isValidUUID(@Nonnull Tree parent, @Nonnull String uuid) {
+        String id = UserProvider.getAuthorizableId(parent);
         return uuid.equals(UserProvider.getContentID(id));
     }
 
-    private static boolean isUser(@Nullable NodeUtil node) {
-        return node != null && node.hasPrimaryNodeTypeName(NT_REP_USER);
+    private static boolean isUser(@Nullable Tree tree) {
+        return tree != null && NT_REP_USER.equals(TreeUtil.getPrimaryTypeName(tree));
     }
 
     /**
      * Make sure user and group nodes are located underneath the configured path
      * and that path consists of rep:authorizableFolder nodes.
      *
-     * @param node           The node representing a user or group.
+     * @param tree           The tree representing a user or group.
      * @param pathConstraint The path constraint.
      * @throws CommitFailedException If the hierarchy isn't valid.
      */
-    private static void assertHierarchy(@Nonnull NodeUtil node, @Nonnull String pathConstraint) throws CommitFailedException {
-        if (!Text.isDescendant(pathConstraint, node.getTree().getPath())) {
+    private static void assertHierarchy(@Nonnull Tree tree, @Nonnull String pathConstraint) throws CommitFailedException {
+        if (!Text.isDescendant(pathConstraint, tree.getPath())) {
             String msg = "Attempt to create user/group outside of configured scope " + pathConstraint;
             fail(msg);
         }
-        NodeUtil parent = node.getParent();
-        while (parent != null && !parent.getTree().isRoot()) {
-            if (!parent.hasPrimaryNodeTypeName(NT_REP_AUTHORIZABLE_FOLDER)) {
+        Tree parent = tree.getParent();
+        while (parent != null && !parent.isRoot()) {
+            if (!NT_REP_AUTHORIZABLE_FOLDER.equals(TreeUtil.getPrimaryTypeName(parent))) {
                 String msg = "Cannot create user/group: Intermediate folders must be of type rep:AuthorizableFolder.";
                 fail(msg);
             }

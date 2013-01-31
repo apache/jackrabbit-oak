@@ -23,7 +23,6 @@ import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.util.NodeUtil;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -42,11 +41,7 @@ class UserValidatorProvider implements ValidatorProvider {
     @Nonnull
     @Override
     public Validator getRootValidator(NodeState before, NodeState after) {
-
-        NodeUtil rootBefore = new NodeUtil(new ReadOnlyTree(before));
-        NodeUtil rootAfter = new NodeUtil(new ReadOnlyTree(after));
-
-        return new UserValidator(rootBefore, rootAfter, this);
+        return new UserValidator(new ReadOnlyTree(before), new ReadOnlyTree(after), this);
     }
 
     //-----------------------------------------------------------< internal >---

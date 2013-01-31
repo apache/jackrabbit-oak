@@ -23,7 +23,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
-import org.apache.jackrabbit.oak.util.NodeUtil;
+import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.apache.jackrabbit.util.Text;
 
 /**
@@ -47,7 +47,7 @@ public final class UserUtility implements UserConstants {
     public static boolean isType(Tree authorizableTree, AuthorizableType type) {
         // FIXME: check for node type according to the specified type constraint
         if (authorizableTree != null) {
-            String ntName = new NodeUtil(authorizableTree).getPrimaryNodeTypeName();
+            String ntName = TreeUtil.getPrimaryTypeName(authorizableTree);
             switch (type) {
                 case GROUP:
                     return NT_REP_GROUP.equals(ntName);
@@ -61,8 +61,8 @@ public final class UserUtility implements UserConstants {
     }
 
     @CheckForNull
-    public static AuthorizableType getType(@Nonnull NodeUtil authorizableNode) {
-        String ntName = authorizableNode.getPrimaryNodeTypeName();
+    public static AuthorizableType getType(@Nonnull Tree authorizableNode) {
+        String ntName = TreeUtil.getPrimaryTypeName(authorizableNode);
         if (ntName != null) {
             if (UserConstants.NT_REP_GROUP.equals(ntName)) {
                 return AuthorizableType.GROUP;
