@@ -391,6 +391,13 @@
 [nt:configuration] > mix:versionable
   - jcr:root (REFERENCE) mandatory autocreated protected
 
+/**
+ * @since oak 1.0
+ */
+ [rep:VersionablePaths]
+  mixin
+  - * (PATH) protected ABORT
+
 //------------------------------------------------------------------------------
 // N O D E T Y P E S
 //------------------------------------------------------------------------------

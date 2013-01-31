@@ -31,7 +31,6 @@ import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restrict
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeDefinition;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeDefinitionReader;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.util.NodeUtil;
 
 /**
  * {@code AccessControlValidatorProvider} aimed to provide a root validator
@@ -51,11 +50,10 @@ class AccessControlValidatorProvider implements ValidatorProvider {
     @Nonnull
     @Override
     public Validator getRootValidator(NodeState before, NodeState after) {
-        Tree treeBefore = new ReadOnlyTree(before);
-        NodeUtil rootBefore = new NodeUtil(treeBefore);
-        NodeUtil rootAfter = new NodeUtil(new ReadOnlyTree(after));
+        Tree rootBefore = new ReadOnlyTree(before);
+        Tree rootAfter = new ReadOnlyTree(after);
 
-        PrivilegeDefinitionReader reader = securityProvider.getPrivilegeConfiguration().getPrivilegeDefinitionReader(treeBefore);
+        PrivilegeDefinitionReader reader = securityProvider.getPrivilegeConfiguration().getPrivilegeDefinitionReader(rootBefore);
         Map<String, PrivilegeDefinition> privilegeDefinitions = reader.readDefinitions();
 
         AccessControlConfiguration acConfig = securityProvider.getAccessControlConfiguration();

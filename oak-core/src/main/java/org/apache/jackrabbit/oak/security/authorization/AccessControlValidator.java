@@ -32,7 +32,7 @@ import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeDefinition;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.util.NodeUtil;
+import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.apache.jackrabbit.util.Text;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -42,14 +42,14 @@ import static com.google.common.base.Preconditions.checkNotNull;
  */
 class AccessControlValidator implements Validator, AccessControlConstants {
 
-    private final NodeUtil parentBefore;
-    private final NodeUtil parentAfter;
+    private final Tree parentBefore;
+    private final Tree parentAfter;
 
     private final Map<String, PrivilegeDefinition> privilegeDefinitions;
     private final RestrictionProvider restrictionProvider;
     private final ReadOnlyNodeTypeManager ntMgr;
 
-    AccessControlValidator(NodeUtil parentBefore, NodeUtil parentAfter,
+    AccessControlValidator(Tree parentBefore, Tree parentAfter,
                            Map<String, PrivilegeDefinition> privilegeDefinitions,
                            RestrictionProvider restrictionProvider, ReadOnlyNodeTypeManager ntMgr) {
         this.parentBefore = parentBefore;
@@ -87,19 +87,19 @@ class AccessControlValidator implements Validator, AccessControlConstants {
 
     @Override
     public Validator childNodeAdded(String name, NodeState after) throws CommitFailedException {
-        NodeUtil nodeAfter = checkNotNull(parentAfter.getChild(name));
+        Tree treeAfter = checkNotNull(parentAfter.getChild(name));
 
-        checkValidNode(parentAfter, nodeAfter);
-        return new AccessControlValidator(null, nodeAfter, privilegeDefinitions, restrictionProvider, ntMgr);
+        checkValidTree(parentAfter, treeAfter);
+        return new AccessControlValidator(null, treeAfter, privilegeDefinitions, restrictionProvider, ntMgr);
     }
 
     @Override
     public Validator childNodeChanged(String name, NodeState before, NodeState after) throws CommitFailedException {
-        NodeUtil nodeBefore = checkNotNull(parentBefore.getChild(name));
-        NodeUtil nodeAfter = checkNotNull(parentAfter.getChild(name));
+        Tree treeBefore = checkNotNull(parentBefore.getChild(name));
+        Tree treeAfter = checkNotNull(parentAfter.getChild(name));
 
-        checkValidNode(parentAfter, nodeAfter);
-        return new AccessControlValidator(nodeBefore, nodeAfter, privilegeDefinitions, restrictionProvider, ntMgr);
+        checkValidTree(parentAfter, treeAfter);
+        return new AccessControlValidator(treeBefore, treeAfter, privilegeDefinitions, restrictionProvider, ntMgr);
     }
 
     @Override
@@ -110,33 +110,33 @@ class AccessControlValidator implements Validator, AccessControlConstants {
 
     //------------------------------------------------------------< private >---
 
-    private void checkValidNode(NodeUtil parentAfter, NodeUtil nodeAfter) throws CommitFailedException {
-        if (isPolicy(nodeAfter)) {
-            checkValidPolicy(parentAfter, nodeAfter);
-        } else if (isAccessControlEntry(nodeAfter)) {
-            checkValidAccessControlEntry(nodeAfter);
-        } else if (NT_REP_RESTRICTIONS.equals(nodeAfter.getPrimaryNodeTypeName())) {
+    private void checkValidTree(Tree parentAfter, Tree treeAfter) throws CommitFailedException {
+        if (isPolicy(treeAfter)) {
+            checkValidPolicy(parentAfter, treeAfter);
+        } else if (isAccessControlEntry(treeAfter)) {
+            checkValidAccessControlEntry(treeAfter);
+        } else if (NT_REP_RESTRICTIONS.equals(TreeUtil.getPrimaryTypeName(treeAfter))) {
             checkIsAccessControlEntry(parentAfter);
             checkValidRestrictions(parentAfter);
         }
     }
 
-    private static boolean isPolicy(NodeUtil node) {
-        return NT_REP_ACL.equals(node.getPrimaryNodeTypeName());
+    private static boolean isPolicy(Tree tree) {
+        return NT_REP_ACL.equals(TreeUtil.getPrimaryTypeName(tree));
     }
 
-    private static boolean isAccessControlEntry(NodeUtil node) {
-        String ntName = node.getPrimaryNodeTypeName();
+    private static boolean isAccessControlEntry(Tree tree) {
+        String ntName = TreeUtil.getPrimaryTypeName(tree);
         return NT_REP_DENY_ACE.equals(ntName) || NT_REP_GRANT_ACE.equals(ntName);
     }
 
-    private static void checkIsAccessControlEntry(NodeUtil node) throws CommitFailedException {
-        if (!isAccessControlEntry(node)) {
+    private static void checkIsAccessControlEntry(Tree tree) throws CommitFailedException {
+        if (!isAccessControlEntry(tree)) {
             fail("Access control entry node expected.");
         }
     }
 
-    private void checkValidPolicy(NodeUtil parent, NodeUtil policyNode) throws CommitFailedException {
+    private void checkValidPolicy(Tree parent, Tree policyNode) throws CommitFailedException {
         String mixinType = (REP_REPO_POLICY.equals(policyNode.getName())) ?
                 MIX_REP_REPO_ACCESS_CONTROLLABLE :
                 MIX_REP_ACCESS_CONTROLLABLE;
@@ -150,9 +150,8 @@ class AccessControlValidator implements Validator, AccessControlConstants {
         }
     }
 
-    private void checkValidAccessControlledNode(NodeUtil accessControlledNode, String requiredMixin) throws CommitFailedException {
-        Tree accessControlledTree = accessControlledNode.getTree();
-        if (AC_NODETYPE_NAMES.contains(accessControlledNode.getPrimaryNodeTypeName())) {
+    private void checkValidAccessControlledNode(Tree accessControlledTree, String requiredMixin) throws CommitFailedException {
+        if (AC_NODETYPE_NAMES.contains(TreeUtil.getPrimaryTypeName(accessControlledTree))) {
             fail("Access control policy within access control content (" + accessControlledTree.getPath() + ')');
         }
 
@@ -170,13 +169,13 @@ class AccessControlValidator implements Validator, AccessControlConstants {
         }
     }
 
-    private void checkValidAccessControlEntry(NodeUtil aceNode) throws CommitFailedException {
-        NodeUtil parent = aceNode.getParent();
-        if (parent == null || !NT_REP_ACL.equals(parent.getPrimaryNodeTypeName())) {
-            fail("Isolated access control entry at " + aceNode.getTree().getPath());
+    private void checkValidAccessControlEntry(Tree aceNode) throws CommitFailedException {
+        Tree parent = aceNode.getParent();
+        if (parent == null || !NT_REP_ACL.equals(TreeUtil.getPrimaryTypeName(parent))) {
+            fail("Isolated access control entry at " + aceNode.getPath());
         }
-        checkValidPrincipal(aceNode.getString(REP_PRINCIPAL_NAME, null));
-        checkValidPrivileges(aceNode.getNames(REP_PRIVILEGES));
+        checkValidPrincipal(TreeUtil.getString(aceNode, REP_PRINCIPAL_NAME));
+        checkValidPrivileges(TreeUtil.getStrings(aceNode, REP_PRIVILEGES));
         checkValidRestrictions(aceNode);
     }
 
@@ -204,27 +203,27 @@ class AccessControlValidator implements Validator, AccessControlConstants {
         }
     }
 
-    private void checkValidRestrictions(NodeUtil aceNode) throws CommitFailedException {
+    private void checkValidRestrictions(Tree aceTree) throws CommitFailedException {
         String path;
-        NodeUtil aclNode = checkNotNull(aceNode.getParent());
-        String aclPath = aclNode.getTree().getPath();
+        Tree aclTree = checkNotNull(aceTree.getParent());
+        String aclPath = aclTree.getPath();
         if (REP_REPO_POLICY.equals(Text.getName(aclPath))) {
             path = null;
         } else {
             path = Text.getRelativeParent(aclPath, 1);
         }
         try {
-            restrictionProvider.validateRestrictions(path, aceNode.getTree());
+            restrictionProvider.validateRestrictions(path, aceTree);
         } catch (AccessControlException e) {
             throw new CommitFailedException(e);
         }
     }
 
 
-    private static void checkMixinTypes(NodeUtil parentNode) throws CommitFailedException {
-        String[] mixinNames = parentNode.getNames(JcrConstants.JCR_MIXINTYPES);
+    private static void checkMixinTypes(Tree parentTree) throws CommitFailedException {
+        String[] mixinNames = TreeUtil.getStrings(parentTree, JcrConstants.JCR_MIXINTYPES);
         if (mixinNames != null && Arrays.asList(mixinNames).contains(MIX_REP_REPO_ACCESS_CONTROLLABLE)) {
-            checkValidRepoAccessControlled(parentNode.getTree());
+            checkValidRepoAccessControlled(parentTree);
         }
     }
 

@@ -32,8 +32,10 @@ public interface CompiledPermissions {
 
     boolean isGranted(long permissions);
 
-    boolean isGranted(long permissions, @Nonnull Tree tree);
+    boolean isGranted(@Nonnull Tree tree, long permissions);
 
-    boolean isGranted(long permissions, @Nonnull Tree parent, @Nonnull PropertyState property);
+    boolean isGranted(@Nonnull Tree parent, @Nonnull PropertyState property, long permissions);
+
+    boolean isGranted(@Nonnull String path, long permissions);
 
 }
