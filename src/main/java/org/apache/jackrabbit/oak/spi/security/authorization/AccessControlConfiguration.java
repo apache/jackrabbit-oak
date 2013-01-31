@@ -22,7 +22,6 @@ import javax.annotation.Nonnull;
 import javax.jcr.security.AccessControlManager;
 
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
@@ -38,11 +37,6 @@ public interface AccessControlConfiguration extends SecurityConfiguration {
     @Nonnull
     RestrictionProvider getRestrictionProvider(NamePathMapper namePathMapper);
 
-    // TODO: define how to pass workspace information
     @Nonnull
     PermissionProvider getPermissionProvider(Root root, Set<Principal> principals);
-
-    // TODO: check again
-    @Nonnull
-    PermissionProvider getPermissionProvider(Tree rootTree, Set<Principal> principals);
 }

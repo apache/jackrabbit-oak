@@ -40,11 +40,6 @@ class TmpPermissionProvider extends PermissionProviderImpl {
         isAdmin = principals.contains(SystemPrincipal.INSTANCE) || isAdmin(principals);
     }
 
-    public TmpPermissionProvider(@Nonnull Tree rootTree, @Nonnull Set<Principal> principals, @Nonnull SecurityProvider securityProvider) {
-        super(rootTree, principals, securityProvider);
-        isAdmin = principals.contains(SystemPrincipal.INSTANCE) || isAdmin(principals);
-    }
-
     @Override
     public boolean canRead(@Nonnull Tree tree) {
         return true;

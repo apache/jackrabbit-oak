@@ -22,7 +22,6 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
-import javax.jcr.version.VersionManager;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
@@ -39,7 +38,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * <code>ReadOnlyVersionManager</code> provides implementations for read-only
- * version operations modeled after the ones available in {@link VersionManager}.
+ * version operations modeled after the ones available in {@link javax.jcr.version.VersionManager}.
  */
 public abstract class ReadOnlyVersionManager {
 
@@ -165,7 +164,7 @@ public abstract class ReadOnlyVersionManager {
 
     /**
      * @return an identifier manager that is able to resolve identifiers of
-     * nodes in the version storage.
+     *         nodes in the version storage.
      */
     protected IdentifierManager getIdentifierManager() {
         // FIXME: may need to revise this, because getVersionStorageTree()
@@ -226,7 +225,7 @@ public abstract class ReadOnlyVersionManager {
      * @param tree the tree to check.
      * @return whether the <code>tree</code> is versionable.
      * @throws RepositoryException if an error occurs while checking the node
-     *              type of the tree.
+     *                             type of the tree.
      */
     protected boolean isVersionable(@Nonnull Tree tree) throws RepositoryException {
         checkNotNull(tree);

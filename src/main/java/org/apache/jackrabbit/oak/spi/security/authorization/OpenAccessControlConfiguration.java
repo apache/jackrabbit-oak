@@ -22,7 +22,6 @@ import javax.annotation.Nonnull;
 import javax.jcr.security.AccessControlManager;
 
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
@@ -51,9 +50,4 @@ public class OpenAccessControlConfiguration extends SecurityConfiguration.Defaul
         return OpenPermissionProvider.getInstance();
     }
 
-    @Nonnull
-    @Override
-    public PermissionProvider getPermissionProvider(Tree rootTree, Set<Principal> principals) {
-        return OpenPermissionProvider.getInstance();
-    }
 }

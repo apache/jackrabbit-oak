@@ -39,14 +39,13 @@ import static com.google.common.base.Preconditions.checkNotNull;
  */
 public class CompiledPermissionImpl implements CompiledPermissions, AccessControlConstants {
 
-    private final ReadOnlyTree permissionsTree;
     private final Set<Principal> principals;
 
     private Map<Key, Entry> userEntries;
     private Map<Key, Entry> groupEntries;
 
-    public CompiledPermissionImpl(@Nonnull ReadOnlyTree permissionsTree, @Nonnull Set<Principal> principals) {
-        this.permissionsTree = permissionsTree;
+    public CompiledPermissionImpl(@Nonnull ReadOnlyTree permissionsTree,
+                                  @Nonnull Set<Principal> principals) {
         this.principals = checkNotNull(principals);
 
         EntriesBuilder builder = new EntriesBuilder();
