@@ -20,8 +20,6 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.annotation.Nonnull;
-
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.json.JsonObject;
@@ -122,6 +120,15 @@ public class MicroKernelImpl implements MicroKernel {
         try {
             return rep.getHeadRevision();
         } catch (Exception e) {
+            throw new MicroKernelException(e);
+        }
+    }
+
+    private Id getBaseRevisionId(Id branchId) throws MicroKernelException {
+        try {
+            return rep.getBaseRevision(branchId);
+        }
+        catch (Exception e) {
             throw new MicroKernelException(e);
         }
     }
@@ -542,10 +549,26 @@ public class MicroKernelImpl implements MicroKernel {
         }
     }
 
-    @Nonnull
     @Override
-    public String rebase(@Nonnull String branchRevisionId, String newBaseRevisionId) {
-        throw new UnsupportedOperationException();
+    public String rebase(String branchRevisionId, String newBaseRevisionId) {
+        Id branchId = Id.fromString(branchRevisionId);
+        Id baseId = getBaseRevisionId(branchId);
+        Id newBaseId = newBaseRevisionId == null ? getHeadRevisionId() : Id.fromString(newBaseRevisionId);
+
+        if (baseId.equals(newBaseId)) {
+            return branchRevisionId;
+        }
+        else {
+            Id newBranchId = Id.fromString(branch(newBaseRevisionId));
+            try {
+                CommitBuilder cb = rep.getCommitBuilder(newBranchId,
+                        "rebasing " + branchRevisionId + " onto " + newBaseRevisionId);
+                return cb.rebase(baseId, branchId).toString();
+            }
+            catch (Exception e) {
+                throw new MicroKernelException(e);
+            }
+        }
     }
 
     public long getLength(String blobId) throws MicroKernelException {
