@@ -202,8 +202,6 @@
       org.apache.jackrabbit.test.api.query.SimpleSelectionTest#testSingleProperty                    <!-- OAK-323 -->
       org.apache.jackrabbit.test.api.query.qom.ColumnTest#testExpandColumnsForNodeType               <!-- OAK-323 -->
       org.apache.jackrabbit.test.api.query.GetPropertyNamesTest#testGetPropertyNames                 <!-- OAK-323 -->
-      org.apache.jackrabbit.test.api.query.qom.EquiJoinConditionTest#testRightOuterJoin1 <!-- bug in test case, see OAK-559 -->
-      org.apache.jackrabbit.test.api.query.qom.EquiJoinConditionTest#testLeftOuterJoin2 <!-- bug in test case, see OAK-559 -->
       org.apache.jackrabbit.test.api.observation.EventTest#testGetUserId
       org.apache.jackrabbit.test.api.observation.NodeMovedTest#testMoveNode
       org.apache.jackrabbit.test.api.observation.NodeMovedTest#testMoveTree
