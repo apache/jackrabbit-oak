@@ -138,7 +138,7 @@ public class SelectorImpl extends SourceImpl {
     private Filter createFilter(boolean preparing) {
         FilterImpl f = new FilterImpl(this, query.getStatement());
         f.setPreparing(preparing);
-        validateNodeType(nodeTypeName);
+        validateNodeType();
         f.setNodeType(nodeTypeName);
         if (joinCondition != null) {
             joinCondition.restrict(f);
@@ -160,11 +160,20 @@ public class SelectorImpl extends SourceImpl {
         return f;
     }
     
-    private void validateNodeType(String nodeType) {
+    private void validateNodeType() {
         // this looks a bit weird, but it should be correct - the code
         // assumes that paths and node type names have the same format
         // restrictions (characters such as "[" are not allowed and so on)
-        query.validatePath(nodeType);
+        query.validatePath(nodeTypeName);
+
+        try {
+            // force init of node types, which will also check for the node
+            // type's existence
+            getNodeTypes();
+        } catch (RepositoryException e) {
+            throw new IllegalArgumentException("Unable to determine node type "
+                    + nodeTypeName, e);
+        }
     }
 
     @Override

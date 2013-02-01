@@ -27,6 +27,7 @@ import javax.jcr.query.Query;
 
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -42,7 +43,7 @@ public class QueryTest {
 
     @Before
     public void setUp() {
-        repository = new Oak().createContentRepository();
+        repository = new Oak().with(new InitialContent()).createContentRepository();
     }
 
     @After
@@ -54,7 +55,7 @@ public class QueryTest {
     public void queryOnStableRevision() throws Exception {
         ContentSession s = repository.login(null, null);
         Root r = s.getLatestRoot();
-        Tree t = r.getTree("/");
+        Tree t = r.getTree("/").addChild("test");
         t.addChild("node1").setProperty("jcr:primaryType", "nt:base");
         t.addChild("node2").setProperty("jcr:primaryType", "nt:base");
         t.addChild("node3").setProperty("jcr:primaryType", "nt:base");
@@ -63,11 +64,11 @@ public class QueryTest {
         ContentSession s2 = repository.login(null, null);
         Root r2 = s2.getLatestRoot();
 
-        r.getTree("/").getChild("node2").remove();
+        r.getTree("/test").getChild("node2").remove();
         r.commit();
 
         Result result = r2.getQueryEngine().executeQuery(
-                "//element(*, nt:base)",
+                "test//element(*, nt:base)",
                 Query.XPATH, Long.MAX_VALUE, 0,
                 Collections.<String, PropertyValue>emptyMap(),
                 NamePathMapper.DEFAULT);
@@ -75,7 +76,7 @@ public class QueryTest {
         for (ResultRow rr : result.getRows()) {
             paths.add(rr.getPath());
         }
-        assertEquals(new HashSet<String>(Arrays.asList("/", "/node1", "/node2", "/node3")), paths);
+        assertEquals(new HashSet<String>(Arrays.asList("/test/node1", "/test/node2", "/test/node3")), paths);
     }
 
 }
