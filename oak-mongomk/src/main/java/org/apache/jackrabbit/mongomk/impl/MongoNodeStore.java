@@ -19,6 +19,10 @@ package org.apache.jackrabbit.mongomk.impl;
 import java.util.Collections;
 import java.util.Map;
 
+import com.mongodb.BasicDBObject;
+import com.mongodb.DB;
+import com.mongodb.DBCollection;
+import com.mongodb.DBObject;
 import org.apache.jackrabbit.mk.util.SimpleLRUCache;
 import org.apache.jackrabbit.mongomk.api.NodeStore;
 import org.apache.jackrabbit.mongomk.api.command.Command;
@@ -36,6 +40,7 @@ import org.apache.jackrabbit.mongomk.impl.command.GetRevisionHistoryCommand;
 import org.apache.jackrabbit.mongomk.impl.command.MergeCommand;
 import org.apache.jackrabbit.mongomk.impl.command.NodeExistsCommand;
 import org.apache.jackrabbit.mongomk.impl.command.OneLevelDiffCommand;
+import org.apache.jackrabbit.mongomk.impl.command.RebaseCommand;
 import org.apache.jackrabbit.mongomk.impl.command.WaitForCommitCommand;
 import org.apache.jackrabbit.mongomk.impl.model.MongoCommit;
 import org.apache.jackrabbit.mongomk.impl.model.MongoNode;
@@ -43,11 +48,6 @@ import org.apache.jackrabbit.mongomk.impl.model.MongoSync;
 import org.apache.jackrabbit.mongomk.util.MongoUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.mongodb.BasicDBObject;
-import com.mongodb.DB;
-import com.mongodb.DBCollection;
-import com.mongodb.DBObject;
 
 /**
  * Implementation of {@link NodeStore} for the {@code MongoDB}.
@@ -142,6 +142,12 @@ public class MongoNodeStore implements NodeStore {
     @Override
     public String merge(String branchRevisionId, String message) throws Exception {
         MergeCommand command = new MergeCommand(this, branchRevisionId, message);
+        return commandExecutor.execute(command);
+    }
+
+    @Override
+    public String rebase(String branchRevisionId, String newBaseRevisionId) throws Exception {
+        RebaseCommand command = new RebaseCommand(this, branchRevisionId, newBaseRevisionId);
         return commandExecutor.execute(command);
     }
 

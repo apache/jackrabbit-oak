@@ -20,6 +20,8 @@ import org.apache.jackrabbit.mk.model.tree.NodeState;
 import org.apache.jackrabbit.mongomk.api.model.Node;
 import org.apache.jackrabbit.mongomk.impl.model.tree.MongoNodeState;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 /**
  * MongoMK specific utility class.
  */
@@ -38,6 +40,12 @@ public class MongoUtil {
         } catch (NumberFormatException e) {
             throw new Exception("Invalid revision id: " + revisionId);
         }
+    }
+
+    public static long getBaseRevision(String branchId) {
+        int i = branchId.indexOf('-');
+        checkArgument(i >= 0, "Not a branch id: " + branchId);
+        return Long.parseLong(branchId.substring(0, i));
     }
 
     public static NodeState wrap(Node node) {

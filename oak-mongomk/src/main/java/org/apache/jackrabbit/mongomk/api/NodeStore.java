@@ -125,6 +125,16 @@ public interface NodeStore {
     String merge(String branchRevisionId, String message) throws Exception;
 
     /**
+     * @see MicroKernel#rebase(String, String)
+     *
+     * @param branchRevisionId Branch revision id to rebase.
+     * @param newBaseRevisionId  New base revision to rebase onto.
+     * @return  The revision id of the rebased branch.
+     * @throws Exception If an error occurred while rebasing.
+     */
+    String rebase(String branchRevisionId, String newBaseRevisionId) throws Exception;
+
+    /**
      * @see MicroKernel#nodeExists(String, String)
      *
      * @param path The path of the node to test.

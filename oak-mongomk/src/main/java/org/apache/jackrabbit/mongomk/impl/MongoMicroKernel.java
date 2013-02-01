@@ -219,8 +219,13 @@ public class MongoMicroKernel implements MicroKernel {
 
     @Nonnull
     @Override
-    public String rebase(@Nonnull String branchRevisionId, String newBaseRevisionId) {
-        throw new UnsupportedOperationException();
+    public String rebase(@Nonnull String branchRevisionId, String newBaseRevisionId)
+            throws MicroKernelException{
+        try {
+            return nodeStore.rebase(branchRevisionId, newBaseRevisionId);
+        } catch (Exception e) {
+            throw new MicroKernelException(e);
+        }
     }
 
     @Override
