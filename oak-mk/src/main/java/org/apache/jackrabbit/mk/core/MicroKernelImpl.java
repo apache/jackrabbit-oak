@@ -16,15 +16,21 @@
  */
 package org.apache.jackrabbit.mk.core;
 
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
+import org.apache.jackrabbit.mk.json.JsonObject;
 import org.apache.jackrabbit.mk.json.JsopBuilder;
 import org.apache.jackrabbit.mk.json.JsopReader;
 import org.apache.jackrabbit.mk.json.JsopTokenizer;
 import org.apache.jackrabbit.mk.model.Commit;
 import org.apache.jackrabbit.mk.model.CommitBuilder;
 import org.apache.jackrabbit.mk.model.Id;
-import org.apache.jackrabbit.mk.json.JsonObject;
 import org.apache.jackrabbit.mk.model.StoredCommit;
 import org.apache.jackrabbit.mk.model.tree.ChildNode;
 import org.apache.jackrabbit.mk.model.tree.DiffBuilder;
@@ -37,10 +43,6 @@ import org.apache.jackrabbit.mk.util.NodeFilter;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  *
@@ -538,6 +540,12 @@ public class MicroKernelImpl implements MicroKernel {
         } catch (Exception e) {
             throw new MicroKernelException(e);
         }
+    }
+
+    @Nonnull
+    @Override
+    public String rebase(@Nonnull String branchRevisionId, String newBaseRevisionId) {
+        throw new UnsupportedOperationException();
     }
 
     public long getLength(String blobId) throws MicroKernelException {

@@ -16,6 +16,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.old.mk.wrapper;
 
+import java.io.InputStream;
+
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.json.JsopReader;
 import org.apache.jackrabbit.mk.json.JsopStream;
@@ -26,8 +30,6 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.old.mk.ExceptionFactory;
 import org.apache.jackrabbit.oak.plugins.index.old.mk.simple.NodeImpl;
 import org.apache.jackrabbit.oak.plugins.index.old.mk.simple.NodeMap;
-
-import java.io.InputStream;
 
 /**
  * A microkernel prototype implementation that filters nodes based on simple
@@ -358,6 +360,12 @@ public class SecurityWrapper extends MicroKernelWrapperBase implements MicroKern
     public String merge(String branchRevisionId, String message) {
         // TODO OAK-45 support
         return mk.merge(branchRevisionId, message);
+    }
+
+    @Nonnull
+    @Override
+    public String rebase(@Nonnull String branchRevisionId, String newBaseRevisionId) {
+        throw new UnsupportedOperationException();
     }
 
     private NodeImpl filterAccess(String path, NodeImpl n) {

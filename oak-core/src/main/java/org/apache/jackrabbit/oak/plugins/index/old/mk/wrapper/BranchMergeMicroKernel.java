@@ -18,6 +18,9 @@ package org.apache.jackrabbit.oak.plugins.index.old.mk.wrapper;
 
 import java.io.InputStream;
 import java.util.HashSet;
+
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 
@@ -184,6 +187,12 @@ public class BranchMergeMicroKernel implements MicroKernel {
         busyBranch = null;
         trunkHeadRevision = null;
         return getHeadRevision();
+    }
+
+    @Nonnull
+    @Override
+    public String rebase(@Nonnull String branchRevisionId, String newBaseRevisionId) {
+        throw new UnsupportedOperationException();
     }
 
     @Override

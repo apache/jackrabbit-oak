@@ -22,6 +22,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.json.JsopBuilder;
 import org.apache.jackrabbit.oak.plugins.index.old.mk.ExceptionFactory;
@@ -288,6 +290,12 @@ public class TimingWrapper implements MicroKernel {
             logException(e);
             throw convert(e);
         }
+    }
+
+    @Nonnull
+    @Override
+    public String rebase(@Nonnull String branchRevisionId, String newBaseRevisionId) {
+        throw new UnsupportedOperationException();
     }
 
     private void logMethod(String methodName, Object... args) {
