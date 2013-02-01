@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.mk.core;
 
+import java.io.Closeable;
+import java.io.File;
+
 import org.apache.jackrabbit.mk.blobs.BlobStore;
 import org.apache.jackrabbit.mk.blobs.FileBlobStore;
 import org.apache.jackrabbit.mk.blobs.MemoryBlobStore;
@@ -30,9 +33,6 @@ import org.apache.jackrabbit.mk.store.NotFoundException;
 import org.apache.jackrabbit.mk.store.RevisionStore;
 import org.apache.jackrabbit.mk.util.IOUtils;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-
-import java.io.Closeable;
-import java.io.File;
 
 /**
  *
@@ -142,6 +142,14 @@ public class Repository {
             throw new IllegalStateException("not initialized");
         }
         return rs.getHeadCommitId();
+    }
+
+    public Id getBaseRevision(Id branchRevision) throws Exception {
+        if (!initialized) {
+            throw new IllegalStateException("not initialized");
+        }
+        StoredCommit commit = rs.getCommit(branchRevision);
+        return commit == null ? null : commit.getBranchRootId();
     }
 
     public StoredCommit getHeadCommit() throws Exception {

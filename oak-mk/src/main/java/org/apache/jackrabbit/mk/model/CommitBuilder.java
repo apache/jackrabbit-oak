@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.mk.model;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.jackrabbit.mk.json.JsonObject;
 import org.apache.jackrabbit.mk.json.JsopBuilder;
 import org.apache.jackrabbit.mk.model.tree.DiffBuilder;
@@ -24,9 +27,6 @@ import org.apache.jackrabbit.mk.store.RevisionStore;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  *
@@ -186,6 +186,39 @@ public class CommitBuilder {
             }
             newRevId = store.putCommit(token, newCommit);
         }
+
+        // reset instance
+        stagedTree.reset(newRevId);
+        changeLog.clear();
+
+        return newRevId;
+    }
+
+    public Id rebase(Id fromId, Id toId) throws Exception {
+        RevisionStore.PutToken token = store.createPutToken();
+
+        Id rebasedId = stagedTree.rebase(baseRevId, fromId, toId, token);
+
+        if (store.getCommit(toId).getRootNodeId().equals(rebasedId)) {
+            // the rebase didn't cause any changes,
+            // no need to create new commit object/update head revision
+            return toId;
+        }
+
+        StoredCommit baseCommit = store.getCommit(baseRevId);
+        MutableCommit newCommit = new MutableCommit();
+        newCommit.setParentId(baseRevId);
+        newCommit.setCommitTS(System.currentTimeMillis());
+        newCommit.setMsg(msg);
+        // dynamically build diff for rebased commit
+        String diff = new DiffBuilder(
+                store.getNodeState(store.getRootNode(toId)),
+                store.getNodeState(store.getNode(rebasedId)),
+                "/", -1, store, "").build();
+        newCommit.setChanges(diff);
+        newCommit.setRootNodeId(rebasedId);
+        newCommit.setBranchRootId(baseCommit.getBranchRootId());
+        Id newRevId = store.putCommit(token, newCommit);
 
         // reset instance
         stagedTree.reset(newRevId);
