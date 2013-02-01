@@ -16,6 +16,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.old.mk.simple;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Collections;
+
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.blobs.AbstractBlobStore;
@@ -31,11 +38,6 @@ import org.apache.jackrabbit.mk.util.CommitGate;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.old.mk.ExceptionFactory;
 import org.apache.jackrabbit.oak.plugins.index.old.mk.wrapper.MicroKernelWrapperBase;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Collections;
 
 /*
 
@@ -610,6 +612,12 @@ public class SimpleKernelImpl extends MicroKernelWrapperBase implements MicroKer
     @Override
     public String merge(String branchRevisionId, String message) throws MicroKernelException {
         // TODO OAK-45 support
+        throw new UnsupportedOperationException();
+    }
+
+    @Nonnull
+    @Override
+    public String rebase(@Nonnull String branchRevisionId, String newBaseRevisionId) {
         throw new UnsupportedOperationException();
     }
 }

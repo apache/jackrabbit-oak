@@ -17,6 +17,9 @@
 package org.apache.jackrabbit.oak.plugins.index.old.mk.wrapper;
 
 import java.io.InputStream;
+
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.json.JsopReader;
@@ -148,6 +151,12 @@ public abstract class MicroKernelWrapperBase implements MicroKernel, MicroKernel
         @Override
         public String merge(String branchRevisionId, String message) {
             return wrapped.merge(branchRevisionId, message);
+        }
+
+        @Nonnull
+        @Override
+        public String rebase(@Nonnull String branchRevisionId, String newBaseRevisionId) {
+            throw new UnsupportedOperationException();
         }
 
         @Override
