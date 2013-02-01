@@ -82,5 +82,11 @@ public interface NodeStoreBranch {
     @Nonnull
     NodeState merge() throws CommitFailedException;
 
+    /**
+     * Rebase the changes from this branch on top of the current
+     * root.
+     */
+    void rebase();
+
 }
 

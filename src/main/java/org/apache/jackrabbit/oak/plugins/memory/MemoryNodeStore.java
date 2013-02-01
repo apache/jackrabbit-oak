@@ -103,6 +103,10 @@ public class MemoryNodeStore implements NodeStore {
             throw new UnsupportedOperationException();
         }
 
+        @Override
+        public void rebase() {
+            throw new UnsupportedOperationException();
+        }
     }
 
 }

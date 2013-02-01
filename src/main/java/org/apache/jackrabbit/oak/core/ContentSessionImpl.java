@@ -18,13 +18,13 @@ package org.apache.jackrabbit.oak.core;
 
 import java.io.IOException;
 import java.util.Set;
+
 import javax.annotation.Nonnull;
 import javax.security.auth.login.LoginException;
 
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.spi.commit.ConflictHandler;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginContext;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfiguration;
@@ -45,20 +45,17 @@ class ContentSessionImpl implements ContentSession {
     private final AccessControlConfiguration accConfiguration;
     private final String workspaceName;
     private final NodeStore store;
-    private final ConflictHandler conflictHandler;
     private final QueryIndexProvider indexProvider;
 
     private volatile boolean live = true;
 
     public ContentSessionImpl(LoginContext loginContext,
             AccessControlConfiguration accConfiguration, String workspaceName,
-            NodeStore store, ConflictHandler conflictHandler,
-            QueryIndexProvider indexProvider) {
+            NodeStore store, QueryIndexProvider indexProvider) {
         this.loginContext = loginContext;
         this.accConfiguration = accConfiguration;
         this.workspaceName = workspaceName;
         this.store = store;
-        this.conflictHandler = conflictHandler;
         this.indexProvider = indexProvider;
     }
 
@@ -94,9 +91,6 @@ class ContentSessionImpl implements ContentSession {
                 ContentSessionImpl.this.checkLive();
             }
         };
-        if (conflictHandler != null) {
-            root.setConflictHandler(conflictHandler);
-        }
         return root;
     }
 
