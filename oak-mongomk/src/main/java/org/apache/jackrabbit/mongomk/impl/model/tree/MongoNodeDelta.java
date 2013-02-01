@@ -21,7 +21,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.jackrabbit.mk.model.Id;
 import org.apache.jackrabbit.mk.model.tree.NodeState;
 import org.apache.jackrabbit.mk.model.tree.NodeStateDiff;
 import org.apache.jackrabbit.mk.model.tree.NodeStore;
@@ -63,7 +62,7 @@ public class MongoNodeDelta {
     Map<String, String> changedProperties = new HashMap<String, String>();
 
     Map<String, NodeState> addedChildNodes = new HashMap<String, NodeState>();
-    Map<String, Id> removedChildNodes = new HashMap<String, Id>();
+    Map<String, NodeState> removedChildNodes = new HashMap<String, NodeState>();
     Map<String, NodeState> changedChildNodes = new HashMap<String, NodeState>();
 
     public MongoNodeDelta(NodeStore provider, NodeState node1, NodeState node2) {
@@ -88,7 +87,7 @@ public class MongoNodeDelta {
         return addedChildNodes;
     }
 
-    public Map<String, Id> getRemovedChildNodes() {
+    public Map<String, NodeState> getRemovedChildNodes() {
         return removedChildNodes;
     }
 
@@ -154,7 +153,7 @@ public class MongoNodeDelta {
 
         //Map<String, Id> otherChangedChildNodes = other.getChangedChildNodes();
         Map<String, NodeState> otherChangedChildNodes = other.getChangedChildNodes();
-        Map<String, Id> otherRemovedChildNodes = other.getRemovedChildNodes();
+        Map<String, NodeState> otherRemovedChildNodes = other.getRemovedChildNodes();
         for (Map.Entry<String, NodeState> changed : changedChildNodes.entrySet()) {
             NodeState otherValue = otherChangedChildNodes.get(changed.getKey());
             if (otherValue != null && !changed.getValue().equals(otherValue)) {
@@ -167,7 +166,7 @@ public class MongoNodeDelta {
             }
         }
 
-        for (Map.Entry<String, Id> removed : removedChildNodes.entrySet()) {
+        for (Map.Entry<String, NodeState> removed : removedChildNodes.entrySet()) {
             if (otherChangedChildNodes.containsKey(removed.getKey())) {
                 // removed child node entry has been changed
                 conflicts.add(new Conflict(ConflictType.REMOVED_DIRTY_NODE_CONFLICT, removed.getKey()));
@@ -209,7 +208,7 @@ public class MongoNodeDelta {
 
         @Override
         public void childNodeDeleted(String name, NodeState before) {
-            removedChildNodes.put(name, null /*provider.getId(before)*/);
+            removedChildNodes.put(name, before /*provider.getId(before)*/);
         }
     }
 
