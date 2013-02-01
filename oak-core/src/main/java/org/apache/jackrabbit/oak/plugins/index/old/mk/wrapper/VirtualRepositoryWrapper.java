@@ -21,6 +21,8 @@ import java.util.HashMap;
 import java.util.TreeMap;
 import java.util.Map.Entry;
 
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.json.JsopBuilder;
@@ -343,6 +345,12 @@ public class VirtualRepositoryWrapper extends MicroKernelWrapperBase implements 
     public String merge(String branchRevisionId, String message) {
         // TODO OAK-45 support
         return mk.merge(branchRevisionId, message);
+    }
+
+    @Nonnull
+    @Override
+    public String rebase(@Nonnull String branchRevisionId, String newBaseRevisionId) {
+        throw new UnsupportedOperationException();
     }
 }
 

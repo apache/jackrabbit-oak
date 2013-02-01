@@ -19,6 +19,8 @@ package org.apache.jackrabbit.mongomk.impl;
 import java.io.InputStream;
 import java.util.UUID;
 
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.blobs.BlobStore;
@@ -213,6 +215,12 @@ public class MongoMicroKernel implements MicroKernel {
         } catch (Exception e) {
             throw new MicroKernelException(e);
         }
+    }
+
+    @Nonnull
+    @Override
+    public String rebase(@Nonnull String branchRevisionId, String newBaseRevisionId) {
+        throw new UnsupportedOperationException();
     }
 
     @Override

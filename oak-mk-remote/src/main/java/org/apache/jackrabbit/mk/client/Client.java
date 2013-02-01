@@ -23,6 +23,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import javax.annotation.Nonnull;
 import javax.net.SocketFactory;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
@@ -297,6 +298,12 @@ public class Client implements MicroKernel {
         } finally {
             IOUtils.closeQuietly(request);
         }
+    }
+
+    @Nonnull
+    @Override
+    public String rebase(@Nonnull String branchRevisionId, String newBaseRevisionId) {
+        throw new UnsupportedOperationException();
     }
 
     @Override

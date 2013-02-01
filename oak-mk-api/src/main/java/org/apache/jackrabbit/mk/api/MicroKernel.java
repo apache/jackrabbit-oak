@@ -18,6 +18,8 @@ package org.apache.jackrabbit.mk.api;
 
 import java.io.InputStream;
 
+import javax.annotation.Nonnull;
+
 /**
  * The MicroKernel <b>Design Goals and Principles</b>:
  * <ul>
@@ -480,6 +482,63 @@ public interface MicroKernel {
      */
     String /* revisionId */ merge(String branchRevisionId, String message)
             throws MicroKernelException;
+
+    /**
+     * Rebases the specified <i>private</i> branch revision on top of specified new base
+     * revision.
+     * <p/>
+     * A {@code MicroKernelException} is thrown if {@code branchRevisionId} doesn't
+     * exist, if it's not a branch revision, if {@code newBaseRevisionId} doesn't exist,
+     * if it's a branch revision or if another error occurs.
+     * <p/>
+     * If rebasing results in a conflict, conflicting nodes are annotated with a conflict
+     * marker denoting the type of the conflict and the value(s) before the rebase operation.
+     * The conflict marker is an internal node with the name {@code :conflict} and is added
+     * to the node whose properties or child nodes are in conflict.
+     * <p/>
+     * type of conflicts:
+     * <dl>
+     *     <dt>addExistingProperty:</dt>
+     *     <dd>A property has been added that has a different value than a property with the same name
+     *         that has been added in trunk.</dd>
+     *     <dt>deleteDeletedProperty:</dt>
+     *     <dd>A property has been removed while a property of the same name has been removed in trunk.</dd>
+     *     <dt>deleteChangedProperty:</dt>
+     *     <dd>A property has been removed while a property of the same name has been changed in trunk.</dd>
+     *     <dt>changeDeletedProperty:</dt>
+     *     <dd>A property has been changed while a property of the same name has been removed in trunk. </dd>
+     *     <dt>changeChangedProperty:</dt>
+     *     <dd>A property has been changed while a property of the same name has been changed to a
+     *         different value in trunk.</dd>
+     *     <dt>addExistingNode:</dt>
+     *     <dd>A node has been added that is different from a node of them same name that has been added
+     *         to the trunk.</dd>
+     *     <dt>deleteDeletedNode:</dt>
+     *     <dd>A node has been removed while a node of the same name has been removed in trunk.</dd>
+     *     <dt>deleteChangedNode:</dt>
+     *     <dd>A node has been removed while a node of the same name has been changed in trunk.</dd>
+     *     <dt>changeDeletedNode:</dt>
+     *     <dd>A node has been changed while a node of the same name has been removed in trunk.</dd>
+     * </dl>
+     * In this context a node is regarded as changed if a property way added, a property was removed,
+     * a property was set to a different value, a child node was added, a child node was removed or
+     * a child node was changed.
+     * <p/>
+     * On conflict the conflict marker node carries the conflicting value of the branch while the rebased
+     * value in the branch itself will be set to the conflicting value of the trunk. In the case of conflicting
+     * properties, the conflicting value is the property value from the branch. In the case of conflicting
+     * node, the conflicting value is the node from the branch.
+     *
+     * @param branchRevisionId id of private branch revision
+     * @param newBaseRevisionId id of new base revision
+     * @return id of the rebased branch revision
+     * @throws MicroKernelException if {@code branchRevisionId} doesn't exist,
+     *                              if it's not a branch revision, if {@code newBaseRevisionId}
+     *                              doesn't exist, if it's a branch revision, or if another error occurs.
+     */
+    @Nonnull
+    String /*revisionId */ rebase(@Nonnull String branchRevisionId, String newBaseRevisionId)
+        throws MicroKernelException;
 
     //--------------------------------------------------< BLOB READ/WRITE ops >
 
