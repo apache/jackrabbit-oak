@@ -51,7 +51,7 @@ public class TreeImpl implements Tree {
     /**
      * Internal and hidden property that contains the child order
      */
-    static final String OAK_CHILD_ORDER = ":childOrder";
+    public static final String OAK_CHILD_ORDER = ":childOrder";
 
     /**
      * Underlying {@code Root} of this {@code Tree} instance

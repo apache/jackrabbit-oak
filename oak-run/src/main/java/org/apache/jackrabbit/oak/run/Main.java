@@ -29,6 +29,7 @@ import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.http.OakServlet;
 import org.apache.jackrabbit.oak.jcr.RepositoryImpl;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
+import org.apache.jackrabbit.oak.plugins.commit.JcrConflictHandler;
 import org.apache.jackrabbit.oak.plugins.index.CompositeIndexHookProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexHookManager;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexHookProvider;
@@ -159,6 +160,7 @@ public class Main {
             // TODO: review usage of opensecurity provider (using default will cause BasicServerTest to fail. usage of a:a credentials)
             SecurityProvider securityProvider = new OpenSecurityProvider();
             ContentRepository repository = new Oak(kernel)
+                .with(JcrConflictHandler.JCR_CONFLICT_HANDLER)
                 .with(buildDefaultCommitHook())
                 .with(securityProvider)
                 .createContentRepository();
@@ -213,11 +215,11 @@ public class Main {
 
         private static ValidatorProvider createDefaultValidatorProvider() {
             return new CompositeValidatorProvider(
+                    new ConflictValidatorProvider(),
                     new NameValidatorProvider(),
                     new NamespaceValidatorProvider(),
                     new TypeValidatorProvider(),
-                    new RegistrationValidatorProvider(),
-                    new ConflictValidatorProvider());
+                    new RegistrationValidatorProvider());
         }
 
     }
