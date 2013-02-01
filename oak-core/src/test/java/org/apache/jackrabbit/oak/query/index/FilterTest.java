@@ -57,25 +57,25 @@ public class FilterTest {
 
         f = new FilterImpl(null, null);
         f.restrictProperty("x", Operator.EQUAL, one);
-        assertEquals("[1..1]", f.getPropertyRestriction("x").toString());
+        assertEquals("1", f.getPropertyRestriction("x").toString());
         f.restrictProperty("x", Operator.EQUAL, one);
-        assertEquals("[1..1]", f.getPropertyRestriction("x").toString());
+        assertEquals("1", f.getPropertyRestriction("x").toString());
         f.restrictProperty("x", Operator.GREATER_OR_EQUAL, one);
-        assertEquals("[1..1]", f.getPropertyRestriction("x").toString());
+        assertEquals("1", f.getPropertyRestriction("x").toString());
         f.restrictProperty("x", Operator.LESS_OR_EQUAL, one);
-        assertEquals("[1..1]", f.getPropertyRestriction("x").toString());
+        assertEquals("1", f.getPropertyRestriction("x").toString());
         f.restrictProperty("x", Operator.GREATER_THAN, one);
         assertTrue(f.isAlwaysFalse());
 
         f = new FilterImpl(null, null);
         f.restrictProperty("x", Operator.EQUAL, one);
-        assertEquals("[1..1]", f.getPropertyRestriction("x").toString());
+        assertEquals("1", f.getPropertyRestriction("x").toString());
         f.restrictProperty("x", Operator.LESS_THAN, one);
         assertTrue(f.isAlwaysFalse());
 
         f = new FilterImpl(null, null);
         f.restrictProperty("x", Operator.NOT_EQUAL, null);
-        assertEquals("..", f.getPropertyRestriction("x").toString());
+        assertEquals("", f.getPropertyRestriction("x").toString());
         f.restrictProperty("x", Operator.LESS_THAN, one);
         assertEquals("..1)", f.getPropertyRestriction("x").toString());
         f.restrictProperty("x", Operator.EQUAL, two);
