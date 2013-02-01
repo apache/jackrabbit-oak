@@ -167,7 +167,6 @@ public abstract class AbstractQueryTest {
                     String got;
                     try {
                         got = c.convert(line);
-                        executeQuery(got, QueryEngineImpl.SQL2, null);
                     } catch (ParseException e) {
                         got = "invalid: " + e.getMessage().replace('\n', ' ');
                     } catch (Exception e) {
