@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.core.ReadOnlyRoot;
 import org.apache.jackrabbit.oak.core.ReadOnlyTree;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceConstants;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
@@ -40,17 +41,10 @@ import org.apache.jackrabbit.util.Text;
 class PrivilegeValidator implements PrivilegeConstants, Validator {
 
     private final Map<String, PrivilegeDefinition> definitions;
-    private final PrivilegeDefinitionReaderImpl reader;
 
     PrivilegeValidator(NodeState before) {
-        Tree privTree = getPrivilegesTree(before);
-        if (privTree != null) {
-            reader = new PrivilegeDefinitionReaderImpl(privTree);
-            definitions = reader.readDefinitions();
-        } else {
-            reader = null;
-            definitions = null;
-        }
+        PrivilegeDefinitionReader reader = new PrivilegeDefinitionReader(new ReadOnlyRoot(before));
+        definitions = reader.readDefinitions();
     }
 
     //----------------------------------------------------------< Validator >---
@@ -71,8 +65,6 @@ class PrivilegeValidator implements PrivilegeConstants, Validator {
 
     @Override
     public Validator childNodeAdded(String name, NodeState after) throws CommitFailedException {
-        checkInitialized();
-
         // the following characteristics are expected to be validated elsewhere:
         // - permission to allow privilege registration -> permission validator.
         // - name collisions (-> delegated to NodeTypeValidator since sms are not allowed)
@@ -92,7 +84,7 @@ class PrivilegeValidator implements PrivilegeConstants, Validator {
         }
 
         // additional validation of the definition
-        PrivilegeDefinition def = reader.readDefinition(tree);
+        PrivilegeDefinition def = PrivilegeDefinitionReader.readDefinition(tree);
         validateDefinition(def);
 
         // privilege definitions may not have child nodes.
@@ -110,16 +102,18 @@ class PrivilegeValidator implements PrivilegeConstants, Validator {
     }
 
     //------------------------------------------------------------< private >---
+
     /**
      * Validation of the privilege definition including the following steps:
-     *
+     * <p/>
      * - all aggregates must have been registered before
      * - no existing privilege defines the same aggregation
      * - no cyclic aggregation
      *
      * @param definition The new privilege definition to validate.
-     * @throws org.apache.jackrabbit.oak.api.CommitFailedException If any of
-     * the checks listed above fails.
+     * @throws org.apache.jackrabbit.oak.api.CommitFailedException
+     *          If any of
+     *          the checks listed above fails.
      */
     private void validateDefinition(PrivilegeDefinition definition) throws CommitFailedException {
         Set<String> declaredNames = definition.getDeclaredAggregateNames();
@@ -134,7 +128,7 @@ class PrivilegeValidator implements PrivilegeConstants, Validator {
         for (String aggrName : declaredNames) {
             // aggregated privilege not registered
             if (!definitions.containsKey(aggrName)) {
-                throw new CommitFailedException("Declared aggregate '"+ aggrName +"' is not a registered privilege.");
+                throw new CommitFailedException("Declared aggregate '" + aggrName + "' is not a registered privilege.");
             }
 
             // check for circular aggregation
@@ -197,20 +191,5 @@ class PrivilegeValidator implements PrivilegeConstants, Validator {
             }
         }
         return aggregateNames;
-    }
-
-    private void checkInitialized() throws CommitFailedException {
-        if (reader == null || definitions == null) {
-            throw new CommitFailedException(new IllegalStateException("Mandatory privileges root is missing."));
-        }
-    }
-
-    private static Tree getPrivilegesTree(NodeState rootState) {
-        Tree root = new ReadOnlyTree(rootState);
-        Tree system = root.getChild(JcrConstants.JCR_SYSTEM);
-        if (system != null) {
-            return system.getChild(REP_PRIVILEGES);
-        }
-        return null;
     }
 }

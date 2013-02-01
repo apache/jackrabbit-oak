@@ -22,6 +22,7 @@ import java.util.Collections;
 import java.util.Map;
 import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlException;
+import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -30,7 +31,6 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
-import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeDefinition;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.apache.jackrabbit.util.Text;
@@ -45,16 +45,16 @@ class AccessControlValidator implements Validator, AccessControlConstants {
     private final Tree parentBefore;
     private final Tree parentAfter;
 
-    private final Map<String, PrivilegeDefinition> privilegeDefinitions;
+    private final Map<String, Privilege> privileges;
     private final RestrictionProvider restrictionProvider;
     private final ReadOnlyNodeTypeManager ntMgr;
 
     AccessControlValidator(Tree parentBefore, Tree parentAfter,
-                           Map<String, PrivilegeDefinition> privilegeDefinitions,
+                           Map<String, Privilege> privileges,
                            RestrictionProvider restrictionProvider, ReadOnlyNodeTypeManager ntMgr) {
         this.parentBefore = parentBefore;
         this.parentAfter = parentAfter;
-        this.privilegeDefinitions = privilegeDefinitions;
+        this.privileges = privileges;
         this.restrictionProvider = restrictionProvider;
         this.ntMgr = ntMgr;
     }
@@ -90,7 +90,7 @@ class AccessControlValidator implements Validator, AccessControlConstants {
         Tree treeAfter = checkNotNull(parentAfter.getChild(name));
 
         checkValidTree(parentAfter, treeAfter);
-        return new AccessControlValidator(null, treeAfter, privilegeDefinitions, restrictionProvider, ntMgr);
+        return new AccessControlValidator(null, treeAfter, privileges, restrictionProvider, ntMgr);
     }
 
     @Override
@@ -99,7 +99,7 @@ class AccessControlValidator implements Validator, AccessControlConstants {
         Tree treeAfter = checkNotNull(parentAfter.getChild(name));
 
         checkValidTree(parentAfter, treeAfter);
-        return new AccessControlValidator(treeBefore, treeAfter, privilegeDefinitions, restrictionProvider, ntMgr);
+        return new AccessControlValidator(treeBefore, treeAfter, privileges, restrictionProvider, ntMgr);
     }
 
     @Override
@@ -192,12 +192,12 @@ class AccessControlValidator implements Validator, AccessControlConstants {
             fail("Missing privileges.");
         }
         for (String privilegeName : privilegeNames) {
-            if (privilegeName == null || !privilegeDefinitions.containsKey(privilegeName)) {
+            if (privilegeName == null || !privileges.containsKey(privilegeName)) {
                 fail("Invalid privilege " + privilegeName);
             }
 
-            PrivilegeDefinition def = privilegeDefinitions.get(privilegeName);
-            if (def.isAbstract()) {
+            Privilege privilege = privileges.get(privilegeName);
+            if (privilege.isAbstract()) {
                 fail("Abstract privilege " + privilegeName);
             }
         }
