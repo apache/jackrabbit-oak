@@ -26,14 +26,13 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
  * Test case for asserting large moves don't run out of memory.
  * See OAK-463, OAK-464
  */
-public class LargeMoveTest {
+public class LargeMoveTestIT {
     private ContentSession session;
     private String treeAPath;
     private String treeBPath;
@@ -65,7 +64,6 @@ public class LargeMoveTest {
     }
 
     @Test
-    @Ignore
     public void moveTest() throws CommitFailedException {
         Root root1 = session.getLatestRoot();
 
