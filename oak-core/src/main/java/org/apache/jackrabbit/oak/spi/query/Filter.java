@@ -149,8 +149,9 @@ public interface Filter {
             if (f.equals(l)) {
                 return f;
             }
-            return (firstIncluding ? "[" : "(") + f + ".." + l
-                    + (lastIncluding ? "]" : ")");
+            String fi = first == null ? "" : (firstIncluding ? "[" : "(");
+            String li = last == null ? "" : (lastIncluding ? "]" : ")");
+            return fi + f + ".." + l + li;
         }
 
     }
