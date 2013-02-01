@@ -18,8 +18,14 @@ package org.apache.jackrabbit.oak.security.authorization;
 
 import java.util.Map;
 import javax.annotation.Nonnull;
+import javax.jcr.RepositoryException;
+import javax.jcr.security.Privilege;
 
+import com.google.common.collect.ImmutableMap;
+import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.core.ReadOnlyRoot;
 import org.apache.jackrabbit.oak.core.ReadOnlyTree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
@@ -28,9 +34,10 @@ import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
-import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeDefinition;
-import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeDefinitionReader;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConfiguration;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * {@code AccessControlValidatorProvider} aimed to provide a root validator
@@ -39,6 +46,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * constraints defined by this access control implementation.
  */
 class AccessControlValidatorProvider implements ValidatorProvider {
+
+    private static final Logger log = LoggerFactory.getLogger(AccessControlValidatorProvider.class);
 
     private SecurityProvider securityProvider;
 
@@ -53,15 +62,27 @@ class AccessControlValidatorProvider implements ValidatorProvider {
         Tree rootBefore = new ReadOnlyTree(before);
         Tree rootAfter = new ReadOnlyTree(after);
 
-        PrivilegeDefinitionReader reader = securityProvider.getPrivilegeConfiguration().getPrivilegeDefinitionReader(rootBefore);
-        Map<String, PrivilegeDefinition> privilegeDefinitions = reader.readDefinitions();
-
         AccessControlConfiguration acConfig = securityProvider.getAccessControlConfiguration();
         RestrictionProvider restrictionProvider = acConfig.getRestrictionProvider(NamePathMapper.DEFAULT);
 
+        Map<String, Privilege> privileges = getPrivileges(before, securityProvider.getPrivilegeConfiguration());
         ReadOnlyNodeTypeManager ntMgr = ReadOnlyNodeTypeManager.getInstance(before);
 
-        return new AccessControlValidator(rootBefore, rootAfter, privilegeDefinitions, restrictionProvider, ntMgr);
+        return new AccessControlValidator(rootBefore, rootAfter, privileges, restrictionProvider, ntMgr);
+    }
+
+    private static Map<String, Privilege> getPrivileges(NodeState beforeRoot, PrivilegeConfiguration config) {
+        Root root = new ReadOnlyRoot(beforeRoot);
+        PrivilegeManager pMgr = config.getPrivilegeManager(root, NamePathMapper.DEFAULT);
+        ImmutableMap.Builder privileges = ImmutableMap.builder();
+        try {
+            for (Privilege privilege : pMgr.getRegisteredPrivileges()) {
+                privileges.put(privilege.getName(), privilege);
+            }
+        } catch (RepositoryException e) {
+            log.error("Unexpected error: failed to read privileges.");
+        }
+        return privileges.build();
     }
 
 }
