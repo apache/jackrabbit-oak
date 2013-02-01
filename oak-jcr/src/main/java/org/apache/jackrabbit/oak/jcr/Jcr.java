@@ -18,13 +18,14 @@ package org.apache.jackrabbit.oak.jcr;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+
 import javax.annotation.Nonnull;
 import javax.jcr.Repository;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.Oak;
-import org.apache.jackrabbit.oak.plugins.commit.AnnotatingConflictHandler;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
+import org.apache.jackrabbit.oak.plugins.commit.JcrConflictHandler;
 import org.apache.jackrabbit.oak.plugins.index.IndexHookProvider;
 import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.p2.Property2IndexHookProvider;
@@ -61,6 +62,7 @@ public class Jcr {
 
         with(new InitialContent());
 
+        with(JcrConflictHandler.JCR_CONFLICT_HANDLER);
         with(new DefaultTypeEditor());
         with(new VersionHook());
 
@@ -73,7 +75,6 @@ public class Jcr {
         with(new ConflictValidatorProvider());
 
         with(new Property2IndexHookProvider());
-        with(new AnnotatingConflictHandler());
 
         with(new Property2IndexProvider());
         with(new NodeTypeIndexProvider());

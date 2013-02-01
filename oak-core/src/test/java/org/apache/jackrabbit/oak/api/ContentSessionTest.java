@@ -24,8 +24,6 @@ import javax.jcr.NoSuchWorkspaceException;
 import javax.security.auth.login.LoginException;
 
 import org.apache.jackrabbit.oak.Oak;
-import org.apache.jackrabbit.oak.plugins.commit.AnnotatingConflictHandler;
-import org.apache.jackrabbit.oak.plugins.commit.ConflictValidator;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -36,10 +34,7 @@ public class ContentSessionTest {
 
     @Before
     public void setUp() {
-        repository = new Oak()
-                .with(new ConflictValidator())
-                .with(new AnnotatingConflictHandler())
-                .createContentRepository();
+        repository = new Oak().createContentRepository();
     }
 
     @After

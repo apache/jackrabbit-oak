@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
+import org.apache.jackrabbit.oak.plugins.commit.ConflictHook;
 import org.apache.jackrabbit.oak.plugins.index.CompositeIndexHookProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexHookManager;
 import org.apache.jackrabbit.oak.plugins.index.IndexHookProvider;
@@ -77,8 +78,6 @@ public class Oak {
 
     // TODO: review if we really want to have the OpenSecurityProvider as default.
     private SecurityProvider securityProvider = new OpenSecurityProvider();
-
-    private ConflictHandler conflictHandler;
 
     private String defaultWorkspaceName;
 
@@ -226,7 +225,8 @@ public class Oak {
      */
     @Nonnull
     public Oak with(@Nonnull ConflictHandler conflictHandler) {
-        this.conflictHandler = conflictHandler;
+        withValidatorHook();
+        commitHooks.add(new ConflictHook(conflictHandler));
         return this;
     }
 
@@ -247,7 +247,6 @@ public class Oak {
         return new ContentRepositoryImpl(
                 store,
                 defaultWorkspaceName,
-                conflictHandler,
                 CompositeQueryIndexProvider.compose(queryIndexProviders),
                 securityProvider);
     }
