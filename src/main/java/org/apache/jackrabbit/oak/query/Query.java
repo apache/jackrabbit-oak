@@ -75,7 +75,7 @@ public class Query {
      */
     public static final String JCR_SCORE = "jcr:score";
 
-    private static final Logger LOG = LoggerFactory.getLogger(QueryEngineImpl.class);
+    private static final Logger LOG = LoggerFactory.getLogger(Query.class);
 
     final SourceImpl source;
     final String statement;
@@ -317,7 +317,8 @@ public class Query {
             it = Arrays.asList(r).iterator();
         } else {
             if (LOG.isDebugEnabled()) {
-                LOG.debug("plan: " + getPlan());
+                LOG.debug("query execute {} ", statement);
+                LOG.debug("query plan {}", getPlan());
             }
             if (orderings == null) {
                 // can apply limit and offset directly
