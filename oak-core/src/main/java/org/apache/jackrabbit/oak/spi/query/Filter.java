@@ -144,8 +144,13 @@ public interface Filter {
 
         @Override
         public String toString() {
-            return (first == null ? "" : ((firstIncluding ? "[" : "(") + first)) + ".." +
-                    (last == null ? "" : last + (lastIncluding ? "]" : ")"));
+            String f = first == null ? "" : first.toString();
+            String l = last == null ? "" : last.toString();
+            if (f.equals(l)) {
+                return f;
+            }
+            return (firstIncluding ? "[" : "(") + f + ".." + l
+                    + (lastIncluding ? "]" : ")");
         }
 
     }

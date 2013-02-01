@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.query.index;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
 
@@ -273,17 +274,29 @@ public class FilterImpl implements Filter {
 
     @Override
     public String toString() {
-        StringBuilder buff = new StringBuilder();
-        if (queryStatement != null) {
-            buff.append("query ").append(queryStatement).append('\n');
-        }
         if (alwaysFalse) {
-            return "(always false)";
+            return "Filter(always false)";
         }
-        buff.append("path: ").append(path).append(pathRestriction).append('\n');
-        for (Entry<String, PropertyRestriction> p : propertyRestrictions.entrySet()) {
-            buff.append("property ").append(p.getKey()).append(": ").append(p.getValue()).append('\n');
+        StringBuilder buff = new StringBuilder();
+        buff.append("Filter(");
+        if (queryStatement != null) {
+            buff.append("query=").append(queryStatement);
         }
+        buff.append(", path=").append(path).append(pathRestriction);
+        if (!propertyRestrictions.isEmpty()) {
+            buff.append(", property=[");
+            Iterator<Entry<String, PropertyRestriction>> iterator = propertyRestrictions
+                    .entrySet().iterator();
+            while (iterator.hasNext()) {
+                Entry<String, PropertyRestriction> p = iterator.next();
+                buff.append(p.getKey()).append("=").append(p.getValue());
+                if (iterator.hasNext()) {
+                    buff.append(", ");
+                }
+            }
+            buff.append("]");
+        }
+        buff.append(")");
         return buff.toString();
     }
 
