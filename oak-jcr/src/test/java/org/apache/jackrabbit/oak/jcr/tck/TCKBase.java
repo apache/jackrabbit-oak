@@ -40,7 +40,7 @@ public abstract class TCKBase extends TestSuite {
         addTests();
         // OAK-588: CI builds take too long with MongoMK
         // -> disabled for now
-        if (OakMongoMKRepositoryStub.isMongoDBAvailable() && false) {
+        if (false && OakMongoMKRepositoryStub.isMongoDBAvailable()) {
             addTest(new Setup(OakMongoMKRepositoryStub.class.getName()));
             addTests();
         }
