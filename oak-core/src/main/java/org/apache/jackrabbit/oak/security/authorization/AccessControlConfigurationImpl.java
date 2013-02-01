@@ -24,8 +24,10 @@ import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.jcr.security.AccessControlManager;
 
+import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.version.VersionablePathHook;
 import org.apache.jackrabbit.oak.security.authorization.restriction.RestrictionProviderImpl;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
@@ -91,7 +93,8 @@ public class AccessControlConfigurationImpl extends SecurityConfiguration.Defaul
     @Nonnull
     @Override
     public List<CommitHook> getCommitHooks() {
-        return Collections.<CommitHook>singletonList(new PermissionHook());
+        // TODO: review if VersionablePathHook should be included here
+        return ImmutableList.of(new PermissionHook(), new VersionablePathHook());
     }
 
     @Override

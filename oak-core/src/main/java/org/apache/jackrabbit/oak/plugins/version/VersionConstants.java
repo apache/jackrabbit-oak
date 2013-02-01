@@ -51,6 +51,12 @@ public interface VersionConstants extends JcrConstants {
     String JCR_CHILD_VERSION_HISTORY = "jcr:childVersionHistory";
 
     /**
+     * @since OAK 1.0
+     */
+    String MIX_REP_VERSIONABLE_PATHS = "rep:VersionablePaths";
+
+
+    /**
      * Quote from JSR 283 Section "15.12.3 Activity Storage"<p/>
      * <p/>
      * Activities are persisted as nodes of type nt:activity under system-generated
