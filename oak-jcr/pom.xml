@@ -237,6 +237,7 @@
       org.apache.jackrabbit.oak.jcr.version.VersionHistoryTest#testGetVersionHistoryFromNode             <!-- OAK-601 -->
       org.apache.jackrabbit.oak.jcr.version.VersionHistoryTest#testGetVersionHistory                     <!-- OAK-602 -->
       org.apache.jackrabbit.oak.jcr.version.VersionHistoryTest#testGetVersionHistoryAfterMove            <!-- OAK-602 -->
+      org.apache.jackrabbit.oak.jcr.MoveTest                                                             <!-- OAK-606, OAK-607 -->
     </known.issues>
   </properties>
 
