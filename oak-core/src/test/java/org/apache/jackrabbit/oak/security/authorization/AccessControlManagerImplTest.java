@@ -556,7 +556,6 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         // TODO
     }
 
-    @Ignore("OAK-396")
     @Test
     public void testSetPolicy() throws Exception {
         ACL acl = getApplicablePolicy(testPath);
@@ -575,7 +574,6 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         assertArrayEquals(acl.getAccessControlEntries(), acl2.getAccessControlEntries());
     }
 
-    @Ignore("OAK-396")
     @Test
     public void testSetPolicyWritesAcContent() throws Exception {
         ACL acl = getApplicablePolicy(testPath);
