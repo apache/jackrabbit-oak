@@ -23,7 +23,7 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeDefinition;
-import org.apache.jackrabbit.oak.util.NodeUtil;
+import org.apache.jackrabbit.oak.util.TreeUtil;
 
 import static org.apache.jackrabbit.oak.security.privilege.PrivilegeConstants.PRIVILEGES_PATH;
 import static org.apache.jackrabbit.oak.security.privilege.PrivilegeConstants.REP_AGGREGATES;
@@ -65,10 +65,9 @@ class PrivilegeDefinitionReader {
     //-----------------------------------------------------------< internal >---
     @Nonnull
     static PrivilegeDefinition readDefinition(Tree definitionTree) {
-        NodeUtil n = new NodeUtil(definitionTree);
-        String name = n.getName();
-        boolean isAbstract = n.getBoolean(REP_IS_ABSTRACT);
-        String[] declAggrNames = n.getStrings(REP_AGGREGATES);
+        String name = definitionTree.getName();
+        boolean isAbstract = TreeUtil.getBoolean(definitionTree, REP_IS_ABSTRACT);
+        String[] declAggrNames = TreeUtil.getStrings(definitionTree, REP_AGGREGATES);
 
         return new PrivilegeDefinitionImpl(name, isAbstract, declAggrNames);
     }
