@@ -62,7 +62,7 @@ public class SegmentWriter {
         this.blockSegmentSize = blocksPerSegment * BLOCK_SIZE;
     }
 
-    public void flush() {
+    public synchronized void flush() {
         if (buffer.position() > 0) {
             byte[] data = new byte[buffer.position()];
             buffer.flip();
@@ -104,127 +104,14 @@ public class SegmentWriter {
         return new RecordId(uuid, buffer.position());
     }
 
-    /**
-     * Writes a block record containing the given block of bytes.
-     *
-     * @param bytes source buffer
-     * @param offset offset within the source buffer
-     * @param length number of bytes to write
-     * @return block record identifier
-     */
-    public synchronized RecordId writeBlock(
-            byte[] bytes, int offset, int length) {
-        checkNotNull(bytes);
-        checkPositionIndexes(offset, offset + length, bytes.length);
-
-        RecordId blockId = prepare(length);
-        buffer.put(bytes, offset, length);
-        return blockId;
-    }
-
-    /**
-     * Writes a list record containing the given list of record identifiers.
-     *
-     * @param ids list of record identifiers
-     * @return list record identifier
-     */
-    public synchronized RecordId writeList(List<RecordId> ids) {
-        checkNotNull(ids);
-
-        int size = ids.size();
-        if (size == 0) {
-            return prepare(0);
-        } else if (size == 1) {
-            return ids.iterator().next();
-        } else {
-            List<RecordId> thisLevel = ids;
-            do {
-                List<RecordId> nextLevel = new ArrayList<RecordId>();
-                for (List<RecordId> bucket :
-                        Lists.partition(thisLevel, ListRecord.LEVEL_SIZE)) {
-                    RecordId bucketId = prepare(0, bucket);
-                    for (RecordId id : bucket) {
-                        writeRecordId(id);
-                    }
-                    nextLevel.add(bucketId);
-                }
-                thisLevel = nextLevel;
-            } while (thisLevel.size() > 1);
-            return thisLevel.iterator().next();
+    private synchronized void writeRecordId(RecordId id) {
+        UUID segmentId = id.getSegmentId();
+        int index = uuids.indexOf(segmentId);
+        if (index == -1) {
+            index = uuids.size();
+            uuids.add(segmentId);
         }
-    }
-
-    /**
-     * Writes a value record containing the given sequence of bytes.
-     *
-     * @param bytes source buffer
-     * @param offset offset within the source buffer
-     * @param length number of bytes in the value
-     * @return value record identifier
-     */
-    public RecordId writeString(String string) {
-        byte[] data = string.getBytes(Charsets.UTF_8);
-        List<RecordId> blockIds = new ArrayList<RecordId>();
-
-        int headLength = Math.min(data.length, INLINE_SIZE);
-        writeInlineBlocks(blockIds, data, 0, headLength);
-        if (data.length > headLength) {
-            int offset = headLength;
-            while (offset + INLINE_SIZE <= data.length) {
-                int bulkLength =
-                    Math.min(data.length - offset, blockSegmentSize);
-                writeBulkSegment(blockIds, data, offset, bulkLength);
-                offset += bulkLength;
-            }
-            if (offset < data.length) {
-                writeInlineBlocks(blockIds, data, offset, data.length - offset);
-            }
-        }
-
-        return writeValueRecord(data.length, blockIds);
-    }
-
-    public RecordId writeStream(InputStream stream) throws IOException {
-        List<RecordId> blockIds = new ArrayList<RecordId>();
-
-        // First read the head of the stream. This covers most small
-        // binaries and the frequently accessed head of larger ones.
-        // The head gets inlined in the current segment.
-        byte[] head = new byte[INLINE_SIZE];
-        int headLength = ByteStreams.read(stream, head, 0, head.length);
-
-        writeInlineBlocks(blockIds, head, 0, headLength);
-        long length = headLength;
-
-        // If the stream filled the full head buffer, it's likely that
-        // the bulk of the data is still to come. Read it in larger
-        // chunks and save in separate segments.
-        if (headLength == head.length) {
-            byte[] bulk = new byte[blockSegmentSize];
-            int bulkLength = ByteStreams.read(stream, bulk, 0, bulk.length);
-            while (bulkLength > INLINE_SIZE) {
-                writeBulkSegment(blockIds, bulk, 0, bulkLength);
-                length += bulkLength;
-                bulkLength = ByteStreams.read(stream, bulk, 0, bulk.length);
-            }
-            // The tail chunk of the stream is too small to put in a separate
-            // segment, so we inline also it.
-            if (bulkLength > 0) {
-                writeInlineBlocks(blockIds, bulk, 0, bulkLength);
-                length += bulkLength;
-            }
-        }
-
-        return writeValueRecord(length, blockIds);
-    }
-
-    private RecordId writeValueRecord(long length, List<RecordId> blockIds) {
-        // Store the list of blocks along with the length of the value
-        RecordId listId = writeList(blockIds);
-        RecordId valueId = prepare(8, Collections.singleton(listId));
-        buffer.putLong(length);
-        writeRecordId(listId);
-        return valueId;
+        buffer.putInt(index << 24 | id.getOffset());
     }
 
     private void writeInlineBlocks(
@@ -249,14 +136,138 @@ public class SegmentWriter {
         }
     }
 
-    private void writeRecordId(RecordId id) {
-        UUID segmentId = id.getSegmentId();
-        int index = uuids.indexOf(segmentId);
-        if (index == -1) {
-            index = uuids.size();
-            uuids.add(segmentId);
+    private synchronized RecordId writeListBucket(List<RecordId> bucket) {
+        RecordId bucketId = prepare(0, bucket);
+        for (RecordId id : bucket) {
+            writeRecordId(id);
         }
-        buffer.putInt(index << 24 | id.getOffset());
+        return bucketId;
+    }
+
+    private synchronized RecordId writeValueRecord(
+            long length, RecordId blocks) {
+        RecordId valueId = prepare(8, Collections.singleton(blocks));
+        buffer.putLong(length);
+        writeRecordId(blocks);
+        return valueId;
+    }
+
+    /**
+     * Writes a block record containing the given block of bytes.
+     *
+     * @param bytes source buffer
+     * @param offset offset within the source buffer
+     * @param length number of bytes to write
+     * @return block record identifier
+     */
+    public synchronized RecordId writeBlock(
+            byte[] bytes, int offset, int length) {
+        checkNotNull(bytes);
+        checkPositionIndexes(offset, offset + length, bytes.length);
+
+        RecordId blockId = prepare(length);
+        buffer.put(bytes, offset, length);
+        return blockId;
+    }
+
+    /**
+     * Writes a list record containing the given list of record identifiers.
+     *
+     * @param ids list of record identifiers
+     * @return list record identifier
+     */
+    public RecordId writeList(List<RecordId> ids) {
+        checkNotNull(ids);
+
+        int size = ids.size();
+        if (size == 0) {
+            return prepare(0);
+        } else {
+            List<RecordId> thisLevel = ids;
+            while (thisLevel.size() > 1) {
+                List<RecordId> nextLevel = new ArrayList<RecordId>();
+                for (List<RecordId> bucket :
+                        Lists.partition(thisLevel, ListRecord.LEVEL_SIZE)) {
+                    nextLevel.add(writeListBucket(bucket));
+                }
+                thisLevel = nextLevel;
+            }
+            return thisLevel.iterator().next();
+        }
+    }
+
+    /**
+     * Writes a string value record.
+     *
+     * @param string string to be written
+     * @return value record identifier
+     */
+    public RecordId writeString(String string) {
+        byte[] data = string.getBytes(Charsets.UTF_8);
+        List<RecordId> blockIds = new ArrayList<RecordId>();
+
+        int headLength = Math.min(data.length, INLINE_SIZE);
+        writeInlineBlocks(blockIds, data, 0, headLength);
+        if (data.length > headLength) {
+            int offset = headLength;
+            while (offset + INLINE_SIZE <= data.length) {
+                int bulkLength =
+                    Math.min(data.length - offset, blockSegmentSize);
+                writeBulkSegment(blockIds, data, offset, bulkLength);
+                offset += bulkLength;
+            }
+            if (offset < data.length) {
+                writeInlineBlocks(blockIds, data, offset, data.length - offset);
+            }
+        }
+
+        return writeValueRecord(data.length, writeList(blockIds));
+    }
+
+    /**
+     * Writes a stream value record. The given stream is consumed
+     * <em>and closed</em> by this method.
+     *
+     * @param stream stream to be written
+     * @return value record identifier
+     * @throws IOException if the stream could not be read
+     */
+    public RecordId writeStream(InputStream stream) throws IOException {
+        try {
+            List<RecordId> blockIds = new ArrayList<RecordId>();
+
+            // First read the head of the stream. This covers most small
+            // binaries and the frequently accessed head of larger ones.
+            // The head gets inlined in the current segment.
+            byte[] head = new byte[INLINE_SIZE];
+            int headLength = ByteStreams.read(stream, head, 0, head.length);
+
+            writeInlineBlocks(blockIds, head, 0, headLength);
+            long length = headLength;
+
+            // If the stream filled the full head buffer, it's likely that
+            // the bulk of the data is still to come. Read it in larger
+            // chunks and save in separate segments.
+            if (headLength == head.length) {
+                byte[] bulk = new byte[blockSegmentSize];
+                int bulkLength = ByteStreams.read(stream, bulk, 0, bulk.length);
+                while (bulkLength > INLINE_SIZE) {
+                    writeBulkSegment(blockIds, bulk, 0, bulkLength);
+                    length += bulkLength;
+                    bulkLength = ByteStreams.read(stream, bulk, 0, bulk.length);
+                }
+                // The tail chunk of the stream is too small to put in
+                // a separate segment, so we inline also it.
+                if (bulkLength > 0) {
+                    writeInlineBlocks(blockIds, bulk, 0, bulkLength);
+                    length += bulkLength;
+                }
+            }
+
+            return writeValueRecord(length, writeList(blockIds));
+        } finally {
+            stream.close();
+        }
     }
 
 }
