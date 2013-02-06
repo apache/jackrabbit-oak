@@ -31,6 +31,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.core.ReadOnlyRoot;
 import org.apache.jackrabbit.oak.core.ReadOnlyTree;
 import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
 import org.apache.jackrabbit.oak.security.authorization.permission.AllPermissions;
@@ -68,7 +69,7 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
 
     public PermissionProviderImpl(@Nonnull Root root, @Nonnull Set<Principal> principals,
                                   @Nonnull SecurityProvider securityProvider) {
-        this.root = root; // FIXME: assert that root has full access.
+        this.root = new ReadOnlyRoot(root);
         this.acContext = securityProvider.getAccessControlConfiguration().getContext();
         if (principals.contains(SystemPrincipal.INSTANCE) || isAdmin(principals)) {
             compiledPermissions = AllPermissions.getInstance();
@@ -148,8 +149,7 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
         long permissions = Permissions.getPermissions(jcrActions, location);
         if (!location.exists()) {
             // TODO: deal with version content
-            // FIXME: non-existing locations currently return null-path
-            return compiledPermissions.isGranted(location.getPath(), permissions);
+            return compiledPermissions.isGranted(oakPath, permissions);
         } else if (location.getProperty() != null) {
             return isGranted(location.getTree(), location.getProperty(), permissions);
         } else {

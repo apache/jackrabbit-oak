@@ -602,6 +602,23 @@
 [rep:Restrictions]
   - * (UNDEFINED) protected
 
+/**
+ * @since oak 1.0
+ */
+[rep:PermissionStore]
+  orderable
+  + * (rep:PermissionStore) = rep:PermissionStore protected IGNORE
+  + * (rep:Permissions) = rep:Permissions protected  IGNORE
+
+/**
+ * @since oak 1.0
+ */
+[rep:Permissions]
+  - rep:accessControlledPath (PATH) protected mandatory
+  - rep:privilegeBits (UNDEFINED) protected mandatory
+  - rep:index (LONG) protected mandatory
+  - * (UNDEFINED) protected
+
 // -----------------------------------------------------------------------------
 // Principal based AC
 // -----------------------------------------------------------------------------
