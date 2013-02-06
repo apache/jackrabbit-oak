@@ -24,6 +24,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 
+import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 
 /**
@@ -58,5 +59,10 @@ public final class TreeUtil {
         } else {
             return null;
         }
+    }
+
+    public static boolean getBoolean(Tree tree, String propertyName) {
+        PropertyState property = tree.getProperty(propertyName);
+        return property != null && !property.isArray() && property.getValue(BOOLEAN);
     }
 }

@@ -28,13 +28,11 @@ import javax.jcr.Value;
 import javax.jcr.ValueFactory;
 
 import com.google.common.base.Function;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.TreeLocation;
-import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -45,7 +43,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
 import static org.apache.jackrabbit.oak.api.Type.DATE;
 import static org.apache.jackrabbit.oak.api.Type.LONG;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
@@ -175,9 +172,7 @@ public class NodeUtil {
     }
 
     public boolean getBoolean(String name) {
-        PropertyState property = tree.getProperty(name);
-        return property != null && !property.isArray()
-                && property.getValue(BOOLEAN);
+        return TreeUtil.getBoolean(tree, name);
     }
 
     public void setBoolean(String name, boolean value) {
@@ -186,12 +181,8 @@ public class NodeUtil {
 
     @CheckForNull
     public String getString(String name, @Nullable String defaultValue) {
-        PropertyState property = tree.getProperty(name);
-        if (property != null && !property.isArray()) {
-            return property.getValue(Type.STRING);
-        } else {
-            return defaultValue;
-        }
+        String str = TreeUtil.getString(tree, name);
+        return (str != null) ? str : defaultValue;
     }
 
     public void setString(String name, String value) {
@@ -200,12 +191,7 @@ public class NodeUtil {
 
     @CheckForNull
     public String[] getStrings(String name) {
-        PropertyState property = tree.getProperty(name);
-        if (property == null) {
-            return null;
-        }
-
-        return Iterables.toArray(property.getValue(STRINGS), String.class);
+        return TreeUtil.getStrings(tree, name);
     }
 
     public void setStrings(String name, String... values) {
