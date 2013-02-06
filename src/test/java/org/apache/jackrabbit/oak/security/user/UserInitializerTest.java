@@ -26,7 +26,7 @@ import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtility;
-import org.apache.jackrabbit.oak.util.NodeUtil;
+import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -109,9 +109,8 @@ public class UserInitializerTest extends AbstractSecurityTest {
 
     private static void assertIndexDefinition(Tree tree, String propName, boolean isUnique) {
         assertNotNull(tree);
-        NodeUtil node = new NodeUtil(tree);
 
-        assertEquals(isUnique, node.getBoolean(IndexConstants.UNIQUE_PROPERTY_NAME));
-        assertArrayEquals(new String[] {propName}, node.getNames(IndexConstants.PROPERTY_NAMES));
+        assertEquals(isUnique, TreeUtil.getBoolean(tree, IndexConstants.UNIQUE_PROPERTY_NAME));
+        assertArrayEquals(propName, new String[] {propName}, TreeUtil.getStrings(tree, IndexConstants.PROPERTY_NAMES));
     }
 }
