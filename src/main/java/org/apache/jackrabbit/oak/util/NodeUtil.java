@@ -171,6 +171,17 @@ public class NodeUtil {
         tree.removeProperty(name);
     }
 
+    /**
+     * Returns the boolean representation of the property with the specified
+     * {@code propertyName}. If the property does not exist or
+     * {@link org.apache.jackrabbit.oak.api.PropertyState#isArray() is an array}
+     * this method returns {@code false}.
+     *
+     * @param name The name of the property.
+     * @return the boolean representation of the property state with the given
+     * name. This utility returns {@code false} if the property does not exist
+     * or is an multivalued property.
+     */
     public boolean getBoolean(String name) {
         return TreeUtil.getBoolean(tree, name);
     }
