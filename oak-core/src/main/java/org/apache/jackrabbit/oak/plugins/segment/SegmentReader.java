@@ -16,14 +16,89 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
-import java.io.InputStream;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkPositionIndexes;
+import static org.apache.jackrabbit.oak.plugins.segment.SegmentWriter.BLOCK_SIZE;
 
-public interface SegmentReader {
+import java.io.IOException;
 
-    String readString(RecordId recordId);
+import com.google.common.base.Charsets;
+import com.google.common.io.ByteStreams;
 
-    InputStream readStream(RecordId recordId);
+public class SegmentReader {
 
-    void readBytes(RecordId recordId, byte[] bytes, int offset, int length);
+    private final SegmentStore store;
+
+    public SegmentReader(SegmentStore store) {
+        this.store = store;
+    }
+
+    public String readString(RecordId recordId) {
+        SegmentStream stream = readStream(recordId);
+        try {
+            if (stream.getLength() > Integer.MAX_VALUE) {
+                throw new IllegalStateException(
+                        "Too long value: " + stream.getLength());
+            }
+            byte[] data = new byte[(int) stream.getLength()];
+            ByteStreams.readFully(stream, data);
+            return new String(data, Charsets.UTF_8);
+        } catch (IOException e) {
+            throw new IllegalStateException("Unexpected IOException", e);
+        } finally {
+            stream.close();
+        }
+    }
+
+    public SegmentStream readStream(RecordId recordId) {
+        Segment segment = store.readSegment(recordId.getSegmentId());
+        int offset = recordId.getOffset();
+        long length = segment.readLength(offset);
+        int size = (int) ((length + BLOCK_SIZE - 1) / BLOCK_SIZE);
+        ListRecord list = new ListRecord(
+                this, segment.readRecordId(offset + 8), size);
+        return new SegmentStream(this, list, length);
+    }
+
+    public void readBytes(
+            RecordId recordId, int position,
+            byte[] buffer, int offset, int length) {
+        checkNotNull(recordId);
+        checkArgument(position >= 0);
+        checkNotNull(buffer);
+        checkPositionIndexes(offset, offset + length, buffer.length);
+
+        Segment segment = store.readSegment(recordId.getSegmentId());
+        segment.readBytes(
+                recordId.getOffset() + position, buffer, offset, length);
+    }
+
+    public RecordId readRecordId(RecordId recordId, int position) {
+        checkNotNull(recordId);
+        checkArgument(position >= 0);
+
+        Segment segment = store.readSegment(recordId.getSegmentId());
+        return segment.readRecordId(recordId.getOffset() + position);
+    }
+
+    public ListRecord readList(RecordId recordId, int numberOfEntries) {
+        checkNotNull(recordId);
+        checkArgument(numberOfEntries >= 0);
+
+        if (numberOfEntries > 0) {
+            Segment segment = store.readSegment(recordId.getSegmentId());
+            RecordId id = segment.readRecordId(recordId.getOffset());
+            return new ListRecord(this, id, numberOfEntries);
+        } else {
+            return new ListRecord(this, recordId, numberOfEntries);
+        }
+    }
+
+    public BlockRecord readBlock(RecordId recordId, int size) {
+        checkNotNull(recordId);
+        checkArgument(size > 0);
+        return new BlockRecord(this, recordId, size);
+    }
 
 }
