@@ -20,13 +20,13 @@ import java.util.UUID;
 
 public interface SegmentStore {
 
-    RecordId getHead(String journal);
+    int getMaxSegmentSize();
 
-    boolean updateHead(String journal, RecordId base, RecordId head);
+    Segment readSegment(UUID segmentId);
 
-    byte[] readSegment(UUID segmentId);
+    void createSegment(Segment segment);
 
-    void createSegment(UUID segmentId, byte[] data, int offset, int length);
+    void createSegment(UUID segmentId, byte[] bytes, int offset, int len);
 
     void deleteSegment(UUID segmentId);
 
