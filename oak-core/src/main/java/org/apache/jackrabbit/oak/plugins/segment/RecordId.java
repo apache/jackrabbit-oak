@@ -22,6 +22,8 @@ import com.google.common.base.Preconditions;
 
 public final class RecordId {
 
+    public static RecordId[] EMPTY_ARRAY = new RecordId[0];
+
     private final UUID segmentId;
 
     private final int offset;
