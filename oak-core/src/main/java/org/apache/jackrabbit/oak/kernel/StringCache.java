@@ -130,6 +130,9 @@ class StringCache {
             VersionConstants.NT_CONFIGURATION,
             VersionConstants.REP_CONFIGURATIONS);
 
+    private StringCache() {
+    }
+
     private static Map<String, String> createStringMap(String... strings) {
         ImmutableMap.Builder<String, String> builder = ImmutableMap.builder();
         for (String string : strings) {
