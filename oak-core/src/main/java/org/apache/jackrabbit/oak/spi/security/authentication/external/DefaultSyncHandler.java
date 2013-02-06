@@ -111,7 +111,7 @@ public class DefaultSyncHandler implements SyncHandler {
     @CheckForNull
     private User createUser(ExternalUser externalUser) throws RepositoryException, SyncException {
         if (mode.contains(SyncMode.MODE_CREATE_USER)) {
-            User user = userManager.createUser(externalUser.getId(), externalUser.getPassword(), externalUser.getPrincipal(), externalUser.getPath());
+            User user = userManager.createUser(externalUser.getId(), externalUser.getPassword(), externalUser.getPrincipal(), null);
             syncAuthorizable(externalUser, user);
             return user;
         } else {
@@ -122,7 +122,7 @@ public class DefaultSyncHandler implements SyncHandler {
     @CheckForNull
     private Group createGroup(ExternalGroup externalGroup) throws RepositoryException, SyncException {
         if (mode.contains(SyncMode.MODE_CREATE_GROUPS)) {
-            Group group = userManager.createGroup(externalGroup.getId(), externalGroup.getPrincipal(), externalGroup.getPath());
+            Group group = userManager.createGroup(externalGroup.getId(), externalGroup.getPrincipal(), null);
             syncAuthorizable(externalGroup, group);
             return group;
         } else {

@@ -225,5 +225,11 @@
         <version>1.0.1</version>
         <scope>test</scope>
     </dependency>
+    <dependency>
+        <groupId>org.apache.directory.server</groupId>
+        <artifactId>apacheds-server-unit</artifactId>
+        <version>1.5.5</version>
+        <scope>test</scope>
+    </dependency>
   </dependencies>
 </project>
