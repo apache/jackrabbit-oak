@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.segment;
 import static org.apache.jackrabbit.oak.plugins.segment.ListRecord.LEVEL_SIZE;
 import static org.junit.Assert.assertEquals;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
@@ -105,8 +106,8 @@ public class RecordTest {
         checkRandomStreamRecord(1);
         checkRandomStreamRecord(SegmentWriter.BLOCK_SIZE);
         checkRandomStreamRecord(SegmentWriter.BLOCK_SIZE + 1);
-        checkRandomStreamRecord(SegmentWriter.INLINE_LIMIT);
-        checkRandomStreamRecord(SegmentWriter.INLINE_LIMIT + 1);
+        checkRandomStreamRecord(SegmentWriter.INLINE_SIZE);
+        checkRandomStreamRecord(SegmentWriter.INLINE_SIZE + 1);
         checkRandomStreamRecord(store.getMaxSegmentSize());
         checkRandomStreamRecord(store.getMaxSegmentSize() + 1);
         checkRandomStreamRecord(store.getMaxSegmentSize() * 2);
@@ -117,7 +118,7 @@ public class RecordTest {
         byte[] source = new byte[size];
         random.nextBytes(source);
 
-        RecordId valueId = writer.writeValue(source, 0, size);
+        RecordId valueId = writer.writeStream(new ByteArrayInputStream(source));
         writer.flush();
 
         InputStream stream = reader.readStream(valueId);
@@ -144,7 +145,7 @@ public class RecordTest {
         RecordId hello = writer.writeString("Hello, World!");
 
         StringBuilder builder = new StringBuilder();
-        for (int i = 0; i < 1000; i++) {
+        for (int i = 0; i < 100000; i++) {
             builder.append((char) ('0' + i % 10));
         }
         RecordId large = writer.writeString(builder.toString());
