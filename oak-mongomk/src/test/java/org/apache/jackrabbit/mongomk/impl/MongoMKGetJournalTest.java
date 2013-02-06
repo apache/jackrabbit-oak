@@ -21,6 +21,7 @@ import static org.junit.Assert.assertEquals;
 import org.apache.jackrabbit.mongomk.BaseMongoMicroKernelTest;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -30,13 +31,13 @@ public class MongoMKGetJournalTest extends BaseMongoMicroKernelTest {
 
     @Test
     public void simple() throws Exception {
-        String fromDiff = "+\"a\" : {}";
+        String fromDiff = "+\"/a\" : {}";
         String fromMsg = "Add /a";
-        String fromRev = mk.commit("/", fromDiff, null, fromMsg);
+        String fromRev = mk.commit("", fromDiff, null, fromMsg);
 
-        String toDiff = "+\"b\" : {}";
+        String toDiff = "+\"/b\" : {}";
         String toMsg = "Add /b";
-        String toRev = mk.commit("/", toDiff, null, toMsg);
+        String toRev = mk.commit("", toDiff, null, toMsg);
 
         JSONArray array = parseJSONArray(mk.getJournal(fromRev, toRev, "/"));
         assertEquals(2, array.size());
@@ -54,4 +55,23 @@ public class MongoMKGetJournalTest extends BaseMongoMicroKernelTest {
         assertPropertyValue(rev, "changes", toDiff);
     }
 
+    @Test
+    @Ignore("OAK-611")
+    public void emptyAndRootPath() {
+        // Commit with empty path
+        String rev = mk.commit("", "+\"/a\":{}", null, "");
+        String journalStr = mk.getJournal(rev, rev, "/");
+        JSONArray array = parseJSONArray(journalStr);
+        JSONObject entry = getObjectArrayEntry(array, 0);
+        String expected = "+\"/a\":{}";
+        assertPropertyValue(entry, "changes", expected);
+
+        // Commit with root path
+        rev = mk.commit("/", "+\"b\":{}", null, "");
+        journalStr = mk.getJournal(rev, rev, "/");
+        array = parseJSONArray(journalStr);
+        entry = getObjectArrayEntry(array, 0);
+        expected = "+\"/b\":{}";
+        assertPropertyValue(entry, "changes", expected);
+    }
 }
