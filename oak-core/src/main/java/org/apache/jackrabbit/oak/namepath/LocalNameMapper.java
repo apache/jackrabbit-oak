@@ -29,7 +29,7 @@ public abstract class LocalNameMapper extends GlobalNameMapper {
 
     private final Map<String, String> local;
 
-    public LocalNameMapper(Map<String, String> local) {
+    protected LocalNameMapper(Map<String, String> local) {
         this.local = local;
     }
 
