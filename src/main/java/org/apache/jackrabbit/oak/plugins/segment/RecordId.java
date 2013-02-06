@@ -20,7 +20,7 @@ import java.util.UUID;
 
 import com.google.common.base.Preconditions;
 
-public final class RecordId {
+public final class RecordId implements Comparable<RecordId> {
 
     public static RecordId[] EMPTY_ARRAY = new RecordId[0];
 
@@ -39,6 +39,17 @@ public final class RecordId {
 
     public int getOffset() {
         return offset;
+    }
+
+    //--------------------------------------------------------< Comparable >--
+
+    @Override
+    public int compareTo(RecordId that) {
+        int diff = segmentId.compareTo(that.segmentId);
+        if (diff == 0) {
+            diff = offset - that.offset;
+        }
+        return diff;
     }
 
     //------------------------------------------------------------< Object >--

@@ -54,11 +54,25 @@ public class SegmentReader {
     public SegmentStream readStream(RecordId recordId) {
         Segment segment = store.readSegment(recordId.getSegmentId());
         int offset = recordId.getOffset();
-        long length = segment.readLength(offset);
+        long length = segment.readLong(offset);
         int size = (int) ((length + BLOCK_SIZE - 1) / BLOCK_SIZE);
         ListRecord list = new ListRecord(
                 this, segment.readRecordId(offset + 8), size);
         return new SegmentStream(this, list, length);
+    }
+
+    public int readInt(RecordId recordId, int position) {
+        checkNotNull(recordId);
+        checkArgument(position >= 0);
+        Segment segment = store.readSegment(recordId.getSegmentId());
+        return segment.readInt(recordId.getOffset() + position);
+    }
+
+    public long readLong(RecordId recordId, int position) {
+        checkNotNull(recordId);
+        checkArgument(position >= 0);
+        Segment segment = store.readSegment(recordId.getSegmentId());
+        return segment.readLong(recordId.getOffset() + position);
     }
 
     public void readBytes(

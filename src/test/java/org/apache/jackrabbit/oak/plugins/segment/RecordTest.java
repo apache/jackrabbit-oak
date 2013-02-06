@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.segment;
 
 import static org.apache.jackrabbit.oak.plugins.segment.ListRecord.LEVEL_SIZE;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -25,11 +26,14 @@ import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 import org.junit.Test;
 
 import com.google.common.base.Charsets;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
 
 public class RecordTest {
 
@@ -156,6 +160,40 @@ public class RecordTest {
         assertEquals(" ", reader.readString(space));
         assertEquals("Hello, World!", reader.readString(hello));
         assertEquals(builder.toString(), reader.readString(large));
+    }
+
+    @Test
+    public void testMapRecord() {
+        RecordId blockId = writer.writeBlock(bytes, 0, bytes.length);
+
+        MapRecord zero = new MapRecord(reader, writer.writeMap(
+                ImmutableMap.<String, RecordId>of()));
+        MapRecord one = new MapRecord(reader, writer.writeMap(
+                ImmutableMap.of("one", blockId)));
+        MapRecord two = new MapRecord(reader, writer.writeMap(
+                ImmutableMap.of("one", blockId, "two", blockId)));
+        Map<String, RecordId> map = Maps.newHashMap();
+        for (int i = 0; i < 1000; i++) {
+            map.put("key" + i, blockId);
+        }
+         MapRecord many = new MapRecord(reader, writer.writeMap(map));
+
+        writer.flush();
+
+        assertEquals(0, zero.size());
+        assertNull(zero.getEntry("one"));
+        assertEquals(1, one.size());
+        assertEquals(blockId, one.getEntry("one"));
+        assertNull(one.getEntry("two"));
+        assertEquals(2, two.size());
+        assertEquals(blockId, two.getEntry("one"));
+        assertEquals(blockId, two.getEntry("two"));
+        assertNull(two.getEntry("three"));
+        assertEquals(1000, many.size());
+        for (int i = 0; i < 1000; i++) {
+            assertEquals(blockId, many.getEntry("key" + i));
+        }
+        assertNull(many.getEntry("foo"));
     }
 
 }
