@@ -61,6 +61,18 @@ public final class TreeUtil {
         }
     }
 
+    /**
+     * Returns the boolean representation of the property with the specified
+     * {@code propertyName}. If the property does not exist or
+     * {@link org.apache.jackrabbit.oak.api.PropertyState#isArray() is an array}
+     * this method returns {@code false}.
+     *
+     * @param tree The target tree.
+     * @param propertyName The name of the property.
+     * @return the boolean representation of the property state with the given
+     * name. This utility returns {@code false} if the property does not exist
+     * or is an multivalued property.
+     */
     public static boolean getBoolean(Tree tree, String propertyName) {
         PropertyState property = tree.getProperty(propertyName);
         return property != null && !property.isArray() && property.getValue(BOOLEAN);
