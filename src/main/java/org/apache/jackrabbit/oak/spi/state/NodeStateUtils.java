@@ -21,6 +21,9 @@ package org.apache.jackrabbit.oak.spi.state;
  */
 public class NodeStateUtils {
 
+    private NodeStateUtils() {
+    }
+
     /**
      * Check whether the node or property with the given name is hidden, that
      * is, if the node name starts with a ":".
