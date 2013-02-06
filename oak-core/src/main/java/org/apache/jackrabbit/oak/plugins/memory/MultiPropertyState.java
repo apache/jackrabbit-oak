@@ -156,7 +156,7 @@ abstract class MultiPropertyState<T> extends EmptyPropertyState {
     @Nonnull
     @Override
     public <S> S getValue(Type<S> type) {
-        checkArgument(type.isArray(), "Type must not be an array type");
+        checkArgument(type.isArray(), "Type must be an array type");
         if (getType() == type) {
             return (S) values;
         }
