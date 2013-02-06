@@ -42,7 +42,7 @@ import static org.junit.Assert.fail;
  */
 public class ExternalLoginModuleTest extends AbstractSecurityTest {
 
-    private final HashMap<String, Object> options = new HashMap<String, Object>();
+    protected final HashMap<String, Object> options = new HashMap<String, Object>();
 
     private String userId;
     private Set<String> ids = new HashSet<String>();
