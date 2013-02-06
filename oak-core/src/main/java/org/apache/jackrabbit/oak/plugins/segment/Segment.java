@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
+import static com.google.common.base.Preconditions.checkElementIndex;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkPositionIndexes;
 
@@ -50,6 +51,11 @@ class Segment {
         return data.length;
     }
 
+    public byte readByte(int position) {
+        checkElementIndex(position, data.length);
+        return data[position];
+    }
+
     /**
      * Reads the given number of bytes starting from the given position
      * in this segment.
@@ -75,7 +81,12 @@ class Segment {
                 | (data[offset + 3] & 0xff));
     }
 
-    public long readLength(int offset) {
+    public int readInt(int offset) {
+        checkPositionIndexes(offset, offset + 4, data.length);
+        return ByteBuffer.wrap(data).getInt(offset);
+    }
+
+    public long readLong(int offset) {
         checkPositionIndexes(offset, offset + 8, data.length);
         return ByteBuffer.wrap(data).getLong(offset);
     }

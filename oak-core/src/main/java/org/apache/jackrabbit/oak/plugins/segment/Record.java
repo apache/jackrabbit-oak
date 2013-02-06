@@ -35,6 +35,14 @@ class Record {
         return reader.readRecordId(id, position);
     }
 
+    protected int readInt(int position) {
+        return reader.readInt(id, position);
+    }
+
+    protected long readLong(int position) {
+        return reader.readLong(id, position);
+    }
+
     public RecordId getRecordId() {
         return id;
     }
