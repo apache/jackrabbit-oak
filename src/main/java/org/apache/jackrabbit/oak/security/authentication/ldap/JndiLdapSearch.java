@@ -89,11 +89,16 @@ public class JndiLdapSearch implements LdapSearch {
         Map<String, Object> properties = new HashMap<String, Object>();
         Map<String, String> syncMap = user instanceof LdapGroup ?
                 settings.getGroupAttributes() : settings.getUserAttributes();
+        Map<String, String> lcSyncMap = new HashMap<String, String>();
+        for (Map.Entry<String, String> entry : syncMap.entrySet()) {
+            String key = entry.getKey();
+            lcSyncMap.put(key == null? null : key.toLowerCase(), entry.getValue());
+        }
         while (namingEnumeration.hasMore()) {
             Attribute attribute = namingEnumeration.next();
-            String key = attribute.getID();
-            if (syncMap.containsKey(key)) {
-                properties.put(syncMap.get(key), parseAttributeValue(attribute));
+            String key = attribute.getID().toLowerCase();
+            if (lcSyncMap.containsKey(key)) {
+                properties.put(lcSyncMap.get(key), parseAttributeValue(attribute));
             }
         }
         user.setProperties(properties);
