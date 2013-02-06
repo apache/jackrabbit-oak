@@ -40,13 +40,17 @@ public final class ReadOnlyRoot implements Root {
 
     private final ReadOnlyTree rootTree;
 
-    public ReadOnlyRoot(NodeState rootState) {
+    public ReadOnlyRoot(@Nonnull NodeState rootState) {
         this(new ReadOnlyTree(rootState));
     }
 
-    public ReadOnlyRoot(ReadOnlyTree rootTree) {
+    public ReadOnlyRoot(@Nonnull ReadOnlyTree rootTree) {
         checkArgument(rootTree.isRoot());
         this.rootTree = rootTree;
+    }
+
+    public ReadOnlyRoot(@Nonnull Root root) {
+        this.rootTree = ReadOnlyTree.createFromRoot(root);
     }
 
     @Override

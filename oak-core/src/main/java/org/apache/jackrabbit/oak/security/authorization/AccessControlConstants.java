@@ -32,7 +32,6 @@ public interface AccessControlConstants {
     String REP_PRINCIPAL_NAME = "rep:principalName";
     String REP_GLOB = "rep:glob";
     String REP_NODE_PATH = "rep:nodePath";
-
     /**
      * @since OAK 1.0
      */
@@ -56,6 +55,10 @@ public interface AccessControlConstants {
      * @since OAK 1.0
      */
     String NT_REP_PERMISSIONS = "rep:Permissions";
+    /**
+     * @since OAK 1.0
+     */
+    String NT_REP_PERMISSION_STORE = "rep:PermissionStore";
     /**
      * @since OAK 1.0
      */
