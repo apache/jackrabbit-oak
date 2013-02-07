@@ -51,7 +51,7 @@ class ListRecord extends Record {
         } else {
             int bucketIndex = index / bucketSize;
             int bucketOffset = index % bucketSize;
-            RecordId bucketId = readRecordId(reader, bucketIndex * 4);
+            RecordId bucketId = reader.readRecordId(getRecordId(), bucketIndex * 4);
             ListRecord bucket =
                 new ListRecord(bucketId, bucketSize);
             return bucket.getEntry(reader, bucketOffset);
