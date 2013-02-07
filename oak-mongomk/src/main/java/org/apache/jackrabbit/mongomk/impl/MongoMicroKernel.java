@@ -190,6 +190,7 @@ public class MongoMicroKernel implements MicroKernel {
             }
 
             JsopBuilder builder = new JsopBuilder().object();
+            depth = depth == -1? Integer.MAX_VALUE : depth;
             JsonUtil.toJson(builder, new MongoNodeState(rootNode), depth, (int)offset, maxChildNodes, true, nodeFilter);
             return builder.endObject().toString();
         } catch (Exception e) {
