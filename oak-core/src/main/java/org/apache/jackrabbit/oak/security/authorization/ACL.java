@@ -42,6 +42,9 @@ import org.slf4j.LoggerFactory;
 
 /**
  * ACL... TODO
+ *
+ * TODO: - remove redundant entries from the list
+ * TODO: - remove redundant privileges from entries
  */
 abstract class ACL extends AbstractAccessControlList {
 
