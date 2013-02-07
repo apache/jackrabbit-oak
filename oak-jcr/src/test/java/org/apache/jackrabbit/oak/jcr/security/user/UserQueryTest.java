@@ -59,11 +59,10 @@ public class UserQueryTest extends AbstractUserTest {
 
         Iterator<Authorizable> systemAuthorizables = userMgr.findAuthorizables("rep:principalName", null);
         while (systemAuthorizables.hasNext()) {
-            Authorizable authorizable =  systemAuthorizables.next();
+            Authorizable authorizable = systemAuthorizables.next();
             if (authorizable.isGroup()) {
                 groups.add((Group) authorizable);
-            }
-            else {
+            } else {
                 users.add((User) authorizable);
             }
             systemDefined.add(authorizable);
@@ -128,7 +127,7 @@ public class UserQueryTest extends AbstractUserTest {
         addMembers(amphibians, salamander, goldenToad, poisonDartFrog);
 
         setProperty("canFly", vf.createValue(true), bee, fly, kestrel, goose, pelican, dove);
-        setProperty("poisonous",vf.createValue(true), blackWidow, bee, poisonDartFrog);
+        setProperty("poisonous", vf.createValue(true), blackWidow, bee, poisonDartFrog);
         setProperty("poisonous", vf.createValue(false), turtle, lemur);
         setProperty("hasWings", vf.createValue(false), blackWidow, gardenSpider, jumpingSpider, ant,
                 jackrabbit, deer, opposum, kangaroo, elephant, lemur, gibbon, crocodile, turtle, lizard,
@@ -196,11 +195,9 @@ public class UserQueryTest extends AbstractUserTest {
 
             if (User.class.isAssignableFrom(s)) {
                 assertSameElements(result, users.iterator());
-            }
-            else if (Group.class.isAssignableFrom(s)) {
+            } else if (Group.class.isAssignableFrom(s)) {
                 assertSameElements(result, groups.iterator());
-            }
-            else {
+            } else {
                 assertSameElements(result, authorizables.iterator());
             }
         }
@@ -434,8 +431,7 @@ public class UserQueryTest extends AbstractUserTest {
                     Value[] food = user.getProperty("profile/food");
                     if (food == null || food.length != 1) {
                         return false;
-                    }
-                    else {
+                    } else {
                         String value = food[0].getString();
                         return value.startsWith("m");
                     }
@@ -623,8 +619,8 @@ public class UserQueryTest extends AbstractUserTest {
 
     @Test
     public void testOffset() throws RepositoryException {
-        long[] offsets = {2, 0, 3, 0,      100000};
-        long[] counts =  {4, 4, 0, 100000, 100000};
+        long[] offsets = {2, 0, 3, 0, 100000};
+        long[] counts = {4, 4, 0, 100000, 100000};
 
         for (int k = 0; k < offsets.length; k++) {
             final long offset = offsets[k];
@@ -764,16 +760,11 @@ public class UserQueryTest extends AbstractUserTest {
     private Group createGroup(String name) throws RepositoryException {
         Group group = userMgr.createGroup(name);
         groups.add(group);
-        // TODO: remove again once OAK-343 is fixed.
-        superuser.save();
         return group;
     }
 
     private User createUser(String name, String food, double weight, boolean cute) throws RepositoryException {
         User user = userMgr.createUser(name, "");
-        // TODO: remove again once OAK-343 is fixed.
-        superuser.save();
-
         user.setProperty("profile/food", vf.createValue(food));
         user.setProperty("profile/weight", vf.createValue(weight));
         user.setProperty("profile/cute", vf.createValue(cute));
