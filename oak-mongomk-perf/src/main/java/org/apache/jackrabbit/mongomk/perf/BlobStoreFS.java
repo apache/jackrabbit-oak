@@ -23,15 +23,11 @@ import org.apache.jackrabbit.mk.blobs.BlobStore;
 
 public class BlobStoreFS implements  BlobStore{
 
-    private final File rootDir;
-
     public BlobStoreFS(String rootPath) {
         File rootDir = new File(rootPath);
         if (!rootDir.isDirectory()) {
             rootDir.mkdirs();
         }
-
-        this.rootDir = rootDir;
     }
 
     @Override

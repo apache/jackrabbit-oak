@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.mongomk.perf;
 
+import java.util.Iterator;
 import java.util.Random;
 import java.util.UUID;
 
@@ -26,48 +27,11 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 
 public class RandomJsopGenerator {
 
-    public static class RandomJsop {
-        private final String jsop;
-        private final String message;
-        private final String path;
-
-        public RandomJsop(String path, String jsop, String message) {
-            this.path = path;
-            this.jsop = jsop;
-            this.message = message;
-        }
-
-        public String getJsop() {
-            return this.jsop;
-        }
-
-        public String getMessage() {
-            return this.message;
-        }
-
-        public String getPath() {
-            return this.path;
-        }
-    }
-
     private static final int OP_ADD_NODE = 0;
-
-    private static final int OP_ADD_PROP = 1;
-
-    public static void main(String[] args) throws Exception {
-        RandomJsopGenerator gen = new RandomJsopGenerator();
-        for (int i = 0; i < 10; ++i) {
-            RandomJsop rand = gen.nextRandom();
-            System.out.println(rand.path);
-            System.out.println(rand.jsop);
-            System.out.println();
-        }
-    }
+    private static final int OP_SET_PROP = 1;
 
     private Node[] descendants;
-
     private String path;
-
     private Random random;
 
     public RandomJsopGenerator() throws Exception {
@@ -77,7 +41,7 @@ public class RandomJsopGenerator {
     public RandomJsop nextRandom() {
         JsopBuilder jsopBuilder = new JsopBuilder();
 
-        int numOps = this.random.nextInt(10) + 1;
+        int numOps = random.nextInt(10) + 1;
         for (int i = 0; i < numOps; ++i) {
             if (this.createRandomOp(jsopBuilder)) {
                 jsopBuilder.newline();
@@ -86,26 +50,29 @@ public class RandomJsopGenerator {
             }
         }
 
-        return new RandomJsop(this.path, jsopBuilder.toString(), UUID.randomUUID().toString());
+        return new RandomJsop(path, jsopBuilder.toString(), UUID.randomUUID().toString());
     }
 
     public void setSeed(String path, String json) throws Exception {
         this.path = path;
         String all = String.format("{ \"%s\" : %s }", PathUtils.getName(path), json);
         Node node = NodeBuilder.build(all, path);
-        // FIXME - This needs to change to node.getChildNodeEntries(0, -1).
-        //this.descendants = node.getDescendants(false).toArray(new Node[0]);
-        this.random = new Random();
+        descendants = new Node[node.getChildNodeCount()];
+        int i = 0;
+        for (Iterator<Node> it = node.getChildNodeEntries(0, -1); it.hasNext(); ) {
+            descendants[i++] = it.next();
+        }
+        random = new Random();
     }
 
     private boolean createRandomAddNodeOp(JsopBuilder jsopBuilder) {
-        Node random = this.selectRandom();
+        Node random = selectRandom();
 
-        String childName = this.createRandomString();
+        String childName = createRandomString();
         String newPath = PathUtils.concat(random.getPath(), childName);
         String addPath = newPath;
-        if (!"".equals(this.path)) {
-            addPath = PathUtils.relativize(this.path, newPath);
+        if (!"".equals(path)) {
+            addPath = PathUtils.relativize(path, newPath);
         }
 
         jsopBuilder.tag('+');
@@ -116,28 +83,24 @@ public class RandomJsopGenerator {
         return true;
     }
 
-    private boolean createRandomAddPropOp(JsopBuilder jsopBuilder) {
-        int next = this.random.nextInt(this.descendants.length);
-        Node random = this.descendants[next];
-        String addPath = PathUtils.relativize(this.path, random.getPath());
+    private boolean createRandomSetPropOp(JsopBuilder jsopBuilder) {
+        int next = random.nextInt(this.descendants.length);
+        Node node = descendants[next];
+
+        String addPath = PathUtils.relativize(path, node.getPath());
         if ("".equals(addPath)) {
             addPath = "/";
         }
 
-        jsopBuilder.tag('+');
-        jsopBuilder.key(addPath);
-        jsopBuilder.object();
-
-        int numProps = this.random.nextInt(10) + 1;
+        int numProps = random.nextInt(10) + 1;
         for (int i = 0; i < numProps; ++i) {
-            String propName = this.createRandomString();
-            String propValue = this.createRandomString();
+            String propName = createRandomString();
+            String propValue = createRandomString();
 
-            jsopBuilder.key(propName);
+            jsopBuilder.tag('^');
+            jsopBuilder.key(PathUtils.concat(addPath, propName));
             jsopBuilder.value(propValue);
         }
-
-        jsopBuilder.endObject();
 
         return true;
     }
@@ -145,27 +108,27 @@ public class RandomJsopGenerator {
     private boolean createRandomOp(JsopBuilder jsopBuilder) {
         boolean performed = false;
 
-        int op = this.random.nextInt(2);
+        int op = random.nextInt(2);
 
         switch (op) {
-        case OP_ADD_NODE: {
-            performed = this.createRandomAddNodeOp(jsopBuilder);
-            break;
-        }
-        case OP_ADD_PROP: {
-            performed = this.createRandomAddPropOp(jsopBuilder);
-            break;
-        }
+            case OP_ADD_NODE: {
+                performed = createRandomAddNodeOp(jsopBuilder);
+                break;
+            }
+            case OP_SET_PROP: {
+                performed = createRandomSetPropOp(jsopBuilder);
+                break;
+            }
         }
 
         return performed;
     }
 
     private String createRandomString() {
-        int length = this.random.nextInt(6) + 5;
+        int length = random.nextInt(6) + 5;
         char[] chars = new char[length];
         for (int i = 0; i < length; ++i) {
-            char rand = (char) (this.random.nextInt(65) + 59);
+            char rand = (char) (random.nextInt(65) + 59);
             if (Character.isLetterOrDigit(rand)) {
                 chars[i] = rand;
             } else {
@@ -177,11 +140,43 @@ public class RandomJsopGenerator {
     }
 
     private Node selectRandom() {
-        Node randomNode = null;
-
-        int next = this.random.nextInt(this.descendants.length);
-        randomNode = this.descendants[next];
-
+        int next = random.nextInt(this.descendants.length);
+        Node randomNode = descendants[next];
         return randomNode;
+    }
+
+    public static void main(String[] args) throws Exception {
+        RandomJsopGenerator gen = new RandomJsopGenerator();
+        for (int i = 0; i < 10; ++i) {
+            RandomJsop rand = gen.nextRandom();
+            System.out.println(rand.path);
+            System.out.println(rand.jsop);
+            System.out.println();
+        }
+    }
+
+    public static class RandomJsop {
+
+        private final String jsop;
+        private final String message;
+        private final String path;
+
+        public RandomJsop(String path, String jsop, String message) {
+            this.path = path;
+            this.jsop = jsop;
+            this.message = message;
+        }
+
+        public String getJsop() {
+            return jsop;
+        }
+
+        public String getMessage() {
+            return message;
+        }
+
+        public String getPath() {
+            return path;
+        }
     }
 }
