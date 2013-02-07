@@ -24,8 +24,8 @@ class BlockRecord extends Record {
 
     private final int size;
 
-    BlockRecord(SegmentReader reader, RecordId id, int size) {
-        super(reader, id);
+    BlockRecord(RecordId id, int size) {
+        super(id);
         this.size = size;
     }
 
@@ -34,13 +34,16 @@ class BlockRecord extends Record {
      * read starting from the given position within this block. The number
      * of bytes read is returned.
      *
+     * @param reader segment reader
      * @param position position within this block
      * @param buffer target buffer
      * @param offset offset within the target buffer
      * @param length maximum number of bytes to read
      * @return number of bytes that could be read
      */
-    public int read(int position, byte[] buffer, int offset, int length) {
+    public int read(
+            SegmentReader reader, int position,
+            byte[] buffer, int offset, int length) {
         checkElementIndex(position, size);
         checkNotNull(buffer);
         checkPositionIndexes(offset, offset + length, buffer.length);
@@ -49,8 +52,7 @@ class BlockRecord extends Record {
             length = size - position;
         }
         if (length > 0) {
-            getReader().readBytes(
-                    getRecordId(), position, buffer, offset, length);
+            reader.readBytes(getRecordId(), position, buffer, offset, length);
         }
         return length;
     }

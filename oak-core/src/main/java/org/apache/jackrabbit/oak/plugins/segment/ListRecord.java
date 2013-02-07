@@ -27,8 +27,8 @@ class ListRecord extends Record {
 
     private final int bucketSize;
 
-    ListRecord(SegmentReader reader, RecordId id, int size) {
-        super(reader, id);
+    ListRecord(RecordId id, int size) {
+        super(id);
         checkArgument(size >= 0);
         this.size = size;
 
@@ -43,7 +43,7 @@ class ListRecord extends Record {
         return size;
     }
 
-    public RecordId getEntry(int index) {
+    public RecordId getEntry(SegmentReader reader, int index) {
         checkElementIndex(index, size);
 
         if (size == 1) {
@@ -51,10 +51,10 @@ class ListRecord extends Record {
         } else {
             int bucketIndex = index / bucketSize;
             int bucketOffset = index % bucketSize;
-            RecordId bucketId = readRecordId(bucketIndex * 4);
+            RecordId bucketId = readRecordId(reader, bucketIndex * 4);
             ListRecord bucket =
-                new ListRecord(getReader(), bucketId, bucketSize);
-            return bucket.getEntry(bucketOffset);
+                new ListRecord(bucketId, bucketSize);
+            return bucket.getEntry(reader, bucketOffset);
         }
     }
 
