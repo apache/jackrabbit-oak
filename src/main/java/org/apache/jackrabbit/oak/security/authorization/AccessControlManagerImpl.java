@@ -57,6 +57,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.core.TreeImpl;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryPropertyBuilder;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
@@ -217,7 +218,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
                     aceTree.remove();
                 }
             } else {
-                aclNode = createAclTree(oakPath, tree);
+                aclNode = createAclNode(oakPath, tree);
             }
 
             ACL acl = (ACL) policy;
@@ -383,7 +384,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
      * @throws RepositoryException if an error occurs
      */
     @Nonnull
-    private NodeUtil createAclTree(@Nullable String oakPath, @Nonnull Tree tree) throws RepositoryException {
+    private NodeUtil createAclNode(@Nullable String oakPath, @Nonnull Tree tree) throws RepositoryException {
         String mixinName = getMixinName(oakPath);
 
         if (!isAccessControlled(tree, mixinName)) {
@@ -396,7 +397,9 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
                 tree.setProperty(pb.getPropertyState());
             }
         }
-        return new NodeUtil(tree).addChild(getAclName(oakPath), NT_REP_ACL);
+        NodeUtil aclNode = new NodeUtil(tree).addChild(getAclName(oakPath), NT_REP_ACL);
+        aclNode.setStrings(TreeImpl.OAK_CHILD_ORDER, new String[0]);
+        return aclNode;
     }
 
     @CheckForNull
