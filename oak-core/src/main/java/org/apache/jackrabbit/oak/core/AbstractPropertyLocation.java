@@ -16,42 +16,33 @@
  */
 package org.apache.jackrabbit.oak.core;
 
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * AbstractPropertyLocation... TODO
  */
-abstract class AbstractPropertyLocation<T extends Tree, L extends AbstractNodeLocation<T>> implements TreeLocation {
-
-    protected final L parentLocation;
+abstract class AbstractPropertyLocation<T extends Tree> extends AbstractTreeLocation {
+    protected final AbstractNodeLocation<T> parentLocation;
     protected final String name;
 
-    AbstractPropertyLocation(L parentLocation, String name) {
+    AbstractPropertyLocation(AbstractNodeLocation<T> parentLocation, String name) {
         this.parentLocation = checkNotNull(parentLocation);
         this.name = checkNotNull(name);
     }
 
-    @Override
-    public L getParent() {
-        return parentLocation;
+    protected boolean canRead(PropertyState property) {
+        return true;
     }
 
     @Override
-    public TreeLocation getChild(String relPath) {
-        checkArgument(!PathUtils.isAbsolute(relPath), "Not a relative path: " + relPath);
-
-        TreeLocation child = this;
-        for (String name : PathUtils.elements(relPath)) {
-            child = new NullLocation(child, name);
-        }
-
-        return child;
+    public TreeLocation getParent() {
+        return parentLocation;
     }
 
     @Override
@@ -61,12 +52,32 @@ abstract class AbstractPropertyLocation<T extends Tree, L extends AbstractNodeLo
     }
 
     @Override
+    public PropertyState getProperty() {
+        PropertyState property = parentLocation.getPropertyState(name);
+        return canRead(property)
+            ? property
+            : null;
+    }
+
+    @Override
+    public Status getStatus() {
+        return parentLocation.tree.getPropertyStatus(name);
+    }
+
+    @Override
     public String getPath() {
         return PathUtils.concat(parentLocation.getPath(), name);
     }
 
     @Override
-    public Tree getTree() {
-        return null;
+    public boolean remove() {
+        parentLocation.tree.removeProperty(name);
+        return true;
+    }
+
+    @Override
+    public boolean set(PropertyState property) {
+        parentLocation.tree.setProperty(property);
+        return true;
     }
 }
