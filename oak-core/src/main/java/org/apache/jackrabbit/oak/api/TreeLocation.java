@@ -25,8 +25,9 @@ import org.apache.jackrabbit.oak.api.Tree.Status;
 
 /**
  * A {@code TreeLocation} denotes a location inside a tree.
- * It can either refer to a inner node (that is a {@link org.apache.jackrabbit.oak.api.Tree})
- * or to a leaf (that is a {@link org.apache.jackrabbit.oak.api.PropertyState}).
+ * It can either refer to a inner node (that is a {@link org.apache.jackrabbit.oak.api.Tree}),
+ * to a leaf (that is a {@link org.apache.jackrabbit.oak.api.PropertyState}) or to an
+ * invalid location which refers to neither of the former.
  * {@code TreeLocation} instances provide methods for navigating trees. {@code TreeLocation}
  * instances are immutable and navigating a tree always results in new {@code TreeLocation}
  * instances. Navigation never fails. Errors are deferred until the underlying item itself is
@@ -37,7 +38,7 @@ import org.apache.jackrabbit.oak.api.Tree.Status;
 public interface TreeLocation {
 
     /**
-     * Navigate to the parent
+     * Navigate to the parent or an invalid location for the root of the hierarchy.
      * @return  a {@code TreeLocation} for the parent of this location.
      */
     @Nonnull
@@ -76,18 +77,18 @@ public interface TreeLocation {
     PropertyState getProperty();
 
     /**
-     * {@link org.apache.jackrabbit.oak.api.Tree.Status} of the underlying item or {@code null} if no
-     * such item exists.
-     * @return
+     * Get the {@link org.apache.jackrabbit.oak.api.Tree.Status} of the underlying item for this
+     * {@code TreeLocation}.
+     * @return  underlying status or {@code null} if not available.
      */
     @CheckForNull
     Status getStatus();
 
     /**
-     * The path of the underlying item or {@code null} if no such item exists.
+     * The path of this location
      * @return  path
      */
-    @CheckForNull
+    @Nonnull
     String getPath();
 
     /**

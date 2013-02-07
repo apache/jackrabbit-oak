@@ -22,31 +22,45 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.api.TreeLocation;
+import org.apache.jackrabbit.oak.commons.PathUtils;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * This {@code TreeLocation} refers to an invalid location in a tree. That is
  * to a location where no item resides.
  */
 final class NullLocation implements TreeLocation {
-    static final TreeLocation NULL = new NullLocation();
+    public static final NullLocation NULL = new NullLocation();
+
+    private final TreeLocation parent;
+    private final String name;
+
+    public NullLocation(TreeLocation parent, String name) {
+        this.parent = parent;
+        this.name = name;
+    }
 
     private NullLocation() {
+        this.parent = this;
+        this.name = "";
     }
 
-    /**
-     * @return  {@code NULL}
-     */
     @Override
     public TreeLocation getParent() {
-        return NULL;
+        return parent;
     }
 
-    /**
-     * @return  {@code NULL}
-     */
     @Override
     public TreeLocation getChild(String relPath) {
-        return NULL;
+        checkArgument(!PathUtils.isAbsolute(relPath), "Not a relative path: " + relPath);
+
+        TreeLocation child = this;
+        for (String e : PathUtils.elements(relPath)) {
+            child = new NullLocation(child, e);
+        }
+
+        return child;
     }
 
     /**
@@ -57,12 +71,9 @@ final class NullLocation implements TreeLocation {
         return false;
     }
 
-    /**
-     * @return  {@code null}
-     */
     @Override
     public String getPath() {
-        return null;
+        return parent == this ? "" : PathUtils.concat(parent.getPath(), name);
     }
 
     /**

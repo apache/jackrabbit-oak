@@ -21,6 +21,7 @@ import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
@@ -43,7 +44,14 @@ abstract class AbstractPropertyLocation<T extends Tree, L extends AbstractNodeLo
 
     @Override
     public TreeLocation getChild(String relPath) {
-        return NullLocation.NULL;
+        checkArgument(!PathUtils.isAbsolute(relPath), "Not a relative path: " + relPath);
+
+        TreeLocation child = this;
+        for (String name : PathUtils.elements(relPath)) {
+            child = new NullLocation(child, name);
+        }
+
+        return child;
     }
 
     @Override
