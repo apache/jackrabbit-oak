@@ -29,7 +29,7 @@ import org.slf4j.LoggerFactory;
 /**
  * AccessControlInitializer... TODO
  */
-public class AccessControlInitializer implements RepositoryInitializer {
+public class AccessControlInitializer implements RepositoryInitializer, AccessControlConstants {
 
     /**
      * logger instance
@@ -43,9 +43,9 @@ public class AccessControlInitializer implements RepositoryInitializer {
         NodeBuilder root = branch.getRoot().builder();
         NodeBuilder index = IndexUtils.getOrCreateOakIndex(root);
 
-        // TODO OAK-396: add declaring node type information
         IndexUtils.createIndexDefinition(index, "acPrincipalName", true, false,
-                ImmutableList.<String>of(AccessControlConstants.REP_PRINCIPAL_NAME));
+                ImmutableList.<String>of(REP_PRINCIPAL_NAME),
+                ImmutableList.<String>of(NT_REP_DENY_ACE, NT_REP_GRANT_ACE));
 
         try {
             branch.setRoot(root.getNodeState());
