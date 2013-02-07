@@ -391,7 +391,7 @@ public class UserManagerImpl implements UserManager {
 
     private UserQueryManager getQueryManager() {
         if (queryManager == null) {
-            queryManager = new UserQueryManager(this, namePathMapper, config, root.getQueryEngine());
+            queryManager = new UserQueryManager(this, namePathMapper, config, root);
         }
         return queryManager;
     }

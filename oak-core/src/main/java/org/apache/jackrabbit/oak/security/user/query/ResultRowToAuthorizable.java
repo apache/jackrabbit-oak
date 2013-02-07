@@ -16,12 +16,19 @@
  */
 package org.apache.jackrabbit.oak.security.user.query;
 
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 
 import com.google.common.base.Function;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.ResultRow;
+import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
+import org.apache.jackrabbit.oak.spi.security.user.util.UserUtility;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,20 +40,41 @@ class ResultRowToAuthorizable implements Function<ResultRow, Authorizable> {
     private static final Logger log = LoggerFactory.getLogger(ResultRowToAuthorizable.class);
 
     private final UserManager userManager;
+    private final Root root;
+    private final AuthorizableType targetType;
 
-    ResultRowToAuthorizable(UserManager userManager) {
+    ResultRowToAuthorizable(@Nonnull UserManager userManager, @Nonnull Root root,
+                            @Nullable AuthorizableType targetType) {
         this.userManager = userManager;
+        this.root = root;
+        this.targetType = (targetType == null || AuthorizableType.AUTHORIZABLE == targetType) ? null : targetType;
     }
 
     @Override
     public Authorizable apply(ResultRow row) {
         if (row != null) {
-            try {
-                return userManager.getAuthorizableByPath(row.getPath());
-            } catch (RepositoryException e) {
-                log.debug("Failed to access authorizable " + row.getPath());
-            }
+            return getAuthorizable(row.getPath());
         }
         return null;
+    }
+
+    //------------------------------------------------------------< private >---
+    @CheckForNull
+    private Authorizable getAuthorizable(String resultPath) {
+        Authorizable authorizable = null;
+        try {
+            Tree tree = root.getTree(resultPath);
+            AuthorizableType type = UserUtility.getType(tree);
+            while (tree != null && type == null) {
+                tree = tree.getParent();
+                type = UserUtility.getType(tree);
+            }
+            if (type != null && (targetType == null || targetType == type)) {
+                authorizable = userManager.getAuthorizableByPath(tree.getPath());
+            }
+        } catch (RepositoryException e) {
+            log.debug("Failed to access authorizable " + resultPath);
+        }
+        return authorizable;
     }
 }
