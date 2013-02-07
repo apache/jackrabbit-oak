@@ -37,8 +37,6 @@ import org.apache.jackrabbit.mongomk.impl.model.tree.MongoNodeState;
 import org.apache.jackrabbit.mongomk.impl.model.tree.SimpleMongoNodeStore;
 import org.apache.jackrabbit.mongomk.util.MongoUtil;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.mongomk.util.MongoUtil.fromMongoRepresentation;
@@ -49,8 +47,6 @@ import static org.apache.jackrabbit.mongomk.util.MongoUtil.toMongoRepresentation
  * A {@code Command} for {@link org.apache.jackrabbit.mongomk.impl.MongoMicroKernel#rebase(String, String)}
  */
 public class RebaseCommand extends BaseCommand<String> {
-    private static final Logger LOG = LoggerFactory.getLogger(RebaseCommand.class);
-
     private final String branchRevisionId;
     private final String newBaseRevisionId;
 
