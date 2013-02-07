@@ -48,14 +48,17 @@ public class PermissionHook implements CommitHook, AccessControlConstants {
     @Nonnull
     @Override
     public NodeState processCommit(final NodeState before, NodeState after) throws CommitFailedException {
-        NodeBuilder rootBuilder = after.builder();
-
-        String workspaceName = "default"; // TODO
-        NodeBuilder permissionRoot = rootBuilder.child(NodeTypeConstants.JCR_SYSTEM).child(REP_PERMISSION_STORE).child(workspaceName);
-        ReadOnlyNodeTypeManager ntMgr = ReadOnlyNodeTypeManager.getInstance(before);
-
-        after.compareAgainstBaseState(before, new Diff(new Node(rootBuilder), permissionRoot, ntMgr));
-        return rootBuilder.getNodeState();
+        // TODO OAK-526: add implementation
+        return after;
+//
+//        NodeBuilder rootBuilder = after.builder();
+//
+//        String workspaceName = "default"; // TODO
+//        NodeBuilder permissionRoot = rootBuilder.child(NodeTypeConstants.JCR_SYSTEM).child(REP_PERMISSION_STORE).child(workspaceName);
+//        ReadOnlyNodeTypeManager ntMgr = ReadOnlyNodeTypeManager.getInstance(before);
+//
+//        after.compareAgainstBaseState(before, new Diff(new Node(rootBuilder), permissionRoot, ntMgr));
+//        return rootBuilder.getNodeState();
     }
 
     private static class Diff implements NodeStateDiff {
