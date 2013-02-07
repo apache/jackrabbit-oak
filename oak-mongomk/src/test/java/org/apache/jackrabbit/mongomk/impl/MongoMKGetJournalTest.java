@@ -140,14 +140,15 @@ public class MongoMKGetJournalTest extends BaseMongoMicroKernelTest {
         expected = ">\"/b\":\"/c\"";
         assertPropertyValue(entry, "changes", expected);
 
-        mk.commit("", "+\"/b/d\":{}", null, "");
+        mk.commit("", "+\"/d\":{}", null, "");
+        mk.commit("", "+\"/d/e\":{}", null, "");
 
-        // Commit with /b path and retrieve with root path
-        rev = mk.commit("/b", ">\"d\" : \"e\"", null, null);
+        // Commit with /d path and retrieve with root path
+        rev = mk.commit("/d", ">\"e\" : \"f\"", null, null);
         journalStr = mk.getJournal(rev, rev, "/");
         array = parseJSONArray(journalStr);
         entry = getObjectArrayEntry(array, 0);
-        expected = ">\"/b/d\":\"/b/e\"";
+        expected = ">\"/d/e\":\"/d/f\"";
         assertPropertyValue(entry, "changes", expected);
     }
 
