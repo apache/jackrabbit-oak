@@ -19,6 +19,8 @@ package org.apache.jackrabbit.oak.plugins.index;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -53,18 +55,19 @@ public class IndexUtils implements IndexConstants {
     /**
      * Create a new property2 index definition below the given {@code indexNode}.
      *
-     * @param index The oak:index node builder
-     * @param indexDefName The name of the new property index.
-     * @param reindex {@code true} if the the reindex flag should be turned on.
-     * @param unique {@code true} if the index is expected the assert property
-     * uniqueness.
+     * @param index         The oak:index node builder
+     * @param indexDefName  The name of the new property index.
+     * @param reindex       {@code true} if the the reindex flag should be turned on.
+     * @param unique        {@code true} if the index is expected the assert property
+     *                      uniqueness.
      * @param propertyNames The property names that should be indexed.
      */
-    public static void createIndexDefinition(NodeBuilder index,
-                                             String indexDefName,
+    public static void createIndexDefinition(@Nonnull NodeBuilder index,
+                                             @Nonnull String indexDefName,
                                              boolean reindex,
                                              boolean unique,
-                                             List<String> propertyNames) {
+                                             @Nonnull List<String> propertyNames,
+                                             @Nullable List<String> declaringNodeTypeNames) {
         NodeBuilder entry = index.child(indexDefName)
                 .setProperty(JCR_PRIMARYTYPE, IndexConstants.INDEX_DEFINITIONS_NODE_TYPE, Type.NAME)
                 .setProperty(IndexConstants.TYPE_PROPERTY_NAME, "p2")
@@ -78,6 +81,9 @@ public class IndexUtils implements IndexConstants {
         } else {
             entry.setProperty(PropertyStates.createProperty(IndexConstants.PROPERTY_NAMES, propertyNames, Type.STRINGS));
         }
+        if (declaringNodeTypeNames != null && !declaringNodeTypeNames.isEmpty()) {
+            entry.setProperty(PropertyStates.createProperty(IndexConstants.DECLARING_NODE_TYPES, declaringNodeTypeNames, Type.STRINGS));
+        }
     }
 
     /**
@@ -87,30 +93,35 @@ public class IndexUtils implements IndexConstants {
      * @param indexDefName
      * @param unique
      * @param propertyNames
+     * @param declaringNodeTypeNames
      */
-    public static void createIndexDefinition(NodeUtil indexNode,
-                                             String indexDefName,
+    public static void createIndexDefinition(@Nonnull NodeUtil indexNode,
+                                             @Nonnull String indexDefName,
                                              boolean unique,
-                                             String... propertyNames) {
+                                             @Nonnull String[] propertyNames,
+                                             @Nullable String[] declaringNodeTypeNames) {
         NodeUtil entry = indexNode.getOrAddChild(indexDefName, IndexConstants.INDEX_DEFINITIONS_NODE_TYPE);
         entry.setString(IndexConstants.TYPE_PROPERTY_NAME, "p2");
         entry.setBoolean(IndexConstants.REINDEX_PROPERTY_NAME, true);
         if (unique) {
             entry.setBoolean(IndexConstants.UNIQUE_PROPERTY_NAME, true);
         }
+        if (declaringNodeTypeNames != null && declaringNodeTypeNames.length > 0) {
+            entry.setStrings(IndexConstants.DECLARING_NODE_TYPES, declaringNodeTypeNames);
+        }
         entry.setStrings(IndexConstants.PROPERTY_NAMES, propertyNames);
     }
 
     /**
      * Builds a list of the existing index definitions.
-     * 
+     * <p/>
      * Checks only children of the provided state for an index definitions
      * container node, aka a node named {@link #INDEX_DEFINITIONS_NAME}
-     * 
+     *
      * @return
      */
     public static List<IndexDefinition> buildIndexDefinitions(NodeState state,
-            String indexConfigPath, String typeFilter) {
+                                                              String indexConfigPath, String typeFilter) {
         NodeState definitions = state.getChildNode(INDEX_DEFINITIONS_NAME);
         if (definitions == null) {
             return Collections.emptyList();
@@ -130,10 +141,9 @@ public class IndexUtils implements IndexConstants {
 
     /**
      * Builds an {@link IndexDefinition} out of a {@link ChildNodeEntry}
-     * 
      */
     private static IndexDefinition getDefinition(String path,
-            ChildNodeEntry def, String typeFilter) {
+                                                 ChildNodeEntry def, String typeFilter) {
         String name = def.getName();
         NodeState ns = def.getNodeState();
         PropertyState typeProp = ns.getProperty(TYPE_PROPERTY_NAME);

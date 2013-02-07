@@ -56,19 +56,20 @@ public class InitialContent implements RepositoryInitializer {
             system.setProperty(JCR_PRIMARYTYPE, "rep:system", Type.NAME);
 
             system.child(JCR_VERSIONSTORAGE)
-                .setProperty(JCR_PRIMARYTYPE, "rep:versionStorage", Type.NAME);
+                    .setProperty(JCR_PRIMARYTYPE, "rep:versionStorage", Type.NAME);
             system.child("jcr:nodeTypes")
-                .setProperty(JCR_PRIMARYTYPE, "rep:nodeTypes", Type.NAME);
+                    .setProperty(JCR_PRIMARYTYPE, "rep:nodeTypes", Type.NAME);
             system.child("jcr:activities")
-                .setProperty(JCR_PRIMARYTYPE, "rep:Activities", Type.NAME);
+                    .setProperty(JCR_PRIMARYTYPE, "rep:Activities", Type.NAME);
         }
 
         if (!root.hasChildNode(IndexConstants.INDEX_DEFINITIONS_NAME)) {
             NodeBuilder index = IndexUtils.getOrCreateOakIndex(root);
 
-            IndexUtils.createIndexDefinition(index, "uuid", true, true, ImmutableList.<String>of(JCR_UUID));
+            IndexUtils.createIndexDefinition(index, "uuid", true, true,
+                    ImmutableList.<String>of(JCR_UUID), null);
             IndexUtils.createIndexDefinition(index, "nodetype", true, false,
-                    ImmutableList.of(JCR_PRIMARYTYPE, JCR_MIXINTYPES));
+                    ImmutableList.of(JCR_PRIMARYTYPE, JCR_MIXINTYPES), null);
         }
         try {
             branch.setRoot(root.getNodeState());

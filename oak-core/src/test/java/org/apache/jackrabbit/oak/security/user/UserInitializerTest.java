@@ -94,7 +94,7 @@ public class UserInitializerTest extends AbstractSecurityTest {
 
     @Test
     public void testUserIndexDefinitions() throws Exception {
-        Tree oakIndex = root.getTree('/' +IndexConstants.INDEX_DEFINITIONS_NAME);
+        Tree oakIndex = root.getTree('/' + IndexConstants.INDEX_DEFINITIONS_NAME);
         assertNotNull(oakIndex);
 
         Tree id = oakIndex.getChild("authorizableId");
@@ -102,6 +102,8 @@ public class UserInitializerTest extends AbstractSecurityTest {
 
         Tree princName = oakIndex.getChild("principalName");
         assertIndexDefinition(princName, UserConstants.REP_PRINCIPAL_NAME, true);
+        String[] declaringNtNames = TreeUtil.getStrings(princName, IndexConstants.DECLARING_NODE_TYPES);
+        assertArrayEquals(new String[]{UserConstants.NT_REP_GROUP, UserConstants.NT_REP_USER}, declaringNtNames);
 
         Tree members = oakIndex.getChild("members");
         assertIndexDefinition(members, UserConstants.REP_MEMBERS, false);
@@ -111,6 +113,6 @@ public class UserInitializerTest extends AbstractSecurityTest {
         assertNotNull(tree);
 
         assertEquals(isUnique, TreeUtil.getBoolean(tree, IndexConstants.UNIQUE_PROPERTY_NAME));
-        assertArrayEquals(propName, new String[] {propName}, TreeUtil.getStrings(tree, IndexConstants.PROPERTY_NAMES));
+        assertArrayEquals(propName, new String[]{propName}, TreeUtil.getStrings(tree, IndexConstants.PROPERTY_NAMES));
     }
 }

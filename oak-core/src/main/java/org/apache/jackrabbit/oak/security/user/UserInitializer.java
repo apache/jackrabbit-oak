@@ -39,24 +39,24 @@ import org.slf4j.LoggerFactory;
  * Creates initial set of users to be present in the repository. This
  * implementation uses the {@code UserManager} such as defined by the
  * user configuration.
- *
+ * <p/>
  * Currently the following users are created:
- *
+ * <p/>
  * <ul>
- *     <li>An administrator user using {@link UserConstants#PARAM_ADMIN_ID}
- *     or {@link UserConstants#DEFAULT_ADMIN_ID} if the config option is missing.</li>
- *     <li>An administrator user using {@link UserConstants#PARAM_ANONYMOUS_ID}
- *     or {@link UserConstants#DEFAULT_ANONYMOUS_ID} if the config option is
- *     missing.</li>
+ * <li>An administrator user using {@link UserConstants#PARAM_ADMIN_ID}
+ * or {@link UserConstants#DEFAULT_ADMIN_ID} if the config option is missing.</li>
+ * <li>An administrator user using {@link UserConstants#PARAM_ANONYMOUS_ID}
+ * or {@link UserConstants#DEFAULT_ANONYMOUS_ID} if the config option is
+ * missing.</li>
  * </ul>
- *
+ * <p/>
  * In addition this initializer sets up index definitions for the following
  * user related properties:
- *
+ * <p/>
  * <ul>
- *     <li>{@link UserConstants#REP_AUTHORIZABLE_ID}</li>
- *     <li>{@link UserConstants#REP_PRINCIPAL_NAME}</li>
- *     <li>{@link UserConstants#REP_MEMBERS}</li>
+ * <li>{@link UserConstants#REP_AUTHORIZABLE_ID}</li>
+ * <li>{@link UserConstants#REP_PRINCIPAL_NAME}</li>
+ * <li>{@link UserConstants#REP_MEMBERS}</li>
  * </ul>
  */
 public class UserInitializer implements RepositoryInitializer, UserConstants {
@@ -83,10 +83,11 @@ public class UserInitializer implements RepositoryInitializer, UserConstants {
         try {
             NodeUtil rootTree = new NodeUtil(root.getTree("/"));
             NodeUtil index = rootTree.getOrAddChild(IndexConstants.INDEX_DEFINITIONS_NAME, JcrConstants.NT_UNSTRUCTURED);
-            IndexUtils.createIndexDefinition(index, "authorizableId", true, UserConstants.REP_AUTHORIZABLE_ID);
-            // FIXME OAK-396: rep:principalName only needs to be unique if defined with user/group nodes -> add defining nt-info to uniqueness constraint otherwise ac-editing will fail.
-            IndexUtils.createIndexDefinition(index, "principalName", true, UserConstants.REP_PRINCIPAL_NAME);
-            IndexUtils.createIndexDefinition(index, "members", false, UserConstants.REP_MEMBERS);
+            IndexUtils.createIndexDefinition(index, "authorizableId", true, new String[]{REP_AUTHORIZABLE_ID}, null);
+            IndexUtils.createIndexDefinition(index, "principalName", true,
+                    new String[]{REP_PRINCIPAL_NAME},
+                    new String[]{NT_REP_GROUP, NT_REP_USER});
+            IndexUtils.createIndexDefinition(index, "members", false, new String[]{UserConstants.REP_MEMBERS}, null);
 
             String adminId = userConfiguration.getConfigurationParameters().getConfigValue(PARAM_ADMIN_ID, DEFAULT_ADMIN_ID);
             if (userManager.getAuthorizable(adminId) == null) {
