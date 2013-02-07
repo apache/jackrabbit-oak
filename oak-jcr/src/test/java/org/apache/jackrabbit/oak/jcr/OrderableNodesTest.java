@@ -16,15 +16,17 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import org.junit.Test;
-
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
+import org.junit.Ignore;
+import org.junit.Test;
+
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertFalse;
+import static junit.framework.Assert.assertTrue;
 
 public class OrderableNodesTest extends AbstractRepositoryTest {
 
@@ -38,6 +40,44 @@ public class OrderableNodesTest extends AbstractRepositoryTest {
         // check ordering with node type without a residual properties definition
         new TestContentLoader().loadTestContent(getAdminSession());
         doTest("test:orderableFolder");
+    }
+
+    @Ignore("OAK-612")
+    @Test
+    public void testAddNode() throws Exception {
+        new TestContentLoader().loadTestContent(getAdminSession());
+
+        Session session = getAdminSession();
+        Node test = session.getRootNode().addNode("test", "test:orderableFolder");
+        assertTrue(test.getPrimaryNodeType().hasOrderableChildNodes());
+
+        Node n1 = test.addNode("a");
+        Node n2 = test.addNode("b");
+        session.save();
+
+        NodeIterator it = test.getNodes();
+        assertEquals("a", it.nextNode().getName());
+        assertEquals("b", it.nextNode().getName());
+    }
+
+    @Ignore("OAK-612")
+    @Test
+    public void testAddNode2() throws Exception {
+        new TestContentLoader().loadTestContent(getAdminSession());
+
+        Session session = getAdminSession();
+        Node test = session.getRootNode().addNode("test", "test:orderableFolder");
+        Node n1 = test.addNode("a");
+        Node n2 = test.addNode("b");
+        session.save();
+
+        test.getNode("a").remove();
+        test.addNode("a");
+        session.save();
+
+        NodeIterator it = test.getNodes();
+        assertEquals("b", it.nextNode().getName());
+        assertEquals("a", it.nextNode().getName());
     }
 
     private void doTest(String nodeType) throws RepositoryException {
