@@ -84,7 +84,7 @@ public class Property2IndexTest {
         cost = lookup.getCost("foo", null);
         assertTrue("cost: " + cost, cost >= MANY);
     }
-    
+
     private static Set<String> find(Property2IndexLookup lookup, String name, String value) {
         return Sets.newHashSet(lookup.query(null, name, value == null ? null : PropertyValues.newString(value)));
     }
@@ -230,6 +230,36 @@ public class Property2IndexTest {
         } finally {
             p.close();
         }
+    }
+
+    @Test
+    public void testUniqueByTypeDelete() throws Exception {
+
+        NodeState root = MemoryNodeState.EMPTY_NODE;
+
+        // Add index definition
+        NodeBuilder builder = root.builder();
+        builder.child("oak:index").child("fooIndex")
+                .setProperty("jcr:primaryType", "oak:queryIndexDefinition", Type.NAME)
+                .setProperty("type", "p2")
+                .setProperty("unique", "true")
+                .setProperty("propertyNames", Arrays.asList("foo"), Type.STRINGS)
+                .setProperty(Property2IndexDiff.declaringNodeTypes, Arrays.asList("typeFoo"), Type.STRINGS);
+        builder.child("a")
+                .setProperty("jcr:primaryType", "typeFoo", Type.NAME)
+                .setProperty("foo", "abc");
+        builder.child("b")
+                .setProperty("jcr:primaryType", "typeBar", Type.NAME)
+                .setProperty("foo", "abc");
+        NodeState before = builder.getNodeState();
+        builder = before.builder();
+        builder.removeNode("b");
+        NodeState after = builder.getNodeState();
+
+        IndexHook p = new Property2IndexDiff(builder);
+        after.compareAgainstBaseState(before, p);
+        p.apply();
+        p.close();
     }
 
 }
