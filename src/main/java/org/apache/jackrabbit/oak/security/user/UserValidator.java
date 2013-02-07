@@ -77,6 +77,10 @@ class UserValidator extends DefaultValidator implements UserConstants {
             String msg = "Invalid jcr:uuid for authorizable " + parentAfter.getName();
             fail(msg);
         }
+
+        if (REP_MEMBERS.equals(name)) {
+            checkForCyclicMembership(after);
+        }
     }
 
     @Override
@@ -100,6 +104,10 @@ class UserValidator extends DefaultValidator implements UserConstants {
         if (isUser(parentBefore) && REP_PASSWORD.equals(name) && PasswordUtility.isPlainTextPassword(after.getValue(Type.STRING))) {
             String msg = "Password may not be plain text.";
             fail(msg);
+        }
+
+        if (REP_MEMBERS.equals(name)) {
+            checkForCyclicMembership(after);
         }
     }
 
@@ -159,6 +167,10 @@ class UserValidator extends DefaultValidator implements UserConstants {
         } else {
             return false;
         }
+    }
+
+    private void checkForCyclicMembership(PropertyState repMembers) {
+        // FIXME OAK-615
     }
 
     private static boolean isValidUUID(@Nonnull Tree parent, @Nonnull String uuid) {
