@@ -255,29 +255,33 @@ public class ReadOnlyTree implements Tree {
 
         @Override
         public TreeLocation getChild(String relPath) {
-            checkArgument(!relPath.startsWith("/"));
+            checkArgument(!PathUtils.isAbsolute(relPath), "Not a relative path: " + relPath);
             if (relPath.isEmpty()) {
                 return this;
             }
 
-            ReadOnlyTree child = tree;
-            String parentPath = PathUtils.getParentPath(relPath);
-            for (String name : PathUtils.elements(parentPath)) {
-                child = child.getChild(name);
-                if (child == null) {
-                    return NullLocation.NULL;
+            int slash = PathUtils.getNextSlash(relPath, 0);
+            if (slash == -1) {
+                ReadOnlyTree child = tree.getChild(relPath);
+                if (child != null) {
+                    return new NodeLocation(child);
                 }
-            }
 
-            String name = PathUtils.getName(relPath);
-            PropertyState property = child.getProperty(name);
-            if (property != null) {
-                return new PropertyLocation(new NodeLocation(child), name);
-            } else {
-                child = child.getChild(name);
-                return child == null
-                        ? NullLocation.NULL
-                        : new NodeLocation(child);
+                PropertyState prop = tree.getProperty(relPath);
+                if (prop != null) {
+                    return new PropertyLocation(this, relPath);
+                }
+                return new NullLocation(this, relPath);
+            }
+            else {
+                String name = relPath.substring(0, slash);
+                String tail = relPath.substring(slash + 1, relPath.length());
+
+                ReadOnlyTree child = tree.getChild(name);
+                if (child != null) {
+                    return new NodeLocation(child).getChild(tail);
+                }
+                return new NullLocation(this, name).getChild(tail);
             }
         }
 

@@ -32,6 +32,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.TreeLocation;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.diffindex.UUIDDiffIndexProviderWrapper;
 import org.apache.jackrabbit.oak.query.QueryEngineImpl;
 import org.apache.jackrabbit.oak.spi.observation.ChangeExtractor;
@@ -199,7 +200,7 @@ public class RootImpl implements Root {
     @Override
     public TreeLocation getLocation(String path) {
         checkLive();
-        checkArgument(path.startsWith("/"));
+        checkArgument(PathUtils.isAbsolute(path), "Not an absolute path: " + path);
         return rootTree.getLocation().getChild(path.substring(1));
     }
 
