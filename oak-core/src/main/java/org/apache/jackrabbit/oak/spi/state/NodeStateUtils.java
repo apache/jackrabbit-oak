@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.spi.state;
 /**
  * Utility method for code that deals with node states.
  */
-public class NodeStateUtils {
+public final class NodeStateUtils {
 
     private NodeStateUtils() {
     }

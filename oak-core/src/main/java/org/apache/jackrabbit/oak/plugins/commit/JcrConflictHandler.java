@@ -23,7 +23,7 @@ import org.apache.jackrabbit.oak.spi.commit.ConflictHandler;
 /**
  * Utility class providing conflict handlers used for JCR.
  */
-public class JcrConflictHandler {
+public final class JcrConflictHandler {
 
     /**
      * The conflict handler is a composite of {@link ChildOrderConflictHandler}
