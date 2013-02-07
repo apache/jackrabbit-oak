@@ -51,7 +51,7 @@ public class VersionablePathHook implements CommitHook {
         return rootBuilder.getNodeState();
     }
 
-    private static class Diff extends DefaultNodeStateDiff implements VersionConstants {
+    private static final class Diff extends DefaultNodeStateDiff implements VersionConstants {
 
         private final ReadWriteVersionManager versionManager;
         private final Node nodeAfter;
