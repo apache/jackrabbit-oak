@@ -81,7 +81,7 @@ Records
 
 The content inside a segment is divided in records of different types:
 blocks, lists, maps, values, templates and nodes. These record types
-and their internal structurs are described in subsections below.
+and their internal structures are described in subsections below.
 
 Each record is uniquely addressable by its location within the segment
 and the UUID of that segment. Assuming that the size of a segment is
