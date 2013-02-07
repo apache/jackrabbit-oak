@@ -36,7 +36,7 @@ import org.slf4j.LoggerFactory;
 /**
  * MergingNodeStateDiff... TODO
  */
-class MergingNodeStateDiff extends DefaultNodeStateDiff {
+final class MergingNodeStateDiff extends DefaultNodeStateDiff {
     private static final Logger LOG = LoggerFactory.getLogger(MergingNodeStateDiff.class);
 
     public static final String CONFLICT = ":conflict";
