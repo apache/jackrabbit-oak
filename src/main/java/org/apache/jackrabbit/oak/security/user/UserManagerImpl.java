@@ -218,12 +218,13 @@ public class UserManagerImpl implements UserManager {
 
 
     //--------------------------------------------------------------------------
+
     /**
      * Let the configured {@code AuthorizableAction}s perform additional
      * tasks associated with the creation of the new user before the
      * corresponding new node is persisted.
      *
-     * @param user The new user.
+     * @param user     The new user.
      * @param password The password.
      * @throws RepositoryException If an exception occurs.
      */
@@ -266,7 +267,7 @@ public class UserManagerImpl implements UserManager {
      * tasks associated with password changing of a given user before the
      * corresponding property is being changed.
      *
-     * @param user The target user.
+     * @param user     The target user.
      * @param password The new password.
      * @throws RepositoryException If an exception occurs.
      */
@@ -346,12 +347,15 @@ public class UserManagerImpl implements UserManager {
         }
     }
 
-    private void checkValidPrincipal(Principal principal, boolean isGroup) {
+    private void checkValidPrincipal(Principal principal, boolean isGroup) throws RepositoryException {
         if (principal == null || principal.getName() == null || "".equals(principal.getName())) {
             throw new IllegalArgumentException("Principal may not be null and must have a valid name.");
         }
         if (!isGroup && EveryonePrincipal.NAME.equals(principal.getName())) {
             throw new IllegalArgumentException("'everyone' is a reserved group principal name.");
+        }
+        if (getAuthorizable(principal) != null) {
+            throw new AuthorizableExistsException("Authorizable with principal " + principal.getName() + " already exists.");
         }
     }
 
