@@ -56,8 +56,8 @@ public class SegmentReader {
         int offset = recordId.getOffset();
         long length = segment.readLong(offset);
         int size = (int) ((length + BLOCK_SIZE - 1) / BLOCK_SIZE);
-        ListRecord list = new ListRecord(
-                this, segment.readRecordId(offset + 8), size);
+        ListRecord list =
+            new ListRecord(segment.readRecordId(offset + 8), size);
         return new SegmentStream(this, list, length);
     }
 
@@ -103,16 +103,16 @@ public class SegmentReader {
         if (numberOfEntries > 0) {
             Segment segment = store.readSegment(recordId.getSegmentId());
             RecordId id = segment.readRecordId(recordId.getOffset());
-            return new ListRecord(this, id, numberOfEntries);
+            return new ListRecord(id, numberOfEntries);
         } else {
-            return new ListRecord(this, recordId, numberOfEntries);
+            return new ListRecord(recordId, numberOfEntries);
         }
     }
 
     public BlockRecord readBlock(RecordId recordId, int size) {
         checkNotNull(recordId);
         checkArgument(size > 0);
-        return new BlockRecord(this, recordId, size);
+        return new BlockRecord(recordId, size);
     }
 
 }

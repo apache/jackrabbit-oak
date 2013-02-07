@@ -18,28 +18,21 @@ package org.apache.jackrabbit.oak.plugins.segment;
 
 class Record {
 
-    private final SegmentReader reader;
-
     private final RecordId id;
 
-    protected Record(SegmentReader reader, RecordId id) {
-        this.reader = reader;
+    protected Record(RecordId id) {
         this.id = id;
     }
 
-    protected SegmentReader getReader() {
-        return reader;
-    }
-
-    protected RecordId readRecordId(int position) {
+    protected RecordId readRecordId(SegmentReader reader, int position) {
         return reader.readRecordId(id, position);
     }
 
-    protected int readInt(int position) {
+    protected int readInt(SegmentReader reader, int position) {
         return reader.readInt(id, position);
     }
 
-    protected long readLong(int position) {
+    protected long readLong(SegmentReader reader, int position) {
         return reader.readLong(id, position);
     }
 

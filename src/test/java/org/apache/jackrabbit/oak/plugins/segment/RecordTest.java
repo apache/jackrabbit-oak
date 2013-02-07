@@ -53,20 +53,20 @@ public class RecordTest {
     public void testBlockRecord() {
         RecordId blockId = writer.writeBlock(bytes, 0, bytes.length);
         writer.flush();
-        BlockRecord block = new BlockRecord(reader, blockId, bytes.length);
+        BlockRecord block = new BlockRecord(blockId, bytes.length);
 
         // Check reading with all valid positions and lengths
         for (int n = 1; n < bytes.length; n++) {
             for (int i = 0; i + n <= bytes.length; i++) {
                 Arrays.fill(bytes, i, i + n, (byte) '.');
-                assertEquals(n, block.read(i, bytes, i, n));
+                assertEquals(n, block.read(reader, i, bytes, i, n));
                 assertEquals(hello, new String(bytes, Charsets.UTF_8));
             }
         }
 
         // Check reading with a too long length
         byte[] large = new byte[bytes.length * 2];
-        assertEquals(bytes.length, block.read(0, large, 0, large.length));
+        assertEquals(bytes.length, block.read(reader, 0, large, 0, large.length));
         assertEquals(hello, new String(large, 0, bytes.length, Charsets.UTF_8));
     }
 
@@ -84,24 +84,24 @@ public class RecordTest {
 
         assertEquals(0, zero.size());
         assertEquals(1, one.size());
-        assertEquals(blockId, one.getEntry(0));
+        assertEquals(blockId, one.getEntry(reader, 0));
         assertEquals(LEVEL_SIZE, level1.size());
-        assertEquals(blockId, level1.getEntry(0));
-        assertEquals(blockId, level1.getEntry(LEVEL_SIZE - 1));
+        assertEquals(blockId, level1.getEntry(reader, 0));
+        assertEquals(blockId, level1.getEntry(reader, LEVEL_SIZE - 1));
         assertEquals(LEVEL_SIZE + 1, level1p.size());
-        assertEquals(blockId, level1p.getEntry(0));
-        assertEquals(blockId, level1p.getEntry(LEVEL_SIZE));
+        assertEquals(blockId, level1p.getEntry(reader, 0));
+        assertEquals(blockId, level1p.getEntry(reader, LEVEL_SIZE));
         assertEquals(LEVEL_SIZE * LEVEL_SIZE, level2.size());
-        assertEquals(blockId, level2.getEntry(0));
-        assertEquals(blockId, level2.getEntry(LEVEL_SIZE * LEVEL_SIZE - 1));
+        assertEquals(blockId, level2.getEntry(reader, 0));
+        assertEquals(blockId, level2.getEntry(reader, LEVEL_SIZE * LEVEL_SIZE - 1));
         assertEquals(LEVEL_SIZE * LEVEL_SIZE + 1, level2p.size());
-        assertEquals(blockId, level2p.getEntry(0));
-        assertEquals(blockId, level2p.getEntry(LEVEL_SIZE * LEVEL_SIZE));
+        assertEquals(blockId, level2p.getEntry(reader, 0));
+        assertEquals(blockId, level2p.getEntry(reader, LEVEL_SIZE * LEVEL_SIZE));
     }
 
     private ListRecord writeList(int size, RecordId id) {
         List<RecordId> list = Collections.nCopies(size, id);
-        return new ListRecord(reader, writer.writeList(list), size);
+        return new ListRecord(writer.writeList(list), size);
     }
 
     @Test
@@ -166,34 +166,34 @@ public class RecordTest {
     public void testMapRecord() {
         RecordId blockId = writer.writeBlock(bytes, 0, bytes.length);
 
-        MapRecord zero = new MapRecord(reader, writer.writeMap(
+        MapRecord zero = new MapRecord(writer.writeMap(
                 ImmutableMap.<String, RecordId>of()));
-        MapRecord one = new MapRecord(reader, writer.writeMap(
+        MapRecord one = new MapRecord(writer.writeMap(
                 ImmutableMap.of("one", blockId)));
-        MapRecord two = new MapRecord(reader, writer.writeMap(
+        MapRecord two = new MapRecord(writer.writeMap(
                 ImmutableMap.of("one", blockId, "two", blockId)));
         Map<String, RecordId> map = Maps.newHashMap();
         for (int i = 0; i < 1000; i++) {
             map.put("key" + i, blockId);
         }
-         MapRecord many = new MapRecord(reader, writer.writeMap(map));
+        MapRecord many = new MapRecord(writer.writeMap(map));
 
         writer.flush();
 
-        assertEquals(0, zero.size());
-        assertNull(zero.getEntry("one"));
-        assertEquals(1, one.size());
-        assertEquals(blockId, one.getEntry("one"));
-        assertNull(one.getEntry("two"));
-        assertEquals(2, two.size());
-        assertEquals(blockId, two.getEntry("one"));
-        assertEquals(blockId, two.getEntry("two"));
-        assertNull(two.getEntry("three"));
-        assertEquals(1000, many.size());
+        assertEquals(0, zero.size(reader));
+        assertNull(zero.getEntry(reader, "one"));
+        assertEquals(1, one.size(reader));
+        assertEquals(blockId, one.getEntry(reader, "one"));
+        assertNull(one.getEntry(reader, "two"));
+        assertEquals(2, two.size(reader));
+        assertEquals(blockId, two.getEntry(reader, "one"));
+        assertEquals(blockId, two.getEntry(reader, "two"));
+        assertNull(two.getEntry(reader, "three"));
+        assertEquals(1000, many.size(reader));
         for (int i = 0; i < 1000; i++) {
-            assertEquals(blockId, many.getEntry("key" + i));
+            assertEquals(blockId, many.getEntry(reader, "key" + i));
         }
-        assertNull(many.getEntry("foo"));
+        assertNull(many.getEntry(reader, "foo"));
     }
 
 }
