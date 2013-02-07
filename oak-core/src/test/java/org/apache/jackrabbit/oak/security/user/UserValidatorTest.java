@@ -111,8 +111,7 @@ public class UserValidatorTest extends AbstractSecurityTest {
     public void createWithoutPrincipalName() throws Exception {
         try {
             User user = getUserManager().createUser("withoutPrincipalName", "pw");
-            // FIXME: use user.getPath instead (blocked by OAK-343)
-            Tree tree = root.getTree("/rep:security/rep:authorizables/rep:users/t/te/test");
+            Tree tree = root.getTree(user.getPath());
             tree.removeProperty(UserConstants.REP_PRINCIPAL_NAME);
             root.commit();
 
@@ -128,8 +127,7 @@ public class UserValidatorTest extends AbstractSecurityTest {
     public void createWithInvalidUUID() throws Exception {
         try {
             User user = getUserManager().createUser("withInvalidUUID", "pw");
-            // FIXME: use user.getPath instead (blocked by OAK-343)
-            Tree tree = root.getTree("/rep:security/rep:authorizables/rep:users/t/te/test");
+            Tree tree = root.getTree(user.getPath());
             tree.setProperty(JcrConstants.JCR_UUID, UUID.randomUUID().toString());
             root.commit();
 
@@ -222,7 +220,7 @@ public class UserValidatorTest extends AbstractSecurityTest {
     public void testDisableAdminUser() throws Exception {
         try {
             String adminId = getConfig().getConfigValue(UserConstants.PARAM_ADMIN_ID, UserConstants.DEFAULT_ADMIN_ID);
-            UserManager userMgr =  getUserManager();
+            UserManager userMgr = getUserManager();
             Authorizable admin = userMgr.getAuthorizable(adminId);
             if (admin == null) {
                 admin = userMgr.createUser(adminId, adminId);
