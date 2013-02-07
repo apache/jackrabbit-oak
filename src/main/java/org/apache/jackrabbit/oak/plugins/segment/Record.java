@@ -24,18 +24,6 @@ class Record {
         this.id = id;
     }
 
-    protected RecordId readRecordId(SegmentReader reader, int position) {
-        return reader.readRecordId(id, position);
-    }
-
-    protected int readInt(SegmentReader reader, int position) {
-        return reader.readInt(id, position);
-    }
-
-    protected long readLong(SegmentReader reader, int position) {
-        return reader.readLong(id, position);
-    }
-
     public RecordId getRecordId() {
         return id;
     }

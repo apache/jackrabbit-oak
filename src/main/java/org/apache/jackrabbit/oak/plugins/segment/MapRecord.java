@@ -27,7 +27,7 @@ class MapRecord extends Record {
     }
 
     public int size(SegmentReader reader) {
-        return readInt(reader, 0);
+        return reader.readInt(getRecordId(), 0);
     }
 
     public RecordId getEntry(SegmentReader reader, String key) {
@@ -41,29 +41,29 @@ class MapRecord extends Record {
         int shift = level * LEVEL_BITS;
 
         int code = key.hashCode();
-        int bucketSize = readInt(reader, 0);
+        int bucketSize = reader.readInt(getRecordId(), 0);
         if (bucketSize == 0) {
             return null;
         } else if (bucketSize <= size || shift >= 32) {
             int offset = 0;
-            while (offset < bucketSize && readInt(reader, 4 + offset * 4) < code) {
+            while (offset < bucketSize && reader.readInt(getRecordId(), 4 + offset * 4) < code) {
                 offset++;
             }
-            while (offset < bucketSize && readInt(reader, 4 + offset * 4) == code) {
-                RecordId keyId = readRecordId(reader, 4 + (bucketSize + offset) * 4);
+            while (offset < bucketSize && reader.readInt(getRecordId(), 4 + offset * 4) == code) {
+                RecordId keyId = reader.readRecordId(getRecordId(), 4 + (bucketSize + offset) * 4);
                 if (key.equals(reader.readString(keyId))) {
-                    return readRecordId(reader, 4 + (2 * bucketSize + offset) * 4);
+                    return reader.readRecordId(getRecordId(), 4 + (2 * bucketSize + offset) * 4);
                 }
                 offset++;
             }
             return null;
         } else {
-            long bucketMap = readLong(reader, 4);
+            long bucketMap = reader.readLong(getRecordId(), 4);
             int bucketIndex = (code >> shift) & mask;
             long bucketBit = 1L << bucketIndex;
             if ((bucketMap & bucketBit) != 0) {
                 bucketIndex = Long.bitCount(bucketMap & (bucketBit - 1));
-                RecordId bucketId = readRecordId(reader, 12 + bucketIndex * 4);
+                RecordId bucketId = reader.readRecordId(getRecordId(), 12 + bucketIndex * 4);
                 return new MapRecord(bucketId).getEntry(reader, key, level + 1);
             } else {
                 return null;
