@@ -104,8 +104,7 @@ public class MongoMKGetNodesTest extends BaseMongoMicroKernelTest {
         SimpleNodeScenario scenario = new SimpleNodeScenario(mk);
         scenario.create();
 
-        // FIXME - depth > 3449 does not work.
-        JSONObject root = parseJSONObject(mk.getNodes("/", null, 3449, 0, -1, null));
+        JSONObject root = parseJSONObject(mk.getNodes("/", null, -1, 0, -1, null));
         assertPropertyValue(root, ":childNodeCount", 1L);
 
         JSONObject a = resolveObjectValue(root, "a");
