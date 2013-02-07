@@ -26,6 +26,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
+
 /**
  * AccessControlInitializer... TODO
  */
@@ -41,12 +44,17 @@ public class AccessControlInitializer implements RepositoryInitializer, AccessCo
         NodeStoreBranch branch = store.branch();
 
         NodeBuilder root = branch.getRoot().builder();
-        NodeBuilder index = IndexUtils.getOrCreateOakIndex(root);
+        NodeBuilder system = root.child(JCR_SYSTEM);
+        if (!system.hasChildNode(REP_PERMISSION_STORE)) {
+            system.child(REP_PERMISSION_STORE)
+                    .setProperty(JCR_PRIMARYTYPE, NT_REP_PERMISSION_STORE);
+        }
 
+        // property index for rep:principalName stored in ACEs
+        NodeBuilder index = IndexUtils.getOrCreateOakIndex(root);
         IndexUtils.createIndexDefinition(index, "acPrincipalName", true, false,
                 ImmutableList.<String>of(REP_PRINCIPAL_NAME),
                 ImmutableList.<String>of(NT_REP_DENY_ACE, NT_REP_GRANT_ACE));
-
         try {
             branch.setRoot(root.getNodeState());
             branch.merge();
