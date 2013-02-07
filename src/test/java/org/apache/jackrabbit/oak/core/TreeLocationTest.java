@@ -50,7 +50,7 @@ public class TreeLocationTest {
         tree.setProperty("c", 3);
         tree.addChild("x");
         tree.addChild("y");
-        tree.addChild("z");
+        tree.addChild("z").addChild("1").addChild("2").setProperty("p", "v");
         root.commit();
 
         // Acquire a fresh new root to avoid problems from lingering state
@@ -107,5 +107,21 @@ public class TreeLocationTest {
         assertNull(ab.getProperty());
 
         assertEquals(a.getProperty(), ab.getParent().getProperty());
+    }
+
+    @Test
+    public void getDeepLocation() {
+        TreeLocation p = root.getLocation("/z/1/2/p");
+        assertNotNull(p.getProperty());
+        assertEquals("/z/1/2/p", p.getPath());
+
+        TreeLocation n = root.getLocation("/z/1/2/3/4");
+        assertNull(n.getTree());
+        assertNull(n.getProperty());
+        assertEquals("/z/1/2/3/4", n.getPath());
+
+        TreeLocation two = n.getParent().getParent();
+        assertNotNull(two.getTree());
+        assertEquals("/z/1/2", two.getPath());
     }
 }

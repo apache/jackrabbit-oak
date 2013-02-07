@@ -34,7 +34,6 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryPropertyBuilder;
 import org.apache.jackrabbit.oak.plugins.memory.MultiStringPropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -591,90 +590,47 @@ public class TreeImpl implements Tree {
         }
 
         @Override
-        public TreeLocation getParent() {
-            return tree.parent == null
-                    ? NullLocation.NULL
-                    : new NodeLocation(tree.parent);
+        protected NodeLocation createNodeLocation(TreeImpl tree) {
+            return new NodeLocation(tree);
         }
 
         @Override
-        public TreeLocation getChild(String relPath) {
-            checkArgument(!PathUtils.isAbsolute(relPath), "Not a relative path: " + relPath);
-            if (relPath.isEmpty()) {
-                return this;
-            }
-
-            int slash = PathUtils.getNextSlash(relPath, 0);
-            if (slash == -1) {
-                TreeImpl child = tree.internalGetChild(relPath);
-                if (child != null) {
-                    return new NodeLocation(child);
-                }
-
-                PropertyState prop = tree.internalGetProperty(relPath);
-                if (prop != null) {
-                    return new PropertyLocation(this, relPath);
-                }
-                return new NullLocation(this, relPath);
-            }
-            else {
-                String name = relPath.substring(0, slash);
-                String tail = relPath.substring(slash + 1, relPath.length());
-
-                TreeImpl child = tree.internalGetChild(name);
-                if (child != null) {
-                    return new NodeLocation(child).getChild(tail);
-                }
-                return new NullLocation(this, name).getChild(tail);
-            }
+        protected TreeLocation createPropertyLocation(AbstractNodeLocation<TreeImpl> parentLocation, String name) {
+            return new PropertyLocation(parentLocation, name);
         }
 
         @Override
-        public boolean remove() {
-            return tree.remove();
+        protected TreeImpl getParentTree() {
+            return tree.parent;
         }
 
         @Override
-        public Tree getTree() {
-            return canRead(tree) ? tree : null;
+        protected TreeImpl getChildTree(String name) {
+            return tree.internalGetChild(name);
+        }
+
+        @Override
+        protected PropertyState getPropertyState(String name) {
+            return tree.internalGetProperty(name);
+        }
+
+        @Override
+        protected boolean canRead(TreeImpl tree) {
+            return TreeImpl.this.canRead(tree);
         }
     }
 
-    private final class PropertyLocation extends AbstractPropertyLocation<TreeImpl, NodeLocation> {
+    private final class PropertyLocation extends AbstractPropertyLocation<TreeImpl> {
 
-        private PropertyLocation(NodeLocation parentLocation, String name) {
+        private PropertyLocation(AbstractNodeLocation<TreeImpl> parentLocation, String name) {
             super(parentLocation, name);
         }
 
         @Override
-        public PropertyState getProperty() {
-            PropertyState property = parentLocation.tree.internalGetProperty(name);
-            return canRead(property)
-                    ? property
-                    : null;
+        protected boolean canRead(PropertyState property) {
+            return TreeImpl.this.canRead(property);
         }
 
-        @Override
-        public Status getStatus() {
-            return parentLocation.tree.getPropertyStatus(name);
-        }
-
-        @Override
-        public boolean set(PropertyState property) {
-            parentLocation.tree.setProperty(property);
-            return true;
-        }
-
-        /**
-         * Remove the underlying property
-         *
-         * @return {@code true} on success false otherwise
-         */
-        @Override
-        public boolean remove() {
-            parentLocation.tree.removeProperty(name);
-            return true;
-        }
     }
 
 }
