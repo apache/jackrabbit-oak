@@ -89,9 +89,9 @@ public class SegmentStream extends InputStream {
                 len = (int) (length - position);
             }
 
-            BlockRecord block =
-                reader.readBlock(blocks.getEntry(blockIndex), BLOCK_SIZE);
-            len = block.read(blockOffset, b, off, len);
+            BlockRecord block = reader.readBlock(
+                    blocks.getEntry(reader, blockIndex), BLOCK_SIZE);
+            len = block.read(reader, blockOffset, b, off, len);
             position += len;
             return len;
         }

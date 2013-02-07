@@ -22,49 +22,49 @@ class MapRecord extends Record {
 
     static final int LEVEL_BITS = 6;
 
-    MapRecord(SegmentReader reader, RecordId id) {
-        super(reader, id);
+    MapRecord(RecordId id) {
+        super(id);
     }
 
-    public int size() {
-        return readInt(0);
+    public int size(SegmentReader reader) {
+        return readInt(reader, 0);
     }
 
-    public RecordId getEntry(String key) {
+    public RecordId getEntry(SegmentReader reader, String key) {
         checkNotNull(key);
-        return getEntry(key, 0);
+        return getEntry(reader, key, 0);
     }
 
-    private RecordId getEntry(String key, int level) {
+    private RecordId getEntry(SegmentReader reader, String key, int level) {
         int size = 1 << LEVEL_BITS;
         int mask = size - 1;
         int shift = level * LEVEL_BITS;
 
         int code = key.hashCode();
-        int bucketSize = readInt(0);
+        int bucketSize = readInt(reader, 0);
         if (bucketSize == 0) {
             return null;
-        } else if (bucketSize <= size) {
+        } else if (bucketSize <= size || shift >= 32) {
             int offset = 0;
-            while (offset < bucketSize && readInt(4 + offset * 4) < code) {
+            while (offset < bucketSize && readInt(reader, 4 + offset * 4) < code) {
                 offset++;
             }
-            while (offset < bucketSize && readInt(4 + offset * 4) == code) {
-                RecordId keyId = readRecordId(4 + (bucketSize + offset) * 4);
-                if (key.equals(getReader().readString(keyId))) {
-                    return readRecordId(4 + (2 * bucketSize + offset) * 4);
+            while (offset < bucketSize && readInt(reader, 4 + offset * 4) == code) {
+                RecordId keyId = readRecordId(reader, 4 + (bucketSize + offset) * 4);
+                if (key.equals(reader.readString(keyId))) {
+                    return readRecordId(reader, 4 + (2 * bucketSize + offset) * 4);
                 }
                 offset++;
             }
             return null;
         } else {
-            long bucketMap = readLong(4);
+            long bucketMap = readLong(reader, 4);
             int bucketIndex = (code >> shift) & mask;
             long bucketBit = 1L << bucketIndex;
             if ((bucketMap & bucketBit) != 0) {
                 bucketIndex = Long.bitCount(bucketMap & (bucketBit - 1));
-                RecordId bucketId = readRecordId(12 + bucketIndex * 4);
-                return new MapRecord(getReader(), bucketId).getEntry(key, level + 1);
+                RecordId bucketId = readRecordId(reader, 12 + bucketIndex * 4);
+                return new MapRecord(bucketId).getEntry(reader, key, level + 1);
             } else {
                 return null;
             }
