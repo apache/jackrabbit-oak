@@ -188,20 +188,19 @@ public class MemoryNodeBuilder implements NodeBuilder {
     }
 
     /**
-     * Determine whether this child has been removed.
+     * Determine whether this child exists.
      * Assumes {@code read()}, {@code write()} needs not be called.
-     * @return  {@code true} iff this child has been removed
+     * @return  {@code true} iff this child exists
      */
-    private boolean removed() {
-        return !isRoot() && parent.writeState != null &&
-                parent.hasBaseState(name) && !parent.writeState.hasChildNode(name);
+    private boolean exists() {
+        return isRoot() || parent.writeState == null || parent.writeState.hasChildNode(name);
     }
 
     @Nonnull
     private NodeState read() {
         if (revision != root.revision) {
             assert(!isRoot()); // root never gets here since revision == root.revision
-            checkState(!removed(), "This node has already been removed");
+            checkState(exists(), "This node has already been removed");
             parent.read();
 
             // The builder could have been reset, need to re-get base state
@@ -231,7 +230,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
     private MutableNodeState write(long newRevision, boolean skipRemovedCheck) {
         // make sure that all revision numbers up to the root gets updated
         if (!isRoot()) {
-            checkState(skipRemovedCheck || !removed());
+            checkState(skipRemovedCheck || exists());
             parent.write(newRevision, skipRemovedCheck);
         }
 
@@ -243,7 +242,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
 
             writeState = parent.getWriteState(name);
             if (writeState == null) {
-                if (removed()) {
+                if (!exists()) {
                     writeState = new MutableNodeState(null);
                 }
                 else {
@@ -385,7 +384,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
         MutableNodeState childState = getWriteState(name);
         if (childState == null) {
             writeState.nodes.remove(name);
-            childState = createChildBuilder(name).write();
+            childState = createChildBuilder(name).write(root.revision + 1, true);
         }
         childState.reset(state);
 
