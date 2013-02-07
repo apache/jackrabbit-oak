@@ -222,18 +222,8 @@
       org.apache.jackrabbit.test.api.observation.AddEventListenerTest#testUUID
       org.apache.jackrabbit.test.api.observation.LockingTest#testAddLockToNode
       org.apache.jackrabbit.test.api.observation.LockingTest#testRemoveLockFromNode
-      org.apache.jackrabbit.oak.jcr.security.user.EveryoneGroupTest#testMembers                                <!-- OAK-343 -->
-      org.apache.jackrabbit.oak.jcr.security.user.FindAuthorizablesTest#testFindAuthorizableByAddedProperty    <!-- OAK-343 -->
       org.apache.jackrabbit.oak.jcr.security.user.FindAuthorizablesTest#testFindAuthorizableByRelativePath     <!-- OAK-343 -->
-      org.apache.jackrabbit.oak.jcr.security.user.UserManagerTest#testGetNewAuthorizable                 <!-- OAK-343 -->
-      org.apache.jackrabbit.oak.jcr.security.user.UserManagerTest#testCreateGroupWithExistingPrincipal2  <!-- OAK-343 -->
-      org.apache.jackrabbit.oak.jcr.security.user.UserManagerTest#testCreateGroupWithExistingPrincipal3  <!-- OAK-343 -->
-      org.apache.jackrabbit.oak.jcr.security.user.UserManagerTest#testEnforceAuthorizableFolderHierarchy <!-- OAK-343 -->
-      org.apache.jackrabbit.oak.jcr.security.user.UserManagerTest#testCreateGroupWithExistingPrincipal2  <!-- OAK-343 -->
-      org.apache.jackrabbit.oak.jcr.security.user.GroupTest#testDeeplyNestedGroups                       <!-- OAK-343 -->
-      org.apache.jackrabbit.oak.jcr.security.user.GroupTest#testInheritedMembers                         <!-- OAK-343 -->
       org.apache.jackrabbit.oak.jcr.security.user.GroupTest#testCyclicGroups                             <!-- OAK-343 -->
-      org.apache.jackrabbit.oak.jcr.security.user.AuthorizableTest#testRemoveListedAuthorizable          <!-- OAK-343 -->
       org.apache.jackrabbit.oak.jcr.version.VersionHistoryTest#testGetVersionHistoryFromNode             <!-- OAK-601 -->
       org.apache.jackrabbit.oak.jcr.version.VersionHistoryTest#testGetVersionHistory                     <!-- OAK-602 -->
       org.apache.jackrabbit.oak.jcr.version.VersionHistoryTest#testGetVersionHistoryAfterMove            <!-- OAK-602 -->
