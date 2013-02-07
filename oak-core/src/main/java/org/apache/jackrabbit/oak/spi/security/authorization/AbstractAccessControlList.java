@@ -75,7 +75,7 @@ public abstract class AbstractAccessControlList implements JackrabbitAccessContr
     @Override
     public AccessControlEntry[] getAccessControlEntries() throws RepositoryException {
         List<JackrabbitAccessControlEntry> entries = getEntries();
-        return entries.toArray(new AccessControlEntry[entries.size()]);
+        return entries.toArray(new JackrabbitAccessControlEntry[entries.size()]);
     }
 
     @Override

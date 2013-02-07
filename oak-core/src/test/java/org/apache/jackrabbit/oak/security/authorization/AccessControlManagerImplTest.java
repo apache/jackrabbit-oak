@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.security.authorization;
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -604,6 +605,50 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         assertTrue(ace2.hasChild(REP_RESTRICTIONS));
         NodeUtil restr = ace2.getChild(REP_RESTRICTIONS);
         assertEquals("*/something", restr.getString(REP_GLOB, null));
+    }
+
+    @Ignore()
+    @Test
+    public void testModifyExistingPolicy() throws Exception {
+        ACL acl = getApplicablePolicy(testPath);
+        acl.addAccessControlEntry(testPrincipal, testPrivileges);
+        AccessControlEntry allowTest = acl.getAccessControlEntries()[0];
+
+        acMgr.setPolicy(testPath, acl);
+        root.commit();
+
+        acl = (ACL) acMgr.getPolicies(testPath)[0];
+        acl.addEntry(EveryonePrincipal.getInstance(), testPrivileges, false, getGlobRestriction("*/something"));
+
+        AccessControlEntry[] aces = acl.getAccessControlEntries();
+        assertEquals(2, aces.length);
+        AccessControlEntry denyEveryone = aces[1];
+        assertEquals(EveryonePrincipal.getInstance(), denyEveryone.getPrincipal());
+
+        acl.orderBefore(denyEveryone, allowTest);
+        acMgr.setPolicy(testPath, acl);
+        root.commit();
+
+        acl = (ACL) acMgr.getPolicies(testPath)[0];
+        aces = acl.getAccessControlEntries();
+        assertEquals(2, aces.length);
+        assertEquals(denyEveryone, aces[0]);
+        assertEquals(allowTest, aces[1]);
+
+        acl.addEntry(testPrincipal, new Privilege[] {acMgr.privilegeFromName(PrivilegeConstants.JCR_ALL)},
+                false, Collections.<String, Value>emptyMap());
+        AccessControlEntry denyTest = acl.getAccessControlEntries()[2];
+
+        acl.orderBefore(denyTest, allowTest);
+        acMgr.setPolicy(testPath, acl);
+
+        acl = (ACL) acMgr.getPolicies(testPath)[0];
+        aces = acl.getAccessControlEntries();
+        assertEquals(3, aces.length);
+
+        assertEquals(denyEveryone, aces[0]);
+        assertEquals(denyTest, aces[1]);
+        assertEquals(allowTest, aces[2]);
     }
 
     @Test
