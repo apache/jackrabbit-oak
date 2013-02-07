@@ -16,14 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.p2;
 
-import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
-import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.p2.Property2Index.TYPE;
-import static com.google.common.collect.Lists.newArrayList;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -31,7 +23,6 @@ import java.util.List;
 import java.util.Map;
 
 import com.google.common.collect.ImmutableList;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -43,16 +34,23 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 
+import static com.google.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.p2.Property2Index.TYPE;
+
 /**
  * {@link IndexHook} implementation that is responsible for keeping the
  * {@link Property2Index} up to date.
- * <p>
+ * <p/>
  * There is a tree of PropertyIndexDiff objects, each object represents the
  * changes at a given node.
- * 
+ *
  * @see Property2Index
  * @see Property2IndexLookup
- * 
  */
 class Property2IndexDiff implements IndexHook {
 
@@ -60,7 +58,7 @@ class Property2IndexDiff implements IndexHook {
 
     protected static String declaringNodeTypes = "declaringNodeTypes";
 
-    
+
     private final IndexStoreStrategy store = new ContentMirrorStoreStrategy();
 
     /**
@@ -139,7 +137,7 @@ class Property2IndexDiff implements IndexHook {
 
     /**
      * Get all the indexes for the given property name.
-     * 
+     *
      * @param name the property name
      * @return the indexes
      */
@@ -150,7 +148,7 @@ class Property2IndexDiff implements IndexHook {
         }
         List<Property2IndexUpdate> filtered = new ArrayList<Property2IndexUpdate>();
         for (Property2IndexUpdate pi : indexes) {
-            if (pi.getNodeTypeNames() == null
+            if (node == null || pi.getNodeTypeNames() == null
                     || pi.getNodeTypeNames().isEmpty()) {
                 filtered.add(pi);
                 continue;
