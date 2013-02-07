@@ -21,7 +21,6 @@ import static org.junit.Assert.assertEquals;
 import org.apache.jackrabbit.mongomk.BaseMongoMicroKernelTest;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -31,11 +30,11 @@ public class MongoMKGetJournalTest extends BaseMongoMicroKernelTest {
 
     @Test
     public void simple() throws Exception {
-        String fromDiff = "+\"/a\" : {}";
+        String fromDiff = "+\"/a\":{}";
         String fromMsg = "Add /a";
         String fromRev = mk.commit("", fromDiff, null, fromMsg);
 
-        String toDiff = "+\"/b\" : {}";
+        String toDiff = "+\"/b\":{}";
         String toMsg = "Add /b";
         String toRev = mk.commit("", toDiff, null, toMsg);
 
@@ -56,9 +55,8 @@ public class MongoMKGetJournalTest extends BaseMongoMicroKernelTest {
     }
 
     @Test
-    @Ignore("OAK-611")
-    public void emptyAndRootPath() {
-        // Commit with empty path
+    public void commitAddWithDiffPaths() {
+        // Commit with empty path and retrieve with root path
         String rev = mk.commit("", "+\"/a\":{}", null, "");
         String journalStr = mk.getJournal(rev, rev, "/");
         JSONArray array = parseJSONArray(journalStr);
@@ -66,12 +64,152 @@ public class MongoMKGetJournalTest extends BaseMongoMicroKernelTest {
         String expected = "+\"/a\":{}";
         assertPropertyValue(entry, "changes", expected);
 
-        // Commit with root path
+        // Commit with root path and retrieve with root path
         rev = mk.commit("/", "+\"b\":{}", null, "");
         journalStr = mk.getJournal(rev, rev, "/");
         array = parseJSONArray(journalStr);
         entry = getObjectArrayEntry(array, 0);
         expected = "+\"/b\":{}";
+        assertPropertyValue(entry, "changes", expected);
+
+        // Commit with /b path and retrieve with root path
+        rev = mk.commit("/b", "+\"c\":{}", null, "");
+        journalStr = mk.getJournal(rev, rev, "/");
+        array = parseJSONArray(journalStr);
+        entry = getObjectArrayEntry(array, 0);
+        expected = "+\"/b/c\":{}";
+        assertPropertyValue(entry, "changes", expected);
+
+        // Commit with /b/c path and retrieve with root path
+        rev = mk.commit("/b/c", "+\"d\":{}", null, "");
+        journalStr = mk.getJournal(rev, rev, "/");
+        array = parseJSONArray(journalStr);
+        entry = getObjectArrayEntry(array, 0);
+        expected = "+\"/b/c/d\":{}";
+        assertPropertyValue(entry, "changes", expected);
+    }
+
+    @Test
+    public void commitCopyWithDiffPaths() {
+        mk.commit("", "+\"/a\":{}", null, "");
+
+        // Commit with empty path and retrieve with root path
+        String rev = mk.commit("", "*\"/a\" : \"/b\"", null, null);
+        String journalStr = mk.getJournal(rev, rev, "/");
+        JSONArray array = parseJSONArray(journalStr);
+        JSONObject entry = getObjectArrayEntry(array, 0);
+        String expected = "*\"/a\":\"/b\"";
+        assertPropertyValue(entry, "changes", expected);
+
+        // Commit with root path and retrieve with root path
+        rev = mk.commit("/", "*\"b\" : \"c\"", null, null);
+        journalStr = mk.getJournal(rev, rev, "/");
+        array = parseJSONArray(journalStr);
+        entry = getObjectArrayEntry(array, 0);
+        expected = "*\"/b\":\"/c\"";
+        assertPropertyValue(entry, "changes", expected);
+
+        mk.commit("", "+\"/b/d\":{}", null, "");
+
+        // Commit with /b path and retrieve with root path
+        rev = mk.commit("/b", "*\"d\" : \"e\"", null, null);
+        journalStr = mk.getJournal(rev, rev, "/");
+        array = parseJSONArray(journalStr);
+        entry = getObjectArrayEntry(array, 0);
+        expected = "*\"/b/d\":\"/b/e\"";
+        assertPropertyValue(entry, "changes", expected);
+    }
+
+    @Test
+    public void commitMoveWithDiffPaths() {
+        mk.commit("", "+\"/a\":{}", null, "");
+
+        // Commit with empty path and retrieve with root path
+        String rev = mk.commit("", ">\"/a\" : \"/b\"", null, null);
+        String journalStr = mk.getJournal(rev, rev, "/");
+        JSONArray array = parseJSONArray(journalStr);
+        JSONObject entry = getObjectArrayEntry(array, 0);
+        String expected = ">\"/a\":\"/b\"";
+        assertPropertyValue(entry, "changes", expected);
+
+        // Commit with root path and retrieve with root path
+        rev = mk.commit("/", ">\"b\" : \"c\"", null, null);
+        journalStr = mk.getJournal(rev, rev, "/");
+        array = parseJSONArray(journalStr);
+        entry = getObjectArrayEntry(array, 0);
+        expected = ">\"/b\":\"/c\"";
+        assertPropertyValue(entry, "changes", expected);
+
+        mk.commit("", "+\"/b/d\":{}", null, "");
+
+        // Commit with /b path and retrieve with root path
+        rev = mk.commit("/b", ">\"d\" : \"e\"", null, null);
+        journalStr = mk.getJournal(rev, rev, "/");
+        array = parseJSONArray(journalStr);
+        entry = getObjectArrayEntry(array, 0);
+        expected = ">\"/b/d\":\"/b/e\"";
+        assertPropertyValue(entry, "changes", expected);
+    }
+
+    @Test
+    public void commitRemoveMoveWithDiffPaths() {
+        mk.commit("", "+\"/a\":{}", null, "");
+
+        // Commit with empty path and retrieve with root path
+        String rev = mk.commit("", "-\"/a\"", null, null);
+        String journalStr = mk.getJournal(rev, rev, "/");
+        JSONArray array = parseJSONArray(journalStr);
+        JSONObject entry = getObjectArrayEntry(array, 0);
+        String expected = "-\"/a\"";
+        assertPropertyValue(entry, "changes", expected);
+
+        mk.commit("", "+\"/b\":{}", null, "");
+
+        // Commit with root path and retrieve with root path
+        rev = mk.commit("", "-\"/b\"", null, null);
+        journalStr = mk.getJournal(rev, rev, "/");
+        array = parseJSONArray(journalStr);
+        entry = getObjectArrayEntry(array, 0);
+        expected = "-\"/b\"";
+        assertPropertyValue(entry, "changes", expected);
+
+        mk.commit("", "+\"/b\":{\"c\" : {}}", null, "");
+
+        // Commit with /b path and retrieve with root path
+        rev = mk.commit("/b", "-\"c\"", null, null);
+        journalStr = mk.getJournal(rev, rev, "/");
+        array = parseJSONArray(journalStr);
+        entry = getObjectArrayEntry(array, 0);
+        expected = "-\"/b/c\"";
+        assertPropertyValue(entry, "changes", expected);
+    }
+
+    @Test
+    public void commitSetPropertyWithDiffPaths() {
+        mk.commit("", "+\"/a\":{}", null, "");
+
+        // Commit with empty path and retrieve with root path
+        String rev = mk.commit("", "^\"/a/key1\" : \"value1\"", null, null);
+        String journalStr = mk.getJournal(rev, rev, "/");
+        JSONArray array = parseJSONArray(journalStr);
+        JSONObject entry = getObjectArrayEntry(array, 0);
+        String expected = "^\"/a/key1\":\"value1\"";
+        assertPropertyValue(entry, "changes", expected);
+
+        // Commit with root path and retrieve with root path
+        rev = mk.commit("/", "^\"a/key2\" : \"value2\"", null, null);
+        journalStr = mk.getJournal(rev, rev, "/");
+        array = parseJSONArray(journalStr);
+        entry = getObjectArrayEntry(array, 0);
+        expected = "^\"/a/key2\":\"value2\"";
+        assertPropertyValue(entry, "changes", expected);
+
+        // Commit with /a path and retrieve with root path
+        rev = mk.commit("/a", "^\"key3\": \"value3\"", null, "");
+        journalStr = mk.getJournal(rev, rev, "/");
+        array = parseJSONArray(journalStr);
+        entry = getObjectArrayEntry(array, 0);
+        expected = "^\"/a/key3\":\"value3\"";
         assertPropertyValue(entry, "changes", expected);
     }
 }

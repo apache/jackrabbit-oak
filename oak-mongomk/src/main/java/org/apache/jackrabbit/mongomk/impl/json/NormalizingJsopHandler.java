@@ -29,15 +29,21 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 public class NormalizingJsopHandler extends DefaultJsopHandler {
 
     private final StringBuilder builder = new StringBuilder();
+    private final Deque<String> commaStack = new ArrayDeque<String>(Collections.singleton(""));
+    private final Deque<String> pathStack;
+    private final String path;
 
-    private Deque<String> commaStack = new ArrayDeque<String>(
-            Collections.singleton(""));
+    public NormalizingJsopHandler() {
+        this("/");
+    }
 
-    private Deque<String> pathStack = new ArrayDeque<String>(
-            Collections.singleton("/"));
+    public NormalizingJsopHandler(String path) {
+        this.path = path;
+        pathStack = new ArrayDeque<String>(Collections.singleton(path));
+    }
 
     public String getDiff() {
-        scopeFor("/");
+        scopeFor(path);
         return builder.toString();
     }
 
@@ -62,27 +68,27 @@ public class NormalizingJsopHandler extends DefaultJsopHandler {
     public void nodeCopied(String rootPath,
                            String oldPath,
                            String newPath) {
-        scopeFor("/");
+        scopeFor(path);
         builder.append("*");
-        builder.append(JsopBuilder.encode(PathUtils.relativize("/", oldPath)));
+        builder.append(JsopBuilder.encode(relativize(path, oldPath)));
         builder.append(":");
-        builder.append(JsopBuilder.encode(PathUtils.relativize("/", newPath)));
+        builder.append(JsopBuilder.encode(relativize(path, newPath)));
     }
 
     @Override
     public void nodeMoved(String rootPath, String oldPath, String newPath) {
-        scopeFor("/");
+        scopeFor(path);
         builder.append(">");
-        builder.append(JsopBuilder.encode(PathUtils.relativize("/", oldPath)));
+        builder.append(JsopBuilder.encode(relativize(path, oldPath)));
         builder.append(":");
-        builder.append(JsopBuilder.encode(PathUtils.relativize("/", newPath)));
+        builder.append(JsopBuilder.encode(relativize(path, newPath)));
     }
 
     @Override
     public void nodeRemoved(String parentPath, String name) {
-        scopeFor("/");
+        scopeFor(path);
         builder.append("-");
-        builder.append(JsopBuilder.encode(PathUtils.relativize("/", concatPath(parentPath, name))));
+        builder.append(JsopBuilder.encode(relativize(path, concatPath(parentPath, name))));
     }
 
     @Override
@@ -114,7 +120,7 @@ public class NormalizingJsopHandler extends DefaultJsopHandler {
             builder.append("}");
         }
         // remaining path for scope
-        return PathUtils.relativize(getCurrentPath(), path);
+        return relativize(getCurrentPath(), path);
     }
 
     private String getCurrentPath() {
@@ -141,5 +147,9 @@ public class NormalizingJsopHandler extends DefaultJsopHandler {
     private void maybeAppendComma() {
         builder.append(commaStack.removeLast());
         commaStack.addLast(",");
+    }
+
+    private String relativize(String parentPath, String path) {
+        return parentPath.isEmpty()? path : PathUtils.relativize(parentPath, path);
     }
 }

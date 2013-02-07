@@ -25,6 +25,8 @@ import org.apache.jackrabbit.mongomk.api.model.Node;
 import org.apache.jackrabbit.mongomk.impl.MongoNodeStore;
 import org.apache.jackrabbit.mongomk.impl.action.FetchCommitsAction;
 import org.apache.jackrabbit.mongomk.impl.action.FetchHeadRevisionIdAction;
+import org.apache.jackrabbit.mongomk.impl.json.JsopParser;
+import org.apache.jackrabbit.mongomk.impl.json.NormalizingJsopHandler;
 import org.apache.jackrabbit.mongomk.impl.model.MongoCommit;
 import org.apache.jackrabbit.mongomk.impl.model.tree.SimpleMongoNodeStore;
 import org.apache.jackrabbit.mongomk.util.MongoUtil;
@@ -106,7 +108,10 @@ public class GetJournalCommand extends BaseCommand<String> {
                 } catch (Exception e) {
                     throw new MicroKernelException(e);
                 }
+            } else {
+                diff = normalizeDiff(commit.getPath(), diff);
             }
+
             commitBuff.object()
             .key("id").value(MongoUtil.fromMongoRepresentation(commit.getRevisionId()))
             .key("ts").value(commit.getTimestamp())
@@ -134,5 +139,12 @@ public class GetJournalCommand extends BaseCommand<String> {
 
     private Node getNode(String path, long revisionId) throws Exception {
         return new GetNodesCommand(nodeStore, path, revisionId).execute();
+    }
+
+    private String normalizeDiff(String path, String diff) throws Exception {
+        // Need to normalize against empty path in journal diffs.
+        NormalizingJsopHandler handler = new NormalizingJsopHandler("");
+        new JsopParser(path, diff, handler).parse();
+        return handler.getDiff();
     }
 }
