@@ -59,6 +59,7 @@ class ImpersonationImpl implements Impersonation, UserConstants {
     }
 
     //------------------------------------------------------< Impersonation >---
+
     /**
      * @see org.apache.jackrabbit.api.security.user.Impersonation#getImpersonators()
      */
@@ -87,28 +88,15 @@ class ImpersonationImpl implements Impersonation, UserConstants {
      */
     @Override
     public boolean grantImpersonation(Principal principal) throws RepositoryException {
+        if (!isValidPrincipal(principal)) {
+            return false;
+        }
         String principalName = principal.getName();
-        Principal p = principalManager.getPrincipal(principalName);
-        if (p == null) {
-            log.debug("Cannot grant impersonation to an unknown principal.");
-            return false;
-        }
-        if (p instanceof Group) {
-            log.debug("Cannot grant impersonation to a principal that is a Group.");
-            return false;
-        }
-
         // make sure user does not impersonate himself
         Tree userTree = user.getTree();
         PropertyState prop = userTree.getProperty(REP_PRINCIPAL_NAME);
         if (prop != null && prop.getValue(Type.STRING).equals(principalName)) {
             log.warn("Cannot grant impersonation to oneself.");
-            return false;
-        }
-
-        // make sure the given principal doesn't refer to the admin user.
-        if (isAdmin(p)) {
-            log.debug("Admin principal is already granted impersonation.");
             return false;
         }
 
@@ -166,7 +154,7 @@ class ImpersonationImpl implements Impersonation, UserConstants {
     }
 
     //------------------------------------------------------------< private >---
-    private Set<String> getImpersonatorNames() throws RepositoryException {
+    private Set<String> getImpersonatorNames() {
         return getImpersonatorNames(user.getTree());
     }
 
@@ -203,5 +191,37 @@ class ImpersonationImpl implements Impersonation, UserConstants {
                 return false;
             }
         }
+    }
+
+    private boolean isValidPrincipal(Principal principal) {
+        Principal p = null;
+        // shortcut for TreeBasedPrincipal
+        if (principal instanceof TreeBasedPrincipal) {
+            try {
+                Authorizable otherUser = user.getUserManager().getAuthorizable(principal);
+                if (otherUser != null) {
+                    p = otherUser.getPrincipal();
+                }
+
+            } catch (RepositoryException e) {
+                log.debug(e.getMessage());
+            }
+        } else {
+            p = principalManager.getPrincipal(principal.getName());
+        }
+        if (p == null) {
+            log.debug("Cannot grant impersonation to an unknown principal.");
+            return false;
+        }
+        if (p instanceof Group) {
+            log.debug("Cannot grant impersonation to a principal that is a Group.");
+            return false;
+        }
+        // make sure the given principal doesn't refer to the admin user.
+        if (isAdmin(p)) {
+            log.debug("Admin principal is already granted impersonation.");
+            return false;
+        }
+        return true;
     }
 }
