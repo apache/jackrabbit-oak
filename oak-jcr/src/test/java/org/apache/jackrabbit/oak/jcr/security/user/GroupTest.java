@@ -30,6 +30,7 @@ import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.test.NotExecutableException;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -58,7 +59,7 @@ public class GroupTest extends AbstractUserTest {
         while (members.hasNext() && !contained) {
             Object next = members.next();
             assertTrue(next instanceof Authorizable);
-            contained = ((Authorizable)next).getID().equals(auth.getID());
+            contained = ((Authorizable) next).getID().equals(auth.getID());
         }
         assertTrue("The given set of members must contain '" + auth.getID() + '\'', contained);
     }
@@ -68,7 +69,7 @@ public class GroupTest extends AbstractUserTest {
         while (members.hasNext() && !contained) {
             Object next = members.next();
             assertTrue(next instanceof Authorizable);
-            contained = ((Authorizable)next).getID().equals(auth.getID());
+            contained = ((Authorizable) next).getID().equals(auth.getID());
         }
         assertFalse("The given set of members must not contain '" + auth.getID() + '\'', contained);
     }
@@ -78,7 +79,7 @@ public class GroupTest extends AbstractUserTest {
         while (groups.hasNext() && !contained) {
             Object next = groups.next();
             assertTrue(next instanceof Group);
-            contained = ((Group)next).getID().equals(gr.getID());
+            contained = ((Group) next).getID().equals(gr.getID());
         }
         assertTrue("All members of a group must contain that group upon 'memberOf'.", contained);
     }
@@ -88,7 +89,7 @@ public class GroupTest extends AbstractUserTest {
         while (groups.hasNext() && !contained) {
             Object next = groups.next();
             assertTrue(next instanceof Group);
-            contained = ((Group)next).getID().equals(gr.getID());
+            contained = ((Group) next).getID().equals(gr.getID());
         }
         assertFalse("All members of a group must contain that group upon 'memberOf'.", contained);
     }
@@ -172,12 +173,12 @@ public class GroupTest extends AbstractUserTest {
     @Test
     public void testGetMembersContainsDeclaredMembers() throws NotExecutableException, RepositoryException {
         List<String> l = new ArrayList<String>();
-        for (Iterator<Authorizable> it = group.getMembers(); it.hasNext();) {
+        for (Iterator<Authorizable> it = group.getMembers(); it.hasNext(); ) {
             l.add(it.next().getID());
         }
-        for (Iterator<Authorizable> it = group.getDeclaredMembers(); it.hasNext();) {
+        for (Iterator<Authorizable> it = group.getDeclaredMembers(); it.hasNext(); ) {
             assertTrue("All declared members must also be part of the Iterator " +
-                    "returned upon getMembers()",l.contains(it.next().getID()));
+                    "returned upon getMembers()", l.contains(it.next().getID()));
         }
     }
 
@@ -578,12 +579,41 @@ public class GroupTest extends AbstractUserTest {
             group2 = userMgr.createGroup(createGroupId());
             group3 = userMgr.createGroup(createGroupId());
 
-            group1.addMember(getTestUser(superuser));
-            group2.addMember(getTestUser(superuser));
+            assertTrue(group1.addMember(group2));
+            superuser.save();
+            assertTrue(group2.addMember(group3));
+            superuser.save();
+            assertFalse(group3.addMember(group1));
+            superuser.save();
+        } finally {
+            if (group1 != null) group1.remove();
+            if (group2 != null) group2.remove();
+            if (group3 != null) group3.remove();
+        }
+    }
+
+    /**
+     * @since oak 1.0 cyclic group membership added in a single set of transient
+     *        modifications must be detected upon save.
+     */
+    @Ignore("OAK-615")
+    @Test
+    public void testCyclicGroups2() throws AuthorizableExistsException, RepositoryException, NotExecutableException {
+        Group group1 = null;
+        Group group2 = null;
+        Group group3 = null;
+        try {
+            group1 = userMgr.createGroup(createGroupId());
+            group2 = userMgr.createGroup(createGroupId());
+            group3 = userMgr.createGroup(createGroupId());
 
             assertTrue(group1.addMember(group2));
             assertTrue(group2.addMember(group3));
-            assertFalse(group3.addMember(group1));
+            assertTrue(group3.addMember(group1));
+            superuser.save();
+            fail("Cyclic group membership must be detected");
+        } catch (RepositoryException e) {
+            // success
         } finally {
             if (group1 != null) group1.remove();
             if (group2 != null) group2.remove();
