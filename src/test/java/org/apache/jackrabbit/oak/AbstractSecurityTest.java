@@ -28,6 +28,8 @@ import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.index.p2.Property2IndexHookProvider;
+import org.apache.jackrabbit.oak.plugins.index.p2.Property2IndexProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.security.authentication.ConfigurationUtil;
@@ -55,9 +57,8 @@ public abstract class AbstractSecurityTest {
     public void before() throws Exception {
         contentRepository = new Oak()
                 .with(new InitialContent())
-                        // FIXME: specify index provider (waiting for OAK-343)
-//                .with(new Property2IndexHookProvider())
-//                .with(new Property2IndexProvider())
+                .with(new Property2IndexHookProvider())
+                .with(new Property2IndexProvider())
                 .with(getSecurityProvider())
                 .createContentRepository();
 
