@@ -55,7 +55,7 @@ public abstract class AbstractSecurityTest {
     public void before() throws Exception {
         contentRepository = new Oak()
                 .with(new InitialContent())
-                        // FIXME: specify index provider (waiting for OAK-396 and OAK-343)
+                        // FIXME: specify index provider (waiting for OAK-343)
 //                .with(new Property2IndexHookProvider())
 //                .with(new Property2IndexProvider())
                 .with(getSecurityProvider())
