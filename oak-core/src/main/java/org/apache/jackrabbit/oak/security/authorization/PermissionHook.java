@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.security.authorization;
 import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -48,17 +49,27 @@ public class PermissionHook implements CommitHook, AccessControlConstants {
     @Nonnull
     @Override
     public NodeState processCommit(final NodeState before, NodeState after) throws CommitFailedException {
-        // TODO OAK-526: add implementation
-        return after;
-//
-//        NodeBuilder rootBuilder = after.builder();
-//
-//        String workspaceName = "default"; // TODO
-//        NodeBuilder permissionRoot = rootBuilder.child(NodeTypeConstants.JCR_SYSTEM).child(REP_PERMISSION_STORE).child(workspaceName);
-//        ReadOnlyNodeTypeManager ntMgr = ReadOnlyNodeTypeManager.getInstance(before);
-//
-//        after.compareAgainstBaseState(before, new Diff(new Node(rootBuilder), permissionRoot, ntMgr));
-//        return rootBuilder.getNodeState();
+        NodeBuilder rootBuilder = after.builder();
+
+        // TODO: retrieve workspace name
+        String workspaceName = "default";
+        NodeBuilder permissionRoot = getPermissionRoot(rootBuilder, workspaceName);
+        ReadOnlyNodeTypeManager ntMgr = ReadOnlyNodeTypeManager.getInstance(before);
+
+        after.compareAgainstBaseState(before, new Diff(new Node(rootBuilder), permissionRoot, ntMgr));
+        return rootBuilder.getNodeState();
+    }
+
+    private NodeBuilder getPermissionRoot(NodeBuilder rootBuilder, String workspaceName) {
+        NodeBuilder store = rootBuilder.child(NodeTypeConstants.JCR_SYSTEM).child(REP_PERMISSION_STORE);
+        NodeBuilder permissionRoot;
+        if (!store.hasChildNode(workspaceName)) {
+            permissionRoot = store.child(workspaceName)
+                    .setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_PERMISSION_STORE);
+        } else {
+            permissionRoot = store.child(workspaceName);
+        }
+        return permissionRoot;
     }
 
     private static class Diff implements NodeStateDiff {
