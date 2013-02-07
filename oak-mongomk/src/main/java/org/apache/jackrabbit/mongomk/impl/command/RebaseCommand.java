@@ -169,7 +169,7 @@ public class RebaseCommand extends BaseCommand<String> {
             NodeState theirState = theirDelta.getAddedChildNodes().get(name);
 
             if (theirState != null && !theirState.equals(ourState)) {
-                markConflict(stagedNode, "addExistingNode", name, ourState);
+                markConflict(stagedNode, "addExistingNode", ourState);
             }
             else {
                 stagedNode.addChildNodeEntry(unwrap(ourState));
@@ -181,10 +181,10 @@ public class RebaseCommand extends BaseCommand<String> {
             NodeState ourState = removed.getValue();
 
             if (theirDelta.getRemovedChildNodes().containsKey(name)) {
-                markConflict(stagedNode, "deleteDeletedNode", name, ourState);
+                markConflict(stagedNode, "deleteDeletedNode", ourState);
             }
             else if (theirDelta.getChangedChildNodes().containsKey(name)) {
-                markConflict(stagedNode, "deleteChangedNode", name, ourState);
+                markConflict(stagedNode, "deleteChangedNode", ourState);
             }
             else {
                 stagedNode.removeChildNodeEntry(name);
@@ -197,7 +197,7 @@ public class RebaseCommand extends BaseCommand<String> {
 
             Node changedBase = baseNode.getChildNodeEntry(name);
             if (changedBase == null) {
-                markConflict(stagedNode, "changeDeletedNode", name, ourState);
+                markConflict(stagedNode, "changeDeletedNode", ourState);
                 continue;
             }
 
@@ -219,7 +219,7 @@ public class RebaseCommand extends BaseCommand<String> {
         marker.getProperties().put(name, ourValue);
     }
 
-    private static void markConflict(NodeImpl parent, String conflictType, String name, NodeState ourState) {
+    private static void markConflict(NodeImpl parent, String conflictType, NodeState ourState) {
         NodeImpl marker = getOrAddConflictMarker(parent, conflictType);
         marker.addChildNodeEntry(unwrap(ourState));
     }
