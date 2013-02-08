@@ -103,9 +103,7 @@ public class MemoryNodeBuilderTest {
 
     @Test
     public void testReadOnRemoveNode() {
-        String[] names = {"x", "new"};
-
-        for (String name : names) {
+        for (String name : new String[] {"x", "new"}) {
             NodeBuilder root = new MemoryNodeBuilder(BASE);
             NodeBuilder child = root.child(name);
 
@@ -124,9 +122,7 @@ public class MemoryNodeBuilderTest {
 
     @Test
     public void testWriteOnRemoveNode() {
-        String[] names = {"x", "new"};
-
-        for (String name : names) {
+        for (String name : new String[] {"x", "new"}) {
             NodeBuilder root = new MemoryNodeBuilder(BASE);
             NodeBuilder child = root.child(name);
 
