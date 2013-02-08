@@ -31,8 +31,17 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import javax.jcr.PropertyType;
+
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+
 import com.google.common.base.Charsets;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.io.ByteStreams;
 
 public class SegmentWriter {
@@ -355,6 +364,55 @@ public class SegmentWriter {
         } finally {
             stream.close();
         }
+    }
+
+    private RecordId writeProperty(PropertyState state) {
+        Type<?> type = state.getType();
+        int count = state.count();
+
+        List<RecordId> valueIds = Lists.newArrayList();
+        for (int i = 0; i < count; i++) {
+            if (type.tag() == PropertyType.BINARY) {
+                try {
+                    valueIds.add(writeStream(
+                            state.getValue(Type.BINARY, i).getNewStream()));
+                } catch (IOException e) {
+                    throw new IllegalStateException("Unexpected IOException", e);
+                }
+            } else {
+                valueIds.add(writeString(state.getValue(Type.STRING, i)));
+            }
+        }
+        RecordId valueId = writeList(valueIds);
+
+        RecordId propertyId = prepare(8, Collections.singleton(valueId));
+        buffer.putInt(type.tag());
+        if (state.isArray()) {
+            buffer.putInt(count);
+        } else {
+            buffer.putInt(-1);
+        }
+        writeRecordId(valueId);
+        return propertyId;
+    }
+
+    public RecordId writeNode(NodeState state) {
+        Map<String, RecordId> childNodes = Maps.newHashMap();
+        for (ChildNodeEntry entry : state.getChildNodeEntries()) {
+            childNodes.put(entry.getName(), writeNode(entry.getNodeState()));
+        }
+        RecordId childNodesId = writeMap(childNodes);
+
+        Map<String, RecordId> properties = Maps.newHashMap();
+        for (PropertyState property : state.getProperties()) {
+            properties.put(property.getName(), writeProperty(property));
+        }
+        RecordId propertiesId = writeMap(properties);
+
+        RecordId id = prepare(0, ImmutableList.of(propertiesId, childNodesId));
+        writeRecordId(propertiesId);
+        writeRecordId(childNodesId);
+        return id;
     }
 
 }
