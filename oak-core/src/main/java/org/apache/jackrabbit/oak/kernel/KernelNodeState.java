@@ -207,11 +207,7 @@ public final class KernelNodeState extends AbstractNodeState {
 
     @Override
     public NodeBuilder builder() {
-        if ("/".equals(getPath())) {
-            return new KernelRootBuilder(kernel, this);
-        } else {
-            return new MemoryNodeBuilder(this);
-        }
+        return new MemoryNodeBuilder(this);
     }
 
     /**
