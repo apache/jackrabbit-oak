@@ -171,8 +171,25 @@ public class SegmentWriter {
             if (diff == 0) {
                 diff = key.compareTo(that.key);
             }
+            if (diff == 0) {
+                diff = value.compareTo(that.value);
+            }
             return diff;
         }
+
+        public boolean equals(Object object) {
+            if (this == object) {
+                return true;
+            } else if (object instanceof MapEntry) {
+                MapEntry that = (MapEntry) object;
+                return hashCode == that.hashCode
+                        && key.equals(that.key)
+                        && value.equals(that.value);
+            } else {
+                return false;
+            }
+        }
+
     }
 
     private synchronized RecordId writeMapBucket(
