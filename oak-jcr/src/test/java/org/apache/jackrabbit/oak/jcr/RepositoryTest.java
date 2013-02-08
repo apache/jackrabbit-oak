@@ -1621,6 +1621,30 @@ public class RepositoryTest extends AbstractRepositoryTest {
     }
 
     @Test
+    public void invalidItemStateExceptionOnRemovedNode() throws Exception {
+        Session session = getAdminSession();
+
+        for (String parentPath : new String[] {"/", TEST_PATH}) {
+            Node parent = session.getNode(parentPath);
+            Node child = parent.addNode("child");
+
+            child.remove();
+            try {
+                child.getPath();
+                fail();
+            }
+            catch (InvalidItemStateException expected) { }
+
+            session.save();
+            try {
+                child.getPath();
+                fail();
+            }
+            catch (InvalidItemStateException expected) { }
+        }
+    }
+
+    @Test
     public void setPrimaryType() throws RepositoryException {
         Node testNode = getNode(TEST_PATH);
         assertEquals("nt:unstructured", testNode.getPrimaryNodeType().getName());
