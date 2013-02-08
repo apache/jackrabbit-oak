@@ -18,7 +18,18 @@ package org.apache.jackrabbit.oak.plugins.segment;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
+
 class MapRecord extends Record {
+
+    public interface Entry extends Map.Entry<String, RecordId> {    
+    }
 
     static final int LEVEL_BITS = 6;
 
@@ -68,6 +79,67 @@ class MapRecord extends Record {
             } else {
                 return null;
             }
+        }
+    }
+
+    public Iterable<Entry> getEntries(SegmentReader reader) {
+        return getEntries(reader, 0);
+    }
+
+    private Iterable<Entry> getEntries(
+            final SegmentReader reader, int level) {
+        int size = 1 << LEVEL_BITS;
+        int shift = level * LEVEL_BITS;
+
+        final int bucketSize = reader.readInt(getRecordId(), 0);
+        if (bucketSize == 0) {
+            return Collections.emptyList();
+        } else if (bucketSize <= size || shift >= 32) {
+            return new Iterable<Entry>() {
+                @Override
+                public Iterator<Entry> iterator() {
+                    return new Iterator<Entry>() {
+                        private int index = 0;
+                        @Override
+                        public boolean hasNext() {
+                            return index < bucketSize;
+                        }
+                        @Override
+                        public Entry next() {
+                            final int offset = index++;
+                            return new Entry() {
+                                @Override
+                                public String getKey() {
+                                    RecordId id = reader.readRecordId(getRecordId(), 4 + (bucketSize + offset) * 4);
+                                    return reader.readString(id);
+                                }
+                                @Override
+                                public RecordId getValue() {
+                                    return reader.readRecordId(getRecordId(), 4 + (2 * bucketSize + offset) * 4);
+                                }
+                                @Override
+                                public RecordId setValue(RecordId arg0) {
+                                    throw new UnsupportedOperationException();
+                                }
+                            };
+                        }
+                        @Override
+                        public void remove() {
+                            throw new UnsupportedOperationException();
+                        }
+                    };
+                }
+            };
+        } else {
+            long bucketMap = reader.readLong(getRecordId(), 4);
+            int bucketCount = Long.bitCount(bucketMap);
+            List<Iterable<Entry>> iterables =
+                    Lists.newArrayListWithCapacity(bucketCount);
+            for (int i = 0; i < bucketCount; i++) {
+                RecordId bucketId = reader.readRecordId(getRecordId(), 12 + i * 4);
+                iterables.add(new MapRecord(bucketId).getEntries(reader, level + 1));
+            }
+            return Iterables.concat(iterables);
         }
     }
 
