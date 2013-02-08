@@ -20,7 +20,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkPositionIndexes;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentWriter.BLOCK_SIZE;
 
-import java.io.IOException;
 import java.io.InputStream;
 
 public class SegmentStream extends InputStream {
@@ -61,7 +60,7 @@ public class SegmentStream extends InputStream {
     }
 
     @Override
-    public int read() throws IOException {
+    public int read() {
         byte[] b = new byte[1];
         if (read(b) != -1) {
             return b[0] & 0xff;
@@ -71,7 +70,12 @@ public class SegmentStream extends InputStream {
     }
 
     @Override
-    public int read(byte[] b, int off, int len) throws IOException {
+    public int read(byte[] b) {
+        return read(b, 0, b.length);
+    }
+
+    @Override
+    public int read(byte[] b, int off, int len) {
         checkNotNull(b);
         checkPositionIndexes(off, off + len, b.length);
         if (len == 0) {
