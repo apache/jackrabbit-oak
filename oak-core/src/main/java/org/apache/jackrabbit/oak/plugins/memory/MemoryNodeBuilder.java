@@ -211,8 +211,8 @@ public class MemoryNodeBuilder implements NodeBuilder {
             // ... same for the write state
             writeState = parent.getWriteState(name);
 
-            checkState(baseState != null || writeState != null, "This node is disconnected");
             revision = root.revision;
+            checkState(baseState != null || writeState != null, "This node is disconnected");
         }
 
         assert classInvariants();
