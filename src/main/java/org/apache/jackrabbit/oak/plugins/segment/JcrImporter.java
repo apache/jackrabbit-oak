@@ -16,23 +16,18 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
-import java.io.IOException;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.Arrays;
 
-import javax.jcr.Binary;
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
 import javax.jcr.Property;
 import javax.jcr.PropertyIterator;
-import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
-import javax.jcr.Value;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 
 public class JcrImporter {
 
@@ -42,19 +37,32 @@ public class JcrImporter {
         this.writer = writer;
     }
 
-    public RecordId writeValue(Value value) throws RepositoryException {
-        if (value.getType() == PropertyType.BINARY) {
-            Binary binary = value.getBinary();
-            try {
-                return writer.writeStream(binary.getStream());
-            } catch (IOException e) {
-                throw new RepositoryException(
-                        "Can not read a binary stream from the repository", e);
-            } finally {
-                binary.dispose();
+    public RecordId writeNode(Node node) throws RepositoryException {
+        NodeBuilder builder =
+                new MemoryNodeBuilder(MemoryNodeState.EMPTY_NODE);
+        buildNode(builder, node);
+        return writer.writeNode(builder.getNodeState());
+    }
+
+    private void buildNode(NodeBuilder builder, Node node)
+            throws RepositoryException {
+        PropertyIterator properties = node.getProperties();
+        while (properties.hasNext()) {
+            Property property = properties.nextProperty();
+            if (property.isMultiple()) {
+                builder.setProperty(PropertyStates.createProperty(
+                        property.getName(),
+                        Arrays.asList(property.getValues())));
+            } else {
+                builder.setProperty(PropertyStates.createProperty(
+                        property.getName(), property.getValue()));
             }
-        } else {
-            return writer.writeString(value.getString());
+        }
+
+        NodeIterator childNodes = node.getNodes();
+        while (childNodes.hasNext()) {
+            Node childNode = childNodes.nextNode();
+            buildNode(builder.child(childNode.getName()), childNode);
         }
     }
 
