@@ -208,7 +208,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
             if (!existsOrDisconnected()) {
                 return false;
             }
-            parent.read();
+            parent.updateReadState();
 
             // The builder could have been reset, need to re-get base state
             baseState = parent.getBaseState(name);
