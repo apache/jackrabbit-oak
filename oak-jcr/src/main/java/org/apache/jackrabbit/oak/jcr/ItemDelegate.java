@@ -84,7 +84,7 @@ public abstract class ItemDelegate {
      */
     public boolean isStale() {
         Status status = getLocationOrNull().getStatus();
-        return status == Status.REMOVED || status == null;
+        return status == Status.DISCONNECTED || status == null;
     }
 
     /**

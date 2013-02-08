@@ -198,11 +198,16 @@ public class MemoryNodeBuilder implements NodeBuilder {
         return isRoot() || parent.writeState == null || parent.writeState.hasChildNode(name);
     }
 
-    @Nonnull
-    private NodeState read() {
+    /**
+     * Update the state of this builder for reading.
+     * @return  {@code true} is this reader is connected, {@code false} otherwise.
+     */
+    private boolean updateReadState() {
         if (revision != root.revision) {
             assert(!isRoot()); // root never gets here since revision == root.revision
-            checkState(existsOrDisconnected(), "This node has already been removed");
+            if (!existsOrDisconnected()) {
+                return false;
+            }
             parent.read();
 
             // The builder could have been reset, need to re-get base state
@@ -212,16 +217,15 @@ public class MemoryNodeBuilder implements NodeBuilder {
             writeState = parent.getWriteState(name);
 
             revision = root.revision;
-            checkState(baseState != null || writeState != null, "This node is disconnected");
         }
+        return writeState != null || baseState != null;
+    }
 
+    @Nonnull
+    private NodeState read() {
+        checkState(updateReadState(), "This node has been removed or is disconnected");
         assert classInvariants();
-
-        if (writeState != null) {
-            return writeState;
-        } else {
-            return baseState;
-        }
+        return writeState != null ? writeState : baseState;
     }
 
     @Nonnull
@@ -233,7 +237,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
     private MutableNodeState write(long newRevision, boolean skipRemovedCheck) {
         // make sure that all revision numbers up to the root gets updated
         if (!isRoot()) {
-            checkState(skipRemovedCheck || existsOrDisconnected(), "This node has already been removed");
+            checkState(skipRemovedCheck || existsOrDisconnected(), "This node has been removed");
             parent.write(newRevision, skipRemovedCheck);
         }
 
@@ -304,13 +308,8 @@ public class MemoryNodeBuilder implements NodeBuilder {
     }
 
     @Override
-    public boolean isRemoved() {
-        return !isRoot() && (parent.isRemoved() || parent.isRemoved(name));
-    }
-
-    private boolean isRemoved(String name) {
-        read();
-        return hasBaseState(name) && !hasChildNode(name);
+    public boolean isConnected() {
+        return updateReadState();
     }
 
     @Override

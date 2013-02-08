@@ -149,8 +149,8 @@ public class TreeImpl implements Tree {
         Status nodeStatus = getStatus();
         if (nodeStatus == Status.NEW) {
             return (hasProperty(name)) ? Status.NEW : null;
-        } else if (nodeStatus == Status.REMOVED) {
-            return Status.REMOVED; // FIXME not correct if no property existed with that name
+        } else if (nodeStatus == Status.DISCONNECTED) {
+            return Status.DISCONNECTED;
         } else {
             PropertyState head = internalGetProperty(name);
             if (head != null && !canRead(head)) {
@@ -161,7 +161,7 @@ public class TreeImpl implements Tree {
             NodeState parentBase = getBaseState();
             PropertyState base = parentBase == null ? null : parentBase.getProperty(name);
             if (head == null) {
-                return (base == null) ? null : Status.REMOVED;
+                return (base == null) ? null : Status.DISCONNECTED;
             } else {
                 if (base == null) {
                     return Status.NEW;
@@ -209,25 +209,25 @@ public class TreeImpl implements Tree {
         }
     }
 
-    private boolean isRemoved() {
+    private boolean isDisconnected() {
         if (isRoot()) {
             return false;
         }
         if (parent.nodeBuilder == null) {
             return false;
         }
-        if (parent.nodeBuilder.isRemoved()) {
+        if (!parent.nodeBuilder.isConnected()) {
             return true;
         }
-        return getNodeBuilder().isRemoved();
+        return !getNodeBuilder().isConnected();
     }
 
     @Override
     public Status getStatus() {
         root.checkLive();
 
-        if (isRemoved()) {
-            return Status.REMOVED;
+        if (isDisconnected()) {
+            return Status.DISCONNECTED;
         }
 
         NodeBuilder builder = getNodeBuilder();
@@ -300,8 +300,8 @@ public class TreeImpl implements Tree {
     @Override
     public boolean remove() {
         root.checkLive();
-        if (isRemoved()) {
-            throw new IllegalStateException("Cannot remove removed tree");
+        if (isDisconnected()) {
+            throw new IllegalStateException("Cannot remove a disconnected tree");
         }
 
         if (!isRoot() && parent.hasChild(name)) {
@@ -408,8 +408,8 @@ public class TreeImpl implements Tree {
 
     @CheckForNull
     protected NodeState getBaseState() {
-        if (isRemoved()) {
-            throw new IllegalStateException("Cannot get the base state of a removed tree");
+        if (isDisconnected()) {
+            throw new IllegalStateException("Cannot get the base state of a disconnected tree");
         }
 
         NodeState parentBaseState = parent.getBaseState();
@@ -436,8 +436,8 @@ public class TreeImpl implements Tree {
      * @param destName   new name for this tree
      */
     void moveTo(TreeImpl destParent, String destName) {
-        if (isRemoved()) {
-            throw new IllegalStateException("Cannot move removed tree");
+        if (isDisconnected()) {
+            throw new IllegalStateException("Cannot move a disconnected tree");
         }
 
         name = destName;

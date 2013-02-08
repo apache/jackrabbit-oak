@@ -85,7 +85,7 @@ abstract class AbstractNodeLocation<T extends Tree> extends AbstractTreeLocation
     @Override
     public boolean exists() {
         Status status = getStatus();
-        return status != null && status != Status.REMOVED && getTree() != null;
+        return status != null && status != Status.DISCONNECTED && getTree() != null;
     }
 
     @Override
