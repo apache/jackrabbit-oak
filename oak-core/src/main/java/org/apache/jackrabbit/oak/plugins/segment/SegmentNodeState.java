@@ -20,15 +20,21 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
+import org.apache.jackrabbit.oak.plugins.segment.MapRecord.Entry;
+import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 
-class SegmentNodeState implements NodeState {
+import com.google.common.base.Function;
+import com.google.common.collect.Iterables;
+
+class SegmentNodeState extends AbstractNodeState {
 
     private final SegmentReader reader;
 
@@ -62,8 +68,15 @@ class SegmentNodeState implements NodeState {
 
     @Override @Nonnull
     public Iterable<? extends PropertyState> getProperties() {
-        // TODO Auto-generated method stub
-        return null;
+        return Iterables.transform(
+                properties.getEntries(reader),
+                new Function<MapRecord.Entry, PropertyState>() {
+                    @Override @Nullable
+                    public PropertyState apply(@Nullable Entry input) {
+                        return new SegmentPropertyState(
+                                reader, input.getKey(), input.getValue());
+                    }
+                });
     }
 
     @Override
@@ -90,25 +103,33 @@ class SegmentNodeState implements NodeState {
 
     @Override
     public Iterable<String> getChildNodeNames() {
-        // TODO Auto-generated method stub
-        return null;
+        return Iterables.transform(
+                childNodes.getEntries(reader),
+                new Function<MapRecord.Entry, String>() {
+                    @Override @Nullable
+                    public String apply(@Nullable Entry input) {
+                        return input.getKey();
+                    }
+                });
     }
 
     @Override @Nonnull
     public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
-        // TODO Auto-generated method stub
-        return null;
+        return Iterables.transform(
+                childNodes.getEntries(reader),
+                new Function<MapRecord.Entry, ChildNodeEntry>() {
+                    @Override @Nullable
+                    public ChildNodeEntry apply(@Nullable Entry input) {
+                        return new MemoryChildNodeEntry(
+                                input.getKey(),
+                                new SegmentNodeState(reader, input.getValue()));
+                    }
+                });
     }
 
     @Override @Nonnull
     public NodeBuilder builder() {
         return new MemoryNodeBuilder(this);
-    }
-
-    @Override
-    public void compareAgainstBaseState(NodeState base, NodeStateDiff diff) {
-        // TODO Auto-generated method stub
-        
     }
 
 }
