@@ -188,11 +188,13 @@ public class MemoryNodeBuilder implements NodeBuilder {
     }
 
     /**
-     * Determine whether this child exists.
-     * Assumes {@code read()}, {@code write()} needs not be called.
-     * @return  {@code true} iff this child exists
+     * Determine whether this child exists with its direct parent or existed with its direct
+     * parent and got disconnected.
+     * @return  {@code true} iff this child either exists or got disconnected from its direct parent.
      */
-    private boolean exists() {
+    private boolean existsOrDisconnected() {
+        // No need to check the base state. The fact that we have this
+        // builder instance proofs that this child existed at some point.
         return isRoot() || parent.writeState == null || parent.writeState.hasChildNode(name);
     }
 
@@ -200,7 +202,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
     private NodeState read() {
         if (revision != root.revision) {
             assert(!isRoot()); // root never gets here since revision == root.revision
-            checkState(exists(), "This node has already been removed");
+            checkState(existsOrDisconnected(), "This node has already been removed");
             parent.read();
 
             // The builder could have been reset, need to re-get base state
@@ -209,6 +211,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
             // ... same for the write state
             writeState = parent.getWriteState(name);
 
+            checkState(baseState != null || writeState != null, "This node is disconnected");
             revision = root.revision;
         }
 
@@ -230,7 +233,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
     private MutableNodeState write(long newRevision, boolean skipRemovedCheck) {
         // make sure that all revision numbers up to the root gets updated
         if (!isRoot()) {
-            checkState(skipRemovedCheck || exists());
+            checkState(skipRemovedCheck || existsOrDisconnected(), "This node has already been removed");
             parent.write(newRevision, skipRemovedCheck);
         }
 
@@ -242,11 +245,12 @@ public class MemoryNodeBuilder implements NodeBuilder {
 
             writeState = parent.getWriteState(name);
             if (writeState == null) {
-                if (!exists()) {
-                    writeState = new MutableNodeState(null);
+                if (existsOrDisconnected()) {
+                    assert baseState != null;
+                    writeState = new MutableNodeState(baseState);
                 }
                 else {
-                    writeState = new MutableNodeState(baseState);
+                    writeState = new MutableNodeState(null);
                 }
                 assert parent.writeState != null; // guaranteed by called parent.write()
                 parent.writeState.nodes.put(name, writeState);
