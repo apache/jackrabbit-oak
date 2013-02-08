@@ -293,8 +293,8 @@ public class TreeImplTest {
         Tree x = root.getTree("/x");
         Tree y = x.addChild("y");
         x.remove();
-        assertEquals(Status.REMOVED, x.getStatus());
-        assertEquals(Status.REMOVED, y.getStatus());
+        assertEquals(Status.DISCONNECTED, x.getStatus());
+        assertEquals(Status.DISCONNECTED, y.getStatus());
     }
 
     @Test
@@ -314,7 +314,7 @@ public class TreeImplTest {
         tree = root.getTree("/");
         assertEquals(Tree.Status.EXISTING, tree.getPropertyStatus("new"));
         tree.removeProperty("new");
-        assertEquals(Tree.Status.REMOVED, tree.getPropertyStatus("new"));
+        assertEquals(Tree.Status.DISCONNECTED, tree.getPropertyStatus("new"));
         root.commit();
 
         tree = root.getTree("/");
@@ -323,7 +323,7 @@ public class TreeImplTest {
         Tree x = root.getTree("/x");
         x.setProperty("y", "value1");
         x.remove();
-        assertEquals(Status.REMOVED, x.getPropertyStatus("y"));
+        assertEquals(Status.DISCONNECTED, x.getPropertyStatus("y"));
     }
 
     @Test

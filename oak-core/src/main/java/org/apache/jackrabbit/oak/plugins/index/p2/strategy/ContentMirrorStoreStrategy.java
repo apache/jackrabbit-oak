@@ -102,7 +102,7 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
     }
 
     private static void pruneNode(NodeBuilder parent) {
-        if (parent.isRemoved()) {
+        if (!parent.isConnected()) {
             return;
         }
         for (String name : parent.getChildNodeNames()) {
