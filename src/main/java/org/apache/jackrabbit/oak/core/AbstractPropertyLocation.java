@@ -47,8 +47,8 @@ abstract class AbstractPropertyLocation<T extends Tree> extends AbstractTreeLoca
 
     @Override
     public boolean exists() {
-        Status status = getStatus();
-        return status != null && status != Status.REMOVED && getProperty() != null;
+        Status status = parentLocation.tree.getPropertyStatus(name);
+        return status != null && status != Status.DISCONNECTED && getProperty() != null;
     }
 
     @Override

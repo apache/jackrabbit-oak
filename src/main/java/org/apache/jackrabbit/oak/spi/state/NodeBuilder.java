@@ -53,10 +53,11 @@ public interface NodeBuilder {
     boolean isNew();
 
     /**
-     * Check whether this builder represents a removed node, which is present in the base state.
-     * @return  {@code true} for a removed node
+     * Check whether this builder represents a disconnected node. A node is disconnected when it has been
+     * part of a tree but has been subsequently removed.
+     * @return  {@code true} for a disconnected node
      */
-    boolean isRemoved();
+    boolean isConnected();
 
     /**
      * Check whether this builder represents a modified node, which has either modified properties

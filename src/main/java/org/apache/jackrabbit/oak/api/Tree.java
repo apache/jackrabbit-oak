@@ -79,9 +79,9 @@ public interface Tree {
         MODIFIED,
 
         /**
-         * Item is removed
+         * Item is removed or has become disconnected otherwise (e.g. caused by a refresh).
          */
-        REMOVED
+        DISCONNECTED
     }
 
     /**
