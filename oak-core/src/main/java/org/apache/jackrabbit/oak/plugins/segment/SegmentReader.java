@@ -58,7 +58,7 @@ public class SegmentReader {
         int size = (int) ((length + BLOCK_SIZE - 1) / BLOCK_SIZE);
         ListRecord list =
             new ListRecord(segment.readRecordId(offset + 8), size);
-        return new SegmentStream(this, list, length);
+        return new SegmentStream(this, recordId, list, length);
     }
 
     public int readInt(RecordId recordId, int position) {
