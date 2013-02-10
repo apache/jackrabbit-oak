@@ -167,7 +167,7 @@ public class SegmentWriter {
 
         @Override
         public int compareTo(MapEntry that) {
-            int diff = hashCode - that.hashCode;
+            int diff = Integer.compare(hashCode, that.hashCode);
             if (diff == 0) {
                 diff = key.compareTo(that.key);
             }
@@ -346,6 +346,11 @@ public class SegmentWriter {
      * @throws IOException if the stream could not be read
      */
     public RecordId writeStream(InputStream stream) throws IOException {
+        RecordId id = SegmentStream.getRecordIdIfAvailable(stream);
+        if (id != null) {
+            return id;
+        }
+
         try {
             List<RecordId> blockIds = new ArrayList<RecordId>();
 
@@ -414,6 +419,11 @@ public class SegmentWriter {
     }
 
     public RecordId writeNode(NodeState state) {
+        RecordId nodeId = SegmentNodeState.getRecordIdIfAvailable(state);
+        if (nodeId != null) {
+            return nodeId;
+        }
+
         Map<String, RecordId> childNodes = Maps.newHashMap();
         for (ChildNodeEntry entry : state.getChildNodeEntries()) {
             childNodes.put(entry.getName(), writeNode(entry.getNodeState()));

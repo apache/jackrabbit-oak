@@ -36,7 +36,17 @@ import com.google.common.collect.Iterables;
 
 class SegmentNodeState extends AbstractNodeState {
 
+    public static RecordId getRecordIdIfAvailable(NodeState state) {
+        if (state instanceof SegmentNodeState) {
+            SegmentNodeState sstate = (SegmentNodeState) state;
+            return sstate.recordId;
+        }
+        return null;
+    }
+
     private final SegmentReader reader;
+
+    private final RecordId recordId;
 
     private final MapRecord properties;
 
@@ -44,8 +54,7 @@ class SegmentNodeState extends AbstractNodeState {
 
     SegmentNodeState(SegmentReader reader, RecordId id) {
         this.reader = checkNotNull(reader);
-
-        checkNotNull(id);
+        this.recordId = checkNotNull(id);
         this.properties = new MapRecord(reader.readRecordId(id, 0));
         this.childNodes = new MapRecord(reader.readRecordId(id, 4));
     }
