@@ -16,15 +16,32 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkPositionIndexes;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentWriter.BLOCK_SIZE;
 
 import java.io.InputStream;
 
+import javax.annotation.CheckForNull;
+
 public class SegmentStream extends InputStream {
 
+    @CheckForNull
+    public static RecordId getRecordIdIfAvailable(InputStream stream) {
+        if (stream instanceof SegmentStream) {
+            SegmentStream sstream = (SegmentStream) stream;
+            if (sstream.position == 0) {
+                return sstream.recordId;
+            }
+        }
+        return null;
+    }
+
+
     private final SegmentReader reader;
+
+    private final RecordId recordId;
 
     private final ListRecord blocks;
 
@@ -34,9 +51,13 @@ public class SegmentStream extends InputStream {
 
     private long mark = 0;
 
-    SegmentStream(SegmentReader reader, ListRecord blocks, long length) {
-        this.reader = reader;
-        this.blocks = blocks;
+    SegmentStream(
+            SegmentReader reader, RecordId recordId,
+            ListRecord blocks, long length) {
+        this.reader = checkNotNull(reader);
+        this.recordId = checkNotNull(recordId);
+        this.blocks = checkNotNull(blocks);
+        checkArgument(length >= 0);
         this.length = length;
     }
 
