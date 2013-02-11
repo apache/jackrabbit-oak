@@ -16,17 +16,20 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import org.apache.jackrabbit.commons.iterator.NodeIterable;
+import org.junit.Test;
+
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
-import org.junit.Ignore;
-import org.junit.Test;
-
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertFalse;
-import static junit.framework.Assert.assertTrue;
+import static org.junit.Assert.assertTrue;
 
 public class OrderableNodesTest extends AbstractRepositoryTest {
 
@@ -42,7 +45,41 @@ public class OrderableNodesTest extends AbstractRepositoryTest {
         doTest("test:orderableFolder");
     }
 
-    @Ignore("OAK-612")
+    @Test
+    public void setPrimaryType() throws Exception {
+        new TestContentLoader().loadTestContent(getAdminSession());
+        // start with a node without orderable nodes
+        Session session = getAdminSession();
+        Node root = session.getRootNode().addNode("test", "nt:folder");
+
+        List<String> names = new ArrayList<String>();
+        for (int i = 0; i < 100; i++) {
+            String name = "node-" + i;
+            root.addNode(name, "nt:folder");
+            names.add(name);
+        }
+
+        root.setPrimaryType("test:orderableFolder");
+
+        // as of now, the child nodes must be stable and orderable
+        List<String> expected = getChildNames(root);
+        while (!expected.isEmpty()) {
+            String name = expected.remove((int) Math.floor(Math.random() * expected.size()));
+            root.getNode(name).remove();
+
+            assertEquals(expected, getChildNames(root));
+        }
+
+        for (String name : names) {
+            root.addNode(name, "nt:folder");
+            expected.add(name);
+            assertEquals(expected, getChildNames(root));
+        }
+    }
+
+    /**
+     * OAK-612
+     */
     @Test
     public void testAddNode() throws Exception {
         new TestContentLoader().loadTestContent(getAdminSession());
@@ -51,33 +88,13 @@ public class OrderableNodesTest extends AbstractRepositoryTest {
         Node test = session.getRootNode().addNode("test", "test:orderableFolder");
         assertTrue(test.getPrimaryNodeType().hasOrderableChildNodes());
 
-        Node n1 = test.addNode("a");
-        Node n2 = test.addNode("b");
-        session.save();
-
-        NodeIterator it = test.getNodes();
-        assertEquals("a", it.nextNode().getName());
-        assertEquals("b", it.nextNode().getName());
-    }
-
-    @Ignore("OAK-612")
-    @Test
-    public void testAddNode2() throws Exception {
-        new TestContentLoader().loadTestContent(getAdminSession());
-
-        Session session = getAdminSession();
-        Node test = session.getRootNode().addNode("test", "test:orderableFolder");
-        Node n1 = test.addNode("a");
-        Node n2 = test.addNode("b");
-        session.save();
-
-        test.getNode("a").remove();
         test.addNode("a");
+        test.addNode("b");
         session.save();
 
         NodeIterator it = test.getNodes();
-        assertEquals("b", it.nextNode().getName());
         assertEquals("a", it.nextNode().getName());
+        assertEquals("b", it.nextNode().getName());
     }
 
     private void doTest(String nodeType) throws RepositoryException {
@@ -90,8 +107,6 @@ public class OrderableNodesTest extends AbstractRepositoryTest {
 
         NodeIterator iterator;
 
-        root.orderBefore("a", "b");
-        root.orderBefore("c", null);
         iterator = root.getNodes();
         assertEquals("a", iterator.nextNode().getName());
         assertEquals("b", iterator.nextNode().getName());
@@ -113,5 +128,14 @@ public class OrderableNodesTest extends AbstractRepositoryTest {
         assertFalse(iterator.hasNext());
 
         session.save();
+    }
+
+    private static List<String> getChildNames(Node node)
+            throws RepositoryException {
+        List<String> names = new ArrayList<String>();
+        for (Node child : new NodeIterable(node.getNodes())) {
+            names.add(child.getName());
+        }
+        return names;
     }
 }
