@@ -274,6 +274,10 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                     throw new ItemExistsException();
                 }
 
+                if (getPrimaryNodeType().hasOrderableChildNodes()) {
+                    dlg.orderBefore(oakName, null);
+                }
+
                 NodeImpl<?> childNode = new NodeImpl<NodeDelegate>(added);
                 childNode.internalSetPrimaryType(ntName);
                 childNode.autoCreateItems();
@@ -1431,6 +1435,18 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                 String jcrPrimaryType = sessionDelegate.getOakPath(Property.JCR_PRIMARY_TYPE);
                 Value value = sessionDelegate.getValueFactory().createValue(nodeTypeName, PropertyType.NAME);
                 dlg.setProperty(jcrPrimaryType, value);
+
+                if (nt.hasOrderableChildNodes()) {
+                    // freeze child order with a call to orderBefore()
+                    // only makes sense with a least two child nodes
+                    Iterator<NodeDelegate> children = dlg.getChildren();
+                    NodeDelegate child1 = children.hasNext() ? children.next() : null;
+                    NodeDelegate child2 = children.hasNext() ? children.next() : null;
+                    if (child1 != null && child2 != null) {
+                        dlg.orderBefore(child1.getName(), child2.getName());
+                    }
+                }
+
                 return null;
             }
         });
