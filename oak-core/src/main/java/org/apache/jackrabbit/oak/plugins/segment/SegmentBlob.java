@@ -24,8 +24,9 @@ import java.security.NoSuchAlgorithmException;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.plugins.memory.AbstractBlob;
 
-public class SegmentBlob implements Blob {
+public class SegmentBlob extends AbstractBlob {
 
     private final SegmentReader reader;
 
@@ -52,27 +53,25 @@ public class SegmentBlob implements Blob {
     }
 
     @Override
-    public byte[] sha256() {
-        SegmentStream stream = getNewStream();
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-
-            byte[] buffer = new byte[1024];
-            for (int n = stream.read(buffer); n != -1; n = stream.read(buffer)) {
-                digest.update(buffer, 0, n);
+    public int compareTo(Blob blob) {
+        if (blob instanceof SegmentBlob) {
+            SegmentBlob that = (SegmentBlob) blob;
+            if (recordId.equals(that.recordId)) {
+                return 0;
             }
-
-            return digest.digest();
-        } catch (NoSuchAlgorithmException e) {
-            throw new UnsupportedOperationException("SHA256 not supported", e);
-        } finally {
-            stream.close();
         }
+        return super.compareTo(blob);
     }
 
     @Override
-    public int compareTo(Blob that) {
-        throw new UnsupportedOperationException();
+    public boolean equals(Object object) {
+        if (object instanceof SegmentBlob) {
+            SegmentBlob that = (SegmentBlob) object;
+            if (recordId.equals(that.recordId)) {
+                return true;
+            }
+        }
+        return super.equals(object);
     }
 
 }
