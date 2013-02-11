@@ -69,9 +69,11 @@ class IndexHookManagerDiff implements NodeStateDiff {
     private String path;
 
     /**
-     * <type, <path, indexhook>>
+     * The map of known indexes.
+     * 
+     * Key: index type name ("p2"). Value: a map from path to index hook.
      */
-    private final Map<String, Map<String, List<IndexHook>>> updates;
+    private final Map<String, Map<String, List<IndexHook>>> indexMap;
 
     public IndexHookManagerDiff(IndexHookProvider provider, NodeBuilder root,
             Map<String, Map<String, List<IndexHook>>> updates)
@@ -83,7 +85,7 @@ class IndexHookManagerDiff implements NodeStateDiff {
             IndexHookManagerDiff parent, String name)
             throws CommitFailedException {
         this(provider, parent, getChildNode(parent.node, name), name, null,
-                parent.updates);
+                parent.indexMap);
     }
 
     private IndexHookManagerDiff(IndexHookProvider provider,
@@ -95,7 +97,7 @@ class IndexHookManagerDiff implements NodeStateDiff {
         this.node = node;
         this.name = name;
         this.path = path;
-        this.updates = updates;
+        this.indexMap = updates;
 
         if (node != null && isIndexNodeType(node.getProperty(JCR_PRIMARYTYPE))) {
             // to prevent double-reindex we only call reindex if:
@@ -153,10 +155,10 @@ class IndexHookManagerDiff implements NodeStateDiff {
             existingTypes.remove(TYPE_UNKNOWN);
             reindexTypes.remove(TYPE_UNKNOWN);
             for (String type : existingTypes) {
-                Map<String, List<IndexHook>> byType = this.updates.get(type);
+                Map<String, List<IndexHook>> byType = this.indexMap.get(type);
                 if (byType == null) {
                     byType = new TreeMap<String, List<IndexHook>>();
-                    this.updates.put(type, byType);
+                    this.indexMap.put(type, byType);
                 }
                 List<IndexHook> hooks = byType.get(getPath());
                 if (hooks == null) {
@@ -186,7 +188,8 @@ class IndexHookManagerDiff implements NodeStateDiff {
     }
 
     private String getPath() {
-        if (path == null) { // => parent != null
+        if (path == null) { 
+            // => parent != null
             path = concat(parent.getPath(), name);
         }
         return path;
@@ -198,7 +201,7 @@ class IndexHookManagerDiff implements NodeStateDiff {
      */
     private Map<String, List<IndexHook>> getIndexes() {
         Map<String, List<IndexHook>> hooks = new HashMap<String, List<IndexHook>>();
-        for (String type : this.updates.keySet()) {
+        for (String type : this.indexMap.keySet()) {
             Map<String, List<IndexHook>> newIndexes = getIndexes(type);
             for (String key : newIndexes.keySet()) {
                 if (hooks.containsKey(key)) {
@@ -217,7 +220,7 @@ class IndexHookManagerDiff implements NodeStateDiff {
      */
     private Map<String, List<IndexHook>> getIndexes(String type) {
         Map<String, List<IndexHook>> hooks = new HashMap<String, List<IndexHook>>();
-        Map<String, List<IndexHook>> indexes = this.updates.get(type);
+        Map<String, List<IndexHook>> indexes = this.indexMap.get(type);
         if (indexes != null && !indexes.isEmpty()) {
             Iterator<String> iterator = indexes.keySet().iterator();
             String bestMatch = iterator.next();
@@ -243,7 +246,7 @@ class IndexHookManagerDiff implements NodeStateDiff {
      * Fixes the relative paths on the best matching indexes so updates apply
      * properly
      */
-    private List<IndexHook> getIndexesWithRelativePaths(String path,
+    private static List<IndexHook> getIndexesWithRelativePaths(String path,
             Map<String, List<IndexHook>> bestMatches) {
         List<IndexHook> hooks = new ArrayList<IndexHook>();
         for (String relativePath : bestMatches.keySet()) {
