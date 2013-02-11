@@ -25,15 +25,14 @@ import java.util.NoSuchElementException;
 import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
 
-import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.memory.EmptyPropertyState;
 import org.apache.jackrabbit.oak.plugins.value.Conversions;
+import org.apache.jackrabbit.oak.plugins.value.Conversions.Converter;
 
-class SegmentPropertyState implements PropertyState {
+class SegmentPropertyState extends EmptyPropertyState {
 
     private final SegmentReader reader;
-
-    private final String name;
 
     private final int tag;
 
@@ -42,18 +41,14 @@ class SegmentPropertyState implements PropertyState {
     private final ListRecord values;
 
     SegmentPropertyState(SegmentReader reader, String name, RecordId id) {
+        super(name);
+
         this.reader = checkNotNull(reader);
-        this.name = checkNotNull(name);
 
         checkNotNull(id);
         this.tag = reader.readInt(id, 0);
         this.count = reader.readInt(id, 4);
         this.values = new ListRecord(reader.readRecordId(id, 8), count());
-    }
-
-    @Override @Nonnull
-    public String getName() {
-        return name;
     }
 
     @Override
@@ -123,28 +118,35 @@ class SegmentPropertyState implements PropertyState {
             return (T) new SegmentBlob(reader, valueId);
         } else {
             String value = reader.readString(valueId);
-            switch (type.tag()) {
-            case PropertyType.BOOLEAN:
-                return (T) Boolean.valueOf(Conversions.convert(value).toBoolean());
-            case PropertyType.DATE:
-                return (T) Conversions.convert(value).toDate();
-            case PropertyType.DECIMAL:
-                return (T) Conversions.convert(value).toDecimal();
-            case PropertyType.DOUBLE:
-                return (T) Double.valueOf(Conversions.convert(value).toDouble());
-            case PropertyType.LONG:
-                return (T) Long.valueOf(Conversions.convert(value).toLong());
-            case PropertyType.NAME:
-            case PropertyType.PATH:
-            case PropertyType.REFERENCE:
-            case PropertyType.STRING:
-            case PropertyType.URI:
-            case PropertyType.WEAKREFERENCE:
+            if (type == Type.STRING || type == Type.URI
+                    || type == Type.NAME || type == Type.PATH
+                    || type == Type.REFERENCE || type == Type.WEAKREFERENCE) {
                 return (T) value;
-            case PropertyType.UNDEFINED:
-                throw new IllegalArgumentException("Undefined type");
-            default:
-                throw new UnsupportedOperationException("Unknown type: " + type);
+            } else {
+                Converter converter = Conversions.convert(value);
+                if (tag == PropertyType.DATE) {
+                    converter = Conversions.convert(converter.toCalendar());
+                } else if (tag == PropertyType.DECIMAL) {
+                    converter = Conversions.convert(converter.toDecimal());
+                } else if (tag == PropertyType.DOUBLE) {
+                    converter = Conversions.convert(converter.toDouble());
+                } else if (tag == PropertyType.LONG) {
+                    converter = Conversions.convert(converter.toLong());
+                }
+                if (type == Type.BOOLEAN) {
+                    return (T) Boolean.valueOf(converter.toBoolean());
+                } else if (type == Type.DATE) {
+                    return (T) converter.toDate();
+                } else if (type == Type.DECIMAL) {
+                    return (T) converter.toDecimal();
+                } else if (type == Type.DOUBLE) {
+                    return (T) Double.valueOf(converter.toDouble());
+                } else if (type == Type.LONG) {
+                    return (T) Long.valueOf(converter.toLong());
+                } else {
+                    throw new UnsupportedOperationException(
+                            "Unknown type: " + type);
+                }
             }
         }
     }
