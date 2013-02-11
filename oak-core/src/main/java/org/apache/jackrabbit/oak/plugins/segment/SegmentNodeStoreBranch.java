@@ -16,11 +16,23 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
+import static org.apache.jackrabbit.oak.plugins.commit.MergingNodeStateDiff.ADD_EXISTING_NODE;
+import static org.apache.jackrabbit.oak.plugins.commit.MergingNodeStateDiff.ADD_EXISTING_PROPERTY;
+import static org.apache.jackrabbit.oak.plugins.commit.MergingNodeStateDiff.CHANGE_CHANGED_PROPERTY;
+import static org.apache.jackrabbit.oak.plugins.commit.MergingNodeStateDiff.CHANGE_DELETED_NODE;
+import static org.apache.jackrabbit.oak.plugins.commit.MergingNodeStateDiff.CHANGE_DELETED_PROPERTY;
+import static org.apache.jackrabbit.oak.plugins.commit.MergingNodeStateDiff.CONFLICT;
+import static org.apache.jackrabbit.oak.plugins.commit.MergingNodeStateDiff.DELETE_CHANGED_NODE;
+import static org.apache.jackrabbit.oak.plugins.commit.MergingNodeStateDiff.DELETE_CHANGED_PROPERTY;
+import static org.apache.jackrabbit.oak.plugins.commit.MergingNodeStateDiff.DELETE_DELETED_NODE;
+import static org.apache.jackrabbit.oak.plugins.commit.MergingNodeStateDiff.DELETE_DELETED_PROPERTY;
+
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.commit.MergingNodeStateDiff;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -83,7 +95,7 @@ class SegmentNodeStoreBranch implements NodeStoreBranch {
             if (other == null) {
                 builder.setProperty(after);
             } else if (!other.equals(after)) {
-                conflictMarker("addExistingProperty").setProperty(after);
+                conflictMarker(ADD_EXISTING_PROPERTY).setProperty(after);
             }
         }
 
@@ -91,11 +103,11 @@ class SegmentNodeStoreBranch implements NodeStoreBranch {
         public void propertyChanged(PropertyState before, PropertyState after) {
             PropertyState other = builder.getProperty(before.getName());
             if (other == null) {
-                conflictMarker("changeDeletedProperty").setProperty(after);
+                conflictMarker(CHANGE_DELETED_PROPERTY).setProperty(after);
             } else if (other.equals(before)) {
                 builder.setProperty(after);
             } else if (!other.equals(after)) {
-                conflictMarker("changeChangedProperty").setProperty(after);
+                conflictMarker(CHANGE_CHANGED_PROPERTY).setProperty(after);
             }
         }
 
@@ -103,18 +115,18 @@ class SegmentNodeStoreBranch implements NodeStoreBranch {
         public void propertyDeleted(PropertyState before) {
             PropertyState other = builder.getProperty(before.getName());
             if (other == null) {
-                conflictMarker("deleteDeletedProperty").setProperty(before);
+                conflictMarker(DELETE_DELETED_PROPERTY).setProperty(before);
             } else if (other.equals(before)) {
                 builder.removeProperty(before.getName());
             } else {
-                conflictMarker("deleteChangedProperty").setProperty(before);
+                conflictMarker(DELETE_CHANGED_PROPERTY).setProperty(before);
             }
         }
 
         @Override
         public void childNodeAdded(String name, NodeState after) {
             if (builder.hasChildNode(name)) {
-                conflictMarker("addExistingNode").setNode(name, after);
+                conflictMarker(ADD_EXISTING_NODE).setNode(name, after);
             } else {
                 builder.setNode(name, after);
             }
@@ -127,23 +139,23 @@ class SegmentNodeStoreBranch implements NodeStoreBranch {
                 after.compareAgainstBaseState(
                         before, new RebaseDiff(builder.child(name)));
             } else {
-                conflictMarker("changeDeletedNode").setNode(name, after);
+                conflictMarker(CHANGE_DELETED_NODE).setNode(name, after);
             }
         }
 
         @Override
         public void childNodeDeleted(String name, NodeState before) {
             if (!builder.hasChildNode(name)) {
-                conflictMarker("deleteDeletedNode").setNode(name, before);
+                conflictMarker(DELETE_DELETED_NODE).setNode(name, before);
             } else if (before.equals(builder.child(name).getNodeState())) {
                 builder.removeNode(name);
             } else {
-                conflictMarker("deleteChangedNode").setNode(name, before);
+                conflictMarker(DELETE_CHANGED_NODE).setNode(name, before);
             }
         }
 
         private NodeBuilder conflictMarker(String name) {
-            return builder.child(":conflict").child(name);
+            return builder.child(CONFLICT).child(name);
         }
 
     }
@@ -151,12 +163,14 @@ class SegmentNodeStoreBranch implements NodeStoreBranch {
     @Override
     public synchronized void rebase() {
         RecordId newBaseId = store.getJournalHead();
-        NodeBuilder builder =
-                new MemoryNodeBuilder(new SegmentNodeState(reader, newBaseId));
-        getRoot().compareAgainstBaseState(getBase(), new RebaseDiff(builder));
-        this.baseId = newBaseId;
-        this.rootId = writer.writeNode(builder.getNodeState());
-        writer.flush();
+        if (!baseId.equals(newBaseId)) {
+            NodeBuilder builder =
+                    new MemoryNodeBuilder(new SegmentNodeState(reader, newBaseId));
+            getRoot().compareAgainstBaseState(getBase(), new RebaseDiff(builder));
+            this.baseId = newBaseId;
+            this.rootId = writer.writeNode(builder.getNodeState());
+            writer.flush();
+        }
     }
 
     @Override @Nonnull
@@ -164,19 +178,17 @@ class SegmentNodeStoreBranch implements NodeStoreBranch {
         RecordId originalBaseId = baseId;
         RecordId originalRootId = rootId;
         for (int i = 0; i < 10; i++) {
-            if (i > 0) {
-                baseId = originalBaseId;
-                rootId = originalRootId;
-                rebase();
-            }
+            rebase();
             RecordId headId =
                     writer.writeNode(hook.processCommit(getBase(), getRoot()));
             writer.flush();
-            if (store.setJournalHead(rootId, baseId)) {
+            if (store.setJournalHead(headId, baseId)) {
                 baseId = headId;
                 rootId = headId;
                 return getRoot();
             }
+            baseId = originalBaseId;
+            rootId = originalRootId;
         }
         throw new CommitFailedException();
     }
