@@ -167,7 +167,8 @@ public class SegmentWriter {
 
         @Override
         public int compareTo(MapEntry that) {
-            int diff = Integer.compare(hashCode, that.hashCode);
+            // int diff = Integer.compare(hashCode, that.hashCode);
+            int diff = hashCode == that.hashCode ? 0 : hashCode < that.hashCode ? -1 : 1;
             if (diff == 0) {
                 diff = key.compareTo(that.key);
             }
