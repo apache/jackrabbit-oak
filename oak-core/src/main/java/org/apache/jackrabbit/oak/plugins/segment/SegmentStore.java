@@ -20,6 +20,10 @@ import java.util.UUID;
 
 public interface SegmentStore {
 
+    RecordId getJournalHead();
+
+    boolean setJournalHead(RecordId head, RecordId base);
+
     int getMaxSegmentSize();
 
     Segment readSegment(UUID segmentId);

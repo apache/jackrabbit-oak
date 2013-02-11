@@ -43,6 +43,16 @@ public class CacheStore implements SegmentStore {
     }
 
     @Override
+    public RecordId getJournalHead() {
+        return store.getJournalHead();
+    }
+
+    @Override
+    public boolean setJournalHead(RecordId head, RecordId base) {
+        return store.setJournalHead(head, base);
+    }
+
+    @Override
     public int getMaxSegmentSize() {
         return store.getMaxSegmentSize();
     }

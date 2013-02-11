@@ -21,12 +21,37 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
+
 public class MemoryStore implements SegmentStore {
 
     private static final int MAX_SEGMENT_SIZE = 1 << 20; // 1MB
 
     private final Map<UUID, Segment> segments =
         Collections.synchronizedMap(new HashMap<UUID, Segment>());
+
+    private RecordId head;
+
+    public MemoryStore() {
+        SegmentWriter writer = new SegmentWriter(this);
+        this.head = writer.writeNode(MemoryNodeState.EMPTY_NODE);
+        writer.flush();
+    }
+
+    @Override
+    public synchronized RecordId getJournalHead() {
+        return head;
+    }
+
+    @Override
+    public synchronized boolean setJournalHead(RecordId head, RecordId base) {
+        if (this.head.equals(base)) {
+            this.head = head;
+            return true;
+        } else {
+            return false;
+        }
+    }
 
     @Override
     public int getMaxSegmentSize() {
