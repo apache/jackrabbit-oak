@@ -159,6 +159,9 @@ class ChangeProcessor implements Runnable {
 
         @Override
         public void propertyAdded(PropertyState after) {
+            if (NodeStateUtils.isHidden(after.getName())) {
+                return;
+            }
             if (!stopping && filterRef.get().include(Event.PROPERTY_ADDED, jcrPath(), associatedParentNode)) {
                 Event event = generatePropertyEvent(Event.PROPERTY_ADDED, path, after);
                 events.add(Iterators.singletonIterator(event));
@@ -167,6 +170,9 @@ class ChangeProcessor implements Runnable {
 
         @Override
         public void propertyChanged(PropertyState before, PropertyState after) {
+            if (NodeStateUtils.isHidden(before.getName())) {
+                return;
+            }
             if (!stopping && filterRef.get().include(Event.PROPERTY_CHANGED, jcrPath(), associatedParentNode)) {
                 Event event = generatePropertyEvent(Event.PROPERTY_CHANGED, path, after);
                 events.add(Iterators.singletonIterator(event));
@@ -175,6 +181,9 @@ class ChangeProcessor implements Runnable {
 
         @Override
         public void propertyDeleted(PropertyState before) {
+            if (NodeStateUtils.isHidden(before.getName())) {
+                return;
+            }
             if (!stopping && filterRef.get().include(Event.PROPERTY_REMOVED, jcrPath(), associatedParentNode)) {
                 Event event = generatePropertyEvent(Event.PROPERTY_REMOVED, path, before);
                 events.add(Iterators.singletonIterator(event));
