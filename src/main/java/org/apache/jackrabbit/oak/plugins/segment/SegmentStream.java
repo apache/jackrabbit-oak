@@ -21,9 +21,13 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkPositionIndexes;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentWriter.BLOCK_SIZE;
 
+import java.io.IOException;
 import java.io.InputStream;
 
 import javax.annotation.CheckForNull;
+
+import com.google.common.base.Charsets;
+import com.google.common.io.ByteStreams;
 
 public class SegmentStream extends InputStream {
 
@@ -43,6 +47,8 @@ public class SegmentStream extends InputStream {
 
     private final RecordId recordId;
 
+    private final byte[] inline;
+
     private final ListRecord blocks;
 
     private final long length;
@@ -56,13 +62,42 @@ public class SegmentStream extends InputStream {
             ListRecord blocks, long length) {
         this.reader = checkNotNull(reader);
         this.recordId = checkNotNull(recordId);
+        this.inline = null;
         this.blocks = checkNotNull(blocks);
         checkArgument(length >= 0);
         this.length = length;
     }
 
+    SegmentStream(RecordId recordId, byte[] inline) {
+        this.reader = null;
+        this.recordId = checkNotNull(recordId);
+        this.inline = checkNotNull(inline);
+        this.blocks = null;
+        this.length = inline.length;
+    }
+
     public long getLength() {
         return length;
+    }
+
+    public String getString() {
+        if (inline != null) {
+            return new String(inline, Charsets.UTF_8);
+        } else if (length > Integer.MAX_VALUE) {
+            throw new IllegalStateException("Too long value: " + length);
+        } else {
+            SegmentStream stream =
+                    new SegmentStream(reader, recordId, blocks, length);
+            try {
+                byte[] data = new byte[(int) length];
+                ByteStreams.readFully(stream, data);
+                return new String(data, Charsets.UTF_8);
+            } catch (IOException e) {
+                throw new IllegalStateException("Unexpected IOException", e);
+            } finally {
+                stream.close();
+            }
+        }
     }
 
     @Override
@@ -103,6 +138,13 @@ public class SegmentStream extends InputStream {
             return 0;
         } else if (position == length) {
             return -1;
+        } else if (inline != null) {
+            if (position + len > length) {
+                len = (int) (length - position);
+            }
+            System.arraycopy(inline, (int) position, b, off, len);
+            position += len;
+            return len;
         } else {
             int blockIndex = (int) (position / SegmentWriter.BLOCK_SIZE);
             int blockOffset = (int) (position % SegmentWriter.BLOCK_SIZE);
