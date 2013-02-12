@@ -47,6 +47,14 @@ class Segment {
         return uuid;
     }
 
+    public byte[] getData() {
+        return data;
+    }
+
+    public UUID[] getUUIDs() {
+        return uuids;
+    }
+
     public int size() {
         return data.length;
     }
