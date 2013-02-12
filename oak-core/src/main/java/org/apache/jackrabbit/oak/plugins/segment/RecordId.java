@@ -24,6 +24,17 @@ public final class RecordId implements Comparable<RecordId> {
 
     public static RecordId[] EMPTY_ARRAY = new RecordId[0];
 
+    public static RecordId fromString(String id) {
+        int colon = id.indexOf(':');
+        if (colon != -1) {
+            return new RecordId(
+                    UUID.fromString(id.substring(0, colon)),
+                    Integer.parseInt(id.substring(colon + 1)));
+        } else {
+            throw new IllegalArgumentException("Bad RecordId: " + id);
+        }
+    }
+
     private final UUID segmentId;
 
     private final int offset;
