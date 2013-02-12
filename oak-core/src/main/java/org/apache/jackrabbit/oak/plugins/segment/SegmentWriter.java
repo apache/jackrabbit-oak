@@ -60,6 +60,8 @@ public class SegmentWriter {
 
     private final int blockSegmentSize;
 
+    private final Map<String, RecordId> strings = Maps.newHashMap();
+
     private UUID uuid = UUID.randomUUID();
 
     private List<UUID> uuids = new ArrayList<UUID>(255);
@@ -317,25 +319,30 @@ public class SegmentWriter {
      * @return value record identifier
      */
     public RecordId writeString(String string) {
-        byte[] data = string.getBytes(Charsets.UTF_8);
-        List<RecordId> blockIds = new ArrayList<RecordId>();
+        RecordId id = strings.get(string);
+        if (id == null) {
+            byte[] data = string.getBytes(Charsets.UTF_8);
+            List<RecordId> blockIds = new ArrayList<RecordId>();
 
-        int headLength = Math.min(data.length, INLINE_SIZE);
-        writeInlineBlocks(blockIds, data, 0, headLength);
-        if (data.length > headLength) {
-            int offset = headLength;
-            while (offset + INLINE_SIZE <= data.length) {
-                int bulkLength =
-                    Math.min(data.length - offset, blockSegmentSize);
-                writeBulkSegment(blockIds, data, offset, bulkLength);
-                offset += bulkLength;
+            int headLength = Math.min(data.length, INLINE_SIZE);
+            writeInlineBlocks(blockIds, data, 0, headLength);
+            if (data.length > headLength) {
+                int offset = headLength;
+                while (offset + INLINE_SIZE <= data.length) {
+                    int bulkLength =
+                        Math.min(data.length - offset, blockSegmentSize);
+                    writeBulkSegment(blockIds, data, offset, bulkLength);
+                    offset += bulkLength;
+                }
+                if (offset < data.length) {
+                    writeInlineBlocks(blockIds, data, offset, data.length - offset);
+                }
             }
-            if (offset < data.length) {
-                writeInlineBlocks(blockIds, data, offset, data.length - offset);
-            }
+
+            id = writeValueRecord(data.length, writeList(blockIds));
+            strings.put(string, id);
         }
-
-        return writeValueRecord(data.length, writeList(blockIds));
+        return id;
     }
 
     /**
