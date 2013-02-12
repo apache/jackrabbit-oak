@@ -21,11 +21,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkPositionIndexes;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentWriter.BLOCK_SIZE;
 
-import java.io.IOException;
-
-import com.google.common.base.Charsets;
-import com.google.common.io.ByteStreams;
-
 public class SegmentReader {
 
     private final SegmentStore store;
@@ -37,15 +32,7 @@ public class SegmentReader {
     public String readString(RecordId recordId) {
         SegmentStream stream = readStream(recordId);
         try {
-            if (stream.getLength() > Integer.MAX_VALUE) {
-                throw new IllegalStateException(
-                        "Too long value: " + stream.getLength());
-            }
-            byte[] data = new byte[(int) stream.getLength()];
-            ByteStreams.readFully(stream, data);
-            return new String(data, Charsets.UTF_8);
-        } catch (IOException e) {
-            throw new IllegalStateException("Unexpected IOException", e);
+            return stream.getString();
         } finally {
             stream.close();
         }
@@ -54,11 +41,32 @@ public class SegmentReader {
     public SegmentStream readStream(RecordId recordId) {
         Segment segment = store.readSegment(recordId.getSegmentId());
         int offset = recordId.getOffset();
-        long length = segment.readLong(offset);
-        int size = (int) ((length + BLOCK_SIZE - 1) / BLOCK_SIZE);
-        ListRecord list =
-            new ListRecord(segment.readRecordId(offset + 8), size);
-        return new SegmentStream(this, recordId, list, length);
+        int length = segment.readByte(offset++) & 0xff;
+        if ((length & 0x80) == 0) {
+            byte[] data = new byte[length];
+            segment.readBytes(offset, data, 0, length);
+            return new SegmentStream(recordId, data);
+        } else if ((length & 0x40) == 0) {
+            length = (length & 0x3f) << 8;
+            length |= segment.readByte(offset++) & 0xff;
+            length += 0x80;
+            byte[] data = new byte[length];
+            segment.readBytes(offset, data, 0, length);
+            return new SegmentStream(recordId, data);
+        } else {
+            long l = ((long) length & 0x3f) << 56
+                    | ((long) (segment.readByte(offset++) & 0xff)) << 48
+                    | ((long) (segment.readByte(offset++) & 0xff)) << 40
+                    | ((long) (segment.readByte(offset++) & 0xff)) << 32
+                    | ((long) (segment.readByte(offset++) & 0xff)) << 24
+                    | ((long) (segment.readByte(offset++) & 0xff)) << 16
+                    | ((long) (segment.readByte(offset++) & 0xff)) << 8
+                    | ((long) (segment.readByte(offset++) & 0xff));
+            int size = (int) ((l + BLOCK_SIZE - 1) / BLOCK_SIZE);
+            ListRecord list =
+                    new ListRecord(segment.readRecordId(offset), size);
+            return new SegmentStream(this, recordId, list, l);
+        }
     }
 
     public int readInt(RecordId recordId, int position) {

@@ -40,21 +40,21 @@ public class SegmentSizeTest {
 
         builder = MemoryNodeState.EMPTY_NODE.builder();
         builder.setProperty("foo", "bar");
-        assertEquals(70, getSize(builder));
+        assertEquals(48, getSize(builder));
 
         builder = MemoryNodeState.EMPTY_NODE.builder();
         builder.setProperty("foo", "bar");
         builder.setProperty("baz", 123);
-        assertEquals(124, getSize(builder));
+        assertEquals(80, getSize(builder));
 
         builder = MemoryNodeState.EMPTY_NODE.builder();
         builder.child("foo");
-        assertEquals(59, getSize(builder));
+        assertEquals(48, getSize(builder));
 
         builder = MemoryNodeState.EMPTY_NODE.builder();
         builder.child("foo");
         builder.child("bar");
-        assertEquals(102, getSize(builder));
+        assertEquals(80, getSize(builder));
     }
 
     @Test
