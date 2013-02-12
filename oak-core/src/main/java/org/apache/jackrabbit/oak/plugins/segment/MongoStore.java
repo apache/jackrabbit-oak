@@ -20,6 +20,8 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
+
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
@@ -56,6 +58,15 @@ public class MongoStore implements SegmentStore {
                         return findSegment(key);
                     }
                 });
+
+        SegmentWriter writer = new SegmentWriter(this);
+        RecordId id = writer.writeNode(MemoryNodeState.EMPTY_NODE);
+        writer.flush();
+        journals.update(
+                new BasicDBObject("_id", "root"),
+                new BasicDBObject(ImmutableMap.of(
+                        "_id", "root", "head", id.toString())),
+                true /* upsert */, false);
     }
 
     public MongoStore(DB db) {
@@ -79,7 +90,7 @@ public class MongoStore implements SegmentStore {
                 ImmutableMap.of("_id", "root", "head", base.toString()));
         DBObject headObject = new BasicDBObject(
                 ImmutableMap.of("_id", "root", "head", head.toString()));
-        return journals.update(baseObject, headObject).getN() == 1;
+        return journals.findAndModify(baseObject, headObject) != null;
     }
 
     @Override
