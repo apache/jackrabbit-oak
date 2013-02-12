@@ -18,9 +18,12 @@ package org.apache.jackrabbit.oak.plugins.segment;
 
 import static junit.framework.Assert.assertEquals;
 
+import java.util.Collections;
+
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
 /**
@@ -28,39 +31,57 @@ import org.junit.Test;
  */
 public class SegmentSizeTest {
 
-    private SegmentStore store = new MemoryStore();
-
-    private SegmentWriter writer = new SegmentWriter(store);
+    private static final int BYTES_PER_REFERENCE = 4;
 
     @Test
     public void testNodeSize() {
         NodeBuilder builder = MemoryNodeState.EMPTY_NODE.builder();
-        assertNodeSize(16, builder.getNodeState());
+        assertEquals(16, getSize(builder.getNodeState().builder()));
 
         builder = MemoryNodeState.EMPTY_NODE.builder();
         builder.setProperty("foo", "bar");
-        assertNodeSize(70, builder.getNodeState());
+        assertEquals(70, getSize(builder));
 
         builder = MemoryNodeState.EMPTY_NODE.builder();
         builder.setProperty("foo", "bar");
         builder.setProperty("baz", 123);
-        assertNodeSize(124, builder.getNodeState());
+        assertEquals(124, getSize(builder));
 
         builder = MemoryNodeState.EMPTY_NODE.builder();
         builder.child("foo");
-        assertNodeSize(59, builder.getNodeState());
+        assertEquals(59, getSize(builder));
 
         builder = MemoryNodeState.EMPTY_NODE.builder();
         builder.child("foo");
         builder.child("bar");
-        assertNodeSize(102, builder.getNodeState());
-
+        assertEquals(102, getSize(builder));
     }
 
-    private void assertNodeSize(int expected, NodeState state) {
-        RecordId id = writer.writeNode(state);
+    @Test
+    public void testDuplicateStrings() {
+        String string = "More than just a few bytes of example content.";
+
+        NodeBuilder builder = MemoryNodeState.EMPTY_NODE.builder();
+        builder.setProperty(PropertyStates.createProperty(
+                "test", Collections.nCopies(1, string), Type.STRINGS));
+        int base = getSize(builder);
+
+        builder.setProperty(PropertyStates.createProperty(
+                "test", Collections.nCopies(10, string), Type.STRINGS));
+        assertEquals(base + 10 * BYTES_PER_REFERENCE, getSize(builder));
+
+        builder.setProperty(PropertyStates.createProperty(
+                "test", Collections.nCopies(100, string), Type.STRINGS));
+        assertEquals(base + 100 * BYTES_PER_REFERENCE, getSize(builder));
+    }
+
+    private int getSize(NodeBuilder builder) {
+        SegmentStore store = new MemoryStore();
+        SegmentWriter writer = new SegmentWriter(store);
+        RecordId id = writer.writeNode(builder.getNodeState());
         writer.flush();
         Segment segment = store.readSegment(id.getSegmentId());
-        assertEquals(expected, segment.getData().length);
+        return segment.getData().length;
     }
+
 }
