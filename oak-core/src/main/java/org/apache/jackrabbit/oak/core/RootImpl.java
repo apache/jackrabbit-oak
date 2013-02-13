@@ -114,10 +114,15 @@ public class RootImpl implements Root {
 
     // TODO: review if this constructor really makes sense and cannot be replaced.
     public RootImpl(NodeStore store) {
+        this(store, new CompositeQueryIndexProvider());
+    }
+
+    // TODO: review if this constructor really makes sense and cannot be replaced.
+    public RootImpl(NodeStore store, QueryIndexProvider indexProvider) {
         this.store = checkNotNull(store);
         this.subject = new Subject(true, Collections.singleton(SystemPrincipal.INSTANCE), Collections.<Object>emptySet(), Collections.<Object>emptySet());
         this.accConfiguration = new OpenAccessControlConfiguration();
-        this.indexProvider = new CompositeQueryIndexProvider();
+        this.indexProvider = indexProvider;
         refresh();
     }
 
