@@ -25,14 +25,15 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.mongomk.prototype.DocumentStore.Collection;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class MongoDocumentStoreTest {
-    
-    private static boolean MONGO_DB = true;
-    
-    // private final static int NODE_COUNT = 2000;
-    private static int NODE_COUNT = 10;
+
+    private static boolean MONGO_DB = false;
+
+    private final static int NODE_COUNT = 2000;
+    //private static int NODE_COUNT = 10;
 
     DocumentStore openDocumentStore() {
         if (MONGO_DB) {
@@ -40,14 +41,15 @@ public class MongoDocumentStoreTest {
         }
         return new MemoryDocumentStore();
     }
-    
+
     void dropCollections() {
         if (MONGO_DB) {
             MongoUtils.dropCollections(MongoUtils.getConnection().getDB());
         }
     }
-    
+
     @Test
+    @Ignore
     public void addGetAndRemove() throws Exception {
         dropCollections();
         DocumentStore docStore = openDocumentStore();
@@ -76,6 +78,7 @@ public class MongoDocumentStoreTest {
     }
 
     @Test
+    @Ignore
     public void addLotsOfNodes() throws Exception {
 
         char[] nPrefix = new char[]{'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'};
@@ -97,12 +100,12 @@ public class MongoDocumentStoreTest {
 
             long end = System.currentTimeMillis();
             log("Done: " + (end - start) + "ms");
-            
+
         }
         dropCollections();
 
     }
-    
+
     private static void log(String s) {
         if (NODE_COUNT < 100) {
             return;
