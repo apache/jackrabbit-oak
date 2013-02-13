@@ -27,8 +27,10 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -110,6 +112,21 @@ public class RootImplTest {
         assertFalse(tree.hasChild("x"));
         assertTrue(tree.hasChild("y"));
         assertTrue(tree.getChild("y").hasChild("xx"));
+    }
+
+    @Test
+    @Ignore("OAK-621")
+    public void moveNew() throws CommitFailedException {
+        Root root = session.getLatestRoot();
+        Tree tree = root.getTree("/");
+
+        Tree t = tree.addChild("new");
+        assertEquals(Status.NEW, t.getStatus());
+
+        root.move("/x", "/y/x");
+        assertEquals(Status.DISCONNECTED, t.getStatus());
+
+        assertNull(tree.getChild("new"));
     }
 
     /**
