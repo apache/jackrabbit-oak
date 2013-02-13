@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.spi.lifecycle;
 
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
  * Initializer of repository content. A component that needs to add specific
@@ -34,8 +34,8 @@ public interface RepositoryInitializer {
      * have been initialized, so the implementation of this method should
      * check for that before blindly adding new content.
      *
-     * @param store node store of the repository
+     * @param state the current state of the repository
      */
-    void initialize(NodeStore store);
+    NodeState initialize(NodeState state);
 
 }

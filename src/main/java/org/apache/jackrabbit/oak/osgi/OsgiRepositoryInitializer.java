@@ -18,8 +18,9 @@
  */
 package org.apache.jackrabbit.oak.osgi;
 
+import org.apache.jackrabbit.oak.spi.lifecycle.CompositeInitializer;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.osgi.framework.ServiceReference;
 
 /**
@@ -31,35 +32,33 @@ public class OsgiRepositoryInitializer
         extends AbstractServiceTracker<RepositoryInitializer>
         implements RepositoryInitializer {
 
-    /**
-     * The reference to the micro kernel once available.
-     */
-    private volatile NodeStore store;
+    private RepositoryInitializerObserver observer;
 
     public OsgiRepositoryInitializer() {
         super(RepositoryInitializer.class);
     }
 
     @Override
-    public void initialize(NodeStore store) {
-        this.store = store;
-        if (store != null) {
-            for (RepositoryInitializer mki : getServices()) {
-                mki.initialize(store);
-            }
-        }
+    public NodeState initialize(NodeState state) {
+        return new CompositeInitializer(getServices()).initialize(state);
     }
 
     @Override
     public Object addingService(ServiceReference reference) {
-        RepositoryInitializer mki =
-                (RepositoryInitializer) super.addingService(reference);
-        NodeStore store = this.store;
-        if (store != null) {
-            //TODO index added content
-            mki.initialize(store);
+        RepositoryInitializer ri = (RepositoryInitializer) super
+                .addingService(reference);
+        if (observer != null) {
+            observer.newRepositoryInitializer(ri);
         }
-        return mki;
+        return ri;
+    }
+
+    public void setObserver(RepositoryInitializerObserver observer) {
+        this.observer = observer;
+    }
+
+    interface RepositoryInitializerObserver {
+        void newRepositoryInitializer(RepositoryInitializer ri);
     }
 
 }

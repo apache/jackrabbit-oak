@@ -16,18 +16,23 @@
  */
 package org.apache.jackrabbit.oak.osgi;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
+import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
+import org.apache.jackrabbit.oak.osgi.OsgiRepositoryInitializer.RepositoryInitializerObserver;
 import org.apache.jackrabbit.oak.plugins.nodetype.DefaultTypeEditor;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
 import org.apache.jackrabbit.oak.spi.commit.ValidatingHook;
 import org.apache.jackrabbit.oak.spi.lifecycle.OakInitializer;
+import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceReference;
@@ -35,7 +40,7 @@ import org.osgi.framework.ServiceRegistration;
 import org.osgi.util.tracker.ServiceTracker;
 import org.osgi.util.tracker.ServiceTrackerCustomizer;
 
-public class Activator implements BundleActivator, ServiceTrackerCustomizer {
+public class Activator implements BundleActivator, ServiceTrackerCustomizer, RepositoryInitializerObserver {
 
     private BundleContext context;
 
@@ -47,7 +52,7 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer {
 
     private final OsgiValidatorProvider validatorProvider = new OsgiValidatorProvider();
 
-    private final OsgiRepositoryInitializer kernelTracker = new OsgiRepositoryInitializer();
+    private final OsgiRepositoryInitializer repositoryInitializerTracker = new OsgiRepositoryInitializer();
 
     private final Map<ServiceReference, ServiceRegistration> services =
             new HashMap<ServiceReference, ServiceRegistration>();
@@ -61,8 +66,8 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer {
         indexProvider.start(bundleContext);
         indexHookProvider.start(bundleContext);
         validatorProvider.start(bundleContext);
-        kernelTracker.start(bundleContext);
-
+        repositoryInitializerTracker.setObserver(this);
+        repositoryInitializerTracker.start(bundleContext);
         tracker = new ServiceTracker(
                 context, MicroKernel.class.getName(), this);
         tracker.open();
@@ -71,22 +76,19 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer {
     @Override
     public void stop(BundleContext bundleContext) throws Exception {
         tracker.close();
-
         indexProvider.stop();
         indexHookProvider.stop();
         validatorProvider.stop();
-        kernelTracker.stop();
+        repositoryInitializerTracker.stop();
     }
 
     //-------------------------------------------< ServiceTrackerCustomizer >---
 
     @Override
     public Object addingService(ServiceReference reference) {
-        Object service = context.getService(reference);
-        if (service instanceof MicroKernel) {
-            MicroKernel kernel = (MicroKernel) service;
-            OakInitializer.initialize(new KernelNodeStore(kernel),
-                    kernelTracker, indexHookProvider);
+        MicroKernel kernel = (MicroKernel) context.getService(reference);
+        OakInitializer.initialize(new KernelNodeStore(kernel),
+                repositoryInitializerTracker, indexHookProvider);
             Oak oak = new Oak(kernel)
                     .with(new CompositeHook(
                         // TODO: DefaultTypeEditor is JCR specific and does not belong here
@@ -98,11 +100,7 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer {
                     ContentRepository.class.getName(),
                     oak.createContentRepository(),
                     new Properties()));
-            return service;
-        } else {
-            context.ungetService(reference);
-            return null;
-        }
+            return kernel;
     }
 
     @Override
@@ -112,9 +110,24 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer {
 
     @Override
     public void removedService(ServiceReference reference, Object service) {
-        ServiceRegistration registration = services.remove(reference);
-        registration.unregister();
+        services.remove(reference).unregister();
         context.ungetService(reference);
+    }
+
+    //----------------------------------------< RepositoryInitializerObserver >---
+
+    @Override
+    public void newRepositoryInitializer(RepositoryInitializer ri) {
+        List<ServiceReference> mkRefs = new ArrayList<ServiceReference>(
+                services.keySet());
+        for (ServiceReference ref : mkRefs) {
+            Object service = context.getService(ref);
+            if (service instanceof ContentRepositoryImpl) {
+                ContentRepositoryImpl repository = (ContentRepositoryImpl) service;
+                OakInitializer.initialize(repository.getNodeStore(), ri,
+                        indexHookProvider);
+            }
+        }
     }
 
 }

@@ -26,11 +26,15 @@ import org.apache.jackrabbit.oak.core.RootImpl;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -74,7 +78,16 @@ public class UserInitializer implements RepositoryInitializer, UserConstants {
 
     //----------------------------------------------< RepositoryInitializer >---
     @Override
-    public void initialize(NodeStore store) {
+    public NodeState initialize(NodeState state) {
+        NodeBuilder builder = state.builder();
+        NodeStore store = new MemoryNodeStore();
+        NodeStoreBranch branch = store.branch();
+        branch.setRoot(builder.getNodeState());
+        try {
+            branch.merge();
+        } catch (CommitFailedException e) {
+            throw new RuntimeException(e);
+        }
         Root root = new RootImpl(store);
 
         UserConfiguration userConfiguration = securityProvider.getUserConfiguration();
@@ -108,5 +121,6 @@ public class UserInitializer implements RepositoryInitializer, UserConstants {
             log.error("Failed to initialize user content ", e);
             throw new RuntimeException(e);
         }
+        return store.getRoot();
     }
 }
