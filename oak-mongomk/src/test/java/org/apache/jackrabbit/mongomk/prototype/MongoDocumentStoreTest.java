@@ -24,17 +24,33 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.jackrabbit.mongomk.AbstractMongoConnectionTest;
 import org.apache.jackrabbit.mongomk.prototype.DocumentStore.Collection;
-import org.junit.Ignore;
 import org.junit.Test;
 
-public class MongoDocumentStoreTest extends AbstractMongoConnectionTest {
+public class MongoDocumentStoreTest {
+    
+    private static boolean MONGO_DB = false;
+    
+    // private final static int NODE_COUNT = 2000;
+    private static int NODE_COUNT = 10;
 
+    DocumentStore openDocumentStore() {
+        if (MONGO_DB) {
+            return new MongoDocumentStore(MongoUtils.getConnection().getDB());
+        }
+        return new MemoryDocumentStore();
+    }
+    
+    void dropCollections() {
+        if (MONGO_DB) {
+            MongoUtils.dropCollections(MongoUtils.getConnection().getDB());
+        }
+    }
+    
     @Test
-    @Ignore
     public void addGetAndRemove() throws Exception {
-        DocumentStore docStore = new MongoDocumentStore(mongoConnection.getDB());
+        dropCollections();
+        DocumentStore docStore = openDocumentStore();
 
         UpdateOp updateOp = new UpdateOp("/");
         updateOp.addMapEntry("property1", "key1", "value1");
@@ -43,11 +59,11 @@ public class MongoDocumentStoreTest extends AbstractMongoConnectionTest {
         docStore.createOrUpdate(Collection.NODES, updateOp);
         Map<String, Object> obj = docStore.find(Collection.NODES, "/");
 
-        Map property1 = (Map)obj.get("property1");
-        String value1 = (String)property1.get("key1");
+        Map<?, ?> property1 = (Map<?, ?>) obj.get("property1");
+        String value1 = (String) property1.get("key1");
         assertEquals("value1", value1);
 
-        Long value2 = (Long)obj.get("property2");
+        Long value2 = (Long) obj.get("property2");
         assertEquals(Long.valueOf(1), value2);
 
         String value3 = (String)obj.get("property3");
@@ -56,18 +72,20 @@ public class MongoDocumentStoreTest extends AbstractMongoConnectionTest {
         docStore.remove(Collection.NODES, "/");
         obj = docStore.find(Collection.NODES, "/");
         assertTrue(obj == null);
+        dropCollections();
     }
 
     @Test
-    @Ignore
     public void addLotsOfNodes() throws Exception {
+
         char[] nPrefix = new char[]{'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'};
-        int nNodes = 2000;
+        int nNodes = NODE_COUNT;
 
         for (int nThreads = 1; nThreads < 32; nThreads = nThreads * 2) {
-            DocumentStore docStore = new MongoDocumentStore(mongoConnection.getDB());
+            DocumentStore docStore = openDocumentStore();
+            dropCollections();
 
-            System.out.println("Adding and updating " + nNodes + " nodes in each " + nThreads + " threads");
+            log("Adding and updating " + nNodes + " nodes in each " + nThreads + " threads");
             long start = System.currentTimeMillis();
 
             ExecutorService executor = Executors.newFixedThreadPool(nThreads);
@@ -78,9 +96,18 @@ public class MongoDocumentStoreTest extends AbstractMongoConnectionTest {
             executor.awaitTermination(1, TimeUnit.MINUTES);
 
             long end = System.currentTimeMillis();
-            System.out.println("Done: " + (end - start) + "ms");
-            dropCollections(mongoConnection.getDB());
+            log("Done: " + (end - start) + "ms");
+            
         }
+        dropCollections();
+
+    }
+    
+    private static void log(String s) {
+        if (NODE_COUNT < 100) {
+            return;
+        }
+        System.out.println(s);
     }
 
     private static class AddAndUpdateNodesTask implements Runnable {

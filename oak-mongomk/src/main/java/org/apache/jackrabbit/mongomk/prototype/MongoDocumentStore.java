@@ -19,7 +19,6 @@ package org.apache.jackrabbit.mongomk.prototype;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.apache.jackrabbit.mongomk.impl.model.MongoNode;
 import org.apache.jackrabbit.mongomk.prototype.UpdateOp.Operation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -78,7 +77,7 @@ public class MongoDocumentStore implements DocumentStore {
                     break;
                 }
                 case INCREMENT: {
-                    incUpdates.append(k, (Long)op.value);
+                    incUpdates.append(k, op.value);
                     break;
                 }
                 case ADD_MAP_ENTRY: {
@@ -121,14 +120,16 @@ public class MongoDocumentStore implements DocumentStore {
         nodesCollection.ensureIndex(index, options);
     }
 
-    private Map<String, Object> convertFromDBObject(DBObject n) {
+    private static Map<String, Object> convertFromDBObject(DBObject n) {
         Map<String, Object> copy = Utils.newMap();
-        synchronized (n) {
-            for (String key : n.keySet()) {
-                copy.put(key, n.get(key));
+        if (n != null) {
+            synchronized (n) {
+                for (String key : n.keySet()) {
+                    copy.put(key, n.get(key));
+                }
             }
-            return copy;
         }
+        return copy;
     }
 
     private DBCollection getDBCollection(Collection collection) {
