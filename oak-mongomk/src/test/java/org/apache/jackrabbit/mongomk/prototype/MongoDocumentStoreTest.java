@@ -29,7 +29,7 @@ import org.junit.Test;
 
 public class MongoDocumentStoreTest {
     
-    private static boolean MONGO_DB = false;
+    private static boolean MONGO_DB = true;
     
     // private final static int NODE_COUNT = 2000;
     private static int NODE_COUNT = 10;
