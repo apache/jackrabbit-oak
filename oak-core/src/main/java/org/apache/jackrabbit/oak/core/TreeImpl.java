@@ -573,7 +573,7 @@ public class TreeImpl implements Tree {
      * the property if it doesn't exist and initialize the value with the names
      * of the children as returned by {@link NodeBuilder#getChildNodeNames()}.
      */
-    private void ensureChildOrderProperty() {
+    public void ensureChildOrderProperty() {
         PropertyState childOrder = getNodeBuilder().getProperty(OAK_CHILD_ORDER);
         if (childOrder == null) {
             getNodeBuilder().setProperty(

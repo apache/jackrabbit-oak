@@ -57,7 +57,6 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.core.TreeImpl;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryPropertyBuilder;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
@@ -220,6 +219,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
             } else {
                 aclNode = createAclNode(oakPath, tree);
             }
+            TreeUtil.ensureOrderableChildren(aclNode.getTree());
 
             ACL acl = (ACL) policy;
             for (JackrabbitAccessControlEntry ace : acl.getEntries()) {
@@ -397,9 +397,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
                 tree.setProperty(pb.getPropertyState());
             }
         }
-        NodeUtil aclNode = new NodeUtil(tree).addChild(getAclName(oakPath), NT_REP_ACL);
-        aclNode.setStrings(TreeImpl.OAK_CHILD_ORDER, new String[0]);
-        return aclNode;
+        return new NodeUtil(tree).addChild(getAclName(oakPath), NT_REP_ACL);
     }
 
     @CheckForNull
