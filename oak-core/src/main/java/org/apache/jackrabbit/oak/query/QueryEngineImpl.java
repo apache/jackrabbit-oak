@@ -25,7 +25,7 @@ import java.util.Map.Entry;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Result;
-import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.query.index.TraversingIndex;
 import org.apache.jackrabbit.oak.spi.query.Filter;
@@ -96,20 +96,20 @@ public abstract class QueryEngineImpl implements QueryEngine {
     public QueryEngineImpl(QueryIndexProvider indexProvider) {
         this.indexProvider = indexProvider;
     }
-    
+
     /**
      * Get the current root node state, to run the query against.
      * 
      * @return the node state
      */
     protected abstract NodeState getRootState();
-    
+
     /**
      * Get the current root tree, to run the query against.
      * 
      * @return the node state
      */
-    protected abstract Root getRootTree();
+    protected abstract Tree getRootTree();
 
     @Override
     public Set<String> getSupportedQueryLanguages() {

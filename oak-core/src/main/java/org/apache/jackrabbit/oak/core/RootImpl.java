@@ -31,6 +31,7 @@ import org.apache.jackrabbit.oak.api.BlobFactory;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.diffindex.UUIDDiffIndexProviderWrapper;
@@ -296,8 +297,8 @@ public class RootImpl implements Root {
             }
 
             @Override
-            protected Root getRootTree() {
-                return RootImpl.this;
+            protected Tree getRootTree() {
+                return rootTree;
             }
 
         };
