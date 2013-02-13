@@ -86,4 +86,8 @@ public class ContentRepositoryImpl implements ContentRepository {
                 nodeStore, indexProvider);
     }
 
+    public NodeStore getNodeStore() {
+        return nodeStore;
+    }
+
 }

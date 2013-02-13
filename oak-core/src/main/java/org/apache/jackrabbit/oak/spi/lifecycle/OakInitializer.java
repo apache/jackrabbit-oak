@@ -21,8 +21,7 @@ package org.apache.jackrabbit.oak.spi.lifecycle;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.index.IndexHookManager;
 import org.apache.jackrabbit.oak.plugins.index.IndexHookProvider;
-import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 
@@ -31,18 +30,12 @@ public class OakInitializer {
     public static void initialize(NodeStore store,
             RepositoryInitializer initializer, IndexHookProvider indexHook) {
 
-        // TODO refactor initializer to be able to first #branch, then
-        // #initialize, next #index and finally #merge
-        // This means that the RepositoryInitializer should receive a
-        // NodeStoreBranch as a param
-
-        initializer.initialize(store);
-
         NodeStoreBranch branch = store.branch();
-        NodeBuilder root = branch.getRoot().builder();
+        NodeState before = branch.getRoot();
+        NodeState after = initializer.initialize(before);
         try {
-            branch.setRoot(IndexHookManager.of(indexHook).processCommit(
-                    MemoryNodeState.EMPTY_NODE, root.getNodeState()));
+            branch.setRoot(IndexHookManager.of(indexHook).processCommit(before,
+                    after));
             branch.merge();
         } catch (CommitFailedException e) {
             throw new RuntimeException(e);
