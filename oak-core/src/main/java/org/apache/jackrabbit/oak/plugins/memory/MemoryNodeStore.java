@@ -16,12 +16,19 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.concurrent.atomic.AtomicReference;
 
+import javax.annotation.Nonnull;
+
 import com.google.common.io.ByteStreams;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.spi.commit.CommitHook;
+import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
@@ -35,6 +42,12 @@ public class MemoryNodeStore implements NodeStore {
     private final AtomicReference<NodeState> root =
             new AtomicReference<NodeState>(MemoryNodeState.EMPTY_NODE);
 
+    /**
+     * Commit hook.
+     */
+    @Nonnull
+    private volatile CommitHook hook = EmptyHook.INSTANCE;
+
     @Override
     public NodeState getRoot() {
         return root.get();
@@ -42,7 +55,7 @@ public class MemoryNodeStore implements NodeStore {
 
     @Override
     public NodeStoreBranch branch() {
-        return new MemoryNodeStoreBranch(root.get());
+        return new MemoryNodeStoreBranch(this, root.get());
     }
 
     /**
@@ -58,13 +71,23 @@ public class MemoryNodeStore implements NodeStore {
         }
     }
 
-    private class MemoryNodeStoreBranch implements NodeStoreBranch {
+    public void setHook(CommitHook hook) {
+        this.hook = checkNotNull(hook);
+    }
 
+    private static class MemoryNodeStoreBranch implements NodeStoreBranch {
+
+        /** The underlying store to which this branch belongs */
+        private final MemoryNodeStore store;
+
+        /** Root state of the base revision of this branch */
         private final NodeState base;
 
+        /** Root state of the head revision of this branch*/
         private volatile NodeState root;
 
-        public MemoryNodeStoreBranch(NodeState base) {
+        public MemoryNodeStoreBranch(MemoryNodeStore store, NodeState base) {
+            this.store = store;
             this.base = base;
             this.root = base;
         }
@@ -76,21 +99,26 @@ public class MemoryNodeStore implements NodeStore {
 
         @Override
         public NodeState getRoot() {
+            checkNotMerged();
             return root;
         }
 
         @Override
         public void setRoot(NodeState newRoot) {
+            checkNotMerged();
             this.root = newRoot;
         }
 
         @Override
         public NodeState merge() throws CommitFailedException {
-            while (!MemoryNodeStore.this.root.compareAndSet(base, root)) {
+            checkNotMerged();
+            while (!store.root.compareAndSet(base,
+                    store.hook.processCommit(base, root))) {
                 // TODO: rebase();
                 throw new UnsupportedOperationException();
             }
-            return root;
+            root = null; // Mark as merged
+            return store.getRoot();
         }
 
         @Override
@@ -106,6 +134,12 @@ public class MemoryNodeStore implements NodeStore {
         @Override
         public void rebase() {
             throw new UnsupportedOperationException();
+        }
+
+        // ----------------------------------------------------< private >---
+
+        private void checkNotMerged() {
+            checkState(root != null, "Branch has already been merged");
         }
     }
 
