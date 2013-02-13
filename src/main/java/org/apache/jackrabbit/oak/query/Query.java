@@ -21,8 +21,8 @@ import java.util.Iterator;
 import java.util.List;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
-import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.JcrPathParser;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.query.ast.AstVisitorBase;
@@ -92,7 +92,7 @@ public class Query {
     private long offset;
     private long size = -1;
     private boolean prepared;
-    private Root rootTree;
+    private Tree rootTree;
     private NodeState rootState;
     private NamePathMapper namePathMapper;
 
@@ -603,7 +603,7 @@ public class Query {
         return queryEngine.getBestIndex(this, rootState, filter);
     }
 
-    public void setRootTree(Root rootTree) {
+    public void setRootTree(Tree rootTree) {
         this.rootTree = rootTree;
     }
     
@@ -620,9 +620,12 @@ public class Query {
     }
 
     public Tree getTree(String path) {
-        return rootTree.getTree(path);
+        return rootTree
+                .getLocation()
+                .getChild(PathUtils.isAbsolute(path) ? path.substring(1) : path)
+                .getTree();
     }
-    
+
     /**
      * Validate a path is syntactically correct.
      * 
