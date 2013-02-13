@@ -17,12 +17,11 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene.util;
 
 import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 
 public class LuceneInitializerHelper implements RepositoryInitializer {
@@ -34,11 +33,9 @@ public class LuceneInitializerHelper implements RepositoryInitializer {
     }
 
     @Override
-    public void initialize(NodeStore store) {
+    public NodeState initialize(NodeState state) {
+        NodeBuilder root = state.builder();
         boolean dirty = false;
-
-        NodeStoreBranch branch = store.branch();
-        NodeBuilder root = branch.getRoot().builder();
 
         NodeBuilder index = root;
         for (String p : PathUtils.elements(path)) {
@@ -53,13 +50,9 @@ public class LuceneInitializerHelper implements RepositoryInitializer {
                     "oak:queryIndexDefinition", Type.NAME).setProperty("type",
                     "lucene");
             index.setProperty("reindex", true);
-            try {
-                branch.setRoot(root.getNodeState());
-                branch.merge();
-            } catch (CommitFailedException e) {
-                throw new RuntimeException(e);
-            }
+            return root.getNodeState();
         }
+        return state;
     }
 
 }

@@ -23,8 +23,10 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.core.RootImpl;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 
@@ -45,10 +47,8 @@ import static org.apache.jackrabbit.JcrConstants.JCR_VERSIONSTORAGE;
 public class InitialContent implements RepositoryInitializer {
 
     @Override
-    public void initialize(NodeStore store) {
-        NodeStoreBranch branch = store.branch();
-
-        NodeBuilder root = branch.getRoot().builder();
+    public NodeState initialize(NodeState state) {
+        NodeBuilder root = state.builder();
         root.setProperty(JCR_PRIMARYTYPE, "rep:root", Type.NAME);
 
         if (!root.hasChildNode(JCR_SYSTEM)) {
@@ -71,14 +71,16 @@ public class InitialContent implements RepositoryInitializer {
             IndexUtils.createIndexDefinition(index, "nodetype", true, false,
                     ImmutableList.of(JCR_PRIMARYTYPE, JCR_MIXINTYPES), null);
         }
+        NodeStore store = new MemoryNodeStore();
+        NodeStoreBranch branch = store.branch();
+        branch.setRoot(root.getNodeState());
         try {
-            branch.setRoot(root.getNodeState());
             branch.merge();
         } catch (CommitFailedException e) {
-            throw new RuntimeException(e); // TODO: shouldn't need the wrapper
+            throw new RuntimeException(e);
         }
-
         BuiltInNodeTypes.register(new RootImpl(store));
+        return store.getRoot();
     }
 
 }

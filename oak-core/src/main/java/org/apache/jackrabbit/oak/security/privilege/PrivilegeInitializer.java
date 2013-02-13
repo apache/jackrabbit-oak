@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.security.privilege;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
+
 import javax.jcr.RepositoryException;
 
 import com.google.common.collect.ImmutableMap;
@@ -26,10 +27,12 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.core.RootImpl;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeDefinition;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 import org.slf4j.Logger;
@@ -64,10 +67,8 @@ class PrivilegeInitializer implements RepositoryInitializer, PrivilegeConstants 
             REP_WRITE, new String[] {JCR_WRITE, JCR_NODE_TYPE_MANAGEMENT});
 
     @Override
-    public void initialize(NodeStore store) {
-        NodeStoreBranch branch = store.branch();
-
-        NodeBuilder root = branch.getRoot().builder();
+    public NodeState initialize(NodeState state) {
+        NodeBuilder root = state.builder();
         NodeBuilder system = root.child(JcrConstants.JCR_SYSTEM);
         system.setProperty(JcrConstants.JCR_PRIMARYTYPE, NodeTypeConstants.NT_REP_SYSTEM, Type.NAME);
 
@@ -75,6 +76,8 @@ class PrivilegeInitializer implements RepositoryInitializer, PrivilegeConstants 
             NodeBuilder privileges = system.child(REP_PRIVILEGES);
             privileges.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_PRIVILEGES, Type.NAME);
 
+            NodeStore store = new MemoryNodeStore();
+            NodeStoreBranch branch = store.branch();
             try {
                 branch.setRoot(root.getNodeState());
                 branch.merge();
@@ -90,7 +93,9 @@ class PrivilegeInitializer implements RepositoryInitializer, PrivilegeConstants 
                 log.error("Failed to register built-in privileges", e);
                 throw new RuntimeException(e);
             }
+            return store.getRoot();
         }
+        return root.getNodeState();
     }
 
     private Collection<PrivilegeDefinition> getBuiltInDefinitions() {

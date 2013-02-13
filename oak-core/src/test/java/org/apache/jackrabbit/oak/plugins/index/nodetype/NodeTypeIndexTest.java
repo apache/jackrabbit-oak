@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.index.nodetype;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Set;
 
@@ -27,10 +28,13 @@ import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
+import org.apache.jackrabbit.oak.plugins.index.CompositeIndexHookProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexHookManager;
+import org.apache.jackrabbit.oak.plugins.index.IndexHookProvider;
 import org.apache.jackrabbit.oak.plugins.index.p2.Property2IndexHookProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
+import org.apache.jackrabbit.oak.spi.lifecycle.OakInitializer;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Cursors;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -56,7 +60,9 @@ public class NodeTypeIndexTest {
         store = new KernelNodeStore(mk);
         store.setHook(IndexHookManager.of(new Property2IndexHookProvider()));
         // initialize node types & index definitions
-        new InitialContent().initialize(store);
+        OakInitializer.initialize(store, new InitialContent(),
+                CompositeIndexHookProvider
+                        .compose(new ArrayList<IndexHookProvider>()));
     }
 
     @Test
