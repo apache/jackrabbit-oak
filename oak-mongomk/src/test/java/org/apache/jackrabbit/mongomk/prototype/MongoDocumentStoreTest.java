@@ -28,6 +28,11 @@ import org.apache.jackrabbit.mongomk.prototype.DocumentStore.Collection;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import com.mongodb.BasicDBObject;
+import com.mongodb.DBCollection;
+import com.mongodb.DBObject;
+import com.mongodb.WriteResult;
+
 public class MongoDocumentStoreTest {
 
     private static boolean MONGO_DB = false;
@@ -104,6 +109,54 @@ public class MongoDocumentStoreTest {
         }
         dropCollections();
 
+    }
+
+    @Test
+    @Ignore
+    public void batchInsert() throws Exception {
+        if (!MONGO_DB) {
+            return;
+        }
+        doInsert(NODE_COUNT, true);
+        doInsert(NODE_COUNT, false);
+    }
+
+    private void doInsert(int n, boolean batch) throws Exception {
+        dropCollections();
+
+        DBCollection collection = MongoUtils.getConnection().getDB().getCollection("batchInsertTest");
+        DBObject index = new BasicDBObject();
+        index.put("_path", 1L);
+        DBObject options = new BasicDBObject();
+        options.put("unique", Boolean.TRUE);
+        collection.ensureIndex(index, options);
+
+        log("Inserting " + n + " batch? " + batch);
+        long start = System.currentTimeMillis();
+
+        if (batch) {
+            DBObject[] arr = new BasicDBObject[n];
+            for (int i = 0; i < n; i++) {
+                arr[i] = new BasicDBObject("_path", "/a" + i);
+            }
+            WriteResult result = collection.insert(arr);
+            if (result.getError() != null) {
+                log("Error: " + result.getError());
+            }
+        } else {
+            for (int i = 0; i < n; i++) {
+                WriteResult result = collection.insert(new BasicDBObject("_path", "/a" + i));
+                if (result.getError() != null) {
+                    log("Error: " + result.getError());
+                }
+            }
+
+        }
+
+        long end = System.currentTimeMillis();
+        log("Done: " + (end - start) + "ms");
+
+        dropCollections();
     }
 
     private static void log(String s) {
