@@ -25,15 +25,16 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.core.RootImpl;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.IndexHookManager;
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
+import org.apache.jackrabbit.oak.plugins.index.p2.Property2IndexHookProvider;
+import org.apache.jackrabbit.oak.plugins.index.p2.Property2IndexProvider;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.slf4j.Logger;
@@ -79,16 +80,16 @@ public class UserInitializer implements RepositoryInitializer, UserConstants {
     //----------------------------------------------< RepositoryInitializer >---
     @Override
     public NodeState initialize(NodeState state) {
-        NodeBuilder builder = state.builder();
-        NodeStore store = new MemoryNodeStore();
+        MemoryNodeStore store = new MemoryNodeStore();
+        store.setHook(IndexHookManager.of(new Property2IndexHookProvider()));
         NodeStoreBranch branch = store.branch();
-        branch.setRoot(builder.getNodeState());
+        branch.setRoot(state);
         try {
             branch.merge();
         } catch (CommitFailedException e) {
             throw new RuntimeException(e);
         }
-        Root root = new RootImpl(store);
+        Root root = new RootImpl(store, new Property2IndexProvider());
 
         UserConfiguration userConfiguration = securityProvider.getUserConfiguration();
         UserManager userManager = userConfiguration.getUserManager(root, NamePathMapper.DEFAULT);
