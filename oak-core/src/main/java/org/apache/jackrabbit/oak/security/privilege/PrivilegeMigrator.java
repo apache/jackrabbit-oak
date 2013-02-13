@@ -48,7 +48,7 @@ import org.xml.sax.helpers.DefaultHandler;
 /**
  * PrivilegeMigrator is a utility to migrate custom privilege definitions from
  * a jackrabbit 2 project to oak.
- *
+ * <p/>
  * TODO: this is an initial draft of a migration tool from jr2 custom privileges
  * TODO: to oak. might need to be adjusted once we have defined a upgrade path (see OAK-458)
  */
@@ -62,7 +62,7 @@ public class PrivilegeMigrator {
 
     public void migrateCustomPrivileges(InputStream privilegeStream) throws RepositoryException {
         final Root root = contentSession.getLatestRoot();
-        PrivilegeDefinitionWriter writer = new PrivilegeDefinitionWriter(root);
+        PrivilegeDefinitionStore store = new PrivilegeDefinitionStore(root);
         try {
             NamespaceRegistry nsRegistry = new ReadWriteNamespaceRegistry() {
                 @Override
@@ -75,8 +75,9 @@ public class PrivilegeMigrator {
                     return root.getTree("/");
                 }
             };
-            Iterable<PrivilegeDefinition> custom = readCustomDefinitons(privilegeStream, nsRegistry);
-            writer.writeDefinitions(custom);
+            for (PrivilegeDefinition def : readCustomDefinitons(privilegeStream, nsRegistry)) {
+                store.writeDefinition(def);
+            }
         } catch (IOException e) {
             throw new RepositoryException(e);
         }
@@ -95,7 +96,7 @@ public class PrivilegeMigrator {
      * @throws IOException
      */
     private static Iterable<PrivilegeDefinition> readCustomDefinitons(InputStream customPrivileges,
-                                                                 NamespaceRegistry nsRegistry) throws RepositoryException, IOException {
+                                                                      NamespaceRegistry nsRegistry) throws RepositoryException, IOException {
         Map<String, PrivilegeDefinition> definitions = new LinkedHashMap<String, PrivilegeDefinition>();
         InputSource src = new InputSource(customPrivileges);
         for (PrivilegeDefinition def : PrivilegeXmlHandler.readDefinitions(src, nsRegistry)) {
@@ -109,6 +110,7 @@ public class PrivilegeMigrator {
     }
 
     //--------------------------------------------------------------------------
+
     /**
      * The {@code PrivilegeXmlHandler} loads privilege definitions from a XML
      * document using the following format:
@@ -175,7 +177,8 @@ public class PrivilegeMigrator {
 
         /**
          * Build a new {@code PrivilegeDefinition} from the given XML node.
-         * @param n the xml node storing the privilege definition.
+         *
+         * @param n          the xml node storing the privilege definition.
          * @param nsRegistry
          * @return a new PrivilegeDefinition.
          * @throws javax.jcr.RepositoryException
