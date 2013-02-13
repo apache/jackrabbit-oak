@@ -24,28 +24,34 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
+import org.apache.jackrabbit.mk.blobs.BlobStore;
 
 public class MongoMK implements MicroKernel {
-    
+
     /**
      * The MongoDB store (might be used by multiple MongoMKs).
      */
     private final DocumentStore store;
-    
+
+    /**
+     * The MongoDB blob store.
+     */
+    private final BlobStore blobStore;
+
     /**
      * The unique cluster id, similar to the unique machine id in MongoDB.
      */
     private final int clusterId;
-    
+
     /**
      * The node cache.
-     * 
+     *
      * Key: path@rev
      * Value: node
      */
     // TODO: should be path@id
     private final Map<String, Node> nodeCache = new Cache<String, Node>(1024);
-    
+
     /**
      * For revisions that are older than this many seconds, the MongoMK will
      * assume the revision is valid. For more recent changes, the MongoMK needs
@@ -54,7 +60,7 @@ public class MongoMK implements MicroKernel {
      * collector removes old revisions, this value is changed.
      */
     private static final int trustedRevisionAge = Integer.MAX_VALUE;
-    
+
     /**
      * The set of known valid revision.
      * The key is the revision id, the value is 1 (because a cache can't be a set).
@@ -63,23 +69,24 @@ public class MongoMK implements MicroKernel {
 
     /**
      * Create a new MongoMK.
-     * 
+     *
      * @param store the store (might be shared)
      * @param clusterId the cluster id (must be unique)
      */
-    public MongoMK(MemoryDocumentStore store, int clusterId) {
+    public MongoMK(DocumentStore store, BlobStore blobStore, int clusterId) {
         this.store = store;
+        this.blobStore = blobStore;
         this.clusterId = clusterId;
     }
-    
+
     String getNewRevision() {
         return Utils.createRevision(clusterId);
     }
-    
+
     /**
      * Get the node for the given path and revision. The returned object might
      * not be modified directly.
-     * 
+     *
      * @param path
      * @param rev
      * @return the node
@@ -95,10 +102,10 @@ public class MongoMK implements MicroKernel {
         }
         return node;
     }
-    
+
     /**
      * Try to add a node.
-     * 
+     *
      * @param rev the revision
      * @param n the node
      * @throw IllegalStateException if the node already existed
@@ -110,10 +117,10 @@ public class MongoMK implements MicroKernel {
         node.set("_pathDepth", depth);
         int commitDepth = depth - Utils.pathDepth(commitRoot);
         node.addMapEntry("_commitDepth", rev, commitDepth);
-        
+
         // the affected (direct) children of this revision
         node.addMapEntry("_affectedChildren", rev, "");
-        
+
         node.increment("_changeCount", 1L);
 //        setCommitRoot(path);
 
@@ -121,26 +128,26 @@ public class MongoMK implements MicroKernel {
         for (String p : n.properties.keySet()) {
             node.addMapEntry(p, rev, n.properties.get(p));
         }
-        Map<String, Object> map = store.createOrUpdate(DocumentStore.Collection.NODES, node);        
+        Map<String, Object> map = store.createOrUpdate(DocumentStore.Collection.NODES, node);
         if (map != null) {
             // TODO rollback changes
             throw new IllegalStateException("Node already exists: " + n.path);
         }
     }
-    
+
     private Node readNode(String path, String rev) {
-        Map<String, Object> map = store.find(DocumentStore.Collection.NODES, path);        
+        Map<String, Object> map = store.find(DocumentStore.Collection.NODES, path);
         if (map == null) {
             return null;
         }
         Node n = new Node(path, rev);
         for(String key : map.keySet()) {
             Object v = map.get(key);
-            
+
         }
         return n;
     }
-    
+
     @Override
     public String getHeadRevision() throws MicroKernelException {
         // TODO Auto-generated method stub
@@ -227,21 +234,30 @@ public class MongoMK implements MicroKernel {
 
     @Override
     public long getLength(String blobId) throws MicroKernelException {
-        // TODO Auto-generated method stub
-        return 0;
+        try {
+            return blobStore.getBlobLength(blobId);
+        } catch (Exception e) {
+            throw new MicroKernelException(e);
+        }
     }
 
     @Override
     public int read(String blobId, long pos, byte[] buff, int off, int length)
             throws MicroKernelException {
-        // TODO Auto-generated method stub
-        return 0;
+        try {
+            return blobStore.readBlob(blobId, pos, buff, off, length);
+        } catch (Exception e) {
+            throw new MicroKernelException(e);
+        }
     }
 
     @Override
     public String write(InputStream in) throws MicroKernelException {
-        // TODO Auto-generated method stub
-        return null;
+        try {
+            return blobStore.writeBlob(in);
+        } catch (Exception e) {
+            throw new MicroKernelException(e);
+        }
     }
 
     static class Cache<K, V> extends LinkedHashMap<K, V> {
