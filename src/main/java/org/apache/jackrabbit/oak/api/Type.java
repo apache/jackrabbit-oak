@@ -23,6 +23,7 @@ import java.math.BigDecimal;
 import javax.jcr.PropertyType;
 
 import com.google.common.base.Objects;
+import com.google.common.collect.ComparisonChain;
 
 import static com.google.common.base.Preconditions.checkState;
 
@@ -32,7 +33,7 @@ import static com.google.common.base.Preconditions.checkState;
  * the return type of that method.
  * @param <T>
  */
-public final class Type<T> {
+public final class Type<T> implements Comparable<Type<?>> {
 
     /** Map {@code String} to {@link PropertyType#STRING} */
     public static final Type<String> STRING = create(PropertyType.STRING, false);
@@ -178,6 +179,18 @@ public final class Type<T> {
         checkState(!isArray(), "Not a simply type");
         return fromTag(tag, true);
     }
+
+    //--------------------------------------------------------< Comparable >--
+
+    @Override
+    public int compareTo(Type<?> that) {
+        return ComparisonChain.start()
+                .compare(tag, that.tag)
+                .compareFalseFirst(array, that.array)
+                .result();
+    }
+
+    //------------------------------------------------------------< Object >--
 
     @Override
     public String toString() {

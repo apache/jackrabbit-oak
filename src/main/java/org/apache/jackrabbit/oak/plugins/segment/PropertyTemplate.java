@@ -21,6 +21,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 
+import com.google.common.collect.ComparisonChain;
+
 class PropertyTemplate implements Comparable<PropertyTemplate> {
 
     private final String name;
@@ -45,7 +47,11 @@ class PropertyTemplate implements Comparable<PropertyTemplate> {
 
     @Override
     public int compareTo(PropertyTemplate template) {
-        return name.compareTo(checkNotNull(template).name);
+        checkNotNull(template);
+        return ComparisonChain.start()
+                .compare(name, template.name)
+                .compare(type, template.type)
+                .result();
     }
 
     //------------------------------------------------------------< Object >--
