@@ -18,13 +18,17 @@ package org.apache.jackrabbit.oak.plugins.segment;
 
 import static junit.framework.Assert.assertEquals;
 
+import java.util.Calendar;
 import java.util.Collections;
 
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.util.ISO8601;
 import org.junit.Test;
+
+import com.google.common.collect.ImmutableList;
 
 /**
  * Test case for ensuring that segment size remains within bounds.
@@ -73,6 +77,60 @@ public class SegmentSizeTest {
         builder.setProperty(PropertyStates.createProperty(
                 "test", Collections.nCopies(100, string), Type.STRINGS));
         assertEquals(base + 100 * BYTES_PER_REFERENCE, getSize(builder));
+    }
+
+    @Test
+    public void testDuplicateDates() {
+        String now = ISO8601.format(Calendar.getInstance());
+
+        NodeBuilder builder = MemoryNodeState.EMPTY_NODE.builder();
+        builder.setProperty(PropertyStates.createProperty(
+                "test", Collections.nCopies(1, now), Type.DATES));
+        int base = getSize(builder);
+
+        builder.setProperty(PropertyStates.createProperty(
+                "test", Collections.nCopies(10, now), Type.DATES));
+        assertEquals(base + 10 * BYTES_PER_REFERENCE, getSize(builder));
+
+        builder.setProperty(PropertyStates.createProperty(
+                "test", Collections.nCopies(100, now), Type.DATES));
+        assertEquals(base + 100 * BYTES_PER_REFERENCE, getSize(builder));
+    }
+
+    @Test
+    public void testAccessControlNodes() {
+        NodeBuilder builder = MemoryNodeState.EMPTY_NODE.builder();
+        builder.setProperty("jcr:primaryType", "rep:ACL", Type.NAME);
+        assertEquals(64, getSize(builder));
+
+        NodeBuilder deny = builder.child("deny");
+        deny.setProperty("jcr:primaryType", "rep:DenyACE", Type.NAME);
+        deny.setProperty("rep:principalName", "everyone");
+        builder.setProperty(PropertyStates.createProperty(
+                "rep:privileges", ImmutableList.of("jcr:read"), Type.NAMES));
+        assertEquals(232, getSize(builder));
+
+        NodeBuilder allow = builder.child("allow");
+        allow.setProperty("jcr:primaryType", "rep:GrantACE");
+        allow.setProperty("rep:principalName", "administrators");
+        allow.setProperty(PropertyStates.createProperty(
+                "rep:privileges", ImmutableList.of("jcr:all"), Type.NAMES));
+        assertEquals(374, getSize(builder));
+
+        NodeBuilder deny0 = builder.child("deny0");
+        deny0.setProperty("jcr:primaryType", "rep:DenyACE", Type.NAME);
+        deny0.setProperty("rep:principalName", "everyone");
+        deny0.setProperty("rep:glob", "*/activities/*");
+        builder.setProperty(PropertyStates.createProperty(
+                "rep:privileges", ImmutableList.of("jcr:read"), Type.NAMES));
+        assertEquals(504, getSize(builder));
+
+        NodeBuilder allow0 = builder.child("allow0");
+        allow0.setProperty("jcr:primaryType", "rep:GrantACE");
+        allow0.setProperty("rep:principalName", "user-administrators");
+        allow0.setProperty(PropertyStates.createProperty(
+                "rep:privileges", ImmutableList.of("jcr:all"), Type.NAMES));
+        assertEquals(631, getSize(builder));
     }
 
     private int getSize(NodeBuilder builder) {
