@@ -19,6 +19,7 @@ package org.apache.jackrabbit.mongomk.prototype;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.jackrabbit.mongomk.impl.model.MongoNode;
 import org.apache.jackrabbit.mongomk.prototype.UpdateOp.Operation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

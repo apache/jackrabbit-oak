@@ -32,6 +32,7 @@ import org.junit.Test;
 public class MongoDocumentStoreTest extends AbstractMongoConnectionTest {
 
     @Test
+    @Ignore
     public void addGetAndRemove() throws Exception {
         DocumentStore docStore = new MongoDocumentStore(mongoConnection.getDB());
 
