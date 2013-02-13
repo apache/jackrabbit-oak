@@ -182,6 +182,19 @@ public class TreeImplTest {
     }
 
     @Test
+    public void removeNew() throws CommitFailedException {
+        Tree tree = root.getTree("/");
+
+        Tree t = tree.addChild("new");
+        assertEquals(Status.NEW, t.getStatus());
+
+        t.remove();
+        assertEquals(Status.DISCONNECTED, t.getStatus());
+
+        assertNull(tree.getChild("new"));
+    }
+
+    @Test
     public void setProperty() throws CommitFailedException {
         Tree tree = root.getTree("/");
 
