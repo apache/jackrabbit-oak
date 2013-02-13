@@ -615,7 +615,7 @@
  */
 [rep:Permissions]
   - rep:accessControlledPath (PATH) protected mandatory
-  - rep:privilegeBits (UNDEFINED) protected mandatory
+  - rep:privileges (UNDEFINED) protected mandatory
   - rep:index (LONG) protected mandatory
   - * (UNDEFINED) protected
 
@@ -661,7 +661,7 @@
 [rep:Members]
   orderable
   + * (rep:Members) = rep:Members protected multiple /* FIXME: SNS definition */
-  - * (WEAKREFERENCE) protected < 'rep:Authorizable' /* Deprecated since OAK */
+  - * (WEAKREFERENCE) protected < 'rep:Authorizable' /* Deprecated since oak 1.0 */
   - rep:members (WEAKREFERENCE) protected multiple < 'rep:Authorizable' /* @since oak 1.0 */
 
 // -----------------------------------------------------------------------------
@@ -673,6 +673,7 @@
  */
 [rep:Privileges]
   + * (rep:Privilege) = rep:Privilege protected ABORT
+  - rep:next (LONG) protected multiple mandatory
 
 /**
  * @since oak 1.0
@@ -680,6 +681,7 @@
 [rep:Privilege]
   - rep:isAbstract (BOOLEAN) protected
   - rep:aggregates (NAME) protected multiple
+  - rep:bits (LONG) protected multiple mandatory
 
 // -----------------------------------------------------------------------------
 // Token Management

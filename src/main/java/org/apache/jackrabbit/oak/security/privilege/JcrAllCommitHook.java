@@ -73,6 +73,14 @@ public class JcrAllCommitHook implements CommitHook, PrivilegeConstants {
                     propertyBuilder.addValue(name);
                     jcrAll.setProperty(propertyBuilder.getPropertyState());
                 }
+
+                // update the privilege bits of the jcr:all in case the new
+                // privilege isn't an aggregate
+                if (after.getProperty(REP_AGGREGATES) == null) {
+                    PrivilegeBits bits = PrivilegeBits.getInstance(after.getProperty(REP_BITS));
+                    PrivilegeBits all = PrivilegeBits.getInstance(jcrAll.getProperty(REP_BITS));
+                    PrivilegeBits.getInstance(all).add(bits).writeTo(jcrAll, JCR_ALL);
+                }
             }
         }
 

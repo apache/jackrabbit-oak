@@ -81,9 +81,9 @@ public class PrivilegeManagerImpl implements PrivilegeManager {
         if (privilegeName == null || privilegeName.isEmpty()) {
             throw new RepositoryException("Invalid privilege name " + privilegeName);
         }
-        PrivilegeDefinition definition = new PrivilegeDefinitionImpl(getOakName(privilegeName), isAbstract, getOakNames(declaredAggregateNames));
-        PrivilegeDefinitionWriter writer = new PrivilegeDefinitionWriter(getWriteRoot());
-        writer.writeDefinition(definition);
+        PrivilegeDefinitionImpl definition = new PrivilegeDefinitionImpl(getOakName(privilegeName), isAbstract, getOakNames(declaredAggregateNames));
+        PrivilegeDefinitionStore store = getStore(getWriteRoot());
+        store.writeDefinition(definition);
 
         // refresh the current root to make sure the definition is visible
         root.refresh();
@@ -130,18 +130,18 @@ public class PrivilegeManagerImpl implements PrivilegeManager {
 
     @Nonnull
     private PrivilegeDefinition[] getPrivilegeDefinitions() {
-        Map<String, PrivilegeDefinition> definitions = getReader().readDefinitions();
+        Map<String, PrivilegeDefinition> definitions = getStore(root).readDefinitions();
         return definitions.values().toArray(new PrivilegeDefinition[definitions.size()]);
     }
 
     @CheckForNull
     private PrivilegeDefinition getPrivilegeDefinition(String oakName) {
-        return getReader().readDefinition(oakName);
+        return getStore(root).readDefinition(oakName);
     }
 
     @Nonnull
-    private PrivilegeDefinitionReader getReader() {
-        return new PrivilegeDefinitionReader(root);
+    private static PrivilegeDefinitionStore getStore(Root targetRoot) {
+        return new PrivilegeDefinitionStore(targetRoot);
     }
 
     //--------------------------------------------------------------------------
