@@ -31,6 +31,7 @@ import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.plugins.memory.LongPropertyState;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.api.Type.LONG;
@@ -182,13 +183,13 @@ public class TreeImplTest {
     }
 
     @Test
+    @Ignore("OAK-621")
     public void removeNew() throws CommitFailedException {
         Tree tree = root.getTree("/");
 
         Tree t = tree.addChild("new");
-        assertEquals(Status.NEW, t.getStatus());
 
-        t.remove();
+        tree.getChild("new").remove();
         assertEquals(Status.DISCONNECTED, t.getStatus());
 
         assertNull(tree.getChild("new"));
