@@ -33,7 +33,7 @@ import com.mongodb.WriteResult;
 
 public class MongoDocumentStore implements DocumentStore {
 
-    private static final String KEY_PATH = "_path";
+    private static final String KEY_PATH = "_id";
     private static final Logger LOG = LoggerFactory.getLogger(MongoDocumentStore.class);
 
     private final DBCollection nodesCollection;
@@ -111,13 +111,13 @@ public class MongoDocumentStore implements DocumentStore {
     }
 
     private void ensureIndex() {
-        DBObject index = new BasicDBObject();
-        index.put(KEY_PATH, 1L);
-
-        DBObject options = new BasicDBObject();
-        options.put("unique", Boolean.TRUE);
-
-        nodesCollection.ensureIndex(index, options);
+        // the _id field is the primary key, so we don't need to define it
+        // the following code is just a template in case we need more indexes
+        // DBObject index = new BasicDBObject();
+        // index.put(KEY_PATH, 1L);
+        // DBObject options = new BasicDBObject();
+        // options.put("unique", Boolean.TRUE);
+        // nodesCollection.ensureIndex(index, options);
     }
 
     private static Map<String, Object> convertFromDBObject(DBObject n) {
@@ -146,7 +146,7 @@ public class MongoDocumentStore implements DocumentStore {
         return dbCollection.findOne(getByPathQuery(path));
     }
 
-    private DBObject getByPathQuery(String path) {
+    private static DBObject getByPathQuery(String path) {
         return QueryBuilder.start(KEY_PATH).is(path).get();
     }
 }
