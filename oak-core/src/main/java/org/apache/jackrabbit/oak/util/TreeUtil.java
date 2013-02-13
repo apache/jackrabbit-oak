@@ -23,7 +23,9 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.core.TreeImpl;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 
@@ -67,14 +69,26 @@ public final class TreeUtil {
      * {@link org.apache.jackrabbit.oak.api.PropertyState#isArray() is an array}
      * this method returns {@code false}.
      *
-     * @param tree The target tree.
+     * @param tree         The target tree.
      * @param propertyName The name of the property.
      * @return the boolean representation of the property state with the given
-     * name. This utility returns {@code false} if the property does not exist
-     * or is an multivalued property.
+     *         name. This utility returns {@code false} if the property does not exist
+     *         or is an multivalued property.
      */
     public static boolean getBoolean(Tree tree, String propertyName) {
         PropertyState property = tree.getProperty(propertyName);
         return property != null && !property.isArray() && property.getValue(BOOLEAN);
+    }
+
+    /**
+     * Utility method that assert that children of a tree keep the order such
+     * as defined by the insertion and any subsequent
+     * {@link Tree#orderBefore(String) reordering}.
+     *
+     * @param tree The parent tree whose children are mandated to be orderable.
+     */
+    public static void ensureOrderableChildren(Tree tree) {
+        checkArgument(tree instanceof TreeImpl);
+        ((TreeImpl) tree).ensureChildOrderProperty();
     }
 }
