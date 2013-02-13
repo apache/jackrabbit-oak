@@ -20,6 +20,8 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import com.google.common.primitives.Longs;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -98,8 +100,6 @@ public final class PrivilegeBits implements PrivilegeConstants {
 
     /**
      * Private constructor.
-     *
-     * @param d
      */
     private PrivilegeBits(Data d) {
         this.d = d;
@@ -117,10 +117,11 @@ public final class PrivilegeBits implements PrivilegeConstants {
     /**
      * Creates a mutable instance of privilege bits.
      *
-     * @param base
+     * @param base The base for this mutable instance.
      * @return a new instance of privilege bits.
      */
-    public static PrivilegeBits getInstance(PrivilegeBits base) {
+    @Nonnull
+    public static PrivilegeBits getInstance(@Nonnull PrivilegeBits base) {
         return new PrivilegeBits(new ModifiableData(base.d));
     }
 
@@ -128,10 +129,11 @@ public final class PrivilegeBits implements PrivilegeConstants {
      * Get or create an instance of privilege bits for a specific property that
      * stores privileges.
      *
-     * @param property
+     * @param property The property state storing privilege bits information.
      * @return an instance of {@code PrivilegeBits}
      */
-    public static PrivilegeBits getInstance(PropertyState property) {
+    @Nonnull
+    public static PrivilegeBits getInstance(@Nullable PropertyState property) {
         if (property == null) {
             return EMPTY;
         }
@@ -150,7 +152,8 @@ public final class PrivilegeBits implements PrivilegeConstants {
      * @param tree A privilege definition tree or the privileges root.
      * @return an instance of {@code PrivilegeBits}
      */
-    public static PrivilegeBits getInstance(Tree tree) {
+    @Nonnull
+    public static PrivilegeBits getInstance(@Nullable Tree tree) {
         if (tree == null) {
             return EMPTY;
         }
@@ -168,9 +171,10 @@ public final class PrivilegeBits implements PrivilegeConstants {
      * Internal method to get or create an instance of privilege bits for the
      * specified long value.
      *
-     * @param bits
+     * @param bits A long value.
      * @return an instance of {@code PrivilegeBits}
      */
+    @Nonnull
     private static PrivilegeBits getInstance(long bits) {
         if (bits == NO_PRIVILEGE) {
             return EMPTY;
@@ -184,9 +188,10 @@ public final class PrivilegeBits implements PrivilegeConstants {
     /**
      * Internal method to create a new instance of {@code PrivilegeBits}.
      *
-     * @param bits
+     * @param bits A long array.
      * @return an instance of {@code PrivilegeBits}
      */
+    @Nonnull
     private static PrivilegeBits getInstance(long[] bits) {
         return new PrivilegeBits(new UnmodifiableData(bits));
     }
@@ -199,7 +204,9 @@ public final class PrivilegeBits implements PrivilegeConstants {
      * @param isAllow
      * @return
      */
-    public static long calculatePermissions(PrivilegeBits bits, PrivilegeBits parentBits, boolean isAllow) {
+    public static long calculatePermissions(@Nonnull PrivilegeBits bits,
+                                            @Nonnull PrivilegeBits parentBits,
+                                            boolean isAllow) {
         long privs = bits.d.longValue();
         long parentPrivs = parentBits.d.longValue();
         long perm = Permissions.NO_PERMISSION;
@@ -312,6 +319,7 @@ public final class PrivilegeBits implements PrivilegeConstants {
      *
      * @return an unmodifiable {@code PrivilegeBits} instance.
      */
+    @Nonnull
     public PrivilegeBits unmodifiable() {
         if (d instanceof ModifiableData) {
             if (d.isSimple()) {
@@ -336,7 +344,7 @@ public final class PrivilegeBits implements PrivilegeConstants {
      *         {@code otherBits} are included in this instance; {@code false}
      *         otherwise.
      */
-    public boolean includes(PrivilegeBits otherBits) {
+    public boolean includes(@Nonnull PrivilegeBits otherBits) {
         return d.includes(otherBits.d);
     }
 
@@ -363,7 +371,8 @@ public final class PrivilegeBits implements PrivilegeConstants {
      * @return The updated instance.
      * @throws UnsupportedOperationException if this instance is immutable.
      */
-    public PrivilegeBits add(PrivilegeBits other) {
+    @Nonnull
+    public PrivilegeBits add(@Nonnull PrivilegeBits other) {
         if (d instanceof ModifiableData) {
             ((ModifiableData) d).add(other.d);
             return this;
@@ -382,7 +391,8 @@ public final class PrivilegeBits implements PrivilegeConstants {
      * @return The updated instance.
      * @throws UnsupportedOperationException if this instance is immutable.
      */
-    public PrivilegeBits diff(PrivilegeBits other) {
+    @Nonnull
+    public PrivilegeBits diff(@Nonnull PrivilegeBits other) {
         if (d instanceof ModifiableData) {
             ((ModifiableData) d).diff(other.d);
             return this;
@@ -400,7 +410,8 @@ public final class PrivilegeBits implements PrivilegeConstants {
      * @return The updated instance.
      * @throws UnsupportedOperationException if this instance is immutable.
      */
-    public PrivilegeBits addDifference(PrivilegeBits a, PrivilegeBits b) {
+    @Nonnull
+    public PrivilegeBits addDifference(@Nonnull PrivilegeBits a, @Nonnull PrivilegeBits b) {
         if (d instanceof ModifiableData) {
             ((ModifiableData) d).addDifference(a.d, b.d);
             return this;
@@ -415,6 +426,7 @@ public final class PrivilegeBits implements PrivilegeConstants {
      *
      * @return an instance of {@code PrivilegeBits}
      */
+    @Nonnull
     PrivilegeBits nextBits() {
         if (this == EMPTY) {
             return EMPTY;
@@ -423,12 +435,23 @@ public final class PrivilegeBits implements PrivilegeConstants {
         }
     }
 
-    void writeTo(Tree tree) {
+    /**
+     * Write this instance as property to the specified tree.
+     *
+     * @param tree The target tree.
+     */
+    void writeTo(@Nonnull Tree tree) {
         String name = (REP_PRIVILEGES.equals(tree.getName())) ? REP_NEXT : REP_BITS;
         tree.setProperty(name, Longs.asList(d.longValues()), Type.LONGS);
     }
 
-    void writeTo(NodeBuilder nodeBuilder, String nodeName) {
+    /**
+     * Write this instance as property to the specified node builder.
+     *
+     * @param nodeBuilder The target node builder.
+     * @param nodeName    The name of the node.
+     */
+    void writeTo(@Nonnull NodeBuilder nodeBuilder, @Nonnull String nodeName) {
         String name = (REP_PRIVILEGES.equals(nodeName)) ? REP_NEXT : REP_BITS;
         nodeBuilder.setProperty(name, Longs.asList(d.longValues()), Type.LONGS);
     }
