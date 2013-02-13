@@ -30,6 +30,7 @@ public interface PrivilegeConstants {
      * Internal (oak) name for the root node of the privilege store.
      */
     String REP_PRIVILEGES = "rep:privileges";
+
     /**
      * Internal (oak) path for the privilege store.
      */
@@ -39,6 +40,7 @@ public interface PrivilegeConstants {
      * Node type name of the root node of the privilege store
      */
     String NT_REP_PRIVILEGES = "rep:Privileges";
+
     /**
      * Node type name of the privilege definition nodes
      */
@@ -48,16 +50,20 @@ public interface PrivilegeConstants {
      * Name of the property that defines if the privilege is abstract.
      */
     String REP_IS_ABSTRACT = "rep:isAbstract";
+
     /**
      * Name of the privilege definition property that stores the aggregate privilege names.
      */
     String REP_AGGREGATES = "rep:aggregates";
+
     /**
-     * TODO
+     * Name of the property storing the value of the next available privilege bits.
      */
     String REP_NEXT = "rep:next";
+
     /**
-     * TODO
+     * Name of the privilege definition property that stores the internal representation
+     * of this privilege.
      */
     String REP_BITS = "rep:bits";
 
