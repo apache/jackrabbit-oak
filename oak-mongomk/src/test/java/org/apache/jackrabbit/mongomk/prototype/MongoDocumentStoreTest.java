@@ -20,9 +20,13 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.mongomk.AbstractMongoConnectionTest;
 import org.apache.jackrabbit.mongomk.prototype.DocumentStore.Collection;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class MongoDocumentStoreTest extends AbstractMongoConnectionTest {
@@ -51,5 +55,67 @@ public class MongoDocumentStoreTest extends AbstractMongoConnectionTest {
         docStore.remove(Collection.NODES, "/");
         obj = docStore.find(Collection.NODES, "/");
         assertTrue(obj == null);
+    }
+
+    @Test
+    @Ignore
+    public void addLotsOfNodes() throws Exception {
+        char[] nPrefix = new char[]{'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'};
+        int nNodes = 2000;
+
+        for (int nThreads = 1; nThreads < 32; nThreads = nThreads * 2) {
+            DocumentStore docStore = new MongoDocumentStore(mongoConnection.getDB());
+
+            System.out.println("Adding and updating " + nNodes + " nodes in each " + nThreads + " threads");
+            long start = System.currentTimeMillis();
+
+            ExecutorService executor = Executors.newFixedThreadPool(nThreads);
+            for (int j = 0; j < nThreads; j++) {
+                executor.submit(new AddAndUpdateNodesTask(docStore, "node" + nPrefix[j], nNodes));
+            }
+            executor.shutdown();
+            executor.awaitTermination(1, TimeUnit.MINUTES);
+
+            long end = System.currentTimeMillis();
+            System.out.println("Done: " + (end - start) + "ms");
+            dropCollections(mongoConnection.getDB());
+        }
+    }
+
+    private static class AddAndUpdateNodesTask implements Runnable {
+
+        private final DocumentStore docStore;
+        private final String nodeName;
+        private final int nNodes;
+
+        public AddAndUpdateNodesTask(DocumentStore docStore, String nodeName, int nNodes) {
+            this.docStore = docStore;
+            this.nodeName = nodeName;
+            this.nNodes = nNodes;
+        }
+
+        @Override
+        public void run() {
+            addNodes();
+            updateNodes();
+        }
+
+        private void addNodes() {
+            for (int i = 0; i < nNodes; i++) {
+                UpdateOp updateOp = new UpdateOp("/" + nodeName + i);
+                updateOp.addMapEntry("property1", "key1", "value1");
+                updateOp.set("property3", "value3");
+                docStore.createOrUpdate(Collection.NODES, updateOp);
+            }
+        }
+
+        private void updateNodes() {
+            for (int i = 0; i < nNodes; i++) {
+                UpdateOp updateOp = new UpdateOp("/" + nodeName + i);
+                updateOp.addMapEntry("property1", "key2", "value2");
+                updateOp.set("property4", "value4");
+                docStore.createOrUpdate(Collection.NODES, updateOp);
+            }
+        }
     }
 }

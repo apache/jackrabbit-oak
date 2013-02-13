@@ -40,6 +40,7 @@ public class MongoDocumentStore implements DocumentStore {
 
     public MongoDocumentStore(DB db) {
         nodesCollection = db.getCollection(Collection.NODES.toString());
+        ensureIndex();
     }
 
     @Override
@@ -99,8 +100,24 @@ public class MongoDocumentStore implements DocumentStore {
             update.append("$inc", incUpdates);
         }
 
-        DBObject oldNode = dbCollection.findAndModify(query, null /*fields*/, null /*sort*/, false /*remove*/, update, false /*returnNew*/, true /*upsert*/);
+//        dbCollection.update(query, update, true /*upsert*/, false /*multi*/,
+//                WriteConcern.SAFE);
+//        return null;
+
+        DBObject oldNode = dbCollection.findAndModify(query, null /*fields*/,
+                null /*sort*/, false /*remove*/, update, false /*returnNew*/,
+                true /*upsert*/);
         return convertFromDBObject(oldNode);
+    }
+
+    private void ensureIndex() {
+        DBObject index = new BasicDBObject();
+        index.put(KEY_PATH, 1L);
+
+        DBObject options = new BasicDBObject();
+        options.put("unique", Boolean.TRUE);
+
+        nodesCollection.ensureIndex(index, options);
     }
 
     private Map<String, Object> convertFromDBObject(DBObject n) {
