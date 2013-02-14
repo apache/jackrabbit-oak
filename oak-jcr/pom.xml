@@ -61,7 +61,6 @@
       org.apache.jackrabbit.test.api.SetPropertyAssumeTypeTest#testValueConstraintViolationExceptionBecauseOfInvalidTypeParameter
       org.apache.jackrabbit.test.api.SetPropertyAssumeTypeTest#testValuesConstraintViolationExceptionBecauseOfInvalidTypeParameter
       org.apache.jackrabbit.test.api.SetPropertyAssumeTypeTest#testStringConstraintViolationExceptionBecauseOfInvalidTypeParameter
-      org.apache.jackrabbit.test.api.NodeAddMixinTest#testAddInheritedMixin
       org.apache.jackrabbit.test.api.NodeAddMixinTest#testLocked
       org.apache.jackrabbit.test.api.NodeCanAddMixinTest#testLocked
       org.apache.jackrabbit.test.api.NodeRemoveMixinTest#testLocked
@@ -190,7 +189,6 @@
       org.apache.jackrabbit.test.api.lock.SessionScopedLockTest#testGetLockOnChild
       org.apache.jackrabbit.test.api.lock.SessionScopedLockTest#testGetLockOnNewChild
       org.apache.jackrabbit.test.api.lock.SessionScopedLockTest#testRemoveMixLockableFromLockedNode
-      org.apache.jackrabbit.test.api.nodetype.PropertyDefTest#testIsMandatory  <!-- OAK-66 -->
       org.apache.jackrabbit.test.api.LifecycleTest
       org.apache.jackrabbit.test.api.query.ElementTest#testElementTestNameTestSomeNTWithSNS          <!-- OAK-203 -->
       org.apache.jackrabbit.test.api.query.SaveTest#testItemExistsException                          <!-- OAK-203 -->
