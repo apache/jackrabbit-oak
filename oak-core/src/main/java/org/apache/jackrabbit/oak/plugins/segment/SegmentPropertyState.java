@@ -17,57 +17,57 @@
 package org.apache.jackrabbit.oak.plugins.segment;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkElementIndex;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
 import javax.annotation.Nonnull;
-import javax.jcr.PropertyType;
 
+import org.apache.jackrabbit.oak.api.AbstractPropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.memory.EmptyPropertyState;
 import org.apache.jackrabbit.oak.plugins.value.Conversions;
 import org.apache.jackrabbit.oak.plugins.value.Conversions.Converter;
 
-class SegmentPropertyState extends EmptyPropertyState {
+class SegmentPropertyState extends AbstractPropertyState {
+
+    private final PropertyTemplate template;
 
     private final SegmentReader reader;
 
-    private final int tag;
+    private final RecordId recordId;
 
-    private final int count;
-
-    private final ListRecord values;
-
-    SegmentPropertyState(SegmentReader reader, String name, RecordId id) {
-        super(name);
-
+    public SegmentPropertyState(
+            PropertyTemplate template,
+            SegmentReader reader, RecordId recordId) {
+        this.template = checkNotNull(template);
         this.reader = checkNotNull(reader);
+        this.recordId = checkNotNull(recordId);
+    }
 
-        checkNotNull(id);
-        this.tag = reader.readInt(id, 0);
-        this.count = reader.readInt(id, 4);
-        this.values = new ListRecord(reader.readRecordId(id, 8), count());
+    @Override @Nonnull
+    public String getName() {
+        return template.getName();
+    }
+
+    @Override
+    public Type<?> getType() {
+        return template.getType();
     }
 
     @Override
     public boolean isArray() {
-        return count != -1;
+        return getType().isArray();
     }
 
     @Override
     public int count() {
         if (isArray()) {
-            return count;
+            return reader.readInt(recordId, 0);
         } else {
             return 1;
         }
-    }
-
-    @Override
-    public Type<?> getType() {
-        return Type.fromTag(tag, isArray());
     }
 
     @Override @Nonnull @SuppressWarnings("unchecked")
@@ -113,6 +113,19 @@ class SegmentPropertyState extends EmptyPropertyState {
         checkNotNull(type);
         checkArgument(!type.isArray(), "Type must not be an array type");
 
+        Type<?> base;
+        ListRecord values;
+        if (isArray()) {
+            base = getType().getBaseType();
+            int size = reader.readInt(recordId, 0);
+            RecordId listId = reader.readRecordId(recordId, 4);
+            values = new ListRecord(listId, size);
+        } else {
+            base = getType();
+            values = new ListRecord(recordId, 1);
+        }
+        checkElementIndex(index, values.size());
+
         RecordId valueId = values.getEntry(reader, index);
         if (type == Type.BINARY) {
             return (T) new SegmentBlob(reader, valueId);
@@ -124,13 +137,13 @@ class SegmentPropertyState extends EmptyPropertyState {
                 return (T) value;
             } else {
                 Converter converter = Conversions.convert(value);
-                if (tag == PropertyType.DATE) {
+                if (base == Type.DATE) {
                     converter = Conversions.convert(converter.toCalendar());
-                } else if (tag == PropertyType.DECIMAL) {
+                } else if (base == Type.DECIMAL) {
                     converter = Conversions.convert(converter.toDecimal());
-                } else if (tag == PropertyType.DOUBLE) {
+                } else if (base == Type.DOUBLE) {
                     converter = Conversions.convert(converter.toDouble());
-                } else if (tag == PropertyType.LONG) {
+                } else if (base == Type.LONG) {
                     converter = Conversions.convert(converter.toLong());
                 }
                 if (type == Type.BOOLEAN) {
@@ -153,8 +166,16 @@ class SegmentPropertyState extends EmptyPropertyState {
 
     @Override
     public long size(int index) {
-        RecordId valueId = values.getEntry(reader, index);
-        return reader.readLong(valueId, 0);
+        ListRecord values;
+        if (isArray()) {
+            int size = reader.readInt(recordId, 0);
+            RecordId listId = reader.readRecordId(recordId, 4);
+            values = new ListRecord(listId, size);
+        } else {
+            values = new ListRecord(recordId, 1);
+        }
+        checkElementIndex(index, values.size());
+        return reader.readLength(values.getEntry(reader, 0));
     }
 
 }

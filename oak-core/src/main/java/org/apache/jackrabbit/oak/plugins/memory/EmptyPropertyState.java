@@ -24,6 +24,8 @@ import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
 
 import com.google.common.collect.Iterables;
+
+import org.apache.jackrabbit.oak.api.AbstractPropertyState;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 
@@ -38,7 +40,8 @@ import static org.apache.jackrabbit.oak.api.Type.STRINGS;
  * providing default implementation which correspond to a property
  * without any value.
  */
-public abstract class EmptyPropertyState implements PropertyState {
+abstract class EmptyPropertyState extends AbstractPropertyState {
+
     private final String name;
 
     /**
@@ -124,65 +127,6 @@ public abstract class EmptyPropertyState implements PropertyState {
     @Override
     public int count() {
         return 0;
-    }
-
-    //------------------------------------------------------------< Object >--
-
-    /**
-     * Checks whether the given object is equal to this one. Two property
-     * states are considered equal if their names and types match and
-     * their string representation of their values are equal.
-     * Subclasses may override this method with a more efficient
-     * equality check if one is available.
-     *
-     * @param other target of the comparison
-     * @return {@code true} if the objects are equal, {@code false} otherwise
-     */
-    @Override
-    public boolean equals(Object other) {
-        if (this == other) {
-            return true;
-        } else if (other instanceof PropertyState) {
-            PropertyState that = (PropertyState) other;
-            if (!getName().equals(that.getName())) {
-                return false;
-            }
-            if (!getType().equals(that.getType())) {
-                return false;
-            }
-            if (getType().tag() == PropertyType.BINARY) {
-                return Iterables.elementsEqual(
-                        getValue(BINARIES), that.getValue(BINARIES));
-            } else {
-                return Iterables.elementsEqual(
-                        getValue(STRINGS), that.getValue(STRINGS));
-            }
-        } else {
-            return false;
-        }
-    }
-
-    /**
-     * Returns a hash code that's compatible with how the
-     * {@link #equals(Object)} method is implemented. The current
-     * implementation simply returns the hash code of the property name
-     * since {@link PropertyState} instances are not intended for use as
-     * hash keys.
-     *
-     * @return hash code
-     */
-    @Override
-    public int hashCode() {
-        return name.hashCode();
-    }
-
-    @Override
-    public String toString() {
-        if (isArray()) {
-            return getName() + '=' + getValue(STRINGS);
-        } else {
-            return getName() + '=' + getValue(STRING);
-        }
     }
 
 }
