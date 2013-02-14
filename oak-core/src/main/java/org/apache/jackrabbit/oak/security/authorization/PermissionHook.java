@@ -46,13 +46,17 @@ public class PermissionHook implements CommitHook, AccessControlConstants {
 
     private static final Logger log = LoggerFactory.getLogger(PermissionHook.class);
 
+    private final String workspaceName;
+
+    PermissionHook(String workspaceName) {
+        this.workspaceName = workspaceName;
+    }
+
     @Nonnull
     @Override
     public NodeState processCommit(final NodeState before, NodeState after) throws CommitFailedException {
         NodeBuilder rootBuilder = after.builder();
 
-        // TODO: retrieve workspace name
-        String workspaceName = "default";
         NodeBuilder permissionRoot = getPermissionRoot(rootBuilder, workspaceName);
         ReadOnlyNodeTypeManager ntMgr = ReadOnlyNodeTypeManager.getInstance(before);
 

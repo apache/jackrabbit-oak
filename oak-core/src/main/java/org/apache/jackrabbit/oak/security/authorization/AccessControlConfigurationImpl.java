@@ -24,12 +24,13 @@ import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.jcr.security.AccessControlManager;
 
-import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.version.VersionablePathHook;
 import org.apache.jackrabbit.oak.security.authorization.restriction.RestrictionProviderImpl;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
+import org.apache.jackrabbit.oak.spi.commit.CommitHookProvider;
+import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.security.Context;
@@ -60,6 +61,31 @@ public class AccessControlConfigurationImpl extends SecurityConfiguration.Defaul
 
     @Nonnull
     @Override
+    public RepositoryInitializer getRepositoryInitializer() {
+        return new AccessControlInitializer();
+    }
+
+    @Nonnull
+    @Override
+    public CommitHookProvider getCommitHookProvider() {
+        return new CommitHookProvider() {
+            @Override
+            public CommitHook getCommitHook(String workspaceName) {
+                return new CompositeHook(new PermissionHook(workspaceName), new VersionablePathHook(workspaceName));
+            }
+        };
+    }
+
+    @Override
+    public List<ValidatorProvider> getValidatorProviders() {
+        List<ValidatorProvider> vps = new ArrayList<ValidatorProvider>();
+        vps.add(new PermissionValidatorProvider(securityProvider));
+        vps.add(new AccessControlValidatorProvider(securityProvider));
+        return Collections.unmodifiableList(vps);
+    }
+
+    @Nonnull
+    @Override
     public List<ProtectedItemImporter> getProtectedItemImporters() {
         return Collections.<ProtectedItemImporter>singletonList(new AccessControlImporter(securityProvider));
     }
@@ -82,26 +108,5 @@ public class AccessControlConfigurationImpl extends SecurityConfiguration.Defaul
     public PermissionProvider getPermissionProvider(Root root, Set<Principal> principals) {
         // TODO OAK-51
         return new TmpPermissionProvider(root, principals, securityProvider);
-    }
-
-    @Nonnull
-    @Override
-    public RepositoryInitializer getRepositoryInitializer() {
-        return new AccessControlInitializer();
-    }
-
-    @Nonnull
-    @Override
-    public List<CommitHook> getCommitHooks() {
-        // TODO: review if VersionablePathHook should be included here
-        return ImmutableList.of(new PermissionHook(), new VersionablePathHook());
-    }
-
-    @Override
-    public List<ValidatorProvider> getValidatorProviders() {
-        List<ValidatorProvider> vps = new ArrayList<ValidatorProvider>();
-        vps.add(new PermissionValidatorProvider(securityProvider));
-        vps.add(new AccessControlValidatorProvider(securityProvider));
-        return Collections.unmodifiableList(vps);
     }
 }
