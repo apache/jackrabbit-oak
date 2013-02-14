@@ -896,6 +896,10 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                 ntm.getNodeType(mixinName); // throws on not found
                 // TODO: END
 
+                if (isNodeType(mixinName)) {
+                    return null;
+                }
+
                 PropertyDelegate mixins = dlg.getProperty(JcrConstants.JCR_MIXINTYPES);
                 Value value = sessionDelegate.getValueFactory().createValue(mixinName, PropertyType.NAME);
 
