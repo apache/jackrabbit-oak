@@ -16,7 +16,10 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
+import java.util.Collections;
+import java.util.Set;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -62,6 +65,16 @@ public final class NoPermissions implements CompiledPermissions {
 
     @Override
     public boolean isGranted(@Nonnull String path, long permissions) {
+        return false;
+    }
+
+    @Override
+    public Set<String> getPrivileges(@Nullable Tree tree) {
+        return Collections.emptySet();
+    }
+
+    @Override
+    public boolean hasPrivileges(@Nullable Tree tree, String... privilegeNames) {
         return false;
     }
 }

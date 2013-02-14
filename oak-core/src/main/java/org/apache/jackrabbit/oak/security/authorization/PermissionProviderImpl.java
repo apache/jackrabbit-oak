@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.security.authorization;
 
 import java.security.Principal;
-import java.util.Collections;
 import java.util.Set;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -38,6 +37,7 @@ import org.apache.jackrabbit.oak.security.authorization.permission.AllPermission
 import org.apache.jackrabbit.oak.security.authorization.permission.CompiledPermissionImpl;
 import org.apache.jackrabbit.oak.security.authorization.permission.CompiledPermissions;
 import org.apache.jackrabbit.oak.security.authorization.permission.NoPermissions;
+import org.apache.jackrabbit.oak.security.privilege.PrivilegeDefinitionStore;
 import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.PermissionProvider;
@@ -60,7 +60,8 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
 
     private static final Logger log = LoggerFactory.getLogger(PermissionProviderImpl.class);
 
-    private final Root root;
+    private final ReadOnlyRoot root;
+
     private final Context acContext;
 
     private final String workspaceName = "default"; // FIXME: use proper workspace as associated with the root
@@ -75,27 +76,26 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
             compiledPermissions = AllPermissions.getInstance();
         } else {
             String relativePath = PERMISSIONS_STORE_PATH + '/' + workspaceName;
-            ReadOnlyTree rootTree = ReadOnlyTree.createFromRoot(root);
+            ReadOnlyTree rootTree = this.root.getTree("/");
             ReadOnlyTree permissionsTree = getPermissionsRoot(rootTree, relativePath);
             if (permissionsTree == null) {
                 compiledPermissions = NoPermissions.getInstance();
             } else {
-                compiledPermissions = new CompiledPermissionImpl(permissionsTree, principals);
+                PrivilegeDefinitionStore privilegeStore = new PrivilegeDefinitionStore(this.root);
+                compiledPermissions = new CompiledPermissionImpl(principals, privilegeStore, permissionsTree);
             }
         }
     }
 
     @Nonnull
     @Override
-    public Set<String> getPrivilegeNames(@Nullable Tree tree) {
-        // TODO
-        return Collections.emptySet();
+    public Set<String> getPrivileges(@Nullable Tree tree) {
+        return compiledPermissions.getPrivileges(tree);
     }
 
     @Override
     public boolean hasPrivileges(@Nullable Tree tree, String... privilegeNames) {
-        // TODO
-        return false;
+        return compiledPermissions.hasPrivileges(tree, privilegeNames);
     }
 
     @Override
@@ -144,7 +144,7 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
     }
 
     @Override
-    public boolean hasPermission(@Nonnull String oakPath, String jcrActions) {
+    public boolean hasPermission(@Nonnull String oakPath, @Nonnull String jcrActions) {
         TreeLocation location = root.getLocation(oakPath);
         long permissions = Permissions.getPermissions(jcrActions, location);
         if (!location.exists()) {
@@ -184,28 +184,30 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
         }
     }
 
+    // TODO: deal with activities/configurations
     @CheckForNull
     private String getVersionablePath(@Nonnull Tree versionStoreTree, @Nullable PropertyState property) {
+        String relPath = "";
+        String propName = (property == null) ? "" : property.getName();
         String versionablePath = null;
         Tree t = versionStoreTree;
-        while (!JcrConstants.JCR_SYSTEM.equals(t.getName())) {
-            if (JcrConstants.NT_VERSIONHISTORY.equals(TreeUtil.getPrimaryTypeName(t))) {
+        while (t != null && !JcrConstants.JCR_VERSIONSTORAGE.equals(t.getName())) {
+            String name = t.getName();
+            String ntName = TreeUtil.getPrimaryTypeName(t);
+            if (VersionConstants.JCR_FROZENNODE.equals(name) && t != versionStoreTree) {
+                relPath = PathUtils.relativize(t.getPath(), versionStoreTree.getPath());
+            } else if (JcrConstants.NT_VERSIONHISTORY.equals(ntName)) {
                 PropertyState prop = t.getProperty(workspaceName);
                 if (prop != null) {
-                    versionablePath = prop.getValue(Type.PATH);
-                    if (t != versionStoreTree) {
-                        String rel = PathUtils.relativize(t.getPath(), versionStoreTree.getPath());
-                        String propName = (property == null) ? "" : property.getName();
-                        versionablePath = PathUtils.concat(versionablePath, rel, propName);
-                    }
+                    versionablePath = PathUtils.concat(prop.getValue(Type.PATH), relPath, propName);
                 }
                 break;
-            }// FIXME: handle activities and configurations
+            }
             t = t.getParent();
         }
 
         if (versionablePath == null || versionablePath.length() == 0) {
-            log.warn("Unable to determine path of the versionable node.");
+            log.warn("Unable to determine path of the version controlled node.");
         }
         return Strings.emptyToNull(versionablePath);
     }

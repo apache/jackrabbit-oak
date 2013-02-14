@@ -41,7 +41,7 @@ public final class OpenPermissionProvider implements PermissionProvider {
 
     @Nonnull
     @Override
-    public Set<String> getPrivilegeNames(@Nullable Tree tree) {
+    public Set<String> getPrivileges(@Nullable Tree tree) {
         return Collections.singleton(PrivilegeConstants.JCR_ALL);
     }
 
@@ -76,7 +76,7 @@ public final class OpenPermissionProvider implements PermissionProvider {
     }
 
     @Override
-    public boolean hasPermission(@Nonnull String oakPath, String jcrActions) {
+    public boolean hasPermission(@Nonnull String oakPath, @Nonnull String jcrActions) {
         return true;
     }
 }
