@@ -39,23 +39,24 @@ public class AuthenticationConfigurationImpl extends SecurityConfiguration.Defau
 
     private static final Logger log = LoggerFactory.getLogger(AuthenticationConfigurationImpl.class);
 
+    public static final String PARAM_AUTHENTICATION_OPTIONS = "org.apache.jackrabbit.oak.authentication.options";
     public static final String PARAM_APP_NAME = "org.apache.jackrabbit.oak.auth.appName";
     private static final String DEFAULT_APP_NAME = "jackrabbit.oak";
 
     public static final String PARAM_TOKEN_OPTIONS = "org.apache.jackrabbit.oak.token.options";
 
     private final SecurityProvider securityProvider;
-    private final ConfigurationParameters options;
+    private final ConfigurationParameters config;
 
-    public AuthenticationConfigurationImpl(SecurityProvider securityProvider, ConfigurationParameters options) {
+    public AuthenticationConfigurationImpl(SecurityProvider securityProvider) {
         this.securityProvider = securityProvider;
-        this.options = options;
+        this.config = securityProvider.getConfiguration(PARAM_AUTHENTICATION_OPTIONS);
     }
 
     @Nonnull
     @Override
     public LoginContextProvider getLoginContextProvider(NodeStore nodeStore, QueryIndexProvider indexProvider) {
-        String appName = options.getConfigValue(PARAM_APP_NAME, DEFAULT_APP_NAME);
+        String appName = config.getConfigValue(PARAM_APP_NAME, DEFAULT_APP_NAME);
         Configuration loginConfig = null;
         try {
             loginConfig = Configuration.getConfiguration();
@@ -70,7 +71,7 @@ public class AuthenticationConfigurationImpl extends SecurityConfiguration.Defau
         if (loginConfig == null) {
             // TODO: define configuration structure
             // TODO: review if having a default is desirable or if login should fail without valid login configuration.
-            loginConfig = ConfigurationUtil.getDefaultConfiguration(options);
+            loginConfig = ConfigurationUtil.getDefaultConfiguration(config);
         }
         return new LoginContextProviderImpl(appName, loginConfig, nodeStore, indexProvider, securityProvider);
     }
@@ -78,7 +79,7 @@ public class AuthenticationConfigurationImpl extends SecurityConfiguration.Defau
     @Nonnull
     @Override
     public TokenProvider getTokenProvider(Root root) {
-        ConfigurationParameters tokenOptions = options.getConfigValue(PARAM_TOKEN_OPTIONS, new ConfigurationParameters());
+        ConfigurationParameters tokenOptions = config.getConfigValue(PARAM_TOKEN_OPTIONS, new ConfigurationParameters());
         return new TokenProviderImpl(root, tokenOptions, securityProvider.getUserConfiguration());
     }
 }

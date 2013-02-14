@@ -36,10 +36,6 @@ import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 
 public class SecurityProviderImpl implements SecurityProvider {
 
-    public static final String PARAM_AUTHENTICATION_OPTIONS = "org.apache.jackrabbit.oak.authentication.options";
-    public static final String PARAM_PRINCIPAL_OPTIONS = "org.apache.jackrabbit.oak.principal.options";
-    public static final String PARAM_USER_OPTIONS = "org.apache.jackrabbit.oak.user.options";
-
     private final ConfigurationParameters configuration;
 
     public SecurityProviderImpl() {
@@ -48,6 +44,12 @@ public class SecurityProviderImpl implements SecurityProvider {
 
     public SecurityProviderImpl(ConfigurationParameters configuration) {
         this.configuration = configuration;
+    }
+
+    @Nonnull
+    @Override
+    public ConfigurationParameters getConfiguration(String name) {
+        return (name == null) ? configuration : configuration.getConfigValue(name, new ConfigurationParameters());
     }
 
     @Nonnull
@@ -64,7 +66,7 @@ public class SecurityProviderImpl implements SecurityProvider {
     @Nonnull
     @Override
     public AuthenticationConfiguration getAuthenticationConfiguration() {
-        return new AuthenticationConfigurationImpl(this, getOptions(PARAM_AUTHENTICATION_OPTIONS));
+        return new AuthenticationConfigurationImpl(this);
     }
 
     @Nonnull
@@ -82,22 +84,12 @@ public class SecurityProviderImpl implements SecurityProvider {
     @Nonnull
     @Override
     public UserConfiguration getUserConfiguration() {
-        return new UserConfigurationImpl(this, getOptions(PARAM_USER_OPTIONS));
+        return new UserConfigurationImpl(this);
     }
 
     @Nonnull
     @Override
     public PrincipalConfiguration getPrincipalConfiguration() {
-        return new PrincipalConfigurationImpl(this, getOptions(PARAM_PRINCIPAL_OPTIONS));
-    }
-
-    //------------------------------------------------------------< private >---
-
-    /**
-     * @param name
-     * @return
-     */
-    private ConfigurationParameters getOptions(String name) {
-        return configuration.getConfigValue(name, new ConfigurationParameters());
+        return new PrincipalConfigurationImpl(this);
     }
 }
