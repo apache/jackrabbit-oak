@@ -32,14 +32,15 @@ import org.apache.jackrabbit.oak.spi.security.authorization.Permissions;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
- * PermissionValidator... TODO
+ * Validator implementation that checks for sufficient permission for all
+ * write operations executed by a given content session.
  */
 class PermissionValidator implements Validator {
 
     /* TODO
-     * - special permissions for protected items (versioning, access control, etc.)
      * - Renaming nodes or Move with same parent are reflected as remove+add -> needs special handling
      * - review usage of OAK_CHILD_ORDER property (in particular if the property was removed
+     * - Proper handling of jcr:nodeTypeManagement privilege.
      */
 
     private final Tree parentBefore;
