@@ -22,11 +22,10 @@ import java.util.Arrays;
 import java.util.Collection;
 
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 /**
  * Composite repository initializer that delegates the
- * {@link #initialize(NodeStore)} call in sequence to all the
+ * {@link #initialize(NodeState)} call in sequence to all the
  * component initializers.
  */
 public class CompositeInitializer implements RepositoryInitializer {
