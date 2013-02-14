@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.mongomk.prototype;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -33,7 +34,8 @@ import com.mongodb.WriteResult;
 
 public class MongoDocumentStore implements DocumentStore {
 
-    private static final String KEY_PATH = "_id";
+    public static final String KEY_PATH = "_id";
+
     private static final Logger LOG = LoggerFactory.getLogger(MongoDocumentStore.class);
 
     private final DBCollection nodesCollection;
@@ -108,6 +110,44 @@ public class MongoDocumentStore implements DocumentStore {
                 null /*sort*/, false /*remove*/, update, false /*returnNew*/,
                 true /*upsert*/);
         return convertFromDBObject(oldNode);
+    }
+
+    @Override
+    public void create(Collection collection, List<UpdateOp> updateOps) {
+        DBObject[] inserts = new DBObject[updateOps.size()];
+
+        for (int i = 0; i < updateOps.size(); i++) {
+            inserts[i] = new BasicDBObject();
+            for (Entry<String, Operation> entry : updateOps.get(i).changes.entrySet()) {
+                String k = entry.getKey();
+                Operation op = entry.getValue();
+                switch (op.type) {
+                    case SET: {
+                        inserts[i].put(k, op.value);
+                        break;
+                    }
+                    case INCREMENT: {
+                        inserts[i].put(k, op.value);
+                        break;
+                    }
+                    case ADD_MAP_ENTRY: {
+                        DBObject value = new BasicDBObject(op.subKey.toString(), op.value.toString());
+                        inserts[i].put(k, value);
+                        break;
+                    }
+                    case REMOVE_MAP_ENTRY: {
+                        // TODO
+                        break;
+                    }
+                }
+            }
+        }
+
+        DBCollection dbCollection = getDBCollection(collection);
+        WriteResult writeResult = dbCollection.insert(inserts, WriteConcern.SAFE);
+        if (writeResult.getError() != null) {
+            LOG.error("Batch create failed: {}", writeResult.getError());
+        }
     }
 
     private void ensureIndex() {

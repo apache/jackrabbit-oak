@@ -16,19 +16,21 @@
  */
 package org.apache.jackrabbit.mongomk.prototype;
 
+import java.util.List;
 import java.util.Map;
 
 /**
  * The interface for the backend storage for documents.
  */
 public interface DocumentStore {
-    
+
     enum Collection { NODES }
 
     Map<String, Object> find(Collection collection, String key);
 
     void remove(Collection collection, String key);
-    
+
     Map<String, Object> createOrUpdate(Collection collection, UpdateOp update);
 
+    void create(Collection collection, List<UpdateOp> updateOps);
 }
