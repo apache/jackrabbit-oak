@@ -16,9 +16,6 @@
  */
 package org.apache.jackrabbit.mongomk.prototype;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -26,14 +23,16 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.jackrabbit.mongomk.prototype.DocumentStore.Collection;
-import org.junit.Ignore;
-import org.junit.Test;
-
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
 import com.mongodb.WriteResult;
+import org.apache.jackrabbit.mongomk.prototype.DocumentStore.Collection;
+import org.junit.Ignore;
+import org.junit.Test;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class MongoDocumentStoreTest {
 
@@ -133,6 +132,7 @@ public class MongoDocumentStoreTest {
     }
 
     @Test
+    @Ignore
     public void batchInsert() throws Exception {
         doInsert(NODE_COUNT, true);
         doInsert(NODE_COUNT, false);
