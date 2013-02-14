@@ -33,9 +33,11 @@ import org.apache.jackrabbit.oak.plugins.index.CompositeIndexHookProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexHookManager;
 import org.apache.jackrabbit.oak.plugins.index.IndexHookProvider;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
+import org.apache.jackrabbit.oak.spi.commit.CommitHookProvider;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
 import org.apache.jackrabbit.oak.spi.commit.CompositeValidatorProvider;
 import org.apache.jackrabbit.oak.spi.commit.ConflictHandler;
+import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.commit.ValidatingHook;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
@@ -79,7 +81,7 @@ public class Oak {
 
     private List<ValidatorProvider> validatorProviders = newArrayList();
 
-    private List<CommitHook> securityHooks = newArrayList();
+    private List<CommitHookProvider> securityHookProviders = newArrayList();
 
     // TODO: review if we really want to have the OpenSecurityProvider as default.
     private SecurityProvider securityProvider = new OpenSecurityProvider();
@@ -174,9 +176,16 @@ public class Oak {
      * is used to create the content repository.
      */
     private void withSecurityHooks() {
-        if (!securityHooks.isEmpty()) {
-            commitHooks.addAll(securityHooks);
-            securityHooks = newArrayList();
+        if (!securityHookProviders.isEmpty()) {
+            for (CommitHookProvider provider : securityHookProviders) {
+                // FIXME: hack to pass the workspace name into the commit hook
+                // FIXME: this needs to be re-factored once we add support for multiple workspaces support (OAK-118)
+                CommitHook hook = provider.getCommitHook(defaultWorkspaceName);
+                if (hook != EmptyHook.INSTANCE) {
+                    commitHooks.add(hook);
+                }
+            }
+            securityHookProviders = newArrayList();
         }
     }
 
@@ -216,7 +225,7 @@ public class Oak {
         this.securityProvider = securityProvider;
         for (SecurityConfiguration sc : securityProvider.getSecurityConfigurations()) {
             validatorProviders.addAll(sc.getValidatorProviders());
-            securityHooks.addAll(sc.getCommitHooks());
+            securityHookProviders.add(sc.getCommitHookProvider());
             initializers.add(sc.getRepositoryInitializer());
         }
         return this;
