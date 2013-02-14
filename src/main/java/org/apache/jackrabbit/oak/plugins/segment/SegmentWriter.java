@@ -113,6 +113,9 @@ public class SegmentWriter {
         }
         if (fullSize > buffer.remaining()) {
             int n = Math.min(buffer.capacity() * 2, store.getMaxSegmentSize());
+            while (n < buffer.position() + fullSize) {
+                n = Math.min(n * 2, store.getMaxSegmentSize());
+            }
             ByteBuffer newBuffer = ByteBuffer.allocate(n);
             buffer.flip();
             newBuffer.put(buffer);
