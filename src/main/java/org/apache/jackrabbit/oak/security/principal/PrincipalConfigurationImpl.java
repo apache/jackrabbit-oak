@@ -21,7 +21,6 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
@@ -34,7 +33,7 @@ public class PrincipalConfigurationImpl extends SecurityConfiguration.Default im
 
     private final SecurityProvider securityProvider;
 
-    public PrincipalConfigurationImpl(SecurityProvider securityProvider, ConfigurationParameters options) {
+    public PrincipalConfigurationImpl(SecurityProvider securityProvider) {
         this.securityProvider = securityProvider;
     }
 

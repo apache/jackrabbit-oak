@@ -184,13 +184,13 @@ public class PasswordValidationActionTest extends AbstractSecurityTest {
         private final AuthorizableAction[] actions;
 
         private TestSecurityProvider() {
-            this.actions = new AuthorizableAction[] {pwAction, testAction};
+            this.actions = new AuthorizableAction[]{pwAction, testAction};
         }
 
         @Nonnull
         @Override
         public UserConfiguration getUserConfiguration() {
-            return new UserConfigurationImpl(this, ConfigurationParameters.EMPTY) {
+            return new UserConfigurationImpl(this) {
 
                 @Nonnull
                 @Override
