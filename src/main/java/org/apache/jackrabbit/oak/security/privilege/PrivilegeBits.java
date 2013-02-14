@@ -138,11 +138,15 @@ public final class PrivilegeBits implements PrivilegeConstants {
             return EMPTY;
         }
 
-        List<Long> vs = (List<Long>) property.getValue(Type.LONGS);
-        if (vs.size() == 1) {
-            return getInstance(vs.get(0));
+        int size = property.count();
+        if (size == 1) {
+            return getInstance(property.getValue(Type.LONG, 0));
         } else {
-            return getInstance(Longs.toArray(vs));
+            long[] longs = new long[size];
+            for (int i = 0; i < longs.length; i++) {
+                longs[i] = property.getValue(Type.LONG, i);
+            }
+            return getInstance(longs);
         }
     }
 

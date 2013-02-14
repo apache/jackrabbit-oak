@@ -48,92 +48,59 @@ class SegmentNodeState extends AbstractNodeState {
 
     private final RecordId recordId;
 
-    private final MapRecord properties;
-
-    private final MapRecord childNodes;
+    private NodeTemplate template = null;
 
     SegmentNodeState(SegmentReader reader, RecordId id) {
         this.reader = checkNotNull(reader);
         this.recordId = checkNotNull(id);
-        this.properties = new MapRecord(reader.readRecordId(id, 0));
-        this.childNodes = new MapRecord(reader.readRecordId(id, 4));
+    }
+
+    private synchronized NodeTemplate getTemplate() {
+        if (template == null) {
+            template = reader.readTemplate(reader.readRecordId(recordId, 0));
+        }
+        return template;
     }
 
     @Override
     public long getPropertyCount() {
-        return properties.size(reader);
+        return getTemplate().getPropertyCount();
     }
 
     @Override @CheckForNull
     public PropertyState getProperty(String name) {
         checkNotNull(name);
-        RecordId propertyId = properties.getEntry(reader, name);
-        if (propertyId != null) {
-            return new SegmentPropertyState(reader, name, propertyId);
-        } else {
-            return null;
-        }
+        return getTemplate().getProperty(name, reader, recordId);
     }
 
     @Override @Nonnull
-    public Iterable<? extends PropertyState> getProperties() {
-        return Iterables.transform(
-                properties.getEntries(reader),
-                new Function<MapRecord.Entry, PropertyState>() {
-                    @Override @Nullable
-                    public PropertyState apply(@Nullable Entry input) {
-                        return new SegmentPropertyState(
-                                reader, input.getKey(), input.getValue());
-                    }
-                });
+    public Iterable<PropertyState> getProperties() {
+        return getTemplate().getProperties(reader, recordId);
     }
 
     @Override
     public long getChildNodeCount() {
-        return childNodes.size(reader);
+        return getTemplate().getChildNodeCount(reader, recordId);
     }
 
     @Override
     public boolean hasChildNode(String name) {
-        checkNotNull(name);
-        return childNodes.getEntry(reader, name) != null;
+        return getTemplate().hasChildNode(checkNotNull(name), reader, recordId);
     }
 
     @Override @CheckForNull
     public NodeState getChildNode(String name) {
-        checkNotNull(name);
-        RecordId childNodeId = childNodes.getEntry(reader, name);
-        if (childNodeId != null) {
-            return new SegmentNodeState(reader, childNodeId);
-        } else {
-            return null;
-        }
+        return getTemplate().getChildNode(checkNotNull(name), reader, recordId);
     }
 
     @Override
     public Iterable<String> getChildNodeNames() {
-        return Iterables.transform(
-                childNodes.getEntries(reader),
-                new Function<MapRecord.Entry, String>() {
-                    @Override @Nullable
-                    public String apply(@Nullable Entry input) {
-                        return input.getKey();
-                    }
-                });
+        return getTemplate().getChildNodeNames(reader, recordId);
     }
 
     @Override @Nonnull
     public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
-        return Iterables.transform(
-                childNodes.getEntries(reader),
-                new Function<MapRecord.Entry, ChildNodeEntry>() {
-                    @Override @Nullable
-                    public ChildNodeEntry apply(@Nullable Entry input) {
-                        return new MemoryChildNodeEntry(
-                                input.getKey(),
-                                new SegmentNodeState(reader, input.getValue()));
-                    }
-                });
+        return getTemplate().getChildNodeEntries(reader, recordId);
     }
 
     @Override @Nonnull

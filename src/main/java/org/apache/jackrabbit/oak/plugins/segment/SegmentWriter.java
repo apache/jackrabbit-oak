@@ -18,12 +18,14 @@ package org.apache.jackrabbit.oak.plugins.segment;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkPositionIndexes;
+import static com.google.common.base.Preconditions.checkState;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -34,13 +36,13 @@ import java.util.UUID;
 
 import javax.jcr.PropertyType;
 
+import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import com.google.common.base.Charsets;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.io.ByteStreams;
@@ -62,6 +64,8 @@ public class SegmentWriter {
     private final int blockSegmentSize;
 
     private final Map<String, RecordId> strings = Maps.newHashMap();
+
+    private final Map<NodeTemplate, RecordId> templates = Maps.newHashMap();
 
     private UUID uuid = UUID.randomUUID();
 
@@ -255,7 +259,7 @@ public class SegmentWriter {
     private synchronized RecordId writeValueRecord(
             long length, RecordId blocks) {
         RecordId valueId = prepare(8, Collections.singleton(blocks));
-        buffer.putLong(length | (0x3L << 62));
+        buffer.putLong((length - 0x4080) | (0x3L << 62));
         writeRecordId(blocks);
         return valueId;
     }
@@ -403,8 +407,8 @@ public class SegmentWriter {
         for (int i = 0; i < count; i++) {
             if (type.tag() == PropertyType.BINARY) {
                 try {
-                    valueIds.add(writeStream(
-                            state.getValue(Type.BINARY, i).getNewStream()));
+                    Blob blob = state.getValue(Type.BINARY, i);
+                    valueIds.add(writeStream(blob.getNewStream()));
                 } catch (IOException e) {
                     throw new IllegalStateException("Unexpected IOException", e);
                 }
@@ -414,15 +418,89 @@ public class SegmentWriter {
         }
         RecordId valueId = writeList(valueIds);
 
-        RecordId propertyId = prepare(8, Collections.singleton(valueId));
-        buffer.putInt(type.tag());
-        if (state.isArray()) {
+        if (type.isArray()) {
+            RecordId propertyId = prepare(4, Collections.singleton(valueId));
             buffer.putInt(count);
+            writeRecordId(valueId);
+            return propertyId;
         } else {
-            buffer.putInt(-1);
+            return valueId;
         }
-        writeRecordId(valueId);
-        return propertyId;
+    }
+
+    public synchronized RecordId writeTemplate(NodeTemplate template) {
+        checkNotNull(template);
+        RecordId id = templates.get(template);
+        if (id == null) {
+            Collection<RecordId> ids = Lists.newArrayList();
+            int head = 0;
+
+            RecordId primaryId = null;
+            if (template.hasPrimaryType()) {
+                head |= 1 << 31;
+                primaryId = writeString(template.getPrimaryType());
+                ids.add(primaryId);
+            }
+
+            List<RecordId> mixinIds = null;
+            if (template.hasMixinTypes()) {
+                head |= 1 << 30;
+                mixinIds = Lists.newArrayList();
+                for (String mixin : template.getMixinTypes()) {
+                    mixinIds.add(writeString(mixin));
+                }
+                ids.addAll(mixinIds);
+                checkState(mixinIds.size() < (1 << 10));
+                head |= mixinIds.size() << 18;
+            }
+
+            RecordId childNameId = null;
+            if (template.hasNoChildNodes()) {
+                head |= 1 << 29;
+            } else if (template.hasManyChildNodes()) {
+                head |= 1 << 28;
+            } else {
+                childNameId = writeString(template.getChildName());
+                ids.add(childNameId);
+            }
+
+            PropertyTemplate[] properties = template.getPropertyTemplates();
+            RecordId[] propertyNames = new RecordId[properties.length];
+            byte[] propertyTypes = new byte[properties.length];
+            for (int i = 0; i < properties.length; i++) {
+                propertyNames[i] = writeString(properties[i].getName());
+                Type<?> type = properties[i].getType();
+                if (type.isArray()) {
+                    propertyTypes[i] = (byte) -type.tag();
+                } else {
+                    propertyTypes[i] = (byte) type.tag();
+                }
+            }
+            ids.addAll(Arrays.asList(propertyNames));
+            checkState(propertyNames.length < (1 << 18));
+            head |= propertyNames.length;
+
+            id = prepare(4 + propertyTypes.length, ids);
+            buffer.putInt(head);
+            if (primaryId != null) {
+                writeRecordId(primaryId);
+            }
+            if (mixinIds != null) {
+                for (RecordId mixinId : mixinIds) {
+                    writeRecordId(mixinId);
+                }
+            }
+            if (childNameId != null) {
+                writeRecordId(childNameId);
+            }
+            for (int i = 0; i < propertyNames.length; i++) {
+                writeRecordId(propertyNames[i]);
+                buffer.put(propertyTypes[i]);
+            }
+
+            templates.put(template, id);
+        }
+        return id;
     }
 
     public RecordId writeNode(NodeState state) {
@@ -431,22 +509,30 @@ public class SegmentWriter {
             return nodeId;
         }
 
-        Map<String, RecordId> childNodes = Maps.newHashMap();
-        for (ChildNodeEntry entry : state.getChildNodeEntries()) {
-            childNodes.put(entry.getName(), writeNode(entry.getNodeState()));
-        }
-        RecordId childNodesId = writeMap(childNodes);
+        NodeTemplate template = new NodeTemplate(state);
 
-        Map<String, RecordId> properties = Maps.newHashMap();
-        for (PropertyState property : state.getProperties()) {
-            properties.put(property.getName(), writeProperty(property));
-        }
-        RecordId propertiesId = writeMap(properties);
+        List<RecordId> ids = Lists.newArrayList();
+        ids.add(writeTemplate(template));
 
-        RecordId id = prepare(0, ImmutableList.of(propertiesId, childNodesId));
-        writeRecordId(propertiesId);
-        writeRecordId(childNodesId);
-        return id;
+        if (template.hasManyChildNodes()) {
+            Map<String, RecordId> childNodes = Maps.newHashMap();
+            for (ChildNodeEntry entry : state.getChildNodeEntries()) {
+                childNodes.put(entry.getName(), writeNode(entry.getNodeState()));
+            }
+            ids.add(writeMap(childNodes));
+        } else if (!template.hasNoChildNodes()) {
+            ids.add(writeNode(state.getChildNode(template.getChildName())));
+        }
+
+        for (PropertyTemplate property : template.getPropertyTemplates()) {
+            ids.add(writeProperty(state.getProperty(property.getName())));
+        }
+
+        RecordId recordId = prepare(0, ids);
+        for (RecordId id : ids) {
+            writeRecordId(id);
+        }
+        return recordId;
     }
 
 }
