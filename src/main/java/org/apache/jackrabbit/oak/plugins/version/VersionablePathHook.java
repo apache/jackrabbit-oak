@@ -41,6 +41,12 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  */
 public class VersionablePathHook implements CommitHook {
 
+    private final String workspaceName;
+
+    public VersionablePathHook(String workspaceName) {
+        this.workspaceName = workspaceName;
+    }
+
     @Nonnull
     @Override
     public NodeState processCommit(final NodeState before, NodeState after) throws CommitFailedException {
@@ -51,7 +57,7 @@ public class VersionablePathHook implements CommitHook {
         return rootBuilder.getNodeState();
     }
 
-    private static final class Diff extends DefaultNodeStateDiff implements VersionConstants {
+    private final class Diff extends DefaultNodeStateDiff implements VersionConstants {
 
         private final ReadWriteVersionManager versionManager;
         private final Node nodeAfter;
@@ -71,8 +77,6 @@ public class VersionablePathHook implements CommitHook {
                     vhBuilder.setProperty(JcrConstants.JCR_MIXINTYPES, MIX_REP_VERSIONABLE_PATHS, Type.PATH);
                 }
 
-                // FIXME: property pass the current workspace name to the processCommit call.
-                String workspaceName = "default";
                 String versionablePath = nodeAfter.path;
                 vhBuilder.setProperty(workspaceName, versionablePath);
             }
