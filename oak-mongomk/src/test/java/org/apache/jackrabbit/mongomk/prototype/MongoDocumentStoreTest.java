@@ -37,8 +37,8 @@ public class MongoDocumentStoreTest {
 
     private static boolean MONGO_DB = false;
 
-    private final static int NODE_COUNT = 2000;
-    //private static int NODE_COUNT = 10;
+//    private final static int NODE_COUNT = 2000;
+    private static int NODE_COUNT = 10;
 
     DocumentStore openDocumentStore() {
         if (MONGO_DB) {
@@ -54,7 +54,6 @@ public class MongoDocumentStoreTest {
     }
 
     @Test
-    @Ignore
     public void addGetAndRemove() throws Exception {
         dropCollections();
         DocumentStore docStore = openDocumentStore();
@@ -83,7 +82,6 @@ public class MongoDocumentStoreTest {
     }
 
     @Test
-    @Ignore
     public void addLotsOfNodes() throws Exception {
 
         char[] nPrefix = new char[]{'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'};
