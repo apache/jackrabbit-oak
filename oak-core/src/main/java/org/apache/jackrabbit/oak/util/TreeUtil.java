@@ -81,6 +81,8 @@ public final class TreeUtil {
     }
 
     /**
+     * FIXME: see OAK-626 for a proposal on how to clean that up.
+     *
      * Utility method that assert that children of a tree keep the order such
      * as defined by the insertion and any subsequent
      * {@link Tree#orderBefore(String) reordering}.
