@@ -16,14 +16,55 @@
  */
 package org.apache.jackrabbit.mongomk.prototype;
 
-import org.apache.jackrabbit.mk.blobs.MemoryBlobStore;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
+import org.apache.jackrabbit.mongomk.prototype.DocumentStore.Collection;
 import org.junit.Test;
+
+import com.google.common.collect.Lists;
 
 public class SimpleTest {
 
     @Test
     public void test() {
-        MongoMK mk = new MongoMK(new MemoryDocumentStore(), new MemoryBlobStore(), 0);
+        MongoMK mk = new MongoMK();
+        mk.dispose();
+    }
+    
+    @Test
+    public void revision() {
+        for (int i=0; i<100; i++) {
+            Revision r = Revision.newRevision(i);
+            // System.out.println(r);
+            Revision r2 = Revision.fromString(r.toString());
+            assertEquals(r.toString(), r2.toString());
+            assertEquals(r.hashCode(), r2.hashCode());
+            assertTrue(r.equals(r2));
+        }
+    }
+    
+    @Test
+    public void addNodeGetNode() {
+        MongoMK mk = new MongoMK();
+        Revision rev = mk.newRevision();
+        Node n = new Node("/", rev);
+        n.setProperty("name", "Hello");
+        UpdateOp op = n.asOperation(true);
+        DocumentStore s = mk.getDocumentStore();
+        s.create(Collection.NODES, Lists.newArrayList(op));
+        Node n2 = mk.getNode("/", rev);
+        assertEquals("Hello", n2.getProperty("name"));
+        mk.dispose();
+    }
+
+    @Test
+    public void commit() {
+        MongoMK mk = new MongoMK();
+        String rev = mk.commit("/", "+\"test\":{\"name\": \"Hello\"}", null, null);
+        String test = mk.getNodes("/test", rev, 0, 0, Integer.MAX_VALUE, null);
+        assertEquals("{\"name\":\"Hello\"}", test);
+        // System.out.println(test);
         mk.dispose();
     }
 }
