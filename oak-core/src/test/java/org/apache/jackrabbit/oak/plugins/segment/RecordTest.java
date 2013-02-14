@@ -26,12 +26,16 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
 import com.google.common.base.Charsets;
@@ -217,6 +221,42 @@ public class RecordTest {
         }
         assertFalse(iterator.hasNext());
         assertNull(many.getEntry(reader, "foo"));
+    }
+
+    @Test
+    public void testEmptyNode() {
+        NodeState before = MemoryNodeState.EMPTY_NODE;
+        RecordId id = writer.writeNode(before);
+        writer.flush();
+        NodeState after = new SegmentNodeState(reader, id);
+        assertEquals(before, after);
+    }
+
+    @Test
+    public void testSimpleNode() {
+        NodeState before = MemoryNodeState.EMPTY_NODE.builder()
+                .setProperty("foo", "abc")
+                .setProperty("bar", 123)
+                .setProperty("baz", Math.PI)
+                .getNodeState();
+        RecordId id = writer.writeNode(before);
+        writer.flush();
+        NodeState after = new SegmentNodeState(reader, id);
+        assertEquals(before, after);
+    }
+
+    @Test
+    public void testDeepNode() {
+        NodeBuilder root = MemoryNodeState.EMPTY_NODE.builder();
+        NodeBuilder builder = root;
+        for (int i = 0; i < 1000; i++) {
+            builder = builder.child("test");
+        }
+         NodeState before = builder.getNodeState();
+        RecordId id = writer.writeNode(before);
+        writer.flush();
+        NodeState after = new SegmentNodeState(reader, id);
+        assertEquals(before, after);
     }
 
 }
