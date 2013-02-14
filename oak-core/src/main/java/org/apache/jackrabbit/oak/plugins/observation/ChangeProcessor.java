@@ -28,6 +28,7 @@ import javax.jcr.observation.Event;
 import javax.jcr.observation.EventListener;
 
 import com.google.common.base.Function;
+import com.google.common.base.Predicate;
 import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.commons.iterator.EventIteratorAdapter;
 import org.apache.jackrabbit.oak.spi.observation.ChangeExtractor;
@@ -259,7 +260,14 @@ class ChangeProcessor implements Runnable {
             Iterator<Event> propertyEvents;
             if (filter.include(propertyEventType, jcrPath, associatedParentNode)) {
                 propertyEvents = Iterators.transform(
-                        node.getProperties().iterator(),
+                        Iterators.filter(
+                                node.getProperties().iterator(),
+                                new Predicate<PropertyState>() {
+                                    @Override
+                                    public boolean apply(PropertyState propertyState) {
+                                        return !NodeStateUtils.isHidden(propertyState.getName());
+                                    }
+                                }),
                         new Function<PropertyState, Event>() {
                             @Override
                             public Event apply(PropertyState property) {
