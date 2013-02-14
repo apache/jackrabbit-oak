@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.mongomk.prototype;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentSkipListMap;
@@ -27,7 +28,7 @@ import org.apache.jackrabbit.mongomk.prototype.UpdateOp.Operation;
  * replicas).
  */
 public class MemoryDocumentStore implements DocumentStore {
-    
+
     /**
      * The 'nodes' collection. It contains all the node data, with one document
      * per node, and the path as the primary key. Each document possibly
@@ -39,13 +40,13 @@ public class MemoryDocumentStore implements DocumentStore {
      * removed or updated the node, lazily when reading, or in a background
      * process.
      */
-    private ConcurrentSkipListMap<String, Map<String, Object>> nodes = 
+    private ConcurrentSkipListMap<String, Map<String, Object>> nodes =
             new ConcurrentSkipListMap<String, Map<String, Object>>();
-    
+
     /**
      * Get a document. The returned map is a clone (the caller
      * can modify it without affecting the stored version).
-     * 
+     *
      * @param collection the collection
      * @param path the path
      * @return the map, or null if not found
@@ -62,20 +63,20 @@ public class MemoryDocumentStore implements DocumentStore {
             return copy;
         }
     }
-    
+
     /**
      * Remove a document.
-     * 
+     *
      * @param collection the collection
      * @param path the path
      */
     public void remove(Collection collection, String path) {
         getMap(collection).remove(path);
     }
-    
+
     /**
      * Get the in-memory map for this collection.
-     * 
+     *
      * @param collection the collection
      * @return the map
      */
@@ -87,11 +88,11 @@ public class MemoryDocumentStore implements DocumentStore {
             throw new IllegalArgumentException(collection.name());
         }
     }
-    
+
     /**
      * Create or update a document. For MongoDb, this is using "findAndModify" with
      * the "upsert" flag (insert or update).
-     * 
+     *
      * @param collection the collection
      * @param update the update operation
      * @return the old document, or null if there was no
@@ -100,7 +101,7 @@ public class MemoryDocumentStore implements DocumentStore {
         ConcurrentSkipListMap<String, Map<String, Object>> map = getMap(collection);
         Map<String, Object> n;
         Map<String, Object> oldNode;
-        
+
         // get the node if it's there
         oldNode = n = map.get(update.key);
 
@@ -122,7 +123,7 @@ public class MemoryDocumentStore implements DocumentStore {
             }
             oldNode = old;
         }
-        // update the document 
+        // update the document
         // (document level operations are synchronized)
         synchronized (n) {
             for (Entry<String, Operation> e : update.changes.entrySet()) {
@@ -165,7 +166,12 @@ public class MemoryDocumentStore implements DocumentStore {
         }
         return oldNode;
     }
-    
+
+    @Override
+    public void create(Collection collection, List<UpdateOp> updateOps) {
+        // TODO Auto-generated method stub
+    }
+
     public String toString() {
         StringBuilder buff = new StringBuilder();
         buff.append("Nodes:\n");
@@ -179,5 +185,4 @@ public class MemoryDocumentStore implements DocumentStore {
         }
         return buff.toString();
     }
-    
 }

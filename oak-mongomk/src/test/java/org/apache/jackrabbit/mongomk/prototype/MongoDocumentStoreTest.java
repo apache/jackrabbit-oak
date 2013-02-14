@@ -19,6 +19,8 @@ package org.apache.jackrabbit.mongomk.prototype;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -78,6 +80,26 @@ public class MongoDocumentStoreTest {
         docStore.remove(Collection.NODES, "/");
         obj = docStore.find(Collection.NODES, "/");
         assertTrue(obj == null);
+        dropCollections();
+    }
+
+    @Test
+    public void batchAdd() throws Exception {
+        dropCollections();
+
+        DocumentStore docStore = openDocumentStore();
+        int nUpdates = 10;
+        List<UpdateOp> updateOps = new ArrayList<UpdateOp>();
+        for (int i = 0; i < nUpdates; i++) {
+            UpdateOp updateOp = new UpdateOp("/node" + i);
+            updateOp.set(MongoDocumentStore.KEY_PATH, "/node" + i);
+            updateOp.addMapEntry("property1", "key1", "value1");
+            updateOp.increment("property2", 1);
+            updateOp.set("property3", "value3");
+            updateOps.add(updateOp);
+        }
+        docStore.create(Collection.NODES, updateOps);
+
         dropCollections();
     }
 
