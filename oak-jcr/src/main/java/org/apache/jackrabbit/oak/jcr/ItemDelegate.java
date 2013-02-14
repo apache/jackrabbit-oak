@@ -83,8 +83,7 @@ public abstract class ItemDelegate {
      * @return  {@code true} iff stale
      */
     public boolean isStale() {
-        Status status = getLocationOrNull().getStatus();
-        return status == Status.DISCONNECTED || status == null;
+        return !getLocationInternal().exists();
     }
 
     /**
@@ -116,7 +115,7 @@ public abstract class ItemDelegate {
      */
     @Nonnull
     public TreeLocation getLocation() throws InvalidItemStateException {
-        TreeLocation location = getLocationOrNull();
+        TreeLocation location = getLocationInternal();
         if (!location.exists()) {
             throw new InvalidItemStateException("Item is stale");
         }
@@ -134,12 +133,12 @@ public abstract class ItemDelegate {
     /**
      * The underlying {@link org.apache.jackrabbit.oak.api.TreeLocation} of this item.
      * The location is only re-resolved when the revision of this item does not match
-     * the revision of the session.
+     * the revision of the session or when the location does not exist (anymore).
      * @return  tree location of the underlying item.
      */
     @Nonnull
-    private synchronized TreeLocation getLocationOrNull() {
-        if (location.exists() && sessionDelegate.getRevision() != revision) {
+    private synchronized TreeLocation getLocationInternal() {
+        if (sessionDelegate.getRevision() != revision || !location.exists()) {
             location = sessionDelegate.getLocation(location.getPath());
             revision = sessionDelegate.getRevision();
         }

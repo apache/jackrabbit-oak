@@ -1627,6 +1627,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
         for (String parentPath : new String[] {"/", TEST_PATH}) {
             Node parent = session.getNode(parentPath);
             Node child = parent.addNode("child");
+            String childPath = child.getPath();
 
             child.remove();
             try {
@@ -1641,6 +1642,9 @@ public class RepositoryTest extends AbstractRepositoryTest {
                 fail();
             }
             catch (InvalidItemStateException expected) { }
+
+            parent.addNode("child");
+            assertEquals(childPath, child.getPath());
         }
     }
 

@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import javax.jcr.InvalidItemStateException;
 import javax.jcr.Node;
 
 import org.apache.jackrabbit.JcrConstants;
@@ -35,46 +36,60 @@ public class MoveTest extends AbstractJCRTest {
         }
     }
 
-    @Ignore("OAK-606")
     @Test
     public void testRename() throws Exception {
         Node node1 = testRootNode.addNode(nodeName1);
         superuser.save();
 
-        String destPath = testRoot + '/' + nodeName2;
-        move(node1.getPath(), destPath, true);
+        String sourcePath = node1.getPath();
+        move(sourcePath, testRoot + '/' + nodeName2, true);
 
-        assertEquals(destPath, node1.getPath());
+        try {
+            node1.getPath();
+            fail();
+        } catch (InvalidItemStateException expected) {}
+
+        testRootNode.addNode(nodeName1);
+        assertEquals(sourcePath, node1.getPath());
     }
 
-    @Ignore("OAK-607")
     @Test
     public void testRenameNewNode() throws Exception {
         Node node1 = testRootNode.addNode(nodeName1);
 
-        String destPath = testRoot + '/' + nodeName2;
-        move(node1.getPath(), destPath, false);
+        String sourcePath = node1.getPath();
+        move(sourcePath, testRoot + '/' + nodeName2, false);
 
-        assertEquals(destPath, node1.getPath());
+        try {
+            node1.getPath();
+            fail();
+        } catch (InvalidItemStateException expected) {}
 
+        testRootNode.addNode(nodeName1);
         superuser.save();
-        assertEquals(destPath, node1.getPath());
+        assertEquals(sourcePath, node1.getPath());
     }
 
-    @Ignore("OAK-606")
     @Test
     public void testMove() throws Exception {
         Node node1 = testRootNode.addNode(nodeName1);
         Node node2 = testRootNode.addNode(nodeName2);
         superuser.save();
 
-        String destPath = node2.getPath() + '/' + nodeName1;
-        move(node1.getPath(), destPath, true);
+        String sourcePath = node1.getPath();
+        move(sourcePath, node2.getPath() + '/' + nodeName1, true);
 
-        assertEquals(destPath, node1.getPath());
+        try {
+            node1.getPath();
+            fail();
+        } catch (InvalidItemStateException expected) {}
+
+        testRootNode.addNode(nodeName1);
+        assertEquals(sourcePath, node1.getPath());
     }
 
     @Ignore("OAK-606")
+    @Test
     public void testMoveReferenceable() throws Exception {
         Node node1 = testRootNode.addNode(nodeName1);
         node1.addMixin(JcrConstants.MIX_REFERENCEABLE);
@@ -87,19 +102,22 @@ public class MoveTest extends AbstractJCRTest {
         assertEquals(destPath, node1.getPath());
     }
 
-    @Ignore("OAK-607")
     @Test
     public void testMoveNewNode() throws Exception {
         Node node1 = testRootNode.addNode(nodeName1);
         Node node2 = testRootNode.addNode(nodeName2);
 
-        String destPath = node2.getPath() + '/' + nodeName1;
-        move(node1.getPath(), destPath, false);
+        String sourcePath = node1.getPath();
+        move(sourcePath, node2.getPath() + '/' + nodeName1, false);
 
-        assertEquals(destPath, node1.getPath());
+        try {
+            node1.getPath();
+            fail();
+        } catch (InvalidItemStateException expected) {}
 
+        testRootNode.addNode(nodeName1);
         superuser.save();
-        assertEquals(destPath, node1.getPath());
+        assertEquals(sourcePath, node1.getPath());
     }
 
     @Ignore("OAK-607")
