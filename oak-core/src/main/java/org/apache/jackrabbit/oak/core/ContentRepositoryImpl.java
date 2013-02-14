@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.core;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.jcr.Credentials;
 import javax.jcr.NoSuchWorkspaceException;
 import javax.security.auth.login.LoginException;
@@ -37,8 +38,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
  */
 public class ContentRepositoryImpl implements ContentRepository {
 
-    private static final String DEFAULT_WORKSPACE_NAME = "default";
-
     private final String defaultWorkspaceName;
     private final SecurityProvider securityProvider;
     private final QueryIndexProvider indexProvider;
@@ -51,15 +50,14 @@ public class ContentRepositoryImpl implements ContentRepository {
      * @param nodeStore            the node store this repository is based upon.
      * @param defaultWorkspaceName the default workspace name;
      * @param indexProvider        index provider
-     * @param securityProvider     The configured security provider or {@code null} if
-     *                             default implementations should be used.
+     * @param securityProvider     The configured security provider.
      */
-    public ContentRepositoryImpl(NodeStore nodeStore,
-                                 String defaultWorkspaceName,
-                                 QueryIndexProvider indexProvider,
-                                 SecurityProvider securityProvider) {
+    public ContentRepositoryImpl(@Nonnull NodeStore nodeStore,
+                                 @Nonnull String defaultWorkspaceName,
+                                 @Nullable QueryIndexProvider indexProvider,
+                                 @Nonnull SecurityProvider securityProvider) {
         this.nodeStore = nodeStore;
-        this.defaultWorkspaceName = (defaultWorkspaceName == null) ? DEFAULT_WORKSPACE_NAME : defaultWorkspaceName;
+        this.defaultWorkspaceName = defaultWorkspaceName;
         this.indexProvider = indexProvider != null ? indexProvider : new CompositeQueryIndexProvider();
         this.securityProvider = securityProvider;
     }
@@ -73,7 +71,7 @@ public class ContentRepositoryImpl implements ContentRepository {
         }
 
         // TODO: support multiple workspaces. See OAK-118
-        if (!DEFAULT_WORKSPACE_NAME.equals(workspaceName)) {
+        if (!defaultWorkspaceName.equals(workspaceName)) {
             throw new NoSuchWorkspaceException(workspaceName);
         }
 

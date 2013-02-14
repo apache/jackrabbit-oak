@@ -62,6 +62,11 @@ import static com.google.common.collect.Lists.newArrayList;
  */
 public class Oak {
 
+    /**
+     * Constant for the default workspace name
+     */
+    public static final String DEFAULT_WORKSPACE_NAME = "default";
+
     private final MicroKernel kernel;
 
     private final List<RepositoryInitializer> initializers = newArrayList();
@@ -79,7 +84,7 @@ public class Oak {
     // TODO: review if we really want to have the OpenSecurityProvider as default.
     private SecurityProvider securityProvider = new OpenSecurityProvider();
 
-    private String defaultWorkspaceName;
+    private String defaultWorkspaceName = DEFAULT_WORKSPACE_NAME;
 
     public Oak(MicroKernel kernel) {
         this.kernel = kernel;
