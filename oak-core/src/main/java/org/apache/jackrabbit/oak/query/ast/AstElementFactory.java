@@ -89,7 +89,7 @@ public class AstElementFactory {
     }
 
     public LowerCaseImpl lowerCase(DynamicOperandImpl operand) {
-        return new LowerCaseImpl((DynamicOperandImpl) operand);
+        return new LowerCaseImpl(operand);
     }
 
     public NodeLocalNameImpl nodeLocalName(String selectorName) {
