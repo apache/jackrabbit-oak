@@ -29,7 +29,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 public interface PermissionProvider {
 
     @Nonnull
-    Set<String> getPrivilegeNames(@Nullable Tree tree);
+    Set<String> getPrivileges(@Nullable Tree tree);
 
     boolean hasPrivileges(@Nullable Tree tree, String... privilegeNames);
 

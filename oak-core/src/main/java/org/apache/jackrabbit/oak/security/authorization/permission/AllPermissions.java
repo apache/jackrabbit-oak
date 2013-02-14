@@ -16,10 +16,12 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
-import javax.annotation.Nonnull;
+import java.util.Collections;
+import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.security.privilege.PrivilegeConstants;
 
 /**
  * AllPermissions... TODO
@@ -61,7 +63,17 @@ public final class AllPermissions implements CompiledPermissions {
     }
 
     @Override
-    public boolean isGranted(@Nonnull String path, long permissions) {
+    public boolean isGranted(String path, long permissions) {
+        return true;
+    }
+
+    @Override
+    public Set<String> getPrivileges(Tree tree) {
+        return Collections.singleton(PrivilegeConstants.JCR_ALL);
+    }
+
+    @Override
+    public boolean hasPrivileges(Tree tree, String... privilegeNames) {
         return true;
     }
 }
