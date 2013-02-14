@@ -134,16 +134,14 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
                 // Nothing was written to this branch: return base state
                 head = null;  // Mark as merged
                 return base;
-            }
-            else {
+            } else {
                 MicroKernel kernel = store.getKernel();
                 String mergedRevision = kernel.merge(headRevision, null);
                 headRevision = null;
                 head = null;  // Mark as merged
                 return store.getRootState(mergedRevision);
             }
-        }
-        catch (MicroKernelException e) {
+        } catch (MicroKernelException e) {
             setRoot(oldRoot);
             throw new CommitFailedException(e);
         }
@@ -157,8 +155,7 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
             head = root;
             base = root;
             baseRevision = root.getRevision();
-        }
-        else {
+        } else {
             headRevision = store.getKernel().rebase(headRevision, root.getRevision());
             head = store.getRootState(headRevision);
             base = root;
