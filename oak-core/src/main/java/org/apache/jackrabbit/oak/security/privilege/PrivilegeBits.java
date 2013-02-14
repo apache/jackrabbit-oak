@@ -18,8 +18,8 @@ package org.apache.jackrabbit.oak.security.privilege;
 
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
@@ -391,7 +391,7 @@ public final class PrivilegeBits implements PrivilegeConstants {
      * If {@code this} is included in {@code other} {@link #EMPTY empty}
      * privilege bits is returned.
      *
-     * @param other The other privilege bits to be substracted from this instance.
+     * @param other The other privilege bits to be subtracted from this instance.
      * @return The updated instance.
      * @throws UnsupportedOperationException if this instance is immutable.
      */
