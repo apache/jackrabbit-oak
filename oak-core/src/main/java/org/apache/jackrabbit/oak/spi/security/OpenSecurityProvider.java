@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.spi.security;
 
 import java.util.Collections;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authentication.OpenAuthenticationConfiguration;
@@ -31,6 +32,12 @@ import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
  * OpenSecurityProvider... TODO: review if we really have the need for that once TODO in InitialContent is resolved
  */
 public class OpenSecurityProvider implements SecurityProvider {
+
+    @Nonnull
+    @Override
+    public ConfigurationParameters getConfiguration(@Nullable String name) {
+        return ConfigurationParameters.EMPTY;
+    }
 
     @Nonnull
     @Override
