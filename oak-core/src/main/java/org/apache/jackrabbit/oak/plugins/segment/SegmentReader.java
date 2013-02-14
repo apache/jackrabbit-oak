@@ -21,52 +21,193 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkPositionIndexes;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentWriter.BLOCK_SIZE;
 
+import java.util.Arrays;
+import java.util.concurrent.ExecutionException;
+
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
+import com.google.common.cache.Weigher;
+
 public class SegmentReader {
 
     private final SegmentStore store;
+
+    private final LoadingCache<RecordId, String> strings =
+            CacheBuilder.newBuilder()
+            .maximumWeight(1 << 20) // 1 MB
+            .weigher(newStringWeigher())
+            .build(newStringLoader());
+
+    private final LoadingCache<RecordId, NodeTemplate> templates =
+            CacheBuilder.newBuilder()
+            .maximumSize(1000)
+            .build(newTemplateLoader());
 
     public SegmentReader(SegmentStore store) {
         this.store = store;
     }
 
-    public String readString(RecordId recordId) {
-        SegmentStream stream = readStream(recordId);
+    private static Weigher<RecordId, String> newStringWeigher() {
+        return new Weigher<RecordId, String>() {
+            @Override
+            public int weigh(RecordId key, String value) {
+                return 32 + value.length() * 2;
+            }
+        };
+    }
+
+    private CacheLoader<RecordId, String> newStringLoader() {
+        return new CacheLoader<RecordId, String>() {
+            @Override
+            public String load(RecordId key) throws Exception {
+                SegmentStream stream = readStream(key);
+                try {
+                    return stream.getString();
+                } finally {
+                    stream.close();
+                }
+            }
+        };
+    }
+
+    private CacheLoader<RecordId, NodeTemplate> newTemplateLoader() {
+        return new CacheLoader<RecordId, NodeTemplate>() {
+            @Override
+            public NodeTemplate load(RecordId key) throws Exception {
+                Segment segment = store.readSegment(key.getSegmentId());
+                int offset = key.getOffset();
+
+                int head = segment.readInt(offset);
+                boolean hasPrimaryType = (head & (1 << 31)) != 0;
+                boolean hasMixinTypes = (head & (1 << 30)) != 0;
+                boolean zeroChildNodes = (head & (1 << 29)) != 0;
+                boolean manyChildNodes = (head & (1 << 28)) != 0;
+                int mixinCount = (head >> 18) & ((1 << 10) - 1);
+                int propertyCount = head & ((1 << 18) - 1);
+                offset += 4;
+
+                PropertyState primaryType = null;
+                if (hasPrimaryType) {
+                    RecordId primaryId = segment.readRecordId(offset);
+                    primaryType = PropertyStates.createProperty(
+                            "jcr:primaryType", readString(primaryId), Type.NAME);
+                    offset += 4;
+                }
+
+                PropertyState mixinTypes = null;
+                if (hasMixinTypes) {
+                    String[] mixins = new String[mixinCount];
+                    for (int i = 0; i < mixins.length; i++) {
+                        RecordId mixinId = segment.readRecordId(offset);
+                        mixins[i] = readString(mixinId);
+                        offset += 4;
+                    }
+                    mixinTypes = PropertyStates.createProperty(
+                            "jcr:mixinTypes", Arrays.asList(mixins), Type.NAMES);
+                }
+
+                String childName = NodeTemplate.ZERO_CHILD_NODES;
+                if (manyChildNodes) {
+                    childName = NodeTemplate.MANY_CHILD_NODES;
+                } else if (!zeroChildNodes) {
+                    RecordId childNameId = segment.readRecordId(offset);
+                    childName = readString(childNameId);
+                    offset += 4;
+                }
+
+                PropertyTemplate[] properties =
+                        new PropertyTemplate[propertyCount];
+                for (int i = 0; i < properties.length; i++) {
+                    RecordId propertyNameId = segment.readRecordId(offset);
+                    byte type = segment.readByte(offset + 4);
+                    properties[i] = new PropertyTemplate(
+                            readString(propertyNameId),
+                            Type.fromTag(Math.abs(type), type < 0));
+                    offset += 5;
+                }
+
+                return new NodeTemplate(
+                        primaryType, mixinTypes, properties, childName);
+            }
+        };
+    }
+
+    public NodeTemplate readTemplate(RecordId recordId) {
         try {
-            return stream.getString();
-        } finally {
-            stream.close();
+            return templates.get(recordId);
+        } catch (ExecutionException e) {
+            throw new IllegalStateException(
+                    "Unable to access template record " + recordId, e);
         }
     }
 
-    public SegmentStream readStream(RecordId recordId) {
+    public String readString(RecordId recordId) {
+        try {
+            return strings.get(recordId);
+        } catch (ExecutionException e) {
+            throw new IllegalStateException(
+                    "Unable to access string record " + recordId, e);
+        }
+    }
+
+    public long readLength(RecordId recordId) {
+        checkNotNull(recordId);
         Segment segment = store.readSegment(recordId.getSegmentId());
-        int offset = recordId.getOffset();
+        return readLength(segment, recordId.getOffset());
+    }
+
+    private long readLength(Segment segment, int offset) {
         int length = segment.readByte(offset++) & 0xff;
         if ((length & 0x80) == 0) {
-            byte[] data = new byte[length];
-            segment.readBytes(offset, data, 0, length);
-            return new SegmentStream(recordId, data);
+            return length;
         } else if ((length & 0x40) == 0) {
-            length = (length & 0x3f) << 8;
-            length |= segment.readByte(offset++) & 0xff;
-            length += 0x80;
-            byte[] data = new byte[length];
-            segment.readBytes(offset, data, 0, length);
-            return new SegmentStream(recordId, data);
+            return ((length & 0x3f) << 8
+                    | segment.readByte(offset) & 0xff)
+                    + 0x80;
         } else {
-            long l = ((long) length & 0x3f) << 56
+            return (((long) length & 0x3f) << 56
                     | ((long) (segment.readByte(offset++) & 0xff)) << 48
                     | ((long) (segment.readByte(offset++) & 0xff)) << 40
                     | ((long) (segment.readByte(offset++) & 0xff)) << 32
                     | ((long) (segment.readByte(offset++) & 0xff)) << 24
                     | ((long) (segment.readByte(offset++) & 0xff)) << 16
                     | ((long) (segment.readByte(offset++) & 0xff)) << 8
-                    | ((long) (segment.readByte(offset++) & 0xff));
-            int size = (int) ((l + BLOCK_SIZE - 1) / BLOCK_SIZE);
-            ListRecord list =
-                    new ListRecord(segment.readRecordId(offset), size);
-            return new SegmentStream(this, recordId, list, l);
+                    | ((long) (segment.readByte(offset) & 0xff)))
+                    + 0x4080;
         }
+    }
+
+    public SegmentStream readStream(RecordId recordId) {
+        Segment segment = store.readSegment(recordId.getSegmentId());
+        int offset = recordId.getOffset();
+        long length = readLength(segment, offset);
+        if (length < 0x4080) {
+            if (length < 0x80) {
+                offset += 1;
+            } else {
+                offset += 2;
+            }
+            byte[] data = new byte[(int) length];
+            segment.readBytes(offset, data, 0, data.length);
+            return new SegmentStream(recordId, data);
+        } else {
+            int size = (int) ((length + BLOCK_SIZE - 1) / BLOCK_SIZE);
+            ListRecord list =
+                    new ListRecord(segment.readRecordId(offset + 8), size);
+            return new SegmentStream(this, recordId, list, length);
+        }
+    }
+
+    public byte readByte(RecordId recordId, int position) {
+        checkNotNull(recordId);
+        checkArgument(position >= 0);
+        Segment segment = store.readSegment(recordId.getSegmentId());
+        return segment.readByte(recordId.getOffset() + position);
     }
 
     public int readInt(RecordId recordId, int position) {

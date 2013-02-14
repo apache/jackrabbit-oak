@@ -29,6 +29,11 @@ class PropertyTemplate implements Comparable<PropertyTemplate> {
 
     private final Type<?> type;
 
+    PropertyTemplate(String name, Type<?> type) {
+        this.name = checkNotNull(name);
+        this.type = checkNotNull(type);
+    }
+
     PropertyTemplate(PropertyState state) {
         checkNotNull(state);
         this.name = state.getName();
