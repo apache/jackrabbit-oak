@@ -189,4 +189,10 @@ public class MongoDocumentStore implements DocumentStore {
     private static DBObject getByPathQuery(String path) {
         return QueryBuilder.start(KEY_PATH).is(path).get();
     }
+    
+    @Override
+    public void dispose() {
+        nodesCollection.getDB().getMongo().close();
+    }
+
 }

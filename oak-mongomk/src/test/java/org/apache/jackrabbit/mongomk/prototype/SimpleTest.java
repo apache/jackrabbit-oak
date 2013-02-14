@@ -16,23 +16,14 @@
  */
 package org.apache.jackrabbit.mongomk.prototype;
 
-import java.util.List;
-import java.util.Map;
+import org.apache.jackrabbit.mk.blobs.MemoryBlobStore;
+import org.junit.Test;
 
-/**
- * The interface for the backend storage for documents.
- */
-public interface DocumentStore {
+public class SimpleTest {
 
-    enum Collection { NODES }
-
-    Map<String, Object> find(Collection collection, String key);
-
-    void remove(Collection collection, String key);
-
-    Map<String, Object> createOrUpdate(Collection collection, UpdateOp update); 
-    
-    void dispose();
-
-    void create(Collection collection, List<UpdateOp> updateOps);
+    @Test
+    public void test() {
+        MongoMK mk = new MongoMK(new MemoryDocumentStore(), new MemoryBlobStore(), 0);
+        mk.dispose();
+    }
 }

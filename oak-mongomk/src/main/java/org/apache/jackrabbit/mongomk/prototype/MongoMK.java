@@ -19,12 +19,14 @@ package org.apache.jackrabbit.mongomk.prototype;
 import java.io.InputStream;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.blobs.BlobStore;
+import org.apache.jackrabbit.mk.blobs.MemoryBlobStore;
 
 public class MongoMK implements MicroKernel {
 
@@ -61,26 +63,79 @@ public class MongoMK implements MicroKernel {
      */
     private static final int trustedRevisionAge = Integer.MAX_VALUE;
 
+    protected static final long ASYNC_DELAY = 1000;
+
     /**
      * The set of known valid revision.
      * The key is the revision id, the value is 1 (because a cache can't be a set).
      */
     private final Map<String, Long> revCache = new Cache<String, Long>(1024);
+    
+    /**
+     * The last known head revision. This is the last-known revision.
+     */
+    private String headRevision;
+    
+    AtomicBoolean disposed = new AtomicBoolean();
+    
+    private Thread backgroundThread;
+
+    /**
+     * Create a new in-memory MongoMK to be used for testing.
+     */
+    public MongoMK() {
+        this(new MemoryDocumentStore(), new MemoryBlobStore(), 0);
+    }
 
     /**
      * Create a new MongoMK.
      *
      * @param store the store (might be shared)
+     * @param blobStore the blob store to use
      * @param clusterId the cluster id (must be unique)
      */
     public MongoMK(DocumentStore store, BlobStore blobStore, int clusterId) {
         this.store = store;
         this.blobStore = blobStore;
         this.clusterId = clusterId;
+        backgroundThread = new Thread(new Runnable() {
+            public void run() {
+                while (!disposed.get()) {
+                    synchronized (this) {
+                        try {
+                            wait(ASYNC_DELAY);
+                        } catch (InterruptedException e) {
+                            // ignore
+                        }
+                    }
+                    runBackgroundOperations();
+                }
+            }
+        }, "MongoMK background thread");
+        backgroundThread.setDaemon(true);
+        backgroundThread.start();
+    }
+    
+    void runBackgroundOperations() {
+        // to be implemented
     }
 
     String getNewRevision() {
         return Utils.createRevision(clusterId);
+    }
+    
+    public void dispose() {
+        if (!disposed.getAndSet(true)) {
+            synchronized (backgroundThread) {
+                backgroundThread.notifyAll();
+            }
+            try {
+                backgroundThread.join();
+            } catch (InterruptedException e) {
+                // ignore
+            }
+            store.dispose();
+        }
     }
 
     /**
@@ -102,6 +157,11 @@ public class MongoMK implements MicroKernel {
         }
         return node;
     }
+    
+    private static String getDocumentId(String path) {
+        int depth = Utils.pathDepth(path);
+        return depth + ":" + path;
+    }
 
     /**
      * Try to add a node.
@@ -113,17 +173,12 @@ public class MongoMK implements MicroKernel {
     public void addNode(String rev, String commitRoot, Node n) {
         UpdateOp node = new UpdateOp(n.path);
         int depth = Utils.pathDepth(n.path);
-        node.set("_path", n.path);
+        node.set("_id", getDocumentId(n.path));
         node.set("_pathDepth", depth);
         int commitDepth = depth - Utils.pathDepth(commitRoot);
         node.addMapEntry("_commitDepth", rev, commitDepth);
 
-        // the affected (direct) children of this revision
-        node.addMapEntry("_affectedChildren", rev, "");
-
         node.increment("_changeCount", 1L);
-//        setCommitRoot(path);
-
 
         for (String p : n.properties.keySet()) {
             node.addMapEntry(p, rev, n.properties.get(p));
@@ -150,8 +205,7 @@ public class MongoMK implements MicroKernel {
 
     @Override
     public String getHeadRevision() throws MicroKernelException {
-        // TODO Auto-generated method stub
-        return null;
+        return headRevision;
     }
 
     @Override

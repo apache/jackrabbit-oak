@@ -185,4 +185,9 @@ public class MemoryDocumentStore implements DocumentStore {
         }
         return buff.toString();
     }
+
+    @Override
+    public void dispose() {
+        // ignore
+    }
 }
