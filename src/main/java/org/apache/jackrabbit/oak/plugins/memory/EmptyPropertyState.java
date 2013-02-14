@@ -21,9 +21,6 @@ package org.apache.jackrabbit.oak.plugins.memory;
 import java.util.Collections;
 
 import javax.annotation.Nonnull;
-import javax.jcr.PropertyType;
-
-import com.google.common.collect.Iterables;
 
 import org.apache.jackrabbit.oak.api.AbstractPropertyState;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -31,9 +28,6 @@ import org.apache.jackrabbit.oak.api.Type;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.api.Type.BINARIES;
-import static org.apache.jackrabbit.oak.api.Type.STRING;
-import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 
 /**
  * Abstract base class for {@link PropertyState} implementations
