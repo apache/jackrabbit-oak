@@ -58,6 +58,11 @@ public class TreeImpl implements Tree {
     private final RootImpl root;
 
     /**
+     * The {@code NodeBuilder} for the underlying node state
+     */
+    private final NodeBuilder nodeBuilder;
+
+    /**
      * Parent of this tree. Null for the root.
      */
     private TreeImpl parent;
@@ -67,31 +72,25 @@ public class TreeImpl implements Tree {
      */
     private String name;
 
-    /**
-     * Lazily initialised {@code NodeBuilder} for the underlying node state
-     */
-    NodeBuilder nodeBuilder;
+    private TreeImpl(RootImpl root) {
+        this.root = checkNotNull(root);
+        this.name = "";
+        this.nodeBuilder = root.createRootBuilder();
+    }
 
     private TreeImpl(RootImpl root, TreeImpl parent, String name) {
         this.root = checkNotNull(root);
-        this.parent = parent;
+        this.parent = checkNotNull(parent);
         this.name = checkNotNull(name);
+        this.nodeBuilder = parent.getNodeBuilder().child(name);
     }
 
     @Nonnull
     static TreeImpl createRoot(final RootImpl root) {
-        return new TreeImpl(root, null, "") {
+        return new TreeImpl(root) {
             @Override
             protected NodeState getBaseState() {
                 return root.getBaseState();
-            }
-
-            @Override
-            protected synchronized NodeBuilder getNodeBuilder() {
-                if (nodeBuilder == null) {
-                    nodeBuilder = root.createRootBuilder();
-                }
-                return nodeBuilder;
             }
         };
     }
@@ -189,7 +188,7 @@ public class TreeImpl implements Tree {
     @Override
     public Iterable<? extends PropertyState> getProperties() {
         root.checkLive();
-        return Iterables.filter(getNodeBuilder().getProperties(),
+        return Iterables.filter(nodeBuilder.getProperties(),
                 new Predicate<PropertyState>() {
                     @Override
                     public boolean apply(PropertyState propertyState) {
@@ -219,7 +218,7 @@ public class TreeImpl implements Tree {
         if (!parent.nodeBuilder.isConnected()) {
             return true;
         }
-        return !getNodeBuilder().isConnected();
+        return !nodeBuilder.isConnected();
     }
 
     @Override
@@ -230,7 +229,7 @@ public class TreeImpl implements Tree {
             return Status.DISCONNECTED;
         }
 
-        NodeBuilder builder = getNodeBuilder();
+        NodeBuilder builder = nodeBuilder;
         if (builder.isNew()) {
             return Status.NEW;
         } else if (builder.isModified()) {
@@ -250,7 +249,7 @@ public class TreeImpl implements Tree {
     public long getChildrenCount() {
         // TODO: make sure cnt respects access control
         root.checkLive();
-        return getNodeBuilder().getChildNodeCount();
+        return nodeBuilder.getChildNodeCount();
     }
 
     @Override
@@ -260,7 +259,7 @@ public class TreeImpl implements Tree {
         if (hasOrderableChildren()) {
             childNames = getOrderedChildNames();
         } else {
-            childNames = getNodeBuilder().getChildNodeNames();
+            childNames = nodeBuilder.getChildNodeNames();
         }
         return Iterables.filter(Iterables.transform(
                 childNames,
@@ -282,9 +281,9 @@ public class TreeImpl implements Tree {
     public Tree addChild(String name) {
         root.checkLive();
         if (!hasChild(name)) {
-            getNodeBuilder().child(name);
+            nodeBuilder.child(name);
             if (hasOrderableChildren()) {
-                getNodeBuilder().setProperty(
+                nodeBuilder.setProperty(
                         MemoryPropertyBuilder.copy(Type.STRING, internalGetProperty(OAK_CHILD_ORDER))
                                 .addValue(name)
                                 .getPropertyState());
@@ -292,8 +291,10 @@ public class TreeImpl implements Tree {
             root.updated();
         }
 
-        TreeImpl child = getChild(name);
-        assert child != null;
+        TreeImpl child = new TreeImpl(root, this, name);
+
+        // Make sure to allocate the node builder for new nodes in order to correctly
+        // track removes and moves. See OAK-621
         return child;
     }
 
@@ -305,7 +306,7 @@ public class TreeImpl implements Tree {
         }
 
         if (!isRoot() && parent.hasChild(name)) {
-            NodeBuilder builder = parent.getNodeBuilder();
+            NodeBuilder builder = parent.nodeBuilder;
             builder.removeNode(name);
             if (parent.hasOrderableChildren()) {
                 builder.setProperty(
@@ -360,7 +361,7 @@ public class TreeImpl implements Tree {
             tail = Iterables.skip(filtered, idx);
         }
         // concatenate head, this name and tail
-        parent.getNodeBuilder().setProperty(MultiStringPropertyState.stringProperty(OAK_CHILD_ORDER, Iterables.concat(head, Collections.singleton(getName()), tail))
+        parent.nodeBuilder.setProperty(MultiStringPropertyState.stringProperty(OAK_CHILD_ORDER, Iterables.concat(head, Collections.singleton(getName()), tail))
         );
         root.updated();
         return true;
@@ -369,7 +370,7 @@ public class TreeImpl implements Tree {
     @Override
     public void setProperty(PropertyState property) {
         root.checkLive();
-        NodeBuilder builder = getNodeBuilder();
+        NodeBuilder builder = nodeBuilder;
         builder.setProperty(property);
         root.updated();
     }
@@ -377,7 +378,7 @@ public class TreeImpl implements Tree {
     @Override
     public <T> void setProperty(String name, T value) {
         root.checkLive();
-        NodeBuilder builder = getNodeBuilder();
+        NodeBuilder builder = nodeBuilder;
         builder.setProperty(name, value);
         root.updated();
     }
@@ -385,7 +386,7 @@ public class TreeImpl implements Tree {
     @Override
     public <T> void setProperty(String name, T value, Type<T> type) {
         root.checkLive();
-        NodeBuilder builder = getNodeBuilder();
+        NodeBuilder builder = nodeBuilder;
         builder.setProperty(name, value, type);
         root.updated();
     }
@@ -393,7 +394,7 @@ public class TreeImpl implements Tree {
     @Override
     public void removeProperty(String name) {
         root.checkLive();
-        NodeBuilder builder = getNodeBuilder();
+        NodeBuilder builder = nodeBuilder;
         builder.removeProperty(name);
         root.updated();
     }
@@ -418,15 +419,12 @@ public class TreeImpl implements Tree {
                 : parentBaseState.getChildNode(name);
     }
 
+    //-----------------------------------------------------------< internal >---
+
     @Nonnull
-    protected synchronized NodeBuilder getNodeBuilder() {
-        if (nodeBuilder == null) {
-            nodeBuilder = parent.getNodeBuilder().child(name);
-        }
+    NodeBuilder getNodeBuilder() {
         return nodeBuilder;
     }
-
-    //-----------------------------------------------------------< internal >---
 
     /**
      * Move this tree to the parent at {@code destParent} with the new name
@@ -446,7 +444,7 @@ public class TreeImpl implements Tree {
 
     @Nonnull
     NodeState getNodeState() {
-        return getNodeBuilder().getNodeState();
+        return nodeBuilder.getNodeState();
     }
 
     /**
@@ -480,29 +478,29 @@ public class TreeImpl implements Tree {
         }
         Set<String> names = Sets.newLinkedHashSet();
         for (String name : getOrderedChildNames()) {
-            if (getNodeBuilder().hasChildNode(name)) {
+            if (nodeBuilder.hasChildNode(name)) {
                 names.add(name);
             }
         }
-        for (String name : getNodeBuilder().getChildNodeNames()) {
+        for (String name : nodeBuilder.getChildNodeNames()) {
             names.add(name);
         }
         PropertyBuilder<String> builder = MemoryPropertyBuilder.array(
                 Type.STRING, OAK_CHILD_ORDER);
         builder.setValues(names);
-        getNodeBuilder().setProperty(builder.getPropertyState());
+        nodeBuilder.setProperty(builder.getPropertyState());
     }
 
     //------------------------------------------------------------< private >---
 
     private TreeImpl internalGetChild(String childName) {
-        return getNodeBuilder().hasChildNode(childName)
+        return nodeBuilder.hasChildNode(childName)
                 ? new TreeImpl(root, this, childName)
                 : null;
     }
 
     private PropertyState internalGetProperty(String propertyName) {
-        return getNodeBuilder().getProperty(propertyName);
+        return nodeBuilder.getProperty(propertyName);
     }
 
     private void buildPath(StringBuilder sb) {
@@ -574,10 +572,10 @@ public class TreeImpl implements Tree {
      * of the children as returned by {@link NodeBuilder#getChildNodeNames()}.
      */
     public void ensureChildOrderProperty() {
-        PropertyState childOrder = getNodeBuilder().getProperty(OAK_CHILD_ORDER);
+        PropertyState childOrder = nodeBuilder.getProperty(OAK_CHILD_ORDER);
         if (childOrder == null) {
-            getNodeBuilder().setProperty(
-                    MultiStringPropertyState.stringProperty(OAK_CHILD_ORDER, getNodeBuilder().getChildNodeNames()));
+            nodeBuilder.setProperty(
+                    MultiStringPropertyState.stringProperty(OAK_CHILD_ORDER, nodeBuilder.getChildNodeNames()));
         }
     }
 
