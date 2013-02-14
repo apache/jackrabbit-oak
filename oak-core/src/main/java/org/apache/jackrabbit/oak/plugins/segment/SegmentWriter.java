@@ -102,13 +102,14 @@ public class SegmentWriter {
         Set<UUID> segmentIds = new HashSet<UUID>();
         for (RecordId id : ids) {
             UUID segmentId = id.getSegmentId();
-            if (!uuid.equals(segmentId) && !uuids.contains(segmentId)) {
+            if (!uuids.contains(segmentId)) {
                 segmentIds.add(segmentId);
             }
         }
 
         int fullSize = size + 4 * ids.size();
-        if (buffer.position() + fullSize > store.getMaxSegmentSize()) {
+        if (buffer.position() + fullSize > store.getMaxSegmentSize()
+                || uuids.size() + segmentIds.size() > 0x100) {
             flush();
         }
         if (fullSize > buffer.remaining()) {
@@ -131,6 +132,8 @@ public class SegmentWriter {
             index = uuids.size();
             uuids.add(segmentId);
         }
+        checkState(index < (1 << 8));
+        checkState(id.getOffset() < (1 << 24));
         buffer.putInt(index << 24 | id.getOffset());
     }
 
@@ -218,7 +221,7 @@ public class SegmentWriter {
                 ids.add(entry.value);
             }
 
-            RecordId bucketId = prepare(4 + entries.size() * 12, ids);
+            RecordId bucketId = prepare(4 + entries.size() * 4, ids);
             buffer.putInt(entries.size());
             for (MapEntry entry : entries) {
                 buffer.putInt(entry.hashCode);
@@ -249,7 +252,7 @@ public class SegmentWriter {
                 }
             }
 
-            RecordId bucketId = prepare(12 + bucketIds.size() * 4, bucketIds);
+            RecordId bucketId = prepare(12, bucketIds);
             buffer.putInt(entries.size());
             buffer.putLong(bucketMap);
             for (RecordId id : bucketIds) {
