@@ -113,7 +113,7 @@ public class SegmentSizeTest {
         NodeBuilder deny = builder.child("deny");
         deny.setProperty("jcr:primaryType", "rep:DenyACE", Type.NAME);
         deny.setProperty("rep:principalName", "everyone");
-        builder.setProperty(PropertyStates.createProperty(
+        deny.setProperty(PropertyStates.createProperty(
                 "rep:privileges", ImmutableList.of("jcr:read"), Type.NAMES));
         assertEquals(134, getSize(builder));
         assertEquals(28, getAmortizedSize(builder));
@@ -132,16 +132,16 @@ public class SegmentSizeTest {
         deny0.setProperty("rep:glob", "*/activities/*");
         builder.setProperty(PropertyStates.createProperty(
                 "rep:privileges", ImmutableList.of("jcr:read"), Type.NAMES));
-        assertEquals(331, getSize(builder));
-        assertEquals(104, getAmortizedSize(builder));
+        assertEquals(348, getSize(builder));
+        assertEquals(116, getAmortizedSize(builder));
 
         NodeBuilder allow0 = builder.child("allow0");
         allow0.setProperty("jcr:primaryType", "rep:GrantACE");
         allow0.setProperty("rep:principalName", "user-administrators");
         allow0.setProperty(PropertyStates.createProperty(
                 "rep:privileges", ImmutableList.of("jcr:all"), Type.NAMES));
-        assertEquals(394, getSize(builder));
-        assertEquals(140, getAmortizedSize(builder));
+        assertEquals(411, getSize(builder));
+        assertEquals(152, getAmortizedSize(builder));
     }
 
     private int getSize(NodeBuilder builder) {
