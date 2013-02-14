@@ -16,7 +16,9 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
+import java.util.Set;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -38,4 +40,7 @@ public interface CompiledPermissions {
 
     boolean isGranted(@Nonnull String path, long permissions);
 
+    Set<String> getPrivileges(@Nullable Tree tree);
+
+    boolean hasPrivileges(@Nullable Tree tree, String... privilegeNames);
 }

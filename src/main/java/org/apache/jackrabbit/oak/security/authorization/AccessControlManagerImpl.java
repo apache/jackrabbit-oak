@@ -522,7 +522,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
         // TODO
         String oakPath = getOakPath(absPath);
         Tree tree = getTree(oakPath);
-        Set<String> pNames = provider.getPrivilegeNames(tree);
+        Set<String> pNames = provider.getPrivileges(tree);
         if (pNames.isEmpty()) {
             return new Privilege[0];
         } else {

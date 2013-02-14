@@ -22,14 +22,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import com.google.common.collect.ImmutableSortedMap;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.core.ReadOnlyTree;
 import org.apache.jackrabbit.oak.security.authorization.AccessControlConstants;
+import org.apache.jackrabbit.oak.security.privilege.PrivilegeBits;
+import org.apache.jackrabbit.oak.security.privilege.PrivilegeDefinitionStore;
 import org.apache.jackrabbit.oak.spi.security.authorization.Permissions;
-import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.apache.jackrabbit.util.Text;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -40,13 +43,16 @@ import static com.google.common.base.Preconditions.checkNotNull;
 public class CompiledPermissionImpl implements CompiledPermissions, AccessControlConstants {
 
     private final Set<Principal> principals;
+    private final PrivilegeDefinitionStore privilegeStore;
 
-    private Map<Key, Entry> userEntries;
-    private Map<Key, Entry> groupEntries;
+    private final Map<Key, Entry> userEntries;
+    private final Map<Key, Entry> groupEntries;
 
-    public CompiledPermissionImpl(@Nonnull ReadOnlyTree permissionsTree,
-                                  @Nonnull Set<Principal> principals) {
+    public CompiledPermissionImpl(@Nonnull Set<Principal> principals,
+                                  @Nonnull PrivilegeDefinitionStore privilegeStore,
+                                  @Nonnull ReadOnlyTree permissionsTree) {
         this.principals = checkNotNull(principals);
+        this.privilegeStore = privilegeStore;
 
         EntriesBuilder builder = new EntriesBuilder();
         for (Principal principal : principals) {
@@ -93,16 +99,30 @@ public class CompiledPermissionImpl implements CompiledPermissions, AccessContro
         return false;
     }
 
+    @Override
+    public Set<String> getPrivileges(@Nullable Tree tree) {
+        return privilegeStore.getPrivilegeNames(getPrivilegeBits(tree));
+    }
+
+    @Override
+    public boolean hasPrivileges(@Nullable Tree tree, String... privilegeNames) {
+        return getPrivilegeBits(tree).includes(privilegeStore.getBits(privilegeNames));
+    }
+
     //------------------------------------------------------------< private >---
+
+    private PrivilegeBits getPrivilegeBits(@Nullable Tree tree) {
+        return PrivilegeBits.EMPTY; // TODO
+    }
 
     private static final class Key implements Comparable<Key> {
 
         private String path;
-        private long order;
+        private long index;
 
-        private Key(NodeUtil node) {
-            path = node.getString("path", "");
-            order = node.getLong("order", -1);
+        private Key(Tree tree) {
+            path = tree.getProperty("rep:accessControlledPath").getValue(Type.STRING);
+            index = tree.getProperty("rep:index").getValue(Type.LONG);
         }
 
         @Override
@@ -115,16 +135,13 @@ public class CompiledPermissionImpl implements CompiledPermissions, AccessContro
     private static final class Entry {
 
         private final boolean isAllow;
-        private final String[] privilegeNames;
+        private final PrivilegeBits privilegeBits;
         private final List<String> restrictions;
-        private final long permissions;
 
-        private Entry(NodeUtil node) {
-            isAllow = node.hasPrimaryNodeTypeName(NT_REP_GRANT_ACE);
-            privilegeNames = node.getStrings(REP_PRIVILEGES);
+        private Entry(Tree entryTree) {
+            isAllow = ('a' == entryTree.getName().charAt(0));
+            privilegeBits = PrivilegeBits.getInstance(entryTree.getProperty(REP_PRIVILEGES));
             restrictions = null; // TODO
-
-            permissions = node.getLong("permissions", Permissions.NO_PERMISSION);
         }
     }
 
@@ -134,10 +151,9 @@ public class CompiledPermissionImpl implements CompiledPermissions, AccessContro
         private ImmutableSortedMap.Builder<Key, Entry> groupEntries = ImmutableSortedMap.naturalOrder();
 
         private void addEntry(@Nonnull Principal principal, @Nonnull Tree entryTree) {
-            NodeUtil node = new NodeUtil(entryTree);
-            Entry entry = new Entry(node);
-            if (entry.permissions != Permissions.NO_PERMISSION) {
-                Key key = new Key(node);
+            Entry entry = new Entry(entryTree);
+            if (entry.privilegeBits.isEmpty()) {
+                Key key = new Key(entryTree);
                 if (principal instanceof Group) {
                     groupEntries.put(key, entry);
                 } else {
