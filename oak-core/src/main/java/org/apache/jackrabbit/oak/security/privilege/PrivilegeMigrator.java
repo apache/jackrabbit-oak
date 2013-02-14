@@ -75,7 +75,7 @@ public class PrivilegeMigrator {
                     return root.getTree("/");
                 }
             };
-            for (PrivilegeDefinition def : readCustomDefinitons(privilegeStream, nsRegistry)) {
+            for (PrivilegeDefinition def : readCustomDefinitions(privilegeStream, nsRegistry)) {
                 store.writeDefinition(def);
             }
         } catch (IOException e) {
@@ -95,8 +95,8 @@ public class PrivilegeMigrator {
      * @throws RepositoryException
      * @throws IOException
      */
-    private static Iterable<PrivilegeDefinition> readCustomDefinitons(InputStream customPrivileges,
-                                                                      NamespaceRegistry nsRegistry) throws RepositoryException, IOException {
+    private static Iterable<PrivilegeDefinition> readCustomDefinitions(InputStream customPrivileges,
+            NamespaceRegistry nsRegistry) throws RepositoryException, IOException {
         Map<String, PrivilegeDefinition> definitions = new LinkedHashMap<String, PrivilegeDefinition>();
         InputSource src = new InputSource(customPrivileges);
         for (PrivilegeDefinition def : PrivilegeXmlHandler.readDefinitions(src, nsRegistry)) {
