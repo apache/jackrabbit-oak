@@ -50,6 +50,7 @@ import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 
 /**
@@ -87,55 +88,77 @@ public class IdentifierManager {
         }
     }
 
+    /**
+     * Return the identifier of a tree.
+     *
+     * @param tree  a tree
+     * @return  identifier of {@code tree}
+     */
     @Nonnull
     public String getIdentifier(Tree tree) {
         PropertyState property = tree.getProperty(JcrConstants.JCR_UUID);
-        if (property == null) {
-            // TODO calculate the identifier from closest referenceable parent
-            // TODO and a relative path irrespective of the accessibility of the parent node(s)
+        if (property != null) {
+            return property.getValue(STRING);
+        } else if (tree.isRoot()) {
             return tree.getPath();
         } else {
-            return property.getValue(STRING);
+            return PathUtils.concat(getIdentifier(tree.getParent()), tree.getName());
         }
     }
 
     /**
      * The tree identified by the specified {@code identifier} or {@code null}.
      *
-     * @param identifier The identifier of the Node such as exposed by {@link javax.jcr.Node#getIdentifier()}
+     * @param identifier The identifier of the tree such as exposed by {@link #getIdentifier(Tree)}
      * @return The tree with the given {@code identifier} or {@code null} if no
-     *         such tree exists or isn't accessible to the content session.
+     *         such tree exists or if the tree is not accessible.
      */
     @CheckForNull
     public Tree getTree(String identifier) {
-        if (isValidUUID(identifier)) {
-            String path = resolveUUID(identifier);
-            return (path == null) ? null : root.getTree(path);
-        } else {
-            // TODO as stated in NodeDelegate#getIdentifier() a non-uuid ID should
-            // TODO consisting of closest referenceable parent and a relative path
-            // TODO irrespective of the accessibility of the parent node(s)
-            return root.getTree(identifier);
-        }
+        return getLocation(identifier).getTree();
     }
 
     /**
      * The path of the tree identified by the specified {@code identifier} or {@code null}.
      *
-     * @param identifier The identifier of the Tree such as exposed by {@link javax.jcr.Node#getIdentifier()}
-     * @return The tree with the given {@code identifier} or {@code null} if no
-     *         such tree exists or isn't accessible to the content session.
+     * @param identifier The identifier of the tree such as exposed by {@link #getIdentifier(Tree)}
+     * @return The path of the tree with the given {@code identifier} or {@code null} if no
+     *         such tree exists or if the tree is not accessible.
      */
     @CheckForNull
     public String getPath(String identifier) {
-        if (isValidUUID(identifier)) {
-            return resolveUUID(identifier);
+        TreeLocation location = getLocation(identifier);
+        return location.exists()
+            ? location.getPath()
+            : null;
+    }
+
+    /**
+     * The tree location of the tree identified by the specified {@code identifier}.
+     *
+     * @param identifier The identifier of the tree such as exposed by {@link #getIdentifier(Tree)}
+     * @return The tree location of the tree with the given {@code identifier}.
+     */
+    @Nonnull
+    public TreeLocation getLocation(String identifier) {
+        if (identifier.startsWith("/")) {
+            return root.getLocation(identifier);
         } else {
-            // TODO as stated in NodeDelegate#getIdentifier() a non-uuid ID should
-            // TODO consisting of closest referenceable parent and a relative path
-            // TODO irrespective of the accessibility of the parent node(s)
-            Tree tree = root.getTree(identifier);
-            return tree == null ? null : tree.getPath();
+            int k = identifier.indexOf('/');
+            String uuid = k == -1
+                ? identifier
+                : identifier.substring(0, k);
+
+            checkArgument(isValidUUID(uuid), "Not a valid identifier '" + identifier + '\'');
+
+            String basePath = resolveUUID(uuid);
+            if (basePath == null) {
+                return root.getLocation("/").getParent(); // a null location
+            } else if (k == -1) {
+                return root.getLocation(basePath);
+            } else {
+                return root.getLocation(PathUtils.concat(basePath, identifier.substring(k + 1)));
+            }
         }
     }
 
