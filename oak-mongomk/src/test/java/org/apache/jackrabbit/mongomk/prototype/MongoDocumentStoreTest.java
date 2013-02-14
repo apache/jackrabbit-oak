@@ -60,7 +60,7 @@ public class MongoDocumentStoreTest {
         dropCollections();
         DocumentStore docStore = openDocumentStore();
 
-        UpdateOp updateOp = new UpdateOp("/");
+        UpdateOp updateOp = new UpdateOp("/", true);
         updateOp.addMapEntry("property1", "key1", "value1");
         updateOp.increment("property2", 1);
         updateOp.set("property3", "value3");
@@ -91,7 +91,7 @@ public class MongoDocumentStoreTest {
         int nUpdates = 10;
         List<UpdateOp> updateOps = new ArrayList<UpdateOp>();
         for (int i = 0; i < nUpdates; i++) {
-            UpdateOp updateOp = new UpdateOp("/node" + i);
+            UpdateOp updateOp = new UpdateOp("/node" + i, true);
             updateOp.set(MongoDocumentStore.KEY_PATH, "/node" + i);
             updateOp.addMapEntry("property1", "key1", "value1");
             updateOp.increment("property2", 1);
@@ -104,6 +104,7 @@ public class MongoDocumentStoreTest {
     }
 
     @Test
+    @Ignore
     public void addLotsOfNodes() throws Exception {
 
         char[] nPrefix = new char[]{'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'};
@@ -132,11 +133,7 @@ public class MongoDocumentStoreTest {
     }
 
     @Test
-    @Ignore
     public void batchInsert() throws Exception {
-        if (!MONGO_DB) {
-            return;
-        }
         doInsert(NODE_COUNT, true);
         doInsert(NODE_COUNT, false);
     }
@@ -206,7 +203,7 @@ public class MongoDocumentStoreTest {
 
         private void addNodes() {
             for (int i = 0; i < nNodes; i++) {
-                UpdateOp updateOp = new UpdateOp("/" + nodeName + i);
+                UpdateOp updateOp = new UpdateOp("/" + nodeName + i, true);
                 updateOp.addMapEntry("property1", "key1", "value1");
                 updateOp.set("property3", "value3");
                 docStore.createOrUpdate(Collection.NODES, updateOp);
@@ -215,7 +212,7 @@ public class MongoDocumentStoreTest {
 
         private void updateNodes() {
             for (int i = 0; i < nNodes; i++) {
-                UpdateOp updateOp = new UpdateOp("/" + nodeName + i);
+                UpdateOp updateOp = new UpdateOp("/" + nodeName + i, false);
                 updateOp.addMapEntry("property1", "key2", "value2");
                 updateOp.set("property4", "value4");
                 docStore.createOrUpdate(Collection.NODES, updateOp);

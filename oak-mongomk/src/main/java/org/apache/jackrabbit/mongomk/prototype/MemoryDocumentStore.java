@@ -169,7 +169,9 @@ public class MemoryDocumentStore implements DocumentStore {
 
     @Override
     public void create(Collection collection, List<UpdateOp> updateOps) {
-        // TODO Auto-generated method stub
+        for (UpdateOp op : updateOps) {
+            createOrUpdate(collection, op);
+        }
     }
 
     public String toString() {

@@ -26,17 +26,25 @@ public class UpdateOp {
     
     final String key;
     
+    final boolean isNew;
+    
     final Map<String, Operation> changes = new TreeMap<String, Operation>();
     
     /**
      * Create an update operation for the given document. The commit root is assumed
      * to be the path, unless this is changed later on.
      * 
-     * @param path the path
+     * @param key the primary key
+     * @param isNew whether this is a new document
      * @param rev the revision
      */
-    UpdateOp(String key) {
+    UpdateOp(String key, boolean isNew) {
         this.key = key;
+        this.isNew = isNew;
+    }
+    
+    boolean isNew() {
+        return isNew;
     }
     
     /**
@@ -77,6 +85,10 @@ public class UpdateOp {
         op.type = Operation.Type.INCREMENT;
         op.value = value;
         changes.put(property, op);
+    }
+    
+    public String toString() {
+        return "key: " + key + " " + (isNew ? "new" : "update") + " " + changes;
     }
     
     /**

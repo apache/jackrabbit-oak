@@ -18,16 +18,18 @@ package org.apache.jackrabbit.mongomk.prototype;
 
 import java.util.Map;
 
+import org.apache.jackrabbit.mk.json.JsopStream;
+
 /**
  * Represents a node held in memory (in the cache for example).
  */
 public class Node {
 
     final String path;
-    final String rev;
+    final Revision rev;
     final Map<String, String> properties = Utils.newMap();
     
-    Node(String path, String rev) {
+    Node(String path, Revision rev) {
         this.path = path;
         this.rev = rev;
     }
@@ -35,6 +37,10 @@ public class Node {
     void setProperty(String propertyName, String value) {
         properties.put(propertyName, value);
     }
+    
+    public String getProperty(String propertyName) {
+        return properties.get(propertyName);
+    }    
     
     public String toString() {
         StringBuilder buff = new StringBuilder();
@@ -45,4 +51,33 @@ public class Node {
         return buff.toString();
     }
     
+    /**
+     * Create an add node operation for this node.
+     */
+    UpdateOp asOperation(boolean isNew) {
+        String id = convertPathToDocumentId(path);
+        UpdateOp op = new UpdateOp(id, isNew);
+        op.set("_id", id);
+        if (!isNew) {
+            op.increment("_changeCount", 1L);
+        }
+        for (String p : properties.keySet()) {
+            op.addMapEntry(p, rev.toString(), properties.get(p));
+        }
+        return op;
+    }
+
+    static String convertPathToDocumentId(String path) {
+        int depth = Utils.pathDepth(path);
+        return depth + ":" + path;
+    }
+
+    public void append(JsopStream json) {
+        json.object();
+        for (String p : properties.keySet()) {
+            json.key(p).encodedValue(properties.get(p));
+        }
+        json.endObject();
+    }
+
 }
