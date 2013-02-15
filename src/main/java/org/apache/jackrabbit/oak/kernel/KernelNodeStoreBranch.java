@@ -24,6 +24,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
@@ -122,10 +123,9 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
     }
 
     @Override
-    public NodeState merge() throws CommitFailedException {
+    public NodeState merge(CommitHook hook) throws CommitFailedException {
         checkNotMerged();
-        CommitHook commitHook = store.getHook();
-        NodeState toCommit = commitHook.processCommit(base, head);
+        NodeState toCommit = checkNotNull(hook).processCommit(base, head);
         NodeState oldRoot = head;
         setRoot(toCommit);
 

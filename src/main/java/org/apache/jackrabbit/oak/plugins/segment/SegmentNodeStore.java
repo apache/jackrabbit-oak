@@ -22,8 +22,6 @@ import java.io.InputStream;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.Blob;
-import org.apache.jackrabbit.oak.spi.commit.CommitHook;
-import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
@@ -33,8 +31,6 @@ public class SegmentNodeStore implements NodeStore {
     private final SegmentStore store;
 
     private final SegmentReader reader;
-
-    private CommitHook hook = new EmptyHook();
 
     public SegmentNodeStore(SegmentStore store) {
         this.store = store;
@@ -48,7 +44,7 @@ public class SegmentNodeStore implements NodeStore {
 
     @Override @Nonnull
     public NodeStoreBranch branch() {
-        return new SegmentNodeStoreBranch(store, reader, hook);
+        return new SegmentNodeStoreBranch(store, reader);
     }
 
     @Override
@@ -57,10 +53,6 @@ public class SegmentNodeStore implements NodeStore {
         RecordId recordId = writer.writeStream(stream);
         writer.flush();
         return new SegmentBlob(reader, recordId);
-    }
-
-    public void setHook(CommitHook hook) {
-        this.hook = hook;
     }
 
 }

@@ -22,6 +22,7 @@ import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
+import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -101,7 +102,7 @@ public class KernelNodeStoreTest {
         assertNull(testState.getChildNode("newNode"));
         assertNotNull(testState.getChildNode("x"));
 
-        branch.merge();
+        branch.merge(EmptyHook.INSTANCE);
 
         // Assert changes are present in the trunk
         testState = store.getRoot().getChildNode("test");
@@ -134,7 +135,7 @@ public class KernelNodeStoreTest {
 
         NodeStoreBranch branch = store.branch();
         branch.setRoot(newRoot);
-        branch.merge();
+        branch.merge(EmptyHook.INSTANCE);
         store.getRoot(); // triggers the observer
 
         NodeState before = states[0];
@@ -151,16 +152,6 @@ public class KernelNodeStoreTest {
 
     @Test
     public void beforeCommitHook() throws CommitFailedException {
-        store.setHook(new CommitHook() {
-            @Override
-            public NodeState processCommit(NodeState before, NodeState after) {
-                NodeBuilder rootBuilder = after.builder();
-                NodeBuilder testBuilder = rootBuilder.child("test");
-                testBuilder.child("fromHook");
-                return rootBuilder.getNodeState();
-            }
-        });
-
         NodeState root = store.getRoot();
         NodeBuilder rootBuilder = root.builder();
         NodeBuilder testBuilder = rootBuilder.child("test");
@@ -174,7 +165,15 @@ public class KernelNodeStoreTest {
 
         NodeStoreBranch branch = store.branch();
         branch.setRoot(newRoot);
-        branch.merge();
+        branch.merge(new CommitHook() {
+            @Override
+            public NodeState processCommit(NodeState before, NodeState after) {
+                NodeBuilder rootBuilder = after.builder();
+                NodeBuilder testBuilder = rootBuilder.child("test");
+                testBuilder.child("fromHook");
+                return rootBuilder.getNodeState();
+            }
+        });
 
         NodeState test = store.getRoot().getChildNode("test");
         assertNotNull(test.getChildNode("newNode"));

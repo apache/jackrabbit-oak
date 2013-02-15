@@ -25,6 +25,7 @@ import javax.security.auth.callback.NameCallback;
 import javax.security.auth.callback.PasswordCallback;
 import javax.security.auth.callback.UnsupportedCallbackException;
 
+import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.callback.CredentialsCallback;
@@ -49,15 +50,17 @@ public class CallbackHandlerImpl implements CallbackHandler {
     private final Credentials credentials;
     private final String workspaceName;
     private final NodeStore nodeStore;
+    private final CommitHook commitHook;
     private final QueryIndexProvider indexProvider;
     private final SecurityProvider securityProvider;
 
     public CallbackHandlerImpl(Credentials credentials, String workspaceName,
-                               NodeStore nodeStore, QueryIndexProvider indexProvider,
+                               NodeStore nodeStore, CommitHook commitHook, QueryIndexProvider indexProvider,
                                SecurityProvider securityProvider) {
         this.credentials = credentials;
         this.workspaceName = workspaceName;
         this.nodeStore = nodeStore;
+        this.commitHook = commitHook;
         this.indexProvider = indexProvider;
         this.securityProvider = securityProvider;
     }
@@ -77,6 +80,7 @@ public class CallbackHandlerImpl implements CallbackHandler {
             } else if (callback instanceof RepositoryCallback) {
                 RepositoryCallback repositoryCallback = (RepositoryCallback) callback;
                 repositoryCallback.setNodeStore(nodeStore);
+                repositoryCallback.setCommitHook(commitHook);
                 repositoryCallback.setIndexProvider(indexProvider);
                 repositoryCallback.setWorkspaceName(workspaceName);
             } else {

@@ -58,7 +58,6 @@ public class NodeTypeIndexTest {
     public void setup() {
         MicroKernel mk = new MicroKernelImpl();
         store = new KernelNodeStore(mk);
-        store.setHook(IndexHookManager.of(new Property2IndexHookProvider()));
         // initialize node types & index definitions
         OakInitializer.initialize(store, new InitialContent(),
                 CompositeIndexHookProvider
@@ -76,7 +75,7 @@ public class NodeTypeIndexTest {
         addFile(root, "file-1");
 
         branch.setRoot(root.getNodeState());
-        branch.merge();
+        branch.merge(IndexHookManager.of(new Property2IndexHookProvider()));
 
         NodeState rootState = store.getRoot();
         NodeTypeIndex index = new NodeTypeIndex();

@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.spi.state;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 
 /**
  * An instance of this class represents a private branch of the tree in a
@@ -75,12 +76,13 @@ public interface NodeStoreBranch {
     /**
      * Merges the changes in this branch to the main content tree.
      *
+     * @param hook the commit hook to apply while merging changes
      * @return the node state resulting from the merge.
      * @throws CommitFailedException if the merge failed
      * @throws IllegalStateException if the branch is already merged
      */
     @Nonnull
-    NodeState merge() throws CommitFailedException;
+    NodeState merge(@Nonnull CommitHook hook) throws CommitFailedException;
 
     /**
      * Rebase the changes from this branch on top of the current

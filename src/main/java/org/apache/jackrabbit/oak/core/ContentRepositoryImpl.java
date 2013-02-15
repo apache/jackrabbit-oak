@@ -24,6 +24,7 @@ import javax.security.auth.login.LoginException;
 
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
@@ -42,21 +43,25 @@ public class ContentRepositoryImpl implements ContentRepository {
     private final SecurityProvider securityProvider;
     private final QueryIndexProvider indexProvider;
     private final NodeStore nodeStore;
+    private final CommitHook commitHook;
 
     /**
      * Creates an content repository instance based on the given, already
      * initialized components.
      *
      * @param nodeStore            the node store this repository is based upon.
+     * @param commitHook           the hook to use for processing commits
      * @param defaultWorkspaceName the default workspace name;
      * @param indexProvider        index provider
      * @param securityProvider     The configured security provider.
      */
     public ContentRepositoryImpl(@Nonnull NodeStore nodeStore,
+                                 @Nonnull CommitHook commitHook,
                                  @Nonnull String defaultWorkspaceName,
                                  @Nullable QueryIndexProvider indexProvider,
                                  @Nonnull SecurityProvider securityProvider) {
         this.nodeStore = nodeStore;
+        this.commitHook = commitHook;
         this.defaultWorkspaceName = defaultWorkspaceName;
         this.indexProvider = indexProvider != null ? indexProvider : new CompositeQueryIndexProvider();
         this.securityProvider = securityProvider;
@@ -75,13 +80,13 @@ public class ContentRepositoryImpl implements ContentRepository {
             throw new NoSuchWorkspaceException(workspaceName);
         }
 
-        LoginContextProvider lcProvider = securityProvider.getAuthenticationConfiguration().getLoginContextProvider(nodeStore, indexProvider);
+        LoginContextProvider lcProvider = securityProvider.getAuthenticationConfiguration().getLoginContextProvider(nodeStore, commitHook, indexProvider);
         LoginContext loginContext = lcProvider.getLoginContext(credentials, workspaceName);
         loginContext.login();
 
         AccessControlConfiguration acConfiguration = securityProvider.getAccessControlConfiguration();
         return new ContentSessionImpl(loginContext, acConfiguration, workspaceName,
-                nodeStore, indexProvider);
+                nodeStore, commitHook, indexProvider);
     }
 
     public NodeStore getNodeStore() {
