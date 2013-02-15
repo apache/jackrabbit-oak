@@ -89,14 +89,18 @@ public class PrivilegeMigrator {
      * custom privilege definitions of Jackrabbit 2.x repositories. The caller
      * is in charge of migrating the definitions.
      *
-     * @param customPrivileges
-     * @param nsRegistry
-     * @return
-     * @throws RepositoryException
-     * @throws IOException
+     * @param customPrivileges The stream from which 2.x privilege definitions
+     *                         should be read.
+     * @param nsRegistry       The namespace registry.
+     * @return The {@code PrivilegeDefinition}s contained in the stream.
+     * @throws RepositoryException If a name collisions is detected during
+     *                             parsing the custom privileges.
+     * @throws IOException         If another error occurs while reading from the
+     *                             custom privileges stream.
      */
     private static Iterable<PrivilegeDefinition> readCustomDefinitions(InputStream customPrivileges,
-            NamespaceRegistry nsRegistry) throws RepositoryException, IOException {
+                                                                       NamespaceRegistry nsRegistry)
+            throws RepositoryException, IOException {
         Map<String, PrivilegeDefinition> definitions = new LinkedHashMap<String, PrivilegeDefinition>();
         InputSource src = new InputSource(customPrivileges);
         for (PrivilegeDefinition def : PrivilegeXmlHandler.readDefinitions(src, nsRegistry)) {
@@ -214,7 +218,7 @@ public class PrivilegeMigrator {
          * Create a new {@code DocumentBuilder}
          *
          * @return a new {@code DocumentBuilder}
-         * @throws ParserConfigurationException
+         * @throws ParserConfigurationException If an error occurs.
          */
         private static DocumentBuilder createDocumentBuilder() throws ParserConfigurationException {
             DocumentBuilder builder = createFactory().newDocumentBuilder();
@@ -226,9 +230,10 @@ public class PrivilegeMigrator {
          * Update the specified nsRegistry mappings with the nsRegistry declarations
          * defined by the given XML element.
          *
-         * @param elem
-         * @param nsRegistry
-         * @throws javax.jcr.RepositoryException
+         * @param elem       An XML element.
+         * @param nsRegistry The namespace registry used to keep track of the
+         *                   namespace definitions present in the xml file.
+         * @throws javax.jcr.RepositoryException If error occurs.
          */
         private static void updateNamespaceMapping(Element elem, NamespaceRegistry nsRegistry) throws RepositoryException {
             NamedNodeMap attributes = elem.getAttributes();
