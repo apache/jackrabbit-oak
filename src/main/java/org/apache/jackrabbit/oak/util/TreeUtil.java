@@ -23,9 +23,7 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.core.TreeImpl;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 
@@ -78,19 +76,5 @@ public final class TreeUtil {
     public static boolean getBoolean(Tree tree, String propertyName) {
         PropertyState property = tree.getProperty(propertyName);
         return property != null && !property.isArray() && property.getValue(BOOLEAN);
-    }
-
-    /**
-     * FIXME: see OAK-626 for a proposal on how to clean that up.
-     *
-     * Utility method that assert that children of a tree keep the order such
-     * as defined by the insertion and any subsequent
-     * {@link Tree#orderBefore(String) reordering}.
-     *
-     * @param tree The parent tree whose children are mandated to be orderable.
-     */
-    public static void ensureOrderableChildren(Tree tree) {
-        checkArgument(tree instanceof TreeImpl);
-        ((TreeImpl) tree).ensureChildOrderProperty();
     }
 }

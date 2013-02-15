@@ -209,6 +209,11 @@ public class ReadOnlyTree implements Tree {
     }
 
     @Override
+    public void setOrderableChildren(boolean enable) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public boolean remove() {
         throw new UnsupportedOperationException();
     }

@@ -35,23 +35,23 @@ import javax.annotation.Nonnull;
  * Calling {@link #orderBefore(String)} will persist the current order and
  * maintain the order as new children are added or removed. In this case a new
  * child will be inserted after the last child as seen by {@link #getChildren()}.
- * <p>
+ * <p/>
  * A tree instance belongs to the client and its state is only modified
  * in response to method calls made by the client. The various accessors
  * on this interface mirror these of the underlying {@code NodeState}
  * interface. However, since instances of this class are mutable return
  * values may change between invocations.
- * <p>
+ * <p/>
  * Tree instances are not thread-safe for write access, so writing clients
  * need to ensure that they are not accessed concurrently from multiple
  * threads. Instances are however thread-safe for read access, so
  * implementations need to ensure that all reading clients see a
  * coherent state.
- * <p>
+ * <p/>
  * The data returned by this class and intermediary objects such as
  * {@link PropertyState} is filtered for the access rights that are set in the
  * {@link ContentSession} that created the {@link Root} of this object.
- * <p>
+ * <p/>
  * All tree instances created in the context of a content session become invalid
  * after the content session is closed. Any method called on an invalid tree instance
  * will throw an {@code InvalidStateException}.
@@ -85,7 +85,7 @@ public interface Tree {
     }
 
     /**
-     * @return  the name of this {@code Tree} instance.
+     * @return the name of this {@code Tree} instance.
      */
     @Nonnull
     String getName();
@@ -117,8 +117,8 @@ public interface Tree {
 
     /**
      * @return the parent of this {@code Tree} instance. This method returns
-     * {@code null} if the parent is not accessible or if no parent exists (root
-     * node).
+     *         {@code null} if the parent is not accessible or if no parent exists (root
+     *         node).
      */
     @CheckForNull
     Tree getParent();
@@ -128,7 +128,7 @@ public interface Tree {
      *
      * @param name The name of the property state.
      * @return the property state with the given {@code name} or {@code null}
-     * if no such property state exists or the property is not accessible.
+     *         if no such property state exists or the property is not accessible.
      */
     @CheckForNull
     PropertyState getProperty(String name);
@@ -138,8 +138,8 @@ public interface Tree {
      *
      * @param name The name of the property state.
      * @return The status of the property state with the given {@code name}
-     * or {@code null} in no such property state exists or if the name refers
-     * to a property that is not accessible.
+     *         or {@code null} in no such property state exists or if the name refers
+     *         to a property that is not accessible.
      */
     @CheckForNull
     Status getPropertyStatus(String name);
@@ -149,7 +149,7 @@ public interface Tree {
      *
      * @param name The name of the property state
      * @return {@code true} if and only if a property with the given {@code name}
-     *          exists and is accessible.
+     *         exists and is accessible.
      */
     boolean hasProperty(String name);
 
@@ -176,7 +176,7 @@ public interface Tree {
      *
      * @param name The name of the child to retrieve.
      * @return The child with the given {@code name} or {@code null} if no such
-     * child exists or the child is not accessible.
+     *         child exists or the child is not accessible.
      */
     @CheckForNull
     Tree getChild(String name);
@@ -187,7 +187,7 @@ public interface Tree {
      *
      * @param name The name of the child
      * @return {@code true} if and only if a child with the given {@code name}
-     * exists and is accessible for the current content session.
+     *         exists and is accessible for the current content session.
      */
     boolean hasChild(String name);
 
@@ -228,6 +228,32 @@ public interface Tree {
     Tree addChild(String name);
 
     /**
+     * Changes the nature of this tree such that the order of the children
+     * is kept stable. The expected behavior is as follows:
+     * <p/>
+     * <ol>
+     * <li>Calling {@code setOrderableChildren(true)} on a tree
+     * the first time will stabilize the order of existing children. Any
+     * subsequent {@link #addChild(String)} call is guaranteed to insert
+     * the new tree and the end of the child list.</li>
+     * <li>Calling {@code setOrderableChildren(true)} on a tree
+     * that already has its children ordered has no effect.</li>
+     * <li>Calling {@code setOrderableChildren(false)} on a tree that
+     * doesn't have ordered children has not effect</li>
+     * <li>Calling {@code setOrderableChildren(false)} on a tree
+     * with ordered children will remove the necessity to keep the child
+     * list stable. The order of children upon {@link #getChildren()} is
+     * subsequently undefined.</li>
+     * </ol>
+     * <p/>
+     * Calling {@link #orderBefore(String)} on a tree, implicitly enables
+     * orderable children on the parent tree.
+     *
+     * @param enable Enable (or disable) orderable children for this tree.
+     */
+    void setOrderableChildren(boolean enable);
+
+    /**
      * Orders this {@code Tree} before the sibling tree with the given
      * {@code name}. Calling this method for the first time on this
      * {@code Tree} or any of its siblings will persist the current order
@@ -244,25 +270,28 @@ public interface Tree {
 
     /**
      * Set a property state
-     * @param property  The property state to set
+     *
+     * @param property The property state to set
      */
     void setProperty(@Nonnull PropertyState property);
 
     /**
      * Set a property state
+     *
      * @param name  The name of this property
-     * @param value  The value of this property
-     * @param <T>  The type of this property. Must be one of {@code String, Blob, byte[], Long, Integer, Double, Boolean, BigDecimal}
+     * @param value The value of this property
+     * @param <T>   The type of this property. Must be one of {@code String, Blob, byte[], Long, Integer, Double, Boolean, BigDecimal}
      * @throws IllegalArgumentException if {@code T} is not one of the above types.
      */
     <T> void setProperty(String name, @Nonnull T value);
 
     /**
      * Set a property state
+     *
      * @param name  The name of this property
-     * @param value  The value of this property
-     * @param type The type of this property.
-     * @param <T>  The type of this property.
+     * @param value The value of this property
+     * @param type  The type of this property.
+     * @param <T>   The type of this property.
      */
     <T> void setProperty(String name, @Nonnull T value, Type<T> type);
 
