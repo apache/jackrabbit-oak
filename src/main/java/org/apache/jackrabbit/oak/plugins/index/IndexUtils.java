@@ -75,12 +75,7 @@ public class IndexUtils implements IndexConstants {
         if (unique) {
             entry.setProperty(IndexConstants.UNIQUE_PROPERTY_NAME, unique);
         }
-        // FIXME OAK-583
-        if (propertyNames.size() == 1) {
-            entry.setProperty(IndexConstants.PROPERTY_NAMES, propertyNames.get(0));
-        } else {
-            entry.setProperty(PropertyStates.createProperty(IndexConstants.PROPERTY_NAMES, propertyNames, Type.STRINGS));
-        }
+        entry.setProperty(PropertyStates.createProperty(IndexConstants.PROPERTY_NAMES, propertyNames, Type.STRINGS));
         if (declaringNodeTypeNames != null && !declaringNodeTypeNames.isEmpty()) {
             entry.setProperty(PropertyStates.createProperty(IndexConstants.DECLARING_NODE_TYPES, declaringNodeTypeNames, Type.STRINGS));
         }
