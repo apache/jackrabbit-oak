@@ -374,4 +374,38 @@ public class TreeImplTest {
 
         assertTrue(added.isEmpty());
     }
+
+    @Test
+    public void testSetOrderableChildrenSetsProperty() throws Exception {
+        Tree tree = root.getTree("/").addChild("test");
+        tree.setOrderableChildren(true);
+        assertNotNull(((TreeImpl) tree).getNodeState().getProperty(TreeImpl.OAK_CHILD_ORDER));
+
+        tree.setOrderableChildren(false);
+        assertNull(((TreeImpl) tree).getNodeState().getProperty(TreeImpl.OAK_CHILD_ORDER));
+
+        tree.setOrderableChildren(true);
+        root.commit();
+        assertNotNull(((TreeImpl) tree).getNodeState().getProperty(TreeImpl.OAK_CHILD_ORDER));
+
+        tree.setOrderableChildren(false);
+        root.commit();
+        assertNull(((TreeImpl) tree).getNodeState().getProperty(TreeImpl.OAK_CHILD_ORDER));
+    }
+
+    @Test
+    public void testSetOrderableChildren() throws Exception {
+        Tree tree = root.getTree("/").addChild("test2");
+        tree.setOrderableChildren(true);
+
+        String[] childNames = new String[]{"a", "b", "c", "d"};
+        for (String name : childNames) {
+            tree.addChild(name);
+        }
+
+        int index = 0;
+        for (Tree child : tree.getChildren()) {
+            assertEquals(childNames[index++], child.getName());
+        }
+    }
 }
