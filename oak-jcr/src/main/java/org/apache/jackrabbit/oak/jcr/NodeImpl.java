@@ -86,7 +86,7 @@ import static javax.jcr.Property.JCR_LOCK_OWNER;
 
 /**
  * TODO document
- * 
+ *
  * @param <T> the delegate type
  */
 public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Node {
@@ -146,8 +146,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                     return !dlg.isStale() && dlg.getStatus() == Status.NEW;
                 }
             });
-        }
-        catch (RepositoryException e) {
+        } catch (RepositoryException e) {
             return false;
         }
     }
@@ -164,8 +163,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                     return !dlg.isStale() && dlg.getStatus() == Status.MODIFIED;
                 }
             });
-        }
-        catch (RepositoryException e) {
+        } catch (RepositoryException e) {
             return false;
         }
     }
@@ -201,6 +199,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     }
 
     //---------------------------------------------------------------< Node >---
+
     /**
      * @see Node#addNode(String)
      */
@@ -275,7 +274,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                 }
 
                 if (getPrimaryNodeType().hasOrderableChildNodes()) {
-                    dlg.orderBefore(oakName, null);
+                    dlg.setOrderableChildren(true);
                 }
 
                 NodeImpl<?> childNode = new NodeImpl<NodeDelegate>(added);
@@ -748,14 +747,14 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
 
                 Set<String> propertyOakPaths = idManager.getReferences(weak, dlg.getTree(), name);
                 Iterable<Property> properties = Iterables.transform(
-                    propertyOakPaths,
-                    new Function<String, Property>() {
-                        @Override
-                        public Property apply(String oakPath) {
-                            PropertyDelegate pd = sessionDelegate.getProperty(oakPath);
-                            return pd == null ? null : new PropertyImpl(pd);
+                        propertyOakPaths,
+                        new Function<String, Property>() {
+                            @Override
+                            public Property apply(String oakPath) {
+                                PropertyDelegate pd = sessionDelegate.getProperty(oakPath);
+                                return pd == null ? null : new PropertyImpl(pd);
+                            }
                         }
-                    }
                 );
 
                 return new PropertyIteratorAdapter(properties.iterator(), propertyOakPaths.size());
@@ -1440,16 +1439,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                 Value value = sessionDelegate.getValueFactory().createValue(nodeTypeName, PropertyType.NAME);
                 dlg.setProperty(jcrPrimaryType, value);
 
-                if (nt.hasOrderableChildNodes()) {
-                    // freeze child order with a call to orderBefore()
-                    // only makes sense with a least two child nodes
-                    Iterator<NodeDelegate> children = dlg.getChildren();
-                    NodeDelegate child1 = children.hasNext() ? children.next() : null;
-                    NodeDelegate child2 = children.hasNext() ? children.next() : null;
-                    if (child1 != null && child2 != null) {
-                        dlg.orderBefore(child1.getName(), child2.getName());
-                    }
-                }
+                dlg.setOrderableChildren(nt.hasOrderableChildNodes());
 
                 return null;
             }
