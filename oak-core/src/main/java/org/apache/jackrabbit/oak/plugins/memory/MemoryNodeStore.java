@@ -23,12 +23,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.concurrent.atomic.AtomicReference;
 
-import javax.annotation.Nonnull;
-
 import com.google.common.io.ByteStreams;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
-import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
@@ -41,12 +38,6 @@ public class MemoryNodeStore implements NodeStore {
 
     private final AtomicReference<NodeState> root =
             new AtomicReference<NodeState>(MemoryNodeState.EMPTY_NODE);
-
-    /**
-     * Commit hook.
-     */
-    @Nonnull
-    private volatile CommitHook hook = EmptyHook.INSTANCE;
 
     @Override
     public NodeState getRoot() {
@@ -69,10 +60,6 @@ public class MemoryNodeStore implements NodeStore {
         finally {
             inputStream.close();
         }
-    }
-
-    public void setHook(CommitHook hook) {
-        this.hook = checkNotNull(hook);
     }
 
     private static class MemoryNodeStoreBranch implements NodeStoreBranch {
@@ -110,10 +97,10 @@ public class MemoryNodeStore implements NodeStore {
         }
 
         @Override
-        public NodeState merge() throws CommitFailedException {
+        public NodeState merge(CommitHook hook) throws CommitFailedException {
             checkNotMerged();
-            while (!store.root.compareAndSet(base,
-                    store.hook.processCommit(base, root))) {
+            while (!store.root.compareAndSet(
+                    base, checkNotNull(hook).processCommit(base, root))) {
                 // TODO: rebase();
                 throw new UnsupportedOperationException();
             }

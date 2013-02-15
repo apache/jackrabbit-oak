@@ -81,11 +81,10 @@ public class UserInitializer implements RepositoryInitializer, UserConstants {
     @Override
     public NodeState initialize(NodeState state) {
         MemoryNodeStore store = new MemoryNodeStore();
-        store.setHook(IndexHookManager.of(new Property2IndexHookProvider()));
         NodeStoreBranch branch = store.branch();
         branch.setRoot(state);
         try {
-            branch.merge();
+            branch.merge(IndexHookManager.of(new Property2IndexHookProvider()));
         } catch (CommitFailedException e) {
             throw new RuntimeException(e);
         }

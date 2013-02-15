@@ -25,6 +25,7 @@ import javax.security.auth.login.LoginException;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginContext;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfiguration;
@@ -45,17 +46,19 @@ class ContentSessionImpl implements ContentSession {
     private final AccessControlConfiguration accConfiguration;
     private final String workspaceName;
     private final NodeStore store;
+    private final CommitHook hook;
     private final QueryIndexProvider indexProvider;
 
     private volatile boolean live = true;
 
     public ContentSessionImpl(LoginContext loginContext,
             AccessControlConfiguration accConfiguration, String workspaceName,
-            NodeStore store, QueryIndexProvider indexProvider) {
+            NodeStore store, CommitHook hook, QueryIndexProvider indexProvider) {
         this.loginContext = loginContext;
         this.accConfiguration = accConfiguration;
         this.workspaceName = workspaceName;
         this.store = store;
+        this.hook = hook;
         this.indexProvider = indexProvider;
     }
 
@@ -85,7 +88,9 @@ class ContentSessionImpl implements ContentSession {
     @Override
     public Root getLatestRoot() {
         checkLive();
-        RootImpl root = new RootImpl(store, workspaceName, loginContext.getSubject(), accConfiguration, indexProvider) {
+        RootImpl root = new RootImpl(
+                store, hook, workspaceName, loginContext.getSubject(),
+                accConfiguration, indexProvider) {
             @Override
             protected void checkLive() {
                 ContentSessionImpl.this.checkLive();

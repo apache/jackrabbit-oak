@@ -50,6 +50,7 @@ import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Lists.newArrayList;
@@ -245,7 +246,7 @@ public class Oak {
     }
 
     public ContentRepository createContentRepository() {
-        KernelNodeStore store = new KernelNodeStore(kernel);
+        NodeStore store = new KernelNodeStore(kernel);
 
         IndexHookProvider indexHooks = CompositeIndexHookProvider
                 .compose(indexHookProviders);
@@ -256,10 +257,10 @@ public class Oak {
 
         withValidatorHook();
         withSecurityHooks();
-        store.setHook(CompositeHook.compose(commitHooks));
 
         return new ContentRepositoryImpl(
                 store,
+                CompositeHook.compose(commitHooks),
                 defaultWorkspaceName,
                 CompositeQueryIndexProvider.compose(queryIndexProviders),
                 securityProvider);

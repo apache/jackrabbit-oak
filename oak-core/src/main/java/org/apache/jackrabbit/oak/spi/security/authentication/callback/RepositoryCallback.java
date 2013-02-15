@@ -23,6 +23,7 @@ import javax.security.auth.callback.Callback;
 
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.core.RootImpl;
+import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.OpenAccessControlConfiguration;
@@ -38,6 +39,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 public class RepositoryCallback implements Callback {
 
     private NodeStore nodeStore;
+    private CommitHook commitHook;
     private QueryIndexProvider indexProvider;
     private String workspaceName;
 
@@ -50,13 +52,17 @@ public class RepositoryCallback implements Callback {
         if (nodeStore != null) {
             Subject subject = new Subject(true, Collections.singleton(SystemPrincipal.INSTANCE), Collections.<Object>emptySet(), Collections.<Object>emptySet());
             AccessControlConfiguration acConfiguration = new OpenAccessControlConfiguration();
-            return new RootImpl(nodeStore, workspaceName, subject, acConfiguration, indexProvider);
+            return new RootImpl(nodeStore, commitHook, workspaceName, subject, acConfiguration, indexProvider);
         }
         return null;
     }
 
     public void setNodeStore(NodeStore nodeStore) {
         this.nodeStore = nodeStore;
+    }
+
+    public void setCommitHook(CommitHook commitHook) {
+        this.commitHook = commitHook;
     }
 
     public void setIndexProvider(QueryIndexProvider indexProvider) {
@@ -66,4 +72,5 @@ public class RepositoryCallback implements Callback {
     public void setWorkspaceName(String workspaceName) {
         this.workspaceName = workspaceName;
     }
+
 }

@@ -27,8 +27,6 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
-import org.apache.jackrabbit.oak.spi.commit.CommitHook;
-import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.commit.EmptyObserver;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -46,12 +44,6 @@ public class KernelNodeStore implements NodeStore {
      * The {@link MicroKernel} instance used to store the content tree.
      */
     private final MicroKernel kernel;
-
-    /**
-     * Commit hook.
-     */
-    @Nonnull
-    private volatile CommitHook hook = EmptyHook.INSTANCE;
 
     /**
      * Change observer.
@@ -84,15 +76,6 @@ public class KernelNodeStore implements NodeStore {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-    }
-
-    @Nonnull
-    public CommitHook getHook() {
-        return hook;
-    }
-
-    public void setHook(@Nonnull CommitHook hook) {
-        this.hook = checkNotNull(hook);
     }
 
     @Nonnull
