@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.segment;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
@@ -37,27 +38,17 @@ public class MongoStore implements SegmentStore {
 
     private static final int MAX_SEGMENT_SIZE = 1 << 23; // 8MB
 
-    private static final long DEFAULT_CACHE_SIZE = 1 << 28; // 256MB
-
     private final DBCollection segments;
 
     private final DBCollection journals;
 
-    private final LoadingCache<UUID, Segment> cache;
+    private final SegmentCache cache;
 
-    public MongoStore(DB db, long cacheSize) {
+    public MongoStore(DB db, SegmentCache cache) {
         this.segments = db.getCollection("segments");
         this.journals = db.getCollection("journals");
 
-        this.cache = CacheBuilder.newBuilder()
-                .maximumWeight(cacheSize)
-                .weigher(Segment.weigher())
-                .build(new CacheLoader<UUID, Segment>() {
-                    @Override
-                    public Segment load(UUID key) throws Exception {
-                        return findSegment(key);
-                    }
-                });
+        this.cache = cache;
 
         SegmentWriter writer = new SegmentWriter(this);
         RecordId id = writer.writeNode(MemoryNodeState.EMPTY_NODE);
@@ -70,7 +61,7 @@ public class MongoStore implements SegmentStore {
     }
 
     public MongoStore(DB db) {
-        this(db, DEFAULT_CACHE_SIZE);
+        this(db, new SegmentCache());
     }
 
 
@@ -99,18 +90,18 @@ public class MongoStore implements SegmentStore {
     }
 
     @Override
-    public Segment readSegment(UUID segmentId) {
-        try {
-            return cache.get(segmentId);
-        } catch (ExecutionException e) {
-            throw new IllegalStateException(
-                    "Failed to read segment " + segmentId, e);
-        }
+    public Segment readSegment(final UUID segmentId) {
+        return cache.getSegment(segmentId, new Callable<Segment>() {
+            @Override
+            public Segment call() throws Exception {
+                return findSegment(segmentId);
+            }
+        });
     }
 
     @Override
     public void createSegment(Segment segment) {
-        cache.put(segment.getSegmentId(), segment);
+        cache.addSegment(segment);
         insertSegment(
                 segment.getSegmentId(),
                 segment.getData(),
@@ -161,6 +152,6 @@ public class MongoStore implements SegmentStore {
     @Override
     public void deleteSegment(UUID segmentId) {
         segments.remove(new BasicDBObject("_id", segmentId.toString()));
-        cache.invalidate(segmentId);
+        cache.removeSegment(segmentId);
     }
 }
