@@ -27,6 +27,14 @@ import com.google.common.cache.Weigher;
 
 class Segment {
 
+    static final Weigher<UUID, Segment> WEIGHER =
+            new Weigher<UUID, Segment>() {
+                @Override
+                public int weigh(UUID key, Segment value) {
+                    return value.size();
+                }
+            };
+
     static final int SMALL_LIMIT = 1 << 7;
 
     static final int MEDIUM_LIMIT = 1 << 14 + SMALL_LIMIT;
@@ -97,15 +105,6 @@ class Segment {
     public long readLong(int offset) {
         checkPositionIndexes(offset, offset + 8, data.length);
         return ByteBuffer.wrap(data).getLong(offset);
-    }
-
-    public static Weigher<UUID, Segment> weigher() {
-        return new Weigher<UUID, Segment>() {
-            @Override
-            public int weigh(UUID key, Segment value) {
-                return value.size();
-            }
-        };
     }
 
 }
