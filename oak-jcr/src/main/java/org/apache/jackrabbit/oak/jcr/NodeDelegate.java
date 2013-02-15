@@ -47,14 +47,15 @@ public class NodeDelegate extends ItemDelegate {
     /**
      * Create a new {@code NodeDelegate} instance for a valid {@code TreeLocation}. That
      * is for one where {@code getTree() != null}.
+     *
      * @param sessionDelegate
      * @param location
      * @return
      */
     static NodeDelegate create(SessionDelegate sessionDelegate, TreeLocation location) {
         return location.getTree() == null
-            ? null
-            : new NodeDelegate(sessionDelegate, location);
+                ? null
+                : new NodeDelegate(sessionDelegate, location);
     }
 
     protected NodeDelegate(SessionDelegate sessionDelegate, Tree tree) {
@@ -72,7 +73,8 @@ public class NodeDelegate extends ItemDelegate {
 
     /**
      * Determine whether this is the root node
-     * @return  {@code true} iff this is the root node
+     *
+     * @return {@code true} iff this is the root node
      */
     public boolean isRoot() throws InvalidItemStateException {
         return getTree().isRoot();
@@ -80,7 +82,8 @@ public class NodeDelegate extends ItemDelegate {
 
     /**
      * Get the number of properties of the node
-     * @return  number of properties of the node
+     *
+     * @return number of properties of the node
      */
     public long getPropertyCount() throws InvalidItemStateException {
         // TODO: Exclude "invisible" internal properties (OAK-182)
@@ -89,9 +92,10 @@ public class NodeDelegate extends ItemDelegate {
 
     /**
      * Get a property
-     * @param relPath  oak path
-     * @return  property at the path given by {@code relPath} or {@code null} if
-     * no such property exists
+     *
+     * @param relPath oak path
+     * @return property at the path given by {@code relPath} or {@code null} if
+     *         no such property exists
      */
     @CheckForNull
     public PropertyDelegate getProperty(String relPath) throws RepositoryException {
@@ -104,7 +108,8 @@ public class NodeDelegate extends ItemDelegate {
 
     /**
      * Get the properties of the node
-     * @return  properties of the node
+     *
+     * @return properties of the node
      */
     @Nonnull
     public Iterator<PropertyDelegate> getProperties() throws InvalidItemStateException {
@@ -113,7 +118,8 @@ public class NodeDelegate extends ItemDelegate {
 
     /**
      * Get the number of child nodes
-     * @return  number of child nodes of the node
+     *
+     * @return number of child nodes of the node
      */
     public long getChildCount() throws InvalidItemStateException {
         // TODO: Exclude "invisible" internal child nodes (OAK-182)
@@ -122,9 +128,10 @@ public class NodeDelegate extends ItemDelegate {
 
     /**
      * Get child node
-     * @param relPath  oak path
-     * @return  node at the path given by {@code relPath} or {@code null} if
-     * no such node exists
+     *
+     * @param relPath oak path
+     * @return node at the path given by {@code relPath} or {@code null} if
+     *         no such node exists
      */
     @CheckForNull
     public NodeDelegate getChild(String relPath) throws RepositoryException {
@@ -173,9 +180,10 @@ public class NodeDelegate extends ItemDelegate {
 
     /**
      * Set a property
+     *
      * @param name  oak name
      * @param value
-     * @return  the set property
+     * @return the set property
      */
     @Nonnull
     public PropertyDelegate setProperty(String name, Value value) throws RepositoryException {
@@ -194,15 +202,16 @@ public class NodeDelegate extends ItemDelegate {
 
     /**
      * Set a multi valued property
-     * @param name  oak name
+     *
+     * @param name   oak name
      * @param values
-     * @return  the set property
+     * @return the set property
      */
     @Nonnull
     public PropertyDelegate setProperty(String name, Iterable<Value> values) throws RepositoryException {
         Tree tree = getTree();
         PropertyState old = tree.getProperty(name);
-        if (old != null && ! old.isArray()) {
+        if (old != null && !old.isArray()) {
             throw new ValueFormatException("Attempt to set multiple values to single valued property.");
         }
         tree.setProperty(PropertyStates.createProperty(name, values));
@@ -211,15 +220,16 @@ public class NodeDelegate extends ItemDelegate {
 
     /**
      * Add a child node
-     * @param name  oak name
-     * @return  the added node or {@code null} if such a node already exists
+     *
+     * @param name oak name
+     * @return the added node or {@code null} if such a node already exists
      */
     @CheckForNull
     public NodeDelegate addChild(String name) throws InvalidItemStateException {
         Tree tree = getTree();
         return tree.hasChild(name)
-            ? null
-            : new NodeDelegate(sessionDelegate, tree.addChild(name));
+                ? null
+                : new NodeDelegate(sessionDelegate, tree.addChild(name));
     }
 
     /**
@@ -227,6 +237,16 @@ public class NodeDelegate extends ItemDelegate {
      */
     public void remove() throws InvalidItemStateException {
         getTree().remove();
+    }
+
+    /**
+     * Enables or disabled orderable children on the underlying tree.
+     *
+     * @param enable whether to enable or disable orderable children.
+     */
+    public void setOrderableChildren(boolean enable)
+            throws InvalidItemStateException {
+        getTree().setOrderableChildren(enable);
     }
 
     //------------------------------------------------------------< internal >---
