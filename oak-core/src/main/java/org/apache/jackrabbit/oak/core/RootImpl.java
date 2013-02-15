@@ -36,6 +36,8 @@ import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.diffindex.UUIDDiffIndexProviderWrapper;
 import org.apache.jackrabbit.oak.query.QueryEngineImpl;
+import org.apache.jackrabbit.oak.spi.commit.CommitHook;
+import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.observation.ChangeExtractor;
 import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
@@ -65,6 +67,8 @@ public class RootImpl implements Root {
      * The underlying store to which this root belongs
      */
     private final NodeStore store;
+
+    private final CommitHook hook;
 
     private final Subject subject;
 
@@ -102,11 +106,13 @@ public class RootImpl implements Root {
      */
     @SuppressWarnings("UnusedParameters")
     public RootImpl(NodeStore store,
+                    CommitHook hook,
                     String workspaceName,
                     Subject subject,
                     AccessControlConfiguration accConfiguration,
                     QueryIndexProvider indexProvider) {
         this.store = checkNotNull(store);
+        this.hook = checkNotNull(hook);
         this.subject = checkNotNull(subject);
         this.accConfiguration = checkNotNull(accConfiguration);
         this.indexProvider = indexProvider;
@@ -121,6 +127,7 @@ public class RootImpl implements Root {
     // TODO: review if this constructor really makes sense and cannot be replaced.
     public RootImpl(NodeStore store, QueryIndexProvider indexProvider) {
         this.store = checkNotNull(store);
+        this.hook = EmptyHook.INSTANCE;
         this.subject = new Subject(true, Collections.singleton(SystemPrincipal.INSTANCE), Collections.<Object>emptySet(), Collections.<Object>emptySet());
         this.accConfiguration = new OpenAccessControlConfiguration();
         this.indexProvider = indexProvider;
@@ -136,7 +143,7 @@ public class RootImpl implements Root {
      */
     public Root getLatest() {
         checkLive();
-        RootImpl root = new RootImpl(store, null, subject, accConfiguration, getIndexProvider()) {
+        RootImpl root = new RootImpl(store, hook, null, subject, accConfiguration, getIndexProvider()) {
             @Override
             protected void checkLive() {
                 RootImpl.this.checkLive();
@@ -237,7 +244,7 @@ public class RootImpl implements Root {
             @Override
             public CommitFailedException run() {
                 try {
-                    branch.merge();
+                    branch.merge(hook);
                     return null;
                 } catch (CommitFailedException e) {
                     return e;

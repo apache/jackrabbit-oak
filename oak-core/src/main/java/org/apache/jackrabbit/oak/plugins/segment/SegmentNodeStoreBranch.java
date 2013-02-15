@@ -47,18 +47,14 @@ class SegmentNodeStoreBranch implements NodeStoreBranch {
 
     private final SegmentWriter writer;
 
-    private final CommitHook hook;
-
     private RecordId baseId;
 
     private RecordId rootId;
 
-    SegmentNodeStoreBranch(
-            SegmentStore store, SegmentReader reader, CommitHook hook) {
+    SegmentNodeStoreBranch(SegmentStore store, SegmentReader reader) {
         this.store = store;
         this.reader = reader;
         this.writer = new SegmentWriter(store);
-        this.hook = hook;
         this.baseId = store.getJournalHead();
         this.rootId = baseId;
     }
@@ -173,7 +169,8 @@ class SegmentNodeStoreBranch implements NodeStoreBranch {
     }
 
     @Override @Nonnull
-    public synchronized NodeState merge() throws CommitFailedException {
+    public synchronized NodeState merge(CommitHook hook)
+            throws CommitFailedException {
         RecordId originalBaseId = baseId;
         RecordId originalRootId = rootId;
         for (int i = 0; i < 10; i++) {

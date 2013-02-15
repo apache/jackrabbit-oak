@@ -24,6 +24,7 @@ import org.apache.jackrabbit.oak.core.RootImpl;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
+import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -75,7 +76,7 @@ public class InitialContent implements RepositoryInitializer {
         NodeStoreBranch branch = store.branch();
         branch.setRoot(root.getNodeState());
         try {
-            branch.merge();
+            branch.merge(EmptyHook.INSTANCE);
         } catch (CommitFailedException e) {
             throw new RuntimeException(e);
         }

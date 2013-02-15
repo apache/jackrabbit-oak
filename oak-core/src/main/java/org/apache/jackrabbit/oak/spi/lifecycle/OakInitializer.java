@@ -29,14 +29,11 @@ public class OakInitializer {
 
     public static void initialize(NodeStore store,
             RepositoryInitializer initializer, IndexHookProvider indexHook) {
-
         NodeStoreBranch branch = store.branch();
         NodeState before = branch.getRoot();
-        NodeState after = initializer.initialize(before);
+        branch.setRoot(initializer.initialize(before));
         try {
-            branch.setRoot(IndexHookManager.of(indexHook).processCommit(before,
-                    after));
-            branch.merge();
+            branch.merge(IndexHookManager.of(indexHook));
         } catch (CommitFailedException e) {
             throw new RuntimeException(e);
         }
