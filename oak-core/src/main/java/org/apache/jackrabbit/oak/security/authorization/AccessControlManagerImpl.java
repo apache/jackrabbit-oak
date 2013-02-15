@@ -219,7 +219,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
             } else {
                 aclNode = createAclNode(oakPath, tree);
             }
-            TreeUtil.ensureOrderableChildren(aclNode.getTree());
+            aclNode.getTree().setOrderableChildren(true);
 
             ACL acl = (ACL) policy;
             for (JackrabbitAccessControlEntry ace : acl.getEntries()) {

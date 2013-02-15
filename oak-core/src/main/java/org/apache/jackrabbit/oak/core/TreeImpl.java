@@ -299,6 +299,15 @@ public class TreeImpl implements Tree {
     }
 
     @Override
+    public void setOrderableChildren(boolean enable) {
+        if (enable) {
+            ensureChildOrderProperty();
+        } else {
+            nodeBuilder.removeProperty(OAK_CHILD_ORDER);
+        }
+    }
+
+    @Override
     public boolean remove() {
         root.checkLive();
         if (isDisconnected()) {
@@ -571,7 +580,7 @@ public class TreeImpl implements Tree {
      * the property if it doesn't exist and initialize the value with the names
      * of the children as returned by {@link NodeBuilder#getChildNodeNames()}.
      */
-    public void ensureChildOrderProperty() {
+    private void ensureChildOrderProperty() {
         PropertyState childOrder = nodeBuilder.getProperty(OAK_CHILD_ORDER);
         if (childOrder == null) {
             nodeBuilder.setProperty(
