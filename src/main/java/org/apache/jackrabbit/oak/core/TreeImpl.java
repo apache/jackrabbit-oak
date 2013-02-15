@@ -229,10 +229,9 @@ public class TreeImpl implements Tree {
             return Status.DISCONNECTED;
         }
 
-        NodeBuilder builder = nodeBuilder;
-        if (builder.isNew()) {
+        if (nodeBuilder.isNew()) {
             return Status.NEW;
-        } else if (builder.isModified()) {
+        } else if (nodeBuilder.isModified()) {
             return Status.MODIFIED;
         } else {
             return Status.EXISTING;
@@ -315,10 +314,10 @@ public class TreeImpl implements Tree {
         }
 
         if (!isRoot() && parent.hasChild(name)) {
-            NodeBuilder builder = parent.nodeBuilder;
-            builder.removeNode(name);
+            NodeBuilder parentBuilder = parent.nodeBuilder;
+            parentBuilder.removeNode(name);
             if (parent.hasOrderableChildren()) {
-                builder.setProperty(
+                parentBuilder.setProperty(
                         MemoryPropertyBuilder.copy(Type.STRING, parent.internalGetProperty(OAK_CHILD_ORDER))
                                 .removeValue(name)
                                 .getPropertyState()
@@ -379,32 +378,28 @@ public class TreeImpl implements Tree {
     @Override
     public void setProperty(PropertyState property) {
         root.checkLive();
-        NodeBuilder builder = nodeBuilder;
-        builder.setProperty(property);
+        nodeBuilder.setProperty(property);
         root.updated();
     }
 
     @Override
     public <T> void setProperty(String name, T value) {
         root.checkLive();
-        NodeBuilder builder = nodeBuilder;
-        builder.setProperty(name, value);
+        nodeBuilder.setProperty(name, value);
         root.updated();
     }
 
     @Override
     public <T> void setProperty(String name, T value, Type<T> type) {
         root.checkLive();
-        NodeBuilder builder = nodeBuilder;
-        builder.setProperty(name, value, type);
+        nodeBuilder.setProperty(name, value, type);
         root.updated();
     }
 
     @Override
     public void removeProperty(String name) {
         root.checkLive();
-        NodeBuilder builder = nodeBuilder;
-        builder.removeProperty(name);
+        nodeBuilder.removeProperty(name);
         root.updated();
     }
 
