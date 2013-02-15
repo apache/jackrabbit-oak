@@ -106,12 +106,15 @@ class SegmentNodeState extends AbstractNodeState {
         if (this == object) {
             return true;
         } else if (object instanceof NodeState) {
-            if (object instanceof SegmentNodeState
-                    && recordId.equals(((SegmentNodeState) object).recordId)) {
-                return true;
-            } else {
-                return super.equals(object);
+            if (object instanceof SegmentNodeState) {
+                SegmentNodeState that = (SegmentNodeState) object;
+                if (recordId.equals(that.recordId)) {
+                    return true;
+                } else if (!getTemplate().equals(that.getTemplate())) {
+                    return false;
+                }
             }
+            return super.equals(object);
         } else {
             return false;
         }
