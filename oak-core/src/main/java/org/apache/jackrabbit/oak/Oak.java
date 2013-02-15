@@ -70,7 +70,7 @@ public class Oak {
      */
     public static final String DEFAULT_WORKSPACE_NAME = "default";
 
-    private final MicroKernel kernel;
+    private final NodeStore store;
 
     private final List<RepositoryInitializer> initializers = newArrayList();
 
@@ -89,8 +89,12 @@ public class Oak {
 
     private String defaultWorkspaceName = DEFAULT_WORKSPACE_NAME;
 
+    public Oak(NodeStore store) {
+        this.store = checkNotNull(store);
+    }
+
     public Oak(MicroKernel kernel) {
-        this.kernel = kernel;
+        this(new KernelNodeStore(checkNotNull(kernel)));
     }
 
     public Oak() {
@@ -246,8 +250,6 @@ public class Oak {
     }
 
     public ContentRepository createContentRepository() {
-        NodeStore store = new KernelNodeStore(kernel);
-
         IndexHookProvider indexHooks = CompositeIndexHookProvider
                 .compose(indexHookProviders);
         OakInitializer.initialize(store,
