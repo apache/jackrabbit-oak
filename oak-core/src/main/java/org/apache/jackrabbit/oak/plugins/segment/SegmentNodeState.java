@@ -102,4 +102,19 @@ class SegmentNodeState extends AbstractNodeState {
         return new MemoryNodeBuilder(this);
     }
 
+    public boolean equals(Object object) {
+        if (this == object) {
+            return true;
+        } else if (object instanceof NodeState) {
+            if (object instanceof SegmentNodeState
+                    && recordId.equals(((SegmentNodeState) object).recordId)) {
+                return true;
+            } else {
+                return super.equals(object);
+            }
+        } else {
+            return false;
+        }
+    }
+
 }
