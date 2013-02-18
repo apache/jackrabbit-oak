@@ -23,7 +23,6 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.commit.CommitHookProvider;
-import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.lifecycle.CompositeInitializer;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
@@ -40,10 +39,10 @@ public interface SecurityConfiguration {
     RepositoryInitializer getRepositoryInitializer();
 
     @Nonnull
-    CommitHookProvider getCommitHookProvider();
+    CommitHookProvider getSecurityHooks();
 
     @Nonnull
-    List<ValidatorProvider> getValidatorProviders();
+    CommitHookProvider getValidators();
 
     @Nonnull
     List<ProtectedItemImporter> getProtectedItemImporters();
@@ -70,14 +69,14 @@ public interface SecurityConfiguration {
 
         @Nonnull
         @Override
-        public CommitHookProvider getCommitHookProvider() {
+        public CommitHookProvider getSecurityHooks() {
             return new CommitHookProvider.Empty();
         }
 
         @Nonnull
         @Override
-        public List<ValidatorProvider> getValidatorProviders() {
-            return Collections.emptyList();
+        public CommitHookProvider getValidators() {
+            return new CommitHookProvider.Empty();
         }
 
         @Nonnull

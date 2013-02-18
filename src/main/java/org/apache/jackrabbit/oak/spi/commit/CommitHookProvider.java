@@ -20,7 +20,7 @@ import javax.annotation.Nonnull;
 
 /**
  * {@code CommitHookProvider} TODO
- *
+ * <p/>
  * FIXME: needs re-evaluation and review once we add support for multiple workspaces (OAK-118)
  */
 public interface CommitHookProvider {
@@ -33,7 +33,7 @@ public interface CommitHookProvider {
      * @return A CommitHook instance.
      */
     @Nonnull
-    CommitHook getCommitHook(String workspaceName);
+    CommitHook getCommitHook(@Nonnull String workspaceName);
 
     /**
      * Default implementation that returns an {@code EmptyHook}.
