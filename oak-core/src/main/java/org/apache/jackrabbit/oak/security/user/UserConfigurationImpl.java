@@ -23,7 +23,9 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
+import org.apache.jackrabbit.oak.spi.commit.CommitHook;
+import org.apache.jackrabbit.oak.spi.commit.CommitHookProvider;
+import org.apache.jackrabbit.oak.spi.commit.ValidatingHook;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.Context;
@@ -65,9 +67,14 @@ public class UserConfigurationImpl extends SecurityConfiguration.Default impleme
 
     @Nonnull
     @Override
-    public List<ValidatorProvider> getValidatorProviders() {
-        ValidatorProvider vp = new UserValidatorProvider(getConfigurationParameters());
-        return Collections.singletonList(vp);
+    public CommitHookProvider getValidators() {
+        return new CommitHookProvider() {
+            @Nonnull
+            @Override
+            public CommitHook getCommitHook(@Nonnull String workspaceName) {
+                return new ValidatingHook(new UserValidatorProvider(getConfigurationParameters()));
+            }
+        };
     }
 
     @Nonnull

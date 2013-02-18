@@ -22,10 +22,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import javax.annotation.Nonnull;
 import javax.security.auth.Subject;
 
+import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.BlobFactory;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -37,12 +40,14 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.diffindex.UUIDDiffIndexProviderWrapper;
 import org.apache.jackrabbit.oak.query.QueryEngineImpl;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
+import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.observation.ChangeExtractor;
 import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
-import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfiguration;
-import org.apache.jackrabbit.oak.spi.security.authorization.OpenAccessControlConfiguration;
+import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
+import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.SystemPrincipal;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -68,14 +73,16 @@ public class RootImpl implements Root {
      */
     private final NodeStore store;
 
+    private final String workspaceName;
+
     private final CommitHook hook;
 
     private final Subject subject;
 
     /**
-     * The access control context provider.
+     * The security provider.
      */
-    private final AccessControlConfiguration accConfiguration;
+    private final SecurityProvider securityProvider;
 
     /**
      * Current branch this root operates on
@@ -102,20 +109,20 @@ public class RootImpl implements Root {
      * @param hook             the commit hook
      * @param workspaceName    name of the workspace
      * @param subject          the subject.
-     * @param accConfiguration the access control context provider.
+     * @param securityProvider the security configuration.
      * @param indexProvider    the query index provider.
      */
-    @SuppressWarnings("UnusedParameters")
     public RootImpl(NodeStore store,
                     CommitHook hook,
                     String workspaceName,
                     Subject subject,
-                    AccessControlConfiguration accConfiguration,
+                    SecurityProvider securityProvider,
                     QueryIndexProvider indexProvider) {
         this.store = checkNotNull(store);
+        this.workspaceName = checkNotNull(workspaceName);
         this.hook = checkNotNull(hook);
         this.subject = checkNotNull(subject);
-        this.accConfiguration = checkNotNull(accConfiguration);
+        this.securityProvider = checkNotNull(securityProvider);
         this.indexProvider = indexProvider;
         refresh();
     }
@@ -128,9 +135,11 @@ public class RootImpl implements Root {
     // TODO: review if this constructor really makes sense and cannot be replaced.
     public RootImpl(NodeStore store, QueryIndexProvider indexProvider) {
         this.store = checkNotNull(store);
+        // FIXME: define proper default or pass workspace name with the constructor
+        this.workspaceName = Oak.DEFAULT_WORKSPACE_NAME;
         this.hook = EmptyHook.INSTANCE;
         this.subject = new Subject(true, Collections.singleton(SystemPrincipal.INSTANCE), Collections.<Object>emptySet(), Collections.<Object>emptySet());
-        this.accConfiguration = new OpenAccessControlConfiguration();
+        this.securityProvider = new OpenSecurityProvider();
         this.indexProvider = indexProvider;
         refresh();
     }
@@ -144,7 +153,7 @@ public class RootImpl implements Root {
      */
     public Root getLatest() {
         checkLive();
-        RootImpl root = new RootImpl(store, hook, null, subject, accConfiguration, getIndexProvider()) {
+        RootImpl root = new RootImpl(store, hook, workspaceName, subject, securityProvider, getIndexProvider()) {
             @Override
             protected void checkLive() {
                 RootImpl.this.checkLive();
@@ -245,7 +254,7 @@ public class RootImpl implements Root {
             @Override
             public CommitFailedException run() {
                 try {
-                    branch.merge(hook);
+                    branch.merge(getCommitHook());
                     return null;
                 } catch (CommitFailedException e) {
                     return e;
@@ -256,6 +265,31 @@ public class RootImpl implements Root {
             throw exception;
         }
         refresh();
+    }
+
+    /**
+     * Combine the globally defined commit hook(s) with the hooks and
+     * validators defined by the various security related configurations.
+     *
+     * @return A commit hook combining repository global commit hook(s) with
+     *         the pluggable hooks defined with the security modules.
+     */
+    private CommitHook getCommitHook() {
+        List<CommitHook> commitHooks = new ArrayList<CommitHook>();
+        commitHooks.add(hook);
+        List<CommitHook> securityHooks = new ArrayList<CommitHook>();
+        for (SecurityConfiguration sc : securityProvider.getSecurityConfigurations()) {
+            CommitHook validators = sc.getValidators().getCommitHook(workspaceName);
+            if (validators != EmptyHook.INSTANCE) {
+                commitHooks.add(validators);
+            }
+            CommitHook ch = sc.getSecurityHooks().getCommitHook(workspaceName);
+            if (ch != EmptyHook.INSTANCE) {
+                securityHooks.add(ch);
+            }
+        }
+        commitHooks.addAll(securityHooks);
+        return CompositeHook.compose(commitHooks);
     }
 
     // TODO: find a better solution for passing in additional principals
@@ -359,7 +393,7 @@ public class RootImpl implements Root {
     }
 
     PermissionProvider getPermissionProvider() {
-        return accConfiguration.getPermissionProvider(this, subject.getPrincipals());
+        return securityProvider.getAccessControlConfiguration().getPermissionProvider(this, subject.getPrincipals());
     }
 
     //------------------------------------------------------------< private >---

@@ -38,12 +38,14 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 class PermissionValidatorProvider implements ValidatorProvider {
 
     private final SecurityProvider securityProvider;
+    private final String workspaceName;
 
     private Context acCtx;
     private Context userCtx;
 
-    PermissionValidatorProvider(SecurityProvider securityProvider) {
+    PermissionValidatorProvider(SecurityProvider securityProvider, String workspaceName) {
         this.securityProvider = securityProvider;
+        this.workspaceName = workspaceName;
     }
 
     //--------------------------------------------------< ValidatorProvider >---
