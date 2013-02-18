@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.security.AccessControlEntry;
@@ -42,7 +43,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * ACL... TODO
- *
+ * <p/>
  * TODO: - remove redundant entries from the list
  * TODO: - remove redundant privileges from entries
  */
@@ -52,11 +53,12 @@ abstract class ACL extends AbstractAccessControlList {
 
     private final List<JackrabbitAccessControlEntry> entries = new ArrayList<JackrabbitAccessControlEntry>();
 
-    ACL(String oakPath, NamePathMapper namePathMapper) {
+    ACL(@Nullable String oakPath, @Nonnull NamePathMapper namePathMapper) {
         this(oakPath, null, namePathMapper);
     }
 
-    ACL(String oakPath, List<JackrabbitAccessControlEntry> entries, NamePathMapper namePathMapper) {
+    ACL(@Nullable String oakPath, @Nullable List<JackrabbitAccessControlEntry> entries,
+        @Nonnull NamePathMapper namePathMapper) {
         super(oakPath, namePathMapper);
         if (entries != null) {
             this.entries.addAll(entries);
@@ -115,7 +117,7 @@ abstract class ACL extends AbstractAccessControlList {
             log.debug("Entry is already contained in policy -> no modification.");
             return false;
         } else {
-            return entries.add(entry);
+            return addEntry(entry);
         }
     }
 
@@ -129,7 +131,7 @@ abstract class ACL extends AbstractAccessControlList {
             return;
         }
 
-        int index = (dest == null) ? entries.size()-1 : entries.indexOf(dest);
+        int index = (dest == null) ? entries.size() - 1 : entries.indexOf(dest);
         if (index < 0) {
             throw new AccessControlException("'destEntry' not contained in this AccessControlList.");
         } else {
@@ -155,10 +157,23 @@ abstract class ACL extends AbstractAccessControlList {
     }
 
     //------------------------------------------------------------< private >---
+
+    /**
+     * Check validity of the specified access control entry.
+     *
+     * @param entry The access control entry to test.
+     * @return The validated {@code ACE}.
+     * @throws AccessControlException If the specified entry is invalid.
+     */
     private static JackrabbitAccessControlEntry checkACE(AccessControlEntry entry) throws AccessControlException {
         if (!(entry instanceof ACE)) {
             throw new AccessControlException("Invalid access control entry.");
         }
         return (ACE) entry;
+    }
+
+    private boolean addEntry(JackrabbitAccessControlEntry entry) {
+        // TODO: remove redundancy
+        return entries.add(entry);
     }
 }

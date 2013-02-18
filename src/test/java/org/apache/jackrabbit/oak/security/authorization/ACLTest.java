@@ -20,6 +20,8 @@ import java.security.Principal;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.jcr.Value;
 import javax.jcr.security.AccessControlEntry;
 import javax.jcr.security.AccessControlException;
@@ -49,11 +51,11 @@ import static org.junit.Assert.fail;
 
 /**
  * ACLTest... TODO
- *
+ * <p/>
  * TODO: test restrictions
  * TODO: add test with multiple entries
  */
-public class ACLTest extends AbstractAccessControlListTest{
+public class ACLTest extends AbstractAccessControlListTest {
 
     private PrivilegeManager privilegeManager;
     private PrincipalManager principalManager;
@@ -76,7 +78,9 @@ public class ACLTest extends AbstractAccessControlListTest{
     }
 
     @Override
-    protected AbstractAccessControlList createACL(String jcrPath, List<JackrabbitAccessControlEntry> entries, NamePathMapper namePathMapper) {
+    protected AbstractAccessControlList createACL(@Nullable String jcrPath,
+                                                  @Nonnull List<JackrabbitAccessControlEntry> entries,
+                                                  @Nonnull NamePathMapper namePathMapper) {
         String path = (jcrPath == null) ? null : namePathMapper.getOakPathKeepIndex(jcrPath);
         final RestrictionProvider rp = getRestrictionProvider();
         return new ACL(path, entries, namePathMapper) {
@@ -84,10 +88,12 @@ public class ACLTest extends AbstractAccessControlListTest{
             public RestrictionProvider getRestrictionProvider() {
                 return rp;
             }
+
             @Override
             PrincipalManager getPrincipalManager() {
                 return principalManager;
             }
+
             @Override
             PrivilegeManager getPrivilegeManager() {
                 return privilegeManager;
@@ -125,7 +131,7 @@ public class ACLTest extends AbstractAccessControlListTest{
     @Test
     public void testAddEntryWithInvalidPrivilege() throws Exception {
         try {
-            emptyAcl.addAccessControlEntry(testPrincipal, new Privilege[] {new InvalidPrivilege()});
+            emptyAcl.addAccessControlEntry(testPrincipal, new Privilege[]{new InvalidPrivilege()});
             fail("Adding an ACE with invalid privileges should fail.");
         } catch (AccessControlException e) {
             // success
@@ -146,7 +152,7 @@ public class ACLTest extends AbstractAccessControlListTest{
 
     @Test
     public void testAddEntryWithInvalidRestrictions() throws Exception {
-        Map<String,Value> restrictions = Collections.singletonMap("unknownRestriction", new ValueFactoryImpl(root.getBlobFactory(), namePathMapper).createValue("value"));
+        Map<String, Value> restrictions = Collections.singletonMap("unknownRestriction", new ValueFactoryImpl(root.getBlobFactory(), namePathMapper).createValue("value"));
         try {
             emptyAcl.addEntry(testPrincipal, testPrivileges, false, restrictions);
             fail("Invalid restrictions -> AccessControlException expected");
@@ -178,12 +184,15 @@ public class ACLTest extends AbstractAccessControlListTest{
                 public boolean isAllow() {
                     return false;
                 }
+
                 public String[] getRestrictionNames() {
                     return new String[0];
                 }
+
                 public Value getRestriction(String restrictionName) {
                     return null;
                 }
+
                 public Principal getPrincipal() {
                     return testPrincipal;
                 }
