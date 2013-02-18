@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.security.privilege;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
@@ -27,8 +26,8 @@ import com.google.common.primitives.Longs;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.security.authorization.Permissions;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -424,6 +423,11 @@ public final class PrivilegeBits implements PrivilegeConstants {
         }
     }
 
+    @Nonnull
+    public PropertyState asPropertyState(String name) {
+        return PropertyStates.createProperty(name, Longs.asList(d.longValues()), Type.LONGS);
+    }
+
     /**
      * Package private method to calculate the privilege bits associated with a
      * given built-in or custom privilege definition.
@@ -446,18 +450,7 @@ public final class PrivilegeBits implements PrivilegeConstants {
      */
     void writeTo(@Nonnull Tree tree) {
         String name = (REP_PRIVILEGES.equals(tree.getName())) ? REP_NEXT : REP_BITS;
-        tree.setProperty(name, Longs.asList(d.longValues()), Type.LONGS);
-    }
-
-    /**
-     * Write this instance as property to the specified node builder.
-     *
-     * @param nodeBuilder The target node builder.
-     * @param nodeName    The name of the node.
-     */
-    void writeTo(@Nonnull NodeBuilder nodeBuilder, @Nonnull String nodeName) {
-        String name = (REP_PRIVILEGES.equals(nodeName)) ? REP_NEXT : REP_BITS;
-        nodeBuilder.setProperty(name, Longs.asList(d.longValues()), Type.LONGS);
+        tree.setProperty(asPropertyState(name));
     }
 
     //-------------------------------------------------------------< Object >---
