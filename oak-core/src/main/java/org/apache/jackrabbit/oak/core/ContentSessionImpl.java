@@ -51,9 +51,12 @@ class ContentSessionImpl implements ContentSession {
 
     private volatile boolean live = true;
 
-    public ContentSessionImpl(LoginContext loginContext,
-                              SecurityProvider securityProvider, String workspaceName,
-                              NodeStore store, CommitHook hook, QueryIndexProvider indexProvider) {
+    public ContentSessionImpl(@Nonnull LoginContext loginContext,
+                              @Nonnull SecurityProvider securityProvider,
+                              @Nonnull String workspaceName,
+                              @Nonnull NodeStore store,
+                              @Nonnull CommitHook hook,
+                              @Nonnull QueryIndexProvider indexProvider) {
         this.loginContext = loginContext;
         this.securityProvider = securityProvider;
         this.workspaceName = workspaceName;

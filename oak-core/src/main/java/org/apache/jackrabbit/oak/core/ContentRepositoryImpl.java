@@ -32,17 +32,19 @@ import org.apache.jackrabbit.oak.spi.security.authentication.LoginContext;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginContextProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 /**
  * {@code MicroKernel}-based implementation of
  * the {@link ContentRepository} interface.
  */
 public class ContentRepositoryImpl implements ContentRepository {
 
+    private final NodeStore nodeStore;
+    private final CommitHook commitHook;
     private final String defaultWorkspaceName;
     private final SecurityProvider securityProvider;
     private final QueryIndexProvider indexProvider;
-    private final NodeStore nodeStore;
-    private final CommitHook commitHook;
 
     /**
      * Creates an content repository instance based on the given, already
@@ -59,11 +61,11 @@ public class ContentRepositoryImpl implements ContentRepository {
                                  @Nonnull String defaultWorkspaceName,
                                  @Nullable QueryIndexProvider indexProvider,
                                  @Nonnull SecurityProvider securityProvider) {
-        this.nodeStore = nodeStore;
-        this.commitHook = commitHook;
-        this.defaultWorkspaceName = defaultWorkspaceName;
+        this.nodeStore = checkNotNull(nodeStore);
+        this.commitHook = checkNotNull(commitHook);
+        this.defaultWorkspaceName = checkNotNull(defaultWorkspaceName);
+        this.securityProvider = checkNotNull(securityProvider);
         this.indexProvider = indexProvider != null ? indexProvider : new CompositeQueryIndexProvider();
-        this.securityProvider = securityProvider;
     }
 
     @Nonnull
