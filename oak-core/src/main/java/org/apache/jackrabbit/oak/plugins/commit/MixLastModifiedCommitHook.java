@@ -16,24 +16,17 @@
  */
 package org.apache.jackrabbit.oak.plugins.commit;
 
-import java.security.AccessController;
-import java.util.Set;
+import java.util.Date;
 
-import javax.jcr.Credentials;
-import javax.jcr.SimpleCredentials;
-import javax.security.auth.Subject;
+import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.LongPropertyState;
-import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.StringPropertyState;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.commit.NodeTypeCommitHook;
-import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 
 /**
  * This class provides a commit hook for nodes of type {@code mix:lastModified} that properly implements section
@@ -48,95 +41,39 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
  */
 public class MixLastModifiedCommitHook extends NodeTypeCommitHook {
 
-    private Long lastModified;
-    private String userID;
-
     public MixLastModifiedCommitHook() {
         super(NodeTypeConstants.MIX_LASTMODIFIED);
     }
 
     @Override
-    public void processChangedNode(NodeState before, NodeState after, NodeBuilder nodeBuilder) {
-        after.compareAgainstBaseState(before, new AllChangesNodeStateDiff(nodeBuilder));
-        if (lastModified != null) {
-            PropertyState jcrLastModifiedDate = LongPropertyState.createDateProperty(JcrConstants.JCR_LASTMODIFIED,
-                    lastModified);
-            nodeBuilder.setProperty(jcrLastModifiedDate);
+    public void processChangedNode(NodeState before, NodeState after, NodeBuilder nodeBuilder, @Nonnull String userID,
+            @Nonnull Date lastModifiedDate) {
+        if (!skipLastModifiedDate(before, after)) {
+            nodeBuilder.setProperty(LongPropertyState.createDateProperty(NodeTypeConstants.JCR_LASTMODIFIED,
+                    lastModifiedDate.getTime()));
         }
-        if (userID != null) {
-            PropertyState jcrLastModifiedBy = StringPropertyState.stringProperty(NodeTypeConstants.JCR_LASTMODIFIEDBY,
-                    userID);
-            nodeBuilder.setProperty(jcrLastModifiedBy);
+        if (!skipLastModifiedBy(before, after)) {
+            nodeBuilder.setProperty(StringPropertyState.stringProperty(NodeTypeConstants.JCR_LASTMODIFIEDBY, userID));
         }
     }
 
-    private final class AllChangesNodeStateDiff implements NodeStateDiff {
-
-        private NodeBuilder node;
-
-        public AllChangesNodeStateDiff(NodeBuilder node) {
-            this.node = node;
+    private boolean skipLastModifiedDate(NodeState before, NodeState after) {
+        boolean result = false;
+        PropertyState jcrLastModifiedDateBefore = before.getProperty(NodeTypeConstants.JCR_LASTMODIFIED);
+        PropertyState jcrLastModifiedDateAfter = after.getProperty(NodeTypeConstants.JCR_LASTMODIFIED);
+        if (jcrLastModifiedDateAfter != null && !jcrLastModifiedDateAfter.equals(jcrLastModifiedDateBefore)) {
+            result = true;
         }
+        return result;
+    }
 
-        @Override
-        public void propertyAdded(PropertyState after) {
-            if (after.getName().equals(JcrConstants.JCR_LASTMODIFIED)) {
-                return;
-            }
-            updateLastModifiedDate();
-            updateLastModifiedBy();
+    private boolean skipLastModifiedBy(NodeState before, NodeState after) {
+        boolean result = false;
+        PropertyState jcrLastModifiedByBefore = before.getProperty(NodeTypeConstants.JCR_LASTMODIFIEDBY);
+        PropertyState jcrLastModifiedByAfter = after.getProperty(NodeTypeConstants.JCR_LASTMODIFIEDBY);
+        if (jcrLastModifiedByAfter != null && !jcrLastModifiedByAfter.equals(jcrLastModifiedByBefore)) {
+            result = true;
         }
-
-        @Override
-        public void propertyChanged(PropertyState before, PropertyState after) {
-            if (after.getName().equals(JcrConstants.JCR_LASTMODIFIED)) {
-                return;
-            }
-            updateLastModifiedDate();
-            updateLastModifiedBy();
-        }
-
-        @Override
-        public void propertyDeleted(PropertyState before) {
-            updateLastModifiedDate();
-            updateLastModifiedBy();
-        }
-
-        @Override
-        public void childNodeAdded(String name, NodeState after) {
-            childNodeChanged(name, MemoryNodeState.EMPTY_NODE, after);
-        }
-
-        @Override
-        public void childNodeChanged(String name, NodeState before, NodeState after) {
-            after.compareAgainstBaseState(before, new AllChangesNodeStateDiff(node.child(name)));
-            updateLastModifiedDate();
-            updateLastModifiedBy();
-        }
-
-        @Override
-        public void childNodeDeleted(String name, NodeState before) {
-            NodeState after = MemoryNodeState.EMPTY_NODE;
-            after.compareAgainstBaseState(before, new AllChangesNodeStateDiff(after.builder()));
-            updateLastModifiedDate();
-            updateLastModifiedBy();
-        }
-
-        private void updateLastModifiedDate() {
-            lastModified = System.currentTimeMillis();
-        }
-        
-        private void updateLastModifiedBy() {
-            Subject subject = Subject.getSubject(AccessController.getContext());
-            Set<Credentials> credentials = subject.getPublicCredentials(Credentials.class);
-            userID = null;
-            for (Credentials c : credentials) {
-                if (c instanceof SimpleCredentials) {
-                    userID = ((SimpleCredentials) c).getUserID();
-                } else if (c instanceof ImpersonationCredentials) {
-                    userID = ((ImpersonationCredentials) c).getImpersonatorInfo().getUserID();
-                }
-            }
-        }
+        return result;
     }
 }
