@@ -18,7 +18,7 @@ package org.apache.jackrabbit.mongomk.prototype;
 
 import java.util.Map;
 
-import org.apache.jackrabbit.mk.json.JsopStream;
+import org.apache.jackrabbit.mk.json.JsopWriter;
 
 /**
  * Represents a node held in memory (in the cache for example).
@@ -72,8 +72,11 @@ public class Node {
         return depth + ":" + path;
     }
 
-    public void append(JsopStream json) {
+    public void append(JsopWriter json, boolean includeId) {
         json.object();
+        if (includeId) {
+            json.key(":id").value(path + "@" + rev);
+        }
         for (String p : properties.keySet()) {
             json.key(p).encodedValue(properties.get(p));
         }

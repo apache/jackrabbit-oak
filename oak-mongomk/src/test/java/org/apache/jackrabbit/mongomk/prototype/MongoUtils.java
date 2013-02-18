@@ -55,7 +55,7 @@ public class MongoUtils {
             try {
                 mongoConnection = new MongoConnection(HOST, PORT, DB);
                 mongoConnection.getDB().command(new BasicDBObject("ping", 1));
-                dropCollections(mongoConnection.getDB());
+                // dropCollections(mongoConnection.getDB());
             } catch (Exception e) {
                 exception = e;
             }

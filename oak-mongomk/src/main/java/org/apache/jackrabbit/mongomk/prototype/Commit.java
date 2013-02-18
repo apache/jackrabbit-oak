@@ -20,6 +20,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 import org.apache.jackrabbit.mk.api.MicroKernelException;
+import org.apache.jackrabbit.mk.json.JsopStream;
+import org.apache.jackrabbit.mk.json.JsopWriter;
 import org.apache.jackrabbit.mongomk.prototype.DocumentStore.Collection;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 
@@ -30,6 +32,7 @@ public class Commit {
     
     private final Revision revision;
     private HashMap<String, UpdateOp> operations = new HashMap<String, UpdateOp>();
+    private JsopWriter diff = new JsopStream();
     
     Commit(Revision revision) {
         this.revision = revision;
@@ -54,6 +57,9 @@ public class Commit {
             throw new MicroKernelException("Node already added: " + n.path);
         }
         operations.put(n.path, n.asOperation(true));
+        diff.tag('+').key(n.path);
+        n.append(diff, false);
+        diff.newline();
     }
 
     void apply(DocumentStore store) {
@@ -96,6 +102,14 @@ public class Commit {
         if (root != null) {
             store.createOrUpdate(Collection.NODES, root);
         }
+    }
+
+    public void removeNode(String path) {
+        diff.tag('-').value(path).newline();
+    }
+
+    public JsopWriter getDiff() {
+        return diff;
     }
 
 }
