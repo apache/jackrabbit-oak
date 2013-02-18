@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.mongomk.prototype;
 
 import java.io.InputStream;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -88,11 +89,13 @@ public class MongoMK implements MicroKernel {
     /**
      * The last known head revision. This is the last-known revision.
      */
-    private String headRevision;
+    private Revision headRevision;
     
     AtomicBoolean isDisposed = new AtomicBoolean();
     
     private Thread backgroundThread;
+    
+    private final Map<String, String> branchCommits = new HashMap<String, String>();
 
     /**
      * Create a new in-memory MongoMK used for testing.
@@ -140,6 +143,15 @@ public class MongoMK implements MicroKernel {
         }, "MongoMK background thread");
         backgroundThread.setDaemon(true);
         backgroundThread.start();
+        headRevision = Revision.newRevision(clusterId);
+        Node n = readNode("/", headRevision);
+        if (n == null) {
+            // root node is missing: repository is not initialized
+            Commit commit = new Commit(headRevision);
+            n = new Node("/", headRevision);
+            commit.addNode(n);
+            commit.apply(store);
+        }
     }
     
     Revision newRevision() {
@@ -207,12 +219,19 @@ public class MongoMK implements MicroKernel {
                 // TODO property name escaping
                 continue;
             }
+            Object v = map.get(key);
+            if (!(v instanceof Map)) {
+                int test;
+                System.out.println("??");
+            }
             @SuppressWarnings("unchecked")
-            Map<String, String> valueMap = (Map<String, String>) map.get(key);
-            for (String r : valueMap.keySet()) {
-                Revision propRev = Revision.fromString(r);
-                if (includeRevision(propRev, rev)) {
-                    n.setProperty(key, valueMap.get(r));
+            Map<String, String> valueMap = (Map<String, String>) v;
+            if (valueMap != null) {
+                for (String r : valueMap.keySet()) {
+                    Revision propRev = Revision.fromString(r);
+                    if (includeRevision(propRev, rev)) {
+                        n.setProperty(key, valueMap.get(r));
+                    }
                 }
             }
         }
@@ -221,33 +240,36 @@ public class MongoMK implements MicroKernel {
 
     @Override
     public String getHeadRevision() throws MicroKernelException {
-        return headRevision;
+        return headRevision.toString();
     }
 
     @Override
     public String getRevisionHistory(long since, int maxEntries, String path)
             throws MicroKernelException {
-        // TODO implement if needed
-        return null;
+        // not currently called by oak-core
+        throw new MicroKernelException("Not implemented");
     }
 
     @Override
     public String waitForCommit(String oldHeadRevisionId, long timeout)
             throws MicroKernelException, InterruptedException {
-        // TODO implement if needed
-        return null;
+        // not currently called by oak-core
+        throw new MicroKernelException("Not implemented");
     }
 
     @Override
     public String getJournal(String fromRevisionId, String toRevisionId,
             String path) throws MicroKernelException {
-        // TODO implement if needed
-        return null;
+        // not currently called by oak-core
+        throw new MicroKernelException("Not implemented");
     }
 
     @Override
     public String diff(String fromRevisionId, String toRevisionId, String path,
             int depth) throws MicroKernelException {
+        if (fromRevisionId.equals(toRevisionId)) {
+            return "";
+        }
         // TODO implement if needed
         return null;
     }
@@ -263,26 +285,33 @@ public class MongoMK implements MicroKernel {
     @Override
     public long getChildNodeCount(String path, String revisionId)
             throws MicroKernelException {
-        // TODO implement if needed
-        return 0;
+        // not currently called by oak-core
+        throw new MicroKernelException("Not implemented");
     }
 
     @Override
     public String getNodes(String path, String revisionId, int depth,
             long offset, int maxChildNodes, String filter)
             throws MicroKernelException {
+        if (depth != 0) {
+            throw new MicroKernelException("Only depth 0 is supported, depth is " + depth);
+        }
+        if (revisionId.startsWith("b")) {
+            // reading from the branch is reading from the trunk currently
+            revisionId = revisionId.substring(1).replace('+', ' ').trim();
+        }
         Revision rev = Revision.fromString(revisionId);
         Node n = getNode(path, rev);
         JsopStream json = new JsopStream();
-        n.append(json);
+        n.append(json, true);
         return json.toString();
     }
 
     @Override
     public String commit(String rootPath, String json, String revisionId,
             String message) throws MicroKernelException {
+        revisionId = revisionId == null ? headRevision.toString() : revisionId;
         JsopReader t = new JsopTokenizer(json);
-        revisionId = revisionId == null ? headRevision : revisionId;
         Revision rev = Revision.newRevision(clusterId);
         Commit commit = new Commit(rev);
         while (true) {
@@ -299,19 +328,22 @@ public class MongoMK implements MicroKernel {
                 break;
             case '-':
                 // TODO support remove operations
+                commit.removeNode(path);
                 break;
             case '^':
                 t.read(':');
                 String value;
                 if (t.matches(JsopReader.NULL)) {
                     value = null;
+                    commit.getDiff().tag('^').key(path).value(null);
                 } else {
                     value = t.readRawValue().trim();
+                    commit.getDiff().tag('^').key(path).value(null);
                 }
                 String p = PathUtils.getParentPath(path);
                 String propertyName = PathUtils.getName(path);
                 UpdateOp op = commit.getUpdateOperationForNode(p);
-                op.set(propertyName, value);
+                op.addMapEntry(propertyName, rev.toString(), value);
                 break;
             case '>': {
                 t.read(':');
@@ -383,9 +415,21 @@ public class MongoMK implements MicroKernel {
                 throw new MicroKernelException("token: " + (char) t.getTokenType());
             }
         }
+        if (revisionId.startsWith("b")) {
+            // just commit to head currently
+            commit.apply(store);
+            headRevision = rev;
+            return "b" + rev.toString();
+            
+            // String jsonBranch = branchCommits.remove(revisionId);
+            // jsonBranch += commit.getDiff().toString();
+            // String branchRev = revisionId + "+";
+            // branchCommits.put(branchRev, jsonBranch);
+            // return branchRev;
+        }
         commit.apply(store);
-        headRevision = rev.toString();
-        return headRevision;
+        headRevision = rev;
+        return rev.toString();
     }    
     
     public static void parseAddNode(Commit commit, JsopReader t, String path) {
@@ -409,23 +453,34 @@ public class MongoMK implements MicroKernel {
 
     @Override
     public String branch(String trunkRevisionId) throws MicroKernelException {
-        // TODO implement if needed
-        return null;
+        // TODO improve implementation if needed
+        String branchId = "b" + trunkRevisionId;
+        // branchCommits.put(branchId, "");
+        return branchId;
     }
 
     @Override
     public String merge(String branchRevisionId, String message)
             throws MicroKernelException {
-        // TODO implement if needed
-        return null;
+        // reading from the branch is reading from the trunk currently
+        String revisionId = branchRevisionId.substring(1).replace('+', ' ').trim();
+        return revisionId;
+        
+        // TODO improve implementation if needed
+        // if (!branchRevisionId.startsWith("b")) {
+        //     throw new MicroKernelException("Not a branch: " + branchRevisionId);
+        // }
+        // 
+        // String commit = branchCommits.remove(branchRevisionId);
+        // return commit("", commit, null, null);
     }
 
     @Override
     @Nonnull
-    public String rebase(@Nonnull String branchRevisionId, String newBaseRevisionId)
+    public String rebase(String branchRevisionId, String newBaseRevisionId)
             throws MicroKernelException {
-        // TODO implement if needed
-        return null;
+        // TODO improve implementation if needed
+        return branchRevisionId;
     }
 
     @Override
