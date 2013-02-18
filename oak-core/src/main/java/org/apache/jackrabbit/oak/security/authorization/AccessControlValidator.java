@@ -28,6 +28,7 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.core.TreeImpl;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
@@ -147,6 +148,10 @@ class AccessControlValidator implements Validator, AccessControlConstants {
                 Collections.singleton(REP_POLICY);
         if (!validPolicyNames.contains(policyNode.getName())) {
             fail("Invalid policy name " + policyNode.getName());
+        }
+
+        if (!policyNode.hasProperty(TreeImpl.OAK_CHILD_ORDER)) {
+            fail("Invalid policy node: Order of children is not stable.");
         }
     }
 
