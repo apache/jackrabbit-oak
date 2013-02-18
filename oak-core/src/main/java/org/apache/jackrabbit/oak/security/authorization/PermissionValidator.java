@@ -25,11 +25,13 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.core.TreeImpl;
 import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.security.authorization.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.Permissions;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 
 /**
  * Validator implementation that checks for sufficient permission for all
@@ -39,7 +41,6 @@ class PermissionValidator implements Validator {
 
     /* TODO
      * - Renaming nodes or Move with same parent are reflected as remove+add -> needs special handling
-     * - review usage of OAK_CHILD_ORDER property (in particular if the property was removed
      * - Proper handling of jcr:nodeTypeManagement privilege.
      */
 
@@ -76,7 +77,11 @@ class PermissionValidator implements Validator {
 
     @Override
     public void propertyChanged(PropertyState before, PropertyState after) throws CommitFailedException {
-        checkPermissions(parentAfter, after, Permissions.MODIFY_PROPERTY);
+        if (TreeImpl.OAK_CHILD_ORDER.equals(after.getName())) {
+            checkPermissions(parentAfter, false, Permissions.MODIFY_CHILD_NODE_COLLECTION);
+        } else {
+            checkPermissions(parentAfter, after, Permissions.MODIFY_PROPERTY);
+        }
     }
 
     @Override
@@ -131,9 +136,11 @@ class PermissionValidator implements Validator {
 
     private void checkPermissions(@Nonnull Tree parent, @Nonnull PropertyState property,
                                   long defaultPermission) throws CommitFailedException {
-        long toTest = getPermission(parent, property, defaultPermission);
-        if (!permissionProvider.isGranted(parent, property, toTest)) {
-            throw new CommitFailedException(new AccessDeniedException());
+        if (!NodeStateUtils.isHidden((property.getName()))) {
+            long toTest = getPermission(parent, property, defaultPermission);
+            if (!permissionProvider.isGranted(parent, property, toTest)) {
+                throw new CommitFailedException(new AccessDeniedException());
+            }
         }
     }
 
