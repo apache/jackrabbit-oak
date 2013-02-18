@@ -19,6 +19,7 @@ package org.apache.jackrabbit.mongomk.prototype;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -206,6 +207,19 @@ public class MongoMK implements MicroKernel {
         // TODO currently we only compare the timestamps
         return x.compareRevisionTime(requestRevision) >= 0;
     }
+    
+    public Node.Children readChildren(String path, Revision rev) {
+        String from = Node.convertPathToDocumentId(path + "/");
+        String to = from.substring(0, from.length() - 1) + "0";
+        List<Map<String, Object>> list = store.query(DocumentStore.Collection.NODES, from, to);
+        Node.Children c = new Node.Children(path, rev);
+        for (Map<String, Object> e : list) {
+            String id = e.get("_id").toString();
+            String p = id.substring(1);
+            c.children.add(p);
+        }
+        return c;
+    }
 
     private Node readNode(String path, Revision rev) {
         String id = Node.convertPathToDocumentId(path);
@@ -303,7 +317,8 @@ public class MongoMK implements MicroKernel {
         Revision rev = Revision.fromString(revisionId);
         Node n = getNode(path, rev);
         JsopStream json = new JsopStream();
-        n.append(json, true);
+        boolean includeId = filter != null && filter.contains(":id");
+        n.append(json, includeId);
         return json.toString();
     }
 

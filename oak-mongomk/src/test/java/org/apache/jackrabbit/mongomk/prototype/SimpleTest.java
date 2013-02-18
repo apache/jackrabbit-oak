@@ -20,10 +20,14 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import org.apache.jackrabbit.mongomk.prototype.DocumentStore.Collection;
+import org.apache.jackrabbit.mongomk.prototype.Node.Children;
 import org.junit.Test;
 
 import com.google.common.collect.Lists;
 
+/**
+ * A set of simple tests.
+ */
 public class SimpleTest {
 
     @Test
@@ -61,10 +65,21 @@ public class SimpleTest {
     @Test
     public void commit() {
         MongoMK mk = new MongoMK();
+        
         String rev = mk.commit("/", "+\"test\":{\"name\": \"Hello\"}", null, null);
         String test = mk.getNodes("/test", rev, 0, 0, Integer.MAX_VALUE, null);
         assertEquals("{\"name\":\"Hello\"}", test);
+        
+        rev = mk.commit("/test", "+\"a\":{\"name\": \"World\"}", null, null);
+        test = mk.getNodes("/test", rev, 0, 0, Integer.MAX_VALUE, null);
+        Children c = mk.readChildren("/", Revision.fromString(rev));
+        assertEquals("/: []", c.toString());
+        // assertEquals("{\"name\":\"Hello\",{\"a\":\"name\":\"World\"}}", test);
+        
         // System.out.println(test);
         mk.dispose();
     }
+    
+    // TODO run Damians tests
+    
 }

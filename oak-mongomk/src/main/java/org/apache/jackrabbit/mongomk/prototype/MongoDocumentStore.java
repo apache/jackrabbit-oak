@@ -53,6 +53,13 @@ public class MongoDocumentStore implements DocumentStore {
         }
         return convertFromDBObject(n);
     }
+    
+    @Override
+    public List<Map<String, Object>> query(Collection collection,
+            String fromKey, String toKey) {
+        // TODO retrieve children
+        return null;
+    }
 
     @Override
     public void remove(Collection collection, String path) {
