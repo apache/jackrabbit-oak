@@ -91,7 +91,7 @@ class InternalLdapServer extends AbstractServerTest {
 
     private static String buildDn(String name, boolean isGroup) {
         StringBuilder dn = new StringBuilder();
-        dn.append(name).append(',');
+        dn.append("cn=").append(name).append(',');
         if (isGroup) {
             dn.append(ServerDNConstants.GROUPS_SYSTEM_DN);
         } else {
