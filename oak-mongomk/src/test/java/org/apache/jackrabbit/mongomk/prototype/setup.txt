@@ -1,0 +1,62 @@
+== MongoDB cluster setup ==
+
+This script will create a MongoDB cluster with 3 shards:
+
+=== Stop
+
+./mongo --port=27017
+use admin
+db.shutdownServer()
+exit
+./mongo --port=10001
+use admin
+db.shutdownServer()
+exit
+./mongo --port=10002
+use admin
+db.shutdownServer()
+exit
+./mongo --port=10003
+use admin
+db.shutdownServer()
+exit
+./mongo --port=20001
+use admin
+db.shutdownServer()
+exit
+ps -ef | grep mongo
+
+=== Clean, Init, and Start
+
+rm -rf db
+mkdir db
+mkdir db/shard1
+mkdir db/shard2
+mkdir db/shard3
+mkdir db/config
+./mongod --shardsvr --port=10001 --dbpath db/shard1 --fork --logpath db/shard1.log
+./mongod --shardsvr --port=10002 --dbpath db/shard2 --fork --logpath db/shard2.log
+./mongod --shardsvr --port=10003 --dbpath db/shard3 --fork --logpath db/shard3.log
+./mongod --configsvr --port 20001 --dbpath=db/config --fork --logpath db/config.log
+./mongos --port 27017 --configdb localhost:20001 --fork --logpath db/mongos.log
+./mongo --host localhost --port 27017
+sh.addShard("localhost:10001")
+sh.addShard("localhost:10002")
+sh.addShard("localhost:10003")
+use MongoMKDB
+db.createCollection("nodes")
+db.createCollection("blobs")
+sh.enableSharding("MongoMKDB")
+sh.shardCollection("MongoMKDB.nodes", { "_id": 1 }, true)
+sh.shardCollection("MongoMKDB.blobs", { "_id": 1 }, true)
+exit
+
+=== Other
+
+Display sharding status:
+
+du -h .
+./mongo --host localhost --port 27017
+db.printShardingStatus()
+exit
+
