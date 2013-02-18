@@ -30,7 +30,10 @@ import org.apache.jackrabbit.mk.blobs.MemoryBlobStore;
 import org.apache.jackrabbit.mk.json.JsopReader;
 import org.apache.jackrabbit.mk.json.JsopStream;
 import org.apache.jackrabbit.mk.json.JsopTokenizer;
+import org.apache.jackrabbit.mongomk.impl.blob.MongoBlobStore;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+
+import com.mongodb.DB;
 
 /**
  * A MicroKernel implementation that stores the data in a MongoDB.
@@ -92,10 +95,22 @@ public class MongoMK implements MicroKernel {
     private Thread backgroundThread;
 
     /**
-     * Create a new in-memory MongoMK to be used for testing.
+     * Create a new in-memory MongoMK used for testing.
      */
     public MongoMK() {
         this(new MemoryDocumentStore(), new MemoryBlobStore(), 0);
+    }
+    
+    /**
+     * Create a new MongoMK.
+     * 
+     * @param db the MongoDB connection (null for in-memory)
+     * @param clusterId the cluster id (must be unique)
+     */
+    public MongoMK(DB db, int clusterId) {
+        this(db == null ? new MemoryDocumentStore() : new MongoDocumentStore(db),
+                db == null ? new MemoryBlobStore() : new MongoBlobStore(db), 
+                clusterId);
     }
 
     /**
