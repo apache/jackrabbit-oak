@@ -26,6 +26,7 @@ import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.commit.JcrConflictHandler;
+import org.apache.jackrabbit.oak.plugins.commit.MixLastModifiedCommitHook;
 import org.apache.jackrabbit.oak.plugins.index.IndexHookProvider;
 import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.p2.Property2IndexHookProvider;
@@ -65,6 +66,7 @@ public class Jcr {
         with(JcrConflictHandler.JCR_CONFLICT_HANDLER);
         with(new DefaultTypeEditor());
         with(new VersionHook());
+        with(new MixLastModifiedCommitHook());
 
         with(new SecurityProviderImpl());
 
