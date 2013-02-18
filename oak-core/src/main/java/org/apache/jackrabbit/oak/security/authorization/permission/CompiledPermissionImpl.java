@@ -77,20 +77,18 @@ public class CompiledPermissionImpl implements CompiledPermissions, AccessContro
 
     @Override
     public boolean isGranted(long permissions) {
-        // TODO
+        // TODO: only evaluate entries that are defined for the "" path.
         return false;
     }
 
     @Override
     public boolean isGranted(Tree tree, long permissions) {
-        // TODO
-        return false;
+        return hasPermissions(tree, null, permissions);
     }
 
     @Override
     public boolean isGranted(Tree parent, PropertyState property, long permissions) {
-        // TODO
-        return false;
+        return hasPermissions(parent, property, permissions);
     }
 
     @Override
@@ -110,9 +108,16 @@ public class CompiledPermissionImpl implements CompiledPermissions, AccessContro
     }
 
     //------------------------------------------------------------< private >---
+    private boolean hasPermissions(@Nonnull Tree tree, @Nullable PropertyState property,
+                                   long permissions) {
+        // TODO
+        return false;
+    }
+
 
     private PrivilegeBits getPrivilegeBits(@Nullable Tree tree) {
-        return PrivilegeBits.EMPTY; // TODO
+        // TODO
+        return PrivilegeBits.EMPTY;
     }
 
     private static final class Key implements Comparable<Key> {

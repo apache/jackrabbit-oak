@@ -100,8 +100,8 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
 
     @Override
     public boolean canRead(@Nonnull Tree tree) {
-        if (acContext.definesTree(tree)) {
-            return compiledPermissions.isGranted(tree, Permissions.READ_ACCESS_CONTROL);
+        if (isAccessControlContent(tree)) {
+            return canReadAccessControlContent(tree, null);
         } else if (isVersionContent(tree)) {
             return canReadVersionContent(tree, null);
         } else {
@@ -111,8 +111,8 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
 
     @Override
     public boolean canRead(@Nonnull Tree tree, @Nonnull PropertyState property) {
-        if (acContext.definesTree(tree)) {
-            return compiledPermissions.isGranted(tree, property, Permissions.READ_ACCESS_CONTROL);
+        if (isAccessControlContent(tree)) {
+            return canReadAccessControlContent(tree, property);
         } else if (isVersionContent(tree)) {
             return canReadVersionContent(tree, property);
         } else {
@@ -174,6 +174,35 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
         return (tree == null) ? null : (ReadOnlyTree) tree;
     }
 
+    private boolean isAccessControlContent(@Nonnull Tree tree) {
+        return acContext.definesTree(tree);
+    }
+
+    private boolean canReadAccessControlContent(@Nonnull Tree acTree, @Nullable PropertyState acProperty) {
+        if (acProperty != null) {
+            return compiledPermissions.isGranted(acTree, acProperty, Permissions.READ_ACCESS_CONTROL);
+        } else {
+            return compiledPermissions.isGranted(acTree, Permissions.READ_ACCESS_CONTROL);
+        }
+    }
+
+    private static boolean isVersionContent(@Nonnull Tree tree) {
+        if (tree.isRoot()) {
+            return false;
+        }
+        if (VersionConstants.VERSION_NODE_NAMES.contains(tree.getName())) {
+            return true;
+        } else if (VersionConstants.VERSION_NODE_TYPE_NAMES.contains(TreeUtil.getPrimaryTypeName(tree))) {
+            return true;
+        } else {
+            return isVersionContent(tree.getPath());
+        }
+    }
+
+    private static boolean isVersionContent(@Nonnull String path) {
+        return VersionConstants.SYSTEM_PATHS.contains(Text.getAbsoluteParent(path, 1));
+    }
+
     private boolean canReadVersionContent(@Nonnull Tree versionStoreTree, @Nullable PropertyState property) {
         String versionablePath = getVersionablePath(versionStoreTree, property);
         if (versionablePath != null) {
@@ -210,22 +239,5 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
             log.warn("Unable to determine path of the version controlled node.");
         }
         return Strings.emptyToNull(versionablePath);
-    }
-
-    private static boolean isVersionContent(@Nonnull Tree tree) {
-        if (tree.isRoot()) {
-            return false;
-        }
-        if (VersionConstants.VERSION_NODE_NAMES.contains(tree.getName())) {
-            return true;
-        } else if (VersionConstants.VERSION_NODE_TYPE_NAMES.contains(TreeUtil.getPrimaryTypeName(tree))) {
-            return true;
-        } else {
-            return isVersionContent(tree.getPath());
-        }
-    }
-
-    private static boolean isVersionContent(@Nonnull String path) {
-        return VersionConstants.SYSTEM_PATHS.contains(Text.getAbsoluteParent(path, 1));
     }
 }

@@ -16,26 +16,38 @@
  */
 package org.apache.jackrabbit.oak.security.authorization;
 
+import java.util.Collections;
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 
+import com.google.common.collect.Lists;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.core.ReadOnlyRoot;
 import org.apache.jackrabbit.oak.core.ReadOnlyTree;
 import org.apache.jackrabbit.oak.core.TreeImpl;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryPropertyBuilder;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
+import org.apache.jackrabbit.oak.security.privilege.PrivilegeBits;
+import org.apache.jackrabbit.oak.security.privilege.PrivilegeDefinitionStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
+import org.apache.jackrabbit.oak.spi.state.PropertyBuilder;
+import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * {@code CommitHook} implementation that processes any modification made to
@@ -55,15 +67,17 @@ public class PermissionHook implements CommitHook, AccessControlConstants {
     @Nonnull
     @Override
     public NodeState processCommit(final NodeState before, NodeState after) throws CommitFailedException {
-        NodeBuilder rootBuilder = after.builder();
+        NodeBuilder rootAfter = after.builder();
 
-        NodeBuilder permissionRoot = getPermissionRoot(rootBuilder, workspaceName);
+        NodeBuilder permissionRoot = getPermissionRoot(rootAfter, workspaceName);
         ReadOnlyNodeTypeManager ntMgr = ReadOnlyNodeTypeManager.getInstance(before);
+        PrivilegeDefinitionStore privilegeStore = new PrivilegeDefinitionStore(new ReadOnlyRoot(before));
 
-        after.compareAgainstBaseState(before, new Diff(new Node(rootBuilder), permissionRoot, ntMgr));
-        return rootBuilder.getNodeState();
+        after.compareAgainstBaseState(before, new Diff(new BeforeNode(before), new Node(rootAfter), permissionRoot, privilegeStore, ntMgr));
+        return rootAfter.getNodeState();
     }
 
+    @Nonnull
     private NodeBuilder getPermissionRoot(NodeBuilder rootBuilder, String workspaceName) {
         NodeBuilder store = rootBuilder.child(NodeTypeConstants.JCR_SYSTEM).child(REP_PERMISSION_STORE);
         NodeBuilder permissionRoot;
@@ -76,16 +90,39 @@ public class PermissionHook implements CommitHook, AccessControlConstants {
         return permissionRoot;
     }
 
+    private static Tree getTree(String name, NodeState nodeState) {
+        // FIXME: this readonlytree is not properly connect to it's parent
+        return new ReadOnlyTree(null, name, nodeState);
+    }
+
+    private static int getAceIndex(BaseNode aclNode, String aceName) {
+        PropertyState ordering = checkNotNull(aclNode.getNodeState().getProperty(TreeImpl.OAK_CHILD_ORDER));
+        return Lists.newArrayList(ordering.getValue(Type.STRINGS)).indexOf(aceName);
+    }
+
+    private static String generateName(NodeBuilder principalRoot, Entry entry) {
+        StringBuilder name = new StringBuilder();
+        name.append((entry.isAllow) ? 'a' : 'd').append('-').append(principalRoot.getChildNodeCount());
+        return name.toString();
+    }
+
     private static class Diff implements NodeStateDiff {
 
-        private final ReadOnlyNodeTypeManager ntMgr;
-        private final NodeBuilder permissionRoot;
+        private final BeforeNode parentBefore;
         private final Node parentAfter;
+        private final NodeBuilder permissionRoot;
+        private final PrivilegeDefinitionStore privilegeStore;
+        private final ReadOnlyNodeTypeManager ntMgr;
 
-        private Diff(@Nonnull Node node, NodeBuilder permissionRoot, ReadOnlyNodeTypeManager ntMgr) {
-            this.ntMgr = ntMgr;
+        private Diff(@Nonnull BeforeNode parentBefore, @Nonnull Node parentAfter,
+                     @Nonnull NodeBuilder permissionRoot,
+                     @Nonnull PrivilegeDefinitionStore privilegeStore,
+                     @Nonnull ReadOnlyNodeTypeManager ntMgr) {
+            this.parentBefore = parentBefore;
+            this.parentAfter = parentAfter;
             this.permissionRoot = permissionRoot;
-            this.parentAfter = node;
+            this.privilegeStore = privilegeStore;
+            this.ntMgr = ntMgr;
         }
 
         @Override
@@ -96,7 +133,7 @@ public class PermissionHook implements CommitHook, AccessControlConstants {
         @Override
         public void propertyChanged(PropertyState before, PropertyState after) {
             if (isACL(parentAfter) && TreeImpl.OAK_CHILD_ORDER.equals(before.getName())) {
-                updateEntries();
+                // TODO: update if order has changed without child-node modifications
             }
         }
 
@@ -110,19 +147,22 @@ public class PermissionHook implements CommitHook, AccessControlConstants {
             if (isACE(name, after)) {
                 addEntry(name, after);
             } else {
-                NodeState before = MemoryNodeState.EMPTY_NODE;
+                BeforeNode before = new BeforeNode(parentBefore.getPath(), name, MemoryNodeState.EMPTY_NODE);
                 Node node = new Node(parentAfter, name);
-                after.compareAgainstBaseState(before, new Diff(node, permissionRoot, ntMgr));
+                after.compareAgainstBaseState(before.getNodeState(), new Diff(before, node, permissionRoot, privilegeStore, ntMgr));
             }
         }
 
         @Override
-        public void childNodeChanged(String name, NodeState before, NodeState after) {
+        public void childNodeChanged(String name, final NodeState before, NodeState after) {
             if (isACE(name, before) || isACE(name, after)) {
                 updateEntry(name, before, after);
+            } else if (REP_RESTRICTIONS.equals(name)) {
+                updateEntry(parentAfter.getName(), parentBefore.getNodeState(), parentAfter.getNodeState());
             } else {
-                Node node = new Node(parentAfter, name);
-                after.compareAgainstBaseState(before, new Diff(node, permissionRoot, ntMgr));
+                BeforeNode nodeBefore = new BeforeNode(parentBefore.getPath(), name, before);
+                Node nodeAfter = new Node(parentAfter, name);
+                after.compareAgainstBaseState(before, new Diff(nodeBefore, nodeAfter, permissionRoot, privilegeStore, ntMgr));
             }
         }
 
@@ -131,8 +171,9 @@ public class PermissionHook implements CommitHook, AccessControlConstants {
             if (isACE(name, before)) {
                 removeEntry(name, before);
             } else {
-                Node after = new Node(parentAfter.path, name);
-                after.builder.getNodeState().compareAgainstBaseState(before, new Diff(after, permissionRoot, ntMgr));
+                BeforeNode nodeBefore = new BeforeNode(parentBefore.getPath(), name, before);
+                Node after = new Node(parentAfter.getPath(), name, MemoryNodeState.EMPTY_NODE);
+                after.getNodeState().compareAgainstBaseState(before, new Diff(nodeBefore, after, permissionRoot, privilegeStore, ntMgr));
             }
         }
 
@@ -153,67 +194,206 @@ public class PermissionHook implements CommitHook, AccessControlConstants {
             }
         }
 
-        private static String getAccessControlledPath(Node aclNode) {
-            return Text.getRelativeParent(aclNode.path, 1);
+        private static String getAccessControlledPath(BaseNode aclNode) {
+            if (REP_REPO_POLICY.equals(aclNode.getName())) {
+                return "";
+            } else {
+                return Text.getRelativeParent(aclNode.getPath(), 1);
+            }
         }
 
-        private static Tree getTree(String name, NodeState nodeState) {
-            // FIXME: this readonlytree is not properly connect to it's parent
-            return new ReadOnlyTree(null, name, nodeState);
+        private void addEntry(String name, NodeState ace) {
+            Entry entry = createEntry(name, ace, parentAfter);
+            entry.writeTo(permissionRoot.child(entry.principalName));
         }
 
-        private void addEntry(String name, NodeState after) {
-            String accessControlledPath = getAccessControlledPath(parentAfter);
-            // TODO
-            //log.info("add entry:" + name);
+        private void removeEntry(String name, NodeState ace) {
+            Entry entry = createEntry(name, ace, parentBefore);
+            String permissionName = getPermissionNodeName(entry);
+            if (permissionName != null) {
+                permissionRoot.child(entry.principalName).removeNode(permissionName);
+            }
         }
 
-        private void removeEntry(String name, NodeState after) {
-            String accessControlledPath = getAccessControlledPath(parentAfter);
-            // TODO
-            //log.info("remove entry" + name);
+        private void updateEntry(String name, NodeState before, NodeState after) {
+            removeEntry(name, before);
+            addEntry(name, after);
         }
 
-        private void updateEntry(String name, NodeState after, NodeState before) {
-            String accessControlledPath = getAccessControlledPath(parentAfter);
-            // TODO
-            //log.info("update"+ name);
+        @CheckForNull
+        private String getPermissionNodeName(Entry aceEntry) {
+            if (permissionRoot.hasChildNode(aceEntry.principalName)) {
+                NodeBuilder principalRoot = permissionRoot.child(aceEntry.principalName);
+                for (String childName : principalRoot.getChildNodeNames()) {
+                    NodeState state = principalRoot.child(childName).getNodeState();
+                    if (aceEntry.isSame(childName, state)) {
+                        return childName;
+                    }
+                }
+                log.warn("No entry node for " + aceEntry);
+            } else {
+                // inconsistency: removing an ACE that doesn't have a corresponding
+                // entry in the permission store.
+                log.warn("Missing permission node for principal " + aceEntry.principalName);
+            }
+            return null;
         }
 
-        private void updateEntries() {
-            String accessControlledPath = getAccessControlledPath(parentAfter);
-            NodeState aclState = parentAfter.getNodeState();
+        @Nonnull
+        private Entry createEntry(String name, NodeState ace, BaseNode acl) {
+            Tree aceTree = getTree(name, ace);
+            String principalName = checkNotNull(TreeUtil.getString(aceTree, REP_PRINCIPAL_NAME));
+            PrivilegeBits privilegeBits = privilegeStore.getBits(TreeUtil.getString(aceTree, REP_PRIVILEGES));
+            boolean isAllow = NT_REP_GRANT_ACE.equals(TreeUtil.getPrimaryTypeName(aceTree));
+            // TODO: respect restrictions
 
-            // TODO
+            String accessControlledPath = getAccessControlledPath(acl);
+            int index = getAceIndex(acl, name);
+
+            return new Entry(accessControlledPath, index, principalName, privilegeBits, isAllow);
         }
     }
 
-    private static final class Node {
+    private static abstract class BaseNode {
 
         private final String path;
-        private final NodeBuilder builder;
 
-        private Node(NodeBuilder rootBuilder) {
-            this.path = "/";
-            this.builder = rootBuilder;
+        private BaseNode(String path) {
+            this.path = path;
         }
 
-        private Node(String parentPath, String name) {
-            this.path = PathUtils.concat(parentPath, name);
-            this.builder = MemoryNodeState.EMPTY_NODE.builder();
+        private BaseNode(String parentPath, String name) {
+            this.path = PathUtils.concat(parentPath, new String[]{name});
         }
 
-        private Node(Node parent, String name) {
-            this.builder = parent.builder.child(name);
-            this.path = PathUtils.concat(parent.path, name);
-        }
-
-        private String getName() {
+        String getName() {
             return Text.getName(path);
         }
 
-        private NodeState getNodeState() {
+        String getPath() {
+            return path;
+        }
+
+        abstract NodeState getNodeState();
+    }
+
+    private static class BeforeNode extends BaseNode {
+
+        private final NodeState nodeState;
+
+        BeforeNode(NodeState root) {
+            super("/");
+            this.nodeState = root;
+        }
+
+
+        BeforeNode(String parentPath, String name, NodeState nodeState) {
+            super(parentPath, name);
+            this.nodeState = nodeState;
+        }
+
+        @Override
+        NodeState getNodeState() {
+            return nodeState;
+        }
+    }
+
+    private static class Node extends BaseNode {
+
+        private final NodeBuilder builder;
+
+        private Node(NodeBuilder rootBuilder) {
+            super("/");
+            this.builder = rootBuilder;
+        }
+
+        private Node(String parentPath, String name, NodeState state) {
+            super(parentPath, name);
+            this.builder = state.builder();
+        }
+
+        private Node(Node parent, String name) {
+            super(parent.getPath(), name);
+            this.builder = parent.builder.child(name);
+        }
+
+        NodeState getNodeState() {
             return builder.getNodeState();
+        }
+    }
+
+    private static final class Entry {
+
+        private final String accessControlledPath;
+        private final int index;
+
+        private final String principalName;
+        private final PrivilegeBits privilegeBits;
+        private final boolean isAllow;
+
+        private Entry(@Nonnull String accessControlledPath,
+                      int index,
+                      @Nonnull String principalName,
+                      @Nonnull PrivilegeBits privilegeBits,
+                      boolean isAllow) {
+            this.accessControlledPath = accessControlledPath;
+            this.index = index;
+
+            this.principalName = principalName;
+            this.privilegeBits = privilegeBits;
+            this.isAllow = isAllow;
+        }
+
+        private void writeTo(NodeBuilder principalRoot) {
+            String entryName = generateName(principalRoot, this);
+            principalRoot.child(entryName)
+                    .setProperty("rep:accessControlledPath", accessControlledPath)
+                    .setProperty("rep:index", index)
+                    .setProperty(privilegeBits.asPropertyState("rep:privileges"));
+            // TODO: append restrictions
+
+            PropertyState ordering = principalRoot.getProperty(TreeImpl.OAK_CHILD_ORDER);
+            if (ordering == null) {
+                principalRoot.setProperty(TreeImpl.OAK_CHILD_ORDER, Collections.singleton(entryName), Type.NAMES);
+            } else {
+                PropertyBuilder pb = MemoryPropertyBuilder.copy(Type.NAME, ordering);
+                // TODO: determine ordering index
+                int index = 0;
+                pb.setValue(entryName, index);
+                principalRoot.setProperty(pb.getPropertyState());
+            }
+        }
+
+        private boolean isSame(String name, NodeState node) {
+            Tree entry = getTree(name, node);
+
+            if (isAllow == (name.charAt(0) == 'a')) {
+                return false;
+            }
+            if (!privilegeBits.equals(PrivilegeBits.getInstance(node.getProperty(REP_PRIVILEGES)))) {
+                return false;
+            }
+            if (!principalName.equals(TreeUtil.getString(entry, REP_PRINCIPAL_NAME))) {
+                return false;
+            }
+            if (index != entry.getProperty("rep:index").getValue(Type.LONG)) {
+                return false;
+            }
+            if (!accessControlledPath.equals(TreeUtil.getString(entry, "rep:accessControlledPath"))) {
+                return false;
+            }
+            // TODO: respect restrictions
+
+            return true;
+        }
+
+        public String toString() {
+            StringBuilder sb = new StringBuilder();
+            sb.append("entry: ").append(accessControlledPath);
+            sb.append(';').append(principalName);
+            sb.append(';').append(isAllow ? "allow" : "deny");
+            sb.append(';').append(privilegeBits);
+            return sb.toString();
         }
     }
 }
