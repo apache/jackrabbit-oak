@@ -25,6 +25,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.security.Privilege;
@@ -51,10 +53,8 @@ import static org.junit.Assert.assertTrue;
  */
 public abstract class AbstractAccessControlListTest extends AbstractAccessControlTest {
 
-    private final String testPath = "/testPath";
-
     protected String getTestPath() {
-        return testPath;
+        return "/testPath";
     }
 
     protected Principal getTestPrincipal() {
@@ -66,28 +66,29 @@ public abstract class AbstractAccessControlListTest extends AbstractAccessContro
         return createACL(getTestPath(), Collections.<JackrabbitAccessControlEntry>emptyList(), namePathMapper);
     }
 
-    protected AbstractAccessControlList createACL(JackrabbitAccessControlEntry... entries) {
+    protected AbstractAccessControlList createACL(@Nonnull JackrabbitAccessControlEntry... entries) {
         return createACL(getTestPath(), Lists.newArrayList(entries), namePathMapper);
     }
 
-    protected AbstractAccessControlList createACL(List<JackrabbitAccessControlEntry> entries) {
+    protected AbstractAccessControlList createACL(@Nonnull List<JackrabbitAccessControlEntry> entries) {
         return createACL(getTestPath(), entries, namePathMapper);
     }
 
-    protected AbstractAccessControlList createACL(String jcrPath, JackrabbitAccessControlEntry... entries) {
+    protected AbstractAccessControlList createACL(@Nullable String jcrPath,
+                                                  @Nonnull JackrabbitAccessControlEntry... entries) {
         return createACL(jcrPath, Lists.newArrayList(entries), namePathMapper);
     }
 
-    protected abstract AbstractAccessControlList createACL(String jcrPath,
-                                                           List<JackrabbitAccessControlEntry> entries,
-                                                           NamePathMapper namePathMapper);
+    protected abstract AbstractAccessControlList createACL(@Nullable String jcrPath,
+                                                           @Nonnull List<JackrabbitAccessControlEntry> entries,
+                                                           @Nonnull NamePathMapper namePathMapper);
 
     protected List<JackrabbitAccessControlEntry> createTestEntries() throws RepositoryException {
         List<JackrabbitAccessControlEntry> entries = new ArrayList<JackrabbitAccessControlEntry>(3);
         for (int i = 0; i < 3; i++) {
             entries.add(new ACE(
-                    new PrincipalImpl("testPrincipal"+i),
-                    new Privilege[] {getPrivilegeManager().getPrivilege(PrivilegeConstants.JCR_READ)},
+                    new PrincipalImpl("testPrincipal" + i),
+                    new Privilege[]{getPrivilegeManager().getPrivilege(PrivilegeConstants.JCR_READ)},
                     true, null));
         }
         return entries;
@@ -137,10 +138,10 @@ public abstract class AbstractAccessControlListTest extends AbstractAccessContro
         paths.put(null, null);
         paths.put(getTestPath(), getTestPath());
         paths.put("/", "/");
-        String oakPath = '/' + TestNameMapper.TEST_PREFIX +":testPath";
-        String jcrPath = '/' + TestNameMapper.TEST_LOCAL_PREFIX+":testPath";
+        String oakPath = '/' + TestNameMapper.TEST_PREFIX + ":testPath";
+        String jcrPath = '/' + TestNameMapper.TEST_LOCAL_PREFIX + ":testPath";
         paths.put(jcrPath, oakPath);
-        jcrPath = "/{"+ TestNameMapper.TEST_URI+"}testPath";
+        jcrPath = "/{" + TestNameMapper.TEST_URI + "}testPath";
         paths.put(jcrPath, oakPath);
 
         // test if oak-path is properly set.
@@ -162,6 +163,7 @@ public abstract class AbstractAccessControlListTest extends AbstractAccessContro
         assertEquals(0, acl.size());
         assertTrue(acl.isEmpty());
     }
+
     @Test
     public void testSize() throws RepositoryException {
         AbstractAccessControlList acl = createACL(createTestEntries());
