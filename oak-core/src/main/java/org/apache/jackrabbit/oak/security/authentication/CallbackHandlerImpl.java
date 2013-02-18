@@ -30,19 +30,17 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.callback.CredentialsCallback;
 import org.apache.jackrabbit.oak.spi.security.authentication.callback.RepositoryCallback;
-import org.apache.jackrabbit.oak.spi.security.authentication.callback.SecurityProviderCallback;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 /**
  * Default implementation of the {@link CallbackHandler} interface. It currently
  * supports the following {@code Callback} implementations:
- *
+ * <p/>
  * <ul>
- *     <li>{@link CredentialsCallback}</li>
- *     <li>{@link NameCallback}</li>
- *     <li>{@link PasswordCallback}</li>
- *     <li>{@link SecurityProviderCallback}</li>
- *     <li>{@link RepositoryCallback}</li>
+ * <li>{@link CredentialsCallback}</li>
+ * <li>{@link NameCallback}</li>
+ * <li>{@link PasswordCallback}</li>
+ * <li>{@link RepositoryCallback}</li>
  * </ul>
  */
 public class CallbackHandlerImpl implements CallbackHandler {
@@ -75,11 +73,10 @@ public class CallbackHandlerImpl implements CallbackHandler {
                 ((NameCallback) callback).setName(getName());
             } else if (callback instanceof PasswordCallback) {
                 ((PasswordCallback) callback).setPassword(getPassword());
-            } else if (callback instanceof SecurityProviderCallback) {
-                ((SecurityProviderCallback) callback).setSecurityProvider(securityProvider);
             } else if (callback instanceof RepositoryCallback) {
                 RepositoryCallback repositoryCallback = (RepositoryCallback) callback;
                 repositoryCallback.setNodeStore(nodeStore);
+                repositoryCallback.setSecurityProvider(securityProvider);
                 repositoryCallback.setCommitHook(commitHook);
                 repositoryCallback.setIndexProvider(indexProvider);
                 repositoryCallback.setWorkspaceName(workspaceName);
@@ -91,7 +88,7 @@ public class CallbackHandlerImpl implements CallbackHandler {
 
     //------------------------------------------------------------< private >---
 
-    private String getName(){
+    private String getName() {
         if (credentials instanceof SimpleCredentials) {
             return ((SimpleCredentials) credentials).getUserID();
         } else {

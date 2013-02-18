@@ -16,10 +16,10 @@
  */
 package org.apache.jackrabbit.oak.spi.security;
 
-import java.util.Collections;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authentication.OpenAuthenticationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfiguration;
@@ -42,7 +42,7 @@ public class OpenSecurityProvider implements SecurityProvider {
     @Nonnull
     @Override
     public Iterable<SecurityConfiguration> getSecurityConfigurations() {
-        return Collections.<SecurityConfiguration>singletonList(getAccessControlConfiguration());
+        return ImmutableList.of(getAccessControlConfiguration(), getAuthenticationConfiguration());
     }
 
     @Nonnull

@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.security.authorization;
 
 import java.security.Principal;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -31,7 +30,7 @@ import org.apache.jackrabbit.oak.security.authorization.restriction.RestrictionP
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitHookProvider;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
-import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
+import org.apache.jackrabbit.oak.spi.commit.ValidatingHook;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
@@ -67,7 +66,7 @@ public class AccessControlConfigurationImpl extends SecurityConfiguration.Defaul
 
     @Nonnull
     @Override
-    public CommitHookProvider getCommitHookProvider() {
+    public CommitHookProvider getSecurityHooks() {
         return new CommitHookProvider() {
             @Override
             public CommitHook getCommitHook(String workspaceName) {
@@ -77,11 +76,14 @@ public class AccessControlConfigurationImpl extends SecurityConfiguration.Defaul
     }
 
     @Override
-    public List<ValidatorProvider> getValidatorProviders() {
-        List<ValidatorProvider> vps = new ArrayList<ValidatorProvider>();
-        vps.add(new PermissionValidatorProvider(securityProvider));
-        vps.add(new AccessControlValidatorProvider(securityProvider));
-        return Collections.unmodifiableList(vps);
+    public CommitHookProvider getValidators() {
+        return new CommitHookProvider() {
+            @Nonnull
+            @Override
+            public CommitHook getCommitHook(@Nonnull final String workspaceName) {
+                return new ValidatingHook(new PermissionValidatorProvider(securityProvider, workspaceName), new AccessControlValidatorProvider(securityProvider));
+            }
+        };
     }
 
     @Nonnull

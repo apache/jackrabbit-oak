@@ -25,8 +25,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.core.RootImpl;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
-import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfiguration;
-import org.apache.jackrabbit.oak.spi.security.authorization.OpenAccessControlConfiguration;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.SystemPrincipal;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
@@ -40,9 +39,11 @@ public class RepositoryCallback implements Callback {
 
     private NodeStore nodeStore;
     private CommitHook commitHook;
+    private SecurityProvider securityProvider;
     private QueryIndexProvider indexProvider;
     private String workspaceName;
 
+    @CheckForNull
     public String getWorkspaceName() {
         return workspaceName;
     }
@@ -51,10 +52,14 @@ public class RepositoryCallback implements Callback {
     public Root getRoot() {
         if (nodeStore != null) {
             Subject subject = new Subject(true, Collections.singleton(SystemPrincipal.INSTANCE), Collections.<Object>emptySet(), Collections.<Object>emptySet());
-            AccessControlConfiguration acConfiguration = new OpenAccessControlConfiguration();
-            return new RootImpl(nodeStore, commitHook, workspaceName, subject, acConfiguration, indexProvider);
+            return new RootImpl(nodeStore, commitHook, workspaceName, subject, securityProvider, indexProvider);
         }
         return null;
+    }
+
+    @CheckForNull
+    public SecurityProvider getSecurityProvider() {
+        return securityProvider;
     }
 
     public void setNodeStore(NodeStore nodeStore) {
@@ -63,6 +68,10 @@ public class RepositoryCallback implements Callback {
 
     public void setCommitHook(CommitHook commitHook) {
         this.commitHook = commitHook;
+    }
+
+    public void setSecurityProvider(SecurityProvider securityProvider) {
+        this.securityProvider = securityProvider;
     }
 
     public void setIndexProvider(QueryIndexProvider indexProvider) {

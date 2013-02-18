@@ -39,7 +39,6 @@ import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.callback.CredentialsCallback;
 import org.apache.jackrabbit.oak.spi.security.authentication.callback.PrincipalProviderCallback;
 import org.apache.jackrabbit.oak.spi.security.authentication.callback.RepositoryCallback;
-import org.apache.jackrabbit.oak.spi.security.authentication.callback.SecurityProviderCallback;
 import org.apache.jackrabbit.oak.spi.security.authentication.callback.UserManagerCallback;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.slf4j.Logger;
@@ -49,84 +48,84 @@ import org.slf4j.LoggerFactory;
  * Abstract implementation of the {@link LoginModule} interface that can act
  * as base class for login modules that aim to authenticate subjects against
  * information stored in the content repository.
- *
+ * <p/>
  * <h2>LoginModule Methods</h2>
  * This base class provides a simple implementation for the following methods
  * of the {@code LoginModule} interface:
- *
+ * <p/>
  * <ul>
- *     <li>{@link LoginModule#initialize(Subject, CallbackHandler, Map, Map) Initialize}:
- *     Initialization of this abstract module sets the following protected instance
- *     fields:
- *     <ul>
- *         <li>subject: The subject to be authenticated,</li>
- *         <li>callbackHandler: The callback handler passed to the login module,</li>
- *         <li>shareState: The map used to share state information with other login modules,</li>
- *         <li>options: The configuration options of this login module as specified
- *         in the {@link javax.security.auth.login.Configuration}.</li>
- *     </ul>
- *     </li>
- *     <li>{@link LoginModule#logout() Logout}:
- *     If the authenticated subject is not empty this logout implementation
- *     attempts to clear both principals and public credentials and returns
- *     {@code true}.</li>
- *     <li>{@link LoginModule#abort() Abort}: Clears the state of this login
- *     module by setting all private instance variables created in phase 1 or 2
- *     to {@code null}. Subclasses are in charge of releasing their own state
- *     information by either overriding {@link #clearState()}.</li>
+ * <li>{@link LoginModule#initialize(Subject, CallbackHandler, Map, Map) Initialize}:
+ * Initialization of this abstract module sets the following protected instance
+ * fields:
+ * <ul>
+ * <li>subject: The subject to be authenticated,</li>
+ * <li>callbackHandler: The callback handler passed to the login module,</li>
+ * <li>shareState: The map used to share state information with other login modules,</li>
+ * <li>options: The configuration options of this login module as specified
+ * in the {@link javax.security.auth.login.Configuration}.</li>
  * </ul>
- *
+ * </li>
+ * <li>{@link LoginModule#logout() Logout}:
+ * If the authenticated subject is not empty this logout implementation
+ * attempts to clear both principals and public credentials and returns
+ * {@code true}.</li>
+ * <li>{@link LoginModule#abort() Abort}: Clears the state of this login
+ * module by setting all private instance variables created in phase 1 or 2
+ * to {@code null}. Subclasses are in charge of releasing their own state
+ * information by either overriding {@link #clearState()}.</li>
+ * </ul>
+ * <p/>
  * <h2>Utility Methods</h2>
  * The following methods are provided in addition:
- *
+ * <p/>
  * <ul>
- *     <li>{@link #clearState()}: Clears all private state information that has
- *     be created during login. This method in called in {@link #abort()} and
- *     subclasses are expected to override this method.</li>
- *
- *     <li>{@link #getSupportedCredentials()}: Abstract method used by
- *     {@link #getCredentials()} that reveals which credential implementations
- *     are supported by the {@code LoginModule}.</li>
- *
- *     <li>{@link #getCredentials()}: Tries to retrieve valid (supported)
- *     Credentials in the following order:
- *     <ol>
- *     <li>using a {@link CredentialsCallback},</li>
- *     <li>looking for a {@link #SHARED_KEY_CREDENTIALS} entry in the shared
- *     state (see also {@link #getSharedCredentials()} and finally by</li>
- *     <li>searching for valid credentials in the subject.</li>
- *     </ol></li>
- *
- *     <li>{@link #getSharedCredentials()}: This method returns credentials
- *     passed to the login module with the share state. The key to share credentials
- *     with a another module extending from this base class is
- *     {@link #SHARED_KEY_CREDENTIALS}. Note, that this method does not verify
- *     if the credentials provided by the shared state are
- *     {@link #getSupportedCredentials() supported}.</li>
- *
- *     <li>{@link #getSharedLoginName()}: If the shared state contains an entry
- *     for {@link #SHARED_KEY_LOGIN_NAME} this method returns the value as login name.</li>
- *
- *     <li>{@link #getSecurityProvider()}: Returns the configured security
- *     provider or {@code null}.</li>
- *
- *     <li>{@link #getRoot()}: Provides access to the latest state of the
- *     repository in order to retrieve user or principal information required to
- *     authenticate the subject as well as to write back information during
- *     {@link #commit()}.</li>
- *
- *     <li>{@link #getUserManager()}: Returns an instance of the configured
- *     {@link UserManager} or {@code null}.</li>
- *
- *     <li>{@link #getPrincipalProvider()}: Returns an instance of the configured
- *     principal provider or {@code null}.</li>
- *
- *     <li>{@link #getPrincipals(String)}: Utility that returns all principals
- *     associated with a given user id. This method might be be called after
- *     successful authentication in order to be able to populate the subject
- *     during {@link #commit()}. The implementation is a shortcut for calling
- *     {@link PrincipalProvider#getPrincipals(String) getPrincipals(String userId}
- *     on the provider exposed by {@link #getPrincipalProvider()}</li>
+ * <li>{@link #clearState()}: Clears all private state information that has
+ * be created during login. This method in called in {@link #abort()} and
+ * subclasses are expected to override this method.</li>
+ * <p/>
+ * <li>{@link #getSupportedCredentials()}: Abstract method used by
+ * {@link #getCredentials()} that reveals which credential implementations
+ * are supported by the {@code LoginModule}.</li>
+ * <p/>
+ * <li>{@link #getCredentials()}: Tries to retrieve valid (supported)
+ * Credentials in the following order:
+ * <ol>
+ * <li>using a {@link CredentialsCallback},</li>
+ * <li>looking for a {@link #SHARED_KEY_CREDENTIALS} entry in the shared
+ * state (see also {@link #getSharedCredentials()} and finally by</li>
+ * <li>searching for valid credentials in the subject.</li>
+ * </ol></li>
+ * <p/>
+ * <li>{@link #getSharedCredentials()}: This method returns credentials
+ * passed to the login module with the share state. The key to share credentials
+ * with a another module extending from this base class is
+ * {@link #SHARED_KEY_CREDENTIALS}. Note, that this method does not verify
+ * if the credentials provided by the shared state are
+ * {@link #getSupportedCredentials() supported}.</li>
+ * <p/>
+ * <li>{@link #getSharedLoginName()}: If the shared state contains an entry
+ * for {@link #SHARED_KEY_LOGIN_NAME} this method returns the value as login name.</li>
+ * <p/>
+ * <li>{@link #getSecurityProvider()}: Returns the configured security
+ * provider or {@code null}.</li>
+ * <p/>
+ * <li>{@link #getRoot()}: Provides access to the latest state of the
+ * repository in order to retrieve user or principal information required to
+ * authenticate the subject as well as to write back information during
+ * {@link #commit()}.</li>
+ * <p/>
+ * <li>{@link #getUserManager()}: Returns an instance of the configured
+ * {@link UserManager} or {@code null}.</li>
+ * <p/>
+ * <li>{@link #getPrincipalProvider()}: Returns an instance of the configured
+ * principal provider or {@code null}.</li>
+ * <p/>
+ * <li>{@link #getPrincipals(String)}: Utility that returns all principals
+ * associated with a given user id. This method might be be called after
+ * successful authentication in order to be able to populate the subject
+ * during {@link #commit()}. The implementation is a shortcut for calling
+ * {@link PrincipalProvider#getPrincipals(String) getPrincipals(String userId}
+ * on the provider exposed by {@link #getPrincipalProvider()}</li>
  * </ul>
  */
 public abstract class AbstractLoginModule implements LoginModule {
@@ -186,6 +185,7 @@ public abstract class AbstractLoginModule implements LoginModule {
     }
 
     //--------------------------------------------------------------------------
+
     /**
      * Clear state information that has been created during {@link #login()}.
      */
@@ -203,11 +203,11 @@ public abstract class AbstractLoginModule implements LoginModule {
     /**
      * Tries to retrieve valid (supported) Credentials:
      * <ol>
-     *     <li>using a {@link CredentialsCallback},</li>
-     *     <li>looking for a {@link #SHARED_KEY_CREDENTIALS} entry in the
-     *     shared state (see also {@link #getSharedCredentials()} and finally by</li>
-     *     <li>searching for valid credentials in the subject.</li>
-     *  </ol>
+     * <li>using a {@link CredentialsCallback},</li>
+     * <li>looking for a {@link #SHARED_KEY_CREDENTIALS} entry in the
+     * shared state (see also {@link #getSharedCredentials()} and finally by</li>
+     * <li>searching for valid credentials in the subject.</li>
+     * </ol>
      *
      * @return Valid (supported) credentials or {@code null}.
      */
@@ -291,15 +291,15 @@ public abstract class AbstractLoginModule implements LoginModule {
      * SecurityProviderCallback this method returns {@code null}.
      *
      * @return The {@code SecurityProvider} associated with this
-     * {@code LoginModule} or {@code null}.
+     *         {@code LoginModule} or {@code null}.
      */
     @CheckForNull
     protected SecurityProvider getSecurityProvider() {
         if (securityProvider == null && callbackHandler != null) {
-            SecurityProviderCallback scb = new SecurityProviderCallback();
+            RepositoryCallback rcb = new RepositoryCallback();
             try {
-                callbackHandler.handle(new Callback[] {scb});
-                securityProvider = scb.getSecurityProvider();
+                callbackHandler.handle(new Callback[]{rcb});
+                securityProvider = rcb.getSecurityProvider();
             } catch (UnsupportedCallbackException e) {
                 log.debug(e.getMessage());
             } catch (IOException e) {
@@ -316,14 +316,14 @@ public abstract class AbstractLoginModule implements LoginModule {
      * this method returns {@code null}.
      *
      * @return The {@code Root} associated with this {@code LoginModule} or
-     * {@code null}.
+     *         {@code null}.
      */
     @CheckForNull
     protected Root getRoot() {
         if (root == null && callbackHandler != null) {
             RepositoryCallback rcb = new RepositoryCallback();
             try {
-                callbackHandler.handle(new Callback[] {rcb});
+                callbackHandler.handle(new Callback[]{rcb});
                 root = rcb.getRoot();
             } catch (UnsupportedCallbackException e) {
                 log.debug(e.getMessage());
@@ -353,7 +353,7 @@ public abstract class AbstractLoginModule implements LoginModule {
         if (userManager == null && callbackHandler != null) {
             try {
                 UserManagerCallback userCallBack = new UserManagerCallback();
-                callbackHandler.handle(new Callback[] {userCallBack});
+                callbackHandler.handle(new Callback[]{userCallBack});
                 userManager = userCallBack.getUserManager();
             } catch (IOException e) {
                 log.debug(e.getMessage());
@@ -384,7 +384,7 @@ public abstract class AbstractLoginModule implements LoginModule {
         if (principalProvider == null && callbackHandler != null) {
             try {
                 PrincipalProviderCallback principalCallBack = new PrincipalProviderCallback();
-                callbackHandler.handle(new Callback[] {principalCallBack});
+                callbackHandler.handle(new Callback[]{principalCallBack});
                 principalProvider = principalCallBack.getPrincipalProvider();
             } catch (IOException e) {
                 log.debug(e.getMessage());
