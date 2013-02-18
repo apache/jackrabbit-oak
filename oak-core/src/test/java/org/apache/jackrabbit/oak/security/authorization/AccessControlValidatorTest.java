@@ -31,6 +31,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -95,6 +96,22 @@ public class AccessControlValidatorTest extends AbstractAccessControlTest implem
     }
 
     @Test
+    public void testPolicyWithOutChildOrder() {
+        NodeUtil testRoot = getTestRoot();
+        testRoot.setNames(JcrConstants.JCR_MIXINTYPES, MIX_REP_ACCESS_CONTROLLABLE);
+        testRoot.addChild(REP_POLICY, NT_REP_ACL);
+
+        try {
+            root.commit();
+            fail("Policy node with child node ordering");
+        } catch (CommitFailedException e) {
+            // success
+            assertTrue(e.getCause() instanceof AccessControlException);
+            assertEquals("Invalid policy node: Order of children is not stable.", e.getCause().getMessage());
+        }
+    }
+
+    @Test
     public void testOnlyRootIsRepoAccessControllable() {
         NodeUtil testRoot = getTestRoot();
         testRoot.setNames(JcrConstants.JCR_MIXINTYPES, MIX_REP_REPO_ACCESS_CONTROLLABLE);
@@ -129,7 +146,7 @@ public class AccessControlValidatorTest extends AbstractAccessControlTest implem
         NodeUtil acl = createAcl();
         NodeUtil ace = acl.getChild(aceName);
 
-        NodeUtil[] acContent = new NodeUtil[] {acl, ace, ace.getChild(REP_RESTRICTIONS)};
+        NodeUtil[] acContent = new NodeUtil[]{acl, ace, ace.getChild(REP_RESTRICTIONS)};
         for (NodeUtil node : acContent) {
             NodeUtil policy = node.addChild(REP_POLICY, NT_REP_ACL);
             try {
@@ -149,7 +166,7 @@ public class AccessControlValidatorTest extends AbstractAccessControlTest implem
         NodeUtil acl = createAcl();
         NodeUtil ace = acl.getChild(aceName);
 
-        NodeUtil[] acContent = new NodeUtil[] {acl, ace, ace.getChild(REP_RESTRICTIONS)};
+        NodeUtil[] acContent = new NodeUtil[]{acl, ace, ace.getChild(REP_RESTRICTIONS)};
         for (NodeUtil node : acContent) {
             NodeUtil policy = node.addChild(REP_REPO_POLICY, NT_REP_ACL);
             try {
@@ -169,7 +186,7 @@ public class AccessControlValidatorTest extends AbstractAccessControlTest implem
         NodeUtil acl = createAcl();
         NodeUtil ace = acl.getChild(aceName);
 
-        NodeUtil[] acContent = new NodeUtil[] {ace, ace.getChild(REP_RESTRICTIONS)};
+        NodeUtil[] acContent = new NodeUtil[]{ace, ace.getChild(REP_RESTRICTIONS)};
         for (NodeUtil node : acContent) {
             NodeUtil entry = node.addChild("invalidACE", NT_REP_DENY_ACE);
             try {
@@ -189,7 +206,7 @@ public class AccessControlValidatorTest extends AbstractAccessControlTest implem
         NodeUtil acl = createAcl();
         NodeUtil ace = acl.getChild(aceName);
 
-        NodeUtil[] acContent = new NodeUtil[] {acl, ace.getChild(REP_RESTRICTIONS)};
+        NodeUtil[] acContent = new NodeUtil[]{acl, ace.getChild(REP_RESTRICTIONS)};
         for (NodeUtil node : acContent) {
             NodeUtil entry = node.addChild("invalidRestriction", NT_REP_RESTRICTIONS);
             try {
@@ -206,7 +223,7 @@ public class AccessControlValidatorTest extends AbstractAccessControlTest implem
 
     @Test
     public void testAddIsolatedPolicy() {
-        String[] policyNames = new String[] {"isolatedACL", REP_POLICY, REP_REPO_POLICY};
+        String[] policyNames = new String[]{"isolatedACL", REP_POLICY, REP_REPO_POLICY};
         NodeUtil node = getTestRoot();
 
         for (String policyName : policyNames) {
@@ -227,7 +244,7 @@ public class AccessControlValidatorTest extends AbstractAccessControlTest implem
 
     @Test
     public void testAddIsolatedAce() {
-        String[] ntNames = new String[] {NT_REP_DENY_ACE, NT_REP_GRANT_ACE};
+        String[] ntNames = new String[]{NT_REP_DENY_ACE, NT_REP_GRANT_ACE};
         NodeUtil node = getTestRoot();
 
         for (String aceNtName : ntNames) {
