@@ -28,11 +28,14 @@ public interface DocumentStore {
 
     Map<String, Object> find(Collection collection, String key);
 
+    List<Map<String, Object>> query(Collection collection, String fromKey, String toKey);
+    
     void remove(Collection collection, String key);
 
+    void create(Collection collection, List<UpdateOp> updateOps);
+    
     Map<String, Object> createOrUpdate(Collection collection, UpdateOp update); 
     
     void dispose();
 
-    void create(Collection collection, List<UpdateOp> updateOps);
 }

@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.mongomk.prototype;
 
+import java.util.ArrayList;
 import java.util.Map;
 
 import org.apache.jackrabbit.mk.json.JsopWriter;
@@ -81,6 +82,24 @@ public class Node {
             json.key(p).encodedValue(properties.get(p));
         }
         json.endObject();
+    }
+    
+    static class Children {
+        
+        final String path;
+        final Revision rev;
+        
+        final ArrayList<String> children = new ArrayList<String>();
+        
+        Children(String path, Revision rev) {
+            this.path = path;
+            this.rev = rev;
+        }
+        
+        public String toString() {
+            return path + ": " + children.toString();
+        }
+        
     }
 
 }

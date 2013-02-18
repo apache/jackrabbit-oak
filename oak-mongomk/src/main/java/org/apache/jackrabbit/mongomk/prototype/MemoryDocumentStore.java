@@ -16,9 +16,11 @@
  */
 package org.apache.jackrabbit.mongomk.prototype;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 
 import org.apache.jackrabbit.mongomk.prototype.UpdateOp.Operation;
@@ -60,8 +62,22 @@ public class MemoryDocumentStore implements DocumentStore {
         Map<String, Object> copy = Utils.newMap();
         synchronized (n) {
             copy.putAll(n);
-            return copy;
         }
+        return copy;
+    }
+    
+    public List<Map<String, Object>> query(Collection collection, String fromKey, String toKey) {
+        ConcurrentSkipListMap<String, Map<String, Object>> map = getMap(collection);
+        ConcurrentNavigableMap<String, Map<String, Object>> sub = map.subMap(fromKey, toKey);
+        ArrayList<Map<String, Object>> list = new ArrayList<Map<String, Object>>();
+        for (Map<String, Object> n : sub.values()) {
+            Map<String, Object> copy = Utils.newMap();
+            synchronized (n) {
+                copy.putAll(n);
+            }
+            list.add(copy);
+        }
+        return list;
     }
 
     /**
@@ -192,4 +208,5 @@ public class MemoryDocumentStore implements DocumentStore {
     public void dispose() {
         // ignore
     }
+
 }
