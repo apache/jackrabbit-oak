@@ -99,6 +99,7 @@ public class RootImpl implements Root {
      * New instance bases on a given {@link NodeStore} and a workspace
      *
      * @param store            node store
+     * @param hook             the commit hook
      * @param workspaceName    name of the workspace
      * @param subject          the subject.
      * @param accConfiguration the access control context provider.
