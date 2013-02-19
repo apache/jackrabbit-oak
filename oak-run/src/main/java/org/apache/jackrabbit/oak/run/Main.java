@@ -26,6 +26,7 @@ import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
+import org.apache.jackrabbit.oak.benchmark.Benchmark;
 import org.apache.jackrabbit.oak.http.OakServlet;
 import org.apache.jackrabbit.oak.jcr.RepositoryImpl;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
@@ -63,13 +64,23 @@ public class Main {
     public static void main(String[] args) throws Exception {
         printProductInfo();
 
-        if (args.length > 0 && "mk".equals(args[0])) {
-            String[] newArgs = new String[args.length - 1];
-            System.arraycopy(args, 1, newArgs, 0, newArgs.length);
-            MicroKernelServer.main(newArgs);
-        } else {
+        String command = "server";
+        if (args.length > 0) {
+            command = args[0];
+            String[] tail = new String[args.length - 1];
+            System.arraycopy(args, 1, tail, 0, tail.length);
+            args = tail;
+        }
+        if ("mk".equals(command)) {
+            MicroKernelServer.main(args);
+        } else if ("benchmark".equals(command)){
+            Benchmark.main(args);
+        } else if ("server".equals(command)){
             HttpServer httpServer = new HttpServer(URI, args);
             httpServer.start();
+        } else {
+            System.err.println("Unknown command: " + command);
+            System.exit(1);
         }
     }
 
