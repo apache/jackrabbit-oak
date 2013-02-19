@@ -16,17 +16,15 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.callback;
 
-import java.util.Collections;
 import javax.annotation.CheckForNull;
-import javax.security.auth.Subject;
 import javax.security.auth.callback.Callback;
 
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.core.RootImpl;
+import org.apache.jackrabbit.oak.security.authentication.SystemSubject;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
-import org.apache.jackrabbit.oak.spi.security.principal.SystemPrincipal;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 /**
@@ -51,8 +49,7 @@ public class RepositoryCallback implements Callback {
     @CheckForNull
     public Root getRoot() {
         if (nodeStore != null) {
-            Subject subject = new Subject(true, Collections.singleton(SystemPrincipal.INSTANCE), Collections.<Object>emptySet(), Collections.<Object>emptySet());
-            return new RootImpl(nodeStore, commitHook, workspaceName, subject, securityProvider, indexProvider);
+            return new RootImpl(nodeStore, commitHook, workspaceName, SystemSubject.INSTANCE, securityProvider, indexProvider);
         }
         return null;
     }
