@@ -76,6 +76,7 @@ public class Commit {
         ArrayList<UpdateOp> newNodes = new ArrayList<UpdateOp>();
         ArrayList<UpdateOp> changedNodes = new ArrayList<UpdateOp>();
         for (String p : operations.keySet()) {
+            addChangedParent(p);
             if (commitRoot == null) {
                 commitRoot = p;
             } else {
@@ -87,7 +88,6 @@ public class Commit {
                 }
             }
         }
-        addChangedParent(commitRoot);
         // create a "root of the commit" if there is none
         UpdateOp root = getUpdateOperationForNode(commitRoot);
         for (String p : operations.keySet()) {
@@ -100,16 +100,19 @@ public class Commit {
                 changedNodes.add(op);
             }
         }
-        if (changedNodes.size() == 0) {
+        if (changedNodes.size() == 0 && root.isNew) {
             // no updates, so we just add the root like the others
             newNodes.add(root);
             root = null;
         }
-        store.create(Collection.NODES, newNodes);
+        if (newNodes.size() > 0) {
+            store.create(Collection.NODES, newNodes);
+        }
         for (UpdateOp op : changedNodes) {
             store.createOrUpdate(Collection.NODES, op);
         }
         if (root != null) {
+            root.addMapEntry("_revisions", revision.toString(), "true");
             store.createOrUpdate(Collection.NODES, root);
         }
     }
