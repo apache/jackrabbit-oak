@@ -213,7 +213,6 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
         }
     }
 
-    // TODO: deal with activities/configurations
     @CheckForNull
     private String getVersionablePath(@Nonnull Tree versionStoreTree, @Nullable PropertyState property) {
         String relPath = "";
