@@ -24,6 +24,7 @@ import java.util.Set;
 
 import javax.annotation.CheckForNull;
 import javax.jcr.RepositoryException;
+import javax.jcr.nodetype.NoSuchNodeTypeException;
 import javax.jcr.nodetype.NodeTypeManager;
 
 import org.apache.jackrabbit.JcrConstants;
@@ -173,10 +174,27 @@ public class SelectorImpl extends SourceImpl {
     }
     
     private void validateNodeType() {
-        // this looks a bit weird, but it should be correct - the code
-        // assumes that paths and node type names have the same format
-        // restrictions (characters such as "[" are not allowed and so on)
-        query.validatePath(nodeTypeName);
+        if (!JcrConstants.NT_BASE.equals(nodeTypeName)) {
+            try {
+                // Check both the syntactic validity of the type name
+                // and the existence of the named type in one call
+                getNodeTypeManager().getNodeType(nodeTypeName);
+            } catch (NoSuchNodeTypeException e) {
+                // TODO: QueryManagerImpl.executeQuery() expects an
+                // IllegalArgumentException to signal an invalid query.
+                // This is a bit troublesome since any method could throw
+                // that exception as a result of some internal programming
+                // error or some other inconsistency that has nothing to
+                // do with the validity of the query. A better solution
+                // would be to use some checked exception or explicit
+                // return value to signal whether the query is valid or not.
+                throw new IllegalArgumentException(
+                        "Unknown node type: " + nodeTypeName, e);
+            } catch (RepositoryException e) {
+                throw new RuntimeException(
+                        "Unable to evaluate node type constraints", e);
+            }
+        }
     }
 
     @Override
@@ -207,7 +225,7 @@ public class SelectorImpl extends SourceImpl {
     }
 
     private boolean evaluateTypeMatch(Tree tree) {
-        if ("nt:base".equals(nodeTypeName)) {
+        if (JcrConstants.NT_BASE.equals(nodeTypeName)) {
             return true; // shortcut for a common case
         }
 
@@ -236,12 +254,7 @@ public class SelectorImpl extends SourceImpl {
 
         if (!types.isEmpty()) {
             try {
-                NodeTypeManager manager = new ReadOnlyNodeTypeManager() {
-                    @Override @CheckForNull
-                    protected Tree getTypes() {
-                        return getTree(NodeTypeConstants.NODE_TYPES_PATH);
-                    }
-                };
+                NodeTypeManager manager = getNodeTypeManager();
                 for (String type : types) {
                     if (manager.getNodeType(type).isNodeType(nodeTypeName)) {
                         matchingTypes.add(type);
@@ -258,6 +271,15 @@ public class SelectorImpl extends SourceImpl {
         }
 
         return false; // no matches found
+    }
+
+    private NodeTypeManager getNodeTypeManager() {
+        return new ReadOnlyNodeTypeManager() {
+            @Override @CheckForNull
+            protected Tree getTypes() {
+                return getTree(NodeTypeConstants.NODE_TYPES_PATH);
+            }
+        };
     }
 
     /**
