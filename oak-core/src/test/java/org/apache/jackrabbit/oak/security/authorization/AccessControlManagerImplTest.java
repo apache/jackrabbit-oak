@@ -607,18 +607,17 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         assertEquals("*/something", restr.getString(REP_GLOB, null));
     }
 
-    @Ignore("OAK-51")
     @Test
     public void testModifyExistingPolicy() throws Exception {
         ACL acl = getApplicablePolicy(testPath);
-        acl.addAccessControlEntry(testPrincipal, testPrivileges);
+        assertTrue(acl.addAccessControlEntry(testPrincipal, testPrivileges));
         AccessControlEntry allowTest = acl.getAccessControlEntries()[0];
 
         acMgr.setPolicy(testPath, acl);
         root.commit();
 
         acl = (ACL) acMgr.getPolicies(testPath)[0];
-        acl.addEntry(EveryonePrincipal.getInstance(), testPrivileges, false, getGlobRestriction("*/something"));
+        assertTrue(acl.addEntry(EveryonePrincipal.getInstance(), testPrivileges, false, getGlobRestriction("*/something")));
 
         AccessControlEntry[] aces = acl.getAccessControlEntries();
         assertEquals(2, aces.length);
@@ -635,8 +634,9 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         assertEquals(denyEveryone, aces[0]);
         assertEquals(allowTest, aces[1]);
 
-        acl.addEntry(testPrincipal, new Privilege[]{acMgr.privilegeFromName(PrivilegeConstants.JCR_ALL)},
-                false, Collections.<String, Value>emptyMap());
+        Privilege[] readAc = new Privilege[]{acMgr.privilegeFromName(PrivilegeConstants.JCR_READ_ACCESS_CONTROL)};
+        assertTrue(acl.addEntry(testPrincipal, readAc, false, Collections.<String, Value>emptyMap()));
+        assertEquals(3, acl.size());
         AccessControlEntry denyTest = acl.getAccessControlEntries()[2];
 
         acl.orderBefore(denyTest, allowTest);
