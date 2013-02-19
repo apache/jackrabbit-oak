@@ -36,7 +36,11 @@ public class Benchmark {
     private static final Map<String, RepositoryFixture> FIXTURES =
             ImmutableMap.<String, RepositoryFixture>builder()
             .put("Jackrabbit", new JackrabbitRepositoryFixture())
-            .put("Oak-Memory", new OakRepositoryFixture())
+            .put("Oak-Memory", OakRepositoryFixture.getMemory())
+            .put("Oak-Default", OakRepositoryFixture.getDefault())
+            .put("Oak-Mongo", OakRepositoryFixture.getMongo())
+            .put("Oak-NewMongo", OakRepositoryFixture.getNewMongo())
+            .put("Oak-Segment", OakRepositoryFixture.getSegment())
             .build();
 
     private static final Map<String, AbstractTest> TESTS =
