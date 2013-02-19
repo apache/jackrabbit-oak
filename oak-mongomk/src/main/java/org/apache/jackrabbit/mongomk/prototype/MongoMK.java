@@ -33,6 +33,7 @@ import org.apache.jackrabbit.mk.json.JsopReader;
 import org.apache.jackrabbit.mk.json.JsopStream;
 import org.apache.jackrabbit.mk.json.JsopTokenizer;
 import org.apache.jackrabbit.mongomk.impl.blob.MongoBlobStore;
+import org.apache.jackrabbit.mongomk.prototype.Node.Children;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 
 import com.mongodb.DB;
@@ -65,6 +66,11 @@ public class MongoMK implements MicroKernel {
      */
     // TODO: should be path@id
     private final Map<String, Node> nodeCache = new Cache<String, Node>(1024);
+    
+    /**
+     * The unsaved write count increments.
+     */
+    private final Map<String, Long> writeCountIncrements = new HashMap<String, Long>();
 
     /**
      * For revisions that are older than this many seconds, the MongoMK will
@@ -202,7 +208,7 @@ public class MongoMK implements MicroKernel {
                 requestRevision.getClusterId() == this.clusterId) {
             // both revisions were created by this cluster node: 
             // compare timestamps only
-            return x.compareRevisionTime(requestRevision) >= 0;
+            return requestRevision.compareRevisionTime(x) >= 0;
         }
         // TODO currently we only compare the timestamps
         return x.compareRevisionTime(requestRevision) >= 0;
@@ -212,9 +218,9 @@ public class MongoMK implements MicroKernel {
         String from = PathUtils.concat(path, "a");
         from = Node.convertPathToDocumentId(from);
         from = from.substring(0, from.length() - 1);
-        String to = PathUtils.concat(path, "z/z");
+        String to = PathUtils.concat(path, "z");
         to = Node.convertPathToDocumentId(to);
-        to = to.substring(0, to.length() - 3);
+        to = to.substring(0, to.length() - 2) + "0";
         List<Map<String, Object>> list = store.query(DocumentStore.Collection.NODES, from, to, limit);
         Node.Children c = new Node.Children(path, rev);
         for (Map<String, Object> e : list) {
@@ -233,16 +239,17 @@ public class MongoMK implements MicroKernel {
             return null;
         }
         Node n = new Node(path, rev);
+        Long w = writeCountIncrements.get(path);
+        long writeCount = w == null ? 0 : w;
         for(String key : map.keySet()) {
+            if (key.equals("_writeCount")) {
+                writeCount += (Long) map.get(key);
+            }
             if (key.startsWith("_")) {
                 // TODO property name escaping
                 continue;
             }
             Object v = map.get(key);
-            if (!(v instanceof Map)) {
-                int test;
-                System.out.println("??");
-            }
             @SuppressWarnings("unchecked")
             Map<String, String> valueMap = (Map<String, String>) v;
             if (valueMap != null) {
@@ -254,6 +261,7 @@ public class MongoMK implements MicroKernel {
                 }
             }
         }
+        n.setWriteCount(writeCount);
         return n;
     }
 
@@ -290,7 +298,7 @@ public class MongoMK implements MicroKernel {
             return "";
         }
         // TODO implement if needed
-        return null;
+        return "{}";
     }
 
     @Override
@@ -321,10 +329,27 @@ public class MongoMK implements MicroKernel {
         }
         Revision rev = Revision.fromString(revisionId);
         Node n = getNode(path, rev);
+        if (n == null) {
+            return null;
+            // throw new MicroKernelException("Node not found at path " + path);
+        }
         JsopStream json = new JsopStream();
         boolean includeId = filter != null && filter.contains(":id");
+        includeId = filter != null && filter.contains(":hash");
+        json.object();
         n.append(json, includeId);
-        return json.toString();
+        Children c = readChildren(path, rev, maxChildNodes);
+        for (String s : c.children) {
+            String name = PathUtils.getName(s);
+            json.key(name).object().endObject();
+        }
+        json.key(":childNodeCount").value(c.children.size());
+        json.endObject();
+        String result = json.toString();
+        if (filter != null && filter.contains(":hash")) {
+            result = result.replaceAll("\":id\"", "\":hash\"");
+        }
+        return result;
     }
 
     @Override
@@ -364,6 +389,7 @@ public class MongoMK implements MicroKernel {
                 String propertyName = PathUtils.getName(path);
                 UpdateOp op = commit.getUpdateOperationForNode(p);
                 op.addMapEntry(propertyName, rev.toString(), value);
+                op.increment("_writeCount", 1);
                 break;
             case '>': {
                 t.read(':');
@@ -437,8 +463,7 @@ public class MongoMK implements MicroKernel {
         }
         if (revisionId.startsWith("b")) {
             // just commit to head currently
-            commit.apply(store);
-            headRevision = rev;
+            applyCommit(commit);
             return "b" + rev.toString();
             
             // String jsonBranch = branchCommits.remove(revisionId);
@@ -447,10 +472,22 @@ public class MongoMK implements MicroKernel {
             // branchCommits.put(branchRev, jsonBranch);
             // return branchRev;
         }
-        commit.apply(store);
-        headRevision = rev;
+        applyCommit(commit);
         return rev.toString();
     }    
+    
+    private void applyCommit(Commit commit) {
+        headRevision = commit.getRevision();
+        if (commit.isEmpty()) {
+            return;
+        }
+        commit.apply(store);
+        for(String path : commit.getChangedParents()) {
+            Long value = writeCountIncrements.get(path);
+            value = value == null ? 1 : value + 1;
+            writeCountIncrements.put(path, value);
+        }
+    }
     
     public static void parseAddNode(Commit commit, JsopReader t, String path) {
         Node n = new Node(path, commit.getRevision());
