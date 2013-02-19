@@ -65,10 +65,11 @@ public class SimpleTest {
     @Test
     public void commit() {
         MongoMK mk = new MongoMK();
-        
-        String rev = mk.commit("/", "+\"test\":{\"name\": \"Hello\"}", null, null);
+
+        String rev;
+        rev = mk.commit("/", "+\"test\":{\"name\": \"Hello\"}", null, null);
         String test = mk.getNodes("/test", rev, 0, 0, Integer.MAX_VALUE, null);
-        assertEquals("{\"name\":\"Hello\"}", test);
+        assertEquals("{\"name\":\"Hello\",\":childNodeCount\":0}", test);
         
         rev = mk.commit("/test", "+\"a\":{\"name\": \"World\"}", null, null);
         rev = mk.commit("/test", "+\"b\":{\"name\": \"!\"}", null, null);
@@ -80,8 +81,12 @@ public class SimpleTest {
         c = mk.readChildren("/test", 
                 Revision.fromString(rev), Integer.MAX_VALUE);
         assertEquals("/test: [/test/a, /test/b]", c.toString());
-        
-        // System.out.println(test);
+
+        rev = mk.commit("", "^\"/test\":1", null, null);
+        test = mk.getNodes("/", rev, 0, 0, Integer.MAX_VALUE, null);
+        assertEquals("{\"test\":1,\"test\":{},\":childNodeCount\":1}", test);
+
+        System.out.println(test);
         mk.dispose();
     }
     

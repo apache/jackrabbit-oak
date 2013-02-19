@@ -18,6 +18,8 @@ package org.apache.jackrabbit.mongomk.prototype;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
 
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.json.JsopStream;
@@ -33,6 +35,7 @@ public class Commit {
     private final Revision revision;
     private HashMap<String, UpdateOp> operations = new HashMap<String, UpdateOp>();
     private JsopWriter diff = new JsopStream();
+    private HashSet<String> changedParents = new HashSet<String>();
     
     Commit(Revision revision) {
         this.revision = revision;
@@ -58,8 +61,14 @@ public class Commit {
         }
         operations.put(n.path, n.asOperation(true));
         diff.tag('+').key(n.path);
+        diff.object();
         n.append(diff, false);
+        diff.endObject();
         diff.newline();
+    }
+    
+    boolean isEmpty() {
+        return operations.isEmpty();
     }
 
     void apply(DocumentStore store) {
@@ -78,6 +87,7 @@ public class Commit {
                 }
             }
         }
+        addChangedParent(commitRoot);
         // create a "root of the commit" if there is none
         UpdateOp root = getUpdateOperationForNode(commitRoot);
         for (String p : operations.keySet()) {
@@ -110,6 +120,20 @@ public class Commit {
 
     public JsopWriter getDiff() {
         return diff;
+    }
+
+    private void addChangedParent(String path) {
+        while (true) {
+            changedParents.add(path);
+            if (PathUtils.denotesRoot(path)) {
+                break;
+            }
+            path = PathUtils.getParentPath(path);
+        }
+    }
+    
+    public Set<String> getChangedParents() {
+        return changedParents;
     }
 
 }

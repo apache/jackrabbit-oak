@@ -29,6 +29,7 @@ public class Node {
     final String path;
     final Revision rev;
     final Map<String, String> properties = Utils.newMap();
+    private long writeCount;
     
     Node(String path, Revision rev) {
         this.path = path;
@@ -74,14 +75,12 @@ public class Node {
     }
 
     public void append(JsopWriter json, boolean includeId) {
-        json.object();
         if (includeId) {
-            json.key(":id").value(path + "@" + rev);
+            json.key(":id").value(path + "@" + writeCount);
         }
         for (String p : properties.keySet()) {
             json.key(p).encodedValue(properties.get(p));
         }
-        json.endObject();
     }
     
     static class Children {
@@ -100,6 +99,10 @@ public class Node {
             return path + ": " + children.toString();
         }
         
+    }
+
+    public void setWriteCount(long writeCount) {
+        this.writeCount = writeCount;
     }
 
 }
