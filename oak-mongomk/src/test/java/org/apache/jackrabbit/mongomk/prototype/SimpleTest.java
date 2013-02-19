@@ -71,10 +71,15 @@ public class SimpleTest {
         assertEquals("{\"name\":\"Hello\"}", test);
         
         rev = mk.commit("/test", "+\"a\":{\"name\": \"World\"}", null, null);
+        rev = mk.commit("/test", "+\"b\":{\"name\": \"!\"}", null, null);
         test = mk.getNodes("/test", rev, 0, 0, Integer.MAX_VALUE, null);
-        Children c = mk.readChildren("/", Revision.fromString(rev));
-        assertEquals("/: []", c.toString());
-        // assertEquals("{\"name\":\"Hello\",{\"a\":\"name\":\"World\"}}", test);
+        Children c;
+        c = mk.readChildren("/", 
+                Revision.fromString(rev), Integer.MAX_VALUE);
+        assertEquals("/: [/test]", c.toString());
+        c = mk.readChildren("/test", 
+                Revision.fromString(rev), Integer.MAX_VALUE);
+        assertEquals("/test: [/test/a, /test/b]", c.toString());
         
         // System.out.println(test);
         mk.dispose();

@@ -66,7 +66,7 @@ public class MemoryDocumentStore implements DocumentStore {
         return copy;
     }
     
-    public List<Map<String, Object>> query(Collection collection, String fromKey, String toKey) {
+    public List<Map<String, Object>> query(Collection collection, String fromKey, String toKey, int limit) {
         ConcurrentSkipListMap<String, Map<String, Object>> map = getMap(collection);
         ConcurrentNavigableMap<String, Map<String, Object>> sub = map.subMap(fromKey, toKey);
         ArrayList<Map<String, Object>> list = new ArrayList<Map<String, Object>>();
@@ -76,6 +76,9 @@ public class MemoryDocumentStore implements DocumentStore {
                 copy.putAll(n);
             }
             list.add(copy);
+            if (list.size() > limit) {
+                break;
+            }
         }
         return list;
     }

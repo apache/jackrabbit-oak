@@ -131,9 +131,9 @@ public class MongoMK implements MicroKernel {
         backgroundThread = new Thread(new Runnable() {
             public void run() {
                 while (!isDisposed.get()) {
-                    synchronized (this) {
+                    synchronized (isDisposed) {
                         try {
-                            wait(ASYNC_DELAY);
+                            isDisposed.wait(ASYNC_DELAY);
                         } catch (InterruptedException e) {
                             // ignore
                         }
@@ -165,8 +165,8 @@ public class MongoMK implements MicroKernel {
     
     public void dispose() {
         if (!isDisposed.getAndSet(true)) {
-            synchronized (backgroundThread) {
-                backgroundThread.notifyAll();
+            synchronized (isDisposed) {
+                isDisposed.notifyAll();
             }
             try {
                 backgroundThread.join();
@@ -208,14 +208,19 @@ public class MongoMK implements MicroKernel {
         return x.compareRevisionTime(requestRevision) >= 0;
     }
     
-    public Node.Children readChildren(String path, Revision rev) {
-        String from = Node.convertPathToDocumentId(path + "/");
-        String to = from.substring(0, from.length() - 1) + "0";
-        List<Map<String, Object>> list = store.query(DocumentStore.Collection.NODES, from, to);
+    public Node.Children readChildren(String path, Revision rev, int limit) {
+        String from = PathUtils.concat(path, "a");
+        from = Node.convertPathToDocumentId(from);
+        from = from.substring(0, from.length() - 1);
+        String to = PathUtils.concat(path, "z/z");
+        to = Node.convertPathToDocumentId(to);
+        to = to.substring(0, to.length() - 3);
+        List<Map<String, Object>> list = store.query(DocumentStore.Collection.NODES, from, to, limit);
         Node.Children c = new Node.Children(path, rev);
         for (Map<String, Object> e : list) {
+            // TODO put the whole node in the cache
             String id = e.get("_id").toString();
-            String p = id.substring(1);
+            String p = id.substring(2);
             c.children.add(p);
         }
         return c;
