@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mongomk.prototype.UpdateOp.Operation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -127,10 +128,14 @@ public class MongoDocumentStore implements DocumentStore {
 //                WriteConcern.SAFE);
 //        return null;
 
-        DBObject oldNode = dbCollection.findAndModify(query, null /*fields*/,
-                null /*sort*/, false /*remove*/, update, false /*returnNew*/,
-                true /*upsert*/);
-        return convertFromDBObject(oldNode);
+        try {
+            DBObject oldNode = dbCollection.findAndModify(query, null /*fields*/,
+                    null /*sort*/, false /*remove*/, update, false /*returnNew*/,
+                    true /*upsert*/);
+            return convertFromDBObject(oldNode);
+        } catch (Exception e) {
+            throw new MicroKernelException(e);
+        }
     }
 
     @Override

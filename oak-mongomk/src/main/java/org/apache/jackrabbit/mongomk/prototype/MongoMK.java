@@ -346,9 +346,9 @@ public class MongoMK implements MicroKernel {
         json.key(":childNodeCount").value(c.children.size());
         json.endObject();
         String result = json.toString();
-        if (filter != null && filter.contains(":hash")) {
-            result = result.replaceAll("\":id\"", "\":hash\"");
-        }
+        // if (filter != null && filter.contains(":hash")) {
+        //     result = result.replaceAll("\":id\"", "\":hash\"");
+        // }
         return result;
     }
 
