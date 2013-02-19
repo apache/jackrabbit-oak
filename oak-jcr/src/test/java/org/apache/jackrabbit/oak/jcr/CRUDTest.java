@@ -24,7 +24,6 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.nodetype.ConstraintViolationException;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static junit.framework.Assert.assertEquals;
@@ -119,7 +118,6 @@ public class CRUDTest extends AbstractRepositoryTest {
     }
     
     @Test(expected = ConstraintViolationException.class)
-    @Ignore("OAK-642")
     public void nodeType() throws RepositoryException {
             Session s = getAdminSession();
             s.getRootNode().addNode("a", "nt:folder").addNode("b");
