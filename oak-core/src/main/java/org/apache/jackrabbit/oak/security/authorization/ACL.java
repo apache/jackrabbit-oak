@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.security.authorization;
 
 import java.security.Principal;
+import java.security.acl.Group;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -31,10 +32,15 @@ import javax.jcr.security.AccessControlEntry;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
 
+import com.google.common.base.Predicate;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.security.privilege.PrivilegeBits;
+import org.apache.jackrabbit.oak.security.privilege.PrivilegeDefinitionStore;
 import org.apache.jackrabbit.oak.spi.security.authorization.ACE;
 import org.apache.jackrabbit.oak.spi.security.authorization.AbstractAccessControlList;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
@@ -43,9 +49,6 @@ import org.slf4j.LoggerFactory;
 
 /**
  * ACL... TODO
- * <p/>
- * TODO: - remove redundant entries from the list
- * TODO: - remove redundant privileges from entries
  */
 abstract class ACL extends AbstractAccessControlList {
 
@@ -68,6 +71,8 @@ abstract class ACL extends AbstractAccessControlList {
     abstract PrincipalManager getPrincipalManager();
 
     abstract PrivilegeManager getPrivilegeManager();
+
+    abstract PrivilegeDefinitionStore getPrivilegeStore();
 
     //------------------------------------------< AbstractAccessControlList >---
     @Nonnull
@@ -112,12 +117,12 @@ abstract class ACL extends AbstractAccessControlList {
                 rs.add(getRestrictionProvider().createRestriction(getOakPath(), name, restrictions.get(name)));
             }
         }
-        JackrabbitAccessControlEntry entry = new ACE(principal, privileges, isAllow, rs);
+        ACE entry = new ACE(principal, privileges, isAllow, rs);
         if (entries.contains(entry)) {
             log.debug("Entry is already contained in policy -> no modification.");
             return false;
         } else {
-            return addEntry(entry);
+            return internalAddEntry(entry);
         }
     }
 
@@ -165,15 +170,83 @@ abstract class ACL extends AbstractAccessControlList {
      * @return The validated {@code ACE}.
      * @throws AccessControlException If the specified entry is invalid.
      */
-    private static JackrabbitAccessControlEntry checkACE(AccessControlEntry entry) throws AccessControlException {
+    private static ACE checkACE(AccessControlEntry entry) throws AccessControlException {
         if (!(entry instanceof ACE)) {
             throw new AccessControlException("Invalid access control entry.");
         }
         return (ACE) entry;
     }
 
-    private boolean addEntry(JackrabbitAccessControlEntry entry) {
-        // TODO: remove redundancy
-        return entries.add(entry);
+    private boolean internalAddEntry(@Nonnull ACE entry) throws RepositoryException {
+        final Principal principal = entry.getPrincipal();
+        List<JackrabbitAccessControlEntry> subList = Lists.newArrayList(Iterables.filter(entries, new Predicate<JackrabbitAccessControlEntry>() {
+            @Override
+            public boolean apply(@Nullable JackrabbitAccessControlEntry ace) {
+                return (ace != null) && ace.getPrincipal().equals(principal);
+            }
+        }));
+
+        for (JackrabbitAccessControlEntry ace : subList) {
+            ACE existing = (ACE) ace;
+            PrivilegeBits existingBits = getPrivilegeBits(existing);
+            PrivilegeBits entryBits = getPrivilegeBits(entry);
+            if (entry.getRestrictions().equals(existing.getRestrictions())) {
+                if (isRedundantOrExtending(existing, entry)) {
+                    if (existingBits.includes(entryBits)) {
+                        return false;
+                    } else {
+                        // merge existing and new ace
+                        existingBits.add(entryBits);
+                        int index = entries.indexOf(existing);
+                        entries.remove(existing);
+                        entries.add(index, createACE(existing, existingBits));
+                        return true;
+                    }
+                }
+
+                // clean up redundant privileges defined by the existing entry
+                // and append the new entry at the end of the list.
+                PrivilegeBits updated = PrivilegeBits.getInstance(existingBits).diff(entryBits);
+                if (updated.isEmpty()) {
+                    // remove the existing entry as the new entry covers all privileges
+                    entries.remove(ace);
+                } else if (!updated.includes(existingBits)) {
+                    // replace the existing entry having it's privileges adjusted
+                    int index = entries.indexOf(existing);
+                    entries.remove(ace);
+                    entries.add(index, createACE(existing, updated));
+                } /* else: no collision that requires adjusting the existing entry.*/
+            }
+        }
+
+        // finally add the new entry at the end of the list
+        entries.add(entry);
+        return true;
+    }
+
+    // TODO
+    private boolean isRedundantOrExtending(ACE existing, ACE entry) {
+        return existing.isAllow() == entry.isAllow()
+                && (!(existing.getPrincipal() instanceof Group) || entries.indexOf(existing) == entries.size() - 1);
+    }
+
+    private ACE createACE(ACE existing, PrivilegeBits newPrivilegeBits) throws RepositoryException {
+        return new ACE(existing.getPrincipal(), getPrivileges(newPrivilegeBits), existing.isAllow(), existing.getRestrictions());
+    }
+
+    private Set<Privilege> getPrivileges(PrivilegeBits bits) throws RepositoryException {
+        Set<Privilege> privileges = new HashSet<Privilege>();
+        for (String name : getPrivilegeStore().getPrivilegeNames(bits)) {
+            privileges.add(getPrivilegeManager().getPrivilege(name));
+        }
+        return privileges;
+    }
+
+    private PrivilegeBits getPrivilegeBits(ACE entry) {
+        PrivilegeBits bits = PrivilegeBits.getInstance();
+        for (Privilege privilege : entry.getPrivileges()) {
+            bits.add(getPrivilegeStore().getBits(privilege.getName()));
+        }
+        return bits;
     }
 }
