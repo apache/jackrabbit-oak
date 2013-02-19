@@ -223,12 +223,8 @@ public abstract class ReadOnlyVersionManager {
      * @throws RepositoryException if an error occurs while checking the node
      *                             type of the tree.
      */
-    protected boolean isVersionable(@Nonnull Tree tree) throws RepositoryException {
-        checkNotNull(tree);
-        // the first check for the jcr:isCheckedOut property will fail fast
-        // if the node is not versionable. the second check is to make sure
-        // the node is in fact versionable.
-        return tree.hasProperty(VersionConstants.JCR_ISCHECKEDOUT)
-                && getNodeTypeManager().isNodeType(tree, VersionConstants.MIX_VERSIONABLE);
+    protected boolean isVersionable(@Nonnull Tree tree) {
+        return getNodeTypeManager().isNodeType(
+                checkNotNull(tree), VersionConstants.MIX_VERSIONABLE);
     }
 }

@@ -166,18 +166,14 @@ public class VersionHook implements CommitHook {
          * @return whether the node is versionable.
          */
         private boolean isVersionable() {
-            try {
-                if (isVersionable == null) {
-                    // this is not 100% correct, because t.getPath() will
-                    // not return the correct path for nodeAfter, but is
-                    // sufficient to check if it is versionable
-                    Tree t = new ReadOnlyTree(nodeAfter.getNodeState());
-                    isVersionable = vMgr.isVersionable(t);
-                }
-                return isVersionable;
-            } catch (RepositoryException e) {
-                throw new UncheckedRepositoryException(e);
+            if (isVersionable == null) {
+                // this is not 100% correct, because t.getPath() will
+                // not return the correct path for nodeAfter, but is
+                // sufficient to check if it is versionable
+                Tree t = new ReadOnlyTree(nodeAfter.getNodeState());
+                isVersionable = vMgr.isVersionable(t);
             }
+            return isVersionable;
         }
 
         private boolean isVersionProperty(PropertyState state) {

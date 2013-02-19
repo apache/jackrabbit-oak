@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.plugins.version;
 
 import javax.annotation.Nonnull;
-import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -32,6 +31,8 @@ import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+
+import com.google.common.collect.ImmutableSet;
 
 /**
  * Commit hook which is responsible for storing the path of the versionable
@@ -74,7 +75,10 @@ public class VersionablePathHook implements CommitHook {
                 NodeBuilder vhBuilder = versionManager.getOrCreateVersionHistory(nodeAfter.builder);
 
                 if (vhBuilder.getProperty(JcrConstants.JCR_MIXINTYPES) == null) {
-                    vhBuilder.setProperty(JcrConstants.JCR_MIXINTYPES, MIX_REP_VERSIONABLE_PATHS, Type.PATH);
+                    vhBuilder.setProperty(
+                            JcrConstants.JCR_MIXINTYPES,
+                            ImmutableSet.of(MIX_REP_VERSIONABLE_PATHS),
+                            Type.NAMES);
                 }
 
                 String versionablePath = nodeAfter.path;
@@ -112,11 +116,7 @@ public class VersionablePathHook implements CommitHook {
         private boolean isVersionable(ReadWriteVersionManager versionManager) {
             // FIXME: this readonlytree is not properly connect to it's parent
             Tree tree = new ReadOnlyTree(null, PathUtils.getName(path), builder.getNodeState());
-            try {
-                return versionManager.isVersionable(tree);
-            } catch (RepositoryException e) {
-                return false;
-            }
+            return versionManager.isVersionable(tree);
         }
     }
 }
