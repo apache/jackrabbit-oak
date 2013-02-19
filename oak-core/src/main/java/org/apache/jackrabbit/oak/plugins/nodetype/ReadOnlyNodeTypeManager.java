@@ -18,9 +18,11 @@ package org.apache.jackrabbit.oak.plugins.nodetype;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
+import java.util.Set;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -45,11 +47,14 @@ import javax.jcr.nodetype.PropertyDefinitionTemplate;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Queues;
+import com.google.common.collect.Sets;
+
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.iterator.NodeTypeIteratorAdapter;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.core.ReadOnlyTree;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -278,24 +283,62 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
     }
 
     //------------------------------------------< EffectiveNodeTypeProvider >---
+
     @Override
-    public boolean isNodeType(Tree tree, String oakNtName) throws RepositoryException {
-        NodeTypeImpl nodeType = internalGetNodeType(oakNtName);
-        NodeUtil node = new NodeUtil(tree);
-        String ntName = node.getPrimaryNodeTypeName();
-        if (ntName == null) {
-            return false;
-        } else if (oakNtName.equals(ntName) || internalGetNodeType(ntName).isNodeType(oakNtName)) {
+    public boolean isNodeType(Tree tree, String oakNtName) {
+        // shortcuts for common cases
+        if (JcrConstants.NT_BASE.equals(oakNtName)) {
             return true;
+        } else if (JcrConstants.MIX_REFERENCEABLE.equals(oakNtName)
+                && !tree.hasProperty(JcrConstants.JCR_UUID)) {
+            return false;
+        } else if (JcrConstants.MIX_VERSIONABLE.equals(oakNtName)
+                && !tree.hasProperty(JcrConstants.JCR_ISCHECKEDOUT)) {
+            return false;
         }
-        String[] mixinNames = node.getStrings(JcrConstants.JCR_MIXINTYPES);
-        if (mixinNames != null) {
-            for (String mixinName : mixinNames) {
-                if (oakNtName.equals(mixinName) || internalGetNodeType(mixinName).isNodeType(oakNtName)) {
+
+        Set<String> typeNames = Sets.newHashSet();
+
+        PropertyState primary = tree.getProperty(JcrConstants.JCR_PRIMARYTYPE);
+        if (primary != null && primary.getType() == Type.NAME) {
+            String name = primary.getValue(Type.NAME);
+            if (oakNtName.equals(name)) {
+                return true;
+            } else {
+                typeNames.add(name);
+            }
+        }
+
+        PropertyState mixins = tree.getProperty(JcrConstants.JCR_MIXINTYPES);
+        if (mixins != null && mixins.getType() == Type.NAMES) {
+            for (String name : mixins.getValue(Type.NAMES)) {
+                if (oakNtName.equals(name)) {
                     return true;
+                } else {
+                    typeNames.add(name);
                 }
             }
         }
+
+        Tree types = getTypes();
+        LinkedList<String> queue = Lists.newLinkedList(typeNames);
+        while (!queue.isEmpty()) {
+            Tree type = types.getChild(queue.removeFirst());
+            if (type != null) {
+                PropertyState supertypes =
+                        type.getProperty(JcrConstants.JCR_SUPERTYPES);
+                if (supertypes != null && supertypes.getType() == Type.NAMES) {
+                    for (String name : supertypes.getValue(Type.NAMES)) {
+                        if (oakNtName.equals(name)) {
+                            return true;
+                        } else if (typeNames.add(name)) {
+                            queue.addLast(name);
+                        }
+                    }
+                }
+            }
+        }
+
         return false;
     }
 

@@ -161,12 +161,8 @@ class AccessControlValidator implements Validator, AccessControlConstants {
         }
 
         String msg = "Isolated policy node. Parent is not of type " + requiredMixin;
-        try {
-            if (!ntMgr.isNodeType(accessControlledTree, requiredMixin)) {
-                fail(msg);
-            }
-        } catch (RepositoryException e) {
-            throw new CommitFailedException(msg, e);
+        if (!ntMgr.isNodeType(accessControlledTree, requiredMixin)) {
+            fail(msg);
         }
 
         if (MIX_REP_REPO_ACCESS_CONTROLLABLE.equals(requiredMixin)) {
