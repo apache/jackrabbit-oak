@@ -38,6 +38,8 @@ import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 /**
  * Reads and writes privilege definitions from and to the repository content
  * without applying any validation.
@@ -110,7 +112,7 @@ public class PrivilegeDefinitionStore implements PrivilegeConstants {
         }
         PrivilegeBits bits = PrivilegeBits.getInstance();
         for (String privilegeName : privilegeNames) {
-            Tree defTree = privilegesTree.getChild(privilegeName);
+            Tree defTree = privilegesTree.getChild(checkNotNull(privilegeName));
             if (defTree != null) {
                 bits.add(PrivilegeBits.getInstance(defTree));
             }
