@@ -120,13 +120,14 @@ public class ACE implements JackrabbitAccessControlEntry {
     }
 
     //-------------------------------------------------------------< Object >---
+
     /**
      * @see Object#hashCode()
      */
     @Override
     public int hashCode() {
         if (hashCode == 0) {
-            hashCode = Objects.hashCode(principal, aggrPrivNames(), isAllow, restrictions);
+            hashCode = Objects.hashCode(principal.getName(), aggrPrivNames(), isAllow, restrictions);
         }
         return hashCode;
     }
@@ -138,7 +139,7 @@ public class ACE implements JackrabbitAccessControlEntry {
         }
         if (obj instanceof ACE) {
             ACE other = (ACE) obj;
-            return principal.equals(other.principal)
+            return principal.getName().equals(other.principal.getName())
                     && isAllow == other.isAllow
                     && aggrPrivNames().equals(other.aggrPrivNames())
                     && restrictions.equals(other.restrictions);
@@ -162,7 +163,7 @@ public class ACE implements JackrabbitAccessControlEntry {
                 if (priv.isAggregate()) {
                     for (Privilege aggr : priv.getAggregatePrivileges()) {
                         if (!aggr.isAggregate()) {
-                           aggrPrivNames.add(aggr.getName());
+                            aggrPrivNames.add(aggr.getName());
                         }
                     }
                 } else {

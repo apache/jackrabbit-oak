@@ -17,16 +17,20 @@
 package org.apache.jackrabbit.oak.security.authorization;
 
 import java.security.Principal;
+import java.security.acl.Group;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.jcr.PropertyType;
 import javax.jcr.Value;
+import javax.jcr.ValueFactory;
 import javax.jcr.security.AccessControlEntry;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
 
+import com.google.common.collect.Sets;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
@@ -35,6 +39,7 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeConstants;
+import org.apache.jackrabbit.oak.security.privilege.PrivilegeDefinitionStore;
 import org.apache.jackrabbit.oak.spi.security.authorization.ACE;
 import org.apache.jackrabbit.oak.spi.security.authorization.AbstractAccessControlList;
 import org.apache.jackrabbit.oak.spi.security.authorization.AbstractAccessControlListTest;
@@ -42,10 +47,12 @@ import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restrict
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -55,12 +62,12 @@ import static org.junit.Assert.fail;
  * TODO: test restrictions
  * TODO: add test with multiple entries
  */
-public class ACLTest extends AbstractAccessControlListTest {
+public class ACLTest extends AbstractAccessControlListTest implements PrivilegeConstants {
 
     private PrivilegeManager privilegeManager;
     private PrincipalManager principalManager;
 
-    private AbstractAccessControlList emptyAcl;
+    private AbstractAccessControlList acl;
     private Principal testPrincipal;
     private Privilege[] testPrivileges;
 
@@ -72,9 +79,9 @@ public class ACLTest extends AbstractAccessControlListTest {
         privilegeManager = getPrivilegeManager();
         principalManager = getSecurityProvider().getPrincipalConfiguration().getPrincipalManager(root, getNamePathMapper());
 
-        emptyAcl = createEmptyACL();
+        acl = createEmptyACL();
         testPrincipal = getTestPrincipal();
-        testPrivileges = privilegesFromNames(PrivilegeConstants.JCR_ADD_CHILD_NODES, PrivilegeConstants.JCR_LOCK_MANAGEMENT);
+        testPrivileges = privilegesFromNames(JCR_ADD_CHILD_NODES, JCR_LOCK_MANAGEMENT);
     }
 
     @Override
@@ -98,14 +105,28 @@ public class ACLTest extends AbstractAccessControlListTest {
             PrivilegeManager getPrivilegeManager() {
                 return privilegeManager;
             }
+
+            @Override
+            PrivilegeDefinitionStore getPrivilegeStore() {
+                return new PrivilegeDefinitionStore(root);
+            }
         };
+    }
+
+    private ValueFactory getValueFactory() {
+        return new ValueFactoryImpl(root.getBlobFactory(), NamePathMapper.DEFAULT);
+    }
+
+    private static void assertACE(JackrabbitAccessControlEntry ace, boolean isAllow, Privilege... privileges) {
+        assertEquals(isAllow, ace.isAllow());
+        assertEquals(Sets.newHashSet(privileges), Sets.newHashSet(ace.getPrivileges()));
     }
 
     @Test
     public void testAddInvalidEntry() throws Exception {
         Principal unknownPrincipal = new PrincipalImpl("unknown");
         try {
-            emptyAcl.addAccessControlEntry(unknownPrincipal, privilegesFromNames(Privilege.JCR_READ));
+            acl.addAccessControlEntry(unknownPrincipal, privilegesFromNames(JCR_READ));
             fail("Adding an ACE with an unknown principal should fail");
         } catch (AccessControlException e) {
             // success
@@ -115,13 +136,13 @@ public class ACLTest extends AbstractAccessControlListTest {
     @Test
     public void testAddEntryWithoutPrivilege() throws Exception {
         try {
-            emptyAcl.addAccessControlEntry(testPrincipal, new Privilege[0]);
+            acl.addAccessControlEntry(testPrincipal, new Privilege[0]);
             fail("Adding an ACE with empty privilege array should fail.");
         } catch (AccessControlException e) {
             // success
         }
         try {
-            emptyAcl.addAccessControlEntry(testPrincipal, null);
+            acl.addAccessControlEntry(testPrincipal, null);
             fail("Adding an ACE with null privileges should fail.");
         } catch (AccessControlException e) {
             // success
@@ -131,7 +152,7 @@ public class ACLTest extends AbstractAccessControlListTest {
     @Test
     public void testAddEntryWithInvalidPrivilege() throws Exception {
         try {
-            emptyAcl.addAccessControlEntry(testPrincipal, new Privilege[]{new InvalidPrivilege()});
+            acl.addAccessControlEntry(testPrincipal, new Privilege[]{new InvalidPrivilege()});
             fail("Adding an ACE with invalid privileges should fail.");
         } catch (AccessControlException e) {
             // success
@@ -140,21 +161,21 @@ public class ACLTest extends AbstractAccessControlListTest {
 
     @Test
     public void testAddEntry() throws Exception {
-        assertTrue(emptyAcl.addEntry(testPrincipal, testPrivileges, true, Collections.<String, Value>emptyMap()));
-        assertFalse(emptyAcl.isEmpty());
+        assertTrue(acl.addEntry(testPrincipal, testPrivileges, true, Collections.<String, Value>emptyMap()));
+        assertFalse(acl.isEmpty());
     }
 
     @Test
     public void testAddEntryTwice() throws Exception {
-        emptyAcl.addEntry(testPrincipal, testPrivileges, true, Collections.<String, Value>emptyMap());
-        assertFalse(emptyAcl.addEntry(testPrincipal, testPrivileges, true, Collections.<String, Value>emptyMap()));
+        acl.addEntry(testPrincipal, testPrivileges, true, Collections.<String, Value>emptyMap());
+        assertFalse(acl.addEntry(testPrincipal, testPrivileges, true, Collections.<String, Value>emptyMap()));
     }
 
     @Test
     public void testAddEntryWithInvalidRestrictions() throws Exception {
         Map<String, Value> restrictions = Collections.singletonMap("unknownRestriction", new ValueFactoryImpl(root.getBlobFactory(), namePathMapper).createValue("value"));
         try {
-            emptyAcl.addEntry(testPrincipal, testPrivileges, false, restrictions);
+            acl.addEntry(testPrincipal, testPrivileges, false, restrictions);
             fail("Invalid restrictions -> AccessControlException expected");
         } catch (AccessControlException e) {
             // success
@@ -163,9 +184,9 @@ public class ACLTest extends AbstractAccessControlListTest {
 
     @Test
     public void testRemoveEntry() throws Exception {
-        assertTrue(emptyAcl.addAccessControlEntry(testPrincipal, testPrivileges));
-        emptyAcl.removeAccessControlEntry(emptyAcl.getAccessControlEntries()[0]);
-        assertTrue(emptyAcl.isEmpty());
+        assertTrue(acl.addAccessControlEntry(testPrincipal, testPrivileges));
+        acl.removeAccessControlEntry(acl.getAccessControlEntries()[0]);
+        assertTrue(acl.isEmpty());
     }
 
     @Test
@@ -180,7 +201,7 @@ public class ACLTest extends AbstractAccessControlListTest {
     @Test
     public void testRemoveInvalidEntry() throws Exception {
         try {
-            emptyAcl.removeAccessControlEntry(new JackrabbitAccessControlEntry() {
+            acl.removeAccessControlEntry(new JackrabbitAccessControlEntry() {
                 public boolean isAllow() {
                     return false;
                 }
@@ -210,7 +231,7 @@ public class ACLTest extends AbstractAccessControlListTest {
     @Test
     public void testRemoveNonExisting() throws Exception {
         try {
-            emptyAcl.removeAccessControlEntry(new ACE(testPrincipal, testPrivileges, true, null));
+            acl.removeAccessControlEntry(new ACE(testPrincipal, testPrivileges, true, null));
             fail("Removing a non-existing ACE should fail.");
         } catch (AccessControlException e) {
             // success
@@ -219,8 +240,8 @@ public class ACLTest extends AbstractAccessControlListTest {
 
     @Test
     public void testReorderToTheEnd() throws Exception {
-        Privilege[] read = privilegesFromNames(PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_READ_ACCESS_CONTROL);
-        Privilege[] write = privilegesFromNames(PrivilegeConstants.JCR_WRITE);
+        Privilege[] read = privilegesFromNames(JCR_READ, JCR_READ_ACCESS_CONTROL);
+        Privilege[] write = privilegesFromNames(JCR_WRITE);
 
         AbstractAccessControlList acl = createEmptyACL();
         acl.addAccessControlEntry(testPrincipal, read);
@@ -239,8 +260,8 @@ public class ACLTest extends AbstractAccessControlListTest {
 
     @Test
     public void testReorder() throws Exception {
-        Privilege[] read = privilegesFromNames(PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_READ_ACCESS_CONTROL);
-        Privilege[] write = privilegesFromNames(PrivilegeConstants.JCR_WRITE);
+        Privilege[] read = privilegesFromNames(JCR_READ, JCR_READ_ACCESS_CONTROL);
+        Privilege[] write = privilegesFromNames(JCR_WRITE);
 
         AbstractAccessControlList acl = createEmptyACL();
         acl.addAccessControlEntry(testPrincipal, read);
@@ -268,26 +289,303 @@ public class ACLTest extends AbstractAccessControlListTest {
     }
 
     @Test
-    public void testReorderInvalidElements() throws Exception {
-        Privilege[] read = privilegesFromNames(PrivilegeConstants.JCR_READ, PrivilegeConstants.JCR_READ_ACCESS_CONTROL);
-        Privilege[] write = privilegesFromNames(PrivilegeConstants.JCR_WRITE);
+    public void testReorderInvalidEntries() throws Exception {
+        Privilege[] read = privilegesFromNames(JCR_READ, JCR_READ_ACCESS_CONTROL);
+        Privilege[] write = privilegesFromNames(JCR_WRITE);
 
-        emptyAcl.addAccessControlEntry(testPrincipal, read);
-        emptyAcl.addAccessControlEntry(EveryonePrincipal.getInstance(), write);
+        acl.addAccessControlEntry(testPrincipal, read);
+        acl.addAccessControlEntry(EveryonePrincipal.getInstance(), write);
 
         AccessControlEntry invalid = new ACE(testPrincipal, write, false, Collections.<Restriction>emptySet());
         try {
-            emptyAcl.orderBefore(invalid, emptyAcl.getEntries().get(0));
+            acl.orderBefore(invalid, acl.getEntries().get(0));
             fail("src entry not contained in list -> reorder should fail.");
         } catch (AccessControlException e) {
             // success
         }
         try {
-            emptyAcl.orderBefore(emptyAcl.getEntries().get(0), invalid);
+            acl.orderBefore(acl.getEntries().get(0), invalid);
             fail("dest entry not contained in list -> reorder should fail.");
         } catch (AccessControlException e) {
             // success
         }
+    }
+
+    @Test
+    public void testMultipleEntries() throws Exception {
+        Privilege[] privileges = privilegesFromNames(JCR_READ);
+        acl.addEntry(testPrincipal, privileges, true);
+
+        // new entry extends privileges.
+        privileges = privilegesFromNames(JCR_READ, JCR_ADD_CHILD_NODES);
+        assertTrue(acl.addEntry(testPrincipal, privileges, true));
+
+        // expected: only a single allow-entry with both privileges
+        assertTrue(acl.size() == 1);
+        assertACE(acl.getEntries().get(0), true, privileges);
+    }
+
+    @Test
+    public void testMultipleEntries2() throws Exception {
+        Privilege[] privileges = privilegesFromNames(JCR_READ, JCR_ADD_CHILD_NODES);
+        acl.addEntry(testPrincipal, privileges, true);
+
+        // adding just ADD_CHILD_NODES -> must not remove READ privilege
+        Privilege[] achPrivs = privilegesFromNames(JCR_ADD_CHILD_NODES);
+        assertFalse(acl.addEntry(testPrincipal, achPrivs, true));
+
+        // expected: only a single allow-entry with add_child_nodes + read privilege
+        assertTrue(acl.size() == 1);
+        assertACE(acl.getEntries().get(0), true, privileges);
+    }
+
+    @Test
+    public void testComplementaryEntry() throws Exception {
+        Privilege[] privileges = privilegesFromNames(JCR_READ);
+        acl.addEntry(testPrincipal, privileges, true);
+
+        // same entry but with revers 'isAllow' flag
+        assertTrue(acl.addEntry(testPrincipal, privileges, false));
+
+        // expected: only a single deny-read entry
+        assertEquals(1, acl.size());
+        assertACE(acl.getEntries().get(0), false, privileges);
+    }
+
+    @Test
+    public void testComplementaryEntry1() throws Exception {
+        Privilege[] privileges = privilegesFromNames(JCR_READ, JCR_ADD_CHILD_NODES);
+        acl.addEntry(testPrincipal, privileges, true);
+
+        // revoke the 'READ' privilege
+        privileges = privilegesFromNames(JCR_READ);
+        assertTrue(acl.addEntry(testPrincipal, privileges, false));
+
+        // expected: 2 entries one allowing ADD_CHILD_NODES, the other denying READ
+        assertTrue(acl.size() == 2);
+
+        assertACE(acl.getEntries().get(0), true, privilegesFromNames(JCR_ADD_CHILD_NODES));
+        assertACE(acl.getEntries().get(1), false, privilegesFromNames(JCR_READ));
+    }
+
+    @Test
+    public void testComplementaryEntry2() throws Exception {
+        Privilege[] repwrite = privilegesFromNames(REP_WRITE);
+        acl.addAccessControlEntry(testPrincipal, repwrite);
+
+        // add deny entry for mod_props
+        Privilege[] modProperties = privilegesFromNames(JCR_MODIFY_PROPERTIES);
+        assertTrue(acl.addEntry(testPrincipal, modProperties, false));
+
+        // expected: 2 entries with the allow entry being adjusted
+        assertTrue(acl.size() == 2);
+
+        Privilege[] expected = privilegesFromNames(JCR_ADD_CHILD_NODES, JCR_REMOVE_CHILD_NODES, JCR_REMOVE_NODE, JCR_NODE_TYPE_MANAGEMENT);
+        assertACE(acl.getEntries().get(0), true, expected);
+        assertACE(acl.getEntries().get(1), false, modProperties);
+    }
+
+    @Test
+    public void testMultiplePrincipals() throws Exception {
+        Principal everyone = principalManager.getEveryone();
+        Privilege[] privs = privilegesFromNames(JCR_READ);
+
+        acl.addAccessControlEntry(testPrincipal, privs);
+        assertFalse(acl.addAccessControlEntry(testPrincipal, privs));
+
+        // add same privileges for another principal -> must modify as well.
+        assertTrue(acl.addAccessControlEntry(everyone, privs));
+        // .. 2 entries must be present.
+        assertTrue(acl.getAccessControlEntries().length == 2);
+        assertEquals(everyone, acl.getAccessControlEntries()[1].getPrincipal());
+    }
+
+    @Test
+    public void testSetEntryForGroupPrincipal() throws Exception {
+        Privilege[] privs = privilegesFromNames(JCR_READ);
+        Group grPrincipal = (Group) principalManager.getEveryone();
+
+        // adding allow-entry must succeed
+        assertTrue(acl.addAccessControlEntry(grPrincipal, privs));
+
+        // adding deny-entry must succeed
+        assertTrue(acl.addEntry(grPrincipal, privs, false));
+        assertEquals(1, acl.size());
+        assertFalse(acl.getEntries().get(0).isAllow());
+    }
+
+    @Ignore("OAK-51") // TODO
+    @Test
+    public void testUpdateGroupEntry() throws Exception {
+        Privilege[] readPriv = privilegesFromNames(JCR_READ);
+        Privilege[] writePriv = privilegesFromNames(JCR_WRITE);
+
+        Principal everyone = principalManager.getEveryone();
+
+        acl.addEntry(testPrincipal, readPriv, true);
+        acl.addEntry(everyone, readPriv, true);
+        acl.addEntry(testPrincipal, writePriv, false);
+
+        // adding an entry that should update the existing allow-entry for everyone.
+        acl.addEntry(everyone, writePriv, true);
+
+        AccessControlEntry[] entries = acl.getAccessControlEntries();
+        assertEquals(3, entries.length);
+        JackrabbitAccessControlEntry princ2AllowEntry = (JackrabbitAccessControlEntry) entries[1];
+        assertEquals(everyone, princ2AllowEntry.getPrincipal());
+        assertACE(princ2AllowEntry, true, privilegesFromNames(JCR_READ, JCR_WRITE));
+    }
+
+    @Ignore("OAK-51") // TODO
+    @Test
+    public void testComplementaryGroupEntry() throws Exception {
+        Privilege[] readPriv = privilegesFromNames(JCR_READ);
+        Privilege[] writePriv = privilegesFromNames(JCR_WRITE);
+        Principal everyone = principalManager.getEveryone();
+
+        acl.addEntry(testPrincipal, readPriv, true);
+        acl.addEntry(everyone, readPriv, true);
+        acl.addEntry(testPrincipal, writePriv, false);
+        acl.addEntry(everyone, writePriv, true);
+        // entry complementary to the first entry
+        // -> must remove the allow-READ entry and update the deny-WRITE entry.
+        acl.addEntry(testPrincipal, readPriv, false);
+
+        AccessControlEntry[] entries = acl.getAccessControlEntries();
+
+        assertEquals(2, entries.length);
+
+        JackrabbitAccessControlEntry first = (JackrabbitAccessControlEntry) entries[0];
+        assertEquals(everyone, first.getPrincipal());
+
+        JackrabbitAccessControlEntry second = (JackrabbitAccessControlEntry) entries[1];
+        assertEquals(testPrincipal, second.getPrincipal());
+        assertACE(second, false, privilegesFromNames(JCR_READ, JCR_WRITE));
+    }
+
+    @Test
+    public void testUpdateAndComplementary() throws Exception {
+        Privilege[] readPriv = privilegesFromNames(JCR_READ);
+        Privilege[] writePriv = privilegesFromNames(JCR_WRITE);
+        Privilege[] acReadPriv = privilegesFromNames(JCR_READ_ACCESS_CONTROL);
+
+        assertTrue(acl.addEntry(testPrincipal, readPriv, true));
+        assertTrue(acl.addEntry(testPrincipal, writePriv, true));
+        assertTrue(acl.addEntry(testPrincipal, acReadPriv, true));
+        assertEquals(1, acl.size());
+
+        assertTrue(acl.addEntry(testPrincipal, readPriv, false));
+        assertEquals(2, acl.size());
+
+        assertACE(acl.getEntries().get(0), true, privilegesFromNames(JCR_WRITE, JCR_READ_ACCESS_CONTROL));
+        assertACE(acl.getEntries().get(1), false, readPriv);
+    }
+
+    @Test
+    public void testDifferentPrivilegeImplementation() throws Exception {
+        Privilege[] readPriv = privilegesFromNames(JCR_READ);
+        acl.addEntry(testPrincipal, readPriv, false);
+
+        assertFalse(acl.addEntry(new PrincipalImpl(testPrincipal.getName()), readPriv, false));
+        assertFalse(acl.addEntry(new Principal() {
+            public String getName() {
+                return testPrincipal.getName();
+            }
+        }, readPriv, false));
+    }
+
+    @Test
+    public void testNewEntriesAppendedAtEnd() throws Exception {
+        Privilege[] readPriv = privilegesFromNames(JCR_READ);
+        Privilege[] writePriv = privilegesFromNames(JCR_WRITE);
+
+        acl.addEntry(testPrincipal, readPriv, true);
+        acl.addEntry(principalManager.getEveryone(), readPriv, true);
+        acl.addEntry(testPrincipal, writePriv, false);
+
+        AccessControlEntry[] entries = acl.getAccessControlEntries();
+
+        assertEquals(3, entries.length);
+
+        JackrabbitAccessControlEntry last = (JackrabbitAccessControlEntry) entries[2];
+        assertEquals(testPrincipal, last.getPrincipal());
+        assertACE(last, false, writePriv);
+    }
+
+    @Test
+    public void testRestrictions() throws Exception {
+        String[] names = acl.getRestrictionNames();
+        assertNotNull(names);
+        assertEquals(1, names.length);
+        assertEquals(AccessControlConstants.REP_GLOB, names[0]);
+        assertEquals(PropertyType.STRING, acl.getRestrictionType(names[0]));
+
+        Privilege[] writePriv = privilegesFromNames(JCR_WRITE);
+
+        // add entry without restr. -> must succeed
+        assertTrue(acl.addAccessControlEntry(testPrincipal, writePriv));
+        assertEquals(1, acl.getAccessControlEntries().length);
+
+        // ... again -> no modification.
+        assertFalse(acl.addAccessControlEntry(testPrincipal, writePriv));
+        assertEquals(1, acl.getAccessControlEntries().length);
+
+        // ... again using different method -> no modification.
+        assertFalse(acl.addEntry(testPrincipal, writePriv, true));
+        assertEquals(1, acl.getAccessControlEntries().length);
+
+        // ... complementary entry -> must modify the acl
+        assertTrue(acl.addEntry(testPrincipal, writePriv, false));
+        assertEquals(1, acl.getAccessControlEntries().length);
+
+        // add an entry with a restrictions:
+        Map<String, Value> restrictions = Collections.singletonMap(AccessControlConstants.REP_GLOB, getValueFactory().createValue("/.*"));
+        assertTrue(acl.addEntry(testPrincipal, writePriv, false, restrictions));
+        assertEquals(2, acl.getAccessControlEntries().length);
+
+        // ... same again -> no modification.
+        assertFalse(acl.addEntry(testPrincipal, writePriv, false, restrictions));
+        assertEquals(2, acl.getAccessControlEntries().length);
+
+        // ... complementary entry -> must modify the acl.
+        assertTrue(acl.addEntry(testPrincipal, writePriv, true, restrictions));
+        assertEquals(2, acl.getAccessControlEntries().length);
+    }
+
+    @Test
+    public void testInsertionOrder() throws Exception {
+        Privilege[] readPriv = privilegesFromNames(JCR_READ);
+        Privilege[] writePriv = privilegesFromNames(JCR_WRITE);
+        Privilege[] addNodePriv = privilegesFromNames(JCR_ADD_CHILD_NODES);
+
+        Map<String, Value> restrictions = Collections.singletonMap(AccessControlConstants.REP_GLOB, getValueFactory().createValue("/.*"));
+
+        acl.addEntry(testPrincipal, readPriv, true);
+        acl.addEntry(testPrincipal, writePriv, false);
+        acl.addEntry(testPrincipal, addNodePriv, true, restrictions);
+
+        List<JackrabbitAccessControlEntry> entries = acl.getEntries();
+        assertACE(entries.get(0), true, readPriv);
+        assertACE(entries.get(1), false, writePriv);
+        assertACE(entries.get(2), true, addNodePriv);
+    }
+
+    @Test
+    public void testInsertionOrder2() throws Exception {
+        Privilege[] readPriv = privilegesFromNames(JCR_READ);
+        Privilege[] writePriv = privilegesFromNames(JCR_WRITE);
+        Privilege[] addNodePriv = privilegesFromNames(JCR_ADD_CHILD_NODES);
+
+        Map<String, Value> restrictions = Collections.singletonMap(AccessControlConstants.REP_GLOB, getValueFactory().createValue("/.*"));
+
+        acl.addEntry(testPrincipal, readPriv, true);
+        acl.addEntry(testPrincipal, addNodePriv, true, restrictions);
+        acl.addEntry(testPrincipal, writePriv, false);
+
+        List<JackrabbitAccessControlEntry> entries = acl.getEntries();
+        assertACE(entries.get(0), true, readPriv);
+        assertACE(entries.get(1), true, addNodePriv);
+        assertACE(entries.get(2), false, writePriv);
     }
 
     //--------------------------------------------------------------------------
