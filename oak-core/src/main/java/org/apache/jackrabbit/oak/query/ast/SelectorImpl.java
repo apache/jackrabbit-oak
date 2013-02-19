@@ -18,16 +18,12 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
-import static org.apache.jackrabbit.oak.api.Type.STRINGS;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
 import javax.annotation.CheckForNull;
 import javax.jcr.RepositoryException;
-import javax.jcr.nodetype.NodeType;
-import javax.jcr.nodetype.NodeTypeIterator;
 import javax.jcr.nodetype.NodeTypeManager;
 
 import org.apache.jackrabbit.JcrConstants;
@@ -47,8 +43,8 @@ import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 
 /**
  * A selector within a query.
@@ -62,10 +58,16 @@ public class SelectorImpl extends SourceImpl {
     private Cursor cursor;
     private IndexRow currentRow;
     private int scanCount;
+
     /**
-     * Iterable over selected node type and its subtypes
+     * Names of all matching node type names encountered so far.
      */
-    private Iterable<NodeType> nodeTypes;
+    private final Set<String> matchingTypes;
+
+    /**
+     * Names of all <em>non-matching</em> node type names encountered so far.
+     */
+    private final Set<String> nonMatchingTypes;
 
     /**
      * The selector condition can be evaluated when the given selector is
@@ -79,6 +81,16 @@ public class SelectorImpl extends SourceImpl {
     public SelectorImpl(String nodeTypeName, String selectorName) {
         this.nodeTypeName = nodeTypeName;
         this.selectorName = selectorName;
+
+        if (JcrConstants.NT_BASE.equals(nodeTypeName)) {
+            matchingTypes = null;
+            nonMatchingTypes = null;
+        } else {
+            matchingTypes = Sets.newHashSet();
+            matchingTypes.add(nodeTypeName);
+            nonMatchingTypes = Sets.newHashSet();
+            nonMatchingTypes.add(JcrConstants.NT_BASE);
+        }
     }
 
     public String getSelectorName() {
@@ -165,15 +177,6 @@ public class SelectorImpl extends SourceImpl {
         // assumes that paths and node type names have the same format
         // restrictions (characters such as "[" are not allowed and so on)
         query.validatePath(nodeTypeName);
-
-        try {
-            // force init of node types, which will also check for the node
-            // type's existence
-            getNodeTypes();
-        } catch (RepositoryException e) {
-            throw new IllegalArgumentException("Unable to determine node type "
-                    + nodeTypeName, e);
-        }
     }
 
     @Override
@@ -204,44 +207,57 @@ public class SelectorImpl extends SourceImpl {
     }
 
     private boolean evaluateTypeMatch(Tree tree) {
-        Set<String> primary =
-                getStrings(tree, JcrConstants.JCR_PRIMARYTYPE);
-        Set<String> mixins =
-                getStrings(tree, JcrConstants.JCR_MIXINTYPES);
+        if ("nt:base".equals(nodeTypeName)) {
+            return true; // shortcut for a common case
+        }
 
-        try {
-            for (NodeType type : getNodeTypes()) {
-                if (evaluateTypeMatch(type, primary, mixins)) {
+        Set<String> types = Sets.newHashSet();
+
+        PropertyState primary = tree.getProperty(JcrConstants.JCR_PRIMARYTYPE);
+        if (primary != null && primary.getType() == Type.NAME) {
+            String name = primary.getValue(Type.NAME);
+            if (matchingTypes.contains(name)) {
+                return true;
+            } else if (!nonMatchingTypes.contains(name)) {
+                types.add(name);
+            }
+        }
+
+        PropertyState mixins = tree.getProperty(JcrConstants.JCR_MIXINTYPES);
+        if (mixins != null && mixins.getType() == Type.NAMES) {
+            for (String name : mixins.getValue(Type.NAMES)) {
+                if (matchingTypes.contains(name)) {
                     return true;
+                } else if (!nonMatchingTypes.contains(name)) {
+                    types.add(name);
                 }
             }
-        } catch (RepositoryException e) {
-            throw new RuntimeException(
-                    "Unable to evaluate node type constraints", e);
         }
 
-        return false;
-    }
-
-    private static Set<String> getStrings(Tree tree, String name) {
-        ImmutableSet.Builder<String> builder = ImmutableSet.builder();
-        PropertyState property = tree.getProperty(name);
-        if (property != null) {
-            for (String value : property.getValue(STRINGS)) {
-                builder.add(value);
+        if (!types.isEmpty()) {
+            try {
+                NodeTypeManager manager = new ReadOnlyNodeTypeManager() {
+                    @Override @CheckForNull
+                    protected Tree getTypes() {
+                        return getTree(NodeTypeConstants.NODE_TYPES_PATH);
+                    }
+                };
+                for (String type : types) {
+                    if (manager.getNodeType(type).isNodeType(nodeTypeName)) {
+                        matchingTypes.add(type);
+                        return true;
+                    } else {
+                        nonMatchingTypes.add(type);
+                        // continue iterating
+                    }
+                }
+            } catch (RepositoryException e) {
+                throw new RuntimeException(
+                        "Unable to evaluate node type constraints", e);
             }
         }
-        return builder.build();
-    }
 
-    private static boolean evaluateTypeMatch(
-            NodeType type, Set<String> primary, Set<String> mixins) {
-        String name = type.getName();
-        if (type.isMixin()) {
-            return mixins.contains(name);
-        } else {
-            return primary.contains(name);
-        }
+        return false; // no matches found
     }
 
     /**
@@ -333,24 +349,4 @@ public class SelectorImpl extends SourceImpl {
         }
     }
 
-    private Iterable<NodeType> getNodeTypes() throws RepositoryException {
-        if (nodeTypes == null) {
-            List<NodeType> types = new ArrayList<NodeType>();
-            NodeTypeManager manager = new ReadOnlyNodeTypeManager() {
-                @Override @CheckForNull
-                protected Tree getTypes() {
-                    return getTree(NodeTypeConstants.NODE_TYPES_PATH);
-                }
-            };
-            NodeType type = manager.getNodeType(nodeTypeName);
-            types.add(type);
-
-            NodeTypeIterator it = type.getSubtypes();
-            while (it.hasNext()) {
-                types.add(it.nextNodeType());
-            }
-            nodeTypes = types;
-        }
-        return nodeTypes;
-    }
 }
