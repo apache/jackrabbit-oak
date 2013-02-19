@@ -25,7 +25,7 @@ public interface RepositoryFixture {
      * a database-based fixture would only be available when the underlying
      * database service is running.
      *
-     * @return <code>true</code> iff the fixture is available
+     * @return {@code true} iff the fixture is available
      */
     boolean isAvailable();
 
