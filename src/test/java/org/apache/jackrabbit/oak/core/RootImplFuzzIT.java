@@ -44,7 +44,7 @@ import static org.junit.Assert.assertEquals;
 
 /**
  * Fuzz test running random sequences of operations on {@link Tree}.
- * Run with -DKernelRootFuzzIT-seed=42 to set a specific seed (i.e. 42);
+ * Run with -DRootImplFuzzIT-seed=42 to set a specific seed (i.e. 42);
  */
 public class RootImplFuzzIT {
 
