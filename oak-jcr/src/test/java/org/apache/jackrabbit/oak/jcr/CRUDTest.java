@@ -23,6 +23,7 @@ import javax.jcr.Property;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static junit.framework.Assert.assertEquals;
@@ -115,4 +116,13 @@ public class CRUDTest extends AbstractRepositoryTest {
         Property property = getAdminSession().getRootNode().getProperty("jcr:primaryType");
         assertEquals("/jcr:primaryType", property.getPath());
     }
+    
+    @Test
+    @Ignore("OAK-642")
+    public void nodeType() throws RepositoryException {
+            Session s = getAdminSession();
+            s.getRootNode().addNode("a", "nt:folder").addNode("b");
+            s.save();        
+    }
+    
 }
