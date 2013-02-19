@@ -63,7 +63,7 @@ public class AuthenticationConfigurationImpl extends SecurityConfiguration.Defau
             loginConfig = Configuration.getConfiguration();
             // FIXME: workaround for Java7 behavior. needs clean up (see OAK-497)
             if (loginConfig.getAppConfigurationEntry(appName) == null) {
-                log.info("No login configuration available for " + appName + ": using default.");
+                log.debug("No login configuration available for {}; using default", appName);
                 loginConfig = null;
             }
         } catch (SecurityException e) {
