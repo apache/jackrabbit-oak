@@ -22,6 +22,7 @@ import javax.jcr.PathNotFoundException;
 import javax.jcr.Property;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
+import javax.jcr.nodetype.ConstraintViolationException;
 
 import org.junit.Ignore;
 import org.junit.Test;
@@ -117,7 +118,7 @@ public class CRUDTest extends AbstractRepositoryTest {
         assertEquals("/jcr:primaryType", property.getPath());
     }
     
-    @Test
+    @Test(expected = ConstraintViolationException.class)
     @Ignore("OAK-642")
     public void nodeType() throws RepositoryException {
             Session s = getAdminSession();
