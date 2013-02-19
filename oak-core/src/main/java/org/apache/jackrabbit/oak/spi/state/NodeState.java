@@ -134,7 +134,7 @@ public interface NodeState {
      * @return {@code true} if the named child node exists,
      *         {@code false} otherwise
      */
-    boolean hasChildNode(String name);
+    boolean hasChildNode(@Nonnull String name);
 
     /**
      * Returns the named child node. The name is an opaque string and
@@ -149,7 +149,7 @@ public interface NodeState {
      * @return named child node, or {@code null} if not found
      */
     @CheckForNull
-    NodeState getChildNode(String name);
+    NodeState getChildNode(@Nonnull String name);
 
     /**
      * Returns the number of child nodes of this node.

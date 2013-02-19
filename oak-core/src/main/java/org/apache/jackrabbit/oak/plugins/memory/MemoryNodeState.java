@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -78,11 +80,13 @@ public class MemoryNodeState extends AbstractNodeState {
 
     @Override
     public boolean hasChildNode(String name) {
+        checkNotNull(name);
         return nodes.containsKey(name);
     }
 
     @Override
     public NodeState getChildNode(String name) {
+        checkNotNull(name);
         return nodes.get(name);
     }
 

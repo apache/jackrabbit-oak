@@ -97,7 +97,7 @@ public interface NodeBuilder {
      * @return {@code true} if the named child node exists,
      *         {@code false} otherwise
      */
-    boolean hasChildNode(String name);
+    boolean hasChildNode(@Nonnull String name);
 
     /**
      * Returns the names of current child nodes.
@@ -213,6 +213,6 @@ public interface NodeBuilder {
      * @return child builder
      */
     @Nonnull
-    NodeBuilder child(String name);
+    NodeBuilder child(@Nonnull String name);
 
 }

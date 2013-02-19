@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.spi.state;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 
 import com.google.common.base.Function;
@@ -65,6 +67,7 @@ public abstract class AbstractNodeState implements NodeState {
 
     @Override
     public NodeState getChildNode(String name) {
+        checkNotNull(name);
         for (ChildNodeEntry entry : getChildNodeEntries()) {
             if (name.equals(entry.getName())) {
                 return entry.getNodeState();
