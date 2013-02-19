@@ -204,6 +204,7 @@ public class ModifiedNodeState extends AbstractNodeState {
 
     @Override
     public boolean hasChildNode(String name) {
+        checkNotNull(name);
         NodeState child = nodes.get(name);
         if (child != null) {
             return true;
@@ -216,6 +217,7 @@ public class ModifiedNodeState extends AbstractNodeState {
 
     @Override
     public NodeState getChildNode(String name) {
+        checkNotNull(name);
         NodeState child = nodes.get(name);
         if (child != null) {
             return child;

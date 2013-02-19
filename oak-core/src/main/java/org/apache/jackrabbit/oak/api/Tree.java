@@ -179,7 +179,7 @@ public interface Tree {
      *         child exists or the child is not accessible.
      */
     @CheckForNull
-    Tree getChild(String name);
+    Tree getChild(@Nonnull String name);
 
     /**
      * Determine if a child of this {@code Tree} instance exists. If no child
@@ -189,7 +189,7 @@ public interface Tree {
      * @return {@code true} if and only if a child with the given {@code name}
      *         exists and is accessible for the current content session.
      */
-    boolean hasChild(String name);
+    boolean hasChild(@Nonnull String name);
 
     /**
      * Determine the number of children of this {@code Tree} instance taking
