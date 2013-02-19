@@ -25,7 +25,6 @@ import java.util.UUID;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
-import javax.jcr.RepositoryException;
 import javax.jcr.query.Query;
 
 import com.google.common.base.Charsets;
@@ -197,56 +196,52 @@ public class IdentifierManager {
      */
     @Nonnull
     public Set<String> getReferences(boolean weak, Tree tree, final String propertyName, final String... nodeTypeNames) {
-        if (!isReferenceable(tree)) {
-            return Collections.emptySet();
-        } else {
-            try {
-                final String uuid = getIdentifier(tree);
-                String reference = weak ? PropertyType.TYPENAME_WEAKREFERENCE : PropertyType.TYPENAME_REFERENCE;
-                String pName = propertyName == null ? "*" : propertyName;   // TODO: sanitize against injection attacks!?
-                Map<String, ? extends PropertyValue> bindings = Collections.singletonMap("uuid", PropertyValues.newString(uuid));
+        if (!nodeTypeManager.isNodeType(tree, JcrConstants.MIX_REFERENCEABLE)) {
+            return Collections.emptySet(); // shortcut
+        }
 
-                Result result = root.getQueryEngine().executeQuery(
-                        "SELECT * FROM [nt:base] WHERE PROPERTY([" + pName + "], '" + reference + "') = $uuid",
-                        Query.JCR_SQL2, Long.MAX_VALUE, 0, bindings, new NamePathMapper.Default());
+        try {
+            final String uuid = getIdentifier(tree);
+            String reference = weak ? PropertyType.TYPENAME_WEAKREFERENCE : PropertyType.TYPENAME_REFERENCE;
+            String pName = propertyName == null ? "*" : propertyName;   // TODO: sanitize against injection attacks!?
+            Map<String, ? extends PropertyValue> bindings = Collections.singletonMap("uuid", PropertyValues.newString(uuid));
 
-                Iterable<String> paths = Iterables.transform(result.getRows(),
-                        new Function<ResultRow, String>() {
-                            @Override
-                            public String apply(ResultRow row) {
-                                String pName = propertyName == null
-                                        ? findProperty(row.getPath(), uuid)
-                                        : propertyName;
-                                return PathUtils.concat(row.getPath(), pName);
-                            }
-                        });
+            Result result = root.getQueryEngine().executeQuery(
+                    "SELECT * FROM [nt:base] WHERE PROPERTY([" + pName + "], '" + reference + "') = $uuid",
+                    Query.JCR_SQL2, Long.MAX_VALUE, 0, bindings, new NamePathMapper.Default());
 
-                if (nodeTypeNames.length > 0) {
-                    paths = Iterables.filter(paths, new Predicate<String>() {
-                        @Override
-                        public boolean apply(String path) {
-                            Tree tree = root.getTree(PathUtils.getParentPath(path));
-                            if (tree != null) {
-                                for (String ntName : nodeTypeNames) {
-                                    try {
-                                        if (nodeTypeManager.isNodeType(tree, ntName)) {
-                                            return true;
-                                        }
-                                    } catch (RepositoryException e) {
-                                        log.warn(e.getMessage());
-                                    }
+            Iterable<String> paths = Iterables.transform(result.getRows(),
+                    new Function<ResultRow, String>() {
+                @Override
+                public String apply(ResultRow row) {
+                    String pName = propertyName == null
+                            ? findProperty(row.getPath(), uuid)
+                                    : propertyName;
+                            return PathUtils.concat(row.getPath(), pName);
+                }
+            });
+
+            if (nodeTypeNames.length > 0) {
+                paths = Iterables.filter(paths, new Predicate<String>() {
+                    @Override
+                    public boolean apply(String path) {
+                        Tree tree = root.getTree(PathUtils.getParentPath(path));
+                        if (tree != null) {
+                            for (String ntName : nodeTypeNames) {
+                                if (nodeTypeManager.isNodeType(tree, ntName)) {
+                                    return true;
                                 }
                             }
-                            return false;
                         }
-                    });
-                }
-
-                return Sets.newHashSet(paths);
-            } catch (ParseException e) {
-                log.error("query failed", e);
-                return Collections.emptySet();
+                        return false;
+                    }
+                });
             }
+
+            return Sets.newHashSet(paths);
+        } catch (ParseException e) {
+            log.error("query failed", e);
+            return Collections.emptySet();
         }
     }
 
@@ -271,15 +266,6 @@ public class IdentifierManager {
         });
 
         return refProp.getName();
-    }
-
-    public boolean isReferenceable(Tree tree) {
-        try {
-            return nodeTypeManager.isNodeType(tree, JcrConstants.MIX_REFERENCEABLE);
-        } catch (RepositoryException e) {
-            log.warn(e.getMessage());
-            return false;
-        }
     }
 
     @CheckForNull

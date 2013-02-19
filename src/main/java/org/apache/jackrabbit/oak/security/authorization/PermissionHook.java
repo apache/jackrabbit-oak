@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.security.authorization;
 import java.util.Collections;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
-import javax.jcr.RepositoryException;
 
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.JcrConstants;
@@ -179,19 +178,11 @@ public class PermissionHook implements CommitHook, AccessControlConstants {
 
         //--------------------------------------------------------< private >---
         private boolean isACL(Node parent) {
-            try {
-                return ntMgr.isNodeType(getTree(parent.getName(), parent.getNodeState()), NT_REP_POLICY);
-            } catch (RepositoryException e) {
-                return false;
-            }
+            return ntMgr.isNodeType(getTree(parent.getName(), parent.getNodeState()), NT_REP_POLICY);
         }
 
         private boolean isACE(String name, NodeState nodeState) {
-            try {
-                return ntMgr.isNodeType(getTree(name, nodeState), NT_REP_ACE);
-            } catch (RepositoryException e) {
-                return false;
-            }
+            return ntMgr.isNodeType(getTree(name, nodeState), NT_REP_ACE);
         }
 
         private static String getAccessControlledPath(BaseNode aclNode) {

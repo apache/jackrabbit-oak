@@ -101,20 +101,15 @@ class ChangeFilter {
     private boolean includeByType(Tree associatedParentNode) {
         if (nodeTypeOakName == null) {
             return true;
-        }
-        try {
+        } else {
             for (String oakName : nodeTypeOakName) {
                 if (ntMgr.isNodeType(associatedParentNode, oakName)) {
                     return true;
                 }
             }
-        } catch (RepositoryException e) {
-            // shouldn't happen, because node type was validated in constructor
-            // FIXME: rather throw?
-            log.warn("Unable to check node type of associated parent node", e);
+            // filter has node types set but none matched
+            return false;
         }
-        // filter has node types set but none matched
-        return false;
     }
 
     /**
