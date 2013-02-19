@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.mongomk.prototype;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -27,6 +28,7 @@ import org.slf4j.LoggerFactory;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
+import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 import com.mongodb.QueryBuilder;
 import com.mongodb.WriteConcern;
@@ -47,18 +49,30 @@ public class MongoDocumentStore implements DocumentStore {
 
     @Override
     public Map<String, Object> find(Collection collection, String path) {
-        DBObject n = getNode(collection, path);
-        if (n == null) {
+        DBCollection dbCollection = getDBCollection(collection);
+        DBObject doc = dbCollection.findOne(getByPathQuery(path));
+        if (doc == null) {
             return null;
         }
-        return convertFromDBObject(n);
+        return convertFromDBObject(doc);
     }
     
     @Override
     public List<Map<String, Object>> query(Collection collection,
-            String fromKey, String toKey) {
-        // TODO retrieve children
-        return null;
+            String fromKey, String toKey, int limit) {
+        DBCollection dbCollection = getDBCollection(collection);
+        QueryBuilder queryBuilder = QueryBuilder.start(KEY_PATH);
+        queryBuilder.greaterThanEquals(fromKey);
+        queryBuilder.lessThan(toKey);
+        DBObject query = queryBuilder.get();
+        DBCursor cursor = dbCollection.find(query);
+        List<Map<String, Object>> list = new ArrayList<Map<String, Object>>();
+        for (int i=0; i<limit && cursor.hasNext(); i++) {
+            DBObject o = cursor.next();
+            Map<String, Object> map = convertFromDBObject(o);
+            list.add(map);
+        }
+        return list;
     }
 
     @Override
@@ -186,11 +200,6 @@ public class MongoDocumentStore implements DocumentStore {
             default:
                 throw new IllegalArgumentException(collection.name());
         }
-    }
-
-    private DBObject getNode(Collection collection, String path) {
-        DBCollection dbCollection = getDBCollection(collection);
-        return dbCollection.findOne(getByPathQuery(path));
     }
 
     private static DBObject getByPathQuery(String path) {

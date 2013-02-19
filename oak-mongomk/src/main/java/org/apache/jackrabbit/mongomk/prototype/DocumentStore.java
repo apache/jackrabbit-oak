@@ -28,7 +28,7 @@ public interface DocumentStore {
 
     Map<String, Object> find(Collection collection, String key);
 
-    List<Map<String, Object>> query(Collection collection, String fromKey, String toKey);
+    List<Map<String, Object>> query(Collection collection, String fromKey, String toKey, int limit);
     
     void remove(Collection collection, String key);
 
