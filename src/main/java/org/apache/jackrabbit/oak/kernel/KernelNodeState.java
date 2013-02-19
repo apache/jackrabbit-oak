@@ -39,6 +39,7 @@ import org.apache.jackrabbit.mk.json.JsopReader;
 import org.apache.jackrabbit.mk.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.BinaryPropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.BooleanPropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
@@ -69,13 +70,15 @@ public final class KernelNodeState extends AbstractNodeState {
 
     private final String path;
 
-    private final String revision;
+    private String revision;
 
     private Map<String, PropertyState> properties;
 
     private long childNodeCount = -1;
 
     private String hash;
+
+    private String id;
 
     private Map<String, String> childPaths;
 
@@ -100,42 +103,78 @@ public final class KernelNodeState extends AbstractNodeState {
         this.cache = checkNotNull(cache);
     }
 
-    private synchronized void init() {
-        if (properties == null) {
-            String json = kernel.getNodes(
-                    path, revision, 0, 0, MAX_CHILD_NODE_NAMES,
-                    "{\"properties\":[\"*\",\":hash\"]}");
+    private void init() {
+        boolean initialized = false;
+        synchronized (this) {
+            if (properties == null) {
+                String json = kernel.getNodes(
+                        path, revision, 0, 0, MAX_CHILD_NODE_NAMES,
+                        "{\"properties\":[\"*\",\":hash\",\":id\"]}");
 
-            JsopReader reader = new JsopTokenizer(json);
-            reader.read('{');
-            properties = new LinkedHashMap<String, PropertyState>();
-            childPaths = new LinkedHashMap<String, String>();
-            do {
-                String name = StringCache.get(reader.readString());
-                reader.read(':');
-                if (":childNodeCount".equals(name)) {
-                    childNodeCount =
-                            Long.valueOf(reader.read(JsopReader.NUMBER));
-                } else if (":hash".equals(name)) {
-                    hash = new String(reader.read(JsopReader.STRING));
-                } else if (reader.matches('{')) {
-                    reader.read('}');
-                    String childPath = path + '/' + name;
-                    if ("/".equals(path)) {
-                        childPath = '/' + name;
+                JsopReader reader = new JsopTokenizer(json);
+                reader.read('{');
+                properties = new LinkedHashMap<String, PropertyState>();
+                childPaths = new LinkedHashMap<String, String>();
+                do {
+                    String name = StringCache.get(reader.readString());
+                    reader.read(':');
+                    if (":childNodeCount".equals(name)) {
+                        childNodeCount =
+                                Long.valueOf(reader.read(JsopReader.NUMBER));
+                    } else if (":hash".equals(name)) {
+                        hash = new String(reader.read(JsopReader.STRING));
+                        if (hash.equals(id)) {
+                            // save some memory
+                            hash = id;
+                        }
+                    } else if (":id".equals(name)) {
+                        id = new String(reader.read(JsopReader.STRING));
+                        if (id.equals(hash)) {
+                            // save some memory
+                            id = hash;
+                        }
+                    } else if (reader.matches('{')) {
+                        reader.read('}');
+                        String childPath = path + '/' + name;
+                        if ("/".equals(path)) {
+                            childPath = '/' + name;
+                        }
+                        childPaths.put(name, childPath);
+                    } else if (reader.matches('[')) {
+                        properties.put(name, readArrayProperty(name, reader));
+                    } else {
+                        properties.put(name, readProperty(name, reader));
                     }
-                    childPaths.put(name, childPath);
-                } else if (reader.matches('[')) {
-                    properties.put(name, readArrayProperty(name, reader));
-                } else {
-                    properties.put(name, readProperty(name, reader));
+                } while (reader.matches(','));
+                reader.read('}');
+                reader.read(JsopReader.END);
+                // optimize for empty childNodes
+                if (childPaths.isEmpty()) {
+                    childPaths = Collections.emptyMap();
                 }
-            } while (reader.matches(','));
-            reader.read('}');
-            reader.read(JsopReader.END);
-            // optimize for empty childNodes
-            if (childPaths.isEmpty()) {
-                childPaths = Collections.emptyMap();
+                initialized = true;
+            }
+        }
+        if (initialized && !PathUtils.denotesRoot(path)) {
+            // OAK-591: check if we can re-use a previous revision
+            // by looking up the node state by hash or id (if available)
+            // introducing this secondary lookup basically means we point
+            // back to a subtree in an older revision, in case it didn't change
+            String hashOrId = null;
+            if (hash != null) {
+                // hash takes precedence
+                hashOrId = hash;
+            } else if (id != null) {
+                hashOrId = id;
+            }
+            if (hashOrId != null) {
+                KernelNodeState cached = cache.getIfPresent(hashOrId);
+                if (cached != null && cached.path.equals(this.path)) {
+                    this.revision = cached.revision;
+                } else {
+                    // store under secondary key
+                    cache.put(hashOrId, this);
+                }
             }
         }
     }
@@ -232,6 +271,8 @@ public final class KernelNodeState extends AbstractNodeState {
                     kbase.init();
                     if (hash != null && hash.equals(kbase.hash)) {
                         return; // no differences
+                    } else if (id != null && id.equals(kbase.id)) {
+                        return; // no differences
                     } else if (path.equals(kbase.path) && !path.equals("/")) {
                         String jsonDiff = kernel.diff(kbase.getRevision(), revision, path, 0);
                         if (!hasChanges(jsonDiff)) {
@@ -269,6 +310,11 @@ public final class KernelNodeState extends AbstractNodeState {
                     that.init();
                     if (hash != null && that.hash != null) {
                         return hash.equals(that.hash);
+                    } else if (id != null && id.equals(that.id)) {
+                        // only return result of equals if ids are equal
+                        // different ids doesn't mean the node states are
+                        // definitively different.
+                        return true;
                     } else if (path.equals(that.path) && !path.equals("/")) {
                         String jsonDiff = kernel.diff(that.getRevision(), revision, path, 0);
                         return !hasChanges(jsonDiff);
