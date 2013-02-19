@@ -205,6 +205,7 @@ public final class KernelNodeState extends AbstractNodeState {
 
     @Override
     public NodeState getChildNode(String name) {
+        checkNotNull(name);
         init();
         String childPath = childPaths.get(name);
         if (childPath == null && childNodeCount > MAX_CHILD_NODE_NAMES) {

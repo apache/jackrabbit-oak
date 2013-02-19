@@ -198,7 +198,8 @@ public class TreeImpl implements Tree {
     }
 
     @Override
-    public TreeImpl getChild(String name) {
+    public TreeImpl getChild(@Nonnull String name) {
+        checkNotNull(name);
         root.checkLive();
         TreeImpl child = internalGetChild(name);
         if (child != null && canRead(child)) {
@@ -239,8 +240,7 @@ public class TreeImpl implements Tree {
     }
 
     @Override
-    public boolean hasChild(String name) {
-        root.checkLive();
+    public boolean hasChild(@Nonnull String name) {
         return getChild(name) != null;
     }
 

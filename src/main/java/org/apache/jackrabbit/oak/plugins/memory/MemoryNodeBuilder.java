@@ -577,11 +577,13 @@ public class MemoryNodeBuilder implements NodeBuilder {
 
         @Override
         public boolean hasChildNode(String name) {
+            checkNotNull(name);
             return withNodes(base, nodes).hasChildNode(name);
         }
 
         @Override
         public NodeState getChildNode(String name) {
+            checkNotNull(name);
             return withNodes(base, nodes).getChildNode(name); // mutable
         }
 

@@ -136,7 +136,7 @@ public class ReadOnlyTree implements Tree {
     }
 
     @Override
-    public ReadOnlyTree getChild(String name) {
+    public ReadOnlyTree getChild(@Nonnull String name) {
         NodeState child = state.getChildNode(name);
         if (child != null) {
             return new ReadOnlyTree(this, name, child);
@@ -156,8 +156,8 @@ public class ReadOnlyTree implements Tree {
     }
 
     @Override
-    public boolean hasChild(String name) {
-        return state.getChildNode(name) != null;
+    public boolean hasChild(@Nonnull String name) {
+        return state.hasChildNode(name);
     }
 
     @Override
