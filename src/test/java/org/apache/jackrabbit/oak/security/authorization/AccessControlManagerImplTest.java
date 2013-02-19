@@ -557,7 +557,6 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         // TODO
     }
 
-    @Ignore("OAK-644")
     @Test
     public void testSetPolicy() throws Exception {
         ACL acl = getApplicablePolicy(testPath);
@@ -576,7 +575,6 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         assertArrayEquals(acl.getAccessControlEntries(), acl2.getAccessControlEntries());
     }
 
-    @Ignore("OAK-644")
     @Test
     public void testSetPolicyWritesAcContent() throws Exception {
         ACL acl = getApplicablePolicy(testPath);
@@ -609,7 +607,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         assertEquals("*/something", restr.getString(REP_GLOB, null));
     }
 
-    @Ignore()
+    @Ignore("OAK-51")
     @Test
     public void testModifyExistingPolicy() throws Exception {
         ACL acl = getApplicablePolicy(testPath);
@@ -637,7 +635,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         assertEquals(denyEveryone, aces[0]);
         assertEquals(allowTest, aces[1]);
 
-        acl.addEntry(testPrincipal, new Privilege[] {acMgr.privilegeFromName(PrivilegeConstants.JCR_ALL)},
+        acl.addEntry(testPrincipal, new Privilege[]{acMgr.privilegeFromName(PrivilegeConstants.JCR_ALL)},
                 false, Collections.<String, Value>emptyMap());
         AccessControlEntry denyTest = acl.getAccessControlEntries()[2];
 
