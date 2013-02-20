@@ -31,7 +31,7 @@ import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitHookProvider;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
 import org.apache.jackrabbit.oak.spi.commit.ValidatingHook;
-import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
+import org.apache.jackrabbit.oak.spi.lifecycle.WorkspaceInitializer;
 import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
@@ -60,7 +60,7 @@ public class AccessControlConfigurationImpl extends SecurityConfiguration.Defaul
 
     @Nonnull
     @Override
-    public RepositoryInitializer getRepositoryInitializer() {
+    public WorkspaceInitializer getWorkspaceInitializer() {
         return new AccessControlInitializer();
     }
 
