@@ -19,13 +19,9 @@ package org.apache.jackrabbit.oak.plugins.segment;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
 
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
 
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.mongodb.BasicDBObject;
@@ -35,8 +31,6 @@ import com.mongodb.DBObject;
 import com.mongodb.Mongo;
 
 public class MongoStore implements SegmentStore {
-
-    private static final int MAX_SEGMENT_SIZE = 1 << 23; // 8MB
 
     private final DBCollection segments;
 
@@ -82,11 +76,6 @@ public class MongoStore implements SegmentStore {
         DBObject headObject = new BasicDBObject(
                 ImmutableMap.of("_id", "root", "head", head.toString()));
         return journals.findAndModify(baseObject, headObject) != null;
-    }
-
-    @Override
-    public int getMaxSegmentSize() {
-        return MAX_SEGMENT_SIZE;
     }
 
     @Override
