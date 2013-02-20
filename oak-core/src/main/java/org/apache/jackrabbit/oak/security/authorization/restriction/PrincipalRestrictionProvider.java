@@ -63,7 +63,7 @@ public class PrincipalRestrictionProvider implements RestrictionProvider, Access
     }
 
     @Override
-    public Set<Restriction> readRestrictions(String oakPath, Tree aceTree) throws AccessControlException {
+    public Set<Restriction> readRestrictions(String oakPath, Tree aceTree) {
         Set<Restriction> restrictions = new HashSet<Restriction>(base.readRestrictions(oakPath, aceTree));
         String value = (oakPath == null) ? "" : oakPath;
         PropertyState nodePathProp = PropertyStates.createProperty(REP_NODE_PATH, value, Type.PATH);
