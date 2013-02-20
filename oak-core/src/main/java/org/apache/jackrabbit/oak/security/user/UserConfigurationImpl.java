@@ -26,7 +26,7 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitHookProvider;
 import org.apache.jackrabbit.oak.spi.commit.ValidatingHook;
-import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
+import org.apache.jackrabbit.oak.spi.lifecycle.WorkspaceInitializer;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
@@ -61,7 +61,7 @@ public class UserConfigurationImpl extends SecurityConfiguration.Default impleme
 
     @Nonnull
     @Override
-    public RepositoryInitializer getRepositoryInitializer() {
+    public WorkspaceInitializer getWorkspaceInitializer() {
         return new UserInitializer(securityProvider);
     }
 

@@ -21,6 +21,8 @@ import javax.annotation.Nonnull;
 import javax.jcr.NoSuchWorkspaceException;
 import javax.security.auth.login.LoginException;
 
+import com.google.common.base.Function;
+import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.api.ContentRepository;
@@ -42,6 +44,7 @@ import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.lifecycle.CompositeInitializer;
 import org.apache.jackrabbit.oak.spi.lifecycle.OakInitializer;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
+import org.apache.jackrabbit.oak.spi.lifecycle.WorkspaceInitializer;
 import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
@@ -231,12 +234,26 @@ public class Oak {
 
         commitHooks.add(IndexHookManager.of(indexHooks));
         withValidatorHook();
+        CommitHook commitHook = CompositeHook.compose(commitHooks);
+        QueryIndexProvider indexProvider = CompositeQueryIndexProvider.compose(queryIndexProviders);
+
+        // FIXME: move to proper workspace initialization
+        // initialize default workspace
+        Iterable<WorkspaceInitializer> workspaceInitializers =
+                Iterables.transform(securityProvider.getSecurityConfigurations(),
+                        new Function<SecurityConfiguration, WorkspaceInitializer>() {
+                            @Override
+                            public WorkspaceInitializer apply(SecurityConfiguration sc) {
+                                return sc.getWorkspaceInitializer();
+                            }
+                        });
+        OakInitializer.initialize(workspaceInitializers, store, defaultWorkspaceName, indexHooks, indexProvider, commitHook);
 
         return new ContentRepositoryImpl(
                 store,
-                CompositeHook.compose(commitHooks),
+                commitHook,
                 defaultWorkspaceName,
-                CompositeQueryIndexProvider.compose(queryIndexProviders),
+                indexProvider,
                 securityProvider);
     }
 

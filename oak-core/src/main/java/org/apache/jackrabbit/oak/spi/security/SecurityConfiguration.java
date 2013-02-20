@@ -22,9 +22,14 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.plugins.index.IndexHookProvider;
+import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitHookProvider;
 import org.apache.jackrabbit.oak.spi.lifecycle.CompositeInitializer;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
+import org.apache.jackrabbit.oak.spi.lifecycle.WorkspaceInitializer;
+import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 
 /**
@@ -37,6 +42,9 @@ public interface SecurityConfiguration {
 
     @Nonnull
     RepositoryInitializer getRepositoryInitializer();
+
+    @Nonnull
+    WorkspaceInitializer getWorkspaceInitializer();
 
     @Nonnull
     CommitHookProvider getSecurityHooks();
@@ -65,6 +73,18 @@ public interface SecurityConfiguration {
         @Override
         public RepositoryInitializer getRepositoryInitializer() {
             return new CompositeInitializer(Collections.<RepositoryInitializer>emptyList());
+        }
+
+        @Nonnull
+        @Override
+        public WorkspaceInitializer getWorkspaceInitializer() {
+            return new WorkspaceInitializer() {
+                @Nonnull
+                @Override
+                public NodeState initialize(NodeState workspaceRoot, String workspaceName, IndexHookProvider indexHook, QueryIndexProvider indexProvider, CommitHook commitHook) {
+                    return workspaceRoot;
+                }
+            };
         }
 
         @Nonnull

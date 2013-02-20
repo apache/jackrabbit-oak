@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
+import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.JcrConstants;
@@ -26,11 +27,13 @@ import org.apache.jackrabbit.oak.core.RootImpl;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexHookManager;
+import org.apache.jackrabbit.oak.plugins.index.IndexHookProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
-import org.apache.jackrabbit.oak.plugins.index.p2.Property2IndexHookProvider;
-import org.apache.jackrabbit.oak.plugins.index.p2.Property2IndexProvider;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
-import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
+import org.apache.jackrabbit.oak.security.authentication.SystemSubject;
+import org.apache.jackrabbit.oak.spi.commit.CommitHook;
+import org.apache.jackrabbit.oak.spi.lifecycle.WorkspaceInitializer;
+import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
@@ -41,7 +44,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Creates initial set of users to be present in the repository. This
+ * Creates initial set of users to be present in a given workspace. This
  * implementation uses the {@code UserManager} such as defined by the
  * user configuration.
  * <p/>
@@ -64,7 +67,7 @@ import org.slf4j.LoggerFactory;
  * <li>{@link UserConstants#REP_MEMBERS}</li>
  * </ul>
  */
-public class UserInitializer implements RepositoryInitializer, UserConstants {
+public class UserInitializer implements WorkspaceInitializer, UserConstants {
 
     /**
      * logger instance
@@ -77,22 +80,26 @@ public class UserInitializer implements RepositoryInitializer, UserConstants {
         this.securityProvider = securityProvider;
     }
 
-    //----------------------------------------------< RepositoryInitializer >---
+    //-----------------------------------------------< WorkspaceInitializer >---
+    @Nonnull
     @Override
-    public NodeState initialize(NodeState state) {
+    public NodeState initialize(NodeState workspaceRoot, String workspaceName,
+                                IndexHookProvider indexHook, QueryIndexProvider indexProvider,
+                                CommitHook commitHook) {
         MemoryNodeStore store = new MemoryNodeStore();
         NodeStoreBranch branch = store.branch();
-        branch.setRoot(state);
+        branch.setRoot(workspaceRoot);
         try {
-            branch.merge(IndexHookManager.of(new Property2IndexHookProvider()));
+            branch.merge(IndexHookManager.of(indexHook));
         } catch (CommitFailedException e) {
             throw new RuntimeException(e);
         }
-        Root root = new RootImpl(store, new Property2IndexProvider());
+        Root root = new RootImpl(store, commitHook, workspaceName, SystemSubject.INSTANCE, securityProvider, indexProvider);
 
         UserConfiguration userConfiguration = securityProvider.getUserConfiguration();
         UserManager userManager = userConfiguration.getUserManager(root, NamePathMapper.DEFAULT);
 
+        String errorMsg = "Failed to initialize user content.";
         try {
             NodeUtil rootTree = new NodeUtil(root.getTree("/"));
             NodeUtil index = rootTree.getOrAddChild(IndexConstants.INDEX_DEFINITIONS_NAME, JcrConstants.NT_UNSTRUCTURED);
@@ -115,10 +122,10 @@ public class UserInitializer implements RepositoryInitializer, UserConstants {
                 root.commit();
             }
         } catch (RepositoryException e) {
-            log.error("Failed to initialize user content ", e);
+            log.error(errorMsg, e);
             throw new RuntimeException(e);
         } catch (CommitFailedException e) {
-            log.error("Failed to initialize user content ", e);
+            log.error(errorMsg, e);
             throw new RuntimeException(e);
         }
         return store.getRoot();
