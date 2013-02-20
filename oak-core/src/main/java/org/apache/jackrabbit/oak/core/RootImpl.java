@@ -128,11 +128,6 @@ public class RootImpl implements Root {
 
     // TODO: review if this constructor really makes sense and cannot be replaced.
     public RootImpl(NodeStore store) {
-        this(store, new CompositeQueryIndexProvider());
-    }
-
-    // TODO: review if this constructor really makes sense and cannot be replaced.
-    public RootImpl(NodeStore store, QueryIndexProvider indexProvider) {
         this.store = checkNotNull(store);
         // FIXME: define proper default or pass workspace name with the constructor
         this.workspaceName = Oak.DEFAULT_WORKSPACE_NAME;
