@@ -31,7 +31,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.core.ReadOnlyTree;
 import org.apache.jackrabbit.oak.security.authorization.AccessControlConstants;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeBits;
-import org.apache.jackrabbit.oak.security.privilege.PrivilegeDefinitionStore;
+import org.apache.jackrabbit.oak.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.Permissions;
 import org.apache.jackrabbit.util.Text;
 
@@ -43,16 +43,16 @@ import static com.google.common.base.Preconditions.checkNotNull;
 public class CompiledPermissionImpl implements CompiledPermissions, AccessControlConstants {
 
     private final Set<Principal> principals;
-    private final PrivilegeDefinitionStore privilegeStore;
+    private final PrivilegeBitsProvider bitsProvider;
 
     private final Map<Key, Entry> userEntries;
     private final Map<Key, Entry> groupEntries;
 
     public CompiledPermissionImpl(@Nonnull Set<Principal> principals,
-                                  @Nonnull PrivilegeDefinitionStore privilegeStore,
+                                  @Nonnull PrivilegeBitsProvider bitsProvider,
                                   @Nonnull ReadOnlyTree permissionsTree) {
         this.principals = checkNotNull(principals);
-        this.privilegeStore = privilegeStore;
+        this.bitsProvider = bitsProvider;
 
         EntriesBuilder builder = new EntriesBuilder();
         for (Principal principal : principals) {
@@ -99,12 +99,12 @@ public class CompiledPermissionImpl implements CompiledPermissions, AccessContro
 
     @Override
     public Set<String> getPrivileges(@Nullable Tree tree) {
-        return privilegeStore.getPrivilegeNames(getPrivilegeBits(tree));
+        return bitsProvider.getPrivilegeNames(getPrivilegeBits(tree));
     }
 
     @Override
     public boolean hasPrivileges(@Nullable Tree tree, String... privilegeNames) {
-        return getPrivilegeBits(tree).includes(privilegeStore.getBits(privilegeNames));
+        return getPrivilegeBits(tree).includes(bitsProvider.getBits(privilegeNames));
     }
 
     //------------------------------------------------------------< private >---

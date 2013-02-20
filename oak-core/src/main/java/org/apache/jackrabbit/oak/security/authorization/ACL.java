@@ -40,7 +40,7 @@ import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeBits;
-import org.apache.jackrabbit.oak.security.privilege.PrivilegeDefinitionStore;
+import org.apache.jackrabbit.oak.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.ACE;
 import org.apache.jackrabbit.oak.spi.security.authorization.AbstractAccessControlList;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
@@ -72,7 +72,7 @@ abstract class ACL extends AbstractAccessControlList {
 
     abstract PrivilegeManager getPrivilegeManager();
 
-    abstract PrivilegeDefinitionStore getPrivilegeStore();
+    abstract PrivilegeBitsProvider getPrivilegeBitsProvider();
 
     //------------------------------------------< AbstractAccessControlList >---
     @Nonnull
@@ -236,7 +236,7 @@ abstract class ACL extends AbstractAccessControlList {
 
     private Set<Privilege> getPrivileges(PrivilegeBits bits) throws RepositoryException {
         Set<Privilege> privileges = new HashSet<Privilege>();
-        for (String name : getPrivilegeStore().getPrivilegeNames(bits)) {
+        for (String name : getPrivilegeBitsProvider().getPrivilegeNames(bits)) {
             privileges.add(getPrivilegeManager().getPrivilege(name));
         }
         return privileges;
@@ -245,7 +245,7 @@ abstract class ACL extends AbstractAccessControlList {
     private PrivilegeBits getPrivilegeBits(ACE entry) {
         PrivilegeBits bits = PrivilegeBits.getInstance();
         for (Privilege privilege : entry.getPrivileges()) {
-            bits.add(getPrivilegeStore().getBits(privilege.getName()));
+            bits.add(getPrivilegeBitsProvider().getBits(privilege.getName()));
         }
         return bits;
     }
