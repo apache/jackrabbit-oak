@@ -18,17 +18,22 @@
  */
 package org.apache.jackrabbit.oak.spi.lifecycle;
 
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.index.IndexHookManager;
 import org.apache.jackrabbit.oak.plugins.index.IndexHookProvider;
+import org.apache.jackrabbit.oak.spi.commit.CommitHook;
+import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 
 public class OakInitializer {
 
-    public static void initialize(NodeStore store,
-            RepositoryInitializer initializer, IndexHookProvider indexHook) {
+    public static void initialize(@Nonnull NodeStore store,
+                                  @Nonnull RepositoryInitializer initializer,
+                                  @Nonnull IndexHookProvider indexHook) {
         NodeStoreBranch branch = store.branch();
         NodeState before = branch.getRoot();
         branch.setRoot(initializer.initialize(before));
@@ -39,4 +44,22 @@ public class OakInitializer {
         }
     }
 
+    public static void initialize(@Nonnull Iterable<WorkspaceInitializer> initializer,
+                                  @Nonnull NodeStore store,
+                                  @Nonnull String workspaceName,
+                                  @Nonnull IndexHookProvider indexHook,
+                                  @Nonnull QueryIndexProvider indexProvider,
+                                  @Nonnull CommitHook commitHook) {
+        NodeStoreBranch branch = store.branch();
+        NodeState root = branch.getRoot();
+        for (WorkspaceInitializer wspInit : initializer) {
+            root = wspInit.initialize(root, workspaceName, indexHook, indexProvider, commitHook);
+        }
+        branch.setRoot(root);
+        try {
+            branch.merge(IndexHookManager.of(indexHook));
+        } catch (CommitFailedException e) {
+            throw new RuntimeException(e);
+        }
+    }
 }
