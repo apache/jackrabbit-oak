@@ -40,7 +40,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 /**
  * TODO
  */
-public class CompiledPermissionImpl implements CompiledPermissions, AccessControlConstants {
+class CompiledPermissionImpl implements CompiledPermissions, AccessControlConstants {
 
     private final Set<Principal> principals;
     private final PrivilegeBitsProvider bitsProvider;
@@ -48,9 +48,9 @@ public class CompiledPermissionImpl implements CompiledPermissions, AccessContro
     private final Map<Key, Entry> userEntries;
     private final Map<Key, Entry> groupEntries;
 
-    public CompiledPermissionImpl(@Nonnull Set<Principal> principals,
-                                  @Nonnull PrivilegeBitsProvider bitsProvider,
-                                  @Nonnull ReadOnlyTree permissionsTree) {
+    CompiledPermissionImpl(@Nonnull Set<Principal> principals,
+                           @Nonnull PrivilegeBitsProvider bitsProvider,
+                           @Nonnull ReadOnlyTree permissionsTree) {
         this.principals = checkNotNull(principals);
         this.bitsProvider = bitsProvider;
 

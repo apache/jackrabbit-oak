@@ -14,12 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.security.authorization;
+package org.apache.jackrabbit.oak.security.authorization.permission;
 
 import java.util.Collections;
+import java.util.Set;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -34,9 +36,12 @@ import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryPropertyBuilder;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
+import org.apache.jackrabbit.oak.security.authorization.AccessControlConstants;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
+import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
+import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
@@ -54,14 +59,20 @@ import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
  * access control content and updates persisted permission caches associated
  * with access control related data stored in the repository.
  */
-public class PermissionHook implements CommitHook, AccessControlConstants {
+public class PermissionHook implements CommitHook, AccessControlConstants, PermissionConstants {
 
     private static final Logger log = LoggerFactory.getLogger(PermissionHook.class);
 
+    private final RestrictionProvider restrictionProvider;
     private final String workspaceName;
 
-    PermissionHook(String workspaceName) {
+    private NodeBuilder permissionRoot;
+    private ReadOnlyNodeTypeManager ntMgr;
+    private PrivilegeBitsProvider bitsProvider;
+
+    public PermissionHook(String workspaceName, RestrictionProvider restrictionProvider) {
         this.workspaceName = workspaceName;
+        this.restrictionProvider = restrictionProvider;
     }
 
     @Nonnull
@@ -69,11 +80,11 @@ public class PermissionHook implements CommitHook, AccessControlConstants {
     public NodeState processCommit(final NodeState before, NodeState after) throws CommitFailedException {
         NodeBuilder rootAfter = after.builder();
 
-        NodeBuilder permissionRoot = getPermissionRoot(rootAfter, workspaceName);
-        ReadOnlyNodeTypeManager ntMgr = ReadOnlyNodeTypeManager.getInstance(before);
-        PrivilegeBitsProvider bitsProvider = new PrivilegeBitsProvider(new ReadOnlyRoot(before));
+        permissionRoot = getPermissionRoot(rootAfter, workspaceName);
+        ntMgr = ReadOnlyNodeTypeManager.getInstance(before);
+        bitsProvider = new PrivilegeBitsProvider(new ReadOnlyRoot(before));
 
-        after.compareAgainstBaseState(before, new Diff(new BeforeNode(before), new Node(rootAfter), permissionRoot, bitsProvider, ntMgr));
+        after.compareAgainstBaseState(before, new Diff(new BeforeNode(before), new Node(rootAfter)));
         return rootAfter.getNodeState();
     }
 
@@ -98,6 +109,14 @@ public class PermissionHook implements CommitHook, AccessControlConstants {
         return new ReadOnlyTree(null, name, nodeState);
     }
 
+    private static String getAccessControlledPath(BaseNode aclNode) {
+        if (REP_REPO_POLICY.equals(aclNode.getName())) {
+            return "";
+        } else {
+            return Text.getRelativeParent(aclNode.getPath(), 1);
+        }
+    }
+
     private static int getAceIndex(BaseNode aclNode, String aceName) {
         PropertyState ordering = checkNotNull(aclNode.getNodeState().getProperty(TreeImpl.OAK_CHILD_ORDER));
         return Lists.newArrayList(ordering.getValue(Type.STRINGS)).indexOf(aceName);
@@ -105,27 +124,22 @@ public class PermissionHook implements CommitHook, AccessControlConstants {
 
     private static String generateName(NodeBuilder principalRoot, Entry entry) {
         StringBuilder name = new StringBuilder();
-        name.append((entry.isAllow) ? 'a' : 'd').append('-').append(principalRoot.getChildNodeCount());
+        name.append((entry.isAllow) ? PREFIX_ALLOW : PREFIX_DENY).append('-').append(principalRoot.getChildNodeCount());
         return name.toString();
     }
 
-    private static class Diff implements NodeStateDiff {
+    private Set<Restriction> getRestrictions(String accessControlledPath, Tree aceTree) {
+        return restrictionProvider.readRestrictions(Strings.emptyToNull(accessControlledPath), aceTree);
+    }
+
+    private class Diff implements NodeStateDiff {
 
         private final BeforeNode parentBefore;
         private final Node parentAfter;
-        private final NodeBuilder permissionRoot;
-        private final PrivilegeBitsProvider bitsProvider;
-        private final ReadOnlyNodeTypeManager ntMgr;
 
-        private Diff(@Nonnull BeforeNode parentBefore, @Nonnull Node parentAfter,
-                     @Nonnull NodeBuilder permissionRoot,
-                     @Nonnull PrivilegeBitsProvider bitsProvider,
-                     @Nonnull ReadOnlyNodeTypeManager ntMgr) {
+        private Diff(@Nonnull BeforeNode parentBefore, @Nonnull Node parentAfter) {
             this.parentBefore = parentBefore;
             this.parentAfter = parentAfter;
-            this.permissionRoot = permissionRoot;
-            this.bitsProvider = bitsProvider;
-            this.ntMgr = ntMgr;
         }
 
         @Override
@@ -152,7 +166,7 @@ public class PermissionHook implements CommitHook, AccessControlConstants {
             } else {
                 BeforeNode before = new BeforeNode(parentBefore.getPath(), name, MemoryNodeState.EMPTY_NODE);
                 Node node = new Node(parentAfter, name);
-                after.compareAgainstBaseState(before.getNodeState(), new Diff(before, node, permissionRoot, bitsProvider, ntMgr));
+                after.compareAgainstBaseState(before.getNodeState(), new Diff(before, node));
             }
         }
 
@@ -165,7 +179,7 @@ public class PermissionHook implements CommitHook, AccessControlConstants {
             } else {
                 BeforeNode nodeBefore = new BeforeNode(parentBefore.getPath(), name, before);
                 Node nodeAfter = new Node(parentAfter, name);
-                after.compareAgainstBaseState(before, new Diff(nodeBefore, nodeAfter, permissionRoot, bitsProvider, ntMgr));
+                after.compareAgainstBaseState(before, new Diff(nodeBefore, nodeAfter));
             }
         }
 
@@ -176,7 +190,7 @@ public class PermissionHook implements CommitHook, AccessControlConstants {
             } else {
                 BeforeNode nodeBefore = new BeforeNode(parentBefore.getPath(), name, before);
                 Node after = new Node(parentAfter.getPath(), name, MemoryNodeState.EMPTY_NODE);
-                after.getNodeState().compareAgainstBaseState(before, new Diff(nodeBefore, after, permissionRoot, bitsProvider, ntMgr));
+                after.getNodeState().compareAgainstBaseState(before, new Diff(nodeBefore, after));
             }
         }
 
@@ -187,14 +201,6 @@ public class PermissionHook implements CommitHook, AccessControlConstants {
 
         private boolean isACE(String name, NodeState nodeState) {
             return ntMgr.isNodeType(getTree(name, nodeState), NT_REP_ACE);
-        }
-
-        private static String getAccessControlledPath(BaseNode aclNode) {
-            if (REP_REPO_POLICY.equals(aclNode.getName())) {
-                return "";
-            } else {
-                return Text.getRelativeParent(aclNode.getPath(), 1);
-            }
         }
 
         private void addEntry(String name, NodeState ace) {
@@ -240,12 +246,10 @@ public class PermissionHook implements CommitHook, AccessControlConstants {
             String principalName = checkNotNull(TreeUtil.getString(aceTree, REP_PRINCIPAL_NAME));
             PrivilegeBits privilegeBits = bitsProvider.getBits(TreeUtil.getStrings(aceTree, REP_PRIVILEGES));
             boolean isAllow = NT_REP_GRANT_ACE.equals(TreeUtil.getPrimaryTypeName(aceTree));
-            // TODO: respect restrictions
-
             String accessControlledPath = getAccessControlledPath(acl);
-            int index = getAceIndex(acl, name);
 
-            return new Entry(accessControlledPath, index, principalName, privilegeBits, isAllow);
+            return new Entry(accessControlledPath, getAceIndex(acl, name), principalName,
+                    privilegeBits, isAllow, getRestrictions(accessControlledPath, aceTree));
         }
     }
 
@@ -317,7 +321,7 @@ public class PermissionHook implements CommitHook, AccessControlConstants {
         }
     }
 
-    private static final class Entry {
+    private final class Entry {
 
         private final String accessControlledPath;
         private final int index;
@@ -325,27 +329,32 @@ public class PermissionHook implements CommitHook, AccessControlConstants {
         private final String principalName;
         private final PrivilegeBits privilegeBits;
         private final boolean isAllow;
+        private final Set<Restriction> restrictions;
 
         private Entry(@Nonnull String accessControlledPath,
                       int index,
                       @Nonnull String principalName,
                       @Nonnull PrivilegeBits privilegeBits,
-                      boolean isAllow) {
+                      boolean isAllow, Set<Restriction> restrictions) {
             this.accessControlledPath = accessControlledPath;
             this.index = index;
 
             this.principalName = principalName;
             this.privilegeBits = privilegeBits;
             this.isAllow = isAllow;
+            this.restrictions = restrictions;
         }
 
         private void writeTo(NodeBuilder principalRoot) {
             String entryName = generateName(principalRoot, this);
-            principalRoot.child(entryName)
-                    .setProperty("rep:accessControlledPath", accessControlledPath)
-                    .setProperty("rep:index", index)
-                    .setProperty(privilegeBits.asPropertyState("rep:privileges"));
-            // TODO: append restrictions
+            NodeBuilder entry = principalRoot.child(entryName)
+                    .setProperty(JCR_PRIMARYTYPE, NT_REP_PERMISSIONS)
+                    .setProperty(REP_ACCESS_CONTROLLED_PATH, accessControlledPath)
+                    .setProperty(REP_INDEX, index)
+                    .setProperty(privilegeBits.asPropertyState(REP_PRIVILEGES));
+            for (Restriction restriction : restrictions) {
+                entry.setProperty(restriction.getProperty());
+            }
 
             PropertyState ordering = principalRoot.getProperty(TreeImpl.OAK_CHILD_ORDER);
             if (ordering == null) {
@@ -362,7 +371,7 @@ public class PermissionHook implements CommitHook, AccessControlConstants {
         private boolean isSame(String name, NodeState node) {
             Tree entry = getTree(name, node);
 
-            if (isAllow == (name.charAt(0) == 'a')) {
+            if (isAllow == (name.charAt(0) == PREFIX_ALLOW)) {
                 return false;
             }
             if (!privilegeBits.equals(PrivilegeBits.getInstance(node.getProperty(REP_PRIVILEGES)))) {
@@ -371,15 +380,13 @@ public class PermissionHook implements CommitHook, AccessControlConstants {
             if (!principalName.equals(TreeUtil.getString(entry, REP_PRINCIPAL_NAME))) {
                 return false;
             }
-            if (index != entry.getProperty("rep:index").getValue(Type.LONG)) {
+            if (index != entry.getProperty(REP_INDEX).getValue(Type.LONG)) {
                 return false;
             }
-            if (!accessControlledPath.equals(TreeUtil.getString(entry, "rep:accessControlledPath"))) {
+            if (!accessControlledPath.equals(TreeUtil.getString(entry, REP_ACCESS_CONTROLLED_PATH))) {
                 return false;
             }
-            // TODO: respect restrictions
-
-            return true;
+            return restrictions.equals(getRestrictions(accessControlledPath, getTree(name, node)));
         }
 
         public String toString() {
@@ -388,6 +395,7 @@ public class PermissionHook implements CommitHook, AccessControlConstants {
             sb.append(';').append(principalName);
             sb.append(';').append(isAllow ? "allow" : "deny");
             sb.append(';').append(privilegeBits);
+            sb.append(';').append(restrictions);
             return sb.toString();
         }
     }
