@@ -49,12 +49,12 @@ public class ACE implements JackrabbitAccessControlEntry {
 
     public ACE(Principal principal, Privilege[] privileges,
                boolean isAllow, Set<Restriction> restrictions) throws AccessControlException {
-        this(principal, ImmutableSet.copyOf(privileges), isAllow, restrictions);
+        this(principal, (privileges == null) ? null : ImmutableSet.copyOf(privileges), isAllow, restrictions);
     }
 
     public ACE(Principal principal, Set<Privilege> privileges,
                boolean isAllow, Set<Restriction> restrictions) throws AccessControlException {
-        if (principal == null || privileges == null) {
+        if (principal == null || privileges == null || privileges.isEmpty()) {
             throw new AccessControlException();
         }
         // make sure no abstract privileges are passed.
