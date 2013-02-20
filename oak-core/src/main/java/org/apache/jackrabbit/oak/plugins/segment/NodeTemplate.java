@@ -16,11 +16,15 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
+import static com.google.common.base.Preconditions.checkElementIndex;
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -32,6 +36,7 @@ import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.plugins.segment.MapRecord.Entry;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 
 import com.google.common.base.Function;
 import com.google.common.base.Objects;
@@ -181,22 +186,31 @@ class NodeTemplate {
         } else if ("jcr:mixinTypes".equals(name) && mixinTypes != null) {
             return mixinTypes;
         } else {
-            int offset = 8;
-            if (hasNoChildNodes()) {
-                offset = 4;
-            }
             for (int i = 0; i < properties.length; i++) {
                 int diff = name.compareTo(properties[i].getName());
                 if (diff == 0) {
-                    return new SegmentPropertyState(
-                            properties[i], reader,
-                            reader.readRecordId(recordId, offset + i * 4));
+                    return getProperty(reader, recordId, i);
                 } else if (diff < 0) {
                     return null;
                 }
             }
             return null;
         }
+    }
+
+    private PropertyState getProperty(
+            SegmentReader reader, RecordId recordId, int index) {
+        checkNotNull(reader);
+        checkNotNull(recordId);
+        checkElementIndex(index, properties.length);
+
+        int offset = 8;
+        if (hasNoChildNodes()) {
+            offset = 4;
+        }
+        return new SegmentPropertyState(
+                properties[index], reader,
+                reader.readRecordId(recordId, offset + index * 4));
     }
 
     public Iterable<PropertyState> getProperties(
@@ -305,6 +319,116 @@ class NodeTemplate {
             RecordId childNodeId = reader.readRecordId(recordId, 4);
             return Collections.singletonList(new MemoryChildNodeEntry(
                     childName, new SegmentNodeState(reader, childNodeId)));
+        }
+    }
+
+    public void compareAgainstBaseState(
+            SegmentReader reader, RecordId afterId,
+            NodeTemplate beforeTemplate, RecordId beforeId,
+            NodeStateDiff diff) {
+        checkNotNull(reader);
+        checkNotNull(afterId);
+        checkNotNull(beforeTemplate);
+        checkNotNull(beforeId);
+        checkNotNull(diff);
+
+        // Compare type properties
+        compareProperties(beforeTemplate.primaryType, primaryType, diff);
+        compareProperties(beforeTemplate.mixinTypes, mixinTypes, diff);
+
+        // Compare other properties, leveraging the ordering
+        int beforeIndex = 0;
+        int afterIndex = 0;
+        while (beforeIndex < beforeTemplate.properties.length
+                && afterIndex < properties.length) {
+            int d = properties[afterIndex].compareTo(
+                    beforeTemplate.properties[beforeIndex]);
+            PropertyState beforeProperty = null;
+            PropertyState afterProperty = null;
+            if (d < 0) {
+                afterProperty = getProperty(reader, afterId, afterIndex++);
+            } else if (d > 0) {
+                beforeProperty = beforeTemplate.getProperty(
+                        reader, beforeId, beforeIndex++);
+            } else {
+                afterProperty = getProperty(reader, afterId, afterIndex++);
+                beforeProperty = beforeTemplate.getProperty(
+                        reader, beforeId, beforeIndex++);
+            }
+            compareProperties(beforeProperty, afterProperty, diff);
+        }
+        while (afterIndex < properties.length) {
+            diff.propertyAdded(getProperty(reader, afterId, afterIndex++));
+        }
+        while (beforeIndex < beforeTemplate.properties.length) {
+            diff.propertyDeleted(beforeTemplate.getProperty(
+                    reader, beforeId, beforeIndex++));
+        }
+
+        if (hasNoChildNodes()) {
+            if (!beforeTemplate.hasNoChildNodes()) {
+                for (ChildNodeEntry entry :
+                        beforeTemplate.getChildNodeEntries(reader, beforeId)) {
+                    diff.childNodeDeleted(
+                            entry.getName(), entry.getNodeState());
+                }
+            }
+        } else if (hasOneChildNode()) {
+            NodeState afterNode = getChildNode(childName, reader, afterId);
+            NodeState beforeNode = beforeTemplate.getChildNode(
+                    childName, reader, beforeId);
+            if (beforeNode == null) {
+                diff.childNodeAdded(childName, afterNode);
+            } else if (!beforeNode.equals(afterNode)) {
+                diff.childNodeChanged(childName, beforeNode, afterNode);
+            }
+            if ((beforeTemplate.hasOneChildNode() && beforeNode == null)
+                    || beforeTemplate.hasManyChildNodes()) {
+                for (ChildNodeEntry entry :
+                    beforeTemplate.getChildNodeEntries(reader, beforeId)) {
+                    if (!childName.equals(entry.getName())) {
+                        diff.childNodeDeleted(
+                                entry.getName(), entry.getNodeState());
+                    }
+                }
+            }
+        } else {
+            // TODO: Leverage the HAMT data structure for the comparison
+            Set<String> baseChildNodes = new HashSet<String>();
+            for (ChildNodeEntry beforeCNE
+                    : beforeTemplate.getChildNodeEntries(reader, beforeId)) {
+                String name = beforeCNE.getName();
+                NodeState beforeChild = beforeCNE.getNodeState();
+                NodeState afterChild = getChildNode(name, reader, afterId);
+                if (afterChild == null) {
+                    diff.childNodeDeleted(name, beforeChild);
+                } else {
+                    baseChildNodes.add(name);
+                    if (!beforeChild.equals(afterChild)) {
+                        diff.childNodeChanged(name, beforeChild, afterChild);
+                    }
+                }
+            }
+            for (ChildNodeEntry afterChild
+                    : getChildNodeEntries(reader, afterId)) {
+                String name = afterChild.getName();
+                if (!baseChildNodes.contains(name)) {
+                    diff.childNodeAdded(name, afterChild.getNodeState());
+                }
+            }
+        }
+    }
+
+    private void compareProperties(
+            PropertyState before, PropertyState after, NodeStateDiff diff) {
+        if (before == null) {
+            if (after != null) {
+                diff.propertyAdded(after);
+            }
+        } else if (after == null) {
+            diff.propertyDeleted(before);
+        } else if (!before.equals(after)) {
+            diff.propertyChanged(before, after);
         }
     }
 

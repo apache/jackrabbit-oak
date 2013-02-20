@@ -27,6 +27,7 @@ import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 
 class SegmentNodeState extends AbstractNodeState {
 
@@ -100,6 +101,20 @@ class SegmentNodeState extends AbstractNodeState {
     @Override @Nonnull
     public NodeBuilder builder() {
         return new MemoryNodeBuilder(this);
+    }
+
+    @Override
+    public void compareAgainstBaseState(NodeState base, NodeStateDiff diff) {
+        if (base instanceof SegmentNodeState) {
+            SegmentNodeState that = (SegmentNodeState) base;
+            if (!recordId.equals(that.recordId)) {
+                getTemplate().compareAgainstBaseState(
+                        reader, recordId, that.getTemplate(), that.recordId,
+                        diff);
+            }
+        } else {
+            super.compareAgainstBaseState(base, diff); // fallback
+        }
     }
 
     public boolean equals(Object object) {
