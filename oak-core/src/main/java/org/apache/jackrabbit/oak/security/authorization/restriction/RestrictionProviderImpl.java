@@ -87,7 +87,7 @@ public class RestrictionProviderImpl implements RestrictionProvider, AccessContr
     }
 
     @Override
-    public Set<Restriction> readRestrictions(String oakPath, Tree aceTree) throws AccessControlException {
+    public Set<Restriction> readRestrictions(String oakPath, Tree aceTree) {
         if (oakPath == null) {
             return Collections.emptySet();
         } else {
@@ -106,7 +106,7 @@ public class RestrictionProviderImpl implements RestrictionProvider, AccessContr
     }
 
     @Override
-    public void writeRestrictions(String oakPath, Tree aceTree, Set<Restriction> restrictions) throws AccessControlException {
+    public void writeRestrictions(String oakPath, Tree aceTree, Set<Restriction> restrictions) {
         // validation of the restrictions is delegated to the commit hook
         // see #validateRestrictions below
         if (!restrictions.isEmpty()) {
@@ -120,7 +120,7 @@ public class RestrictionProviderImpl implements RestrictionProvider, AccessContr
 
     @Override
     public void validateRestrictions(String oakPath, Tree aceTree) throws javax.jcr.security.AccessControlException {
-        Map<String,PropertyState> restrictionProperties = getRestrictionProperties(aceTree);
+        Map<String, PropertyState> restrictionProperties = getRestrictionProperties(aceTree);
         if (oakPath == null && !restrictionProperties.isEmpty()) {
             throw new AccessControlException("Restrictions not supported with 'null' path.");
         }
@@ -132,7 +132,7 @@ public class RestrictionProviderImpl implements RestrictionProvider, AccessContr
             }
             int type = entry.getValue().getType().tag();
             if (type != def.getRequiredType()) {
-                throw new AccessControlException("Invalid restriction type '"+PropertyType.nameFromValue(type)+"'. Expected " + PropertyType.nameFromValue(def.getRequiredType()));
+                throw new AccessControlException("Invalid restriction type '" + PropertyType.nameFromValue(type) + "'. Expected " + PropertyType.nameFromValue(def.getRequiredType()));
             }
         }
         for (RestrictionDefinition def : supported.values()) {
@@ -145,7 +145,7 @@ public class RestrictionProviderImpl implements RestrictionProvider, AccessContr
     //------------------------------------------------------------< private >---
     @Nonnull
     private Restriction createRestriction(PropertyState propertyState, boolean isMandatory) {
-        return new RestrictionImpl(propertyState,  isMandatory, namePathMapper);
+        return new RestrictionImpl(propertyState, isMandatory, namePathMapper);
     }
 
     @Nonnull
@@ -161,7 +161,7 @@ public class RestrictionProviderImpl implements RestrictionProvider, AccessContr
     @Nonnull
     private Map<String, PropertyState> getRestrictionProperties(Tree aceTree) {
         Tree rTree = getRestrictionsTree(aceTree);
-        Map<String,PropertyState> restrictionProperties = new HashMap<String, PropertyState>();
+        Map<String, PropertyState> restrictionProperties = new HashMap<String, PropertyState>();
         for (PropertyState property : rTree.getProperties()) {
             String name = property.getName();
             if (isRestrictionProperty(name)) {

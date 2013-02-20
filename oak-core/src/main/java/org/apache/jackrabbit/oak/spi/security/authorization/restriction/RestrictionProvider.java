@@ -38,7 +38,7 @@ public interface RestrictionProvider {
                                   @Nonnull String jcrName, @Nonnull Value value) throws RepositoryException;
 
     @Nonnull
-    Set<Restriction> readRestrictions(@Nullable String oakPath, @Nonnull Tree aceTree) throws AccessControlException;
+    Set<Restriction> readRestrictions(@Nullable String oakPath, @Nonnull Tree aceTree);
 
     void writeRestrictions(String oakPath, Tree aceTree, Set<Restriction> restrictions) throws AccessControlException;
 
