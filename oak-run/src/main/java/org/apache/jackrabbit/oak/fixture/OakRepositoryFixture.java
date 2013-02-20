@@ -75,14 +75,13 @@ public abstract class OakRepositoryFixture implements RepositoryFixture {
 
     public static RepositoryFixture getMongo() {
         return new OakRepositoryFixture() {
-            private MongoConnection mongo;
             private MongoMicroKernel[] kernels;
             @Override
             public void setUpCluster(Repository[] cluster) throws Exception {
-                mongo = new MongoConnection(
-                        "127.0.0.1", 27017, "oak-benchmark-mongo");
                 kernels = new MongoMicroKernel[cluster.length];
                 for (int i = 0; i < cluster.length; i++) {
+                    MongoConnection mongo = new MongoConnection(
+                            "127.0.0.1", 27017, "oak-benchmark-mongo");
                     kernels[i] = new MongoMicroKernel(
                             mongo,
                             new MongoNodeStore(mongo.getDB()),
@@ -95,8 +94,14 @@ public abstract class OakRepositoryFixture implements RepositoryFixture {
                 for (MongoMicroKernel kernel : kernels) {
                     kernel.dispose();
                 }
-                mongo.getDB().dropDatabase();
-                mongo.close();
+                try {
+                    MongoConnection mongo = new MongoConnection(
+                            "127.0.0.1", 27017, "oak-benchmark-mongo");
+                    mongo.getDB().dropDatabase();
+                    mongo.close();
+                } catch (Exception e) {
+                    throw new IllegalStateException(e);
+                }
             }
         };
     }
