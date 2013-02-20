@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.mongomk.prototype;
 
 import java.io.InputStream;
+import java.lang.ref.WeakReference;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -134,20 +135,11 @@ public class MongoMK implements MicroKernel {
         this.store = store;
         this.blobStore = blobStore;
         this.clusterId = clusterId;
-        backgroundThread = new Thread(new Runnable() {
-            public void run() {
-                while (!isDisposed.get()) {
-                    synchronized (isDisposed) {
-                        try {
-                            isDisposed.wait(ASYNC_DELAY);
-                        } catch (InterruptedException e) {
-                            // ignore
-                        }
-                    }
-                    runBackgroundOperations();
-                }
-            }
-        }, "MongoMK background thread");
+        // ensure the MK can be garbage collected
+        final WeakReference<MongoMK> ref = new WeakReference<MongoMK>(this);
+        backgroundThread = new Thread(
+            new BackgroundOperation(this, isDisposed),
+            "MongoMK background thread");
         backgroundThread.setDaemon(true);
         backgroundThread.start();
         headRevision = Revision.newRevision(clusterId);
@@ -568,6 +560,10 @@ public class MongoMK implements MicroKernel {
         }
     }
 
+    public DocumentStore getDocumentStore() {
+        return store;
+    }
+    
     static class Cache<K, V> extends LinkedHashMap<K, V> {
 
         private static final long serialVersionUID = 1L;
@@ -584,8 +580,28 @@ public class MongoMK implements MicroKernel {
 
     }
 
-    public DocumentStore getDocumentStore() {
-        return store;
+    static class BackgroundOperation implements Runnable {
+        private final AtomicBoolean isDisposed;
+        final WeakReference<MongoMK> ref;
+        BackgroundOperation(MongoMK mk, AtomicBoolean isDisposed) {
+            ref = new WeakReference<MongoMK>(mk);
+            this.isDisposed = isDisposed;
+        }
+        public void run() {
+            while (!isDisposed.get()) {
+                synchronized (isDisposed) {
+                    try {
+                        isDisposed.wait(ASYNC_DELAY);
+                    } catch (InterruptedException e) {
+                        // ignore
+                    }
+                }
+                MongoMK mk = ref.get();
+                if (mk != null) {
+                    mk.runBackgroundOperations();
+                }
+            }
+        }
     }
 
 }

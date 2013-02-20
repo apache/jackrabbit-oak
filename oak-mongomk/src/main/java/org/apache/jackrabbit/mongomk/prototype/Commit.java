@@ -127,7 +127,12 @@ public class Commit {
 
     private void addChangedParent(String path) {
         while (true) {
-            changedParents.add(path);
+            UpdateOp op = operations.get(path);
+            if (op == null || !op.isNew) {
+                // no need to update the write count 
+                // for new nodes
+                changedParents.add(path);
+            }
             if (PathUtils.denotesRoot(path)) {
                 break;
             }

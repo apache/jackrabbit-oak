@@ -29,6 +29,7 @@ import org.apache.jackrabbit.mk.util.NodeFilter;
 import org.apache.jackrabbit.mongomk.api.NodeStore;
 import org.apache.jackrabbit.mongomk.api.model.Commit;
 import org.apache.jackrabbit.mongomk.api.model.Node;
+import org.apache.jackrabbit.mongomk.impl.blob.MongoBlobStore;
 import org.apache.jackrabbit.mongomk.impl.json.JsonUtil;
 import org.apache.jackrabbit.mongomk.impl.model.CommitBuilder;
 import org.apache.jackrabbit.mongomk.impl.model.MongoCommit;
@@ -48,6 +49,16 @@ public class MongoMicroKernel implements MicroKernel {
     private final MongoConnection mongoConnection;
     private final BlobStore blobStore;
     private final NodeStore nodeStore;
+    
+    /**
+     * Constructs a new {@code MongoMicroKernel}.
+     * 
+     * @param conn Connection to MongoDB.
+     */
+    public MongoMicroKernel(MongoConnection conn) {
+        this(conn, new MongoNodeStore(conn.getDB()),
+                new MongoBlobStore(conn.getDB()));
+    }
 
     /**
      * Constructs a new {@code MongoMicroKernel}.
