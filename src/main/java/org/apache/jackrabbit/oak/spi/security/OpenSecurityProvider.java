@@ -16,10 +16,15 @@
  */
 package org.apache.jackrabbit.oak.spi.security;
 
+import java.util.Collections;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import com.google.common.collect.ImmutableList;
+import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
+import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.spi.lifecycle.CompositeInitializer;
+import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authentication.OpenAuthenticationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfiguration;
@@ -42,7 +47,7 @@ public class OpenSecurityProvider implements SecurityProvider {
     @Nonnull
     @Override
     public Iterable<SecurityConfiguration> getSecurityConfigurations() {
-        return ImmutableList.of(getAccessControlConfiguration(), getAuthenticationConfiguration());
+        return Collections.emptyList();
     }
 
     @Nonnull
@@ -60,7 +65,7 @@ public class OpenSecurityProvider implements SecurityProvider {
     @Nonnull
     @Override
     public PrivilegeConfiguration getPrivilegeConfiguration() {
-        throw new UnsupportedOperationException();
+        return new OpenPrivilegeConfiguration();
     }
 
     @Nonnull
@@ -73,5 +78,19 @@ public class OpenSecurityProvider implements SecurityProvider {
     @Override
     public PrincipalConfiguration getPrincipalConfiguration() {
         throw new UnsupportedOperationException();
+    }
+
+    private static final class OpenPrivilegeConfiguration extends SecurityConfiguration.Default implements PrivilegeConfiguration {
+        @Nonnull
+        @Override
+        public PrivilegeManager getPrivilegeManager(Root root, NamePathMapper namePathMapper) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Nonnull
+        @Override
+        public RepositoryInitializer getPrivilegeInitializer() {
+            return new CompositeInitializer();
+        }
     }
 }

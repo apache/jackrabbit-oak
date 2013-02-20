@@ -41,13 +41,13 @@ public class PrivilegeConfigurationImpl extends SecurityConfiguration.Default im
         return new PrivilegeManagerImpl(root, namePathMapper);
     }
 
-    //----------------------------------------------< SecurityConfiguration >---
     @Nonnull
     @Override
-    public RepositoryInitializer getRepositoryInitializer() {
+    public RepositoryInitializer getPrivilegeInitializer() {
         return new PrivilegeInitializer();
     }
 
+    //----------------------------------------------< SecurityConfiguration >---
     @Nonnull
     @Override
     public CommitHookProvider getSecurityHooks() {

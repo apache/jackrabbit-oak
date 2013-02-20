@@ -21,6 +21,7 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 
 /**
@@ -37,4 +38,13 @@ public interface PrivilegeConfiguration extends SecurityConfiguration {
      */
     @Nonnull
     PrivilegeManager getPrivilegeManager(Root root, NamePathMapper namePathMapper);
+
+    /**
+     * Returns the privilege specific repository initializer.
+     *
+     * @return An instance of {@code RepositoryInitializer} that initializes
+     *         the built-in privileges.
+     */
+    @Nonnull
+    RepositoryInitializer getPrivilegeInitializer();
 }

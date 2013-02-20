@@ -25,8 +25,6 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.index.IndexHookProvider;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitHookProvider;
-import org.apache.jackrabbit.oak.spi.lifecycle.CompositeInitializer;
-import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.lifecycle.WorkspaceInitializer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -39,9 +37,6 @@ public interface SecurityConfiguration {
 
     @Nonnull
     ConfigurationParameters getConfigurationParameters();
-
-    @Nonnull
-    RepositoryInitializer getRepositoryInitializer();
 
     @Nonnull
     WorkspaceInitializer getWorkspaceInitializer();
@@ -67,12 +62,6 @@ public interface SecurityConfiguration {
         @Override
         public ConfigurationParameters getConfigurationParameters() {
             return ConfigurationParameters.EMPTY;
-        }
-
-        @Nonnull
-        @Override
-        public RepositoryInitializer getRepositoryInitializer() {
-            return new CompositeInitializer(Collections.<RepositoryInitializer>emptyList());
         }
 
         @Nonnull

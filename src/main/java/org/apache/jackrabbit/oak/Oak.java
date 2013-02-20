@@ -209,9 +209,7 @@ public class Oak {
     @Nonnull
     public Oak with(@Nonnull SecurityProvider securityProvider) {
         this.securityProvider = securityProvider;
-        for (SecurityConfiguration sc : securityProvider.getSecurityConfigurations()) {
-            initializers.add(sc.getRepositoryInitializer());
-        }
+        initializers.add(securityProvider.getPrivilegeConfiguration().getPrivilegeInitializer());
         return this;
     }
 
