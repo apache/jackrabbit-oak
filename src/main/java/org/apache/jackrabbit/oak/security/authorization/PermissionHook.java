@@ -238,7 +238,7 @@ public class PermissionHook implements CommitHook, AccessControlConstants {
         private Entry createEntry(String name, NodeState ace, BaseNode acl) {
             Tree aceTree = getTree(name, ace);
             String principalName = checkNotNull(TreeUtil.getString(aceTree, REP_PRINCIPAL_NAME));
-            PrivilegeBits privilegeBits = bitsProvider.getBits(TreeUtil.getString(aceTree, REP_PRIVILEGES));
+            PrivilegeBits privilegeBits = bitsProvider.getBits(TreeUtil.getStrings(aceTree, REP_PRIVILEGES));
             boolean isAllow = NT_REP_GRANT_ACE.equals(TreeUtil.getPrimaryTypeName(aceTree));
             // TODO: respect restrictions
 
