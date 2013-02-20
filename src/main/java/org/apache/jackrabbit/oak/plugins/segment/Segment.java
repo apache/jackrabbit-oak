@@ -87,6 +87,20 @@ class Segment {
 
     private final UUID[] uuids;
 
+    private final OffsetCache<String> strings = new OffsetCache<String>() {
+        @Override
+        protected String load(int offset) {
+            return null;
+        }
+    };
+
+    private final OffsetCache<NodeTemplate> templates = new OffsetCache<NodeTemplate>() {
+        @Override
+        protected NodeTemplate load(int offset) {
+            return null;
+        }
+    };
+
     Segment(UUID uuid, byte[] data, UUID[] uuids) {
         this.uuid = uuid;
         this.data = data;
