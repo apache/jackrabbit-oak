@@ -47,6 +47,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 
 /**
  * {@code CommitHook} implementation that processes any modification made to
@@ -78,13 +79,16 @@ public class PermissionHook implements CommitHook, AccessControlConstants {
 
     @Nonnull
     private NodeBuilder getPermissionRoot(NodeBuilder rootBuilder, String workspaceName) {
-        NodeBuilder store = rootBuilder.child(NodeTypeConstants.JCR_SYSTEM).child(REP_PERMISSION_STORE);
+        NodeBuilder permissionStore = rootBuilder.child(NodeTypeConstants.JCR_SYSTEM).child(REP_PERMISSION_STORE);
+        if (permissionStore.getProperty(JCR_PRIMARYTYPE) == null) {
+            permissionStore.setProperty(JCR_PRIMARYTYPE, NT_REP_PERMISSION_STORE, Type.NAME);
+        }
         NodeBuilder permissionRoot;
-        if (!store.hasChildNode(workspaceName)) {
-            permissionRoot = store.child(workspaceName)
+        if (!permissionStore.hasChildNode(workspaceName)) {
+            permissionRoot = permissionStore.child(workspaceName)
                     .setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_PERMISSION_STORE);
         } else {
-            permissionRoot = store.child(workspaceName);
+            permissionRoot = permissionStore.child(workspaceName);
         }
         return permissionRoot;
     }
