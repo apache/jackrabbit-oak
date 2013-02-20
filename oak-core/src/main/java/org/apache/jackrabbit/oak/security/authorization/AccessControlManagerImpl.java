@@ -62,7 +62,7 @@ import org.apache.jackrabbit.oak.plugins.memory.MemoryPropertyBuilder;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.security.authorization.restriction.PrincipalRestrictionProvider;
 import org.apache.jackrabbit.oak.security.principal.PrincipalImpl;
-import org.apache.jackrabbit.oak.security.privilege.PrivilegeDefinitionStore;
+import org.apache.jackrabbit.oak.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.ACE;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfiguration;
@@ -616,8 +616,8 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
         }
 
         @Override
-        PrivilegeDefinitionStore getPrivilegeStore() {
-            return new PrivilegeDefinitionStore(root);
+        PrivilegeBitsProvider getPrivilegeBitsProvider() {
+            return new PrivilegeBitsProvider(root);
         }
     }
 

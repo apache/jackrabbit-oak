@@ -37,13 +37,13 @@ import static org.junit.Assert.fail;
  */
 public class PrivilegeValidatorTest extends AbstractSecurityTest implements PrivilegeConstants {
 
-    PrivilegeDefinitionStore store;
+    PrivilegeBitsProvider store;
     Tree privilegesTree;
 
     @Before
     public void before() throws Exception {
         super.before();
-        store = new PrivilegeDefinitionStore(root);
+        store = new PrivilegeBitsProvider(root);
         privilegesTree = checkNotNull(store.getPrivilegesTree());
     }
 
