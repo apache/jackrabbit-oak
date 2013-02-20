@@ -17,14 +17,13 @@
 package org.apache.jackrabbit.mongomk.prototype;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mongomk.prototype.UpdateOp.Operation;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
@@ -39,54 +38,91 @@ public class MongoDocumentStore implements DocumentStore {
 
     public static final String KEY_PATH = "_id";
 
-    private static final Logger LOG = LoggerFactory.getLogger(MongoDocumentStore.class);
-
     private final DBCollection nodesCollection;
+    
+    private final boolean LOG = false;
+    private final boolean LOG_TIME = true;
+    private long time;
 
     public MongoDocumentStore(DB db) {
         nodesCollection = db.getCollection(Collection.NODES.toString());
         ensureIndex();
     }
+    
+    private long start() {
+        return LOG_TIME ? System.currentTimeMillis() : 0;
+    }
+    
+    private void end(long start) {
+        if (LOG_TIME) {
+            time += System.currentTimeMillis() - start;
+        }
+    }
+    
+    public void finalize() {
+        // TODO should not be needed, but it seems
+        // oak-jcr doesn't call dispose()
+        dispose();
+    }
 
     @Override
     public Map<String, Object> find(Collection collection, String path) {
+        log("find", path);
         DBCollection dbCollection = getDBCollection(collection);
-        DBObject doc = dbCollection.findOne(getByPathQuery(path));
-        if (doc == null) {
-            return null;
+        long start = start();
+        try {
+            DBObject doc = dbCollection.findOne(getByPathQuery(path));
+            if (doc == null) {
+                return null;
+            }
+            return convertFromDBObject(doc);
+        } finally {
+            end(start);
         }
-        return convertFromDBObject(doc);
     }
     
     @Override
     public List<Map<String, Object>> query(Collection collection,
             String fromKey, String toKey, int limit) {
+        log("query", fromKey, toKey, limit);
         DBCollection dbCollection = getDBCollection(collection);
         QueryBuilder queryBuilder = QueryBuilder.start(KEY_PATH);
         queryBuilder.greaterThanEquals(fromKey);
         queryBuilder.lessThan(toKey);
         DBObject query = queryBuilder.get();
-        DBCursor cursor = dbCollection.find(query);
-        List<Map<String, Object>> list = new ArrayList<Map<String, Object>>();
-        for (int i=0; i<limit && cursor.hasNext(); i++) {
-            DBObject o = cursor.next();
-            Map<String, Object> map = convertFromDBObject(o);
-            list.add(map);
+        long start = start();
+        try {
+            DBCursor cursor = dbCollection.find(query);
+            List<Map<String, Object>> list = new ArrayList<Map<String, Object>>();
+            for (int i=0; i<limit && cursor.hasNext(); i++) {
+                DBObject o = cursor.next();
+                Map<String, Object> map = convertFromDBObject(o);
+                list.add(map);
+            }
+            return list;
+        } finally {
+            end(start);
         }
-        return list;
     }
 
     @Override
     public void remove(Collection collection, String path) {
+        log("remove", path);        
         DBCollection dbCollection = getDBCollection(collection);
-        WriteResult writeResult = dbCollection.remove(getByPathQuery(path), WriteConcern.SAFE);
-        if (writeResult.getError() != null) {
-            LOG.error("Remove failed: {}", writeResult.getError());
+        long start = start();
+        try {
+            WriteResult writeResult = dbCollection.remove(getByPathQuery(path), WriteConcern.SAFE);
+            if (writeResult.getError() != null) {
+                throw new MicroKernelException("Remove failed: " + writeResult.getError());
+            }
+        } finally {
+            end(start);
         }
     }
 
     @Override
     public Map<String, Object> createOrUpdate(Collection collection, UpdateOp updateOp) {
+        log("createOrUpdate", updateOp);        
         DBCollection dbCollection = getDBCollection(collection);
 
         BasicDBObject setUpdates = new BasicDBObject();
@@ -128,6 +164,7 @@ public class MongoDocumentStore implements DocumentStore {
 //                WriteConcern.SAFE);
 //        return null;
 
+        long start = start();
         try {
             DBObject oldNode = dbCollection.findAndModify(query, null /*fields*/,
                     null /*sort*/, false /*remove*/, update, false /*returnNew*/,
@@ -135,11 +172,14 @@ public class MongoDocumentStore implements DocumentStore {
             return convertFromDBObject(oldNode);
         } catch (Exception e) {
             throw new MicroKernelException(e);
+        } finally {
+            end(start);
         }
     }
 
     @Override
     public void create(Collection collection, List<UpdateOp> updateOps) {
+        log("create", updateOps);        
         DBObject[] inserts = new DBObject[updateOps.size()];
 
         for (int i = 0; i < updateOps.size(); i++) {
@@ -170,10 +210,15 @@ public class MongoDocumentStore implements DocumentStore {
         }
 
         DBCollection dbCollection = getDBCollection(collection);
-        WriteResult writeResult = dbCollection.insert(inserts, WriteConcern.SAFE);
-        if (writeResult.getError() != null) {
-            LOG.error("Batch create failed: {}", writeResult.getError());
-        }
+        long start = start();
+        try {
+            WriteResult writeResult = dbCollection.insert(inserts, WriteConcern.SAFE);
+            if (writeResult.getError() != null) {
+                throw new MicroKernelException("Batch create failed: " + writeResult.getError());
+            }
+        } finally {
+            end(start);
+        }        
     }
 
     private void ensureIndex() {
@@ -213,7 +258,16 @@ public class MongoDocumentStore implements DocumentStore {
     
     @Override
     public void dispose() {
+        if (LOG_TIME) {
+            System.out.println("MongoDB time: " + time);
+        }
         nodesCollection.getDB().getMongo().close();
+    }
+    
+    private void log(Object... args) {
+        if (LOG) {
+            System.out.println(Arrays.toString(args));
+        }
     }
 
 }
