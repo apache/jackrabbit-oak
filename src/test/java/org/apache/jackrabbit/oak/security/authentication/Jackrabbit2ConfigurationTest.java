@@ -20,6 +20,7 @@ import javax.security.auth.login.Configuration;
 
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.security.ConfigurationUtil;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtility;
 import org.junit.Test;
