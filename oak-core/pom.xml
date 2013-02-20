@@ -17,7 +17,9 @@
    limitations under the License.
   -->
 
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd ">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd ">
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
@@ -39,38 +41,37 @@
         <configuration>
           <instructions>
             <Export-Package>
-                org.apache.jackrabbit.oak,
-                org.apache.jackrabbit.oak.api,
-                org.apache.jackrabbit.oak.core,
-                org.apache.jackrabbit.oak.kernel,
-                org.apache.jackrabbit.oak.util,
-                org.apache.jackrabbit.oak.namepath,
-                org.apache.jackrabbit.oak.plugins.value,
-                org.apache.jackrabbit.oak.plugins.commit,
-                org.apache.jackrabbit.oak.plugins.identifier,
-                org.apache.jackrabbit.oak.plugins.index,
-                org.apache.jackrabbit.oak.plugins.index.nodetype,
-                org.apache.jackrabbit.oak.plugins.index.property,
-                org.apache.jackrabbit.oak.plugins.index.p2,
-                org.apache.jackrabbit.oak.plugins.memory,
-                org.apache.jackrabbit.oak.plugins.name,
-                org.apache.jackrabbit.oak.plugins.nodetype,
-                org.apache.jackrabbit.oak.plugins.nodetype.write,
-                org.apache.jackrabbit.oak.plugins.observation,
-                org.apache.jackrabbit.oak.plugins.version,
-                org.apache.jackrabbit.oak.spi.query,
-                org.apache.jackrabbit.oak.spi.commit,
-                org.apache.jackrabbit.oak.spi.lifecycle,
-                org.apache.jackrabbit.oak.spi.state,
-                org.apache.jackrabbit.oak.spi.security,
-                org.apache.jackrabbit.oak.spi.security.authentication,
-                org.apache.jackrabbit.oak.spi.security.principal,
-                org.apache.jackrabbit.oak.spi.security.privilege,
-                org.apache.jackrabbit.oak.spi.security.user,
-                org.apache.jackrabbit.oak.spi.security.user.action,
-                org.apache.jackrabbit.oak.spi.security.user.util,
-                org.apache.jackrabbit.oak.security,
-                org.apache.jackrabbit.oak.security.authentication
+              org.apache.jackrabbit.oak,
+              org.apache.jackrabbit.oak.api,
+              org.apache.jackrabbit.oak.core,
+              org.apache.jackrabbit.oak.kernel,
+              org.apache.jackrabbit.oak.util,
+              org.apache.jackrabbit.oak.namepath,
+              org.apache.jackrabbit.oak.plugins.value,
+              org.apache.jackrabbit.oak.plugins.commit,
+              org.apache.jackrabbit.oak.plugins.identifier,
+              org.apache.jackrabbit.oak.plugins.index,
+              org.apache.jackrabbit.oak.plugins.index.nodetype,
+              org.apache.jackrabbit.oak.plugins.index.property,
+              org.apache.jackrabbit.oak.plugins.index.p2,
+              org.apache.jackrabbit.oak.plugins.memory,
+              org.apache.jackrabbit.oak.plugins.name,
+              org.apache.jackrabbit.oak.plugins.nodetype,
+              org.apache.jackrabbit.oak.plugins.nodetype.write,
+              org.apache.jackrabbit.oak.plugins.observation,
+              org.apache.jackrabbit.oak.plugins.version,
+              org.apache.jackrabbit.oak.spi.query,
+              org.apache.jackrabbit.oak.spi.commit,
+              org.apache.jackrabbit.oak.spi.lifecycle,
+              org.apache.jackrabbit.oak.spi.state,
+              org.apache.jackrabbit.oak.spi.security,
+              org.apache.jackrabbit.oak.spi.security.authentication,
+              org.apache.jackrabbit.oak.spi.security.principal,
+              org.apache.jackrabbit.oak.spi.security.privilege,
+              org.apache.jackrabbit.oak.spi.security.user,
+              org.apache.jackrabbit.oak.spi.security.user.action,
+              org.apache.jackrabbit.oak.spi.security.user.util,
+              org.apache.jackrabbit.oak.security
             </Export-Package>
             <Bundle-Activator>
               org.apache.jackrabbit.oak.osgi.Activator
@@ -101,7 +102,9 @@
           <artifactId>apache-rat-plugin</artifactId>
           <configuration>
             <excludes>
-              <exclude>src/test/resources/org/apache/jackrabbit/oak/util/test.json</exclude>
+              <exclude>
+                src/test/resources/org/apache/jackrabbit/oak/util/test.json
+              </exclude>
             </excludes>
           </configuration>
         </plugin>
@@ -157,8 +160,8 @@
     </dependency>
 
     <dependency>
-        <groupId>com.google.guava</groupId>
-        <artifactId>guava</artifactId>
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava</artifactId>
     </dependency>
 
     <!-- Optional dependencies for different persistence backends -->
@@ -224,16 +227,16 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-        <groupId>ch.qos.logback</groupId>
-        <artifactId>logback-classic</artifactId>
-        <version>1.0.1</version>
-        <scope>test</scope>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
+      <version>1.0.1</version>
+      <scope>test</scope>
     </dependency>
     <dependency>
-        <groupId>org.apache.directory.server</groupId>
-        <artifactId>apacheds-server-unit</artifactId>
-        <version>1.5.5</version>
-        <scope>test</scope>
+      <groupId>org.apache.directory.server</groupId>
+      <artifactId>apacheds-server-unit</artifactId>
+      <version>1.5.5</version>
+      <scope>test</scope>
     </dependency>
   </dependencies>
 </project>
