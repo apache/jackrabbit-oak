@@ -26,7 +26,6 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
-import java.util.Calendar;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -81,7 +80,6 @@ public class RecordTest {
     public void testListRecord() {
         RecordId blockId = writer.writeBlock(bytes, 0, bytes.length);
 
-        ListRecord zero = writeList(0, blockId);
         ListRecord one = writeList(1, blockId);
         ListRecord level1 = writeList(LEVEL_SIZE, blockId);
         ListRecord level1p = writeList(LEVEL_SIZE + 1, blockId);
@@ -89,7 +87,6 @@ public class RecordTest {
         ListRecord level2p = writeList(LEVEL_SIZE * LEVEL_SIZE + 1, blockId);
         writer.flush();
 
-        assertEquals(0, zero.size());
         assertEquals(1, one.size());
         assertEquals(blockId, one.getEntry(reader, 0));
         assertEquals(LEVEL_SIZE, level1.size());
@@ -121,10 +118,10 @@ public class RecordTest {
         checkRandomStreamRecord(0x4080);
         checkRandomStreamRecord(SegmentWriter.BLOCK_SIZE);
         checkRandomStreamRecord(SegmentWriter.BLOCK_SIZE + 1);
-        checkRandomStreamRecord(store.getMaxSegmentSize());
-        checkRandomStreamRecord(store.getMaxSegmentSize() + 1);
-        checkRandomStreamRecord(store.getMaxSegmentSize() * 2);
-        checkRandomStreamRecord(store.getMaxSegmentSize() * 2 + 1);
+        checkRandomStreamRecord(Segment.MAX_SEGMENT_SIZE);
+        checkRandomStreamRecord(Segment.MAX_SEGMENT_SIZE + 1);
+        checkRandomStreamRecord(Segment.MAX_SEGMENT_SIZE * 2);
+        checkRandomStreamRecord(Segment.MAX_SEGMENT_SIZE * 2 + 1);
     }
 
     private void checkRandomStreamRecord(int size) throws IOException {

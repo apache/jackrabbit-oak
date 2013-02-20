@@ -16,9 +16,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
-import java.util.UUID;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 
-import com.google.common.base.Preconditions;
+import java.util.UUID;
 
 public final class RecordId implements Comparable<RecordId> {
 
@@ -40,7 +41,9 @@ public final class RecordId implements Comparable<RecordId> {
     private final int offset;
 
     public RecordId(UUID segmentId, int offset) {
-        this.segmentId = Preconditions.checkNotNull(segmentId);
+        checkArgument(offset < Segment.MAX_SEGMENT_SIZE);
+        checkArgument((offset & (Segment.RECORD_ALIGN_BYTES - 1)) == 0);
+        this.segmentId = checkNotNull(segmentId);
         this.offset = offset;
     }
 
@@ -56,6 +59,7 @@ public final class RecordId implements Comparable<RecordId> {
 
     @Override
     public int compareTo(RecordId that) {
+        checkNotNull(that);
         int diff = segmentId.compareTo(that.segmentId);
         if (diff == 0) {
             diff = offset - that.offset;

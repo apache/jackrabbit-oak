@@ -96,7 +96,7 @@ public class SegmentReader {
                     RecordId primaryId = segment.readRecordId(offset);
                     primaryType = PropertyStates.createProperty(
                             "jcr:primaryType", readString(primaryId), Type.NAME);
-                    offset += 4;
+                    offset += Segment.RECORD_ID_BYTES;
                 }
 
                 PropertyState mixinTypes = null;
@@ -105,7 +105,7 @@ public class SegmentReader {
                     for (int i = 0; i < mixins.length; i++) {
                         RecordId mixinId = segment.readRecordId(offset);
                         mixins[i] = readString(mixinId);
-                        offset += 4;
+                        offset += Segment.RECORD_ID_BYTES;
                     }
                     mixinTypes = PropertyStates.createProperty(
                             "jcr:mixinTypes", Arrays.asList(mixins), Type.NAMES);
@@ -117,18 +117,18 @@ public class SegmentReader {
                 } else if (!zeroChildNodes) {
                     RecordId childNameId = segment.readRecordId(offset);
                     childName = readString(childNameId);
-                    offset += 4;
+                    offset += Segment.RECORD_ID_BYTES;
                 }
 
                 PropertyTemplate[] properties =
                         new PropertyTemplate[propertyCount];
                 for (int i = 0; i < properties.length; i++) {
                     RecordId propertyNameId = segment.readRecordId(offset);
-                    byte type = segment.readByte(offset + 4);
+                    offset += Segment.RECORD_ID_BYTES;
+                    byte type = segment.readByte(offset++);
                     properties[i] = new PropertyTemplate(
                             readString(propertyNameId),
                             Type.fromTag(Math.abs(type), type < 0));
-                    offset += 5;
                 }
 
                 return new NodeTemplate(
@@ -168,7 +168,7 @@ public class SegmentReader {
         } else if ((length & 0x40) == 0) {
             return ((length & 0x3f) << 8
                     | segment.readByte(offset) & 0xff)
-                    + 0x80;
+                    + Segment.SMALL_LIMIT;
         } else {
             return (((long) length & 0x3f) << 56
                     | ((long) (segment.readByte(offset++) & 0xff)) << 48
@@ -178,7 +178,7 @@ public class SegmentReader {
                     | ((long) (segment.readByte(offset++) & 0xff)) << 16
                     | ((long) (segment.readByte(offset++) & 0xff)) << 8
                     | ((long) (segment.readByte(offset) & 0xff)))
-                    + 0x4080;
+                    + Segment.MEDIUM_LIMIT;
         }
     }
 
@@ -186,8 +186,8 @@ public class SegmentReader {
         Segment segment = store.readSegment(recordId.getSegmentId());
         int offset = recordId.getOffset();
         long length = readLength(segment, offset);
-        if (length < 0x4080) {
-            if (length < 0x80) {
+        if (length < Segment.MEDIUM_LIMIT) {
+            if (length < Segment.SMALL_LIMIT) {
                 offset += 1;
             } else {
                 offset += 2;

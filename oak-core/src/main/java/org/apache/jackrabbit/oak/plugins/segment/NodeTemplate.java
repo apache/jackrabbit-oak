@@ -204,13 +204,13 @@ class NodeTemplate {
         checkNotNull(recordId);
         checkElementIndex(index, properties.length);
 
-        int offset = 8;
-        if (hasNoChildNodes()) {
-            offset = 4;
+        int offset = 1;
+        if (!hasNoChildNodes()) {
+            offset++;
         }
         return new SegmentPropertyState(
-                properties[index], reader,
-                reader.readRecordId(recordId, offset + index * 4));
+                properties[index], reader, reader.readRecordId(
+                        recordId, (offset + index) * Segment.RECORD_ID_BYTES));
     }
 
     public Iterable<PropertyState> getProperties(
@@ -223,12 +223,13 @@ class NodeTemplate {
         if (mixinTypes != null) {
             list.add(mixinTypes);
         }
-        int offset = 8;
-        if (hasNoChildNodes()) {
-            offset = 4;
+        int offset = 1;
+        if (!hasNoChildNodes()) {
+            offset++;
         }
         for (int i = 0; i < properties.length; i++) {
-            RecordId propertyId = reader.readRecordId(recordId, offset + i * 4);
+            RecordId propertyId = reader.readRecordId(
+                    recordId, (offset + i) * Segment.RECORD_ID_BYTES);
             list.add(new SegmentPropertyState(
                     properties[i], reader, propertyId));
         }
@@ -239,7 +240,8 @@ class NodeTemplate {
         if (hasNoChildNodes()) {
             return 0;
         } else if (hasManyChildNodes()) {
-            RecordId childNodesId = reader.readRecordId(recordId, 4);
+            RecordId childNodesId =
+                    reader.readRecordId(recordId, Segment.RECORD_ID_BYTES);
             return new MapRecord(childNodesId).size(reader);
         } else {
             return 1;
@@ -251,7 +253,8 @@ class NodeTemplate {
         if (hasNoChildNodes()) {
             return false;
         } else if (hasManyChildNodes()) {
-            RecordId childNodesId = reader.readRecordId(recordId, 4);
+            RecordId childNodesId =
+                    reader.readRecordId(recordId, Segment.RECORD_ID_BYTES);
             return new MapRecord(childNodesId).getEntry(reader, name) != null;
         } else {
             return name.equals(childName);
@@ -263,7 +266,8 @@ class NodeTemplate {
         if (hasNoChildNodes()) {
             return null;
         } else if (hasManyChildNodes()) {
-            RecordId childNodesId = reader.readRecordId(recordId, 4);
+            RecordId childNodesId =
+                    reader.readRecordId(recordId, Segment.RECORD_ID_BYTES);
             RecordId childNodeId =
                     new MapRecord(childNodesId).getEntry(reader, name);
             if (childNodeId != null) {
@@ -273,7 +277,7 @@ class NodeTemplate {
             }
         } else if (name.equals(childName)) {
             RecordId childNodeId =
-                    reader.readRecordId(recordId, 4);
+                    reader.readRecordId(recordId, Segment.RECORD_ID_BYTES);
             return new SegmentNodeState(reader, childNodeId);
         } else {
             return null;
@@ -285,7 +289,8 @@ class NodeTemplate {
         if (hasNoChildNodes()) {
             return Collections.emptyList();
         } else if (hasManyChildNodes()) {
-            RecordId childNodesId = reader.readRecordId(recordId, 4);
+            RecordId childNodesId =
+                    reader.readRecordId(recordId, Segment.RECORD_ID_BYTES);
             return Iterables.transform(
                     new MapRecord(childNodesId).getEntries(reader),
                     new Function<MapRecord.Entry, String>() {
@@ -304,7 +309,8 @@ class NodeTemplate {
         if (hasNoChildNodes()) {
             return Collections.emptyList();
         } else if (hasManyChildNodes()) {
-            RecordId childNodesId = reader.readRecordId(recordId, 4);
+            RecordId childNodesId =
+                    reader.readRecordId(recordId, Segment.RECORD_ID_BYTES);
             return Iterables.transform(
                     new MapRecord(childNodesId).getEntries(reader),
                     new Function<MapRecord.Entry, ChildNodeEntry>() {
@@ -316,7 +322,8 @@ class NodeTemplate {
                         }
                     });
         } else {
-            RecordId childNodeId = reader.readRecordId(recordId, 4);
+            RecordId childNodeId =
+                    reader.readRecordId(recordId, Segment.RECORD_ID_BYTES);
             return Collections.singletonList(new MemoryChildNodeEntry(
                     childName, new SegmentNodeState(reader, childNodeId)));
         }
