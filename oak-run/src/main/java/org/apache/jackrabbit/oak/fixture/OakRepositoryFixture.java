@@ -108,14 +108,13 @@ public abstract class OakRepositoryFixture implements RepositoryFixture {
 
     public static RepositoryFixture getNewMongo() {
         return new OakRepositoryFixture() {
-            private MongoConnection mongo;
             private MongoMK[] kernels;
             @Override
             public void setUpCluster(Repository[] cluster) throws Exception {
-                mongo = new MongoConnection(
-                        "127.0.0.1", 27017, "oak-benchmark-newmongo");
                 kernels = new MongoMK[cluster.length];
                 for (int i = 0; i < cluster.length; i++) {
+                    MongoConnection mongo = new MongoConnection(
+                            "127.0.0.1", 27017, "oak-benchmark-newmongo");
                     kernels[i] = new MongoMK(mongo.getDB(), i);
                     cluster[i] = new Jcr(kernels[i]).createRepository();
                 }
@@ -125,8 +124,14 @@ public abstract class OakRepositoryFixture implements RepositoryFixture {
                 for (MongoMK kernel : kernels) {
                     kernel.dispose();
                 }
-                mongo.getDB().dropDatabase();
-                mongo.close();
+                try {
+                    MongoConnection mongo = new MongoConnection(
+                            "127.0.0.1", 27017, "oak-benchmark-mongo");
+                    mongo.getDB().dropDatabase();
+                    mongo.close();
+                } catch (Exception e) {
+                    throw new IllegalStateException(e);
+                }
             }
         };
     }
