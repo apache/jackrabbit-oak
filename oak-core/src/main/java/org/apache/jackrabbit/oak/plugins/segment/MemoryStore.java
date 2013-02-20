@@ -25,8 +25,6 @@ import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
 
 public class MemoryStore implements SegmentStore {
 
-    private static final int MAX_SEGMENT_SIZE = 1 << 20; // 1MB
-
     private final Map<UUID, Segment> segments =
         Collections.synchronizedMap(new HashMap<UUID, Segment>());
 
@@ -51,11 +49,6 @@ public class MemoryStore implements SegmentStore {
         } else {
             return false;
         }
-    }
-
-    @Override
-    public int getMaxSegmentSize() {
-        return MAX_SEGMENT_SIZE;
     }
 
     @Override

@@ -46,6 +46,20 @@ class MapRecord extends Record {
         return getEntry(reader, key, 0);
     }
 
+    private int getHash(SegmentReader reader, int index) {
+        return reader.readInt(getRecordId(), 4 + index * 4);
+    }
+
+    private String getKey(SegmentReader reader, int size, int index) {
+        int offset = 4 + size * 4 + index * Segment.RECORD_ID_BYTES;
+        return reader.readString(reader.readRecordId(getRecordId(), offset));
+    }
+
+    private RecordId getValue(SegmentReader reader, int size, int index) {
+        int offset = 4 + size * 4 + (size + index) * Segment.RECORD_ID_BYTES;
+        return reader.readRecordId(getRecordId(), offset);
+    }
+
     private RecordId getEntry(SegmentReader reader, String key, int level) {
         int size = 1 << LEVEL_BITS;
         int mask = size - 1;
@@ -56,16 +70,15 @@ class MapRecord extends Record {
         if (bucketSize == 0) {
             return null;
         } else if (bucketSize <= size || shift >= 32) {
-            int offset = 0;
-            while (offset < bucketSize && reader.readInt(getRecordId(), 4 + offset * 4) < code) {
-                offset++;
+            int index = 0;
+            while (index < bucketSize && getHash(reader, index) < code) {
+                index++;
             }
-            while (offset < bucketSize && reader.readInt(getRecordId(), 4 + offset * 4) == code) {
-                RecordId keyId = reader.readRecordId(getRecordId(), 4 + (bucketSize + offset) * 4);
-                if (key.equals(reader.readString(keyId))) {
-                    return reader.readRecordId(getRecordId(), 4 + (2 * bucketSize + offset) * 4);
+            while (index < bucketSize && getHash(reader, index) == code) {
+                if (key.equals(getKey(reader, bucketSize, index))) {
+                    return getValue(reader, bucketSize, index);
                 }
-                offset++;
+                index++;
             }
             return null;
         } else {
@@ -74,7 +87,7 @@ class MapRecord extends Record {
             long bucketBit = 1L << bucketIndex;
             if ((bucketMap & bucketBit) != 0) {
                 bucketIndex = Long.bitCount(bucketMap & (bucketBit - 1));
-                RecordId bucketId = reader.readRecordId(getRecordId(), 12 + bucketIndex * 4);
+                RecordId bucketId = reader.readRecordId(getRecordId(), 12 + bucketIndex * Segment.RECORD_ID_BYTES);
                 return new MapRecord(bucketId).getEntry(reader, key, level + 1);
             } else {
                 return null;
@@ -106,19 +119,20 @@ class MapRecord extends Record {
                         }
                         @Override
                         public Entry next() {
-                            final int offset = index++;
+                            final int i = index++;
                             return new Entry() {
                                 @Override
                                 public String getKey() {
-                                    RecordId id = reader.readRecordId(getRecordId(), 4 + (bucketSize + offset) * 4);
-                                    return reader.readString(id);
+                                    return MapRecord.this.getKey(
+                                            reader, bucketSize, i);
                                 }
                                 @Override
                                 public RecordId getValue() {
-                                    return reader.readRecordId(getRecordId(), 4 + (2 * bucketSize + offset) * 4);
+                                    return MapRecord.this.getValue(
+                                            reader, bucketSize, i);
                                 }
                                 @Override
-                                public RecordId setValue(RecordId arg0) {
+                                public RecordId setValue(RecordId value) {
                                     throw new UnsupportedOperationException();
                                 }
                             };
@@ -136,7 +150,8 @@ class MapRecord extends Record {
             List<Iterable<Entry>> iterables =
                     Lists.newArrayListWithCapacity(bucketCount);
             for (int i = 0; i < bucketCount; i++) {
-                RecordId bucketId = reader.readRecordId(getRecordId(), 12 + i * 4);
+                RecordId bucketId = reader.readRecordId(
+                        getRecordId(), 12 + i * Segment.RECORD_ID_BYTES);
                 iterables.add(new MapRecord(bucketId).getEntries(reader, level + 1));
             }
             return Iterables.concat(iterables);

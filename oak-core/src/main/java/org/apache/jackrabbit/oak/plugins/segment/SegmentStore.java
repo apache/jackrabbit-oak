@@ -24,8 +24,6 @@ public interface SegmentStore {
 
     boolean setJournalHead(RecordId head, RecordId base);
 
-    int getMaxSegmentSize();
-
     Segment readSegment(UUID segmentId);
 
     void createSegment(Segment segment);
