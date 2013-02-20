@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.security.authorization;
 import java.util.Collection;
 
 import com.google.common.collect.ImmutableSet;
-import org.apache.jackrabbit.JcrConstants;
 
 /**
  * AccessControlConstants... TODO
@@ -50,23 +49,6 @@ public interface AccessControlConstants {
      * @since OAK 1.0
      */
     String NT_REP_RESTRICTIONS = "rep:Restrictions";
-
-    /**
-     * @since OAK 1.0
-     */
-    String NT_REP_PERMISSIONS = "rep:Permissions";
-    /**
-     * @since OAK 1.0
-     */
-    String NT_REP_PERMISSION_STORE = "rep:PermissionStore";
-    /**
-     * @since OAK 1.0
-     */
-    String REP_PERMISSION_STORE = "rep:permissionStore";
-    /**
-     * @since OAK 1.0
-     */
-    String PERMISSIONS_STORE_PATH = JcrConstants.JCR_SYSTEM + '/' + REP_PERMISSION_STORE;
 
     Collection<String> POLICY_NODE_NAMES = ImmutableSet.of(REP_POLICY, REP_REPO_POLICY);
 

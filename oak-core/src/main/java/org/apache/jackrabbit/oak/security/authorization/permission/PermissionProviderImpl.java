@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.security.authorization;
+package org.apache.jackrabbit.oak.security.authorization.permission;
 
 import java.security.Principal;
 import java.util.Set;
@@ -33,10 +33,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.ReadOnlyRoot;
 import org.apache.jackrabbit.oak.core.ReadOnlyTree;
 import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
-import org.apache.jackrabbit.oak.security.authorization.permission.AllPermissions;
-import org.apache.jackrabbit.oak.security.authorization.permission.CompiledPermissionImpl;
-import org.apache.jackrabbit.oak.security.authorization.permission.CompiledPermissions;
-import org.apache.jackrabbit.oak.security.authorization.permission.NoPermissions;
+import org.apache.jackrabbit.oak.security.authorization.AccessControlConstants;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
@@ -56,7 +53,7 @@ import org.slf4j.LoggerFactory;
  * FIXME: define read/write access patterns on version-store content
  * FIXME: proper access permissions on activity-store and configuration-store
  */
-public class PermissionProviderImpl implements PermissionProvider, AccessControlConstants {
+public class PermissionProviderImpl implements PermissionProvider, AccessControlConstants, PermissionConstants {
 
     private static final Logger log = LoggerFactory.getLogger(PermissionProviderImpl.class);
 
