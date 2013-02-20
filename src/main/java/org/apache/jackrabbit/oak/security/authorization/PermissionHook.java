@@ -35,7 +35,7 @@ import org.apache.jackrabbit.oak.plugins.memory.MemoryPropertyBuilder;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeBits;
-import org.apache.jackrabbit.oak.security.privilege.PrivilegeDefinitionStore;
+import org.apache.jackrabbit.oak.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -70,9 +70,9 @@ public class PermissionHook implements CommitHook, AccessControlConstants {
 
         NodeBuilder permissionRoot = getPermissionRoot(rootAfter, workspaceName);
         ReadOnlyNodeTypeManager ntMgr = ReadOnlyNodeTypeManager.getInstance(before);
-        PrivilegeDefinitionStore privilegeStore = new PrivilegeDefinitionStore(new ReadOnlyRoot(before));
+        PrivilegeBitsProvider bitsProvider = new PrivilegeBitsProvider(new ReadOnlyRoot(before));
 
-        after.compareAgainstBaseState(before, new Diff(new BeforeNode(before), new Node(rootAfter), permissionRoot, privilegeStore, ntMgr));
+        after.compareAgainstBaseState(before, new Diff(new BeforeNode(before), new Node(rootAfter), permissionRoot, bitsProvider, ntMgr));
         return rootAfter.getNodeState();
     }
 
@@ -110,17 +110,17 @@ public class PermissionHook implements CommitHook, AccessControlConstants {
         private final BeforeNode parentBefore;
         private final Node parentAfter;
         private final NodeBuilder permissionRoot;
-        private final PrivilegeDefinitionStore privilegeStore;
+        private final PrivilegeBitsProvider bitsProvider;
         private final ReadOnlyNodeTypeManager ntMgr;
 
         private Diff(@Nonnull BeforeNode parentBefore, @Nonnull Node parentAfter,
                      @Nonnull NodeBuilder permissionRoot,
-                     @Nonnull PrivilegeDefinitionStore privilegeStore,
+                     @Nonnull PrivilegeBitsProvider bitsProvider,
                      @Nonnull ReadOnlyNodeTypeManager ntMgr) {
             this.parentBefore = parentBefore;
             this.parentAfter = parentAfter;
             this.permissionRoot = permissionRoot;
-            this.privilegeStore = privilegeStore;
+            this.bitsProvider = bitsProvider;
             this.ntMgr = ntMgr;
         }
 
@@ -148,7 +148,7 @@ public class PermissionHook implements CommitHook, AccessControlConstants {
             } else {
                 BeforeNode before = new BeforeNode(parentBefore.getPath(), name, MemoryNodeState.EMPTY_NODE);
                 Node node = new Node(parentAfter, name);
-                after.compareAgainstBaseState(before.getNodeState(), new Diff(before, node, permissionRoot, privilegeStore, ntMgr));
+                after.compareAgainstBaseState(before.getNodeState(), new Diff(before, node, permissionRoot, bitsProvider, ntMgr));
             }
         }
 
@@ -161,7 +161,7 @@ public class PermissionHook implements CommitHook, AccessControlConstants {
             } else {
                 BeforeNode nodeBefore = new BeforeNode(parentBefore.getPath(), name, before);
                 Node nodeAfter = new Node(parentAfter, name);
-                after.compareAgainstBaseState(before, new Diff(nodeBefore, nodeAfter, permissionRoot, privilegeStore, ntMgr));
+                after.compareAgainstBaseState(before, new Diff(nodeBefore, nodeAfter, permissionRoot, bitsProvider, ntMgr));
             }
         }
 
@@ -172,7 +172,7 @@ public class PermissionHook implements CommitHook, AccessControlConstants {
             } else {
                 BeforeNode nodeBefore = new BeforeNode(parentBefore.getPath(), name, before);
                 Node after = new Node(parentAfter.getPath(), name, MemoryNodeState.EMPTY_NODE);
-                after.getNodeState().compareAgainstBaseState(before, new Diff(nodeBefore, after, permissionRoot, privilegeStore, ntMgr));
+                after.getNodeState().compareAgainstBaseState(before, new Diff(nodeBefore, after, permissionRoot, bitsProvider, ntMgr));
             }
         }
 
@@ -234,7 +234,7 @@ public class PermissionHook implements CommitHook, AccessControlConstants {
         private Entry createEntry(String name, NodeState ace, BaseNode acl) {
             Tree aceTree = getTree(name, ace);
             String principalName = checkNotNull(TreeUtil.getString(aceTree, REP_PRINCIPAL_NAME));
-            PrivilegeBits privilegeBits = privilegeStore.getBits(TreeUtil.getString(aceTree, REP_PRIVILEGES));
+            PrivilegeBits privilegeBits = bitsProvider.getBits(TreeUtil.getString(aceTree, REP_PRIVILEGES));
             boolean isAllow = NT_REP_GRANT_ACE.equals(TreeUtil.getPrimaryTypeName(aceTree));
             // TODO: respect restrictions
 

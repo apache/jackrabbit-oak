@@ -19,11 +19,13 @@ package org.apache.jackrabbit.oak.security.privilege;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.core.ReadOnlyRoot;
@@ -33,8 +35,6 @@ import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeDefinition;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.util.Text;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Validator implementation that is responsible for validating any modifications
@@ -42,14 +42,14 @@ import org.slf4j.LoggerFactory;
  */
 class PrivilegeValidator implements PrivilegeConstants, Validator {
 
-    private static final Logger log = LoggerFactory.getLogger(PrivilegeValidator.class);
-
-    private final PrivilegeDefinitionStore storeBefore;
-    private final PrivilegeDefinitionStore storeAfter;
+    private final Root rootBefore;
+    private final Root rootAfter;
+    private final PrivilegeBitsProvider bitsProvider;
 
     PrivilegeValidator(NodeState before, NodeState after) {
-        storeBefore = new PrivilegeDefinitionStore(new ReadOnlyRoot(before));
-        storeAfter = new PrivilegeDefinitionStore((new ReadOnlyRoot(after)));
+        rootBefore = new ReadOnlyRoot(before);
+        rootAfter = new ReadOnlyRoot(after);
+        bitsProvider = new PrivilegeBitsProvider(rootBefore);
     }
 
     //----------------------------------------------------------< Validator >---
@@ -61,7 +61,7 @@ class PrivilegeValidator implements PrivilegeConstants, Validator {
     @Override
     public void propertyChanged(PropertyState before, PropertyState after) throws CommitFailedException {
         if (REP_NEXT.equals(before.getName())) {
-            validateNext(PrivilegeBits.getInstance(storeBefore.getPrivilegesTree().getProperty(REP_NEXT)));
+            validateNext(PrivilegeBits.getInstance(getPrivilegesTree(rootBefore).getProperty(REP_NEXT)));
         } else {
             throw new CommitFailedException("Attempt to modify existing privilege definition.");
         }
@@ -74,7 +74,9 @@ class PrivilegeValidator implements PrivilegeConstants, Validator {
 
     @Override
     public Validator childNodeAdded(String name, NodeState after) throws CommitFailedException {
-        checkInitialized();
+        // make sure privileges have been initialized before
+        getPrivilegesTree(rootBefore);
+
         // the following characteristics are expected to be validated elsewhere:
         // - permission to allow privilege registration -> permission validator.
         // - name collisions (-> delegated to NodeTypeValidator since sms are not allowed)
@@ -111,14 +113,8 @@ class PrivilegeValidator implements PrivilegeConstants, Validator {
     }
 
     //------------------------------------------------------------< private >---
-    private void checkInitialized() throws CommitFailedException {
-        if (storeBefore.getPrivilegesTree() == null) {
-            throw new CommitFailedException("Privilege store not initialized.");
-        }
-    }
-
     private void validateNext(PrivilegeBits bits) throws CommitFailedException {
-        PrivilegeBits next = PrivilegeBits.getInstance(storeAfter.getPrivilegesTree().getProperty(REP_NEXT));
+        PrivilegeBits next = PrivilegeBits.getInstance(getPrivilegesTree(rootAfter).getProperty(REP_NEXT));
         if (!next.equals(bits.nextBits())) {
             throw new CommitFailedException("Next bits not updated.");
         }
@@ -128,6 +124,15 @@ class PrivilegeValidator implements PrivilegeConstants, Validator {
         if (!expectedNext.equals(bits.nextBits())) {
             throw new CommitFailedException("PrivilegeBits violation: Expected " + expectedNext + "; Found" + bits + '.');
         }
+    }
+
+    @Nonnull
+    private Tree getPrivilegesTree(Root root) throws CommitFailedException {
+        Tree privilegesTree = root.getTree(PRIVILEGES_PATH);
+        if (privilegesTree == null) {
+            throw new CommitFailedException("Privilege store not initialized.");
+        }
+        return privilegesTree;
     }
 
     /**
@@ -150,8 +155,8 @@ class PrivilegeValidator implements PrivilegeConstants, Validator {
             throw new CommitFailedException("PrivilegeBits are missing.");
         }
 
-        Set<String> privNames = storeBefore.getPrivilegeNames(newBits);
-        PrivilegeDefinition definition = PrivilegeDefinitionStore.readDefinition(definitionTree);
+        Set<String> privNames = bitsProvider.getPrivilegeNames(newBits);
+        PrivilegeDefinition definition = PrivilegeDefinitionReader.readDefinition(definitionTree);
         Set<String> declaredNames = definition.getDeclaredAggregateNames();
 
         // non-aggregate privilege
@@ -169,7 +174,7 @@ class PrivilegeValidator implements PrivilegeConstants, Validator {
         }
 
         // aggregation of >1 privileges
-        Map<String, PrivilegeDefinition> definitions = storeBefore.readDefinitions();
+        Map<String, PrivilegeDefinition> definitions = new PrivilegeDefinitionReader(rootBefore).readDefinitions();
         for (String aggrName : declaredNames) {
             // aggregated privilege not registered
             if (!definitions.containsKey(aggrName)) {
@@ -197,7 +202,7 @@ class PrivilegeValidator implements PrivilegeConstants, Validator {
             }
         }
 
-        PrivilegeBits aggrBits = storeBefore.getBits(declaredNames.toArray(new String[declaredNames.size()]));
+        PrivilegeBits aggrBits = bitsProvider.getBits(declaredNames.toArray(new String[declaredNames.size()]));
         if (!newBits.equals(aggrBits)) {
             throw new CommitFailedException("Invalid privilege bits for aggregated privilege definition.");
         }

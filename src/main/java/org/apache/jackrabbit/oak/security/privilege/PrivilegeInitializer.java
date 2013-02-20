@@ -65,7 +65,7 @@ class PrivilegeInitializer implements RepositoryInitializer, PrivilegeConstants 
             }
 
             try {
-                new PrivilegeDefinitionStore(new RootImpl(store)).writeBuiltInDefinitions();
+                new PrivilegeDefinitionWriter(new RootImpl(store)).writeBuiltInDefinitions();
             } catch (RepositoryException e) {
                 log.error("Failed to register built-in privileges", e);
                 throw new RuntimeException(e);

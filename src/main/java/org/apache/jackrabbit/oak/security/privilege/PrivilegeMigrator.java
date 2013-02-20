@@ -62,7 +62,7 @@ public class PrivilegeMigrator {
 
     public void migrateCustomPrivileges(InputStream privilegeStream) throws RepositoryException {
         final Root root = contentSession.getLatestRoot();
-        PrivilegeDefinitionStore store = new PrivilegeDefinitionStore(root);
+        PrivilegeDefinitionWriter writer = new PrivilegeDefinitionWriter(root);
         try {
             NamespaceRegistry nsRegistry = new ReadWriteNamespaceRegistry() {
                 @Override
@@ -76,7 +76,7 @@ public class PrivilegeMigrator {
                 }
             };
             for (PrivilegeDefinition def : readCustomDefinitions(privilegeStream, nsRegistry)) {
-                store.writeDefinition(def);
+                writer.writeDefinition(def);
             }
         } catch (IOException e) {
             throw new RepositoryException(e);

@@ -30,63 +30,48 @@ import static org.junit.Assert.assertNotNull;
 /**
  * PrivilegeDefinitionStoreTest... TODO
  */
-public class PrivilegeDefinitionStoreTest extends AbstractSecurityTest implements PrivilegeConstants {
+public class PrivilegeBitsProviderTest extends AbstractSecurityTest implements PrivilegeConstants {
 
-    private PrivilegeDefinitionStore store;
+    private PrivilegeBitsProvider bitsProvider;
 
     @Override
     public void before() throws Exception {
         super.before();
 
-        store = new PrivilegeDefinitionStore(root);
+        bitsProvider = new PrivilegeBitsProvider(root);
     }
 
     @Test
     public void testGetPrivilegesTree() {
-        assertNotNull(store.getPrivilegesTree());
-        assertEquals(PRIVILEGES_PATH, store.getPrivilegesTree().getPath());
-    }
-
-    @Test
-    public void testReadDefinition() {
-        // TODO
-    }
-
-    @Test
-    public void testReadDefinitions() {
-        // TODO
-    }
-
-    @Test
-    public void testWriteDefinition() {
-        // TODO
+        assertNotNull(bitsProvider.getPrivilegesTree());
+        assertEquals(PRIVILEGES_PATH, bitsProvider.getPrivilegesTree().getPath());
     }
 
     @Test
     public void testGetBits() {
-        PrivilegeBits bits = store.getBits(JCR_ADD_CHILD_NODES, JCR_REMOVE_CHILD_NODES);
+        PrivilegeBits bits = bitsProvider.getBits(JCR_ADD_CHILD_NODES, JCR_REMOVE_CHILD_NODES);
         assertFalse(bits.isEmpty());
 
-        PrivilegeBits mod = PrivilegeBits.getInstance(store.getBits(JCR_ADD_CHILD_NODES)).add(store.getBits(JCR_REMOVE_CHILD_NODES));
+        PrivilegeBits mod = PrivilegeBits.getInstance(bitsProvider.getBits(JCR_ADD_CHILD_NODES)).add(bitsProvider.getBits(JCR_REMOVE_CHILD_NODES));
         assertEquals(bits, mod.unmodifiable());
     }
 
     @Test
     public void testGetBitsFromInvalidPrivilege() {
-        assertEquals(PrivilegeBits.EMPTY, store.getBits("invalid1", "invalid2"));
+        assertEquals(PrivilegeBits.EMPTY, bitsProvider.getBits("invalid1", "invalid2"));
     }
 
     @Test
     public void testGetBitsFromEmpty() {
-        assertEquals(PrivilegeBits.EMPTY, store.getBits());
-        assertEquals(PrivilegeBits.EMPTY, store.getBits(new String[0]));
-        assertEquals(PrivilegeBits.EMPTY, store.getBits(""));
+        assertEquals(PrivilegeBits.EMPTY, bitsProvider.getBits());
+        assertEquals(PrivilegeBits.EMPTY, bitsProvider.getBits(new String[0]));
+        assertEquals(PrivilegeBits.EMPTY, bitsProvider.getBits(""));
     }
 
     @Test
     public void testGetPrivilegeNames() throws RepositoryException {
-        PrivilegeBits bits = store.getBits(JCR_READ_ACCESS_CONTROL);
-        Set<String> names = store.getPrivilegeNames(bits);
+        PrivilegeBits bits = bitsProvider.getBits(JCR_READ_ACCESS_CONTROL);
+        Set<String> names = bitsProvider.getPrivilegeNames(bits);
 
         assertEquals(1, names.size());
         assertEquals(JCR_READ_ACCESS_CONTROL, names.iterator().next());
@@ -94,33 +79,33 @@ public class PrivilegeDefinitionStoreTest extends AbstractSecurityTest implement
 
     @Test
     public void testAggregation() throws RepositoryException {
-        PrivilegeBits writeBits = store.getBits(JCR_ADD_CHILD_NODES,
+        PrivilegeBits writeBits = bitsProvider.getBits(JCR_ADD_CHILD_NODES,
                 JCR_REMOVE_CHILD_NODES,
                 JCR_REMOVE_NODE,
                 JCR_MODIFY_PROPERTIES);
-        Set<String> names = store.getPrivilegeNames(writeBits);
+        Set<String> names = bitsProvider.getPrivilegeNames(writeBits);
         assertEquals(1, names.size());
         assertEquals(JCR_WRITE, names.iterator().next());
     }
 
     @Test
     public void testUnknownAggregation() throws RepositoryException {
-        PrivilegeBits bits = store.getBits(REP_WRITE, JCR_LIFECYCLE_MANAGEMENT);
-        Set<String> names = store.getPrivilegeNames(bits);
+        PrivilegeBits bits = bitsProvider.getBits(REP_WRITE, JCR_LIFECYCLE_MANAGEMENT);
+        Set<String> names = bitsProvider.getPrivilegeNames(bits);
 
         assertEquals(2, names.size());
     }
 
     @Test
     public void testRedundantAggregation() throws RepositoryException {
-        PrivilegeBits writeBits = store.getBits(REP_WRITE);
-        Set<String> names = store.getPrivilegeNames(writeBits);
+        PrivilegeBits writeBits = bitsProvider.getBits(REP_WRITE);
+        Set<String> names = bitsProvider.getPrivilegeNames(writeBits);
 
         assertEquals(1, names.size());
         assertEquals(REP_WRITE, names.iterator().next());
 
-        writeBits = store.getBits(REP_WRITE, JCR_WRITE);
-        names = store.getPrivilegeNames(writeBits);
+        writeBits = bitsProvider.getBits(REP_WRITE, JCR_WRITE);
+        names = bitsProvider.getPrivilegeNames(writeBits);
 
         assertEquals(1, names.size());
         assertEquals(REP_WRITE, names.iterator().next());
@@ -128,24 +113,25 @@ public class PrivilegeDefinitionStoreTest extends AbstractSecurityTest implement
 
     @Test
     public void testAll() {
-        PrivilegeBits all = store.getBits(JCR_ALL);
+        PrivilegeBits all = bitsProvider.getBits(JCR_ALL);
         assertFalse(all.isEmpty());
-        assertEquals(Collections.singleton(JCR_ALL), store.getPrivilegeNames(all));
+        assertEquals(Collections.singleton(JCR_ALL), bitsProvider.getPrivilegeNames(all));
     }
 
     @Test
     public void testAllAggregation() {
-        PrivilegeBits all = store.getBits(JCR_ALL);
+        PrivilegeBits all = bitsProvider.getBits(JCR_ALL);
 
-        Set<String> allAggregates = store.readDefinition(JCR_ALL).getDeclaredAggregateNames();
-        PrivilegeBits all2 = store.getBits(allAggregates.toArray(new String[allAggregates.size()]));
+        PrivilegeDefinitionReader reader = new PrivilegeDefinitionReader(root);
+        Set<String> allAggregates = reader.readDefinition(JCR_ALL).getDeclaredAggregateNames();
+        PrivilegeBits all2 = bitsProvider.getBits(allAggregates.toArray(new String[allAggregates.size()]));
 
         assertEquals(all, all2);
-        assertEquals(Collections.singleton(JCR_ALL), store.getPrivilegeNames(all2));
+        assertEquals(Collections.singleton(JCR_ALL), bitsProvider.getPrivilegeNames(all2));
 
         PrivilegeBits bits = PrivilegeBits.getInstance();
         for (String name : allAggregates) {
-            bits.add(store.getBits(name));
+            bits.add(bitsProvider.getBits(name));
         }
         assertEquals(all, bits.unmodifiable());
     }

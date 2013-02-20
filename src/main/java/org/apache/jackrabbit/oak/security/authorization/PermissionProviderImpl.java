@@ -37,7 +37,7 @@ import org.apache.jackrabbit.oak.security.authorization.permission.AllPermission
 import org.apache.jackrabbit.oak.security.authorization.permission.CompiledPermissionImpl;
 import org.apache.jackrabbit.oak.security.authorization.permission.CompiledPermissions;
 import org.apache.jackrabbit.oak.security.authorization.permission.NoPermissions;
-import org.apache.jackrabbit.oak.security.privilege.PrivilegeDefinitionStore;
+import org.apache.jackrabbit.oak.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.PermissionProvider;
@@ -81,8 +81,7 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
             if (permissionsTree == null) {
                 compiledPermissions = NoPermissions.getInstance();
             } else {
-                PrivilegeDefinitionStore privilegeStore = new PrivilegeDefinitionStore(this.root);
-                compiledPermissions = new CompiledPermissionImpl(principals, privilegeStore, permissionsTree);
+                compiledPermissions = new CompiledPermissionImpl(principals, new PrivilegeBitsProvider(this.root), permissionsTree);
             }
         }
     }
