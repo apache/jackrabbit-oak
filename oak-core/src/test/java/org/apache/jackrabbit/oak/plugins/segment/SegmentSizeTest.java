@@ -142,6 +142,30 @@ public class SegmentSizeTest {
         assertEquals(136, getAmortizedSize(builder));
     }
 
+    @Test
+    public void testFlatNodeUpdate() {
+        SegmentStore store = new MemoryStore();
+        SegmentReader reader = new SegmentReader(store);
+        SegmentWriter writer = new SegmentWriter(store, reader);
+
+        NodeBuilder builder = MemoryNodeState.EMPTY_NODE.builder();
+        for (int i = 0; i < 1000; i++) {
+            builder.child("child" + i);
+        }
+
+        RecordId id = writer.writeNode(builder.getNodeState());
+        writer.flush();
+        Segment segment = store.readSegment(id.getSegmentId());
+        assertEquals(26040, segment.getData().length);
+
+        builder = new SegmentNodeState(reader, id).builder();
+        builder.child("child1000");
+        id = writer.writeNode(builder.getNodeState());
+        writer.flush();
+        segment = store.readSegment(id.getSegmentId());
+        assertEquals(576, segment.getData().length);
+    }
+
     private int getSize(NodeBuilder builder) {
         SegmentStore store = new MemoryStore();
         SegmentWriter writer = new SegmentWriter(store, new SegmentReader(store));
