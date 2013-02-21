@@ -25,7 +25,6 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
 import org.apache.jackrabbit.commons.iterator.NodeIterable;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.Iterables;
@@ -44,7 +43,6 @@ public class ConcurrentAddTest extends AbstractRepositoryTest {
     private static final int NODES_PER_WORKER = 100;
 
     @Test
-    @Ignore("OAK-442")
     public void addNodes() throws Exception {
         List<Exception> exceptions = Collections.synchronizedList(
                 new ArrayList<Exception>());
