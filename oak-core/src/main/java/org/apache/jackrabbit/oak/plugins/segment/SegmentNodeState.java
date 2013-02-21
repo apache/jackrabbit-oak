@@ -57,6 +57,10 @@ class SegmentNodeState extends AbstractNodeState {
         return template;
     }
 
+    MapRecord getChildNodeMap() {
+        return getTemplate().getChildNodeMap(reader, recordId);
+    }
+
     @Override
     public long getPropertyCount() {
         return getTemplate().getPropertyCount();

@@ -59,7 +59,7 @@ class SegmentNodeStoreBranch implements NodeStoreBranch {
         this.store = store;
         this.journal = journal;
         this.reader = reader;
-        this.writer = new SegmentWriter(store);
+        this.writer = new SegmentWriter(store, reader);
         this.baseId = store.getJournalHead(journal);
         this.rootId = baseId;
     }

@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
-import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentMap;
 
@@ -34,7 +33,7 @@ public class MemoryStore implements SegmentStore {
             Maps.newConcurrentMap();
 
     public MemoryStore(NodeState root) {
-        SegmentWriter writer = new SegmentWriter(this);
+        SegmentWriter writer = new SegmentWriter(this, new SegmentReader(this));
         journals.put("root", writer.writeNode(root));
         writer.flush();
     }
