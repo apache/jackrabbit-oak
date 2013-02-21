@@ -70,7 +70,7 @@ public class MemoryStore implements SegmentStore {
 
     @Override
     public void createSegment(Segment segment) {
-        if (segments.put(segment.getSegmentId(), segment) != null) {
+        if (segments.putIfAbsent(segment.getSegmentId(), segment) != null) {
             throw new IllegalStateException(
                     "Segment override: " + segment.getSegmentId());
         }
