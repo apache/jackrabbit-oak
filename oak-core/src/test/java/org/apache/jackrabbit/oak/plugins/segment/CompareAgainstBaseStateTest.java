@@ -148,9 +148,9 @@ public class CompareAgainstBaseStateTest {
     }
 
     private NodeState persist(NodeBuilder builder) {
-        RecordId id = writer.writeNode(builder.getNodeState());
+        NodeState state = writer.writeNode(builder.getNodeState());
         writer.flush();
-        return new SegmentNodeState(reader, id);
+        return state;
     }
 
 }
