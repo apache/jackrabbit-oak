@@ -43,7 +43,7 @@ public class SegmentReader {
             .weigher(newStringWeigher())
             .build(newStringLoader());
 
-    private final LoadingCache<RecordId, NodeTemplate> templates =
+    private final LoadingCache<RecordId, Template> templates =
             CacheBuilder.newBuilder()
             .maximumSize(1000)
             .build(newTemplateLoader());
@@ -75,10 +75,10 @@ public class SegmentReader {
         };
     }
 
-    private CacheLoader<RecordId, NodeTemplate> newTemplateLoader() {
-        return new CacheLoader<RecordId, NodeTemplate>() {
+    private CacheLoader<RecordId, Template> newTemplateLoader() {
+        return new CacheLoader<RecordId, Template>() {
             @Override
-            public NodeTemplate load(RecordId key) throws Exception {
+            public Template load(RecordId key) throws Exception {
                 Segment segment = store.readSegment(key.getSegmentId());
                 int offset = key.getOffset();
 
@@ -111,9 +111,9 @@ public class SegmentReader {
                             "jcr:mixinTypes", Arrays.asList(mixins), Type.NAMES);
                 }
 
-                String childName = NodeTemplate.ZERO_CHILD_NODES;
+                String childName = Template.ZERO_CHILD_NODES;
                 if (manyChildNodes) {
-                    childName = NodeTemplate.MANY_CHILD_NODES;
+                    childName = Template.MANY_CHILD_NODES;
                 } else if (!zeroChildNodes) {
                     RecordId childNameId = segment.readRecordId(offset);
                     childName = readString(childNameId);
@@ -131,13 +131,13 @@ public class SegmentReader {
                             Type.fromTag(Math.abs(type), type < 0));
                 }
 
-                return new NodeTemplate(
+                return new Template(
                         primaryType, mixinTypes, properties, childName);
             }
         };
     }
 
-    public NodeTemplate readTemplate(RecordId recordId) {
+    public Template readTemplate(RecordId recordId) {
         try {
             return templates.get(recordId);
         } catch (ExecutionException e) {

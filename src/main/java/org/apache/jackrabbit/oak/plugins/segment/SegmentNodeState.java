@@ -43,14 +43,14 @@ class SegmentNodeState extends AbstractNodeState {
 
     private final RecordId recordId;
 
-    private NodeTemplate template = null;
+    private Template template = null;
 
     SegmentNodeState(SegmentReader reader, RecordId id) {
         this.reader = checkNotNull(reader);
         this.recordId = checkNotNull(id);
     }
 
-    private synchronized NodeTemplate getTemplate() {
+    private synchronized Template getTemplate() {
         if (template == null) {
             template = reader.readTemplate(reader.readRecordId(recordId, 0));
         }
