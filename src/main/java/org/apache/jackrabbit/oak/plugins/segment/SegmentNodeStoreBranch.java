@@ -76,7 +76,7 @@ class SegmentNodeStoreBranch implements NodeStoreBranch {
 
     @Override
     public synchronized void setRoot(NodeState newRoot) {
-        this.rootId = writer.writeNode(newRoot);
+        this.rootId = writer.writeNode(newRoot).getRecordId();
         writer.flush();
     }
 
@@ -168,7 +168,7 @@ class SegmentNodeStoreBranch implements NodeStoreBranch {
                     new MemoryNodeBuilder(new SegmentNodeState(reader, newBaseId));
             getRoot().compareAgainstBaseState(getBase(), new RebaseDiff(builder));
             this.baseId = newBaseId;
-            this.rootId = writer.writeNode(builder.getNodeState());
+            this.rootId = writer.writeNode(builder.getNodeState()).getRecordId();
             writer.flush();
         }
     }
@@ -183,7 +183,7 @@ class SegmentNodeStoreBranch implements NodeStoreBranch {
             // rebase to latest head and apply commit hooks
             rebase();
             RecordId headId = writer.writeNode(
-                    hook.processCommit(getBase(), getRoot()));
+                    hook.processCommit(getBase(), getRoot())).getRecordId();
             writer.flush();
 
             // use optimistic locking to update the journal
