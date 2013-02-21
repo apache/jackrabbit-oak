@@ -43,7 +43,7 @@ import com.google.common.base.Objects;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
-class NodeTemplate {
+class Template {
 
     static final String ZERO_CHILD_NODES = null;
 
@@ -78,7 +78,7 @@ class NodeTemplate {
     @CheckForNull
     private final String childName;
 
-    NodeTemplate(
+    Template(
             PropertyState primaryType, PropertyState mixinTypes,
             PropertyTemplate[] properties, String childName) {
         this.primaryType = primaryType;
@@ -87,7 +87,7 @@ class NodeTemplate {
         this.childName = childName;
     }
 
-    NodeTemplate(NodeState state) {
+    Template(NodeState state) {
         PropertyState primary = null;
         PropertyState mixins = null;
         List<PropertyTemplate> templates = Lists.newArrayList();
@@ -331,7 +331,7 @@ class NodeTemplate {
 
     public void compareAgainstBaseState(
             SegmentReader reader, RecordId afterId,
-            NodeTemplate beforeTemplate, RecordId beforeId,
+            Template beforeTemplate, RecordId beforeId,
             NodeStateDiff diff) {
         checkNotNull(reader);
         checkNotNull(afterId);
@@ -445,8 +445,8 @@ class NodeTemplate {
     public boolean equals(Object object) {
         if (this == object) {
             return true;
-        } else if (object instanceof NodeTemplate) {
-            NodeTemplate that = (NodeTemplate) object;
+        } else if (object instanceof Template) {
+            Template that = (Template) object;
             return Objects.equal(primaryType, that.primaryType)
                     && Objects.equal(mixinTypes, that.mixinTypes)
                     && Arrays.equals(properties, that.properties)

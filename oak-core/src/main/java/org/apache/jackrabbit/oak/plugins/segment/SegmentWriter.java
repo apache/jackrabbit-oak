@@ -55,7 +55,7 @@ public class SegmentWriter {
 
     private final Map<String, RecordId> strings = Maps.newHashMap();
 
-    private final Map<NodeTemplate, RecordId> templates = Maps.newHashMap();
+    private final Map<Template, RecordId> templates = Maps.newHashMap();
 
     private UUID uuid = UUID.randomUUID();
 
@@ -454,7 +454,7 @@ public class SegmentWriter {
         }
     }
 
-    public synchronized RecordId writeTemplate(NodeTemplate template) {
+    public synchronized RecordId writeTemplate(Template template) {
         checkNotNull(template);
         RecordId id = templates.get(template);
         if (id == null) {
@@ -535,7 +535,7 @@ public class SegmentWriter {
             return nodeId;
         }
 
-        NodeTemplate template = new NodeTemplate(state);
+        Template template = new Template(state);
 
         List<RecordId> ids = Lists.newArrayList();
         ids.add(writeTemplate(template));
