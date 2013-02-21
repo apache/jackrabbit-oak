@@ -54,27 +54,28 @@ public class IndexHookManager implements CommitHook {
             throws CommitFailedException {
         NodeBuilder builder = after.builder();
 
-        // <type, <path, indexhook>>
-        Map<String, Map<String, List<IndexHook>>> updates = new HashMap<String, Map<String, List<IndexHook>>>();
+        // key: index type
+        // value: map of path to indexhook 
+        Map<String, Map<String, List<IndexHook>>> indexMap = new HashMap<String, Map<String, List<IndexHook>>>();
         after.compareAgainstBaseState(before, new IndexHookManagerDiff(
-                provider, builder, updates));
-        apply(updates);
+                provider, builder, indexMap));
+        apply(indexMap);
         return builder.getNodeState();
     }
 
-    private void apply(Map<String, Map<String, List<IndexHook>>> updates)
+    private void apply(Map<String, Map<String, List<IndexHook>>> indexMap)
             throws CommitFailedException {
         try {
-            for (String type : updates.keySet()) {
-                for (List<IndexHook> hooks : updates.get(type).values()) {
+            for (String type : indexMap.keySet()) {
+                for (List<IndexHook> hooks : indexMap.get(type).values()) {
                     for (IndexHook hook : hooks) {
                         hook.apply();
                     }
                 }
             }
         } finally {
-            for (String type : updates.keySet()) {
-                for (List<IndexHook> hooks : updates.get(type).values()) {
+            for (String type : indexMap.keySet()) {
+                for (List<IndexHook> hooks : indexMap.get(type).values()) {
                     for (IndexHook hook : hooks) {
                         try {
                             hook.close();

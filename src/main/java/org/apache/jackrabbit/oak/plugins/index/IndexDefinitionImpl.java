@@ -21,19 +21,19 @@ package org.apache.jackrabbit.oak.plugins.index;
  */
 public class IndexDefinitionImpl implements IndexDefinition, IndexConstants {
 
-    private final String name;
+    private final String indexName;
     private final String type;
     private final String path;
 
     public IndexDefinitionImpl(String name, String type, String path) {
-        this.name = name;
+        this.indexName = name;
         this.type = type;
         this.path = path;
     }
 
     @Override
     public String getName() {
-        return name;
+        return indexName;
     }
 
     @Override
@@ -48,7 +48,7 @@ public class IndexDefinitionImpl implements IndexDefinition, IndexConstants {
 
     @Override
     public String toString() {
-        return "IndexDefinitionImpl [name=" + name + ", type=" + type
+        return "IndexDefinitionImpl [name=" + indexName + ", type=" + type
                 + ", path=" + path + "]";
     }
 
@@ -56,7 +56,7 @@ public class IndexDefinitionImpl implements IndexDefinition, IndexConstants {
     public int hashCode() {
         final int prime = 31;
         int result = 1;
-        result = prime * result + ((name == null) ? 0 : name.hashCode());
+        result = prime * result + ((indexName == null) ? 0 : indexName.hashCode());
         result = prime * result + ((path == null) ? 0 : path.hashCode());
         result = prime * result + ((type == null) ? 0 : type.hashCode());
         return result;
@@ -71,10 +71,10 @@ public class IndexDefinitionImpl implements IndexDefinition, IndexConstants {
         if (getClass() != obj.getClass())
             return false;
         IndexDefinitionImpl other = (IndexDefinitionImpl) obj;
-        if (name == null) {
-            if (other.name != null)
+        if (indexName == null) {
+            if (other.indexName != null)
                 return false;
-        } else if (!name.equals(other.name))
+        } else if (!indexName.equals(other.indexName))
             return false;
         if (path == null) {
             if (other.path != null)

@@ -69,19 +69,19 @@ public class Property2IndexLookup {
      * path. Lookup starts at the current path (at the root of this object) and
      * traverses down the path.
      * 
-     * @param name property name
+     * @param propertyName property name
      * @param path lookup path
      * @return true if the property is indexed
      */
-    public boolean isIndexed(String name, String path) {
-        return isIndexed(root, name, path);
+    public boolean isIndexed(String propertyName, String path) {
+        return isIndexed(root, propertyName, path);
     }
     
-    private static boolean isIndexed(NodeState root, String name, String path) {
+    private static boolean isIndexed(NodeState root, String propertyName, String path) {
         NodeState node = root;
         Iterator<String> it = PathUtils.elements(path).iterator();
         while (true) {
-            if (getIndexDataNode(node, name) != null) {
+            if (getIndexDataNode(node, propertyName) != null) {
                 return true;
             }
             if (!it.hasNext()) {
@@ -92,13 +92,13 @@ public class Property2IndexLookup {
         return false;
     }
     
-    public Iterable<String> query(Filter filter, String name, PropertyValue value) {
-        NodeState state = getIndexDataNode(root, name);
+    public Iterable<String> query(Filter filter, String propertyName, PropertyValue value) {
+        NodeState state = getIndexDataNode(root, propertyName);
         if (state == null) {
-            throw new IllegalArgumentException("No index for " + name);
+            throw new IllegalArgumentException("No index for " + propertyName);
         }
         List<String> values = value == null ? null : Property2Index.encode(value);
-        return store.query(filter, name, state, values);
+        return store.query(filter, propertyName, state, values);
     }
 
     public double getCost(String name, PropertyValue value) {
@@ -114,12 +114,12 @@ public class Property2IndexLookup {
      * Get the node with the index data for the given property, if there is an
      * applicable index with data.
      * 
-     * @param name the property name
+     * @param propertyName the property name
      * @return the node where the index data is stored, or null if no index
      *         definition or index data node was found
      */
     @Nullable
-    private static NodeState getIndexDataNode(NodeState node, String name) {
+    private static NodeState getIndexDataNode(NodeState node, String propertyName) {
         NodeState state = node.getChildNode(INDEX_DEFINITIONS_NAME);
         if (state != null) {
             for (ChildNodeEntry entry : state.getChildNodeEntries()) {
@@ -130,7 +130,7 @@ public class Property2IndexLookup {
                 PropertyState names = entry.getNodeState().getProperty("propertyNames");
                 if (names != null) {
                     for (int i = 0; i < names.count(); i++) {
-                        if (name.equals(names.getValue(Type.STRING, i))) {
+                        if (propertyName.equals(names.getValue(Type.STRING, i))) {
                             NodeState indexDef = entry.getNodeState();
                             NodeState index = indexDef.getChildNode(":index");
                             if (index != null) {
