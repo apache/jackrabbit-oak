@@ -248,14 +248,19 @@ class Template {
         }
     }
 
+    MapRecord getChildNodeMap(SegmentReader reader, RecordId recordId) {
+        checkState(hasManyChildNodes());
+        return new MapRecord(
+                reader.readRecordId(recordId, Segment.RECORD_ID_BYTES));
+    }
+
     public boolean hasChildNode(
             String name, SegmentReader reader, RecordId recordId) {
         if (hasNoChildNodes()) {
             return false;
         } else if (hasManyChildNodes()) {
-            RecordId childNodesId =
-                    reader.readRecordId(recordId, Segment.RECORD_ID_BYTES);
-            return new MapRecord(childNodesId).getEntry(reader, name) != null;
+            MapRecord map = getChildNodeMap(reader, recordId);
+            return map.getEntry(reader, name) != null;
         } else {
             return name.equals(childName);
         }
@@ -266,10 +271,8 @@ class Template {
         if (hasNoChildNodes()) {
             return null;
         } else if (hasManyChildNodes()) {
-            RecordId childNodesId =
-                    reader.readRecordId(recordId, Segment.RECORD_ID_BYTES);
             RecordId childNodeId =
-                    new MapRecord(childNodesId).getEntry(reader, name);
+                    getChildNodeMap(reader, recordId).getEntry(reader, name);
             if (childNodeId != null) {
                 return new SegmentNodeState(reader, childNodeId);
             } else {
@@ -289,10 +292,8 @@ class Template {
         if (hasNoChildNodes()) {
             return Collections.emptyList();
         } else if (hasManyChildNodes()) {
-            RecordId childNodesId =
-                    reader.readRecordId(recordId, Segment.RECORD_ID_BYTES);
             return Iterables.transform(
-                    new MapRecord(childNodesId).getEntries(reader),
+                    getChildNodeMap(reader, recordId).getEntries(reader),
                     new Function<MapRecord.Entry, String>() {
                         @Override @Nullable
                         public String apply(@Nullable Entry input) {
@@ -309,10 +310,8 @@ class Template {
         if (hasNoChildNodes()) {
             return Collections.emptyList();
         } else if (hasManyChildNodes()) {
-            RecordId childNodesId =
-                    reader.readRecordId(recordId, Segment.RECORD_ID_BYTES);
             return Iterables.transform(
-                    new MapRecord(childNodesId).getEntries(reader),
+                    getChildNodeMap(reader, recordId).getEntries(reader),
                     new Function<MapRecord.Entry, ChildNodeEntry>() {
                         @Override @Nullable
                         public ChildNodeEntry apply(@Nullable Entry input) {

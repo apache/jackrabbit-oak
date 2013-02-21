@@ -39,7 +39,9 @@ import javax.jcr.PropertyType;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
+import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import com.google.common.base.Charsets;
@@ -52,6 +54,8 @@ public class SegmentWriter {
     static final int BLOCK_SIZE = 1 << 12; // 4kB
 
     private final SegmentStore store;
+
+    private final SegmentReader reader;
 
     private final Map<String, RecordId> strings = Maps.newHashMap();
 
@@ -83,8 +87,9 @@ public class SegmentWriter {
      */
     private int position;
 
-    public SegmentWriter(SegmentStore store) {
+    public SegmentWriter(SegmentStore store, SegmentReader reader) {
         this.store = store;
+        this.reader = reader;
     }
 
     public synchronized void flush() {
@@ -175,14 +180,16 @@ public class SegmentWriter {
         return bucketId;
     }
 
-    class MapEntry implements Comparable<MapEntry> {
+    private class MapEntry implements Comparable<MapEntry> {
         private final int hashCode;
+        private final String string;
         private final RecordId key;
         private final RecordId value;
 
-        MapEntry(int hashCode, RecordId key, RecordId value) {
-            this.hashCode = hashCode;
-            this.key = key;
+        MapEntry(String key, RecordId value) {
+            this.hashCode = key.hashCode();
+            this.string = key;
+            this.key = writeString(key);
             this.value = value;
         }
 
@@ -214,13 +221,105 @@ public class SegmentWriter {
 
     }
 
-    private synchronized RecordId writeMapBucket(
-            List<MapEntry> entries, int level) {
+    private static class BucketInfo {
+        RecordId id;
+        int size;
+        BucketInfo(RecordId id, int size) {
+            this.id = id;
+            this.size = size;
+        }
+    }
+
+    private synchronized BucketInfo writeMapBucket(
+            RecordId baseId, List<MapEntry> entries, int level) {
         int size = 1 << MapRecord.LEVEL_BITS;
         int mask = size - 1;
         int shift = level * MapRecord.LEVEL_BITS;
 
-        if (entries.size() <= size) {
+        if (entries.isEmpty()) {
+            if (baseId != null) {
+                return new BucketInfo(baseId, new MapRecord(baseId).size(reader));
+            } else if (level == 0) {
+                RecordId id = prepare(4);
+                writeInt(0);
+                return new BucketInfo(id, 0);
+            } else {
+                return new BucketInfo(null, 0);
+            }
+        } else if (baseId != null) {
+            // FIXME: messy code with lots of duplication
+            MapRecord base = new MapRecord(baseId);
+            int baseSize = base.size(reader);
+            if (baseSize <= size) {
+                Map<String, RecordId> update = Maps.newHashMap();
+                for (MapRecord.Entry entry : base.getEntries(reader)) {
+                    update.put(entry.getKey(), entry.getValue());
+                }
+                for (MapEntry entry : entries) {
+                    if (entry.value != null) {
+                        update.put(entry.string, entry.value);
+                    } else {
+                        update.remove(entry.string);
+                    }
+                }
+                entries = Lists.newArrayListWithCapacity(update.size());
+                for (Map.Entry<String, RecordId> entry : update.entrySet()) {
+                    entries.add(new MapEntry(entry.getKey(), entry.getValue()));
+                }
+                return writeMapBucket(null, entries, level);
+            } else {
+                List<MapEntry>[] buckets = new List[size];
+                for (MapEntry entry : entries) {
+                    int bucketIndex = (entry.hashCode >> shift) & mask;
+                    if (buckets[bucketIndex] == null) {
+                        buckets[bucketIndex] = Lists.newArrayList();
+                    }
+                    buckets[bucketIndex].add(entry);
+                }
+
+                long baseMap = reader.readLong(baseId, 4);
+
+                int newSize = 0;
+                RecordId[] bucketIds = new RecordId[size];
+                for (int i = 0; i < buckets.length; i++) {
+                    long bucketBit = 1L << i;
+                    RecordId baseBucketId = null;
+                    if ((baseMap & bucketBit) != 0) {
+                        int index = Long.bitCount(baseMap & (bucketBit - 1));
+                        baseBucketId = reader.readRecordId(
+                                baseId, 12 + index * Segment.RECORD_ID_BYTES);
+                    }
+                    if (buckets[i] != null) {
+                        BucketInfo info = writeMapBucket(
+                                baseBucketId, buckets[i], level + 1);
+                        bucketIds[i] = info.id;
+                        newSize += info.size;
+                    } else {
+                        bucketIds[i] = baseBucketId;
+                        if (baseBucketId != null) {
+                            newSize += new MapRecord(baseBucketId).size(reader);
+                        }
+                    }
+                }
+                
+                List<RecordId> ids = Lists.newArrayList();
+                long bucketMap = 0L;
+                for (int i = 0; i < buckets.length; i++) {
+                    if (bucketIds[i] != null) {
+                        ids.add(bucketIds[i]);
+                        bucketMap |= 1L << i;
+                    }
+                }
+
+                RecordId bucketId = prepare(12, ids);
+                writeInt(newSize);
+                writeLong(bucketMap);
+                for (RecordId id : ids) {
+                    writeRecordId(id);
+                }
+                return new BucketInfo(bucketId, newSize);
+            }
+        } else if (entries.size() <= size) {
             Collections.sort(entries);
 
             List<RecordId> ids = Lists.newArrayList();
@@ -240,7 +339,7 @@ public class SegmentWriter {
             for (MapEntry entry : entries) {
                 writeRecordId(entry.value);
             }
-            return bucketId;
+            return new BucketInfo(bucketId, entries.size());
         } else {
             List<MapEntry>[] buckets = new List[size];
             for (MapEntry entry : entries) {
@@ -255,7 +354,7 @@ public class SegmentWriter {
             long bucketMap = 0L;
             for (int i = 0; i < buckets.length; i++) {
                 if (buckets[i] != null) {
-                    bucketIds.add(writeMapBucket(buckets[i], level + 1));
+                    bucketIds.add(writeMapBucket(null, buckets[i], level + 1).id);
                     bucketMap |= 1L << i;
                 }
             }
@@ -266,7 +365,7 @@ public class SegmentWriter {
             for (RecordId id : bucketIds) {
                 writeRecordId(id);
             }
-            return bucketId;
+            return new BucketInfo(bucketId, entries.size());
         }
     }
 
@@ -319,14 +418,16 @@ public class SegmentWriter {
         return thisLevel.iterator().next();
     }
 
-    public RecordId writeMap(Map<String, RecordId> map) {
+    public MapRecord writeMap(MapRecord base, Map<String, RecordId> changes) {
         List<MapEntry> entries = Lists.newArrayList();
-        for (Map.Entry<String, RecordId> entry : map.entrySet()) {
-            String key = entry.getKey();
-            entries.add(new MapEntry(
-                    key.hashCode(), writeString(key), entry.getValue()));
+        for (Map.Entry<String, RecordId> entry : changes.entrySet()) {
+            entries.add(new MapEntry(entry.getKey(), entry.getValue()));
         }
-        return writeMapBucket(entries, 0);
+        RecordId baseId = null;
+        if (base != null) {
+            baseId = base.getRecordId();
+        }
+        return new MapRecord(writeMapBucket(baseId, entries, 0).id);
     }
 
     /**
@@ -535,17 +636,50 @@ public class SegmentWriter {
             return nodeId;
         }
 
+        SegmentNodeState before = null;
+        ModifiedNodeState after = null;
+        if (state instanceof ModifiedNodeState) {
+            after = ModifiedNodeState.collapse((ModifiedNodeState) state);
+            NodeState base = after.getBaseState();
+            if (base instanceof SegmentNodeState) {
+                before = (SegmentNodeState) base;
+            }
+        }
+
         Template template = new Template(state);
 
         List<RecordId> ids = Lists.newArrayList();
         ids.add(writeTemplate(template));
 
         if (template.hasManyChildNodes()) {
-            Map<String, RecordId> childNodes = Maps.newHashMap();
-            for (ChildNodeEntry entry : state.getChildNodeEntries()) {
-                childNodes.put(entry.getName(), writeNode(entry.getNodeState()));
+            MapRecord base;
+            final Map<String, RecordId> childNodes = Maps.newHashMap();
+            if (before != null
+                    && before.getChildNodeCount() > 1
+                    && after.getChildNodeCount() > 1) {
+                base = before.getChildNodeMap();
+                after.compareAgainstBaseState(before, new DefaultNodeStateDiff() {
+                    @Override
+                    public void childNodeAdded(String name, NodeState after) {
+                        childNodes.put(name, writeNode(after));
+                    }
+                    @Override
+                    public void childNodeChanged(
+                            String name, NodeState before, NodeState after) {
+                        childNodes.put(name, writeNode(after));
+                    }
+                    @Override
+                    public void childNodeDeleted(String name, NodeState before) {
+                        childNodes.put(name, null);
+                    }
+                });
+            } else {
+                base = null;
+                for (ChildNodeEntry entry : state.getChildNodeEntries()) {
+                    childNodes.put(entry.getName(), writeNode(entry.getNodeState()));
+                }
             }
-            ids.add(writeMap(childNodes));
+            ids.add(writeMap(base, childNodes).getRecordId());
         } else if (!template.hasNoChildNodes()) {
             ids.add(writeNode(state.getChildNode(template.getChildName())));
         }

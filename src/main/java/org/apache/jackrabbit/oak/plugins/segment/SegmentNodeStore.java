@@ -56,7 +56,7 @@ public class SegmentNodeStore implements NodeStore {
 
     @Override
     public Blob createBlob(InputStream stream) throws IOException {
-        SegmentWriter writer = new SegmentWriter(store);
+        SegmentWriter writer = new SegmentWriter(store, reader);
         RecordId recordId = writer.writeStream(stream);
         writer.flush();
         return new SegmentBlob(reader, recordId);
