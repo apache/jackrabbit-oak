@@ -27,6 +27,8 @@ import static org.apache.jackrabbit.oak.plugins.commit.MergingNodeStateDiff.DELE
 import static org.apache.jackrabbit.oak.plugins.commit.MergingNodeStateDiff.DELETE_DELETED_NODE;
 import static org.apache.jackrabbit.oak.plugins.commit.MergingNodeStateDiff.DELETE_DELETED_PROPERTY;
 
+import java.util.concurrent.TimeUnit;
+
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -176,20 +178,34 @@ class SegmentNodeStoreBranch implements NodeStoreBranch {
             throws CommitFailedException {
         RecordId originalBaseId = baseId;
         RecordId originalRootId = rootId;
+        long backoff = 1;
         for (int i = 0; i < 10; i++) {
+            // rebase to latest head and apply commit hooks
             rebase();
-            RecordId headId =
-                    writer.writeNode(hook.processCommit(getBase(), getRoot()));
+            RecordId headId = writer.writeNode(
+                    hook.processCommit(getBase(), getRoot()));
             writer.flush();
+
+            // use optimistic locking to update the journal
             if (store.setJournalHead(journal, headId, baseId)) {
                 baseId = headId;
                 rootId = headId;
                 return getRoot();
             }
+
+            // someone else was faster, so clear state and try again later
             baseId = originalBaseId;
             rootId = originalRootId;
+
+            // use exponential backoff to reduce contention
+            try {
+                TimeUnit.MICROSECONDS.sleep(backoff);
+                backoff *= 2;
+            } catch (InterruptedException e) {
+                throw new CommitFailedException("Commit was interrupted", e);
+            }
         }
-        throw new CommitFailedException();
+        throw new CommitFailedException("System overloaded, try again later");
     }
 
     @Override
