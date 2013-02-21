@@ -94,9 +94,9 @@ class Segment {
         }
     };
 
-    private final OffsetCache<NodeTemplate> templates = new OffsetCache<NodeTemplate>() {
+    private final OffsetCache<Template> templates = new OffsetCache<Template>() {
         @Override
-        protected NodeTemplate load(int offset) {
+        protected Template load(int offset) {
             return null;
         }
     };
