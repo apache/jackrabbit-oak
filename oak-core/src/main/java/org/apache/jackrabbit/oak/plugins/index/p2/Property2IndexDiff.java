@@ -74,7 +74,7 @@ class Property2IndexDiff implements IndexHook {
     /**
      * The node name (the path element). Null for the root node.
      */
-    private final String name;
+    private final String nodeName;
 
     /**
      * The path of the changed node (built lazily).
@@ -93,20 +93,20 @@ class Property2IndexDiff implements IndexHook {
                 new HashMap<String, List<Property2IndexUpdate>>());
     }
 
-    private Property2IndexDiff(Property2IndexDiff parent, String name) {
-        this(parent, getChildNode(parent.node, name),
-                name, null, parent.indexMap);
+    private Property2IndexDiff(Property2IndexDiff parent, String nodeName) {
+        this(parent, getChildNode(parent.node, nodeName),
+                nodeName, null, parent.indexMap);
     }
 
     private Property2IndexDiff(
             Property2IndexDiff parent,
-            NodeBuilder node, String name, String path,
-            Map<String, List<Property2IndexUpdate>> updates) {
+            NodeBuilder node, String nodeName, String path,
+            Map<String, List<Property2IndexUpdate>> indexMap) {
         this.parent = parent;
         this.node = node;
-        this.name = name;
+        this.nodeName = nodeName;
         this.path = path;
-        this.indexMap = updates;
+        this.indexMap = indexMap;
 
         if (node != null && node.hasChildNode(INDEX_DEFINITIONS_NAME)) {
             NodeBuilder index = node.child(INDEX_DEFINITIONS_NAME);
@@ -131,7 +131,7 @@ class Property2IndexDiff implements IndexHook {
     public String getPath() {
         // build the path lazily
         if (path == null) {
-            path = concat(parent.getPath(), name);
+            path = concat(parent.getPath(), nodeName);
         }
         return path;
     }
@@ -139,11 +139,11 @@ class Property2IndexDiff implements IndexHook {
     /**
      * Get all the indexes for the given property name.
      *
-     * @param name the property name
+     * @param propertyName the property name
      * @return the indexes
      */
-    private Iterable<Property2IndexUpdate> getIndexes(String name) {
-        List<Property2IndexUpdate> indexes = indexMap.get(name);
+    private Iterable<Property2IndexUpdate> getIndexes(String propertyName) {
+        List<Property2IndexUpdate> indexes = indexMap.get(propertyName);
         if (indexes == null) {
             return ImmutableList.of();
         }

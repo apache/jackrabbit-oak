@@ -64,7 +64,7 @@ class IndexHookManagerDiff implements NodeStateDiff {
 
     private final NodeBuilder node;
 
-    private final String name;
+    private final String nodeName;
 
     private String path;
 
@@ -82,22 +82,22 @@ class IndexHookManagerDiff implements NodeStateDiff {
     }
 
     private IndexHookManagerDiff(IndexHookProvider provider,
-            IndexHookManagerDiff parent, String name)
+            IndexHookManagerDiff parent, String nodeName)
             throws CommitFailedException {
-        this(provider, parent, getChildNode(parent.node, name), name, null,
+        this(provider, parent, getChildNode(parent.node, nodeName), nodeName, null,
                 parent.indexMap);
     }
 
     private IndexHookManagerDiff(IndexHookProvider provider,
             IndexHookManagerDiff parent, NodeBuilder node, String name,
-            String path, Map<String, Map<String, List<IndexHook>>> updates)
+            String path, Map<String, Map<String, List<IndexHook>>> indexMap)
             throws CommitFailedException {
         this.provider = provider;
         this.parent = parent;
         this.node = node;
-        this.name = name;
+        this.nodeName = name;
         this.path = path;
-        this.indexMap = updates;
+        this.indexMap = indexMap;
 
         if (node != null && isIndexNodeType(node.getProperty(JCR_PRIMARYTYPE))) {
             // to prevent double-reindex we only call reindex if:
@@ -179,9 +179,9 @@ class IndexHookManagerDiff implements NodeStateDiff {
         }
     }
 
-    private static NodeBuilder getChildNode(NodeBuilder node, String name) {
-        if (node != null && node.hasChildNode(name)) {
-            return node.child(name);
+    private static NodeBuilder getChildNode(NodeBuilder node, String nodeName) {
+        if (node != null && node.hasChildNode(nodeName)) {
+            return node.child(nodeName);
         } else {
             return null;
         }
@@ -190,7 +190,7 @@ class IndexHookManagerDiff implements NodeStateDiff {
     private String getPath() {
         if (path == null) { 
             // => parent != null
-            path = concat(parent.getPath(), name);
+            path = concat(parent.getPath(), nodeName);
         }
         return path;
     }
@@ -217,6 +217,8 @@ class IndexHookManagerDiff implements NodeStateDiff {
     /**
      * Returns IndexHooks of the given type that have the best match (are
      * situated the closest on the hierarchy) for the current path.
+     * 
+     * @param type the index type ("p2")
      */
     private Map<String, List<IndexHook>> getIndexes(String type) {
         Map<String, List<IndexHook>> hooks = new HashMap<String, List<IndexHook>>();
@@ -294,20 +296,20 @@ class IndexHookManagerDiff implements NodeStateDiff {
     }
 
     @Override
-    public void childNodeAdded(String name, NodeState after) {
-        childNodeChanged(name, MemoryNodeState.EMPTY_NODE, after);
+    public void childNodeAdded(String nodeName, NodeState after) {
+        childNodeChanged(nodeName, MemoryNodeState.EMPTY_NODE, after);
     }
 
     @Override
-    public void childNodeChanged(String name, NodeState before, NodeState after) {
-        if (NodeStateUtils.isHidden(name)) {
+    public void childNodeChanged(String nodeName, NodeState before, NodeState after) {
+        if (NodeStateUtils.isHidden(nodeName)) {
             return;
         }
-        getIndexesWithRelativePaths(concat(getPath(), name), getIndexes());
+        getIndexesWithRelativePaths(concat(getPath(), nodeName), getIndexes());
 
         try {
             after.compareAgainstBaseState(before, new IndexHookManagerDiff(
-                    provider, this, name));
+                    provider, this, nodeName));
         } catch (CommitFailedException e) {
             // TODO ignore exception - is this a hack?
             LOG.error(e.getMessage(), e);
@@ -315,7 +317,7 @@ class IndexHookManagerDiff implements NodeStateDiff {
     }
 
     @Override
-    public void childNodeDeleted(String name, NodeState before) {
-        childNodeChanged(name, before, MemoryNodeState.EMPTY_NODE);
+    public void childNodeDeleted(String nodeName, NodeState before) {
+        childNodeChanged(nodeName, before, MemoryNodeState.EMPTY_NODE);
     }
 }
