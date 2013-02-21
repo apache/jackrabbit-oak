@@ -27,7 +27,7 @@ import com.google.common.collect.ImmutableMap;
 /**
  * TODO document
  */
-final class StringCache {
+public final class StringCache {
 
     private static final Map<String, String> CONSTANTS = createStringMap(
             JcrConstants.JCR_AUTOCREATED,
