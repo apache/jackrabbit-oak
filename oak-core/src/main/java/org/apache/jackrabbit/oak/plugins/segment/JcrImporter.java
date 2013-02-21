@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 public class JcrImporter {
 
@@ -37,7 +38,7 @@ public class JcrImporter {
         this.writer = writer;
     }
 
-    public RecordId writeNode(Node node) throws RepositoryException {
+    public NodeState writeNode(Node node) throws RepositoryException {
         NodeBuilder builder =
                 new MemoryNodeBuilder(MemoryNodeState.EMPTY_NODE);
         buildNode(builder, node);

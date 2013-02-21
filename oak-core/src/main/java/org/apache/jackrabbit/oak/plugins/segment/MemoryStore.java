@@ -34,7 +34,7 @@ public class MemoryStore implements SegmentStore {
 
     public MemoryStore(NodeState root) {
         SegmentWriter writer = new SegmentWriter(this, new SegmentReader(this));
-        journals.put("root", writer.writeNode(root));
+        journals.put("root", writer.writeNode(root).getRecordId());
         writer.flush();
     }
 
