@@ -45,6 +45,7 @@
     <mongo.port>27017</mongo.port>
     <mongo.db>MongoMKDB</mongo.db>
     <mongo.db2>MongoMKDB2</mongo.db2>
+    <solr.version>4.0.0</solr.version>
   </properties>
 
   <issueManagement>
