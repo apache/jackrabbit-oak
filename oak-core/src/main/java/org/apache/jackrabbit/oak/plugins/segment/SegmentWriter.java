@@ -630,10 +630,9 @@ public class SegmentWriter {
         return id;
     }
 
-    public RecordId writeNode(NodeState state) {
-        RecordId nodeId = SegmentNodeState.getRecordIdIfAvailable(state);
-        if (nodeId != null) {
-            return nodeId;
+    public SegmentNodeState writeNode(NodeState state) {
+        if (state instanceof SegmentNodeState) {
+            return (SegmentNodeState) state;
         }
 
         SegmentNodeState before = null;
@@ -661,12 +660,12 @@ public class SegmentWriter {
                 after.compareAgainstBaseState(before, new DefaultNodeStateDiff() {
                     @Override
                     public void childNodeAdded(String name, NodeState after) {
-                        childNodes.put(name, writeNode(after));
+                        childNodes.put(name, writeNode(after).getRecordId());
                     }
                     @Override
                     public void childNodeChanged(
                             String name, NodeState before, NodeState after) {
-                        childNodes.put(name, writeNode(after));
+                        childNodes.put(name, writeNode(after).getRecordId());
                     }
                     @Override
                     public void childNodeDeleted(String name, NodeState before) {
@@ -676,12 +675,14 @@ public class SegmentWriter {
             } else {
                 base = null;
                 for (ChildNodeEntry entry : state.getChildNodeEntries()) {
-                    childNodes.put(entry.getName(), writeNode(entry.getNodeState()));
+                    childNodes.put(
+                            entry.getName(),
+                            writeNode(entry.getNodeState()).getRecordId());
                 }
             }
             ids.add(writeMap(base, childNodes).getRecordId());
         } else if (!template.hasNoChildNodes()) {
-            ids.add(writeNode(state.getChildNode(template.getChildName())));
+            ids.add(writeNode(state.getChildNode(template.getChildName())).getRecordId());
         }
 
         for (PropertyTemplate property : template.getPropertyTemplates()) {
@@ -692,7 +693,7 @@ public class SegmentWriter {
         for (RecordId id : ids) {
             writeRecordId(id);
         }
-        return recordId;
+        return new SegmentNodeState(reader, recordId);
     }
 
 }
