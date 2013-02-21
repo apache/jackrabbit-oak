@@ -43,6 +43,8 @@ class SegmentNodeStoreBranch implements NodeStoreBranch {
 
     private final SegmentStore store;
 
+    private final String journal;
+
     private final SegmentReader reader;
 
     private final SegmentWriter writer;
@@ -51,11 +53,12 @@ class SegmentNodeStoreBranch implements NodeStoreBranch {
 
     private RecordId rootId;
 
-    SegmentNodeStoreBranch(SegmentStore store, SegmentReader reader) {
+    SegmentNodeStoreBranch(SegmentStore store, String journal, SegmentReader reader) {
         this.store = store;
+        this.journal = journal;
         this.reader = reader;
         this.writer = new SegmentWriter(store);
-        this.baseId = store.getJournalHead();
+        this.baseId = store.getJournalHead(journal);
         this.rootId = baseId;
     }
 
@@ -157,7 +160,7 @@ class SegmentNodeStoreBranch implements NodeStoreBranch {
 
     @Override
     public synchronized void rebase() {
-        RecordId newBaseId = store.getJournalHead();
+        RecordId newBaseId = store.getJournalHead(journal);
         if (!baseId.equals(newBaseId)) {
             NodeBuilder builder =
                     new MemoryNodeBuilder(new SegmentNodeState(reader, newBaseId));
@@ -178,7 +181,7 @@ class SegmentNodeStoreBranch implements NodeStoreBranch {
             RecordId headId =
                     writer.writeNode(hook.processCommit(getBase(), getRoot()));
             writer.flush();
-            if (store.setJournalHead(headId, baseId)) {
+            if (store.setJournalHead(journal, headId, baseId)) {
                 baseId = headId;
                 rootId = headId;
                 return getRoot();

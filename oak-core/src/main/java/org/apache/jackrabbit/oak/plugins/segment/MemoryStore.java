@@ -16,48 +16,55 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentMap;
 
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+
+import com.google.common.collect.Maps;
 
 public class MemoryStore implements SegmentStore {
 
-    private final Map<UUID, Segment> segments =
-        Collections.synchronizedMap(new HashMap<UUID, Segment>());
+    private final ConcurrentMap<String, RecordId> journals =
+            Maps.newConcurrentMap();
 
-    private RecordId head;
+    private final ConcurrentMap<UUID, Segment> segments =
+            Maps.newConcurrentMap();
 
-    public MemoryStore() {
+    public MemoryStore(NodeState root) {
         SegmentWriter writer = new SegmentWriter(this);
-        this.head = writer.writeNode(MemoryNodeState.EMPTY_NODE);
+        journals.put("root", writer.writeNode(root));
         writer.flush();
     }
 
-    @Override
-    public synchronized RecordId getJournalHead() {
-        return head;
+    public MemoryStore() {
+        this(MemoryNodeState.EMPTY_NODE);
     }
 
     @Override
-    public synchronized boolean setJournalHead(RecordId head, RecordId base) {
-        if (this.head.equals(base)) {
-            this.head = head;
-            return true;
+    public RecordId getJournalHead(String name) {
+        RecordId head = journals.get(name);
+        if (head != null) {
+            return head;
         } else {
-            return false;
+            throw new IllegalArgumentException("Journal not found: " + name);
         }
     }
 
     @Override
-    public Segment readSegment(UUID segmentId) {
-        Segment segment = segments.get(segmentId);
+    public boolean setJournalHead(String name, RecordId head, RecordId base) {
+        return journals.replace(name, base, head);
+    }
+
+    @Override
+    public Segment readSegment(UUID id) {
+        Segment segment = segments.get(id);
         if (segment != null) {
             return segment;
         } else {
-            throw new IllegalStateException("Segment not found: " + segmentId);
+            throw new IllegalArgumentException("Segment not found: " + id);
         }
     }
 
