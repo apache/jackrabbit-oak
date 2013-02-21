@@ -240,9 +240,8 @@ public class RecordTest {
     @Test
     public void testEmptyNode() {
         NodeState before = MemoryNodeState.EMPTY_NODE;
-        RecordId id = writer.writeNode(before);
+        NodeState after = writer.writeNode(before);
         writer.flush();
-        NodeState after = new SegmentNodeState(reader, id);
         assertEquals(before, after);
     }
 
@@ -253,9 +252,8 @@ public class RecordTest {
                 .setProperty("bar", 123)
                 .setProperty("baz", Math.PI)
                 .getNodeState();
-        RecordId id = writer.writeNode(before);
+        NodeState after = writer.writeNode(before);
         writer.flush();
-        NodeState after = new SegmentNodeState(reader, id);
         assertEquals(before, after);
     }
 
@@ -266,10 +264,9 @@ public class RecordTest {
         for (int i = 0; i < 1000; i++) {
             builder = builder.child("test");
         }
-         NodeState before = builder.getNodeState();
-        RecordId id = writer.writeNode(before);
+        NodeState before = builder.getNodeState();
+        NodeState after = writer.writeNode(before);
         writer.flush();
-        NodeState after = new SegmentNodeState(reader, id);
         assertEquals(before, after);
     }
 
