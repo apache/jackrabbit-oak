@@ -44,14 +44,13 @@ public class MongoStore implements SegmentStore {
 
         this.cache = cache;
 
-        SegmentWriter writer = new SegmentWriter(this);
-        RecordId id = writer.writeNode(MemoryNodeState.EMPTY_NODE);
-        writer.flush();
-        journals.update(
-                new BasicDBObject("_id", "root"),
-                new BasicDBObject(ImmutableMap.of(
-                        "_id", "root", "head", id.toString())),
-                true /* upsert */, false);
+        if (journals.findOne(new BasicDBObject("_id", "root")) == null) {
+            SegmentWriter writer = new SegmentWriter(this);
+            RecordId id = writer.writeNode(MemoryNodeState.EMPTY_NODE);
+            writer.flush();
+            journals.insert(new BasicDBObject(ImmutableMap.of(
+                    "_id", "root", "head", id.toString())));
+        }
     }
 
     public MongoStore(DB db) {
@@ -64,17 +63,17 @@ public class MongoStore implements SegmentStore {
     }
 
     @Override
-    public RecordId getJournalHead() {
-        DBObject journal = journals.findOne(new BasicDBObject("_id", "root"));
+    public RecordId getJournalHead(String name) {
+        DBObject journal = journals.findOne(new BasicDBObject("_id", name));
         return RecordId.fromString(journal.get("head").toString());
     }
 
     @Override
-    public boolean setJournalHead(RecordId head, RecordId base) {
+    public boolean setJournalHead(String name, RecordId head, RecordId base) {
         DBObject baseObject = new BasicDBObject(
-                ImmutableMap.of("_id", "root", "head", base.toString()));
+                ImmutableMap.of("_id", name, "head", base.toString()));
         DBObject headObject = new BasicDBObject(
-                ImmutableMap.of("_id", "root", "head", head.toString()));
+                ImmutableMap.of("_id", name, "head", head.toString()));
         return journals.findAndModify(baseObject, headObject) != null;
     }
 
