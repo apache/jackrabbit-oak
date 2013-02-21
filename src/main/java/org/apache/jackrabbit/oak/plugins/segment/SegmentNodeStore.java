@@ -30,21 +30,28 @@ public class SegmentNodeStore implements NodeStore {
 
     private final SegmentStore store;
 
+    private final String journal;
+
     private final SegmentReader reader;
 
-    public SegmentNodeStore(SegmentStore store) {
+    public SegmentNodeStore(SegmentStore store, String journal) {
         this.store = store;
+        this.journal = journal;
         this.reader = new SegmentReader(store);
+    }
+
+    public SegmentNodeStore(SegmentStore store) {
+        this(store, "root");
     }
 
     @Override @Nonnull
     public NodeState getRoot() {
-        return new SegmentNodeState(reader, store.getJournalHead());
+        return new SegmentNodeState(reader, store.getJournalHead(journal));
     }
 
     @Override @Nonnull
     public NodeStoreBranch branch() {
-        return new SegmentNodeStoreBranch(store, reader);
+        return new SegmentNodeStoreBranch(store, journal, reader);
     }
 
     @Override
