@@ -277,17 +277,17 @@ public class SegmentWriter {
                     buckets[bucketIndex].add(entry);
                 }
 
-                long baseMap = reader.readLong(baseId, 4);
+                int baseMap = reader.readInt(baseId, 4);
 
                 int newSize = 0;
                 RecordId[] bucketIds = new RecordId[size];
                 for (int i = 0; i < buckets.length; i++) {
-                    long bucketBit = 1L << i;
+                    int bucketBit = 1 << i;
                     RecordId baseBucketId = null;
                     if ((baseMap & bucketBit) != 0) {
-                        int index = Long.bitCount(baseMap & (bucketBit - 1));
+                        int index = Integer.bitCount(baseMap & (bucketBit - 1));
                         baseBucketId = reader.readRecordId(
-                                baseId, 12 + index * Segment.RECORD_ID_BYTES);
+                                baseId, 8 + index * Segment.RECORD_ID_BYTES);
                     }
                     if (buckets[i] != null) {
                         BucketInfo info = writeMapBucket(
@@ -303,17 +303,17 @@ public class SegmentWriter {
                 }
                 
                 List<RecordId> ids = Lists.newArrayList();
-                long bucketMap = 0L;
+                int bucketMap = 0;
                 for (int i = 0; i < buckets.length; i++) {
                     if (bucketIds[i] != null) {
                         ids.add(bucketIds[i]);
-                        bucketMap |= 1L << i;
+                        bucketMap |= 1 << i;
                     }
                 }
 
                 RecordId bucketId = prepare(12, ids);
                 writeInt(newSize);
-                writeLong(bucketMap);
+                writeInt(bucketMap);
                 for (RecordId id : ids) {
                     writeRecordId(id);
                 }
@@ -351,17 +351,17 @@ public class SegmentWriter {
             }
 
             List<RecordId> bucketIds = Lists.newArrayList();
-            long bucketMap = 0L;
+            int bucketMap = 0;
             for (int i = 0; i < buckets.length; i++) {
                 if (buckets[i] != null) {
                     bucketIds.add(writeMapBucket(null, buckets[i], level + 1).id);
-                    bucketMap |= 1L << i;
+                    bucketMap |= 1 << i;
                 }
             }
 
-            RecordId bucketId = prepare(12, bucketIds);
+            RecordId bucketId = prepare(8, bucketIds);
             writeInt(entries.size());
-            writeLong(bucketMap);
+            writeInt(bucketMap);
             for (RecordId id : bucketIds) {
                 writeRecordId(id);
             }

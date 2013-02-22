@@ -31,7 +31,7 @@ class MapRecord extends Record {
     public interface Entry extends Map.Entry<String, RecordId> {    
     }
 
-    static final int LEVEL_BITS = 6;
+    static final int LEVEL_BITS = 5;
 
     MapRecord(RecordId id) {
         super(id);
@@ -82,12 +82,12 @@ class MapRecord extends Record {
             }
             return null;
         } else {
-            long bucketMap = reader.readLong(getRecordId(), 4);
+            int bucketMap = reader.readInt(getRecordId(), 4);
             int bucketIndex = (code >> shift) & mask;
-            long bucketBit = 1L << bucketIndex;
+            int bucketBit = 1 << bucketIndex;
             if ((bucketMap & bucketBit) != 0) {
-                bucketIndex = Long.bitCount(bucketMap & (bucketBit - 1));
-                RecordId bucketId = reader.readRecordId(getRecordId(), 12 + bucketIndex * Segment.RECORD_ID_BYTES);
+                bucketIndex = Integer.bitCount(bucketMap & (bucketBit - 1));
+                RecordId bucketId = reader.readRecordId(getRecordId(), 8 + bucketIndex * Segment.RECORD_ID_BYTES);
                 return new MapRecord(bucketId).getEntry(reader, key, level + 1);
             } else {
                 return null;
@@ -145,13 +145,13 @@ class MapRecord extends Record {
                 }
             };
         } else {
-            long bucketMap = reader.readLong(getRecordId(), 4);
-            int bucketCount = Long.bitCount(bucketMap);
+            int bucketMap = reader.readInt(getRecordId(), 4);
+            int bucketCount = Integer.bitCount(bucketMap);
             List<Iterable<Entry>> iterables =
                     Lists.newArrayListWithCapacity(bucketCount);
             for (int i = 0; i < bucketCount; i++) {
                 RecordId bucketId = reader.readRecordId(
-                        getRecordId(), 12 + i * Segment.RECORD_ID_BYTES);
+                        getRecordId(), 8 + i * Segment.RECORD_ID_BYTES);
                 iterables.add(new MapRecord(bucketId).getEntries(reader, level + 1));
             }
             return Iterables.concat(iterables);
