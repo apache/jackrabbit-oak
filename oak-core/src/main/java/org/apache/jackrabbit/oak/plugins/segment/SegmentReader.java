@@ -264,4 +264,8 @@ public class SegmentReader {
         return new BlockRecord(recordId, size);
     }
 
+    SegmentStore getStore() {
+        return store;
+    }
+
 }

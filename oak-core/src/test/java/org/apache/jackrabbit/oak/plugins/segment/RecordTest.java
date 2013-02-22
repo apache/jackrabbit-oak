@@ -187,54 +187,55 @@ public class RecordTest {
         writer.flush();
         Iterator<MapRecord.Entry> iterator;
 
-        assertEquals(0, zero.size(reader));
-        assertNull(zero.getEntry(reader, "one"));
-        iterator = zero.getEntries(reader).iterator();
+        assertEquals(0, zero.size());
+        assertNull(zero.getEntry("one"));
+        iterator = zero.getEntries().iterator();
         assertFalse(iterator.hasNext());
 
-        assertEquals(1, one.size(reader));
-        assertEquals(blockId, one.getEntry(reader, "one"));
-        assertNull(one.getEntry(reader, "two"));
-        iterator = one.getEntries(reader).iterator();
+        assertEquals(1, one.size());
+        assertEquals(blockId, one.getEntry("one"));
+        assertNull(one.getEntry("two"));
+        iterator = one.getEntries().iterator();
         assertTrue(iterator.hasNext());
         assertEquals("one", iterator.next().getKey());
         assertFalse(iterator.hasNext());
 
-        assertEquals(2, two.size(reader));
-        assertEquals(blockId, two.getEntry(reader, "one"));
-        assertEquals(blockId, two.getEntry(reader, "two"));
-        assertNull(two.getEntry(reader, "three"));
-        iterator = two.getEntries(reader).iterator();
+        assertEquals(2, two.size());
+        assertEquals(blockId, two.getEntry("one"));
+        assertEquals(blockId, two.getEntry("two"));
+        assertNull(two.getEntry("three"));
+        iterator = two.getEntries().iterator();
         assertTrue(iterator.hasNext());
         iterator.next();
         assertTrue(iterator.hasNext());
         iterator.next();
         assertFalse(iterator.hasNext());
 
-        assertEquals(1000, many.size(reader));
-        iterator = many.getEntries(reader).iterator();
+        assertEquals(1000, many.size());
+        iterator = many.getEntries().iterator();
+        System.out.println(MapRecord.readMap(store, many.getRecordId()));
         for (int i = 0; i < 1000; i++) {
             assertTrue(iterator.hasNext());
             assertEquals(blockId, iterator.next().getValue());
-            assertEquals(blockId, many.getEntry(reader, "key" + i));
+            assertEquals(blockId, many.getEntry("key" + i));
         }
         assertFalse(iterator.hasNext());
-        assertNull(many.getEntry(reader, "foo"));
+        assertNull(many.getEntry("foo"));
 
         Map<String, RecordId> changes = Maps.newHashMap();
         changes.put("key0", null);
         changes.put("key1000", blockId);
         MapRecord modified = writer.writeMap(many, changes);
         writer.flush();
-        assertEquals(1000, modified.size(reader));
-        iterator = modified.getEntries(reader).iterator();
+        assertEquals(1000, modified.size());
+        iterator = modified.getEntries().iterator();
         for (int i = 1; i <= 1000; i++) {
             assertTrue(iterator.hasNext());
             assertEquals(blockId, iterator.next().getValue());
-            assertEquals(blockId, modified.getEntry(reader, "key" + i));
+            assertEquals(blockId, modified.getEntry("key" + i));
         }
         assertFalse(iterator.hasNext());
-        assertNull(many.getEntry(reader, "foo"));
+        assertNull(many.getEntry("foo"));
     }
 
     @Test
