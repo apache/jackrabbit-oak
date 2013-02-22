@@ -26,6 +26,7 @@ import com.google.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
+import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
@@ -591,6 +592,12 @@ public class MemoryNodeBuilder implements NodeBuilder {
         public Iterable<String> getChildNodeNames() {
             Map<String, MutableNodeState> copy = Maps.newHashMap(nodes);
             return withNodes(base, copy).getChildNodeNames();
+        }
+
+        @Override @Nonnull
+        public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
+            Map<String, MutableNodeState> copy = Maps.newHashMap(nodes);
+            return withNodes(base, copy).getChildNodeEntries();
         }
 
         @Override
