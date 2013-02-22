@@ -16,145 +16,123 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
+import static com.google.common.base.Preconditions.checkElementIndex;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static java.lang.Integer.highestOneBit;
+import static java.lang.Integer.numberOfTrailingZeros;
 
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
+abstract class MapRecord extends Record {
 
-class MapRecord extends Record {
+    /**
+     * Number of bits of the hash code to look at on each level of the trie.
+     */
+    protected static final int BITS_PER_LEVEL = 5;
+
+    /**
+     * Number of buckets at each level of the trie.
+     */
+    protected static final int BUCKETS_PER_LEVEL = 1 << BITS_PER_LEVEL; // 32
+
+    /**
+     * Maximum number of trie levels.
+     */
+    protected static final int MAX_NUMBER_OF_LEVELS =
+            (32 + BITS_PER_LEVEL - 1) / BITS_PER_LEVEL; // 7
+
+    /**
+     * Number of bits needed to indicate the current trie level.
+     */
+    protected static final int LEVEL_BITS = // 4, using nextPowerOfTwo():
+            numberOfTrailingZeros(highestOneBit(MAX_NUMBER_OF_LEVELS) << 1);
+
+    /**
+     * Number of bits used to indicate the size of a map.
+     */
+    protected static final int SIZE_BITS = 32 - LEVEL_BITS;
+
+    /**
+     * Maximum size of a map.
+     */
+    protected static final int MAX_SIZE = (1 << SIZE_BITS) - 1; // ~268e6
+
+    static MapRecord readMap(SegmentStore store, RecordId id) {
+        checkNotNull(store);
+        checkNotNull(id);
+
+        Segment segment = checkNotNull(store).readSegment(id.getSegmentId());
+        int head = segment.readInt(id.getOffset());
+        int level = head >>> SIZE_BITS;
+        int size = head & ((1 << SIZE_BITS) - 1);
+        System.out.println("R: " + size + " " + level);
+        if (size > BUCKETS_PER_LEVEL && level < MAX_NUMBER_OF_LEVELS) {
+            int bitmap = segment.readInt(id.getOffset() + 4);
+            return new MapBranch(store, id, size, level, bitmap);
+        } else {
+            return new MapLeaf(store, id, size, level);
+        }
+    }
 
     public interface Entry extends Map.Entry<String, RecordId> {    
     }
 
-    static final int LEVEL_BITS = 5;
+    protected final SegmentStore store;
 
-    MapRecord(RecordId id) {
-        super(id);
+    protected final int size;
+
+    protected final int level;
+
+    protected MapRecord(SegmentStore store, RecordId id, int size, int level) {
+        super(checkNotNull(id));
+        this.store = checkNotNull(store);
+        this.size = checkElementIndex(size, MAX_SIZE);
+        this.level = checkElementIndex(level, MAX_NUMBER_OF_LEVELS);
     }
 
-    public int size(SegmentReader reader) {
-        return reader.readInt(getRecordId(), 0);
+    protected Segment getSegment() {
+        return getSegment(getRecordId().getSegmentId());
     }
 
-    public RecordId getEntry(SegmentReader reader, String key) {
-        checkNotNull(key);
-        return getEntry(reader, key, 0);
+    protected Segment getSegment(UUID uuid) {
+        return store.readSegment(uuid);
     }
 
-    private int getHash(SegmentReader reader, int index) {
-        return reader.readInt(getRecordId(), 4 + index * 4);
+    protected int getOffset() {
+        return getRecordId().getOffset();
     }
 
-    private String getKey(SegmentReader reader, int size, int index) {
-        int offset = 4 + size * 4 + index * Segment.RECORD_ID_BYTES;
-        return reader.readString(reader.readRecordId(getRecordId(), offset));
+    int size() {
+        return size;
     }
 
-    private RecordId getValue(SegmentReader reader, int size, int index) {
-        int offset = 4 + size * 4 + (size + index) * Segment.RECORD_ID_BYTES;
-        return reader.readRecordId(getRecordId(), offset);
-    }
+    abstract RecordId getEntry(String key);
 
-    private RecordId getEntry(SegmentReader reader, String key, int level) {
-        int size = 1 << LEVEL_BITS;
-        int mask = size - 1;
-        int shift = level * LEVEL_BITS;
+    abstract Iterable<String> getKeys();
 
-        int code = key.hashCode();
-        int bucketSize = reader.readInt(getRecordId(), 0);
-        if (bucketSize == 0) {
-            return null;
-        } else if (bucketSize <= size || shift >= 32) {
-            int index = 0;
-            while (index < bucketSize && getHash(reader, index) < code) {
-                index++;
-            }
-            while (index < bucketSize && getHash(reader, index) == code) {
-                if (key.equals(getKey(reader, bucketSize, index))) {
-                    return getValue(reader, bucketSize, index);
-                }
-                index++;
-            }
-            return null;
-        } else {
-            int bucketMap = reader.readInt(getRecordId(), 4);
-            int bucketIndex = (code >> shift) & mask;
-            int bucketBit = 1 << bucketIndex;
-            if ((bucketMap & bucketBit) != 0) {
-                bucketIndex = Integer.bitCount(bucketMap & (bucketBit - 1));
-                RecordId bucketId = reader.readRecordId(getRecordId(), 8 + bucketIndex * Segment.RECORD_ID_BYTES);
-                return new MapRecord(bucketId).getEntry(reader, key, level + 1);
+    abstract Iterable<Entry> getEntries();
+
+    //------------------------------------------------------------< Object >--
+
+    @Override
+    public String toString() {
+        StringBuilder builder = null;
+        for (Entry entry : getEntries()) {
+            if (builder == null) {
+                builder = new StringBuilder("{ ");
             } else {
-                return null;
+                builder.append(", ");
             }
+            builder.append(entry.getKey());
+            builder.append("=");
+            builder.append(entry.getValue());
         }
-    }
-
-    public Iterable<Entry> getEntries(SegmentReader reader) {
-        return getEntries(reader, 0);
-    }
-
-    private Iterable<Entry> getEntries(
-            final SegmentReader reader, int level) {
-        int size = 1 << LEVEL_BITS;
-        int shift = level * LEVEL_BITS;
-
-        final int bucketSize = reader.readInt(getRecordId(), 0);
-        if (bucketSize == 0) {
-            return Collections.emptyList();
-        } else if (bucketSize <= size || shift >= 32) {
-            return new Iterable<Entry>() {
-                @Override
-                public Iterator<Entry> iterator() {
-                    return new Iterator<Entry>() {
-                        private int index = 0;
-                        @Override
-                        public boolean hasNext() {
-                            return index < bucketSize;
-                        }
-                        @Override
-                        public Entry next() {
-                            final int i = index++;
-                            return new Entry() {
-                                @Override
-                                public String getKey() {
-                                    return MapRecord.this.getKey(
-                                            reader, bucketSize, i);
-                                }
-                                @Override
-                                public RecordId getValue() {
-                                    return MapRecord.this.getValue(
-                                            reader, bucketSize, i);
-                                }
-                                @Override
-                                public RecordId setValue(RecordId value) {
-                                    throw new UnsupportedOperationException();
-                                }
-                            };
-                        }
-                        @Override
-                        public void remove() {
-                            throw new UnsupportedOperationException();
-                        }
-                    };
-                }
-            };
+        if (builder == null) {
+            return "{}";
         } else {
-            int bucketMap = reader.readInt(getRecordId(), 4);
-            int bucketCount = Integer.bitCount(bucketMap);
-            List<Iterable<Entry>> iterables =
-                    Lists.newArrayListWithCapacity(bucketCount);
-            for (int i = 0; i < bucketCount; i++) {
-                RecordId bucketId = reader.readRecordId(
-                        getRecordId(), 8 + i * Segment.RECORD_ID_BYTES);
-                iterables.add(new MapRecord(bucketId).getEntries(reader, level + 1));
-            }
-            return Iterables.concat(iterables);
+            builder.append(" }");
+            return builder.toString();
         }
     }
 
