@@ -216,6 +216,10 @@ public class MongoMK implements MicroKernel {
         List<Map<String, Object>> list = store.query(DocumentStore.Collection.NODES, from, to, limit);
         Node.Children c = new Node.Children(path, rev);
         for (Map<String, Object> e : list) {
+            //Filter out deleted children
+            if(isDeleted(e,rev)){
+                continue;
+            }
             // TODO put the whole node in the cache
             String id = e.get("_id").toString();
             String p = id.substring(2);
@@ -228,6 +232,9 @@ public class MongoMK implements MicroKernel {
         String id = Node.convertPathToDocumentId(path);
         Map<String, Object> map = store.find(DocumentStore.Collection.NODES, id);
         if (map == null) {
+            return null;
+        }
+        if(isDeleted(map,rev)){
             return null;
         }
         Node n = new Node(path, rev);
@@ -366,6 +373,7 @@ public class MongoMK implements MicroKernel {
             case '-':
                 // TODO support remove operations
                 commit.removeNode(path);
+                markAsDeleted(path,commit,rev);
                 break;
             case '^':
                 t.read(':');
@@ -466,8 +474,38 @@ public class MongoMK implements MicroKernel {
         }
         applyCommit(commit);
         return rev.toString();
-    }    
-    
+    }
+
+    private void markAsDeleted(String path, Commit commit, Revision rev) {
+        UpdateOp op = commit.getUpdateOperationForNode(path);
+        op.addMapEntry("_deleted", rev.toString(), "true");
+        op.increment("_writeCount", 1);
+
+        //TODO Would cause issue with large number of children. Need to be
+        //relooked
+        Node.Children c  = readChildren(path,rev,Integer.MAX_VALUE);
+        for(String childPath : c.children){
+            markAsDeleted(childPath,commit, rev);
+        }
+    }
+
+    private boolean isDeleted(Map<String, Object> nodeProps,Revision rev){
+        Map<String,String> valueMap = (Map<String, String>) nodeProps.get("_deleted");
+        if(valueMap != null){
+            for (Map.Entry<String,String> e : valueMap.entrySet()) {
+                //TODO What if multiple revisions are there?. Should we sort them and then
+                //determine include revision based on that
+                Revision propRev = Revision.fromString(e.getKey());
+                if (includeRevision(propRev, rev)) {
+                     if("true".equals(e.getValue())){
+                         return true;
+                     }
+                }
+            }
+        }
+        return false;
+    }
+
     private void applyCommit(Commit commit) {
         headRevision = commit.getRevision();
         if (commit.isEmpty()) {

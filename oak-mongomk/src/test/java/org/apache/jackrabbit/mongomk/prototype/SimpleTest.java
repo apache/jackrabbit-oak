@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.mongomk.prototype;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import org.apache.jackrabbit.mongomk.prototype.DocumentStore.Collection;
@@ -64,10 +65,9 @@ public class SimpleTest {
 
     @Test
     public void commit() {
-        MongoMK mk = new MongoMK();
-
-        String rev;
-        rev = mk.commit("/", "+\"test\":{\"name\": \"Hello\"}", null, null);
+        MongoMK mk = createMK();
+        
+        String rev = mk.commit("/", "+\"test\":{\"name\": \"Hello\"}", null, null);
         String test = mk.getNodes("/test", rev, 0, 0, Integer.MAX_VALUE, null);
         assertEquals("{\"name\":\"Hello\",\":childNodeCount\":0}", test);
         
@@ -89,7 +89,34 @@ public class SimpleTest {
         System.out.println(test);
         mk.dispose();
     }
-    
+
+    @Test
+    public void testDeletion(){
+        MongoMK mk = createMK();
+
+        String rev = mk.commit("/", "+\"testDel\":{\"name\": \"Hello\"}", null, null);
+        rev = mk.commit("/testDel", "+\"a\":{\"name\": \"World\"}", null, null);
+        rev = mk.commit("/testDel", "+\"b\":{\"name\": \"!\"}", null, null);
+        rev = mk.commit("/testDel", "+\"c\":{\"name\": \"!\"}", null, null);
+
+        Children c = mk.readChildren("/testDel",
+                Revision.fromString(rev), Integer.MAX_VALUE);
+        assertEquals(3,c.children.size());
+
+        rev = mk.commit("/testDel", "-\"c\"", null, null);
+        c = mk.readChildren("/testDel", Revision.fromString(rev), Integer.MAX_VALUE);
+        assertEquals(2,c.children.size());
+
+        rev = mk.commit("/", "-\"testDel\"", null, null);
+        Node n = mk.getNode("/testDel",Revision.fromString(rev));
+        assertNull(n);
+    }
+
+    private MongoMK createMK() {
+        return new MongoMK();
+//        return new MongoMK(MongoUtils.getConnection().getDB(),0);
+    }
+
     // TODO run Damians tests
     
 }
