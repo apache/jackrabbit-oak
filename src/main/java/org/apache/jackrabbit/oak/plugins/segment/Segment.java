@@ -176,4 +176,13 @@ class Segment {
         return strings.get(offset);
     }
 
+    String readString(RecordId id) {
+        checkNotNull(id);
+        Segment segment = this;
+        if (!uuid.equals(id.getSegmentId())) {
+            segment = store.readSegment(id.getSegmentId());
+        }
+        return segment.readString(id.getOffset());
+    }
+
 }

@@ -28,19 +28,15 @@ import java.util.Set;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
-import org.apache.jackrabbit.oak.plugins.segment.MapRecord.Entry;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 
-import com.google.common.base.Function;
 import com.google.common.base.Objects;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
 class Template {
@@ -309,16 +305,7 @@ class Template {
         if (hasNoChildNodes()) {
             return Collections.emptyList();
         } else if (hasManyChildNodes()) {
-            return Iterables.transform(
-                    getChildNodeMap(reader, recordId).getEntries(),
-                    new Function<MapRecord.Entry, ChildNodeEntry>() {
-                        @Override @Nullable
-                        public ChildNodeEntry apply(@Nullable Entry input) {
-                            return new MemoryChildNodeEntry(
-                                    input.getKey(),
-                                    new SegmentNodeState(reader, input.getValue()));
-                        }
-                    });
+            return getChildNodeMap(reader, recordId).getEntries();
         } else {
             RecordId childNodeId =
                     reader.readRecordId(recordId, Segment.RECORD_ID_BYTES);

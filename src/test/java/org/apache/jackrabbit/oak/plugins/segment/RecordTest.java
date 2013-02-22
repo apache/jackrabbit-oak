@@ -185,7 +185,7 @@ public class RecordTest {
         MapRecord many = writer.writeMap(null, map);
 
         writer.flush();
-        Iterator<MapRecord.Entry> iterator;
+        Iterator<MapEntry> iterator;
 
         assertEquals(0, zero.size());
         assertNull(zero.getEntry("one"));
@@ -197,7 +197,7 @@ public class RecordTest {
         assertNull(one.getEntry("two"));
         iterator = one.getEntries().iterator();
         assertTrue(iterator.hasNext());
-        assertEquals("one", iterator.next().getKey());
+        assertEquals("one", iterator.next().getName());
         assertFalse(iterator.hasNext());
 
         assertEquals(2, two.size());
