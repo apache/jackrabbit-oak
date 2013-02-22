@@ -352,9 +352,8 @@ class Template {
         int afterIndex = 0;
         while (beforeIndex < beforeTemplate.properties.length
                 && afterIndex < properties.length) {
-            int d = Integer.compare(
-                    properties[afterIndex].hashCode(),
-                    beforeTemplate.properties[beforeIndex].hashCode());
+            int d = Integer.valueOf(properties[afterIndex].hashCode())
+                    .compareTo(Integer.valueOf(beforeTemplate.properties[beforeIndex].hashCode()));
             if (d == 0) {
                 d = properties[afterIndex].getName().compareTo(
                         beforeTemplate.properties[beforeIndex].getName());
