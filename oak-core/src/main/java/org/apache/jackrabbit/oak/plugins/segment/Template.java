@@ -186,13 +186,18 @@ class Template {
         } else if ("jcr:mixinTypes".equals(name) && mixinTypes != null) {
             return mixinTypes;
         } else {
-            for (int i = 0; i < properties.length; i++) {
-                int diff = name.compareTo(properties[i].getName());
-                if (diff == 0) {
-                    return getProperty(reader, recordId, i);
-                } else if (diff < 0) {
-                    return null;
+            int hash = name.hashCode();
+            int index = 0;
+            while (index < properties.length
+                    && properties[index].getName().hashCode() < hash) {
+                index++;
+            }
+            while (index < properties.length
+                    && properties[index].getName().hashCode() == hash) {
+                if (name.equals(properties[index].getName())) {
+                    return getProperty(reader, recordId, index);
                 }
+                index++;
             }
             return null;
         }
@@ -347,8 +352,13 @@ class Template {
         int afterIndex = 0;
         while (beforeIndex < beforeTemplate.properties.length
                 && afterIndex < properties.length) {
-            int d = properties[afterIndex].compareTo(
-                    beforeTemplate.properties[beforeIndex]);
+            int d = Integer.compare(
+                    properties[afterIndex].hashCode(),
+                    beforeTemplate.properties[beforeIndex].hashCode());
+            if (d == 0) {
+                d = properties[afterIndex].getName().compareTo(
+                        beforeTemplate.properties[beforeIndex].getName());
+            }
             PropertyState beforeProperty = null;
             PropertyState afterProperty = null;
             if (d < 0) {
