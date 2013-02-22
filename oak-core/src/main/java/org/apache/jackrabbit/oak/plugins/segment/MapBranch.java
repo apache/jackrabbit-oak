@@ -21,14 +21,14 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Iterables.concat;
 import static com.google.common.collect.Iterables.transform;
 import static java.lang.Integer.bitCount;
+import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.oak.plugins.segment.Segment.RECORD_ID_BYTES;
 
-import java.util.List;
+import java.util.Collections;
 
 import javax.annotation.Nullable;
 
 import com.google.common.base.Function;
-import com.google.common.collect.Lists;
 
 class MapBranch extends MapRecord {
 
@@ -39,6 +39,22 @@ class MapBranch extends MapRecord {
         checkArgument(size > BUCKETS_PER_LEVEL);
         checkArgument(level < MAX_NUMBER_OF_LEVELS);
         this.bitmap = bitmap;
+    }
+
+    RecordId[] getBuckets() {
+        Segment segment = getSegment();
+        int offset = getOffset() + 8;
+
+        RecordId[] buckets = new RecordId[BUCKETS_PER_LEVEL];
+        for (int i = 0; i < buckets.length; i++) {
+            if ((bitmap & (1 << i)) != 0) {
+                buckets[i] = segment.readRecordId(offset);
+                offset += RECORD_ID_BYTES;
+            } else {
+                buckets[i] = null;
+            }
+        }
+        return buckets;
     }
 
     @Override
@@ -63,38 +79,33 @@ class MapBranch extends MapRecord {
     @Override
     Iterable<String> getKeys() {
         return concat(transform(
-                getBuckets(),
+                asList(getBuckets()),
                 new Function<RecordId, Iterable<String>>() {
                     @Override @Nullable
                     public Iterable<String> apply(@Nullable RecordId input) {
-                        return MapRecord.readMap(store, input).getKeys();
+                        if (input != null) {
+                            return MapRecord.readMap(store, input).getKeys();
+                        } else {
+                            return Collections.emptyList();
+                        }
                     }
                 }));
     }
 
     @Override
-    Iterable<Entry> getEntries() {
+    Iterable<MapEntry> getEntries() {
         return concat(transform(
-                getBuckets(),
-                new Function<RecordId, Iterable<Entry>>() {
+                asList(getBuckets()),
+                new Function<RecordId, Iterable<MapEntry>>() {
                     @Override @Nullable
-                    public Iterable<Entry> apply(@Nullable RecordId input) {
-                        return MapRecord.readMap(store, input).getEntries();
+                    public Iterable<MapEntry> apply(@Nullable RecordId input) {
+                        if (input != null) {
+                            return MapRecord.readMap(store, input).getEntries();
+                        } else {
+                            return Collections.emptyList();
+                        }
                     }
                 }));
-    }
-
-    private Iterable<RecordId> getBuckets() {
-        int n = Integer.bitCount(bitmap);
-        int p = getOffset() + 8;
-        int q = p + n * RECORD_ID_BYTES;
-        Segment segment = getSegment();
-
-        List<RecordId> buckets = Lists.newArrayListWithCapacity(n);
-        for (int o = p; o < q; o += RECORD_ID_BYTES) {
-            buckets.add(segment.readRecordId(o));
-        }
-        return buckets;
     }
 
 }

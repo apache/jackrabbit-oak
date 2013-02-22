@@ -21,15 +21,40 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.plugins.segment.Segment.RECORD_ID_BYTES;
 
 import java.util.Iterator;
+import java.util.Map;
 import java.util.NoSuchElementException;
+
+import com.google.common.collect.Maps;
 
 class MapLeaf extends MapRecord {
 
     MapLeaf(SegmentStore store, RecordId id, int size, int level) {
         super(store, id, size, level);
-        System.out.println(size + " " + level);
         checkArgument(size != 0 || level == 0);
         checkArgument(size <= BUCKETS_PER_LEVEL || level == MAX_NUMBER_OF_LEVELS);
+    }
+
+    Map<String, MapEntry> getMapEntries() {
+        RecordId[] keys = new RecordId[size];
+        RecordId[] values = new RecordId[size];
+
+        Segment segment = getSegment();
+        int offset = getOffset() + 4 + size * 4;
+        for (int i = 0; i < size; i++) {
+            keys[i] = segment.readRecordId(offset);
+            offset += RECORD_ID_BYTES;
+        }
+        for (int i = 0; i < size; i++) {
+            values[i] = segment.readRecordId(offset);
+            offset += RECORD_ID_BYTES;
+        }
+
+        Map<String, MapEntry> entries = Maps.newHashMapWithExpectedSize(size);
+        for (int i = 0; i < size; i++) {
+            String name = segment.readString(keys[i]);
+            entries.put(name, new MapEntry(store, name, keys[i], values[i]));
+        }
+        return entries;
     }
 
     @Override
@@ -67,13 +92,8 @@ class MapLeaf extends MapRecord {
     }
 
     @Override
-    Iterable<Entry> getEntries() {
-        return new Iterable<Entry>() {
-            @Override
-            public Iterator<Entry> iterator() {
-                return getEntryIterator();
-            }
-        };
+    Iterable<MapEntry> getEntries() {
+        return getMapEntries().values();
     }
 
     //-----------------------------------------------------------< private >--
@@ -102,55 +122,14 @@ class MapLeaf extends MapRecord {
         };
     }
 
-    private Iterator<Entry> getEntryIterator() {
-        return new Iterator<Entry>() {
-            private final Segment segment = getSegment();
-            private int index = 0;
-            @Override
-            public boolean hasNext() {
-                return index < size;
-            }
-            @Override
-            public Entry next() {
-                final int i = index++;
-                if (i < size) {
-                    return new Entry() {
-                        @Override
-                        public String getKey() {
-                            return MapLeaf.this.getKey(segment, i);
-                        }
-                        @Override
-                        public RecordId getValue() {
-                            return MapLeaf.this.getValue(segment, i);
-                        }
-                        @Override
-                        public RecordId setValue(RecordId value) {
-                            throw new UnsupportedOperationException();
-                        }
-                    };
-                } else {
-                    throw new NoSuchElementException();
-                }
-            }
-            @Override
-            public void remove() {
-                throw new UnsupportedOperationException();
-            }
-        };
-    }
-
     private int getHash(Segment segment, int index) {
         return checkNotNull(segment).readInt(getOffset() + 4 + index * 4);
     }
 
     private String getKey(Segment segment, int index) {
+        checkNotNull(segment);
         int offset = getOffset() + 4 + size * 4 + index * RECORD_ID_BYTES;
-        RecordId id = checkNotNull(segment).readRecordId(offset);
-        if (!segment.getSegmentId().equals(id.getSegmentId())) {
-            // the string is stored in another segment
-            segment = store.readSegment(id.getSegmentId());
-        }
-        return segment.readString(id.getOffset());
+        return segment.readString(segment.readRecordId(offset));
     }
 
     private RecordId getValue(Segment segment, int index) {

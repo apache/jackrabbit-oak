@@ -21,7 +21,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static java.lang.Integer.highestOneBit;
 import static java.lang.Integer.numberOfTrailingZeros;
 
-import java.util.Map;
 import java.util.UUID;
 
 abstract class MapRecord extends Record {
@@ -75,9 +74,6 @@ abstract class MapRecord extends Record {
         }
     }
 
-    public interface Entry extends Map.Entry<String, RecordId> {    
-    }
-
     protected final SegmentStore store;
 
     protected final int size;
@@ -111,22 +107,20 @@ abstract class MapRecord extends Record {
 
     abstract Iterable<String> getKeys();
 
-    abstract Iterable<Entry> getEntries();
+    abstract Iterable<MapEntry> getEntries();
 
     //------------------------------------------------------------< Object >--
 
     @Override
     public String toString() {
         StringBuilder builder = null;
-        for (Entry entry : getEntries()) {
+        for (MapEntry entry : getEntries()) {
             if (builder == null) {
                 builder = new StringBuilder("{ ");
             } else {
                 builder.append(", ");
             }
-            builder.append(entry.getKey());
-            builder.append("=");
-            builder.append(entry.getValue());
+            builder.append(entry);
         }
         if (builder == null) {
             return "{}";
