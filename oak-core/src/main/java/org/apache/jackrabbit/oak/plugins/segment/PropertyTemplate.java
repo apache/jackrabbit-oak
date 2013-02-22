@@ -54,6 +54,7 @@ class PropertyTemplate implements Comparable<PropertyTemplate> {
     public int compareTo(PropertyTemplate template) {
         checkNotNull(template);
         return ComparisonChain.start()
+                .compare(hashCode(), template.hashCode()) // important
                 .compare(name, template.name)
                 .compare(type, template.type)
                 .result();
@@ -75,7 +76,7 @@ class PropertyTemplate implements Comparable<PropertyTemplate> {
 
     @Override
     public int hashCode() {
-        return name.hashCode() * 37 + type.hashCode();
+        return name.hashCode();
     }
 
     @Override
