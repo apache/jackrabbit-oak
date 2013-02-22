@@ -81,6 +81,8 @@ class Segment {
                 }
             };
 
+    private final SegmentStore store;
+
     private final UUID uuid;
 
     private final byte[] data;
@@ -90,7 +92,8 @@ class Segment {
     private final OffsetCache<String> strings = new OffsetCache<String>() {
         @Override
         protected String load(int offset) {
-            return null;
+            return new SegmentReader(store).readString(
+                    new RecordId(uuid, offset));
         }
     };
 
@@ -101,7 +104,8 @@ class Segment {
         }
     };
 
-    Segment(UUID uuid, byte[] data, UUID[] uuids) {
+    Segment(SegmentStore store, UUID uuid, byte[] data, UUID[] uuids) {
+        this.store = store;
         this.uuid = uuid;
         this.data = data;
         this.uuids = uuids;
@@ -166,6 +170,10 @@ class Segment {
         int pos = position - (Segment.MAX_SEGMENT_SIZE - data.length);
         checkPositionIndexes(pos, pos + 8, data.length);
         return ByteBuffer.wrap(data).getLong(pos);
+    }
+
+    String readString(int offset) {
+        return strings.get(offset);
     }
 
 }

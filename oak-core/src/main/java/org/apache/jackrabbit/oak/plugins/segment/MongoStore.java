@@ -121,7 +121,7 @@ public class MongoStore implements SegmentStore {
         for (int i = 0; i < uuids.length; i++) {
             uuids[i] = UUID.fromString(list.get(i).toString());
         }
-        return new Segment(segmentId, data, uuids);
+        return new Segment(this, segmentId, data, uuids);
     }
 
     private void insertSegment(UUID segmentId, byte[] data, UUID[] uuids) {

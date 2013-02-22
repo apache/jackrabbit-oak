@@ -247,7 +247,7 @@ class Template {
         } else if (hasManyChildNodes()) {
             RecordId childNodesId =
                     reader.readRecordId(recordId, Segment.RECORD_ID_BYTES);
-            return new MapRecord(childNodesId).size(reader);
+            return MapRecord.readMap(reader.getStore(), childNodesId).size();
         } else {
             return 1;
         }
@@ -255,7 +255,8 @@ class Template {
 
     MapRecord getChildNodeMap(SegmentReader reader, RecordId recordId) {
         checkState(hasManyChildNodes());
-        return new MapRecord(
+        return MapRecord.readMap(
+                reader.getStore(),
                 reader.readRecordId(recordId, Segment.RECORD_ID_BYTES));
     }
 
@@ -265,7 +266,7 @@ class Template {
             return false;
         } else if (hasManyChildNodes()) {
             MapRecord map = getChildNodeMap(reader, recordId);
-            return map.getEntry(reader, name) != null;
+            return map.getEntry(name) != null;
         } else {
             return name.equals(childName);
         }
@@ -277,7 +278,7 @@ class Template {
             return null;
         } else if (hasManyChildNodes()) {
             RecordId childNodeId =
-                    getChildNodeMap(reader, recordId).getEntry(reader, name);
+                    getChildNodeMap(reader, recordId).getEntry(name);
             if (childNodeId != null) {
                 return new SegmentNodeState(reader, childNodeId);
             } else {
@@ -297,14 +298,7 @@ class Template {
         if (hasNoChildNodes()) {
             return Collections.emptyList();
         } else if (hasManyChildNodes()) {
-            return Iterables.transform(
-                    getChildNodeMap(reader, recordId).getEntries(reader),
-                    new Function<MapRecord.Entry, String>() {
-                        @Override @Nullable
-                        public String apply(@Nullable Entry input) {
-                            return input.getKey();
-                        }
-                    });
+            return getChildNodeMap(reader, recordId).getKeys();
         } else {
             return Collections.singletonList(childName);
         }
@@ -316,7 +310,7 @@ class Template {
             return Collections.emptyList();
         } else if (hasManyChildNodes()) {
             return Iterables.transform(
-                    getChildNodeMap(reader, recordId).getEntries(reader),
+                    getChildNodeMap(reader, recordId).getEntries(),
                     new Function<MapRecord.Entry, ChildNodeEntry>() {
                         @Override @Nullable
                         public ChildNodeEntry apply(@Nullable Entry input) {

@@ -80,7 +80,7 @@ public class MemoryStore implements SegmentStore {
             UUID segmentId, byte[] data, int offset, int length) {
         byte[] segment = new byte[length];
         System.arraycopy(data, offset, segment, 0, length);
-        createSegment(new Segment(segmentId, segment, new UUID[0]));
+        createSegment(new Segment(this, segmentId, segment, new UUID[0]));
     }
 
     @Override

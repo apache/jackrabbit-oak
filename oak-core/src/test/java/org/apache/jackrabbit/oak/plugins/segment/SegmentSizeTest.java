@@ -156,7 +156,7 @@ public class SegmentSizeTest {
         SegmentNodeState state = writer.writeNode(builder.getNodeState());
         writer.flush();
         Segment segment = store.readSegment(state.getRecordId().getSegmentId());
-        assertEquals(28588, segment.getData().length);
+        assertEquals(26788, segment.getData().length);
 
         builder = state.builder();
         builder.child("child1000");
