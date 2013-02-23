@@ -18,10 +18,13 @@ package org.apache.jackrabbit.oak.plugins.segment;
 
 import static com.google.common.base.Preconditions.checkElementIndex;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkPositionIndex;
 import static java.lang.Integer.highestOneBit;
 import static java.lang.Integer.numberOfTrailingZeros;
 
 import java.util.UUID;
+
+import com.google.common.base.Preconditions;
 
 abstract class MapRecord extends Record {
 
@@ -65,7 +68,6 @@ abstract class MapRecord extends Record {
         int head = segment.readInt(id.getOffset());
         int level = head >>> SIZE_BITS;
         int size = head & ((1 << SIZE_BITS) - 1);
-        System.out.println("R: " + size + " " + level);
         if (size > BUCKETS_PER_LEVEL && level < MAX_NUMBER_OF_LEVELS) {
             int bitmap = segment.readInt(id.getOffset() + 4);
             return new MapBranch(store, id, size, level, bitmap);
@@ -84,7 +86,7 @@ abstract class MapRecord extends Record {
         super(checkNotNull(id));
         this.store = checkNotNull(store);
         this.size = checkElementIndex(size, MAX_SIZE);
-        this.level = checkElementIndex(level, MAX_NUMBER_OF_LEVELS);
+        this.level = checkPositionIndex(level, MAX_NUMBER_OF_LEVELS);
     }
 
     protected Segment getSegment() {
