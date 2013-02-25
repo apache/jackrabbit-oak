@@ -145,45 +145,49 @@ public class MemoryDocumentStore implements DocumentStore {
         // update the document
         // (document level operations are synchronized)
         synchronized (n) {
-            for (Entry<String, Operation> e : update.changes.entrySet()) {
-                String k = e.getKey();
-                Object old = n.get(k);
-                Operation op = e.getValue();
-                switch (op.type) {
-                case SET: {
-                    n.put(k, op.value);
-                    break;
-                }
-                case INCREMENT: {
-                    Long x = (Long) op.value;
-                    if (old == null) {
-                        old = 0L;
-                    }
-                    n.put(k, ((Long) old) + x);
-                    break;
-                }
-                case ADD_MAP_ENTRY: {
-                    @SuppressWarnings("unchecked")
-                    Map<String, String> m = (Map<String, String>) old;
-                    if (m == null) {
-                        m = Utils.newMap();
-                        n.put(k, m);
-                    }
-                    m.put(op.subKey.toString(), op.value.toString());
-                    break;
-                }
-                case REMOVE_MAP_ENTRY: {
-                    @SuppressWarnings("unchecked")
-                    Map<String, String> m = (Map<String, String>) old;
-                    if (m != null) {
-                        m.remove(op.subKey.toString());
-                    }
-                    break;
-                }
-                }
-            }
+            applyChanges(n, update);
         }
         return oldNode;
+    }
+    
+    public static void applyChanges(Map<String, Object> target, UpdateOp update) {
+        for (Entry<String, Operation> e : update.changes.entrySet()) {
+            String k = e.getKey();
+            Object old = target.get(k);
+            Operation op = e.getValue();
+            switch (op.type) {
+            case SET: {
+                target.put(k, op.value);
+                break;
+            }
+            case INCREMENT: {
+                Long x = (Long) op.value;
+                if (old == null) {
+                    old = 0L;
+                }
+                target.put(k, ((Long) old) + x);
+                break;
+            }
+            case ADD_MAP_ENTRY: {
+                @SuppressWarnings("unchecked")
+                Map<String, String> m = (Map<String, String>) old;
+                if (m == null) {
+                    m = Utils.newMap();
+                    target.put(k, m);
+                }
+                m.put(op.subKey.toString(), op.value.toString());
+                break;
+            }
+            case REMOVE_MAP_ENTRY: {
+                @SuppressWarnings("unchecked")
+                Map<String, String> m = (Map<String, String>) old;
+                if (m != null) {
+                    m.remove(op.subKey.toString());
+                }
+                break;
+            }
+            }
+        }
     }
 
     @Override
@@ -196,10 +200,10 @@ public class MemoryDocumentStore implements DocumentStore {
     public String toString() {
         StringBuilder buff = new StringBuilder();
         buff.append("Nodes:\n");
-        for(String p : nodes.keySet()) {
+        for (String p : nodes.keySet()) {
             buff.append("Path: ").append(p).append('\n');
             Map<String, Object> e = nodes.get(p);
-            for(String prop : e.keySet()) {
+            for (String prop : e.keySet()) {
                 buff.append(prop).append('=').append(e.get(prop)).append('\n');
             }
             buff.append("\n");

@@ -73,25 +73,34 @@ public class Node {
         int depth = Utils.pathDepth(path);
         return depth + ":" + path;
     }
+    
+    public String getId() {
+        return path + "@" + writeCount;        
+    }
 
     public void append(JsopWriter json, boolean includeId) {
         if (includeId) {
-            json.key(":id").value(path + "@" + writeCount);
+            json.key(":id").value(getId());
         }
         for (String p : properties.keySet()) {
             json.key(p).encodedValue(properties.get(p));
         }
     }
     
+    /**
+     * A list of children for a node.
+     */
     static class Children {
         
         final String path;
+        final String id;
         final Revision rev;
         
         final ArrayList<String> children = new ArrayList<String>();
         
-        Children(String path, Revision rev) {
+        Children(String path, String id, Revision rev) {
             this.path = path;
+            this.id = id;
             this.rev = rev;
         }
         

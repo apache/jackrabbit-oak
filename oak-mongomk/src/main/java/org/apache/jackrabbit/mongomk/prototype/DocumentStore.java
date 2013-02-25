@@ -24,6 +24,9 @@ import java.util.Map;
  */
 public interface DocumentStore {
 
+    /**
+     * The list of collections.
+     */
     enum Collection { NODES }
 
     Map<String, Object> find(Collection collection, String key);

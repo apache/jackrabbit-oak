@@ -43,6 +43,23 @@ import com.mongodb.DB;
  * A MicroKernel implementation that stores the data in a MongoDB.
  */
 public class MongoMK implements MicroKernel {
+    
+    /**
+     * The delay for asynchronous operations (delayed commit propagation and
+     * cache update).
+     */
+    protected static final long ASYNC_DELAY = 1000;
+
+    /**
+     * For revisions that are older than this many seconds, the MongoMK will
+     * assume the revision is valid. For more recent changes, the MongoMK needs
+     * to verify it first (by reading the revision root). The default is
+     * Integer.MAX_VALUE, meaning no revisions are trusted. Once the garbage
+     * collector removes old revisions, this value is changed.
+     */
+    private static final int trustedRevisionAge = Integer.MAX_VALUE;
+
+    AtomicBoolean isDisposed = new AtomicBoolean();
 
     /**
      * The MongoDB store (might be used by multiple MongoMKs).
@@ -72,22 +89,6 @@ public class MongoMK implements MicroKernel {
      * The unsaved write count increments.
      */
     private final Map<String, Long> writeCountIncrements = new HashMap<String, Long>();
-
-    /**
-     * For revisions that are older than this many seconds, the MongoMK will
-     * assume the revision is valid. For more recent changes, the MongoMK needs
-     * to verify it first (by reading the revision root). The default is
-     * Integer.MAX_VALUE, meaning no revisions are trusted. Once the garbage
-     * collector removes old revisions, this value is changed.
-     */
-    private static final int trustedRevisionAge = Integer.MAX_VALUE;
-
-    /**
-     * The delay for asynchronous operations (delayed commit propagation and
-     * cache update).
-     */
-    protected static final long ASYNC_DELAY = 1000;
-
     /**
      * The set of known valid revision.
      * The key is the revision id, the value is 1 (because a cache can't be a set).
@@ -99,11 +100,12 @@ public class MongoMK implements MicroKernel {
      */
     private Revision headRevision;
     
-    AtomicBoolean isDisposed = new AtomicBoolean();
-    
     private Thread backgroundThread;
     
     private final Map<String, String> branchCommits = new HashMap<String, String>();
+
+    private Cache<String, Node.Children> nodeChildrenCache =
+            new Cache<String, Node.Children>(1024);
 
     /**
      * Create a new in-memory MongoMK used for testing.
@@ -135,8 +137,6 @@ public class MongoMK implements MicroKernel {
         this.store = store;
         this.blobStore = blobStore;
         this.clusterId = clusterId;
-        // ensure the MK can be garbage collected
-        final WeakReference<MongoMK> ref = new WeakReference<MongoMK>(this);
         backgroundThread = new Thread(
             new BackgroundOperation(this, isDisposed),
             "MongoMK background thread");
@@ -206,7 +206,17 @@ public class MongoMK implements MicroKernel {
         return x.compareRevisionTime(requestRevision) >= 0;
     }
     
-    public Node.Children readChildren(String path, Revision rev, int limit) {
+    private boolean isRevisionNewer(Revision x, Revision previous) {
+        // TODO currently we only compare the timestamps
+        return x.compareRevisionTime(previous) >= 0;
+    }
+    
+    public Node.Children readChildren(String path, String nodeId, Revision rev, int limit) {
+        Node.Children c;
+        c = nodeChildrenCache.get(nodeId);
+        if (c != null) {
+            return c;
+        }
         String from = PathUtils.concat(path, "a");
         from = Node.convertPathToDocumentId(from);
         from = from.substring(0, from.length() - 1);
@@ -214,10 +224,10 @@ public class MongoMK implements MicroKernel {
         to = Node.convertPathToDocumentId(to);
         to = to.substring(0, to.length() - 2) + "0";
         List<Map<String, Object>> list = store.query(DocumentStore.Collection.NODES, from, to, limit);
-        Node.Children c = new Node.Children(path, rev);
+        c = new Node.Children(path, nodeId, rev);
         for (Map<String, Object> e : list) {
-            //Filter out deleted children
-            if(isDeleted(e,rev)){
+            // Filter out deleted children
+            if (isDeleted(e, rev)) {
                 continue;
             }
             // TODO put the whole node in the cache
@@ -225,6 +235,7 @@ public class MongoMK implements MicroKernel {
             String p = id.substring(2);
             c.children.add(p);
         }
+        nodeChildrenCache.put(nodeId, c);
         return c;
     }
 
@@ -234,13 +245,13 @@ public class MongoMK implements MicroKernel {
         if (map == null) {
             return null;
         }
-        if(isDeleted(map,rev)){
+        if (isDeleted(map, rev)) {
             return null;
         }
         Node n = new Node(path, rev);
         Long w = writeCountIncrements.get(path);
         long writeCount = w == null ? 0 : w;
-        for(String key : map.keySet()) {
+        for (String key : map.keySet()) {
             if (key.equals("_writeCount")) {
                 writeCount += (Long) map.get(key);
             }
@@ -252,10 +263,14 @@ public class MongoMK implements MicroKernel {
             @SuppressWarnings("unchecked")
             Map<String, String> valueMap = (Map<String, String>) v;
             if (valueMap != null) {
+                Revision latestRev = null;
                 for (String r : valueMap.keySet()) {
                     Revision propRev = Revision.fromString(r);
                     if (includeRevision(propRev, rev)) {
-                        n.setProperty(key, valueMap.get(r));
+                        if (latestRev == null || isRevisionNewer(propRev, latestRev)) {
+                            latestRev = propRev;
+                            n.setProperty(key, valueMap.get(r));
+                        }
                     }
                 }
             }
@@ -337,7 +352,7 @@ public class MongoMK implements MicroKernel {
         includeId = filter != null && filter.contains(":hash");
         json.object();
         n.append(json, includeId);
-        Children c = readChildren(path, rev, maxChildNodes);
+        Children c = readChildren(path, n.getId(), rev, maxChildNodes);
         for (String s : c.children) {
             String name = PathUtils.getName(s);
             json.key(name).object().endObject();
@@ -373,7 +388,7 @@ public class MongoMK implements MicroKernel {
             case '-':
                 // TODO support remove operations
                 commit.removeNode(path);
-                markAsDeleted(path,commit,rev);
+                markAsDeleted(path, commit, rev);
                 break;
             case '^':
                 t.read(':');
@@ -481,25 +496,30 @@ public class MongoMK implements MicroKernel {
         op.addMapEntry("_deleted", rev.toString(), "true");
         op.increment("_writeCount", 1);
 
-        //TODO Would cause issue with large number of children. Need to be
-        //relooked
-        Node.Children c  = readChildren(path,rev,Integer.MAX_VALUE);
-        for(String childPath : c.children){
-            markAsDeleted(childPath,commit, rev);
+        // TODO Would cause issue with large number of children. 
+        // Need to be changed
+        Node n = getNode(path, rev);
+        nodeCache.remove(path + "@" + rev);
+        Node.Children c = readChildren(path, n.getId(), rev, Integer.MAX_VALUE);
+        for (String childPath : c.children) {
+            markAsDeleted(childPath, commit, rev);
         }
-    }
+ }
 
-    private boolean isDeleted(Map<String, Object> nodeProps,Revision rev){
-        Map<String,String> valueMap = (Map<String, String>) nodeProps.get("_deleted");
-        if(valueMap != null){
-            for (Map.Entry<String,String> e : valueMap.entrySet()) {
-                //TODO What if multiple revisions are there?. Should we sort them and then
-                //determine include revision based on that
+    private boolean isDeleted(Map<String, Object> nodeProps, Revision rev) {
+        @SuppressWarnings("unchecked")
+        Map<String, String> valueMap = (Map<String, String>) nodeProps
+                .get("_deleted");
+        if (valueMap != null) {
+            for (Map.Entry<String, String> e : valueMap.entrySet()) {
+                // TODO What if multiple revisions are there?. Should we sort
+                // them and then
+                // determine include revision based on that
                 Revision propRev = Revision.fromString(e.getKey());
                 if (includeRevision(propRev, rev)) {
-                     if("true".equals(e.getValue())){
-                         return true;
-                     }
+                    if ("true".equals(e.getValue())) {
+                        return true;
+                    }
                 }
             }
         }
@@ -512,11 +532,7 @@ public class MongoMK implements MicroKernel {
             return;
         }
         commit.apply(store);
-        for(String path : commit.getChangedParents()) {
-            Long value = writeCountIncrements.get(path);
-            value = value == null ? 1 : value + 1;
-            writeCountIncrements.put(path, value);
-        }
+        commit.apply(this);
     }
     
     public static void parseAddNode(Commit commit, JsopReader t, String path) {
@@ -602,6 +618,12 @@ public class MongoMK implements MicroKernel {
         return store;
     }
     
+    /**
+     * A simple cache.
+     *
+     * @param <K> the key type
+     * @param <V> the value type
+     */
     static class Cache<K, V> extends LinkedHashMap<K, V> {
 
         private static final long serialVersionUID = 1L;
@@ -618,9 +640,12 @@ public class MongoMK implements MicroKernel {
 
     }
 
+    /**
+     * A background thread.
+     */
     static class BackgroundOperation implements Runnable {
-        private final AtomicBoolean isDisposed;
         final WeakReference<MongoMK> ref;
+        private final AtomicBoolean isDisposed;
         BackgroundOperation(MongoMK mk, AtomicBoolean isDisposed) {
             ref = new WeakReference<MongoMK>(mk);
             this.isDisposed = isDisposed;
@@ -640,6 +665,12 @@ public class MongoMK implements MicroKernel {
                 }
             }
         }
+    }
+
+    public void incrementWriteCount(String path) {
+        Long value = writeCountIncrements.get(path);
+        value = value == null ? 1 : value + 1;
+        writeCountIncrements.put(path, value);
     }
 
 }

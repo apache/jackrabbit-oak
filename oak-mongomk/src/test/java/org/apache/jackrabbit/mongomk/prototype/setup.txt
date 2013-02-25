@@ -51,6 +51,12 @@ sh.shardCollection("MongoMKDB.nodes", { "_id": 1 }, true)
 sh.shardCollection("MongoMKDB.blobs", { "_id": 1 }, true)
 exit
 
+=== Just one
+
+rm -rf db
+mkdir db
+./mongod --dbpath db --port 27017
+
 === Other
 
 Display sharding status:

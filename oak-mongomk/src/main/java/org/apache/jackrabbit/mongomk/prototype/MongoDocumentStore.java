@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.jackrabbit.mk.api.MicroKernelException;
+import org.apache.jackrabbit.mongomk.prototype.MongoMK.Cache;
 import org.apache.jackrabbit.mongomk.prototype.UpdateOp.Operation;
 
 import com.mongodb.BasicDBObject;
@@ -34,22 +35,29 @@ import com.mongodb.QueryBuilder;
 import com.mongodb.WriteConcern;
 import com.mongodb.WriteResult;
 
+/**
+ * A document store that uses MongoDB as the backend.
+ */
 public class MongoDocumentStore implements DocumentStore {
 
     public static final String KEY_PATH = "_id";
+    
+    private static final boolean LOG = true;
+    private static final boolean LOG_TIME = true;
 
     private final DBCollection nodesCollection;
     
-    private final boolean LOG = false;
-    private final boolean LOG_TIME = true;
     private long time;
+    
+    private Cache<String, Map<String, Object>> cache =
+            new Cache<String, Map<String, Object>>(1024);
 
     public MongoDocumentStore(DB db) {
         nodesCollection = db.getCollection(Collection.NODES.toString());
         ensureIndex();
     }
     
-    private long start() {
+    private static long start() {
         return LOG_TIME ? System.currentTimeMillis() : 0;
     }
     
@@ -67,6 +75,13 @@ public class MongoDocumentStore implements DocumentStore {
 
     @Override
     public Map<String, Object> find(Collection collection, String path) {
+        Map<String, Object> result;
+        synchronized (cache) {
+            result = cache.get(path);
+        }
+        if (result != null) {
+            return result;
+        }
         log("find", path);
         DBCollection dbCollection = getDBCollection(collection);
         long start = start();
@@ -75,7 +90,11 @@ public class MongoDocumentStore implements DocumentStore {
             if (doc == null) {
                 return null;
             }
-            return convertFromDBObject(doc);
+            result = convertFromDBObject(doc);
+            synchronized (cache) {
+                cache.put(path, result);
+            }
+            return result;
         } finally {
             end(start);
         }
@@ -94,9 +113,13 @@ public class MongoDocumentStore implements DocumentStore {
         try {
             DBCursor cursor = dbCollection.find(query);
             List<Map<String, Object>> list = new ArrayList<Map<String, Object>>();
-            for (int i=0; i<limit && cursor.hasNext(); i++) {
+            for (int i = 0; i < limit && cursor.hasNext(); i++) {
                 DBObject o = cursor.next();
                 Map<String, Object> map = convertFromDBObject(o);
+                String path = (String) map.get("_id");
+                synchronized (cache) {
+                    cache.put(path, map);
+                }
                 list.add(map);
             }
             return list;
@@ -111,6 +134,9 @@ public class MongoDocumentStore implements DocumentStore {
         DBCollection dbCollection = getDBCollection(collection);
         long start = start();
         try {
+            synchronized (cache) {
+                cache.remove(path);
+            }
             WriteResult writeResult = dbCollection.remove(getByPathQuery(path), WriteConcern.SAFE);
             if (writeResult.getError() != null) {
                 throw new MicroKernelException("Remove failed: " + writeResult.getError());
@@ -167,9 +193,14 @@ public class MongoDocumentStore implements DocumentStore {
         long start = start();
         try {
             DBObject oldNode = dbCollection.findAndModify(query, null /*fields*/,
-                    null /*sort*/, false /*remove*/, update, false /*returnNew*/,
+                    null /*sort*/, false /*remove*/, update, true /*returnNew*/,
                     true /*upsert*/);
-            return convertFromDBObject(oldNode);
+            Map<String, Object> map = convertFromDBObject(oldNode);
+            String path = (String) map.get("_id");
+            synchronized (cache) {
+                cache.put(path, map);
+            }
+            return map;
         } catch (Exception e) {
             throw new MicroKernelException(e);
         } finally {
@@ -179,12 +210,17 @@ public class MongoDocumentStore implements DocumentStore {
 
     @Override
     public void create(Collection collection, List<UpdateOp> updateOps) {
-        log("create", updateOps);        
+        log("create", updateOps);       
+        ArrayList<Map<String, Object>> maps = new ArrayList<Map<String, Object>>();
         DBObject[] inserts = new DBObject[updateOps.size()];
 
         for (int i = 0; i < updateOps.size(); i++) {
             inserts[i] = new BasicDBObject();
-            for (Entry<String, Operation> entry : updateOps.get(i).changes.entrySet()) {
+            UpdateOp update = updateOps.get(i);
+            Map<String, Object> target = Utils.newMap();
+            MemoryDocumentStore.applyChanges(target, update);
+            maps.add(target);
+            for (Entry<String, Operation> entry : update.changes.entrySet()) {
                 String k = entry.getKey();
                 Operation op = entry.getValue();
                 switch (op.type) {
@@ -215,6 +251,14 @@ public class MongoDocumentStore implements DocumentStore {
             WriteResult writeResult = dbCollection.insert(inserts, WriteConcern.SAFE);
             if (writeResult.getError() != null) {
                 throw new MicroKernelException("Batch create failed: " + writeResult.getError());
+            }
+            synchronized (cache) {
+                for (Map<String, Object> map : maps) {
+                    String path = (String) map.get("_id");
+                    synchronized (cache) {
+                        cache.put(path, map);
+                    }
+                }
             }
         } finally {
             end(start);
@@ -264,7 +308,7 @@ public class MongoDocumentStore implements DocumentStore {
         nodesCollection.getDB().getMongo().close();
     }
     
-    private void log(Object... args) {
+    private static void log(Object... args) {
         if (LOG) {
             System.out.println(Arrays.toString(args));
         }

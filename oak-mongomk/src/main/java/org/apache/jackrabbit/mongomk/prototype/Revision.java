@@ -20,6 +20,10 @@ package org.apache.jackrabbit.mongomk.prototype;
  * A revision.
  */
 public class Revision {
+
+    static long timestampOffset = java.sql.Timestamp.valueOf("2013-01-01 00:00:00.0").getTime() / 100;
+    static volatile long lastTimestamp;
+    static volatile int count;
     
     /**
      * The timestamp in milliseconds since 2013 (unlike in seconds since 1970 as
@@ -37,10 +41,6 @@ public class Revision {
      * The cluster id (the MongoDB machine id).
      */
     private int clusterId;
-    
-    static long timestampOffset = java.sql.Timestamp.valueOf("2013-01-01 00:00:00.0").getTime() / 100;
-    static volatile long lastTimestamp;
-    static volatile int count;
     
     public Revision(long timestamp, int counter, int clusterId) {
         this.timestamp = timestamp;
