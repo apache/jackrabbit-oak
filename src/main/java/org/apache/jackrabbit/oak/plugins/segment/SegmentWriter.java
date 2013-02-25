@@ -66,8 +66,12 @@ public class SegmentWriter {
 
     private UUID uuid = UUID.randomUUID();
 
-    private final List<UUID> uuids =
-            Lists.newArrayListWithCapacity(Segment.SEGMENT_REFERENCE_LIMIT);
+    /**
+     * Insertion-ordered map from the UUIDs of referenced segments to the
+     * respective single-byte UUID index values used when serializing
+     * record identifiers.
+     */
+    private final Map<UUID, Byte> uuids = Maps.newLinkedHashMap();
 
     /**
      * The segment write buffer, filled from the end to the beginning
@@ -104,8 +108,7 @@ public class SegmentWriter {
                 System.arraycopy(buffer, start, data, 0, data.length);
             }
 
-            store.createSegment(new Segment(
-                    store, uuid, data, uuids.toArray(new UUID[uuids.size()])));
+            store.createSegment(new Segment(store, uuid, data, uuids.keySet()));
 
             uuid = UUID.randomUUID();
             length = 0;
@@ -123,7 +126,7 @@ public class SegmentWriter {
         Set<UUID> segmentIds = new HashSet<UUID>();
         for (RecordId id : checkNotNull(ids)) {
             UUID segmentId = id.getSegmentId();
-            if (!uuids.contains(segmentId)) {
+            if (!uuids.containsKey(segmentId)) {
                 segmentIds.add(segmentId);
             }
         }
@@ -147,18 +150,18 @@ public class SegmentWriter {
         checkNotNull(id);
 
         UUID segmentId = id.getSegmentId();
-        int index = uuids.indexOf(segmentId);
-        if (index == -1) {
-            index = uuids.size();
-            uuids.add(segmentId);
+        Byte segmentIndex = uuids.get(segmentId);
+        if (segmentIndex == null) {
+            checkState(uuids.size() < Segment.SEGMENT_REFERENCE_LIMIT);
+            segmentIndex = Byte.valueOf((byte) uuids.size());
+            uuids.put(segmentId, segmentIndex);
         }
-        int offset = id.getOffset();
 
-        checkState(index < Segment.SEGMENT_REFERENCE_LIMIT);
+        int offset = id.getOffset();
         checkState(0 <= offset && offset < buffer.length);
         checkState((offset & (Segment.RECORD_ALIGN_BYTES - 1)) == 0);
 
-        buffer[position++] = (byte) index;
+        buffer[position++] = segmentIndex.byteValue();
         buffer[position++] = (byte) (offset >> (8 + Segment.RECORD_ALIGN_BITS));
         buffer[position++] = (byte) (offset >> Segment.RECORD_ALIGN_BITS);
     }
