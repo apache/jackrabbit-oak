@@ -1465,19 +1465,24 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                                 sessionDelegate, dlg.getLocation().getChild(oakName)));
                     }
                 } else {
-                    PropertyDefinition definition;
-                    if (hasProperty(jcrName)) {
-                        definition = getProperty(jcrName).getDefinition();
+                    Value targetValue;
+                    if (DISABLE_TRANSIENT_DEFINITION_CHECKS) {
+                        targetValue = value;
                     } else {
-                        definition = dlg.sessionDelegate.getDefinitionProvider().getDefinition(NodeImpl.this, oakName, false, type, exactTypeMatch);
-                    }
-                    checkProtected(definition);
-                    if (definition.isMultiple()) {
-                        throw new ValueFormatException("Cannot set single value to multivalued property");
-                    }
+                        PropertyDefinition definition;
+                        if (hasProperty(jcrName)) {
+                            definition = getProperty(jcrName).getDefinition();
+                        } else {
+                            definition = dlg.sessionDelegate.getDefinitionProvider().getDefinition(NodeImpl.this, oakName, false, type, exactTypeMatch);
+                        }
+                        checkProtected(definition);
+                        if (definition.isMultiple()) {
+                            throw new ValueFormatException("Cannot set single value to multivalued property");
+                        }
 
-                    int targetType = getTargetType(value, definition);
-                    Value targetValue = ValueHelper.convert(value, targetType, getValueFactory());
+                        int targetType = getTargetType(value, definition);
+                        targetValue = ValueHelper.convert(value, targetType, getValueFactory());
+                    }
 
                     return new PropertyImpl(dlg.setProperty(oakName, targetValue));
                 }
@@ -1504,19 +1509,24 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                                 sessionDelegate, dlg.getLocation().getChild(oakName)));
                     }
                 } else {
-                    PropertyDefinition definition;
-                    if (hasProperty(jcrName)) {
-                        definition = getProperty(jcrName).getDefinition();
+                    Value[] targetValues;
+                    if (DISABLE_TRANSIENT_DEFINITION_CHECKS) {
+                        targetValues = values;
                     } else {
-                        definition = dlg.sessionDelegate.getDefinitionProvider().getDefinition(NodeImpl.this, oakName, true, type, exactTypeMatch);
-                    }
-                    checkProtected(definition);
-                    if (!definition.isMultiple()) {
-                        throw new ValueFormatException("Cannot set value array to single value property");
-                    }
+                        PropertyDefinition definition;
+                        if (hasProperty(jcrName)) {
+                            definition = getProperty(jcrName).getDefinition();
+                        } else {
+                            definition = dlg.sessionDelegate.getDefinitionProvider().getDefinition(NodeImpl.this, oakName, true, type, exactTypeMatch);
+                        }
+                        checkProtected(definition);
+                        if (!definition.isMultiple()) {
+                            throw new ValueFormatException("Cannot set value array to single value property");
+                        }
 
-                    int targetType = getTargetType(values, definition);
-                    Value[] targetValues = ValueHelper.convert(values, targetType, getValueFactory());
+                        int targetType = getTargetType(values, definition);
+                        targetValues = ValueHelper.convert(values, targetType, getValueFactory());
+                    }
 
                     Iterable<Value> nonNullValues = Iterables.filter(
                             Arrays.asList(targetValues),
