@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.mongomk.prototype;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
@@ -116,6 +117,25 @@ public class SimpleTest {
         rev = mk.commit("/", "-\"testDel\"", null, null);
         Node n = mk.getNode("/testDel", Revision.fromString(rev));
         assertNull(n);
+    }
+
+    @Test
+    public void testAddAndMove() {
+        MongoMK mk = createMK();
+
+        String head = mk.getHeadRevision();
+        head = mk.commit("",
+                "+\"/root\":{}\n" +
+                        "+\"/root/a\":{}\n"+
+                        "+\"/root/a/b\":{}\n",
+                head, "");
+
+        head = mk.commit("",
+                ">\"/root/a\":\"/root/c\"\n",
+                head, "");
+
+        assertFalse(mk.nodeExists("/root/a", head));
+        assertTrue(mk.nodeExists("/root/c/b", head));
     }
 
     private static MongoMK createMK() {

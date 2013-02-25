@@ -42,8 +42,16 @@ public class Node {
     
     public String getProperty(String propertyName) {
         return properties.get(propertyName);
-    }    
-    
+    }
+
+    public void copyTo(Node newNode){
+        for(Map.Entry<String,String> e : properties.entrySet()){
+            if(!filter(e.getKey())){
+                newNode.setProperty(e.getKey(),e.getValue());
+            }
+        }
+    }
+
     public String toString() {
         StringBuilder buff = new StringBuilder();
         buff.append("path: ").append(path).append('\n');
@@ -85,6 +93,16 @@ public class Node {
         for (String p : properties.keySet()) {
             json.key(p).encodedValue(properties.get(p));
         }
+    }
+
+    /**
+     * Determines if the key is system generated
+     */
+    private static boolean filter(String key) {
+        //TODO We need to move node properties to a sub key
+        //so that all other top level props can be considered as
+        //system generated and handled in a better way
+        return key.startsWith("_");
     }
     
     /**
