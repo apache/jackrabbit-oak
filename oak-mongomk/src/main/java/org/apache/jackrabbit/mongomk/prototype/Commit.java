@@ -59,6 +59,10 @@ public class Commit {
             throw new MicroKernelException("Node already added: " + n.path);
         }
         operations.put(n.path, n.asOperation(true));
+    }
+
+    void addNodeWithDiff(Node n) {
+        addNode(n);
         diff.tag('+').key(n.path);
         diff.object();
         n.append(diff, false);
@@ -128,6 +132,10 @@ public class Commit {
         diff.tag('-').value(path).newline();
     }
 
+    public void moveNode(String sourcePath, String targetPath) {
+        diff.tag('>').key(sourcePath).value(targetPath);
+    }
+
     public JsopWriter getDiff() {
         return diff;
     }
@@ -146,5 +154,6 @@ public class Commit {
             path = PathUtils.getParentPath(path);
         }
     }
+
 
 }

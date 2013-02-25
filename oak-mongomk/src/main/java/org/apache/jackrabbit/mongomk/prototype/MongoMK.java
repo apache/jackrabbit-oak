@@ -386,9 +386,8 @@ public class MongoMK implements MicroKernel {
                 parseAddNode(commit, t, path);
                 break;
             case '-':
-                // TODO support remove operations
                 commit.removeNode(path);
-                markAsDeleted(path, commit, rev);
+                markAsDeleted(path, commit,true);
                 break;
             case '^':
                 t.read(':');
@@ -408,57 +407,13 @@ public class MongoMK implements MicroKernel {
                 break;
             case '>': {
                 t.read(':');
-                String name = PathUtils.getName(path);
-                String position, target, to;
-                boolean rename;
-                if (t.matches('{')) {
-                    rename = false;
-                    position = t.readString();
-                    t.read(':');
-                    target = t.readString();
-                    t.read('}');
-                    if (!PathUtils.isAbsolute(target)) {
-                        target = PathUtils.concat(rootPath, target);
-                    }
-                } else {
-                    rename = true;
-                    position = null;
-                    target = t.readString();
-                    if (!PathUtils.isAbsolute(target)) {
-                        target = PathUtils.concat(rootPath, target);
-                    }
+                String sourcePath = path;
+                String targetPath = t.readString();
+                if (!PathUtils.isAbsolute(targetPath)) {
+                    targetPath = PathUtils.concat(path, targetPath);
                 }
-                boolean before = false;
-                if ("last".equals(position)) {
-                    target = PathUtils.concat(target, name);
-                    position = null;
-                } else if ("first".equals(position)) {
-                    target = PathUtils.concat(target, name);
-                    position = null;
-                    before = true;
-                } else if ("before".equals(position)) {
-                    position = PathUtils.getName(target);
-                    target = PathUtils.getParentPath(target);
-                    target = PathUtils.concat(target, name);
-                    before = true;
-                } else if ("after".equals(position)) {
-                    position = PathUtils.getName(target);
-                    target = PathUtils.getParentPath(target);
-                    target = PathUtils.concat(target, name);
-                } else if (position == null) {
-                    // move
-                } else {
-                    throw new MicroKernelException("position: " + position);
-                }
-                to = PathUtils.relativize("/", target);
-                boolean inPlaceRename = false;
-                if (rename) {
-                    if (PathUtils.getParentPath(path).equals(PathUtils.getParentPath(to))) {
-                        inPlaceRename = true;
-                        position = PathUtils.getName(path);
-                    }
-                }
-                // TODO support move operations
+                commit.moveNode(sourcePath, targetPath);
+                moveNode(sourcePath, targetPath, commit);
                 break;
             }
             case '*': {
@@ -491,20 +446,53 @@ public class MongoMK implements MicroKernel {
         return rev.toString();
     }
 
-    private void markAsDeleted(String path, Commit commit, Revision rev) {
+    private void moveNode(String sourcePath, String targetPath, Commit commit) {
+        //TODO Optimize - Move logic would not work well with very move of very large subtrees
+        //At minimum we can optimize by traversing breadth wise and collect node id
+        //and fetch them via '$in' queries
+
+        //TODO Transient Node - Current logic does not account for operations which are part
+        //of this commit i.e. transient nodes. If its required it would need to be looked
+        //into
+
+        Node n = getNode(sourcePath, commit.getRevision());
+
+        //Node might be deleted already
+        if(n == null){
+            return;
+        }
+
+        Node newNode = new Node(targetPath,commit.getRevision());
+        n.copyTo(newNode);
+
+        commit.addNode(newNode);
+        markAsDeleted(sourcePath,commit,false);
+        Node.Children c = readChildren(sourcePath, n.getId(),
+                commit.getRevision(), Integer.MAX_VALUE);
+        for (String srcChildPath : c.children) {
+            String childName = PathUtils.getName(srcChildPath);
+            String destChildPath = PathUtils.concat(targetPath, childName);
+            moveNode(srcChildPath,destChildPath,commit);
+        }
+    }
+
+    private void markAsDeleted(String path, Commit commit, boolean subTreeAlso) {
+        Revision rev = commit.getRevision();
         UpdateOp op = commit.getUpdateOperationForNode(path);
         op.addMapEntry("_deleted", rev.toString(), "true");
         op.increment("_writeCount", 1);
-
-        // TODO Would cause issue with large number of children. 
-        // Need to be changed
-        Node n = getNode(path, rev);
         nodeCache.remove(path + "@" + rev);
-        Node.Children c = readChildren(path, n.getId(), rev, Integer.MAX_VALUE);
-        for (String childPath : c.children) {
-            markAsDeleted(childPath, commit, rev);
+
+        if(subTreeAlso){
+            // TODO Would cause issue with large number of children.
+            // Need to be changed
+            Node n = getNode(path, rev);
+            Node.Children c = readChildren(path, n.getId(), rev, Integer.MAX_VALUE);
+            for (String childPath : c.children) {
+                markAsDeleted(childPath, commit,true);
+            }
         }
- }
+    }
 
     private boolean isDeleted(Map<String, Object> nodeProps, Revision rev) {
         @SuppressWarnings("unchecked")
@@ -551,7 +539,7 @@ public class MongoMK implements MicroKernel {
             } while (t.matches(','));
             t.read('}');
         }
-        commit.addNode(n);
+        commit.addNodeWithDiff(n);
     }
 
     @Override
