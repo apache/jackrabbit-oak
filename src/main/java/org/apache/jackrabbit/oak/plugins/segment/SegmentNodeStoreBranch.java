@@ -16,30 +16,18 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
-import static org.apache.jackrabbit.oak.plugins.commit.MergingNodeStateDiff.ADD_EXISTING_NODE;
-import static org.apache.jackrabbit.oak.plugins.commit.MergingNodeStateDiff.ADD_EXISTING_PROPERTY;
-import static org.apache.jackrabbit.oak.plugins.commit.MergingNodeStateDiff.CHANGE_CHANGED_PROPERTY;
-import static org.apache.jackrabbit.oak.plugins.commit.MergingNodeStateDiff.CHANGE_DELETED_NODE;
-import static org.apache.jackrabbit.oak.plugins.commit.MergingNodeStateDiff.CHANGE_DELETED_PROPERTY;
-import static org.apache.jackrabbit.oak.plugins.commit.MergingNodeStateDiff.CONFLICT;
-import static org.apache.jackrabbit.oak.plugins.commit.MergingNodeStateDiff.DELETE_CHANGED_NODE;
-import static org.apache.jackrabbit.oak.plugins.commit.MergingNodeStateDiff.DELETE_CHANGED_PROPERTY;
-import static org.apache.jackrabbit.oak.plugins.commit.MergingNodeStateDiff.DELETE_DELETED_NODE;
-import static org.apache.jackrabbit.oak.plugins.commit.MergingNodeStateDiff.DELETE_DELETED_PROPERTY;
-
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
+import org.apache.jackrabbit.oak.spi.state.RebaseDiff;
 
 class SegmentNodeStoreBranch implements NodeStoreBranch {
 
@@ -78,86 +66,6 @@ class SegmentNodeStoreBranch implements NodeStoreBranch {
     public synchronized void setRoot(NodeState newRoot) {
         this.rootId = writer.writeNode(newRoot).getRecordId();
         writer.flush();
-    }
-
-    // FIXME: Proper rebase needed
-    private class RebaseDiff implements NodeStateDiff {
-    
-        private final NodeBuilder builder;
-
-        RebaseDiff(NodeBuilder builder) {
-            this.builder = builder;
-        }
-
-        @Override
-        public void propertyAdded(PropertyState after) {
-            PropertyState other = builder.getProperty(after.getName());
-            if (other == null) {
-                builder.setProperty(after);
-            } else if (!other.equals(after)) {
-                conflictMarker(ADD_EXISTING_PROPERTY).setProperty(after);
-            }
-        }
-
-        @Override
-        public void propertyChanged(PropertyState before, PropertyState after) {
-            PropertyState other = builder.getProperty(before.getName());
-            if (other == null) {
-                conflictMarker(CHANGE_DELETED_PROPERTY).setProperty(after);
-            } else if (other.equals(before)) {
-                builder.setProperty(after);
-            } else if (!other.equals(after)) {
-                conflictMarker(CHANGE_CHANGED_PROPERTY).setProperty(after);
-            }
-        }
-
-        @Override
-        public void propertyDeleted(PropertyState before) {
-            PropertyState other = builder.getProperty(before.getName());
-            if (other == null) {
-                conflictMarker(DELETE_DELETED_PROPERTY).setProperty(before);
-            } else if (other.equals(before)) {
-                builder.removeProperty(before.getName());
-            } else {
-                conflictMarker(DELETE_CHANGED_PROPERTY).setProperty(before);
-            }
-        }
-
-        @Override
-        public void childNodeAdded(String name, NodeState after) {
-            if (builder.hasChildNode(name)) {
-                conflictMarker(ADD_EXISTING_NODE).setNode(name, after);
-            } else {
-                builder.setNode(name, after);
-            }
-        }
-
-        @Override
-        public void childNodeChanged(
-                String name, NodeState before, NodeState after) {
-            if (builder.hasChildNode(name)) {
-                after.compareAgainstBaseState(
-                        before, new RebaseDiff(builder.child(name)));
-            } else {
-                conflictMarker(CHANGE_DELETED_NODE).setNode(name, after);
-            }
-        }
-
-        @Override
-        public void childNodeDeleted(String name, NodeState before) {
-            if (!builder.hasChildNode(name)) {
-                conflictMarker(DELETE_DELETED_NODE).setNode(name, before);
-            } else if (before.equals(builder.child(name).getNodeState())) {
-                builder.removeNode(name);
-            } else {
-                conflictMarker(DELETE_CHANGED_NODE).setNode(name, before);
-            }
-        }
-
-        private NodeBuilder conflictMarker(String name) {
-            return builder.child(CONFLICT).child(name);
-        }
-
     }
 
     @Override

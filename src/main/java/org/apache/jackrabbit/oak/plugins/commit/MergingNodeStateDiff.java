@@ -33,22 +33,22 @@ import org.apache.jackrabbit.oak.spi.state.PropertyBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.apache.jackrabbit.oak.spi.state.RebaseDiff.ADD_EXISTING_NODE;
+import static org.apache.jackrabbit.oak.spi.state.RebaseDiff.ADD_EXISTING_PROPERTY;
+import static org.apache.jackrabbit.oak.spi.state.RebaseDiff.CHANGE_CHANGED_PROPERTY;
+import static org.apache.jackrabbit.oak.spi.state.RebaseDiff.CHANGE_DELETED_NODE;
+import static org.apache.jackrabbit.oak.spi.state.RebaseDiff.CHANGE_DELETED_PROPERTY;
+import static org.apache.jackrabbit.oak.spi.state.RebaseDiff.CONFLICT;
+import static org.apache.jackrabbit.oak.spi.state.RebaseDiff.DELETE_CHANGED_NODE;
+import static org.apache.jackrabbit.oak.spi.state.RebaseDiff.DELETE_CHANGED_PROPERTY;
+import static org.apache.jackrabbit.oak.spi.state.RebaseDiff.DELETE_DELETED_NODE;
+import static org.apache.jackrabbit.oak.spi.state.RebaseDiff.DELETE_DELETED_PROPERTY;
+
 /**
  * MergingNodeStateDiff... TODO
  */
 public final class MergingNodeStateDiff extends DefaultNodeStateDiff {
     private static final Logger LOG = LoggerFactory.getLogger(MergingNodeStateDiff.class);
-
-    public static final String CONFLICT = ":conflict";
-    public static final String DELETE_CHANGED_PROPERTY = "deleteChangedProperty";
-    public static final String DELETE_CHANGED_NODE = "deleteChangedNode";
-    public static final String ADD_EXISTING_PROPERTY = "addExistingProperty";
-    public static final String CHANGE_DELETED_PROPERTY = "changeDeletedProperty";
-    public static final String CHANGE_CHANGED_PROPERTY = "changeChangedProperty";
-    public static final String DELETE_DELETED_PROPERTY = "deleteDeletedProperty";
-    public static final String ADD_EXISTING_NODE = "addExistingNode";
-    public static final String CHANGE_DELETED_NODE = "changeDeletedNode";
-    public static final String DELETE_DELETED_NODE = "deleteDeletedNode";
 
     private final NodeState parent;
     private final NodeBuilder target;
