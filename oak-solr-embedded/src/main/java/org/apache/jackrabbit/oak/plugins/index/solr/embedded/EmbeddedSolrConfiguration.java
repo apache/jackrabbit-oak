@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.embedded;
 
+import javax.jcr.PropertyType;
+
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.solr.OakSolrConfiguration;
 import org.apache.jackrabbit.oak.spi.query.Filter;
@@ -32,6 +34,10 @@ public class EmbeddedSolrConfiguration implements OakSolrConfiguration {
 
     @Override
     public String getFieldNameFor(Type<?> propertyType) {
+        if (Type.BINARIES.equals(propertyType) || Type.BINARY.equals(propertyType)) {
+            // TODO : use Tika / SolrCell here
+            return propertyType.toString() + "_bin";
+        }
         return null;
     }
 

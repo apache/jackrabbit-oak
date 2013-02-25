@@ -89,6 +89,10 @@ public class RemoteSolrConfigurationProvider implements OakSolrConfigurationProv
             oakSolrConfiguration = new OakSolrConfiguration() {
                 @Override
                 public String getFieldNameFor(Type<?> propertyType) {
+                    if (Type.BINARIES.equals(propertyType) || Type.BINARY.equals(propertyType)) {
+                        // TODO : use Tika / SolrCell here
+                        return propertyType.toString()+"_bin";
+                    }
                     return null;
                 }
 
