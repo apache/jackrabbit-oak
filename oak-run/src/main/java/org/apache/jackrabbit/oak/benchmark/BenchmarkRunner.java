@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.benchmark;
 
+import java.io.File;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
@@ -24,6 +25,7 @@ import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
 
+import org.apache.jackrabbit.oak.benchmark.wikipedia.WikipediaImport;
 import org.apache.jackrabbit.oak.fixture.JackrabbitRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
@@ -56,6 +58,9 @@ public class BenchmarkRunner {
                 .withRequiredArg().defaultsTo("localhost");
         OptionSpec<Integer> port = parser.accepts("port", "MongoDB port")
                 .withRequiredArg().ofType(Integer.class).defaultsTo(27017);
+        OptionSpec<File> wikipedia =
+                parser.accepts("wikipedia", "Wikipedia dump")
+                .withRequiredArg().ofType(File.class);
 
         OptionSet options = parser.parse(args);
         RepositoryFixture[] allFixtures = new RepositoryFixture[] {
@@ -65,6 +70,24 @@ public class BenchmarkRunner {
                 OakRepositoryFixture.getMongo(host.value(options), port.value(options)),
                 OakRepositoryFixture.getSegment(host.value(options), port.value(options))
         };
+        Benchmark[] allBenchmarks = new Benchmark[] {
+            new LoginTest(),
+            new LoginLogoutTest(),
+            new ReadPropertyTest(),
+            new SetPropertyTest(),
+            new SmallFileReadTest(),
+            new SmallFileWriteTest(),
+            new ConcurrentReadTest(),
+            new ConcurrentReadWriteTest(),
+            new SimpleSearchTest(),
+            new SQL2SearchTest(),
+            new DescendantSearchTest(),
+            new SQL2DescendantSearchTest(),
+            new CreateManyChildNodesTest(),
+            new UpdateManyChildNodesTest(),
+            new TransientManyChildNodesTest(),
+            new WikipediaImport(wikipedia.value(options))
+        };
 
         Set<String> argset = Sets.newHashSet(options.nonOptionArguments());
         List<RepositoryFixture> fixtures = Lists.newArrayList();
@@ -73,18 +96,12 @@ public class BenchmarkRunner {
                 fixtures.add(fixture);
             }
         }
-        if (fixtures.isEmpty()) {
-            fixtures = Arrays.asList(allFixtures);
-        }
 
         List<Benchmark> benchmarks = Lists.newArrayList();
-        for (Benchmark benchmark : BENCHMARKS) {
+        for (Benchmark benchmark : allBenchmarks) {
             if (argset.remove(benchmark.toString())) {
                 benchmarks.add(benchmark);
             }
-        }
-        if (benchmarks.isEmpty()) {
-            benchmarks = Arrays.asList(BENCHMARKS);
         }
 
         if (argset.isEmpty()) {
@@ -94,7 +111,6 @@ public class BenchmarkRunner {
         } else {
             System.err.println("Unknown arguments: " + argset);
         }
-
     }
 
 }
