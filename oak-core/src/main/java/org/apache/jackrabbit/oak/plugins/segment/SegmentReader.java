@@ -37,12 +37,6 @@ public class SegmentReader {
 
     private final SegmentStore store;
 
-    private final LoadingCache<RecordId, String> strings =
-            CacheBuilder.newBuilder()
-            .maximumWeight(1 << 20) // 1 MB
-            .weigher(newStringWeigher())
-            .build(newStringLoader());
-
     private final LoadingCache<RecordId, Template> templates =
             CacheBuilder.newBuilder()
             .maximumSize(1000)
@@ -50,29 +44,6 @@ public class SegmentReader {
 
     public SegmentReader(SegmentStore store) {
         this.store = store;
-    }
-
-    private static Weigher<RecordId, String> newStringWeigher() {
-        return new Weigher<RecordId, String>() {
-            @Override
-            public int weigh(RecordId key, String value) {
-                return 32 + value.length() * 2;
-            }
-        };
-    }
-
-    private CacheLoader<RecordId, String> newStringLoader() {
-        return new CacheLoader<RecordId, String>() {
-            @Override
-            public String load(RecordId key) throws Exception {
-                SegmentStream stream = readStream(key);
-                try {
-                    return stream.getString();
-                } finally {
-                    stream.close();
-                }
-            }
-        };
     }
 
     private CacheLoader<RecordId, Template> newTemplateLoader() {
@@ -95,7 +66,7 @@ public class SegmentReader {
                 if (hasPrimaryType) {
                     RecordId primaryId = segment.readRecordId(offset);
                     primaryType = PropertyStates.createProperty(
-                            "jcr:primaryType", readString(primaryId), Type.NAME);
+                            "jcr:primaryType", segment.readString(primaryId), Type.NAME);
                     offset += Segment.RECORD_ID_BYTES;
                 }
 
@@ -104,7 +75,7 @@ public class SegmentReader {
                     String[] mixins = new String[mixinCount];
                     for (int i = 0; i < mixins.length; i++) {
                         RecordId mixinId = segment.readRecordId(offset);
-                        mixins[i] = readString(mixinId);
+                        mixins[i] =  segment.readString(mixinId);
                         offset += Segment.RECORD_ID_BYTES;
                     }
                     mixinTypes = PropertyStates.createProperty(
@@ -116,7 +87,7 @@ public class SegmentReader {
                     childName = Template.MANY_CHILD_NODES;
                 } else if (!zeroChildNodes) {
                     RecordId childNameId = segment.readRecordId(offset);
-                    childName = readString(childNameId);
+                    childName = segment.readString(childNameId);
                     offset += Segment.RECORD_ID_BYTES;
                 }
 
@@ -127,7 +98,7 @@ public class SegmentReader {
                     offset += Segment.RECORD_ID_BYTES;
                     byte type = segment.readByte(offset++);
                     properties[i] = new PropertyTemplate(
-                            readString(propertyNameId),
+                            segment.readString(propertyNameId),
                             Type.fromTag(Math.abs(type), type < 0));
                 }
 
@@ -146,15 +117,6 @@ public class SegmentReader {
         }
     }
 
-    public String readString(RecordId recordId) {
-        try {
-            return strings.get(recordId);
-        } catch (ExecutionException e) {
-            throw new IllegalStateException(
-                    "Unable to access string record " + recordId, e);
-        }
-    }
-
     public long readLength(RecordId recordId) {
         checkNotNull(recordId);
         Segment segment = store.readSegment(recordId.getSegmentId());
@@ -162,24 +124,7 @@ public class SegmentReader {
     }
 
     private long readLength(Segment segment, int offset) {
-        int length = segment.readByte(offset++) & 0xff;
-        if ((length & 0x80) == 0) {
-            return length;
-        } else if ((length & 0x40) == 0) {
-            return ((length & 0x3f) << 8
-                    | segment.readByte(offset) & 0xff)
-                    + Segment.SMALL_LIMIT;
-        } else {
-            return (((long) length & 0x3f) << 56
-                    | ((long) (segment.readByte(offset++) & 0xff)) << 48
-                    | ((long) (segment.readByte(offset++) & 0xff)) << 40
-                    | ((long) (segment.readByte(offset++) & 0xff)) << 32
-                    | ((long) (segment.readByte(offset++) & 0xff)) << 24
-                    | ((long) (segment.readByte(offset++) & 0xff)) << 16
-                    | ((long) (segment.readByte(offset++) & 0xff)) << 8
-                    | ((long) (segment.readByte(offset) & 0xff)))
-                    + Segment.MEDIUM_LIMIT;
-        }
+        return segment.readLength(offset);
     }
 
     public SegmentStream readStream(RecordId recordId) {

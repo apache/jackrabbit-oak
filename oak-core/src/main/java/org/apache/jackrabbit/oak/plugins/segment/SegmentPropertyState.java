@@ -113,12 +113,14 @@ class SegmentPropertyState extends AbstractPropertyState {
         checkNotNull(type);
         checkArgument(!type.isArray(), "Type must not be an array type");
 
+        Segment segment = reader.getStore().readSegment(recordId.getSegmentId());
+
         Type<?> base;
         ListRecord values;
         if (isArray()) {
             base = getType().getBaseType();
-            int size = reader.readInt(recordId, 0);
-            RecordId listId = reader.readRecordId(recordId, 4);
+            int size = segment.readInt(recordId.getOffset());
+            RecordId listId = segment.readRecordId(recordId.getOffset() + 4);
             values = new ListRecord(listId, size);
         } else {
             base = getType();
@@ -130,7 +132,7 @@ class SegmentPropertyState extends AbstractPropertyState {
         if (type == Type.BINARY) {
             return (T) new SegmentBlob(reader, valueId);
         } else {
-            String value = reader.readString(valueId);
+            String value = segment.readString(valueId);
             if (type == Type.STRING || type == Type.URI
                     || type == Type.NAME || type == Type.PATH
                     || type == Type.REFERENCE || type == Type.WEAKREFERENCE) {
