@@ -47,15 +47,17 @@ public class EmbeddedSolrServerProvider implements SolrServerProvider {
 
     private final Logger log = LoggerFactory.getLogger(EmbeddedSolrServerProvider.class);
 
-    private static final String SOLR_HOME_PROPERTY_NAME = "solr.solr.home";
+    private static final String DEFAULT_PORT = "8983";
+    private static final String DEFAULT_HOME_PATH = "/";
     private static final String DEFAULT_CORE_NAME = "oak";
+    private static final String SOLR_HOME_PROPERTY_NAME = "solr.solr.home";
     private static final String LOCAL_BASE_URL = "http://127.0.0.1";
     private static final String CONTEXT = "/solr";
 
-    @Property(value = "/")
+    @Property(value = DEFAULT_HOME_PATH)
     private static final String SOLR_HOME_PATH = "solr.home.path";
 
-    @Property(value = "8983")
+    @Property(value = DEFAULT_PORT)
     private static final String SOLR_HTTP_PORT = "solr.http.port";
 
     private SolrServer solrServer;
@@ -64,6 +66,8 @@ public class EmbeddedSolrServerProvider implements SolrServerProvider {
     private Integer solrHttpPort;
 
     public EmbeddedSolrServerProvider() {
+        this.solrHome = DEFAULT_HOME_PATH;
+        this.solrHttpPort = Integer.valueOf(DEFAULT_PORT);
     }
 
     public EmbeddedSolrServerProvider(String solrHome, Integer solrHttpPort) {

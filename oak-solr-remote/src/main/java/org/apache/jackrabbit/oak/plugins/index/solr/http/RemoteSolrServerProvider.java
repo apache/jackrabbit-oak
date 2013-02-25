@@ -43,11 +43,13 @@ public class RemoteSolrServerProvider implements SolrServerProvider {
     private final Logger log = LoggerFactory.getLogger(RemoteSolrServerProvider.class);
 
     private static final String DEFAULT_COLLECTION = "oak";
+    private static final String DEFAULT_HTTP_URL = "http://127.0.0.1:8983/solr";
+    private static final String DEFAULT_ZK_HOST = "localhost:9983";
 
-    @Property(value = "http://127.0.0.1:8983/solr")
+    @Property(value = DEFAULT_HTTP_URL)
     private static final String SOLR_HTTP_URL = "solr.http.url";
 
-    @Property(value = "localhost:9983")
+    @Property(value = DEFAULT_ZK_HOST)
     private static final String SOLR_ZK_HOST = "solr.zk.host";
 
     private SolrServer solrServer;
@@ -55,6 +57,8 @@ public class RemoteSolrServerProvider implements SolrServerProvider {
     private String solrZkHost;
 
     public RemoteSolrServerProvider() {
+        this.solrHttpUrl = DEFAULT_HTTP_URL;
+        this.solrZkHost = DEFAULT_ZK_HOST;
     }
 
     public RemoteSolrServerProvider(String solrHttpUrl, String solrZkHost) {
