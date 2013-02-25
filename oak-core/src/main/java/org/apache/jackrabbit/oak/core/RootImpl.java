@@ -236,6 +236,7 @@ public class RootImpl implements Root {
         checkLive();
         branch = store.branch();
         rootTree = TreeImpl.createRoot(this);
+        modCount = 0;
     }
 
     @Override
