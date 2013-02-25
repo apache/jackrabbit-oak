@@ -59,8 +59,17 @@ public class EmbeddedSolrServerProvider implements SolrServerProvider {
     private static final String SOLR_HTTP_PORT = "solr.http.port";
 
     private SolrServer solrServer;
+
     private String solrHome;
     private Integer solrHttpPort;
+
+    public EmbeddedSolrServerProvider() {
+    }
+
+    public EmbeddedSolrServerProvider(String solrHome, Integer solrHttpPort) {
+        this.solrHome = solrHome;
+        this.solrHttpPort = solrHttpPort;
+    }
 
     @Activate
     protected void activate(ComponentContext componentContext) throws Exception {
