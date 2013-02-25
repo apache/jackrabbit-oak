@@ -43,6 +43,8 @@
           <instructions>
             <Export-Package>
               org.apache.jackrabbit.oak.plugins.index.solr,
+              org.apache.jackrabbit.oak.plugins.index.solr.index,
+              org.apache.jackrabbit.oak.plugins.index.solr.query,
               org.apache.solr.*
             </Export-Package>
             <Private-Package>
