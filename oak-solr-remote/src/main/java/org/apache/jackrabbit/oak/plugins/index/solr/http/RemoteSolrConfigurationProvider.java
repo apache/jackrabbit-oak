@@ -72,53 +72,53 @@ public class RemoteSolrConfigurationProvider implements OakSolrConfigurationProv
         pathParentFieldName = String.valueOf(componentContext.getProperties().get(PATH_PARENT_FIELD));
         pathExactFieldName = String.valueOf(componentContext.getProperties().get(PATH_EXACT_FIELD));
         pathDescendantsFieldName = String.valueOf(componentContext.getProperties().get(PATH_DESCENDANTS_FIELD));
-
-        oakSolrConfiguration = new OakSolrConfiguration() {
-            @Override
-            public String getFieldNameFor(Type<?> propertyType) {
-                return null;
-            }
-
-            @Override
-            public String getPathField() {
-                return pathExactFieldName;
-            }
-
-            @Override
-            public String getFieldForPathRestriction(Filter.PathRestriction pathRestriction) {
-                String fieldName = null;
-                switch (pathRestriction) {
-                    case ALL_CHILDREN: {
-                        fieldName = pathDescendantsFieldName;
-                        break;
-                    }
-                    case DIRECT_CHILDREN: {
-                        fieldName = pathChildrenFieldName;
-                        break;
-                    }
-                    case EXACT: {
-                        fieldName = pathExactFieldName;
-                        break;
-                    }
-                    case PARENT: {
-                        fieldName = pathParentFieldName;
-                        break;
-                    }
-
-                }
-                return fieldName;
-            }
-
-            @Override
-            public String getFieldForPropertyRestriction(Filter.PropertyRestriction propertyRestriction) {
-                return null;
-            }
-        };
-
     }
 
     @Override
     public OakSolrConfiguration getConfiguration() {
+        if (oakSolrConfiguration == null) {
+            oakSolrConfiguration = new OakSolrConfiguration() {
+                @Override
+                public String getFieldNameFor(Type<?> propertyType) {
+                    return null;
+                }
+
+                @Override
+                public String getPathField() {
+                    return pathExactFieldName;
+                }
+
+                @Override
+                public String getFieldForPathRestriction(Filter.PathRestriction pathRestriction) {
+                    String fieldName = null;
+                    switch (pathRestriction) {
+                        case ALL_CHILDREN: {
+                            fieldName = pathDescendantsFieldName;
+                            break;
+                        }
+                        case DIRECT_CHILDREN: {
+                            fieldName = pathChildrenFieldName;
+                            break;
+                        }
+                        case EXACT: {
+                            fieldName = pathExactFieldName;
+                            break;
+                        }
+                        case PARENT: {
+                            fieldName = pathParentFieldName;
+                            break;
+                        }
+
+                    }
+                    return fieldName;
+                }
+
+                @Override
+                public String getFieldForPropertyRestriction(Filter.PropertyRestriction propertyRestriction) {
+                    return null;
+                }
+            };
+        }
         return oakSolrConfiguration;
     }
 }

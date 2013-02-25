@@ -54,7 +54,7 @@ public class SolrQueryIndexProvider implements QueryIndexProvider {
     public SolrQueryIndexProvider() {
     }
 
-    public SolrQueryIndexProvider(OakSolrConfigurationProvider oakSolrConfigurationProvider, SolrServerProvider solrServerProvider) {
+    public SolrQueryIndexProvider(SolrServerProvider solrServerProvider, OakSolrConfigurationProvider oakSolrConfigurationProvider) {
         this.oakSolrConfigurationProvider = oakSolrConfigurationProvider;
         this.solrServerProvider = solrServerProvider;
     }
