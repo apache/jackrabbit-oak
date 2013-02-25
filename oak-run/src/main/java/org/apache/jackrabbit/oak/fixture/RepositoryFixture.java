@@ -25,25 +25,24 @@ public interface RepositoryFixture {
      * a database-based fixture would only be available when the underlying
      * database service is running.
      *
+     * @param n size of the requested cluster
      * @return {@code true} iff the fixture is available
      */
-    boolean isAvailable();
+    boolean isAvailable(int n);
 
     /**
-     * Creates a new repository cluster with as many nodes as the given
-     * array has elements. References to the cluster nodes are stored in
-     * the given array. The initial state of the cluster consists of just
-     * the default repository content included by the implementation. The
-     * caller of this method should have exclusive access to the created
-     * cluster. The caller is also responsible for calling
-     * {@link #tearDownCluster(Repository[])} when the test cluster is
-     * no longer needed.
+     * Creates a new repository cluster with the given number of nodes.
+     * The initial state of the cluster consists of just the default
+     * repository content included by the implementation. The caller of
+     * this method should have exclusive access to the created cluster.
+     * The caller is also responsible for calling {@link #tearDownCluster()}
+     * when the test cluster is no longer needed.
      *
-     * @param cluster array to which references to all nodes of the
-     *                created cluster should be stored
+     * @param n size of the requested cluster
+     * @return nodes of the created cluster
      * @throws Exception if the cluster could not be set up
      */
-    void setUpCluster(Repository[] cluster) throws Exception;
+    Repository[] setUpCluster(int n) throws Exception;
 
     /**
      * Ensures that all content changes seen by one of the given cluster
@@ -59,11 +58,9 @@ public interface RepositoryFixture {
 
     /**
      * Releases resources associated with the given repository cluster.
-     * The caller of {@link #setUpCluster(Repository[])} shall call this
+     * The caller of {@link #setUpCluster(int)} shall call this
      * method once the cluster is no longer needed.
-     *
-     * @param cluster array containing references to all nodes of the cluster
      */
-    void tearDownCluster(Repository[] cluster);
+    void tearDownCluster();
 
 }
