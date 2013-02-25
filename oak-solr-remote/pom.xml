@@ -44,7 +44,7 @@
         <configuration>
           <instructions>
             <Export-Package>
-              !
+              org.apache.jackrabbit.oak.plugins.index.solr.http
             </Export-Package>
           </instructions>
         </configuration>
