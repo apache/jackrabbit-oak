@@ -36,84 +36,8 @@ public class SegmentReader {
 
     private final SegmentStore store;
 
-    private final LoadingCache<RecordId, Template> templates =
-            CacheBuilder.newBuilder()
-            .maximumSize(1000)
-            .build(newTemplateLoader());
-
     public SegmentReader(SegmentStore store) {
         this.store = store;
-    }
-
-    private CacheLoader<RecordId, Template> newTemplateLoader() {
-        return new CacheLoader<RecordId, Template>() {
-            @Override
-            public Template load(RecordId key) throws Exception {
-                Segment segment = store.readSegment(key.getSegmentId());
-                int offset = key.getOffset();
-
-                int head = segment.readInt(offset);
-                boolean hasPrimaryType = (head & (1 << 31)) != 0;
-                boolean hasMixinTypes = (head & (1 << 30)) != 0;
-                boolean zeroChildNodes = (head & (1 << 29)) != 0;
-                boolean manyChildNodes = (head & (1 << 28)) != 0;
-                int mixinCount = (head >> 18) & ((1 << 10) - 1);
-                int propertyCount = head & ((1 << 18) - 1);
-                offset += 4;
-
-                PropertyState primaryType = null;
-                if (hasPrimaryType) {
-                    RecordId primaryId = segment.readRecordId(offset);
-                    primaryType = PropertyStates.createProperty(
-                            "jcr:primaryType", segment.readString(primaryId), Type.NAME);
-                    offset += Segment.RECORD_ID_BYTES;
-                }
-
-                PropertyState mixinTypes = null;
-                if (hasMixinTypes) {
-                    String[] mixins = new String[mixinCount];
-                    for (int i = 0; i < mixins.length; i++) {
-                        RecordId mixinId = segment.readRecordId(offset);
-                        mixins[i] =  segment.readString(mixinId);
-                        offset += Segment.RECORD_ID_BYTES;
-                    }
-                    mixinTypes = PropertyStates.createProperty(
-                            "jcr:mixinTypes", Arrays.asList(mixins), Type.NAMES);
-                }
-
-                String childName = Template.ZERO_CHILD_NODES;
-                if (manyChildNodes) {
-                    childName = Template.MANY_CHILD_NODES;
-                } else if (!zeroChildNodes) {
-                    RecordId childNameId = segment.readRecordId(offset);
-                    childName = segment.readString(childNameId);
-                    offset += Segment.RECORD_ID_BYTES;
-                }
-
-                PropertyTemplate[] properties =
-                        new PropertyTemplate[propertyCount];
-                for (int i = 0; i < properties.length; i++) {
-                    RecordId propertyNameId = segment.readRecordId(offset);
-                    offset += Segment.RECORD_ID_BYTES;
-                    byte type = segment.readByte(offset++);
-                    properties[i] = new PropertyTemplate(
-                            segment.readString(propertyNameId),
-                            Type.fromTag(Math.abs(type), type < 0));
-                }
-
-                return new Template(
-                        primaryType, mixinTypes, properties, childName);
-            }
-        };
-    }
-
-    public Template readTemplate(RecordId recordId) {
-        try {
-            return templates.get(recordId);
-        } catch (ExecutionException e) {
-            throw new IllegalStateException(
-                    "Unable to access template record " + recordId, e);
-        }
     }
 
     public long readLength(RecordId recordId) {

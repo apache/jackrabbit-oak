@@ -48,7 +48,9 @@ class SegmentNodeState extends AbstractNodeState {
 
     private synchronized Template getTemplate() {
         if (template == null) {
-            template = reader.readTemplate(reader.readRecordId(recordId, 0));
+            Segment segment = reader.getStore().readSegment(recordId.getSegmentId());
+            RecordId templateId = segment.readRecordId(recordId.getOffset());
+            template = segment.readTemplate(templateId);
         }
         return template;
     }
