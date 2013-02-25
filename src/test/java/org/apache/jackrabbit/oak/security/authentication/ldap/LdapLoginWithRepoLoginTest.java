@@ -17,11 +17,21 @@
 package org.apache.jackrabbit.oak.security.authentication.ldap;
 
 import java.util.Collections;
+import javax.jcr.SimpleCredentials;
 import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.login.Configuration;
 
+import org.apache.jackrabbit.api.security.user.Authorizable;
+import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalLoginModule;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncMode;
 import org.junit.Ignore;
+import org.junit.Test;
+
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 
 @Ignore //ignore for the moment because "mvn test" runs into PermGen memory issues
 public class LdapLoginWithRepoLoginTest extends LdapLoginTestBase {
@@ -43,5 +53,100 @@ public class LdapLoginWithRepoLoginTest extends LdapLoginTestBase {
                 };
             }
         };
+    }
+
+    @Test
+    public void testSyncUpdateAndGroups() throws Exception {
+
+        if (!USE_COMMON_LDAP_FIXTURE) {
+            createLdapFixture();
+        }
+
+        options.put(ExternalLoginModule.PARAM_SYNC_MODE, new String[]{SyncMode.UPDATE, SyncMode.CREATE_GROUP});
+
+        // create user upfront in order to test update mode
+        userManager.createUser(USER_ID, USER_PWD);
+        root.commit();
+
+        ContentSession cs = null;
+        try {
+            cs = login(new SimpleCredentials(USER_ID, USER_PWD.toCharArray()));
+
+            root.refresh();
+            Authorizable user = userManager.getAuthorizable(USER_ID);
+            assertNotNull(user);
+            //verify that nothing was synced because LoginModuleImpl handled the login
+            assertFalse(user.hasProperty(USER_PROP));
+            Authorizable group = userManager.getAuthorizable(GROUP_DN);
+            assertNull(group);
+        } finally {
+            if (cs != null) {
+                cs.close();
+            }
+            options.clear();
+        }
+    }
+
+    @Test
+    public void testDefaultSync() throws Exception {
+
+        if (!USE_COMMON_LDAP_FIXTURE) {
+            createLdapFixture();
+        }
+
+        options.put(ExternalLoginModule.PARAM_SYNC_MODE, null);
+
+        // create user upfront in order to test update mode
+        userManager.createUser(USER_ID, USER_PWD);
+        root.commit();
+
+        ContentSession cs = null;
+        try {
+            cs = login(new SimpleCredentials(USER_ID, USER_PWD.toCharArray()));
+
+            root.refresh();
+            Authorizable user = userManager.getAuthorizable(USER_ID);
+            assertNotNull(user);
+            //verify that nothing was synced because LoginModuleImpl handled the login
+            assertFalse(user.hasProperty(USER_PROP));
+            Authorizable group = userManager.getAuthorizable(GROUP_DN);
+            assertNull(group);
+        } finally {
+            if (cs != null) {
+                cs.close();
+            }
+            options.clear();
+        }
+    }
+
+    @Test
+    public void testSyncUpdate() throws Exception {
+
+        if (!USE_COMMON_LDAP_FIXTURE) {
+            createLdapFixture();
+        }
+
+        options.put(ExternalLoginModule.PARAM_SYNC_MODE, SyncMode.UPDATE);
+
+        // create user upfront in order to test update mode
+        userManager.createUser(USER_ID, USER_PWD);
+        root.commit();
+
+        ContentSession cs = null;
+        try {
+            cs = login(new SimpleCredentials(USER_ID, USER_PWD.toCharArray()));
+
+            root.refresh();
+            Authorizable user = userManager.getAuthorizable(USER_ID);
+            assertNotNull(user);
+            //verify that nothing was synced because LoginModuleImpl handled the login
+            assertFalse(user.hasProperty(USER_PROP));
+            assertNull(userManager.getAuthorizable(GROUP_DN));
+        } finally {
+            if (cs != null) {
+                cs.close();
+            }
+            options.clear();
+        }
     }
 }
