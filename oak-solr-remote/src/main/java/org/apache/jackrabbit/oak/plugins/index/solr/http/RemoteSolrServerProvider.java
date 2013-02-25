@@ -54,6 +54,14 @@ public class RemoteSolrServerProvider implements SolrServerProvider {
     private String solrHttpUrl;
     private String solrZkHost;
 
+    public RemoteSolrServerProvider() {
+    }
+
+    public RemoteSolrServerProvider(String solrHttpUrl, String solrZkHost) {
+        this.solrHttpUrl = solrHttpUrl;
+        this.solrZkHost = solrZkHost;
+    }
+
     @Activate
     protected void activate(ComponentContext componentContext) throws Exception {
         solrHttpUrl = String.valueOf(componentContext.getProperties().get(SOLR_HTTP_URL));

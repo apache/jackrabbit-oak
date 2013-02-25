@@ -53,8 +53,19 @@ public class RemoteSolrConfigurationProvider implements OakSolrConfigurationProv
     private String pathParentFieldName;
     private String pathDescendantsFieldName;
     private String pathExactFieldName;
+
     private OakSolrConfiguration oakSolrConfiguration;
 
+    public RemoteSolrConfigurationProvider() {
+    }
+
+    public RemoteSolrConfigurationProvider(String pathChildrenFieldName, String pathParentFieldName,
+                                           String pathDescendantsFieldName, String pathExactFieldName) {
+        this.pathChildrenFieldName = pathChildrenFieldName;
+        this.pathParentFieldName = pathParentFieldName;
+        this.pathDescendantsFieldName = pathDescendantsFieldName;
+        this.pathExactFieldName = pathExactFieldName;
+    }
 
     protected void activate(ComponentContext componentContext) throws Exception {
         pathChildrenFieldName = String.valueOf(componentContext.getProperties().get(PATH_CHILDREN_FIELD));
