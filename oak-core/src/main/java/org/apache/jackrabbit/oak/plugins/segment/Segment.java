@@ -20,8 +20,13 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkPositionIndexes;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentWriter.BLOCK_SIZE;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.UUID;
+
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 
 import com.google.common.base.Charsets;
 import com.google.common.cache.Weigher;
@@ -119,7 +124,57 @@ class Segment {
     private final OffsetCache<Template> templates = new OffsetCache<Template>() {
         @Override
         protected Template load(int offset) {
-            return null;
+            int head = readInt(offset);
+            boolean hasPrimaryType = (head & (1 << 31)) != 0;
+            boolean hasMixinTypes = (head & (1 << 30)) != 0;
+            boolean zeroChildNodes = (head & (1 << 29)) != 0;
+            boolean manyChildNodes = (head & (1 << 28)) != 0;
+            int mixinCount = (head >> 18) & ((1 << 10) - 1);
+            int propertyCount = head & ((1 << 18) - 1);
+            offset += 4;
+
+            PropertyState primaryType = null;
+            if (hasPrimaryType) {
+                RecordId primaryId = readRecordId(offset);
+                primaryType = PropertyStates.createProperty(
+                        "jcr:primaryType", readString(primaryId), Type.NAME);
+                offset += Segment.RECORD_ID_BYTES;
+            }
+
+            PropertyState mixinTypes = null;
+            if (hasMixinTypes) {
+                String[] mixins = new String[mixinCount];
+                for (int i = 0; i < mixins.length; i++) {
+                    RecordId mixinId = readRecordId(offset);
+                    mixins[i] =  readString(mixinId);
+                    offset += Segment.RECORD_ID_BYTES;
+                }
+                mixinTypes = PropertyStates.createProperty(
+                        "jcr:mixinTypes", Arrays.asList(mixins), Type.NAMES);
+            }
+
+            String childName = Template.ZERO_CHILD_NODES;
+            if (manyChildNodes) {
+                childName = Template.MANY_CHILD_NODES;
+            } else if (!zeroChildNodes) {
+                RecordId childNameId = readRecordId(offset);
+                childName = readString(childNameId);
+                offset += Segment.RECORD_ID_BYTES;
+            }
+
+            PropertyTemplate[] properties =
+                    new PropertyTemplate[propertyCount];
+            for (int i = 0; i < properties.length; i++) {
+                RecordId propertyNameId = readRecordId(offset);
+                offset += Segment.RECORD_ID_BYTES;
+                byte type = readByte(offset++);
+                properties[i] = new PropertyTemplate(
+                        readString(propertyNameId),
+                        Type.fromTag(Math.abs(type), type < 0));
+            }
+
+            return new Template(
+                    primaryType, mixinTypes, properties, childName);
         }
     };
 
@@ -207,6 +262,19 @@ class Segment {
             segment = store.readSegment(id.getSegmentId());
         }
         return segment.readString(id.getOffset());
+    }
+
+    Template readTemplate(int offset) {
+        return templates.get(offset);
+    }
+
+    Template readTemplate(RecordId id) {
+        checkNotNull(id);
+        Segment segment = this;
+        if (!uuid.equals(id.getSegmentId())) {
+            segment = store.readSegment(id.getSegmentId());
+        }
+        return segment.readTemplate(id.getOffset());
     }
 
     long readLength(int offset) {
