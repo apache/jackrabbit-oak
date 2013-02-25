@@ -22,6 +22,7 @@ import static com.google.common.base.Preconditions.checkPositionIndexes;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentWriter.BLOCK_SIZE;
 
 import java.nio.ByteBuffer;
+import java.util.Collection;
 import java.util.UUID;
 
 import com.google.common.base.Charsets;
@@ -125,11 +126,11 @@ class Segment {
         }
     };
 
-    Segment(SegmentStore store, UUID uuid, byte[] data, UUID[] uuids) {
+    Segment(SegmentStore store, UUID uuid, byte[] data, Collection<UUID> uuids) {
         this.store = store;
         this.uuid = uuid;
         this.data = data;
-        this.uuids = uuids;
+        this.uuids = uuids.toArray(new UUID[uuids.size()]);
     }
 
     public UUID getSegmentId() {
