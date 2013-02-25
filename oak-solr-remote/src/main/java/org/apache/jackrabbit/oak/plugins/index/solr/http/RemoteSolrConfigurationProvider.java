@@ -37,16 +37,21 @@ import org.osgi.service.component.ComponentContext;
 @Service(OakSolrConfigurationProvider.class)
 public class RemoteSolrConfigurationProvider implements OakSolrConfigurationProvider {
 
-    @Property(value = "path_des")
+    private static final String DEFAULT_DESC_FIELD = "path_des";
+    private static final String DEFAULT_CHILD_FIELD = "path_child";
+    private static final String DEFAULT_PARENT_FIELD = "path_anc";
+    private static final String DEFAULT_PATH_FIELD = "path_exact";
+
+    @Property(value = DEFAULT_DESC_FIELD)
     private static final String PATH_DESCENDANTS_FIELD = "path.desc.field";
 
-    @Property(value = "path_child")
+    @Property(value = DEFAULT_CHILD_FIELD)
     private static final String PATH_CHILDREN_FIELD = "path.child.field";
 
-    @Property(value = "path_anc")
+    @Property(value = DEFAULT_PARENT_FIELD)
     private static final String PATH_PARENT_FIELD = "path.parent.field";
 
-    @Property(value = "path_exact")
+    @Property(value = DEFAULT_PATH_FIELD)
     private static final String PATH_EXACT_FIELD = "path.exact.field";
 
     private String pathChildrenFieldName;
@@ -57,6 +62,10 @@ public class RemoteSolrConfigurationProvider implements OakSolrConfigurationProv
     private OakSolrConfiguration oakSolrConfiguration;
 
     public RemoteSolrConfigurationProvider() {
+        this.pathChildrenFieldName = DEFAULT_CHILD_FIELD;
+        this.pathDescendantsFieldName = DEFAULT_DESC_FIELD;
+        this.pathExactFieldName = DEFAULT_PATH_FIELD;
+        this.pathParentFieldName = DEFAULT_PARENT_FIELD;
     }
 
     public RemoteSolrConfigurationProvider(String pathChildrenFieldName, String pathParentFieldName,

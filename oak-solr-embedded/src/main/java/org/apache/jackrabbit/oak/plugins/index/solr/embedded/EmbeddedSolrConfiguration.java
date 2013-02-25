@@ -24,6 +24,12 @@ import org.apache.jackrabbit.oak.spi.query.Filter;
  * An {@link OakSolrConfiguration} for the embedded Solr server
  */
 public class EmbeddedSolrConfiguration implements OakSolrConfiguration {
+
+    private static final String PATH_FIELD_NAME = "path";
+    private static final String CHILD_FIELD_NAME = "path_child";
+    private static final String DESC_FIELD_NAME = "path_desc";
+    private static final String ANC_FIELD_NAME = "path_anc";
+
     @Override
     public String getFieldNameFor(Type<?> propertyType) {
         return null;
@@ -31,7 +37,7 @@ public class EmbeddedSolrConfiguration implements OakSolrConfiguration {
 
     @Override
     public String getPathField() {
-        return "path";
+        return PATH_FIELD_NAME;
     }
 
     @Override
@@ -39,19 +45,19 @@ public class EmbeddedSolrConfiguration implements OakSolrConfiguration {
         String fieldName = null;
         switch (pathRestriction) {
             case ALL_CHILDREN: {
-                fieldName = "path_desc";
+                fieldName = DESC_FIELD_NAME;
                 break;
             }
             case DIRECT_CHILDREN: {
-                fieldName = "path_child";
+                fieldName = CHILD_FIELD_NAME;
                 break;
             }
             case EXACT: {
-                fieldName = "path";
+                fieldName = PATH_FIELD_NAME;
                 break;
             }
             case PARENT: {
-                fieldName = "path_anc";
+                fieldName = ANC_FIELD_NAME;
                 break;
             }
 
