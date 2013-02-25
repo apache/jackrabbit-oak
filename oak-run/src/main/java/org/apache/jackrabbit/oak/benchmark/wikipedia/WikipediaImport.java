@@ -42,11 +42,10 @@ public class WikipediaImport extends Benchmark {
     @Override
     public void run(Iterable<RepositoryFixture> fixtures) {
         if (dump.isFile()) {
-            System.out.format("Wikipedia import (%s)%n", dump);
             for (RepositoryFixture fixture : fixtures) {
                 if (fixture.isAvailable(1)) {
                     try {
-                        System.out.format("%s: importing Wikipedia...%n", fixture);
+                        System.out.format("%s: importing %s...%n", fixture, dump);
                         Repository[] cluster = fixture.setUpCluster(1);
                         try {
                             run(cluster[0]);
@@ -100,8 +99,8 @@ public class WikipediaImport extends Benchmark {
                         if (pages % 1000 == 0) {
                             long millis = System.currentTimeMillis() - start;
                             System.out.format(
-                                    "Imported %d pages in %d seconds (%dus/page)%n",
-                                    pages, millis / 1000, millis * 1000 / pages);
+                                    "Added %d pages in %d seconds (%.2fms/page)%n",
+                                    pages, millis / 1000, (double) millis / pages);
                         }
 
                     }
@@ -116,8 +115,8 @@ public class WikipediaImport extends Benchmark {
 
         long millis = System.currentTimeMillis() - start;
         System.out.format(
-                "Imported %d pages in %d seconds (%dus/page)%n",
-                pages, millis / 1000, millis * 1000 / pages);
+                "Imported %d pages in %d seconds (%.2fms/page)%n",
+                pages, millis / 1000, (double) millis / pages);
     }
 
 }

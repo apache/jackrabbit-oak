@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.benchmark;
 
 import java.io.File;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
@@ -34,23 +33,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 public class BenchmarkRunner {
-
-    private static final Benchmark[] BENCHMARKS = new Benchmark[] {
-            new LoginTest(),
-            new LoginLogoutTest(),
-            new ReadPropertyTest(),
-            new SetPropertyTest(),
-            new SmallFileReadTest(),
-            new SmallFileWriteTest(),
-            new ConcurrentReadTest(),
-            new ConcurrentReadWriteTest(),
-            new SimpleSearchTest(),
-            new SQL2SearchTest(),
-            new DescendantSearchTest(),
-            new SQL2DescendantSearchTest(),
-            new CreateManyChildNodesTest(),
-            new UpdateManyChildNodesTest(),
-            new TransientManyChildNodesTest() };
 
     public static void main(String[] args) throws Exception {
         OptionParser parser = new OptionParser();
