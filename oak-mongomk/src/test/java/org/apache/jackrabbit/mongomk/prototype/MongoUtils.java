@@ -36,8 +36,6 @@ public class MongoUtils {
     protected static final String DB =
             System.getProperty("mongo.db", "MongoMKDB");
 
-    protected static MongoConnection mongoConnection;
-
     protected static Exception exception;
 
     /**
@@ -51,6 +49,7 @@ public class MongoUtils {
         if (exception != null) {
             return null;
         }
+        MongoConnection mongoConnection = null;
         if (mongoConnection == null) {
             try {
                 mongoConnection = new MongoConnection(HOST, PORT, DB);

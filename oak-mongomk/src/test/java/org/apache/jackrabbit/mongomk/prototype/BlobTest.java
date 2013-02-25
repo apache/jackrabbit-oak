@@ -30,13 +30,13 @@ import com.mongodb.DB;
  */
 public class BlobTest {
 
-    // private static boolean MONGO_DB = true;
-    // private static long TOTAL_SIZE = 1 * 1024 * 1024 * 1024;
-    // private static int DOCUMENT_COUNT = 10;
+//     private static final boolean MONGO_DB = true;
+//     private static final long TOTAL_SIZE = 1 * 1024 * 1024 * 1024;
+//     private static final int DOCUMENT_COUNT = 10;
 
-    private static boolean MONGO_DB = false;
-    private static long TOTAL_SIZE = 1 * 1024 * 1024;
-    private static int DOCUMENT_COUNT = 10;
+    private static final boolean MONGO_DB = false;
+    private static final long TOTAL_SIZE = 1 * 1024 * 1024;
+    private static final int DOCUMENT_COUNT = 10;
     
     DB openMongoConnection() {
         return MONGO_DB ? MongoUtils.getConnection().getDB() : null;

@@ -19,7 +19,6 @@ package org.apache.jackrabbit.mongomk.prototype;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Set;
 
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.json.JsopStream;
@@ -116,6 +115,14 @@ public class Commit {
             store.createOrUpdate(Collection.NODES, root);
         }
     }
+    
+    public void apply(MongoMK mk) {
+        // increment write counters
+        for (String path : changedParents) {
+            mk.incrementWriteCount(path);
+        }
+        // TODO update the cache
+    }
 
     public void removeNode(String path) {
         diff.tag('-').value(path).newline();
@@ -138,10 +145,6 @@ public class Commit {
             }
             path = PathUtils.getParentPath(path);
         }
-    }
-    
-    public Set<String> getChangedParents() {
-        return changedParents;
     }
 
 }

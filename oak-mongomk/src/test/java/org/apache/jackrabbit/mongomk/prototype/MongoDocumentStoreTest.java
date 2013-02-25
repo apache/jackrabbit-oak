@@ -34,12 +34,16 @@ import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+/**
+ * Tests the document store.
+ */
 public class MongoDocumentStoreTest {
 
-    private static boolean MONGO_DB = false;
-
-//    private final static int NODE_COUNT = 2000;
-    private static int NODE_COUNT = 10;
+//    private static final boolean MONGO_DB = true;
+//    private static final int NODE_COUNT = 2000;
+    
+    private static final boolean MONGO_DB = false;
+    private static final int NODE_COUNT = 10;
 
     DocumentStore openDocumentStore() {
         if (MONGO_DB) {
@@ -73,7 +77,7 @@ public class MongoDocumentStoreTest {
         Long value2 = (Long) obj.get("property2");
         assertEquals(Long.valueOf(1), value2);
 
-        String value3 = (String)obj.get("property3");
+        String value3 = (String) obj.get("property3");
         assertEquals("value3", value3);
 
         docStore.remove(Collection.NODES, "/");
@@ -182,6 +186,9 @@ public class MongoDocumentStoreTest {
         System.out.println(s);
     }
 
+    /**
+     * Task to create / update nodes.
+     */
     private static class AddAndUpdateNodesTask implements Runnable {
 
         private final DocumentStore docStore;
