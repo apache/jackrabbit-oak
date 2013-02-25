@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.benchmark;
 
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import javax.jcr.Credentials;
@@ -33,7 +32,7 @@ import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
 /**
  * Abstract base class for individual performance benchmarks.
  */
-public abstract class AbstractTest {
+public abstract class AbstractTest implements Benchmark {
 
     private Repository repository;
 
@@ -72,31 +71,33 @@ public abstract class AbstractTest {
         beforeSuite();
     }
 
-    public void run(Map<String, RepositoryFixture> fixtures) throws Exception {
+    @Override
+    public void run(Iterable<RepositoryFixture> fixtures) {
         System.out.format(
                 "# %-34.34s     min     10%%     50%%     90%%     max       N%n",
                 toString());
-        for (Map.Entry<String, RepositoryFixture> fixture : fixtures.entrySet()) {
-            Repository[] cluster = new Repository[1];
-            fixture.getValue().setUpCluster(cluster);
+        for (RepositoryFixture fixture : fixtures) {
             try {
-                // Run the test
-                DescriptiveStatistics statistics = runTest(cluster[0]);
-                if (statistics.getN() > 0) {
-                    System.out.format(
-                            "%-36.36s  %6.0f  %6.0f  %6.0f  %6.0f  %6.0f  %6d%n",
-                            fixture.getKey(),
-                            statistics.getMin(),
-                            statistics.getPercentile(10.0),
-                            statistics.getPercentile(50.0),
-                            statistics.getPercentile(90.0),
-                            statistics.getMax(),
-                            statistics.getN());
+                Repository[] cluster = fixture.setUpCluster(1);
+                try {
+                    // Run the test
+                    DescriptiveStatistics statistics = runTest(cluster[0]);
+                    if (statistics.getN() > 0) {
+                        System.out.format(
+                                "%-36.36s  %6.0f  %6.0f  %6.0f  %6.0f  %6.0f  %6d%n",
+                                fixture.toString(),
+                                statistics.getMin(),
+                                statistics.getPercentile(10.0),
+                                statistics.getPercentile(50.0),
+                                statistics.getPercentile(90.0),
+                                statistics.getMax(),
+                                statistics.getN());
+                    }
+                } finally {
+                    fixture.tearDownCluster();
                 }
             } catch (Exception e) {
                 e.printStackTrace();
-            } finally {
-                fixture.getValue().tearDownCluster(cluster);
             }
         }
     }

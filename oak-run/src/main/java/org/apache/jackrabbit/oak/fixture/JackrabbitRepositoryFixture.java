@@ -26,18 +26,23 @@ import org.apache.jackrabbit.core.config.RepositoryConfig;
 
 public class JackrabbitRepositoryFixture implements RepositoryFixture {
 
+    private RepositoryImpl[] cluster;
+
     @Override
-    public boolean isAvailable() {
-        return true;
+    public boolean isAvailable(int n) {
+        return n == 1;
     }
 
     @Override
-    public void setUpCluster(Repository[] cluster) throws Exception {
-        if (cluster.length == 1) {
+    public Repository[] setUpCluster(int n) throws Exception {
+        if (n == 1) {
+            Repository[] cluster = new Repository[n];
             File directory = new File("jackrabbit-repository");
             RepositoryConfig config = RepositoryConfig.install(directory);
-            cluster[0] = RepositoryImpl.create(config);
-        } else if (cluster.length > 1) {
+            this.cluster[0] = RepositoryImpl.create(config);
+            cluster[0] = this.cluster[0];
+            return cluster;
+        } else {
             throw new UnsupportedOperationException("TODO");
         }
     }
@@ -48,9 +53,8 @@ public class JackrabbitRepositoryFixture implements RepositoryFixture {
     }
 
     @Override
-    public void tearDownCluster(Repository[] cluster) {
-        for (Repository node : cluster) {
-            RepositoryImpl repository = ((RepositoryImpl) node);
+    public void tearDownCluster() {
+        for (RepositoryImpl repository : cluster) {
             File directory = new File(repository.getConfig().getHomeDir());
             repository.shutdown();
             FileUtils.deleteQuietly(directory);
