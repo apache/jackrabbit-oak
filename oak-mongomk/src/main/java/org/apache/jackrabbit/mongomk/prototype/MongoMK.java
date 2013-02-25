@@ -481,7 +481,6 @@ public class MongoMK implements MicroKernel {
         UpdateOp op = commit.getUpdateOperationForNode(path);
         op.addMapEntry("_deleted", rev.toString(), "true");
         op.increment("_writeCount", 1);
-        nodeCache.remove(path + "@" + rev);
 
         if(subTreeAlso){
             // TODO Would cause issue with large number of children.
@@ -492,6 +491,9 @@ public class MongoMK implements MicroKernel {
                 markAsDeleted(childPath, commit,true);
             }
         }
+
+        //Remove the node from the cache
+        nodeCache.remove(path + "@" + rev);
     }
 
     private boolean isDeleted(Map<String, Object> nodeProps, Revision rev) {
