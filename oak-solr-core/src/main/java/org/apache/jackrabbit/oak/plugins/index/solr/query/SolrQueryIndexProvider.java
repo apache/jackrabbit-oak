@@ -22,6 +22,8 @@ import javax.annotation.Nonnull;
 
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Reference;
+import org.apache.felix.scr.annotations.ReferencePolicy;
+import org.apache.felix.scr.annotations.ReferencePolicyOption;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.plugins.index.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.solr.OakSolrConfigurationProvider;
@@ -41,13 +43,21 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.buildIndexDefin
 @Service(QueryIndexProvider.class)
 public class SolrQueryIndexProvider implements QueryIndexProvider {
 
-    private Logger log = LoggerFactory.getLogger(SolrQueryIndexProvider.class);
+    private final Logger log = LoggerFactory.getLogger(SolrQueryIndexProvider.class);
 
-    @Reference
+    @Reference(policyOption = ReferencePolicyOption.GREEDY, policy = ReferencePolicy.STATIC)
     private SolrServerProvider solrServerProvider;
 
-    @Reference
+    @Reference(policyOption = ReferencePolicyOption.GREEDY, policy = ReferencePolicy.STATIC)
     private OakSolrConfigurationProvider oakSolrConfigurationProvider;
+
+    public SolrQueryIndexProvider() {
+    }
+
+    public SolrQueryIndexProvider(OakSolrConfigurationProvider oakSolrConfigurationProvider, SolrServerProvider solrServerProvider) {
+        this.oakSolrConfigurationProvider = oakSolrConfigurationProvider;
+        this.solrServerProvider = solrServerProvider;
+    }
 
     @Nonnull
     @Override

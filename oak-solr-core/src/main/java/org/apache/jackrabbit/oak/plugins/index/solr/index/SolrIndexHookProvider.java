@@ -21,9 +21,13 @@ import javax.annotation.Nonnull;
 
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Reference;
+import org.apache.felix.scr.annotations.ReferencePolicy;
+import org.apache.felix.scr.annotations.ReferencePolicyOption;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.plugins.index.IndexHook;
 import org.apache.jackrabbit.oak.plugins.index.IndexHookProvider;
+import org.apache.jackrabbit.oak.plugins.index.solr.OakSolrConfigurationProvider;
+import org.apache.jackrabbit.oak.plugins.index.solr.SolrServerProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.query.SolrQueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.slf4j.Logger;
@@ -40,10 +44,21 @@ import com.google.common.collect.ImmutableList;
 @Service(IndexHookProvider.class)
 public class SolrIndexHookProvider implements IndexHookProvider {
 
-    @Reference
-    private SolrHookFactory hookFactory;
-
     private final Logger log = LoggerFactory.getLogger(SolrIndexHookProvider.class);
+
+    @Reference(policyOption = ReferencePolicyOption.GREEDY, policy = ReferencePolicy.STATIC)
+    private SolrServerProvider solrServerProvider;
+
+    @Reference(policyOption = ReferencePolicyOption.GREEDY, policy = ReferencePolicy.STATIC)
+    private OakSolrConfigurationProvider oakSolrConfigurationProvider;
+
+    public SolrIndexHookProvider() {
+    }
+
+    public SolrIndexHookProvider(SolrServerProvider solrServerProvider, OakSolrConfigurationProvider oakSolrConfigurationProvider) {
+        this.solrServerProvider = solrServerProvider;
+        this.oakSolrConfigurationProvider = oakSolrConfigurationProvider;
+    }
 
     @Override
     @Nonnull
@@ -53,7 +68,7 @@ public class SolrIndexHookProvider implements IndexHookProvider {
                 log.info("Creating a Solr index hook");
             }
             try {
-                IndexHook indexHook = hookFactory.createIndexHook("/", builder);
+                IndexHook indexHook = new SolrIndexDiff(builder, solrServerProvider.getSolrServer(), oakSolrConfigurationProvider.getConfiguration());
                 return ImmutableList.of(indexHook);
             } catch (Exception e) {
                 log.error("unable to create Solr IndexHook ", e);
