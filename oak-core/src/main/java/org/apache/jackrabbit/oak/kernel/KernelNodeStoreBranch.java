@@ -19,9 +19,12 @@ package org.apache.jackrabbit.oak.kernel;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
+import org.apache.jackrabbit.oak.spi.state.RebaseDiff;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -46,11 +49,14 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
     /** Revision of the base state of this branch*/
     private String baseRevision;
 
-    /** Root state of the head revision of this branch*/
+    /** Root state of the transient head revision on top of persisted branch, null if merged. */
     private NodeState head;
 
-    /** Head revision of this branch, null if not yet branched*/
+    /** Head revision of persisted branch, null if not yet branched*/
     private String headRevision;
+
+    /** Number of updates to this branch via {@link #setRoot(NodeState)} */
+    private int updates = 0;
 
     KernelNodeStoreBranch(KernelNodeStore store, KernelNodeState root) {
         this.store = store;
@@ -74,9 +80,20 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
     public void setRoot(NodeState newRoot) {
         checkNotMerged();
         if (!head.equals(newRoot)) {
-            JsopDiff diff = new JsopDiff(store.getKernel());
-            newRoot.compareAgainstBaseState(head, diff);
-            commit(diff.toString());
+            NodeState oldRoot = head;
+            head = newRoot;
+            if (++updates > 1) {
+                // persist unless this is the first update
+                boolean success = false;
+                try {
+                    persistTransientHead();
+                    success = true;
+                } finally {
+                    if (!success) {
+                        head = oldRoot;
+                    }
+                }
+            }
         }
     }
 
@@ -126,23 +143,36 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
     public NodeState merge(CommitHook hook) throws CommitFailedException {
         checkNotMerged();
         NodeState toCommit = checkNotNull(hook).processCommit(base, head);
-        NodeState oldRoot = head;
-        setRoot(toCommit);
+            NodeState oldRoot = head;
+        head = toCommit;
 
         try {
-            if (headRevision == null) {
+            if (head.equals(base)) {
                 // Nothing was written to this branch: return base state
                 head = null;  // Mark as merged
                 return base;
             } else {
                 MicroKernel kernel = store.getKernel();
-                String mergedRevision = kernel.merge(headRevision, null);
-                headRevision = null;
+                String newRevision;
+                JsopDiff diff = new JsopDiff(kernel);
+                if (headRevision == null) {
+                    // no branch created yet, commit directly
+                    head.compareAgainstBaseState(base, diff);
+                    newRevision = kernel.commit("", diff.toString(), baseRevision, null);
+                } else {
+                    // commit into branch and merge
+                    head.compareAgainstBaseState(store.getRootState(headRevision), diff);
+                    if (diff.toString().length() > 0) {
+                        headRevision = kernel.commit("", diff.toString(), headRevision, null);
+                    }
+                    newRevision = kernel.merge(headRevision, null);
+                    headRevision = null;
+                }
                 head = null;  // Mark as merged
-                return store.getRootState(mergedRevision);
+                return store.getRootState(newRevision);
             }
         } catch (MicroKernelException e) {
-            setRoot(oldRoot);
+            head = oldRoot;
             throw new CommitFailedException(e);
         }
     }
@@ -150,12 +180,22 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
     @Override
     public void rebase() {
         KernelNodeState root = store.getRoot();
-        if (headRevision == null) {
+        if (head.equals(root)) {
             // Nothing was written to this branch: set new base revision
             head = root;
             base = root;
             baseRevision = root.getRevision();
+        } else if (headRevision == null) {
+            // Nothing written to persistent branch yet
+            // perform rebase in memory
+            NodeBuilder builder = new MemoryNodeBuilder(root);
+            getRoot().compareAgainstBaseState(getBase(), new RebaseDiff(builder));
+            head = builder.getNodeState();
+            base = root;
+            baseRevision = root.getRevision();
         } else {
+            // perform rebase in kernel
+            persistTransientHead();
             headRevision = store.getKernel().rebase(headRevision, root.getRevision());
             head = store.getRootState(headRevision);
             base = root;
@@ -189,7 +229,56 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
             headRevision = kernel.branch(baseRevision);
         }
 
+        // persist transient changes first
+        persistTransientHead();
+
         headRevision = kernel.commit("", jsop, headRevision, null);
         head = store.getRootState(headRevision);
+    }
+
+    private void persistTransientHead() {
+        NodeState oldBase = base;
+        String oldBaseRevision = baseRevision;
+        NodeState oldHead = head;
+        String oldHeadRevision = headRevision;
+        boolean success = false;
+        try {
+            MicroKernel kernel = store.getKernel();
+            JsopDiff diff = new JsopDiff(store.getKernel());
+            if (headRevision == null) {
+                // no persistent branch yet
+                if (head.equals(base)) {
+                    // nothing to persist
+                    success = true;
+                    return;
+                } else {
+                    // create branch
+                    headRevision = kernel.branch(baseRevision);
+                    head.compareAgainstBaseState(base, diff);
+                }
+            } else {
+                // compare against head of branch
+                NodeState branchHead = store.getRootState(headRevision);
+                if (head.equals(branchHead)) {
+                    // nothing to persist
+                    return;
+                } else {
+                    head.compareAgainstBaseState(branchHead, diff);
+                }
+            }
+            // if we get here we have something to persist
+            // and a branch exists
+            headRevision = kernel.commit("", diff.toString(), headRevision, null);
+            head = store.getRootState(headRevision);
+            success = true;
+        } finally {
+            // revert to old state if unsuccessful
+            if (!success) {
+                base = oldBase;
+                baseRevision = oldBaseRevision;
+                head = oldHead;
+                headRevision = oldHeadRevision;
+            }
+        }
     }
 }
