@@ -31,7 +31,6 @@ import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
-import com.google.common.cache.Weigher;
 
 public class SegmentReader {
 
@@ -160,13 +159,6 @@ public class SegmentReader {
         checkArgument(position >= 0);
         Segment segment = store.readSegment(recordId.getSegmentId());
         return segment.readInt(recordId.getOffset() + position);
-    }
-
-    public long readLong(RecordId recordId, int position) {
-        checkNotNull(recordId);
-        checkArgument(position >= 0);
-        Segment segment = store.readSegment(recordId.getSegmentId());
-        return segment.readLong(recordId.getOffset() + position);
     }
 
     public void readBytes(

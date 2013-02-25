@@ -16,12 +16,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
-import static com.google.common.base.Preconditions.checkElementIndex;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkPositionIndexes;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentWriter.BLOCK_SIZE;
 
-import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.UUID;
 
@@ -95,8 +93,7 @@ class Segment {
     private final OffsetCache<String> strings = new OffsetCache<String>() {
         @Override
         protected String load(int offset) {
-            int pos = offset - (MAX_SEGMENT_SIZE - data.length);
-            checkElementIndex(pos, data.length);
+            int pos = pos(offset, 1);
             long length = internalReadLength(pos);
             if (length < SMALL_LIMIT) {
                 return new String(data, pos + 1, (int) length, Charsets.UTF_8);
@@ -133,6 +130,21 @@ class Segment {
         this.uuids = uuids.toArray(new UUID[uuids.size()]);
     }
 
+    /**
+     * Maps the given record offset to the respective position within the
+     * internal {@link #data} array. The validity of a record with the given
+     * length at the given offset is also verified.
+     *
+     * @param offset record offset
+     * @param length record length
+     * @return position within the data array
+     */
+    private int pos(int offset, int length) {
+        int pos = offset - (MAX_SEGMENT_SIZE - data.length);
+        checkPositionIndexes(pos, pos + length, data.length);
+        return pos;
+    }
+
     public UUID getSegmentId() {
         return uuid;
     }
@@ -149,10 +161,8 @@ class Segment {
         return data.length;
     }
 
-    public byte readByte(int position) {
-        int pos = position - (MAX_SEGMENT_SIZE - data.length);
-        checkElementIndex(pos, data.length);
-        return data[pos];
+    byte readByte(int offset) {
+        return data[pos(offset, 1)];
     }
 
     /**
@@ -164,34 +174,26 @@ class Segment {
      * @param offset offset within target buffer
      * @param length number of bytes to read
      */
-    public void readBytes(int position, byte[] buffer, int offset, int length) {
-        int pos = position - (MAX_SEGMENT_SIZE - data.length);
-        checkPositionIndexes(pos, pos + length, data.length);
+     void readBytes(int position, byte[] buffer, int offset, int length) {
         checkNotNull(buffer);
         checkPositionIndexes(offset, offset + length, buffer.length);
-
-        System.arraycopy(data, pos, buffer, offset, length);
+        System.arraycopy(data, pos(position, length), buffer, offset, length);
     }
 
-    RecordId readRecordId(int position) {
-        int pos = position - (MAX_SEGMENT_SIZE - data.length);
-        checkPositionIndexes(pos, pos + RECORD_ID_BYTES, data.length);
+    RecordId readRecordId(int offset) {
+        int pos = pos(offset, RECORD_ID_BYTES);
         return new RecordId(
                 uuids[data[pos] & 0xff],
                 (data[pos + 1] & 0xff) << (8 + Segment.RECORD_ALIGN_BITS)
                 | (data[pos + 2] & 0xff) << Segment.RECORD_ALIGN_BITS);
     }
 
-    public int readInt(int position) {
-        int pos = position - (MAX_SEGMENT_SIZE - data.length);
-        checkPositionIndexes(pos, pos + 4, data.length);
-        return ByteBuffer.wrap(data).getInt(pos);
-    }
-
-    public long readLong(int position) {
-        int pos = position - (Segment.MAX_SEGMENT_SIZE - data.length);
-        checkPositionIndexes(pos, pos + 8, data.length);
-        return ByteBuffer.wrap(data).getLong(pos);
+    int readInt(int offset) {
+        int pos = pos(offset, 4);
+        return (data[pos] & 0xff) << 24
+                | (data[pos + 1] & 0xff) << 16
+                | (data[pos + 2] & 0xff) << 8
+                | (data[pos + 3] & 0xff);
     }
 
     String readString(int offset) {
@@ -207,10 +209,8 @@ class Segment {
         return segment.readString(id.getOffset());
     }
 
-    long readLength(int position) {
-        int pos = position - (MAX_SEGMENT_SIZE - data.length);
-        checkElementIndex(pos, data.length);
-        return internalReadLength(pos);
+    long readLength(int offset) {
+        return internalReadLength(pos(offset, 1));
     }
 
     private long internalReadLength(int pos) {
