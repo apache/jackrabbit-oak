@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.benchmark;
 
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
 
-public interface Benchmark {
+public abstract class Benchmark {
 
     /**
      * Runs this benchmark against all the given repository fixtures.
@@ -26,6 +26,11 @@ public interface Benchmark {
      *
      * @param fixtures repository fixtures
      */
-    void run(Iterable<RepositoryFixture> fixtures);
+    public abstract void run(Iterable<RepositoryFixture> fixtures);
+
+    public String toString() {
+        String name = getClass().getName();
+        return name.substring(name.lastIndexOf('.') + 1);
+    }
 
 }

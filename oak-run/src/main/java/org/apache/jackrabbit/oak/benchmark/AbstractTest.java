@@ -32,7 +32,7 @@ import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
 /**
  * Abstract base class for individual performance benchmarks.
  */
-public abstract class AbstractTest implements Benchmark {
+abstract class AbstractTest extends Benchmark {
 
     private Repository repository;
 
@@ -278,11 +278,6 @@ public abstract class AbstractTest implements Benchmark {
         thread.setPriority(Thread.MIN_PRIORITY);
         thread.start();
         threads.add(thread);
-    }
-
-    public String toString() {
-        String name = getClass().getName();
-        return name.substring(name.lastIndexOf('.') + 1);
     }
 
 }
