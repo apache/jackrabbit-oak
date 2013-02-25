@@ -19,8 +19,15 @@ package org.apache.jackrabbit.oak.plugins.index.solr;
 import java.io.IOException;
 import javax.annotation.Nonnull;
 
+import org.apache.jackrabbit.oak.plugins.index.IndexHookProvider;
+import org.apache.jackrabbit.oak.plugins.index.solr.index.SolrIndexHookProvider;
+import org.apache.jackrabbit.oak.plugins.index.solr.query.SolrQueryIndexProvider;
+import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.SolrServerException;
+import org.osgi.framework.BundleContext;
+import org.osgi.framework.BundleReference;
+import org.osgi.framework.ServiceReference;
 
 /**
  * Utilities for Oak Solr integration.
@@ -37,5 +44,31 @@ public class OakSolrUtils {
      */
     public static boolean checkServerAlive(@Nonnull SolrServer solrServer) throws IOException, SolrServerException {
         return solrServer.ping().getStatus() == 0;
+    }
+
+    /**
+     * adapts the OSGi Solr {@link IndexHookProvider} service
+     *
+     * @return a {@link SolrIndexHookProvider}
+     */
+    public static IndexHookProvider adaptOsgiIndexHookProvider() {
+        BundleContext ctx = BundleReference.class.cast(SolrIndexHookProvider.class
+                .getClassLoader()).getBundle().getBundleContext();
+
+        ServiceReference serviceReference = ctx.getServiceReference(SolrIndexHookProvider.class.getName());
+        return SolrIndexHookProvider.class.cast(ctx.getService(serviceReference));
+    }
+
+    /**
+     * adapts the OSGi Solr {@link QueryIndexProvider} service
+     *
+     * @return a {@link SolrQueryIndexProvider}
+     */
+    public static QueryIndexProvider adaptOsgiQueryIndexProvider() {
+        BundleContext ctx = BundleReference.class.cast(SolrQueryIndexProvider.class
+                .getClassLoader()).getBundle().getBundleContext();
+
+        ServiceReference serviceReference = ctx.getServiceReference(SolrQueryIndexProvider.class.getName());
+        return SolrQueryIndexProvider.class.cast(ctx.getService(serviceReference));
     }
 }
