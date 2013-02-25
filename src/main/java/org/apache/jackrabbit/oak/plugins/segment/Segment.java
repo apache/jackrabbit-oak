@@ -19,10 +19,12 @@ package org.apache.jackrabbit.oak.plugins.segment;
 import static com.google.common.base.Preconditions.checkElementIndex;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkPositionIndexes;
+import static org.apache.jackrabbit.oak.plugins.segment.SegmentWriter.BLOCK_SIZE;
 
 import java.nio.ByteBuffer;
 import java.util.UUID;
 
+import com.google.common.base.Charsets;
 import com.google.common.cache.Weigher;
 
 class Segment {
@@ -92,8 +94,27 @@ class Segment {
     private final OffsetCache<String> strings = new OffsetCache<String>() {
         @Override
         protected String load(int offset) {
-            return new SegmentReader(store).readString(
-                    new RecordId(uuid, offset));
+            int pos = offset - (MAX_SEGMENT_SIZE - data.length);
+            checkElementIndex(pos, data.length);
+            long length = internalReadLength(pos);
+            if (length < SMALL_LIMIT) {
+                return new String(data, pos + 1, (int) length, Charsets.UTF_8);
+            } else if (length < MEDIUM_LIMIT) {
+                return new String(data, pos + 2, (int) length, Charsets.UTF_8);
+            } else if (length < Integer.MAX_VALUE) {
+                int size = (int) ((length + BLOCK_SIZE - 1) / BLOCK_SIZE);
+                ListRecord list = new ListRecord(readRecordId(offset + 8), size);
+                SegmentStream stream = new SegmentStream(
+                        new SegmentReader(store), new RecordId(uuid, offset),
+                        list, length);
+                try {
+                    return stream.getString();
+                } finally {
+                    stream.close();
+                }
+            } else {
+                throw new IllegalStateException("String is too long: " + length);
+            }
         }
     };
 
@@ -183,6 +204,33 @@ class Segment {
             segment = store.readSegment(id.getSegmentId());
         }
         return segment.readString(id.getOffset());
+    }
+
+    long readLength(int position) {
+        int pos = position - (MAX_SEGMENT_SIZE - data.length);
+        checkElementIndex(pos, data.length);
+        return internalReadLength(pos);
+    }
+
+    private long internalReadLength(int pos) {
+        int length = data[pos++] & 0xff;
+        if ((length & 0x80) == 0) {
+            return length;
+        } else if ((length & 0x40) == 0) {
+            return ((length & 0x3f) << 8
+                    | data[pos++] & 0xff)
+                    + SMALL_LIMIT;
+        } else {
+            return (((long) length & 0x3f) << 56
+                    | ((long) (data[pos++] & 0xff)) << 48
+                    | ((long) (data[pos++] & 0xff)) << 40
+                    | ((long) (data[pos++] & 0xff)) << 32
+                    | ((long) (data[pos++] & 0xff)) << 24
+                    | ((long) (data[pos++] & 0xff)) << 16
+                    | ((long) (data[pos++] & 0xff)) << 8
+                    | ((long) (data[pos++] & 0xff)))
+                    + MEDIUM_LIMIT;
+        }
     }
 
 }

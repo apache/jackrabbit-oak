@@ -161,11 +161,12 @@ public class RecordTest {
         RecordId large = writer.writeString(builder.toString());
 
         writer.flush();
+        Segment segment = store.readSegment(large.getSegmentId());
 
-        assertEquals("", reader.readString(empty));
-        assertEquals(" ", reader.readString(space));
-        assertEquals("Hello, World!", reader.readString(hello));
-        assertEquals(builder.toString(), reader.readString(large));
+        assertEquals("", segment.readString(empty));
+        assertEquals(" ", segment.readString(space));
+        assertEquals("Hello, World!", segment.readString(hello));
+        assertEquals(builder.toString(), segment.readString(large));
     }
 
     @Test
