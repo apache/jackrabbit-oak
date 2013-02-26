@@ -39,8 +39,6 @@ import com.mongodb.WriteResult;
  * A document store that uses MongoDB as the backend.
  */
 public class MongoDocumentStore implements DocumentStore {
-
-    public static final String KEY_PATH = "_id";
     
     private static final boolean LOG = false;
     private static final boolean LOG_TIME = true;
@@ -105,7 +103,7 @@ public class MongoDocumentStore implements DocumentStore {
             String fromKey, String toKey, int limit) {
         log("query", fromKey, toKey, limit);
         DBCollection dbCollection = getDBCollection(collection);
-        QueryBuilder queryBuilder = QueryBuilder.start(KEY_PATH);
+        QueryBuilder queryBuilder = QueryBuilder.start(UpdateOp.ID);
         queryBuilder.greaterThanEquals(fromKey);
         queryBuilder.lessThan(toKey);
         DBObject query = queryBuilder.get();
@@ -116,7 +114,7 @@ public class MongoDocumentStore implements DocumentStore {
             for (int i = 0; i < limit && cursor.hasNext(); i++) {
                 DBObject o = cursor.next();
                 Map<String, Object> map = convertFromDBObject(o);
-                String path = (String) map.get("_id");
+                String path = (String) map.get(UpdateOp.ID);
                 synchronized (cache) {
                     cache.put(path, map);
                 }
@@ -167,11 +165,18 @@ public class MongoDocumentStore implements DocumentStore {
                     break;
                 }
                 case ADD_MAP_ENTRY: {
-                    setUpdates.append(k + "." + op.subKey.toString(), op.value.toString());
+                    setUpdates.append(k, op.value.toString());
                     break;
                 }
                 case REMOVE_MAP_ENTRY: {
                     // TODO
+                    break;
+                }
+                case SET_MAP_ENTRY: {
+                    String[] kv = k.split("\\.");
+                    BasicDBObject sub = new BasicDBObject();
+                    sub.put(kv[1], op.value.toString());
+                    setUpdates.append(kv[0], sub);
                     break;
                 }
             }
@@ -196,10 +201,11 @@ public class MongoDocumentStore implements DocumentStore {
                     null /*sort*/, false /*remove*/, update, true /*returnNew*/,
                     true /*upsert*/);
             Map<String, Object> map = convertFromDBObject(oldNode);
-            String path = (String) map.get("_id");
+            String path = (String) map.get(UpdateOp.ID);
             synchronized (cache) {
                 cache.put(path, map);
             }
+            log("createOrUpdate returns ", map);      
             return map;
         } catch (Exception e) {
             throw new MicroKernelException(e);
@@ -232,14 +238,15 @@ public class MongoDocumentStore implements DocumentStore {
                         inserts[i].put(k, op.value);
                         break;
                     }
+                    case SET_MAP_ENTRY:
                     case ADD_MAP_ENTRY: {
-                        DBObject value = new BasicDBObject(op.subKey.toString(), op.value.toString());
-                        inserts[i].put(k, value);
+                        String[] kv = k.split("\\.");
+                        DBObject value = new BasicDBObject(kv[1], op.value.toString());
+                        inserts[i].put(kv[0], value);
                         break;
                     }
                     case REMOVE_MAP_ENTRY: {
-                        // TODO
-                        break;
+                        // nothing to do for new entries
                     }
                 }
             }
@@ -254,7 +261,7 @@ public class MongoDocumentStore implements DocumentStore {
             }
             synchronized (cache) {
                 for (Map<String, Object> map : maps) {
-                    String path = (String) map.get("_id");
+                    String path = (String) map.get(UpdateOp.ID);
                     synchronized (cache) {
                         cache.put(path, map);
                     }
@@ -278,9 +285,14 @@ public class MongoDocumentStore implements DocumentStore {
     private static Map<String, Object> convertFromDBObject(DBObject n) {
         Map<String, Object> copy = Utils.newMap();
         if (n != null) {
-            synchronized (n) {
-                for (String key : n.keySet()) {
-                    copy.put(key, n.get(key));
+            for (String key : n.keySet()) {
+                Object o = n.get(key);
+                if (o instanceof String) {
+                    copy.put(key, o);
+                } else if (o instanceof Long) {
+                    copy.put(key, o);
+                } else if (o instanceof BasicDBObject) {
+                    copy.put(key, o);
                 }
             }
         }
@@ -297,7 +309,7 @@ public class MongoDocumentStore implements DocumentStore {
     }
 
     private static DBObject getByPathQuery(String path) {
-        return QueryBuilder.start(KEY_PATH).is(path).get();
+        return QueryBuilder.start(UpdateOp.ID).is(path).get();
     }
     
     @Override
@@ -310,7 +322,11 @@ public class MongoDocumentStore implements DocumentStore {
     
     private static void log(Object... args) {
         if (LOG) {
-            System.out.println(Arrays.toString(args));
+            String msg = Arrays.toString(args);
+            if (msg.length() > 10000) {
+                msg = msg.length() + ": " + msg;
+            }
+            System.out.println(msg);
         }
     }
 

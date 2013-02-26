@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.json.JsopStream;
@@ -31,6 +32,9 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
  * A higher level object representing a commit.
  */
 public class Commit {
+    
+    // TODO too small
+    private static final int MAX_MAP_SIZE = 16 * 1024;
     
     private final MongoMK mk;
     private final Revision revision;
@@ -72,9 +76,9 @@ public class Commit {
     
     void updateProperty(String path, String propertyName, String value) {
         UpdateOp op = getUpdateOperationForNode(path);
-        op.addMapEntry(propertyName, revision.toString(), value);
+        op.addMapEntry(propertyName + "." + revision.toString(), value);
         long increment = mk.getWriteCountIncrement(path);
-        op.increment("_writeCount", 1 + increment);
+        op.increment(UpdateOp.WRITE_COUNT, 1 + increment);
     }
 
     void addNode(Node n) {
@@ -137,8 +141,8 @@ public class Commit {
         }
         if (root != null) {
             long increment = mk.getWriteCountIncrement(commitRoot);
-            root.increment("_writeCount", 1 + increment);
-            root.addMapEntry("_revisions", revision.toString(), "true");
+            root.increment(UpdateOp.WRITE_COUNT, 1 + increment);
+            root.addMapEntry(UpdateOp.REVISIONS + "." + revision.toString(), "true");
             createOrUpdateNode(store, root);
             operations.put(commitRoot, root);
         }
@@ -146,8 +150,20 @@ public class Commit {
     
     private void createOrUpdateNode(DocumentStore store, UpdateOp op) {
         Map<String, Object> map = store.createOrUpdate(Collection.NODES, op);
+        int size = Utils.getMapSize(map);
+        if (size > MAX_MAP_SIZE) {
+            UpdateOp[] split = splitDocument(map);
+            
+            // TODO check if the new main document is actually smaller;
+            // otherwise, splitting doesn't make sense
+            
+            // the old version
+            store.createOrUpdate(Collection.NODES, split[0]);
+            // the (shrunken) main document
+            store.createOrUpdate(Collection.NODES, split[1]);
+        }
         // TODO detect conflicts here
-        Long count = (Long) map.get("_writeCount");
+        Long count = (Long) map.get(UpdateOp.WRITE_COUNT);
         if (count == null) {
             count = 0L;
         }
@@ -155,6 +171,56 @@ public class Commit {
         writeCounts.put(path, count);
     }
     
+    private UpdateOp[] splitDocument(Map<String, Object> map) {
+        String path = (String) map.get(UpdateOp.PATH);
+        String id = (String) map.get(UpdateOp.ID);
+        Long previous = (Long) map.get(UpdateOp.PREVIOUS);
+        if (previous == null) {
+            previous = 0L;
+        } else {
+            previous++;
+        }
+        UpdateOp old = new UpdateOp(path, id + "/" + previous, true);
+        UpdateOp main = new UpdateOp(path, id, false);
+        main.set(UpdateOp.PREVIOUS, previous);
+        for (Entry<String, Object> e : map.entrySet()) {
+            String key = e.getKey();
+            if (key.equals(UpdateOp.PATH)) {
+                // ok
+            } else if (key.equals(UpdateOp.ID)) {
+                // ok
+            } else if (key.equals(UpdateOp.PREVIOUS)) {
+                // ok
+            } else if (key.equals(UpdateOp.WRITE_COUNT)) {
+                // only maintain the write count on the main document
+                main.set(UpdateOp.WRITE_COUNT, e.getValue());
+            } else {
+                // UpdateOp.DELETED,
+                // UpdateOp.REVISIONS,
+                // and regular properties
+                @SuppressWarnings("unchecked")
+                Map<String, Object> valueMap = (Map<String, Object>) e.getValue();
+                Revision latestRev = null;
+                for (String r : valueMap.keySet()) {
+                    Revision propRev = Revision.fromString(r);
+                    if (latestRev == null || mk.isRevisionNewer(propRev, latestRev)) {
+                        latestRev = propRev;
+                    }
+                }
+                for (String r : valueMap.keySet()) {
+                    Revision propRev = Revision.fromString(r);
+                    Object v = valueMap.get(r);
+                    if (propRev.equals(latestRev)) {
+                        main.setMapEntry(key + "." + propRev.toString(), v);
+                    } else {
+                        old.addMapEntry(key + "." + propRev.toString(), v);
+                    }
+                }
+            }
+        }
+        return new UpdateOp[]{old, main};
+    }
+
     /**
      * Apply the changes to the MongoMK (to update the cache).
      */
@@ -198,7 +264,7 @@ public class Commit {
                     writeCountInc++;
                     String id = Node.convertPathToDocumentId(path);
                     Map<String, Object> map = mk.getDocumentStore().find(Collection.NODES, id);
-                    Long oldWriteCount = (Long) map.get("_writeCount");
+                    Long oldWriteCount = (Long) map.get(UpdateOp.WRITE_COUNT);
                     writeCount = oldWriteCount == null ? 0 : oldWriteCount;
                 }
             }
@@ -238,9 +304,9 @@ public class Commit {
     public void removeNode(String path) {
         removedNodes.add(path);
         UpdateOp op = getUpdateOperationForNode(path);
-        op.addMapEntry("_deleted", revision.toString(), "true");
+        op.addMapEntry(UpdateOp.DELETED + "." + revision.toString(), "true");
         long increment = mk.getWriteCountIncrement(path);
-        op.increment("_writeCount", 1 + increment);
+        op.increment(UpdateOp.WRITE_COUNT, 1 + increment);
     }
 
 }

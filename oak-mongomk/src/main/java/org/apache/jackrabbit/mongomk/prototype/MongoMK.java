@@ -211,7 +211,7 @@ public class MongoMK implements MicroKernel {
         return x.compareRevisionTime(requestRevision) >= 0;
     }
     
-    private boolean isRevisionNewer(Revision x, Revision previous) {
+    boolean isRevisionNewer(Revision x, Revision previous) {
         // TODO currently we only compare the timestamps
         return x.compareRevisionTime(previous) >= 0;
     }
@@ -236,7 +236,7 @@ public class MongoMK implements MicroKernel {
                 continue;
             }
             // TODO put the whole node in the cache
-            String id = e.get("_id").toString();
+            String id = e.get(UpdateOp.ID).toString();
             String p = id.substring(2);
             c.children.add(p);
         }
@@ -257,7 +257,7 @@ public class MongoMK implements MicroKernel {
         Long w = writeCountIncrements.get(path);
         long writeCount = w == null ? 0 : w;
         for (String key : map.keySet()) {
-            if (key.equals("_writeCount")) {
+            if (key.equals(UpdateOp.WRITE_COUNT)) {
                 writeCount += (Long) map.get(key);
             }
             if (key.startsWith("_")) {
@@ -508,7 +508,7 @@ public class MongoMK implements MicroKernel {
     private boolean isDeleted(Map<String, Object> nodeProps, Revision rev) {
         @SuppressWarnings("unchecked")
         Map<String, String> valueMap = (Map<String, String>) nodeProps
-                .get("_deleted");
+                .get(UpdateOp.DELETED);
         if (valueMap != null) {
             for (Map.Entry<String, String> e : valueMap.entrySet()) {
                 // TODO What if multiple revisions are there?. Should we sort
@@ -524,7 +524,7 @@ public class MongoMK implements MicroKernel {
         }
         return false;
     }
-
+    
     private static String stripBranchRevMarker(String revisionId){
         if(revisionId.startsWith("b")){
             return revisionId.substring(1);
