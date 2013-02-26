@@ -90,6 +90,11 @@ public class TestUtils {
             public String getFieldForPropertyRestriction(Filter.PropertyRestriction propertyRestriction) {
                 return null;
             }
+
+            @Override
+            public CommitPolicy getCommitPolicy() {
+                return CommitPolicy.HARD;
+            }
         };
     }
 

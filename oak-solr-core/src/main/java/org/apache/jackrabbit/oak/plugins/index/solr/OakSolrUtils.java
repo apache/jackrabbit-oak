@@ -39,8 +39,8 @@ public class OakSolrUtils {
      *
      * @param solrServer the {@link SolrServer} used to communicate with the Solr instance
      * @return <code>true</code> if the given Solr instance is alive and responding
-     * @throws IOException         if any error occurs while trying to communicate with the Solr instance
-     * @throws SolrServerException
+     * @throws IOException         if any low level IO error occurs
+     * @throws SolrServerException if any error occurs while trying to communicate with the Solr instance
      */
     public static boolean checkServerAlive(@Nonnull SolrServer solrServer) throws IOException, SolrServerException {
         return solrServer.ping().getStatus() == 0;
@@ -70,5 +70,30 @@ public class OakSolrUtils {
 
         ServiceReference serviceReference = ctx.getServiceReference(SolrQueryIndexProvider.class.getName());
         return SolrQueryIndexProvider.class.cast(ctx.getService(serviceReference));
+    }
+
+    /**
+     * Trigger a Solr commit on the basis of the given commit policy (e.g. hard, soft, auto)
+     *
+     * @param solrServer   the {@link SolrServer} used to communicate with the Solr instance
+     * @param commitPolicy the {@link CommitPolicy} used to commit changes to a Solr index
+     * @throws IOException         if any low level IO error occurs
+     * @throws SolrServerException if any error occurs while trying to communicate with the Solr instance
+     */
+    public static void commitByPolicy(SolrServer solrServer, CommitPolicy commitPolicy)
+            throws IOException, SolrServerException {
+        switch (commitPolicy) {
+            case HARD: {
+                solrServer.commit();
+                break;
+            }
+            case SOFT: {
+                solrServer.commit(false, false, true);
+                break;
+            }
+            case AUTO: {
+                break;
+            }
+        }
     }
 }

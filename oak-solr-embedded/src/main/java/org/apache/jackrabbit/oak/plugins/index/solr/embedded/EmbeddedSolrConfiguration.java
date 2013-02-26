@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.index.solr.embedded;
 import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.index.solr.CommitPolicy;
 import org.apache.jackrabbit.oak.plugins.index.solr.OakSolrConfiguration;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 
@@ -74,5 +75,10 @@ public class EmbeddedSolrConfiguration implements OakSolrConfiguration {
     @Override
     public String getFieldForPropertyRestriction(Filter.PropertyRestriction propertyRestriction) {
         return null;
+    }
+
+    @Override
+    public CommitPolicy getCommitPolicy() {
+        return CommitPolicy.SOFT;
     }
 }
