@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.mongomk.prototype;
 
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.TreeMap;
 
 /**
@@ -30,6 +31,23 @@ public class Utils {
     
     static <K, V> Map<K, V> newMap() {
         return new TreeMap<K, V>();
+    }
+
+    @SuppressWarnings("unchecked")
+    public static int getMapSize(Map<String, Object> map) {
+        int size = 0;
+        for (Entry<String, Object> e : map.entrySet()) {
+            size += e.getKey().length();
+            Object o = e.getValue();
+            if (o instanceof String) {
+                size += o.toString().length();
+            } else if (o instanceof Long) {
+                size += 8;
+            } else if (o instanceof Map) {
+                size += 8 + getMapSize((Map<String, Object>) o);
+            }
+        }
+        return size;
     }
     
 }

@@ -131,7 +131,7 @@ public class MemoryDocumentStore implements DocumentStore {
     public static void applyChanges(Map<String, Object> target, UpdateOp update) {
         for (Entry<String, Operation> e : update.changes.entrySet()) {
             String k = e.getKey();
-            Object old = target.get(k);
+            String[] kv = k.split("\\.");
             Operation op = e.getValue();
             switch (op.type) {
             case SET: {
@@ -139,6 +139,7 @@ public class MemoryDocumentStore implements DocumentStore {
                 break;
             }
             case INCREMENT: {
+                Object old = target.get(k);
                 Long x = (Long) op.value;
                 if (old == null) {
                     old = 0L;
@@ -147,21 +148,28 @@ public class MemoryDocumentStore implements DocumentStore {
                 break;
             }
             case ADD_MAP_ENTRY: {
+                Object old = target.get(kv[0]);
                 @SuppressWarnings("unchecked")
                 Map<String, String> m = (Map<String, String>) old;
                 if (m == null) {
                     m = Utils.newMap();
-                    target.put(k, m);
+                    target.put(kv[0], m);
                 }
-                m.put(op.subKey.toString(), op.value.toString());
+                m.put(kv[1], op.value.toString());
                 break;
             }
             case REMOVE_MAP_ENTRY: {
+                Object old = target.get(kv[0]);
                 @SuppressWarnings("unchecked")
                 Map<String, String> m = (Map<String, String>) old;
                 if (m != null) {
-                    m.remove(op.subKey.toString());
+                    m.remove(kv[1]);
                 }
+                break;
+            }
+            case SET_MAP_ENTRY: {
+                Map<String, String> m = Utils.newMap();
+                target.put(k, m);
                 break;
             }
             }

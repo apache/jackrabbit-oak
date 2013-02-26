@@ -24,6 +24,13 @@ import java.util.TreeMap;
  */
 public class UpdateOp {
     
+    static final String ID = "_id";
+    static final String PATH = "_path";
+    static final String WRITE_COUNT = "_writeCount";
+    static final String REVISIONS = "_revisions";
+    static final String PREVIOUS = "_prev";
+    static final String DELETED = "_deleted";
+    
     final String path;
     
     final String key;
@@ -61,10 +68,22 @@ public class UpdateOp {
      * @param property the property
      * @param value the value
      */
-    void addMapEntry(String property, String subKey, Object value) {
+    void addMapEntry(String property, Object value) {
         Operation op = new Operation();
         op.type = Operation.Type.ADD_MAP_ENTRY;
-        op.subKey = subKey;
+        op.value = value;
+        changes.put(property, op);
+    }
+    
+    public void removeMapEntry(String property) {
+        Operation op = new Operation();
+        op.type = Operation.Type.REMOVE_MAP_ENTRY;
+        changes.put(property, op);
+    }
+    
+    public void setMapEntry(String property, Object value) {
+        Operation op = new Operation();
+        op.type = Operation.Type.SET_MAP_ENTRY;
         op.value = value;
         changes.put(property, op);
     }
@@ -142,7 +161,14 @@ public class UpdateOp {
               * Remove the sub-key / value pair.
               * The value in the stored node is a map.
               */ 
-             REMOVE_MAP_ENTRY 
+             REMOVE_MAP_ENTRY,
+             
+             /**
+              * Set the sub-key / value pair.
+              * The value in the stored node is a map.
+              */
+             SET_MAP_ENTRY,
+             
          }
              
         
@@ -152,17 +178,12 @@ public class UpdateOp {
         Type type;
         
         /**
-         * The sub-key.
-         */
-        Object subKey;
-        
-        /**
          * The value, if any.
          */
         Object value;
         
         public String toString() {
-            return type + ": " + subKey + " = " + value;
+            return type + " " + value;
         }
         
     }

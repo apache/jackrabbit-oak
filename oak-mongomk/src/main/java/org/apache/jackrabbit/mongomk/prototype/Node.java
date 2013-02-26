@@ -68,12 +68,9 @@ public class Node {
     UpdateOp asOperation(boolean isNew) {
         String id = convertPathToDocumentId(path);
         UpdateOp op = new UpdateOp(path, id, isNew);
-        op.set("_id", id);
-        if (!isNew) {
-            op.increment("_changeCount", 1L);
-        }
+        op.set(UpdateOp.ID, id);
         for (String p : properties.keySet()) {
-            op.addMapEntry(p, rev.toString(), properties.get(p));
+            op.addMapEntry(p + "." + rev.toString(), properties.get(p));
         }
         return op;
     }
@@ -101,8 +98,9 @@ public class Node {
      */
     private static boolean filter(String key) {
         //TODO We need to move node properties to a sub key
-        //so that all other top level props can be considered as
-        //system generated and handled in a better way
+        // so that all other top level props can be considered as
+        // system generated and handled in a better way,
+        // or escape properties that start with a _
         return key.startsWith("_");
     }
     
