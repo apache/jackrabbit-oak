@@ -31,6 +31,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.solr.OakSolrConfiguration;
+import org.apache.jackrabbit.oak.plugins.index.solr.OakSolrUtils;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -98,7 +99,7 @@ public class SolrIndexUpdate implements Closeable {
                 NodeState ns = insert.get(p);
                 addSubtreeWriter(solrServer, p, ns);
             }
-            solrServer.commit(false, false, true);
+            OakSolrUtils.commitByPolicy(solrServer,  configuration.getCommitPolicy());
         } catch (IOException e) {
             throw new CommitFailedException(
                     "Failed to update the full text search index", e);

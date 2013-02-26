@@ -57,4 +57,11 @@ public interface OakSolrConfiguration {
      */
     public String getFieldForPropertyRestriction(Filter.PropertyRestriction propertyRestriction);
 
+    /**
+     * Provide the commit policy to be used with the underlying Solr instance
+     *
+     * @return a {@link CommitPolicy}
+     */
+    public CommitPolicy getCommitPolicy();
+
 }

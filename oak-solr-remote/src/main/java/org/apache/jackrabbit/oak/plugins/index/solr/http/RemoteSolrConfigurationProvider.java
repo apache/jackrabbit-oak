@@ -20,6 +20,7 @@ import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.index.solr.CommitPolicy;
 import org.apache.jackrabbit.oak.plugins.index.solr.OakSolrConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.OakSolrConfigurationProvider;
 import org.apache.jackrabbit.oak.spi.query.Filter;
@@ -129,6 +130,11 @@ public class RemoteSolrConfigurationProvider implements OakSolrConfigurationProv
                 @Override
                 public String getFieldForPropertyRestriction(Filter.PropertyRestriction propertyRestriction) {
                     return null;
+                }
+
+                @Override
+                public CommitPolicy getCommitPolicy() {
+                    return CommitPolicy.SOFT;
                 }
             };
         }
