@@ -42,7 +42,7 @@ public class MongoDocumentStore implements DocumentStore {
 
     public static final String KEY_PATH = "_id";
     
-    private static final boolean LOG = true;
+    private static final boolean LOG = false;
     private static final boolean LOG_TIME = true;
 
     private final DBCollection nodesCollection;

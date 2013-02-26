@@ -18,10 +18,12 @@ package org.apache.jackrabbit.mongomk.prototype;
 
 import java.io.InputStream;
 import java.lang.ref.WeakReference;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.annotation.Nonnull;
@@ -82,13 +84,19 @@ public class MongoMK implements MicroKernel {
      * Key: path@rev
      * Value: node
      */
-    // TODO: should be path@id
     private final Map<String, Node> nodeCache = new Cache<String, Node>(1024);
     
+    /**
+     * Child node cache.
+     */
+    private Cache<String, Node.Children> nodeChildrenCache =
+            new Cache<String, Node.Children>(1024);
+
     /**
      * The unsaved write count increments.
      */
     private final Map<String, Long> writeCountIncrements = new HashMap<String, Long>();
+    
     /**
      * The set of known valid revision.
      * The key is the revision id, the value is 1 (because a cache can't be a set).
@@ -103,9 +111,6 @@ public class MongoMK implements MicroKernel {
     private Thread backgroundThread;
     
     private final Map<String, String> branchCommits = new HashMap<String, String>();
-
-    private Cache<String, Node.Children> nodeChildrenCache =
-            new Cache<String, Node.Children>(1024);
 
     /**
      * Create a new in-memory MongoMK used for testing.
@@ -146,10 +151,10 @@ public class MongoMK implements MicroKernel {
         Node n = readNode("/", headRevision);
         if (n == null) {
             // root node is missing: repository is not initialized
-            Commit commit = new Commit(headRevision);
+            Commit commit = new Commit(this, headRevision);
             n = new Node("/", headRevision);
             commit.addNode(n);
-            commit.apply(store);
+            commit.applyToDocumentStore();
         }
     }
     
@@ -349,7 +354,7 @@ public class MongoMK implements MicroKernel {
         }
         JsopStream json = new JsopStream();
         boolean includeId = filter != null && filter.contains(":id");
-        includeId = filter != null && filter.contains(":hash");
+        includeId |= filter != null && filter.contains(":hash");
         json.object();
         n.append(json, includeId);
         Children c = readChildren(path, n.getId(), rev, maxChildNodes);
@@ -372,7 +377,7 @@ public class MongoMK implements MicroKernel {
         revisionId = revisionId == null ? headRevision.toString() : revisionId;
         JsopReader t = new JsopTokenizer(json);
         Revision rev = Revision.newRevision(clusterId);
-        Commit commit = new Commit(rev);
+        Commit commit = new Commit(this, rev);
         while (true) {
             int r = t.read();
             if (r == JsopReader.END) {
@@ -387,7 +392,8 @@ public class MongoMK implements MicroKernel {
                 break;
             case '-':
                 commit.removeNode(path);
-                markAsDeleted(path, commit,true);
+                markAsDeleted(path, commit, true);
+                commit.removeNodeDiff(path);
                 break;
             case '^':
                 t.read(':');
@@ -397,13 +403,12 @@ public class MongoMK implements MicroKernel {
                     commit.getDiff().tag('^').key(path).value(null);
                 } else {
                     value = t.readRawValue().trim();
-                    commit.getDiff().tag('^').key(path).value(null);
+                    commit.getDiff().tag('^').key(path).value(value);
                 }
                 String p = PathUtils.getParentPath(path);
                 String propertyName = PathUtils.getName(path);
-                UpdateOp op = commit.getUpdateOperationForNode(p);
-                op.addMapEntry(propertyName, rev.toString(), value);
-                op.increment("_writeCount", 1);
+                commit.updateProperty(p, propertyName, value);
+                commit.updatePropertyDiff(p, propertyName, value);
                 break;
             case '>': {
                 t.read(':');
@@ -447,52 +452,56 @@ public class MongoMK implements MicroKernel {
     }
 
     private void moveNode(String sourcePath, String targetPath, Commit commit) {
-        //TODO Optimize - Move logic would not work well with very move of very large subtrees
-        //At minimum we can optimize by traversing breadth wise and collect node id
-        //and fetch them via '$in' queries
+        // TODO Optimize - Move logic would not work well with very move of very large subtrees
+        // At minimum we can optimize by traversing breadth wise and collect node id
+        // and fetch them via '$in' queries
 
-        //TODO Transient Node - Current logic does not account for operations which are part
-        //of this commit i.e. transient nodes. If its required it would need to be looked
-        //into
+        // TODO Transient Node - Current logic does not account for operations which are part
+        // of this commit i.e. transient nodes. If its required it would need to be looked
+        // into
 
         Node n = getNode(sourcePath, commit.getRevision());
 
-        //Node might be deleted already
-        if(n == null){
+        // Node might be deleted already
+        if (n == null) {
             return;
         }
 
-        Node newNode = new Node(targetPath,commit.getRevision());
+        Node newNode = new Node(targetPath, commit.getRevision());
         n.copyTo(newNode);
 
         commit.addNode(newNode);
-        markAsDeleted(sourcePath,commit,false);
+        markAsDeleted(sourcePath, commit, false);
         Node.Children c = readChildren(sourcePath, n.getId(),
                 commit.getRevision(), Integer.MAX_VALUE);
         for (String srcChildPath : c.children) {
             String childName = PathUtils.getName(srcChildPath);
             String destChildPath = PathUtils.concat(targetPath, childName);
-            moveNode(srcChildPath,destChildPath,commit);
+            moveNode(srcChildPath, destChildPath, commit);
         }
     }
 
     private void markAsDeleted(String path, Commit commit, boolean subTreeAlso) {
         Revision rev = commit.getRevision();
-        UpdateOp op = commit.getUpdateOperationForNode(path);
-        op.addMapEntry("_deleted", rev.toString(), "true");
-        op.increment("_writeCount", 1);
+        commit.removeNode(path);
 
-        if(subTreeAlso){
-            // TODO Would cause issue with large number of children.
-            // Need to be changed
+        if (subTreeAlso) {
+
+            // recurse down the tree
+            // TODO causes issue with large number of children
             Node n = getNode(path, rev);
-            Node.Children c = readChildren(path, n.getId(), rev, Integer.MAX_VALUE);
+
+            // remove from the cache
+            nodeCache.remove(path + "@" + rev);
+
+            Node.Children c = readChildren(path, n.getId(), rev,
+                    Integer.MAX_VALUE);
             for (String childPath : c.children) {
-                markAsDeleted(childPath, commit,true);
+                markAsDeleted(childPath, commit, true);
             }
         }
 
-        //Remove the node from the cache
+        // Remove the node from the cache
         nodeCache.remove(path + "@" + rev);
     }
 
@@ -521,8 +530,8 @@ public class MongoMK implements MicroKernel {
         if (commit.isEmpty()) {
             return;
         }
-        commit.apply(store);
-        commit.apply(this);
+        commit.applyToDocumentStore();
+        commit.applyToCache();
     }
     
     public static void parseAddNode(Commit commit, JsopReader t, String path) {
@@ -541,7 +550,8 @@ public class MongoMK implements MicroKernel {
             } while (t.matches(','));
             t.read('}');
         }
-        commit.addNodeWithDiff(n);
+        commit.addNode(n);
+        commit.addNodeDiff(n);
     }
 
     @Override
@@ -627,6 +637,10 @@ public class MongoMK implements MicroKernel {
         protected boolean removeEldestEntry(Map.Entry<K, V> eldest) {
             return size() > size;
         }
+        
+        public String toString() {
+            return super.toString().replace(',', '\n');
+        }
 
     }
 
@@ -657,10 +671,41 @@ public class MongoMK implements MicroKernel {
         }
     }
 
-    public void incrementWriteCount(String path) {
-        Long value = writeCountIncrements.get(path);
-        value = value == null ? 1 : value + 1;
-        writeCountIncrements.put(path, value);
+    public void applyChanges(Revision rev, String path, 
+            boolean isNew, boolean isWritten, 
+            long oldWriteCount, long writeCountInc,
+            ArrayList<String> added, ArrayList<String> removed) {
+        if (!isWritten) {
+            if (writeCountInc == 0) {
+                writeCountIncrements.remove(path);
+            } else {
+                writeCountIncrements.put(path, writeCountInc);
+            }
+        } else {
+            writeCountIncrements.remove(path);
+        }
+        long newWriteCount = oldWriteCount + writeCountInc;
+        Children c = nodeChildrenCache.get(path + "@" + (newWriteCount - 1));
+        if (isNew || c != null) {
+            String id = path + "@" + newWriteCount;
+            Children c2 = new Children(path, id, rev);
+            TreeSet<String> set = new TreeSet<String>();
+            if (c != null) {
+                set.addAll(c.children);
+            }
+            set.removeAll(removed);
+            set.addAll(added);
+            c2.children.addAll(set);
+            if (nodeChildrenCache.get(id) != null) {
+                throw new AssertionError("New child list already cached");
+            }
+            nodeChildrenCache.put(id, c2);
+        }
+    }
+
+    public long getWriteCountIncrement(String path) {
+        Long x = writeCountIncrements.get(path);
+        return x == null ? 0 : x;
     }
 
 }
