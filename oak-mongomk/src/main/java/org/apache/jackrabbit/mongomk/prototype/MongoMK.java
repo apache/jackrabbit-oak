@@ -323,7 +323,7 @@ public class MongoMK implements MicroKernel {
     @Override
     public boolean nodeExists(String path, String revisionId)
             throws MicroKernelException {
-        Revision rev = Revision.fromString(revisionId);
+        Revision rev = Revision.fromString(stripBranchRevMarker(revisionId));
         Node n = getNode(path, rev);
         return n != null;
     }
@@ -523,6 +523,13 @@ public class MongoMK implements MicroKernel {
             }
         }
         return false;
+    }
+
+    private static String stripBranchRevMarker(String revisionId){
+        if(revisionId.startsWith("b")){
+            return revisionId.substring(1);
+        }
+        return revisionId;
     }
 
     private void applyCommit(Commit commit) {
