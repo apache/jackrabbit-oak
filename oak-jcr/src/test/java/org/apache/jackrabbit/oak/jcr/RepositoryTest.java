@@ -1651,8 +1651,8 @@ public class RepositoryTest extends AbstractRepositoryTest {
     @Test
     public void setPrimaryType() throws RepositoryException {
         Node testNode = getNode(TEST_PATH);
-        assertEquals("oak:unstructured", testNode.getPrimaryNodeType().getName());
-        assertEquals("oak:unstructured", testNode.getProperty("jcr:primaryType").getString());
+        assertEquals("nt:unstructured", testNode.getPrimaryNodeType().getName());
+        assertEquals("nt:unstructured", testNode.getProperty("jcr:primaryType").getString());
 
         testNode.setPrimaryType("nt:folder");
         getAdminSession().save();
