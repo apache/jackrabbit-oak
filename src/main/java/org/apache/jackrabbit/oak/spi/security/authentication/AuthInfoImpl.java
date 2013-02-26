@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.security.authentication;
+package org.apache.jackrabbit.oak.spi.security.authentication;
 
 import java.security.Principal;
 import java.util.Collections;
@@ -27,7 +27,7 @@ import org.apache.jackrabbit.oak.api.AuthInfo;
 /**
  * Default implementation of the AuthInfo interface.
  */
-public class AuthInfoImpl implements AuthInfo {
+public final class AuthInfoImpl implements AuthInfo {
 
     private final String userID;
     private final Map<String,?> attributes;
