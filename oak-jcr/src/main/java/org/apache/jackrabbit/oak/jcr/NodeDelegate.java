@@ -196,10 +196,6 @@ public class NodeDelegate extends ItemDelegate {
         return new PropertyDelegate(sessionDelegate, tree.getLocation().getChild(name));
     }
 
-    public void removeProperty(String name) throws InvalidItemStateException {
-        getTree().removeProperty(name);
-    }
-
     /**
      * Set a multi valued property
      *
