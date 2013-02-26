@@ -17,7 +17,8 @@
 package org.apache.jackrabbit.oak.jcr;
 
 import java.util.concurrent.ScheduledExecutorService;
-
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.jcr.Credentials;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
@@ -44,15 +45,12 @@ public class RepositoryImpl implements Repository {
 
     private final Descriptors descriptors = new Descriptors(new SimpleValueFactory());
     private final ContentRepository contentRepository;
-
     private final ScheduledExecutorService executor;
-
     private final SecurityProvider securityProvider;
 
-    public RepositoryImpl(
-            ContentRepository contentRepository,
-            ScheduledExecutorService executor,
-            SecurityProvider securityProvider) {
+    public RepositoryImpl(@Nonnull ContentRepository contentRepository,
+                          @Nonnull ScheduledExecutorService executor,
+                          @Nonnull SecurityProvider securityProvider) {
         this.contentRepository = contentRepository;
         this.executor = executor;
         this.securityProvider = securityProvider;
@@ -119,8 +117,7 @@ public class RepositoryImpl implements Repository {
      * @see javax.jcr.Repository#login(javax.jcr.Credentials, String)
      */
     @Override
-    public Session login(Credentials credentials, String workspaceName) throws RepositoryException {
-        // TODO: needs complete refactoring
+    public Session login(@Nullable Credentials credentials, @Nullable String workspaceName) throws RepositoryException {
         try {
             ContentSession contentSession = contentRepository.login(credentials, workspaceName);
             return new SessionDelegate(this, executor, contentSession, securityProvider, false).getSession();
