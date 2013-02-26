@@ -21,9 +21,10 @@ package org.apache.jackrabbit.oak.kernel;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
 import javax.annotation.Nonnull;
@@ -80,7 +81,7 @@ public final class KernelNodeState extends AbstractNodeState {
 
     private String id;
 
-    private Map<String, String> childPaths;
+    private Set<String> childNames;
 
     private final LoadingCache<String, KernelNodeState> cache;
 
@@ -114,7 +115,7 @@ public final class KernelNodeState extends AbstractNodeState {
                 JsopReader reader = new JsopTokenizer(json);
                 reader.read('{');
                 properties = new LinkedHashMap<String, PropertyState>();
-                childPaths = new LinkedHashMap<String, String>();
+                childNames = new LinkedHashSet<String>();
                 do {
                     String name = StringCache.get(reader.readString());
                     reader.read(':');
@@ -135,11 +136,7 @@ public final class KernelNodeState extends AbstractNodeState {
                         }
                     } else if (reader.matches('{')) {
                         reader.read('}');
-                        String childPath = path + '/' + name;
-                        if ("/".equals(path)) {
-                            childPath = '/' + name;
-                        }
-                        childPaths.put(name, childPath);
+                        childNames.add(name);
                     } else if (reader.matches('[')) {
                         properties.put(name, readArrayProperty(name, reader));
                     } else {
@@ -149,8 +146,8 @@ public final class KernelNodeState extends AbstractNodeState {
                 reader.read('}');
                 reader.read(JsopReader.END);
                 // optimize for empty childNodes
-                if (childPaths.isEmpty()) {
-                    childPaths = Collections.emptyMap();
+                if (childNames.isEmpty()) {
+                    childNames = Collections.emptySet();
                 }
                 initialized = true;
             }
@@ -170,7 +167,11 @@ public final class KernelNodeState extends AbstractNodeState {
             if (hashOrId != null) {
                 KernelNodeState cached = cache.getIfPresent(hashOrId);
                 if (cached != null && cached.path.equals(this.path)) {
-                    this.revision = cached.revision;
+                    synchronized (this) {
+                        this.revision = cached.revision;
+                        this.childNames = cached.childNames;
+                        this.properties = cached.properties;
+                    }
                 } else {
                     // store under secondary key
                     cache.put(hashOrId, this);
@@ -207,7 +208,10 @@ public final class KernelNodeState extends AbstractNodeState {
     public NodeState getChildNode(String name) {
         checkNotNull(name);
         init();
-        String childPath = childPaths.get(name);
+        String childPath = null;
+        if (childNames.contains(name)) {
+            childPath = getChildPath(name);
+        }
         if (childPath == null && childNodeCount > MAX_CHILD_NODE_NAMES) {
             String path = getChildPath(name);
             // OAK-506: Avoid the nodeExists() call when already cached
@@ -231,11 +235,11 @@ public final class KernelNodeState extends AbstractNodeState {
     @Override
     public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
         init();
-        Iterable<ChildNodeEntry> iterable = iterable(childPaths.entrySet());
-        if (childNodeCount > childPaths.size()) {
+        Iterable<ChildNodeEntry> iterable = iterable(childNames);
+        if (childNodeCount > childNames.size()) {
             List<Iterable<ChildNodeEntry>> iterables = Lists.newArrayList();
             iterables.add(iterable);
-            long offset = childPaths.size();
+            long offset = childNames.size();
             while (offset < childNodeCount) {
                 iterables.add(getChildNodeEntries(offset, MAX_CHILD_NODE_NAMES));
                 offset += MAX_CHILD_NODE_NAMES;
@@ -361,8 +365,7 @@ public final class KernelNodeState extends AbstractNodeState {
                     reader.read(':');
                     if (reader.matches('{')) {
                         reader.read('}');
-                        String childPath = getChildPath(name);
-                        entries.add(new KernelChildNodeEntry(name, childPath));
+                        entries.add(new KernelChildNodeEntry(name));
                     } else if (reader.matches('[')) {
                         while (reader.read() != ']') {
                             // skip
@@ -387,12 +390,12 @@ public final class KernelNodeState extends AbstractNodeState {
     }
 
     private Iterable<ChildNodeEntry> iterable(
-            Iterable<Entry<String, String>> set) {
+            Iterable<String> names) {
         return Iterables.transform(
-                set,
-                new Function<Entry<String, String>, ChildNodeEntry>() {
+                names,
+                new Function<String, ChildNodeEntry>() {
                     @Override
-                    public ChildNodeEntry apply(Entry<String, String> input) {
+                    public ChildNodeEntry apply(String input) {
                         return new KernelChildNodeEntry(input);
                     }
                 });
@@ -402,28 +405,13 @@ public final class KernelNodeState extends AbstractNodeState {
 
         private final String name;
 
-        private final String path;
-
         /**
-         * Creates a child node entry with the given name and referenced
-         * child node state.
+         * Creates a child node entry with the given name.
          *
          * @param name child node name
-         * @param path child node path
          */
-        public KernelChildNodeEntry(String name, String path) {
+        public KernelChildNodeEntry(String name) {
             this.name = checkNotNull(name);
-            this.path = checkNotNull(path);
-        }
-
-        /**
-         * Utility constructor that copies the name and referenced
-         * child node state from the given map entry.
-         *
-         * @param entry map entry
-         */
-        public KernelChildNodeEntry(Map.Entry<String, String> entry) {
-            this(entry.getKey(), entry.getValue());
         }
 
         @Override
@@ -434,7 +422,7 @@ public final class KernelNodeState extends AbstractNodeState {
         @Override
         public NodeState getNodeState() {
             try {
-                return cache.get(revision + path);
+                return cache.get(revision + getChildPath(name));
             } catch (ExecutionException e) {
                 throw new MicroKernelException(e);
             }
