@@ -85,7 +85,7 @@ public class LoginContextProviderImpl implements LoginContextProvider {
         try {
             subject = Subject.getSubject(AccessController.getContext());
         } catch (SecurityException e) {
-            log.debug("Can't check for pre-authentication. Reason:", e.getMessage());
+            log.debug("Can't check for pre-authenticated subject. Reason:", e.getMessage());
         }
         return subject;
     }
