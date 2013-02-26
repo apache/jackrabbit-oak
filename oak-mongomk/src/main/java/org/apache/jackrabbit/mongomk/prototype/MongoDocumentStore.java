@@ -31,6 +31,7 @@ import com.mongodb.DB;
 import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
+import com.mongodb.MongoException;
 import com.mongodb.QueryBuilder;
 import com.mongodb.WriteConcern;
 import com.mongodb.WriteResult;
@@ -165,7 +166,7 @@ public class MongoDocumentStore implements DocumentStore {
                     break;
                 }
                 case ADD_MAP_ENTRY: {
-                    setUpdates.append(k, op.value.toString());
+                    setUpdates.append(k, op.value);
                     break;
                 }
                 case REMOVE_MAP_ENTRY: {
@@ -175,7 +176,7 @@ public class MongoDocumentStore implements DocumentStore {
                 case SET_MAP_ENTRY: {
                     String[] kv = k.split("\\.");
                     BasicDBObject sub = new BasicDBObject();
-                    sub.put(kv[1], op.value.toString());
+                    sub.put(kv[1], op.value);
                     setUpdates.append(kv[0], sub);
                     break;
                 }
@@ -255,17 +256,21 @@ public class MongoDocumentStore implements DocumentStore {
         DBCollection dbCollection = getDBCollection(collection);
         long start = start();
         try {
-            WriteResult writeResult = dbCollection.insert(inserts, WriteConcern.SAFE);
-            if (writeResult.getError() != null) {
-                throw new MicroKernelException("Batch create failed: " + writeResult.getError());
-            }
-            synchronized (cache) {
-                for (Map<String, Object> map : maps) {
-                    String path = (String) map.get(UpdateOp.ID);
-                    synchronized (cache) {
-                        cache.put(path, map);
+            try {
+                WriteResult writeResult = dbCollection.insert(inserts, WriteConcern.SAFE);
+                if (writeResult.getError() != null) {
+                    throw new MicroKernelException("Batch create failed: " + writeResult.getError());
+                }
+                synchronized (cache) {
+                    for (Map<String, Object> map : maps) {
+                        String path = (String) map.get(UpdateOp.ID);
+                        synchronized (cache) {
+                            cache.put(path, map);
+                        }
                     }
                 }
+            } catch (MongoException e) {
+                throw new MicroKernelException("Batch create failed", e);
             }
         } finally {
             end(start);

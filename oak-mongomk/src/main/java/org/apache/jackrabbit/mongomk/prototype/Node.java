@@ -37,7 +37,11 @@ public class Node {
     }
     
     void setProperty(String propertyName, String value) {
-        properties.put(propertyName, value);
+        if (value == null) {
+            properties.remove(propertyName);
+        } else {
+            properties.put(propertyName, value);
+        }
     }
     
     public String getProperty(String propertyName) {
