@@ -70,8 +70,7 @@ class SolrNodeStateDiff implements NodeStateDiff {
                 solrServer.deleteByQuery(deleteByIdQueryBuilder.append(")").toString());
             }
 
-            // default to softCommit
-            solrServer.commit(false, false, true);
+            solrServer.commit();
 
             if (log.isDebugEnabled()) {
                 log.debug(new StringBuilder("added ").append(solrInputDocuments.size()).append(" documents").toString());

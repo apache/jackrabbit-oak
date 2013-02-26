@@ -203,7 +203,7 @@ public class SolrIndexHook implements IndexHook {
             }
 
             if (somethingToSend) {
-                solrServer.commit(false, false, true); // default to softCommit
+                solrServer.commit();
             }
 
             if (log.isDebugEnabled()) {
