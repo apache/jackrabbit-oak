@@ -30,6 +30,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
  */
 public interface AuthenticationConfiguration extends SecurityConfiguration {
 
+    String PARAM_AUTHENTICATION_OPTIONS = "org.apache.jackrabbit.oak.authentication.options";
+    String PARAM_APP_NAME = "org.apache.jackrabbit.oak.auth.appName";
+
     // TODO review again
     @Nonnull
     LoginContextProvider getLoginContextProvider(NodeStore nodeStore, CommitHook commitHook, QueryIndexProvider indexProvider);

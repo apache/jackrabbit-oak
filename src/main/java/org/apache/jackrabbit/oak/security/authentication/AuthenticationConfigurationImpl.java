@@ -41,8 +41,6 @@ public class AuthenticationConfigurationImpl extends SecurityConfiguration.Defau
 
     private static final Logger log = LoggerFactory.getLogger(AuthenticationConfigurationImpl.class);
 
-    public static final String PARAM_AUTHENTICATION_OPTIONS = "org.apache.jackrabbit.oak.authentication.options";
-    public static final String PARAM_APP_NAME = "org.apache.jackrabbit.oak.auth.appName";
     private static final String DEFAULT_APP_NAME = "jackrabbit.oak";
 
     public static final String PARAM_TOKEN_OPTIONS = "org.apache.jackrabbit.oak.token.options";
