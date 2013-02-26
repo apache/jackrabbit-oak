@@ -50,7 +50,8 @@ public class TestContentLoader {
 
         registerTestNodeTypes(session);
 
-        Node data = getOrAddNode(session.getRootNode(), "testdata", "nt:unstructured");
+        Node root = session.getRootNode();
+        Node data = getOrAddNode(root, "testdata");
         addPropertyTestData(getOrAddNode(data, "property"));
         addQueryTestData(getOrAddNode(data, "query"));
         addNodeTestData(getOrAddNode(data, "node"));
@@ -72,15 +73,6 @@ public class TestContentLoader {
                     new InputStreamReader(stream, Charsets.UTF_8), session);
         } finally {
             stream.close();
-        }
-    }
-
-    private static Node getOrAddNode(Node node, String name, String type)
-            throws RepositoryException {
-        try {
-            return node.getNode(name);
-        } catch (PathNotFoundException e) {
-            return node.addNode(name, type);
         }
     }
 
