@@ -42,8 +42,6 @@ import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
  */
 public class UserConfigurationImpl extends SecurityConfiguration.Default implements UserConfiguration {
 
-    public static final String PARAM_USER_OPTIONS = "org.apache.jackrabbit.oak.user.options";
-
     private final ConfigurationParameters config;
     private final SecurityProvider securityProvider;
 
