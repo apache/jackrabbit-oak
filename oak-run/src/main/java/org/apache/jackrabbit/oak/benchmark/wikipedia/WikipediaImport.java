@@ -16,9 +16,12 @@
  */
 package org.apache.jackrabbit.oak.benchmark.wikipedia;
 
+import static com.google.common.base.Preconditions.checkState;
+
 import java.io.File;
 
 import javax.jcr.Node;
+import javax.jcr.NodeIterator;
 import javax.jcr.Repository;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
@@ -44,8 +47,9 @@ public class WikipediaImport extends Benchmark {
         if (dump.isFile()) {
             for (RepositoryFixture fixture : fixtures) {
                 if (fixture.isAvailable(1)) {
+                    System.out.format(
+                            "%s: Wikipedia import benchmark%n", fixture);
                     try {
-                        System.out.format("%s: importing %s...%n", fixture, dump);
                         Repository[] cluster = fixture.setUpCluster(1);
                         try {
                             run(cluster[0]);
@@ -67,56 +71,95 @@ public class WikipediaImport extends Benchmark {
     }
 
     private void run(Repository repository) throws Exception {
-        long start = System.currentTimeMillis();
-        int pages = 0;
-
         Session session = repository.login(
                 new SimpleCredentials("admin", "admin".toCharArray()));
         try {
-            Node wikipedia = session.getRootNode().addNode("wikipedia");
-
-            String title = null;
-            String text = null;
-            XMLInputFactory factory = XMLInputFactory.newInstance();
-            XMLStreamReader reader =
-                    factory.createXMLStreamReader(new StreamSource(dump));
-            while (reader.hasNext()) {
-                switch (reader.next()) {
-                case XMLStreamConstants.START_ELEMENT:
-                    if ("title".equals(reader.getLocalName())) {
-                        title = reader.getElementText();
-                    } else if ("text".equals(reader.getLocalName())) {
-                        text = reader.getElementText();
-                    }
-                    break;
-                case XMLStreamConstants.END_ELEMENT:
-                    if ("page".equals(reader.getLocalName())) {
-                        String name = Text.escapeIllegalJcrChars(title);
-                        Node page = wikipedia.addNode(name);
-                        page.setProperty("title", title);
-                        page.setProperty("text", text);
-                        pages++;
-                        if (pages % 1000 == 0) {
-                            long millis = System.currentTimeMillis() - start;
-                            System.out.format(
-                                    "Added %d pages in %d seconds (%.2fms/page)%n",
-                                    pages, millis / 1000, (double) millis / pages);
-                        }
-
-                    }
-                    break;
-                }
-            }
-
-            session.save();
+            int before = importWikipedia(session);
+            int after = traverseWikipedia(session);
+            checkState(before == after, "Import vs. traverse mismatch");
         } finally {
             session.logout();
         }
+    }
+
+    private int importWikipedia(Session session) throws Exception {
+        long start = System.currentTimeMillis();
+        int count = 0;
+        int code = 0;
+
+        System.out.format("Importing %s...%n", dump);
+        Node wikipedia = session.getRootNode().addNode("wikipedia");
+
+        String title = null;
+        String text = null;
+        XMLInputFactory factory = XMLInputFactory.newInstance();
+        XMLStreamReader reader =
+                factory.createXMLStreamReader(new StreamSource(dump));
+        while (reader.hasNext()) {
+            switch (reader.next()) {
+            case XMLStreamConstants.START_ELEMENT:
+                if ("title".equals(reader.getLocalName())) {
+                    title = reader.getElementText();
+                } else if ("text".equals(reader.getLocalName())) {
+                    text = reader.getElementText();
+                }
+                break;
+            case XMLStreamConstants.END_ELEMENT:
+                if ("page".equals(reader.getLocalName())) {
+                    String name = Text.escapeIllegalJcrChars(title);
+                    Node page = wikipedia.addNode(name);
+                    page.setProperty("title", title);
+                    page.setProperty("text", text);
+                    code += title.hashCode();
+                    code += text.hashCode();
+                    count++;
+                    if (count % 1000 == 0) {
+                        long millis = System.currentTimeMillis() - start;
+                        System.out.format(
+                                "Added %d pages in %d seconds (%.2fms/page)%n",
+                                count, millis / 1000, (double) millis / count);
+                    }
+                }
+                break;
+            }
+        }
+
+        session.save();
 
         long millis = System.currentTimeMillis() - start;
         System.out.format(
                 "Imported %d pages in %d seconds (%.2fms/page)%n",
-                pages, millis / 1000, (double) millis / pages);
+                count, millis / 1000, (double) millis / count);
+        return code;
+    }
+
+    private int traverseWikipedia(Session session) throws Exception {
+        long start = System.currentTimeMillis();
+        int count = 0;
+        int code = 0;
+
+        System.out.format("Traversing imported pages...%n");
+        Node wikipedia = session.getNode("/wikipedia");
+
+        NodeIterator pages = wikipedia.getNodes();
+        while (pages.hasNext()) {
+            Node page = pages.nextNode();
+            code += page.getProperty("title").getString().hashCode();
+            code += page.getProperty("text").getString().hashCode();
+            count++;
+            if (count % 1000 == 0) {
+                long millis = System.currentTimeMillis() - start;
+                System.out.format(
+                        "Read %d pages in %d seconds (%.2fms/page)%n",
+                        count, millis / 1000, (double) millis / count);
+            }
+        }
+
+        long millis = System.currentTimeMillis() - start;
+        System.out.format(
+                "Traversed %d pages in %d seconds (%.2fms/page)%n",
+                count, millis / 1000, (double) millis / count);
+        return code;
     }
 
 }
