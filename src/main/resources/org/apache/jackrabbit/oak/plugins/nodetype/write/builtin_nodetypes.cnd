@@ -512,7 +512,7 @@
 // J A C K R A B B I T   I N T E R N A L S
 //------------------------------------------------------------------------------
 
-[rep:root] > oak:unstructured
+[rep:root] > nt:unstructured
   + jcr:system (rep:system) = rep:system mandatory IGNORE
 
 [rep:system]
