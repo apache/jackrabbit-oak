@@ -21,7 +21,6 @@ import java.util.HashSet;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-
 import javax.annotation.Nonnull;
 import javax.jcr.AccessDeniedException;
 import javax.jcr.Credentials;
@@ -40,15 +39,11 @@ import javax.jcr.Workspace;
 import javax.jcr.retention.RetentionManager;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.AccessControlManager;
-import javax.jcr.security.AccessControlPolicy;
-import javax.jcr.security.AccessControlPolicyIterator;
-import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.AbstractSession;
-import org.apache.jackrabbit.commons.iterator.AccessControlPolicyIteratorAdapter;
 import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.xml.XmlImportHandler;
@@ -384,55 +379,8 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
 
     @Override
     @Nonnull
-    public AccessControlManager getAccessControlManager()
-            throws RepositoryException {
-        return TODO.unimplemented().returnValue(new AccessControlManager() {
-            @Override
-            public void setPolicy(String absPath, AccessControlPolicy policy) throws AccessControlException {
-                throw new AccessControlException(policy.toString());
-            }
-
-            @Override
-            public void removePolicy(String absPath, AccessControlPolicy policy) throws AccessControlException {
-                throw new AccessControlException(policy.toString());
-            }
-
-            @Override
-            public Privilege privilegeFromName(String privilegeName)
-                    throws AccessControlException, RepositoryException {
-                return dlg.getPrivilegeManager().getPrivilege(privilegeName);
-            }
-
-            @Override
-            public boolean hasPrivileges(String absPath, Privilege[] privileges) {
-                return true;
-            }
-
-            @Override
-            public Privilege[] getSupportedPrivileges(String absPath) {
-                return new Privilege[0];
-            }
-
-            @Override
-            public Privilege[] getPrivileges(String absPath) {
-                return new Privilege[0];
-            }
-
-            @Override
-            public AccessControlPolicy[] getPolicies(String absPath) {
-                return new AccessControlPolicy[0];
-            }
-
-            @Override
-            public AccessControlPolicy[] getEffectivePolicies(String absPath) {
-                return new AccessControlPolicy[0];
-            }
-
-            @Override
-            public AccessControlPolicyIterator getApplicablePolicies(String absPath) {
-                return AccessControlPolicyIteratorAdapter.EMPTY;
-            }
-        });
+    public AccessControlManager getAccessControlManager() throws RepositoryException {
+        return dlg.getAccessControlManager();
     }
 
     /**

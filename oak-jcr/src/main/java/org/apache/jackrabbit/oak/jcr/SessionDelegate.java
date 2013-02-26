@@ -31,17 +31,17 @@ import javax.jcr.Workspace;
 import javax.jcr.lock.LockManager;
 import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.observation.ObservationManager;
+import javax.jcr.security.AccessControlManager;
 import javax.jcr.version.VersionManager;
 
-import com.google.common.collect.Maps;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -54,10 +54,12 @@ import org.apache.jackrabbit.oak.plugins.name.Namespaces;
 import org.apache.jackrabbit.oak.plugins.nodetype.DefinitionProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.EffectiveNodeTypeProvider;
 import org.apache.jackrabbit.oak.plugins.observation.ObservationManagerImpl;
-import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.Maps;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -82,19 +84,19 @@ public class SessionDelegate {
     private PrincipalManager principalManager;
     private UserManager userManager;
     private PrivilegeManager privilegeManager;
+    private AccessControlManager accessControlManager;
     private boolean isAlive = true;
     private int sessionOpCount;
     private int revision;
 
-    SessionDelegate(
-            Repository repository, ScheduledExecutorService executor,
-            ContentSession contentSession, SecurityProvider securityProvider,
-            boolean autoRefresh) {
+    SessionDelegate(@Nonnull Repository repository, @Nonnull ScheduledExecutorService executor,
+                    @Nonnull ContentSession contentSession, @Nonnull SecurityProvider securityProvider,
+                    boolean autoRefresh) {
 
         this.repository = checkNotNull(repository);
         this.executor = executor;
         this.contentSession = checkNotNull(contentSession);
-        this.securityProvider = securityProvider;
+        this.securityProvider = checkNotNull(securityProvider);
         this.autoRefresh = autoRefresh;
 
         this.root = contentSession.getLatestRoot();
@@ -489,14 +491,17 @@ public class SessionDelegate {
         return root.getLocation(path);
     }
 
+    @CheckForNull
+    AccessControlManager getAccessControlManager() throws RepositoryException {
+        if (accessControlManager == null) {
+            accessControlManager = securityProvider.getAccessControlConfiguration().getAccessControlManager(root, getNamePathMapper());
+        }
+        return accessControlManager;
+    }
     @Nonnull
     PrincipalManager getPrincipalManager() throws RepositoryException {
         if (principalManager == null) {
-            if (securityProvider != null) {
-                principalManager = securityProvider.getPrincipalConfiguration().getPrincipalManager(root, getNamePathMapper());
-            } else {
-                throw new UnsupportedRepositoryOperationException("Principal management not supported.");
-            }
+            principalManager = securityProvider.getPrincipalConfiguration().getPrincipalManager(root, getNamePathMapper());
         }
         return principalManager;
     }
@@ -504,11 +509,7 @@ public class SessionDelegate {
     @Nonnull
     UserManager getUserManager() throws UnsupportedRepositoryOperationException {
         if (userManager == null) {
-            if (securityProvider != null) {
-                userManager = securityProvider.getUserConfiguration().getUserManager(root, getNamePathMapper());
-            } else {
-                throw new UnsupportedRepositoryOperationException("User management not supported.");
-            }
+            userManager = securityProvider.getUserConfiguration().getUserManager(root, getNamePathMapper());
         }
         return userManager;
     }
@@ -516,11 +517,7 @@ public class SessionDelegate {
     @Nonnull
     PrivilegeManager getPrivilegeManager() throws UnsupportedRepositoryOperationException {
         if (privilegeManager == null) {
-            if (securityProvider != null) {
-                privilegeManager = securityProvider.getPrivilegeConfiguration().getPrivilegeManager(root, getNamePathMapper());
-            } else {
-                throw new UnsupportedRepositoryOperationException("Privilege management not supported.");
-            }
+            privilegeManager = securityProvider.getPrivilegeConfiguration().getPrivilegeManager(root, getNamePathMapper());
         }
         return privilegeManager;
     }

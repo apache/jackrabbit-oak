@@ -33,6 +33,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.apache.jackrabbit.oak.spi.security.user.util.UserUtility;
 import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -157,6 +158,10 @@ public class AccessControlAction extends AbstractAuthorizableAction {
         if (securityProvider == null) {
             throw new IllegalStateException("Not initialized");
         }
+        if (isSystemUser(authorizable)) {
+            log.debug("System user: " + authorizable.getID() + "; omit ac setup");
+            return;
+        }
         String path = authorizable.getPath();
         AccessControlManager acMgr = securityProvider.getAccessControlConfiguration().getAccessControlManager(root, namePathMapper);
         JackrabbitAccessControlList acl = null;
@@ -189,6 +194,15 @@ public class AccessControlAction extends AbstractAuthorizableAction {
                 acMgr.setPolicy(path, acl);
             }
         }
+    }
+
+    private boolean isSystemUser(Authorizable authorizable) throws RepositoryException {
+        if (authorizable.isGroup()) {
+            return false;
+        }
+        ConfigurationParameters userConfig = securityProvider.getUserConfiguration().getConfigurationParameters();
+        String userId = authorizable.getID();
+        return UserUtility.getAdminId(userConfig).equals(userId) || UserUtility.getAnonymousId(userConfig).equals(userId);
     }
 
     /**
