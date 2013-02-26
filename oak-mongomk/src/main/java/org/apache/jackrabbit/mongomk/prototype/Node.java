@@ -44,10 +44,10 @@ public class Node {
         return properties.get(propertyName);
     }
 
-    public void copyTo(Node newNode){
-        for(Map.Entry<String,String> e : properties.entrySet()){
-            if(!filter(e.getKey())){
-                newNode.setProperty(e.getKey(),e.getValue());
+    public void copyTo(Node newNode) {
+        for (Map.Entry<String, String> e : properties.entrySet()) {
+            if (!filter(e.getKey())) {
+                newNode.setProperty(e.getKey(), e.getValue());
             }
         }
     }
@@ -56,6 +56,7 @@ public class Node {
         StringBuilder buff = new StringBuilder();
         buff.append("path: ").append(path).append('\n');
         buff.append("rev: ").append(rev).append('\n');
+        buff.append("writeCount: ").append(writeCount).append('\n');
         buff.append(properties);
         buff.append('\n');
         return buff.toString();
@@ -66,7 +67,7 @@ public class Node {
      */
     UpdateOp asOperation(boolean isNew) {
         String id = convertPathToDocumentId(path);
-        UpdateOp op = new UpdateOp(id, isNew);
+        UpdateOp op = new UpdateOp(path, id, isNew);
         op.set("_id", id);
         if (!isNew) {
             op.increment("_changeCount", 1L);

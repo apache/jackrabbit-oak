@@ -29,14 +29,36 @@ public interface DocumentStore {
      */
     enum Collection { NODES }
 
+    /**
+     * Get a document. The returned map is a clone (the caller
+     * can modify it without affecting the stored version).
+     *
+     * @param collection the collection
+     * @param path the path
+     * @return the map, or null if not found
+     */
     Map<String, Object> find(Collection collection, String key);
 
     List<Map<String, Object>> query(Collection collection, String fromKey, String toKey, int limit);
     
+    /**
+     * Remove a document.
+     *
+     * @param collection the collection
+     * @param path the path
+     */
     void remove(Collection collection, String key);
 
     void create(Collection collection, List<UpdateOp> updateOps);
     
+    /**
+     * Create or update a document. For MongoDb, this is using "findAndModify" with
+     * the "upsert" flag (insert or update).
+     *
+     * @param collection the collection
+     * @param update the update operation
+     * @return the new document
+     */    
     Map<String, Object> createOrUpdate(Collection collection, UpdateOp update); 
     
     void dispose();

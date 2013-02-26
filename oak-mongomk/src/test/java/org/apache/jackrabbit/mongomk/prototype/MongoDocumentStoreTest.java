@@ -63,7 +63,7 @@ public class MongoDocumentStoreTest {
         dropCollections();
         DocumentStore docStore = openDocumentStore();
 
-        UpdateOp updateOp = new UpdateOp("/", true);
+        UpdateOp updateOp = new UpdateOp("/", "/", true);
         updateOp.addMapEntry("property1", "key1", "value1");
         updateOp.increment("property2", 1);
         updateOp.set("property3", "value3");
@@ -94,7 +94,8 @@ public class MongoDocumentStoreTest {
         int nUpdates = 10;
         List<UpdateOp> updateOps = new ArrayList<UpdateOp>();
         for (int i = 0; i < nUpdates; i++) {
-            UpdateOp updateOp = new UpdateOp("/node" + i, true);
+            String path = "/node" + i;
+            UpdateOp updateOp = new UpdateOp(path, path, true);
             updateOp.set(MongoDocumentStore.KEY_PATH, "/node" + i);
             updateOp.addMapEntry("property1", "key1", "value1");
             updateOp.increment("property2", 1);
@@ -209,7 +210,8 @@ public class MongoDocumentStoreTest {
 
         private void addNodes() {
             for (int i = 0; i < nNodes; i++) {
-                UpdateOp updateOp = new UpdateOp("/" + nodeName + i, true);
+                String path = "/" + nodeName + i;
+                UpdateOp updateOp = new UpdateOp(path, path, true);
                 updateOp.addMapEntry("property1", "key1", "value1");
                 updateOp.set("property3", "value3");
                 docStore.createOrUpdate(Collection.NODES, updateOp);
@@ -218,7 +220,8 @@ public class MongoDocumentStoreTest {
 
         private void updateNodes() {
             for (int i = 0; i < nNodes; i++) {
-                UpdateOp updateOp = new UpdateOp("/" + nodeName + i, false);
+                String path = "/" + nodeName + i;
+                UpdateOp updateOp = new UpdateOp(path, path, false);
                 updateOp.addMapEntry("property1", "key2", "value2");
                 updateOp.set("property4", "value4");
                 docStore.createOrUpdate(Collection.NODES, updateOp);

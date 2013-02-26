@@ -45,14 +45,6 @@ public class MemoryDocumentStore implements DocumentStore {
     private ConcurrentSkipListMap<String, Map<String, Object>> nodes =
             new ConcurrentSkipListMap<String, Map<String, Object>>();
 
-    /**
-     * Get a document. The returned map is a clone (the caller
-     * can modify it without affecting the stored version).
-     *
-     * @param collection the collection
-     * @param path the path
-     * @return the map, or null if not found
-     */
     public Map<String, Object> find(Collection collection, String path) {
         ConcurrentSkipListMap<String, Map<String, Object>> map = getMap(collection);
         Map<String, Object> n = map.get(path);
@@ -83,12 +75,6 @@ public class MemoryDocumentStore implements DocumentStore {
         return list;
     }
 
-    /**
-     * Remove a document.
-     *
-     * @param collection the collection
-     * @param path the path
-     */
     public void remove(Collection collection, String path) {
         getMap(collection).remove(path);
     }
@@ -108,14 +94,6 @@ public class MemoryDocumentStore implements DocumentStore {
         }
     }
 
-    /**
-     * Create or update a document. For MongoDb, this is using "findAndModify" with
-     * the "upsert" flag (insert or update).
-     *
-     * @param collection the collection
-     * @param update the update operation
-     * @return the old document, or null if there was no
-     */
     public Map<String, Object> createOrUpdate(Collection collection, UpdateOp update) {
         ConcurrentSkipListMap<String, Map<String, Object>> map = getMap(collection);
         Map<String, Object> n;
@@ -147,7 +125,7 @@ public class MemoryDocumentStore implements DocumentStore {
         synchronized (n) {
             applyChanges(n, update);
         }
-        return oldNode;
+        return n;
     }
     
     public static void applyChanges(Map<String, Object> target, UpdateOp update) {

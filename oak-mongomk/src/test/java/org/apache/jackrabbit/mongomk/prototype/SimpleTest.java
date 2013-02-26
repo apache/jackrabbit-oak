@@ -33,8 +33,8 @@ import com.mongodb.DB;
  */
 public class SimpleTest {
     
-//    private static final boolean MONGO_DB = true;
     private static final boolean MONGO_DB = false;
+//    private static final boolean MONGO_DB = true;
 
     @Test
     public void test() {
@@ -94,6 +94,57 @@ public class SimpleTest {
         // System.out.println(test);
         mk.dispose();
     }
+    
+    @Test
+    public void cache() {
+        MongoMK mk = createMK();
+        
+        // BAD
+        String rev = mk.commit("/", "+\"testRoot\":{} +\"index\":{}", null, null);
+        
+        // GOOD
+//        String rev = mk.commit("/", "+\"testRoot\":{} ", null, null);
+        
+        String test = mk.getNodes("/", rev, 0, 0, Integer.MAX_VALUE, ":id");
+        // System.out.println("  " + test);
+//        test = mk.getNodes("/testRoot", rev, 0, 0, Integer.MAX_VALUE, ":id");
+//        System.out.println("  " + test);
+        rev = mk.commit("/testRoot", "+\"a\":{}", null, null);
+//        test = mk.getNodes("/testRoot", rev, 0, 0, Integer.MAX_VALUE, ":id");
+//        System.out.println("  " + test);
+//        rev = mk.commit("/testRoot/a", "+\"b\":{}", null, null);
+//        rev = mk.commit("/testRoot/a/b", "+\"c\":{} +\"d\":{}", null, null);
+//        test = mk.getNodes("/testRoot", rev, 0, 0, Integer.MAX_VALUE, ":id");
+//        System.out.println("  " + test);
+//        test = mk.getNodes("/", rev, 0, 0, Integer.MAX_VALUE, ":id");
+//        System.out.println("  " + test);
+//        rev = mk.commit("/index", "+\"a\":{}", null, null);
+        test = mk.getNodes("/", rev, 0, 0, Integer.MAX_VALUE, ":id");
+        // System.out.println("  " + test);
+//        test = mk.getNodes("/testRoot", rev, 0, 0, Integer.MAX_VALUE, ":id");
+//        System.out.println("  " + test);
+        
+//        assertEquals("{\"name\":\"Hello\",\":childNodeCount\":0}", test);
+//        
+//        rev = mk.commit("/test", "+\"a\":{\"name\": \"World\"}", null, null);
+//        rev = mk.commit("/test", "+\"b\":{\"name\": \"!\"}", null, null);
+//        test = mk.getNodes("/test", rev, 0, 0, Integer.MAX_VALUE, null);
+//        Children c;
+//        c = mk.readChildren("/", "1",
+//                Revision.fromString(rev), Integer.MAX_VALUE);
+//        assertEquals("/: [/test]", c.toString());
+//        c = mk.readChildren("/test", "2",
+//                Revision.fromString(rev), Integer.MAX_VALUE);
+//        assertEquals("/test: [/test/a, /test/b]", c.toString());
+//
+//        rev = mk.commit("", "^\"/test\":1", null, null);
+//        test = mk.getNodes("/", rev, 0, 0, Integer.MAX_VALUE, null);
+//        assertEquals("{\"test\":1,\"test\":{},\":childNodeCount\":1}", test);
+
+        // System.out.println(test);
+        mk.dispose();
+    }
+
 
     @Test
     public void testDeletion() {
