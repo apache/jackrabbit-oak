@@ -98,8 +98,7 @@ public class AccessControlConfigurationImpl extends SecurityConfiguration.Defaul
     //-----------------------------------------< AccessControlConfiguration >---
     @Override
     public AccessControlManager getAccessControlManager(Root root, NamePathMapper namePathMapper) {
-        // TODO OAK-51
-        throw new UnsupportedOperationException("not yet implemented");
+        return new AccessControlManagerImpl(root, namePathMapper, securityProvider);
     }
 
     @Nonnull
