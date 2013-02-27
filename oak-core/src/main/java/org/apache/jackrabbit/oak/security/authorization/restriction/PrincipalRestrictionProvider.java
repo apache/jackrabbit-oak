@@ -20,6 +20,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
@@ -50,7 +51,7 @@ public class PrincipalRestrictionProvider implements RestrictionProvider, Access
 
     @Nonnull
     @Override
-    public Set<RestrictionDefinition> getSupportedRestrictions(String oakPath) {
+    public Set<RestrictionDefinition> getSupportedRestrictions(@Nullable String oakPath) {
         Set<RestrictionDefinition> definitions = new HashSet<RestrictionDefinition>(base.getSupportedRestrictions(oakPath));
         definitions.add(new RestrictionDefinitionImpl(REP_NODE_PATH, PropertyType.PATH, true, namePathMapper));
         return definitions;
@@ -58,12 +59,12 @@ public class PrincipalRestrictionProvider implements RestrictionProvider, Access
 
     @Nonnull
     @Override
-    public Restriction createRestriction(String oakPath, @Nonnull String jcrName, @Nonnull Value value) throws RepositoryException {
+    public Restriction createRestriction(@Nullable String oakPath, @Nonnull String jcrName, @Nonnull Value value) throws RepositoryException {
         return base.createRestriction(oakPath, jcrName, value);
     }
 
     @Override
-    public Set<Restriction> readRestrictions(String oakPath, Tree aceTree) {
+    public Set<Restriction> readRestrictions(@Nullable String oakPath, @Nonnull Tree aceTree) {
         Set<Restriction> restrictions = new HashSet<Restriction>(base.readRestrictions(oakPath, aceTree));
         String value = (oakPath == null) ? "" : oakPath;
         PropertyState nodePathProp = PropertyStates.createProperty(REP_NODE_PATH, value, Type.PATH);
