@@ -21,12 +21,12 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.memory.MemoryPropertyBuilder;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.state.EmptyNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.PropertyBuilder;
+import org.apache.jackrabbit.oak.util.PropertyUtil;
 import org.apache.jackrabbit.util.Text;
 
 /**
@@ -62,12 +62,11 @@ public class JcrAllCommitHook implements CommitHook, PrivilegeConstants {
                 NodeBuilder jcrAll = nodeBuilder.child(JCR_ALL);
                 PropertyState aggregates = jcrAll.getProperty(REP_AGGREGATES);
 
-                // FIXME: remove usage of MemoryPropertyBuilder (OAK-372)
                 PropertyBuilder<String> propertyBuilder;
                 if (aggregates == null) {
-                    propertyBuilder = MemoryPropertyBuilder.array(Type.NAME, REP_AGGREGATES);
+                    propertyBuilder = PropertyUtil.getPropertyBuilder(Type.NAME, REP_AGGREGATES, true);
                 } else {
-                    propertyBuilder = MemoryPropertyBuilder.copy(Type.NAME, aggregates);
+                    propertyBuilder = PropertyUtil.getPropertyBuilder(Type.NAME, aggregates);
                 }
                 if (!propertyBuilder.hasValue(name)) {
                     propertyBuilder.addValue(name);

@@ -33,7 +33,6 @@ import org.apache.jackrabbit.oak.core.ReadOnlyRoot;
 import org.apache.jackrabbit.oak.core.ReadOnlyTree;
 import org.apache.jackrabbit.oak.core.TreeImpl;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
-import org.apache.jackrabbit.oak.plugins.memory.MemoryPropertyBuilder;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.security.authorization.AccessControlConstants;
@@ -46,6 +45,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.PropertyBuilder;
+import org.apache.jackrabbit.oak.util.PropertyUtil;
 import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
@@ -360,7 +360,7 @@ public class PermissionHook implements CommitHook, AccessControlConstants, Permi
             if (ordering == null) {
                 principalRoot.setProperty(TreeImpl.OAK_CHILD_ORDER, Collections.singleton(entryName), Type.NAMES);
             } else {
-                PropertyBuilder pb = MemoryPropertyBuilder.copy(Type.NAME, ordering);
+                PropertyBuilder pb = PropertyUtil.getPropertyBuilder(Type.NAME, ordering);
                 // TODO: determine ordering index
                 int index = 0;
                 pb.setValue(entryName, index);
