@@ -22,6 +22,7 @@ import static org.apache.jackrabbit.oak.plugins.segment.SegmentWriter.BLOCK_SIZE
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Map;
 import java.util.UUID;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -87,6 +88,8 @@ class Segment {
                 }
             };
 
+    private static final UUID[] NO_UUIDS = new UUID[0];
+
     private final SegmentStore store;
 
     private final UUID uuid;
@@ -95,94 +98,49 @@ class Segment {
 
     private final UUID[] uuids;
 
-    private final OffsetCache<String> strings = new OffsetCache<String>() {
-        @Override
-        protected String load(int offset) {
-            int pos = pos(offset, 1);
-            long length = internalReadLength(pos);
-            if (length < SMALL_LIMIT) {
-                return new String(data, pos + 1, (int) length, Charsets.UTF_8);
-            } else if (length < MEDIUM_LIMIT) {
-                return new String(data, pos + 2, (int) length, Charsets.UTF_8);
-            } else if (length < Integer.MAX_VALUE) {
-                int size = (int) ((length + BLOCK_SIZE - 1) / BLOCK_SIZE);
-                ListRecord list = new ListRecord(readRecordId(offset + 8), size);
-                SegmentStream stream = new SegmentStream(
-                        new SegmentReader(store), new RecordId(uuid, offset),
-                        list, length);
-                try {
-                    return stream.getString();
-                } finally {
-                    stream.close();
-                }
-            } else {
-                throw new IllegalStateException("String is too long: " + length);
+    private final OffsetCache<String> strings;
+
+    private final OffsetCache<Template> templates;
+
+    Segment(SegmentStore store,
+            UUID uuid, byte[] data, Collection<UUID> uuids) {
+        this.store = checkNotNull(store);
+        this.uuid = checkNotNull(uuid);
+        this.data = checkNotNull(data);
+        this.uuids = checkNotNull(uuids).toArray(NO_UUIDS);
+        this.strings = new OffsetCache<String>() {
+            @Override
+            protected String load(int offset) {
+                return loadString(offset);
             }
-        }
-    };
-
-    private final OffsetCache<Template> templates = new OffsetCache<Template>() {
-        @Override
-        protected Template load(int offset) {
-            int head = readInt(offset);
-            boolean hasPrimaryType = (head & (1 << 31)) != 0;
-            boolean hasMixinTypes = (head & (1 << 30)) != 0;
-            boolean zeroChildNodes = (head & (1 << 29)) != 0;
-            boolean manyChildNodes = (head & (1 << 28)) != 0;
-            int mixinCount = (head >> 18) & ((1 << 10) - 1);
-            int propertyCount = head & ((1 << 18) - 1);
-            offset += 4;
-
-            PropertyState primaryType = null;
-            if (hasPrimaryType) {
-                RecordId primaryId = readRecordId(offset);
-                primaryType = PropertyStates.createProperty(
-                        "jcr:primaryType", readString(primaryId), Type.NAME);
-                offset += Segment.RECORD_ID_BYTES;
+        };
+        this.templates = new OffsetCache<Template>() {
+            @Override
+            protected Template load(int offset) {
+                return loadTemplate(offset);
             }
+        };
+    }
 
-            PropertyState mixinTypes = null;
-            if (hasMixinTypes) {
-                String[] mixins = new String[mixinCount];
-                for (int i = 0; i < mixins.length; i++) {
-                    RecordId mixinId = readRecordId(offset);
-                    mixins[i] =  readString(mixinId);
-                    offset += Segment.RECORD_ID_BYTES;
-                }
-                mixinTypes = PropertyStates.createProperty(
-                        "jcr:mixinTypes", Arrays.asList(mixins), Type.NAMES);
-            }
-
-            String childName = Template.ZERO_CHILD_NODES;
-            if (manyChildNodes) {
-                childName = Template.MANY_CHILD_NODES;
-            } else if (!zeroChildNodes) {
-                RecordId childNameId = readRecordId(offset);
-                childName = readString(childNameId);
-                offset += Segment.RECORD_ID_BYTES;
-            }
-
-            PropertyTemplate[] properties =
-                    new PropertyTemplate[propertyCount];
-            for (int i = 0; i < properties.length; i++) {
-                RecordId propertyNameId = readRecordId(offset);
-                offset += Segment.RECORD_ID_BYTES;
-                byte type = readByte(offset++);
-                properties[i] = new PropertyTemplate(
-                        readString(propertyNameId),
-                        Type.fromTag(Math.abs(type), type < 0));
-            }
-
-            return new Template(
-                    primaryType, mixinTypes, properties, childName);
-        }
-    };
-
-    Segment(SegmentStore store, UUID uuid, byte[] data, Collection<UUID> uuids) {
+    Segment(SegmentStore store,
+            UUID uuid, byte[] data, Collection<UUID> uuids,
+            Map<String, RecordId> strings, Map<Template, RecordId> templates) {
         this.store = store;
         this.uuid = uuid;
         this.data = data;
         this.uuids = uuids.toArray(new UUID[uuids.size()]);
+        this.strings = new OffsetCache<String>(strings) {
+            @Override
+            protected String load(int offset) {
+                return loadString(offset);
+            }
+        };
+        this.templates = new OffsetCache<Template>(templates) {
+            @Override
+            protected Template load(int offset) {
+                return loadTemplate(offset);
+            }
+        };
     }
 
     /**
@@ -264,6 +222,29 @@ class Segment {
         return segment.readString(id.getOffset());
     }
 
+    private String loadString(int offset) {
+        int pos = pos(offset, 1);
+        long length = internalReadLength(pos);
+        if (length < SMALL_LIMIT) {
+            return new String(data, pos + 1, (int) length, Charsets.UTF_8);
+        } else if (length < MEDIUM_LIMIT) {
+            return new String(data, pos + 2, (int) length, Charsets.UTF_8);
+        } else if (length < Integer.MAX_VALUE) {
+            int size = (int) ((length + BLOCK_SIZE - 1) / BLOCK_SIZE);
+            ListRecord list = new ListRecord(readRecordId(offset + 8), size);
+            SegmentStream stream = new SegmentStream(
+                    new SegmentReader(store), new RecordId(uuid, offset),
+                    list, length);
+            try {
+                return stream.getString();
+            } finally {
+                stream.close();
+            }
+        } else {
+            throw new IllegalStateException("String is too long: " + length);
+        }
+    }
+
     Template readTemplate(int offset) {
         return templates.get(offset);
     }
@@ -275,6 +256,60 @@ class Segment {
             segment = store.readSegment(id.getSegmentId());
         }
         return segment.readTemplate(id.getOffset());
+    }
+
+    private Template loadTemplate(int offset) {
+        int head = readInt(offset);
+        boolean hasPrimaryType = (head & (1 << 31)) != 0;
+        boolean hasMixinTypes = (head & (1 << 30)) != 0;
+        boolean zeroChildNodes = (head & (1 << 29)) != 0;
+        boolean manyChildNodes = (head & (1 << 28)) != 0;
+        int mixinCount = (head >> 18) & ((1 << 10) - 1);
+        int propertyCount = head & ((1 << 18) - 1);
+        offset += 4;
+
+        PropertyState primaryType = null;
+        if (hasPrimaryType) {
+            RecordId primaryId = readRecordId(offset);
+            primaryType = PropertyStates.createProperty(
+                    "jcr:primaryType", readString(primaryId), Type.NAME);
+            offset += Segment.RECORD_ID_BYTES;
+        }
+
+        PropertyState mixinTypes = null;
+        if (hasMixinTypes) {
+            String[] mixins = new String[mixinCount];
+            for (int i = 0; i < mixins.length; i++) {
+                RecordId mixinId = readRecordId(offset);
+                mixins[i] =  readString(mixinId);
+                offset += Segment.RECORD_ID_BYTES;
+            }
+            mixinTypes = PropertyStates.createProperty(
+                    "jcr:mixinTypes", Arrays.asList(mixins), Type.NAMES);
+        }
+
+        String childName = Template.ZERO_CHILD_NODES;
+        if (manyChildNodes) {
+            childName = Template.MANY_CHILD_NODES;
+        } else if (!zeroChildNodes) {
+            RecordId childNameId = readRecordId(offset);
+            childName = readString(childNameId);
+            offset += Segment.RECORD_ID_BYTES;
+        }
+
+        PropertyTemplate[] properties =
+                new PropertyTemplate[propertyCount];
+        for (int i = 0; i < properties.length; i++) {
+            RecordId propertyNameId = readRecordId(offset);
+            offset += Segment.RECORD_ID_BYTES;
+            byte type = readByte(offset++);
+            properties[i] = new PropertyTemplate(
+                    readString(propertyNameId),
+                    Type.fromTag(Math.abs(type), type < 0));
+        }
+
+        return new Template(
+                primaryType, mixinTypes, properties, childName);
     }
 
     long readLength(int offset) {

@@ -108,11 +108,14 @@ public class SegmentWriter {
                 System.arraycopy(buffer, start, data, 0, data.length);
             }
 
-            store.createSegment(new Segment(store, uuid, data, uuids.keySet()));
+            store.createSegment(new Segment(
+                    store, uuid, data, uuids.keySet(), strings, templates));
 
             uuid = UUID.randomUUID();
             length = 0;
             uuids.clear();
+            strings.clear();
+            templates.clear();
         }
     }
 
