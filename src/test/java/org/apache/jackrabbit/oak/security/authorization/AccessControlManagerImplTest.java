@@ -23,6 +23,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import javax.annotation.Nonnull;
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
@@ -38,6 +39,7 @@ import javax.jcr.security.Privilege;
 import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
+import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.TestNameMapper;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -47,8 +49,10 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
 import org.apache.jackrabbit.oak.plugins.name.Namespaces;
 import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.security.principal.PrincipalImpl;
+import org.apache.jackrabbit.oak.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.AbstractAccessControlTest;
+import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.apache.jackrabbit.oak.util.TreeUtil;
@@ -79,7 +83,6 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
     private NamePathMapper npMapper;
 
     private AccessControlManagerImpl acMgr;
-    private PrivilegeManager privilegeManager;
     private ValueFactory valueFactory;
 
     @Override
@@ -92,7 +95,6 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         npMapper = new NamePathMapperImpl(nameMapper);
 
         acMgr = getAccessControlManager(npMapper);
-        privilegeManager = getSecurityProvider().getPrivilegeConfiguration().getPrivilegeManager(root, npMapper);
         valueFactory = new ValueFactoryImpl(root.getBlobFactory(), npMapper);
 
         NodeUtil rootNode = new NodeUtil(root.getTree("/"), npMapper);
@@ -134,6 +136,33 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         }
     }
 
+    private ACL createPolicy(String path) {
+        final PrincipalManager pm = getPrincipalManager();
+        final RestrictionProvider rp = getRestrictionProvider();
+        return new ACL(path, getNamePathMapper()) {
+            @Override
+            PrincipalManager getPrincipalManager() {
+                return pm;
+            }
+
+            @Override
+            PrivilegeManager getPrivilegeManager() {
+                return AccessControlManagerImplTest.this.getPrivilegeManager();
+            }
+
+            @Override
+            PrivilegeBitsProvider getPrivilegeBitsProvider() {
+                return new PrivilegeBitsProvider(root);
+            }
+
+            @Nonnull
+            @Override
+            public RestrictionProvider getRestrictionProvider() {
+                return rp;
+            }
+        };
+    }
+
     private void setupPolicy(String path) throws RepositoryException {
         ACL policy = getApplicablePolicy(path);
         if (path == null) {
@@ -148,9 +177,44 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         return ImmutableMap.of(REP_GLOB, valueFactory.createValue(value));
     }
 
+    private List<String> getInvalidPaths() {
+        List<String> invalid = new ArrayList<String>();
+        invalid.add("");
+        invalid.add("../../jcr:testRoot");
+        invalid.add("jcr:testRoot");
+        invalid.add("jcr:test/Root");
+        invalid.add("./jcr:testRoot");
+        return invalid;
+    }
+
+    private List<String> getAcContentPaths() throws RepositoryException {
+        ACL policy = getApplicablePolicy(testPath);
+        policy.addEntry(testPrincipal, testPrivileges, true, getGlobRestriction("*"));
+        acMgr.setPolicy(testPath, policy);
+
+        String aclPath = testPath + '/' + REP_POLICY;
+        Tree acl = root.getTree(aclPath);
+        assertNotNull(acl);
+        Iterator<Tree> aces = acl.getChildren().iterator();
+        assertTrue(aces.hasNext());
+        Tree ace = aces.next();
+        assertNotNull(ace);
+
+        List<String> acContentPath = new ArrayList<String>();
+        acContentPath.add(aclPath);
+        acContentPath.add(ace.getPath());
+
+        Tree rest = ace.getChild(REP_RESTRICTIONS);
+        if (rest != null) {
+            acContentPath.add(rest.getPath());
+        }
+        return acContentPath;
+    }
+
+    //---------------------------------------------< getSupportedPrivileges >---
     @Test
     public void testGetSupportedPrivileges() throws Exception {
-        List<Privilege> allPrivileges = Arrays.asList(privilegeManager.getRegisteredPrivileges());
+        List<Privilege> allPrivileges = Arrays.asList(getPrivilegeManager().getRegisteredPrivileges());
 
         List<String> testPaths = new ArrayList<String>();
         testPaths.add(null);
@@ -168,14 +232,8 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
     }
 
     @Test
-    public void testGetSupportedPrivilegesWithInvalidPath() throws Exception {
-        List<String> invalid = new ArrayList<String>();
-        invalid.add("");
-        invalid.add("../../jcr:testRoot");
-        invalid.add("jcr:testRoot");
-        invalid.add("./jcr:testRoot");
-
-        for (String path : invalid) {
+    public void testGetSupportedPrivilegesInvalidPath() throws Exception {
+        for (String path : getInvalidPaths()) {
             try {
                 acMgr.getSupportedPrivileges(path);
                 fail("Expects valid node path, found: " + path);
@@ -186,7 +244,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
     }
 
     @Test
-    public void testGetSupportedPrivilegesFromPropertyPath() throws Exception {
+    public void testGetSupportedPrivilegesPropertyPath() throws Exception {
         try {
             acMgr.getSupportedPrivileges("/jcr:primaryType");
             fail("Property path -> PathNotFoundException expected.");
@@ -196,7 +254,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
     }
 
     @Test
-    public void testGetSupportedPrivilegesWithNonExistingPath() throws Exception {
+    public void testGetSupportedPrivilegesNonExistingPath() throws Exception {
         try {
             acMgr.getSupportedPrivileges("/non/existing/node");
             fail("Nonexisting node -> PathNotFoundException expected.");
@@ -207,7 +265,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
 
     @Test
     public void testGetSupportedPrivilegesIncludingPathConversion() throws Exception {
-        List<Privilege> allPrivileges = Arrays.asList(privilegeManager.getRegisteredPrivileges());
+        List<Privilege> allPrivileges = Arrays.asList(getPrivilegeManager().getRegisteredPrivileges());
 
         List<String> testPaths = new ArrayList<String>();
         testPaths.add('/' + TestNameMapper.TEST_LOCAL_PREFIX + ":testRoot");
@@ -223,9 +281,10 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         }
     }
 
+    //--------------------------------------------------< privilegeFromName >---
     @Test
     public void testPrivilegeFromName() throws Exception {
-        List<Privilege> allPrivileges = Arrays.asList(privilegeManager.getRegisteredPrivileges());
+        List<Privilege> allPrivileges = Arrays.asList(getPrivilegeManager().getRegisteredPrivileges());
         for (Privilege privilege : allPrivileges) {
             Privilege p = acMgr.privilegeFromName(privilege.getName());
             assertEquals(privilege, p);
@@ -234,8 +293,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
 
     @Test
     public void testPrivilegeFromExpandedName() throws Exception {
-        Privilege readPriv = privilegeManager.getPrivilege(PrivilegeConstants.JCR_READ);
-
+        Privilege readPriv = getPrivilegeManager().getPrivilege(PrivilegeConstants.JCR_READ);
         assertEquals(readPriv, acMgr.privilegeFromName(Privilege.JCR_READ));
     }
 
@@ -272,15 +330,19 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         }
     }
 
+    //------------------------------------------------------< hasPrivileges >---
     @Test
     public void testHasPrivileges() throws Exception {
         // TODO
     }
 
+    //------------------------------------------------------< getPrivileges >---
     @Test
     public void testGetPrivileges() throws Exception {
         // TODO
     }
+
+    //--------------------------------------< getApplicablePolicies(String) >---
 
     @Test
     public void testGetApplicablePolicies() throws Exception {
@@ -350,12 +412,52 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
     }
 
     @Test
-    public void testGetPoliciesNodeNotAccessControlled() throws Exception {
-        AccessControlPolicy[] policies = acMgr.getPolicies(testPath);
-        assertNotNull(policies);
-        assertEquals(0, policies.length);
+    public void testGetApplicablePoliciesInvalidPath() throws Exception {
+        for (String invalid : getInvalidPaths()) {
+            try {
+                acMgr.getPolicies(invalid);
+                fail("Getting applicable policies for an invalid path should fail");
+            } catch (RepositoryException e) {
+                // success
+            }
+        }
     }
 
+    @Test
+    public void testApplicablePoliciesForPropertyPath() throws Exception {
+        String propertyPath = "/jcr:primaryType";
+        try {
+            acMgr.getApplicablePolicies(propertyPath);
+            fail("Getting applicable policies for property should fail.");
+        } catch (PathNotFoundException e) {
+            // success
+        }
+    }
+
+    @Test
+    public void testGetApplicablePoliciesNonExistingNodePath() throws Exception {
+        String propertyPath = "/not/existing";
+        try {
+            acMgr.getApplicablePolicies(propertyPath);
+            fail("Getting applicable policies for node that doesn't exist should fail.");
+        } catch (PathNotFoundException e) {
+            // success
+        }
+    }
+
+    @Test
+    public void testGetApplicablePoliciesForAcContentPaths() throws Exception {
+        for (String path : getAcContentPaths()) {
+            try {
+                acMgr.getApplicablePolicies(path);
+                fail("Getting applicable policies for access control content should fail.");
+            } catch (AccessControlException e) {
+                // success
+            }
+        }
+    }
+
+    //------------------------------------------------< getPolicies(String) >---
     @Test
     public void testGetPolicies() throws Exception {
         AccessControlPolicy policy = getApplicablePolicy(testPath);
@@ -369,6 +471,13 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         ACL acl = (ACL) policies[0];
         assertTrue(acl.isEmpty());
         assertEquals(testPath, acl.getOakPath());
+    }
+
+    @Test
+    public void testGetPoliciesNodeNotAccessControlled() throws Exception {
+        AccessControlPolicy[] policies = acMgr.getPolicies(testPath);
+        assertNotNull(policies);
+        assertEquals(0, policies.length);
     }
 
     @Test
@@ -454,43 +563,94 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
     }
 
     @Test
-    public void testAccessControlContentPaths() throws Exception {
-        ACL policy = getApplicablePolicy(testPath);
-        policy.addEntry(testPrincipal, testPrivileges, true, getGlobRestriction("*"));
-        acMgr.setPolicy(testPath, policy);
-
-        String aclPath = testPath + '/' + REP_POLICY;
-        Tree acl = root.getTree(aclPath);
-        assertNotNull(acl);
-        Iterator<Tree> aces = acl.getChildren().iterator();
-        assertTrue(aces.hasNext());
-        Tree ace = aces.next();
-        assertNotNull(ace);
-
-        List<String> accessControlledPaths = new ArrayList<String>();
-        accessControlledPaths.add(aclPath);
-        accessControlledPaths.add(ace.getPath());
-
-        Tree rest = ace.getChild(REP_RESTRICTIONS);
-        if (rest != null) {
-            accessControlledPaths.add(rest.getPath());
-        }
-
-        for (String path : accessControlledPaths) {
+    public void testGetPoliciesInvalidPath() throws Exception {
+        for (String invalid : getInvalidPaths()) {
             try {
-                acMgr.getApplicablePolicies(path);
-                fail("Getting applicable policies for access control content should fail.");
-            } catch (AccessControlException e) {
+                acMgr.getPolicies(invalid);
+                fail("Getting policies for an invalid path should fail");
+            } catch (RepositoryException e) {
                 // success
             }
+        }
+    }
 
+    @Test
+    public void testGetPoliciesPropertyPath() throws Exception {
+        String propertyPath = "/jcr:primaryType";
+        try {
+            acMgr.getPolicies(propertyPath);
+            fail("Getting policies for property should fail.");
+        } catch (PathNotFoundException e) {
+            // success
+        }
+    }
+
+    @Test
+    public void testGetPoliciesNonExistingNodePath() throws Exception {
+        String propertyPath = "/not/existing";
+        try {
+            acMgr.getPolicies(propertyPath);
+            fail("Getting policies for node that doesn't exist should fail.");
+        } catch (PathNotFoundException e) {
+            // success
+        }
+    }
+
+    @Test
+    public void testGetPoliciesAcContentPaths() throws Exception {
+        for (String path : getAcContentPaths()) {
             try {
                 acMgr.getPolicies(path);
                 fail("Getting policies for access control content should fail.");
             } catch (AccessControlException e) {
                 // success
             }
+        }
+    }
 
+    //---------------------------------------< getEffectivePolicies(String) >---
+    @Test
+    public void testGetEffectivePolicies() throws Exception {
+        // TODO
+    }
+
+    @Test
+    public void testGetEffectivePoliciesInvalidPath() throws Exception {
+        for (String invalid : getInvalidPaths()) {
+            try {
+                acMgr.getEffectivePolicies(invalid);
+                fail("Getting policies for an invalid path should fail");
+            } catch (RepositoryException e) {
+                // success
+            }
+        }
+    }
+
+    @Test
+    public void testGetEffectivePoliciesForPropertyPath() throws Exception {
+        String propertyPath = "/jcr:primaryType";
+        try {
+            acMgr.getEffectivePolicies(propertyPath);
+            fail("Getting policies for property should fail.");
+        } catch (PathNotFoundException e) {
+            // success
+        }
+    }
+
+    @Test
+    public void testGetEffectivePoliciesNonExistingNodePath() throws Exception {
+        String propertyPath = "/not/existing";
+        try {
+            acMgr.getEffectivePolicies(propertyPath);
+            fail("Getting policies for node that doesn't exist should fail.");
+        } catch (PathNotFoundException e) {
+            // success
+        }
+    }
+
+    @Test
+    public void testGetEffectivePoliciesForAcContentPaths() throws Exception {
+        for (String path : getAcContentPaths()) {
             try {
                 acMgr.getEffectivePolicies(path);
                 fail("Getting effective policies for access control content should fail.");
@@ -500,62 +660,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         }
     }
 
-    @Test
-    public void testNonExistingNodePath() throws Exception {
-        String propertyPath = "/not/existing";
-
-        try {
-            acMgr.getApplicablePolicies(propertyPath);
-            fail("Getting applicable policies for node that doesn't exist should fail.");
-        } catch (PathNotFoundException e) {
-            // success
-        }
-        try {
-            acMgr.getPolicies(propertyPath);
-            fail("Getting policies for node that doesn't exist should fail.");
-        } catch (PathNotFoundException e) {
-            // success
-        }
-
-        try {
-            acMgr.getEffectivePolicies(propertyPath);
-            fail("Getting policies for node that doesn't exist should fail.");
-        } catch (PathNotFoundException e) {
-            // success
-        }
-    }
-
-    @Test
-    public void testPropertyPath() throws Exception {
-        String propertyPath = "/jcr:primaryType";
-
-        try {
-            acMgr.getApplicablePolicies(propertyPath);
-            fail("Getting applicable policies for property should fail.");
-        } catch (PathNotFoundException e) {
-            // success
-        }
-
-        try {
-            acMgr.getPolicies(propertyPath);
-            fail("Getting policies for property should fail.");
-        } catch (PathNotFoundException e) {
-            // success
-        }
-
-        try {
-            acMgr.getEffectivePolicies(propertyPath);
-            fail("Getting policies for property should fail.");
-        } catch (PathNotFoundException e) {
-            // success
-        }
-    }
-
-    @Test
-    public void testGetEffectivePolicies() throws Exception {
-        // TODO
-    }
-
+    //-----------------------------< setPolicy(String, AccessControlPolicy) >---
     @Test
     public void testSetPolicy() throws Exception {
         ACL acl = getApplicablePolicy(testPath);
@@ -567,11 +672,8 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
 
         Root root2 = adminSession.getLatestRoot();
         AccessControlPolicy[] policies = getAccessControlManager(root2).getPolicies(testPath);
-        assertNotNull(policies);
         assertEquals(1, policies.length);
-
-        ACL acl2 = (ACL) policies[0];
-        assertArrayEquals(acl.getAccessControlEntries(), acl2.getAccessControlEntries());
+        assertArrayEquals(acl.getAccessControlEntries(), ((ACL) policies[0]).getAccessControlEntries());
     }
 
     @Test
@@ -656,20 +758,61 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
     }
 
     @Test
-    public void testSetPolicyWithInvalidPath() throws Exception {
-        // TODO
-    }
-
-    @Test
-    public void testSetPolicyOnAclNode() throws Exception {
-        // TODO
-    }
-
-    @Test
     public void testSetRepoPolicy() throws Exception {
         // TODO
     }
 
+    @Test
+    public void testSetPolicyInvalidPath() throws Exception {
+        for (String invalid : getInvalidPaths()) {
+            try {
+                AccessControlPolicy acl = createPolicy(invalid);
+                acMgr.setPolicy(invalid, acl);
+                fail("Setting access control policy with invalid path should fail");
+            } catch (RepositoryException e) {
+                // success
+            }
+        }
+    }
+
+    @Test
+    public void testSetPolicyPropertyPath() throws Exception {
+        try {
+            String path = "/jcr:primaryType";
+            AccessControlPolicy acl = createPolicy(path);
+            acMgr.setPolicy(path, acl);
+            fail("Setting access control policy at property path should fail");
+        } catch (PathNotFoundException e) {
+            // success
+        }
+    }
+
+    @Test
+    public void testSetPolicyNonExistingNodePath() throws Exception {
+        try {
+            String path = "/non/existing";
+            AccessControlPolicy acl = createPolicy(path);
+            acMgr.setPolicy(path, acl);
+            fail("Setting access control policy for non-existing node path should fail");
+        } catch (PathNotFoundException e) {
+            // success
+        }
+    }
+
+    @Test
+    public void testSetPolicyAcContent() throws Exception {
+        for (String acPath : getAcContentPaths()) {
+            try {
+                AccessControlPolicy acl = createPolicy(acPath);
+                acMgr.setPolicy(acPath, acl);
+                fail("Setting access control policy to access control content should fail");
+            } catch (AccessControlException e) {
+                // success
+            }
+        }
+    }
+
+    //--------------------------< removePolicy(String, AccessControlPolicy) >---
     @Test
     public void testRemovePolicy() throws Exception {
         // TODO
@@ -681,17 +824,57 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
     }
 
     @Test
-    public void testRemovePolicyWithInvalidPath() throws Exception {
-        // TODO
-    }
-
-    @Test
-    public void testRemovePolicyOnAclNode() throws Exception {
-        // TODO
-    }
-
-    @Test
     public void testRemoveRepoPolicy() throws Exception {
         // TODO
+    }
+
+    @Test
+    public void testRemovePolicyInvalidPath() throws Exception {
+        for (String invalid : getInvalidPaths()) {
+            try {
+                AccessControlPolicy acl = createPolicy(invalid);
+                acMgr.removePolicy(invalid, acl);
+                fail("Removing access control policy with invalid path should fail");
+            } catch (RepositoryException e) {
+                // success
+            }
+        }
+    }
+
+    @Test
+    public void testRemovePolicyPropertyPath() throws Exception {
+        try {
+            String path = "/jcr:primaryType";
+            AccessControlPolicy acl = createPolicy(path);
+            acMgr.removePolicy(path, acl);
+            fail("Removing access control policy at property path should fail");
+        } catch (PathNotFoundException e) {
+            // success
+        }
+    }
+
+    @Test
+    public void testRemovePolicyNonExistingNodePath() throws Exception {
+        try {
+            String path = "/non/existing";
+            AccessControlPolicy acl = createPolicy(path);
+            acMgr.removePolicy(path, acl);
+            fail("Removing access control policy for non-existing node path should fail");
+        } catch (PathNotFoundException e) {
+            // success
+        }
+    }
+
+    @Test
+    public void testRemovePolicyAcContent() throws Exception {
+        for (String acPath : getAcContentPaths()) {
+            try {
+                AccessControlPolicy acl = createPolicy(acPath);
+                acMgr.removePolicy(acPath, acl);
+                fail("Removing access control policy to access control content should fail");
+            } catch (AccessControlException e) {
+                // success
+            }
+        }
     }
 }
