@@ -26,6 +26,7 @@ import javax.jcr.security.AccessControlManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.version.VersionablePathHook;
+import org.apache.jackrabbit.oak.security.authorization.permission.PermissionValidatorProvider;
 import org.apache.jackrabbit.oak.security.authorization.restriction.RestrictionProviderImpl;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitHookProvider;

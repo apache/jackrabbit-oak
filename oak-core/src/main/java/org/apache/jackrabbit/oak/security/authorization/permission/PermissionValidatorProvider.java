@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.security.authorization;
+package org.apache.jackrabbit.oak.security.authorization.permission;
 
 import java.security.AccessController;
 import java.security.Principal;
@@ -35,7 +35,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 /**
  * PermissionValidatorProvider... TODO
  */
-class PermissionValidatorProvider implements ValidatorProvider {
+public class PermissionValidatorProvider implements ValidatorProvider {
 
     private final SecurityProvider securityProvider;
     private final String workspaceName;
@@ -43,7 +43,7 @@ class PermissionValidatorProvider implements ValidatorProvider {
     private Context acCtx;
     private Context userCtx;
 
-    PermissionValidatorProvider(SecurityProvider securityProvider, String workspaceName) {
+    public PermissionValidatorProvider(SecurityProvider securityProvider, String workspaceName) {
         this.securityProvider = securityProvider;
         this.workspaceName = workspaceName;
     }
