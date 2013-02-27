@@ -21,7 +21,7 @@ import java.util.Collection;
 import com.google.common.collect.ImmutableSet;
 
 /**
- * AccessControlConstants... TODO
+ * Constants for this access control management implementation.
  */
 public interface AccessControlConstants {
 
