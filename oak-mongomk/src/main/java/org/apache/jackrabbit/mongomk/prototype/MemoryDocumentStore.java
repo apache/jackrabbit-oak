@@ -150,25 +150,25 @@ public class MemoryDocumentStore implements DocumentStore {
             case ADD_MAP_ENTRY: {
                 Object old = target.get(kv[0]);
                 @SuppressWarnings("unchecked")
-                Map<String, String> m = (Map<String, String>) old;
+                Map<String, Object> m = (Map<String, Object>) old;
                 if (m == null) {
                     m = Utils.newMap();
                     target.put(kv[0], m);
                 }
-                m.put(kv[1], op.value.toString());
+                m.put(kv[1], op.value);
                 break;
             }
             case REMOVE_MAP_ENTRY: {
                 Object old = target.get(kv[0]);
                 @SuppressWarnings("unchecked")
-                Map<String, String> m = (Map<String, String>) old;
+                Map<String, Object> m = (Map<String, Object>) old;
                 if (m != null) {
                     m.remove(kv[1]);
                 }
                 break;
             }
             case SET_MAP_ENTRY: {
-                Map<String, String> m = Utils.newMap();
+                Map<String, Object> m = Utils.newMap();
                 target.put(k, m);
                 break;
             }
