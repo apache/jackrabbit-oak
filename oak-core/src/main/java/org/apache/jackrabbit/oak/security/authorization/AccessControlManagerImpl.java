@@ -384,8 +384,8 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
         return ntMgr.isNodeType(tree, nodeTypeName);
     }
 
-    private boolean isACE(@Nonnull Tree tree) {
-        return ntMgr.isNodeType(tree, NT_REP_ACE);
+    private boolean isACE(@Nullable Tree tree) {
+        return tree != null && ntMgr.isNodeType(tree, NT_REP_ACE);
     }
 
     /**
@@ -520,7 +520,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
 
     @Nonnull
     private Set<Privilege> getPrivileges(@Nonnull Tree aceTree) throws RepositoryException {
-        String[] privNames = TreeUtil.getStrings(aceTree, REP_PRIVILEGES);
+        String[] privNames = checkNotNull(TreeUtil.getStrings(aceTree, REP_PRIVILEGES));
         Set<Privilege> privileges = new HashSet<Privilege>(privNames.length);
         for (String name : privNames) {
             privileges.add(privilegeManager.getPrivilege(name));

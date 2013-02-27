@@ -60,7 +60,7 @@ public class RestrictionProviderImpl implements RestrictionProvider, AccessContr
     @Nonnull
     @Override
     public Set<RestrictionDefinition> getSupportedRestrictions(String oakPath) {
-        if (oakPath == null) {
+        if (isUnsupportedPath(oakPath)) {
             return Collections.emptySet();
         } else {
             return ImmutableSet.copyOf(supported.values());
@@ -69,7 +69,7 @@ public class RestrictionProviderImpl implements RestrictionProvider, AccessContr
 
     @Override
     public Restriction createRestriction(String oakPath, String jcrName, Value value) throws RepositoryException {
-        if (oakPath == null) {
+        if (isUnsupportedPath(oakPath)) {
             throw new AccessControlException("Unsupported restriction: " + oakPath);
         }
 
@@ -88,7 +88,7 @@ public class RestrictionProviderImpl implements RestrictionProvider, AccessContr
 
     @Override
     public Set<Restriction> readRestrictions(String oakPath, Tree aceTree) {
-        if (oakPath == null) {
+        if (isUnsupportedPath(oakPath)) {
             return Collections.emptySet();
         } else {
             Set<Restriction> restrictions = new HashSet<Restriction>();
@@ -121,7 +121,7 @@ public class RestrictionProviderImpl implements RestrictionProvider, AccessContr
     @Override
     public void validateRestrictions(String oakPath, Tree aceTree) throws javax.jcr.security.AccessControlException {
         Map<String, PropertyState> restrictionProperties = getRestrictionProperties(aceTree);
-        if (oakPath == null && !restrictionProperties.isEmpty()) {
+        if (isUnsupportedPath(oakPath) && !restrictionProperties.isEmpty()) {
             throw new AccessControlException("Restrictions not supported with 'null' path.");
         }
         for (Map.Entry<String, PropertyState> entry : restrictionProperties.entrySet()) {
@@ -174,5 +174,9 @@ public class RestrictionProviderImpl implements RestrictionProvider, AccessContr
     private static boolean isRestrictionProperty(String propertyName) {
         return !AccessControlConstants.ACE_PROPERTY_NAMES.contains(propertyName) &&
                 !NamespaceRegistry.PREFIX_JCR.equals(Text.getNamespacePrefix(propertyName));
+    }
+
+    private static boolean isUnsupportedPath(String oakPath) {
+        return oakPath == null;
     }
 }
