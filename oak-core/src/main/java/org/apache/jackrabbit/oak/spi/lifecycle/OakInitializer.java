@@ -29,7 +29,10 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 
-public class OakInitializer {
+public final class OakInitializer {
+
+    private OakInitializer() {
+    }
 
     public static void initialize(@Nonnull NodeStore store,
                                   @Nonnull RepositoryInitializer initializer,
