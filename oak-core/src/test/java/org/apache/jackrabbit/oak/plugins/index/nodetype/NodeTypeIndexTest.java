@@ -48,7 +48,7 @@ import com.google.common.collect.Sets;
 import static org.junit.Assert.assertEquals;
 
 /**
- * <code>NodeTypeIndexTest</code> performs tests on {@link NodeTypeIndex}.
+ * {@code NodeTypeIndexTest} performs tests on {@link NodeTypeIndex}.
  */
 public class NodeTypeIndexTest {
 
