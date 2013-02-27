@@ -36,33 +36,33 @@ import com.google.common.collect.ImmutableList;
  */
 public class SegmentSizeTest {
 
-    @Test // TODO: Fix cross-segment amortization code
+    @Test
     public void testNodeSize() {
         NodeBuilder builder = MemoryNodeState.EMPTY_NODE.builder();
         assertEquals(8, getSize(builder));
-        assertEquals(8, getAmortizedSize(builder));
+        assertEquals(4, getAmortizedSize(builder));
 
         builder = MemoryNodeState.EMPTY_NODE.builder();
         builder.setProperty("foo", "bar");
         assertEquals(24, getSize(builder));
-        assertEquals(24, getAmortizedSize(builder));
+        assertEquals(8, getAmortizedSize(builder));
 
         builder = MemoryNodeState.EMPTY_NODE.builder();
         builder.setProperty("foo", "bar");
         builder.setProperty("baz", 123);
         assertEquals(40, getSize(builder));
-        assertEquals(40, getAmortizedSize(builder));
+        assertEquals(12, getAmortizedSize(builder));
 
         builder = MemoryNodeState.EMPTY_NODE.builder();
         builder.child("foo");
         assertEquals(28, getSize(builder));
-        assertEquals(28, getAmortizedSize(builder));
+        assertEquals(12, getAmortizedSize(builder));
 
         builder = MemoryNodeState.EMPTY_NODE.builder();
         builder.child("foo");
         builder.child("bar");
         assertEquals(56, getSize(builder));
-        assertEquals(56, getAmortizedSize(builder));
+        assertEquals(40, getAmortizedSize(builder));
     }
 
     @Test
@@ -106,7 +106,7 @@ public class SegmentSizeTest {
         NodeBuilder builder = MemoryNodeState.EMPTY_NODE.builder();
         builder.setProperty("jcr:primaryType", "rep:ACL", Type.NAME);
         assertEquals(20, getSize(builder));
-        assertEquals(20, getAmortizedSize(builder));
+        assertEquals(4, getAmortizedSize(builder));
 
         NodeBuilder deny = builder.child("deny");
         deny.setProperty("jcr:primaryType", "rep:DenyACE", Type.NAME);
@@ -114,7 +114,7 @@ public class SegmentSizeTest {
         deny.setProperty(PropertyStates.createProperty(
                 "rep:privileges", ImmutableList.of("jcr:read"), Type.NAMES));
         assertEquals(144, getSize(builder));
-        assertEquals(144, getAmortizedSize(builder));
+        assertEquals(28, getAmortizedSize(builder));
 
         NodeBuilder allow = builder.child("allow");
         allow.setProperty("jcr:primaryType", "rep:GrantACE");
@@ -122,7 +122,7 @@ public class SegmentSizeTest {
         allow.setProperty(PropertyStates.createProperty(
                 "rep:privileges", ImmutableList.of("jcr:all"), Type.NAMES));
         assertEquals(264, getSize(builder));
-        assertEquals(264, getAmortizedSize(builder));
+        assertEquals(72, getAmortizedSize(builder));
 
         NodeBuilder deny0 = builder.child("deny0");
         deny0.setProperty("jcr:primaryType", "rep:DenyACE", Type.NAME);
@@ -131,7 +131,7 @@ public class SegmentSizeTest {
         builder.setProperty(PropertyStates.createProperty(
                 "rep:privileges", ImmutableList.of("jcr:read"), Type.NAMES));
         assertEquals(356, getSize(builder));
-        assertEquals(356, getAmortizedSize(builder));
+        assertEquals(108, getAmortizedSize(builder));
 
         NodeBuilder allow0 = builder.child("allow0");
         allow0.setProperty("jcr:primaryType", "rep:GrantACE");
@@ -139,7 +139,7 @@ public class SegmentSizeTest {
         allow0.setProperty(PropertyStates.createProperty(
                 "rep:privileges", ImmutableList.of("jcr:all"), Type.NAMES));
         assertEquals(412, getSize(builder));
-        assertEquals(412, getAmortizedSize(builder));
+        assertEquals(136, getAmortizedSize(builder));
     }
 
     @Test
@@ -179,12 +179,14 @@ public class SegmentSizeTest {
         SegmentStore store = new MemoryStore();
         SegmentWriter writer = new SegmentWriter(store, new SegmentReader(store));
         NodeState state = builder.getNodeState();
-        writer.writeNode(state);
-        writer.flush();
         RecordId id = writer.writeNode(state).getRecordId();
         writer.flush();
+        int base = store.readSegment(id.getSegmentId()).getData().length;
+        writer.writeNode(state);
+        id = writer.writeNode(state).getRecordId();
+        writer.flush();
         Segment segment = store.readSegment(id.getSegmentId());
-        return segment.getData().length;
+        return segment.getData().length - base;
     }
 
 }
