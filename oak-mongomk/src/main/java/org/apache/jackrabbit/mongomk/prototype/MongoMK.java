@@ -208,7 +208,7 @@ public class MongoMK implements MicroKernel {
             return requestRevision.compareRevisionTime(x) >= 0;
         }
         // TODO currently we only compare the timestamps
-        return x.compareRevisionTime(requestRevision) >= 0;
+        return requestRevision.compareRevisionTime(x) >= 0;
     }
     
     boolean isRevisionNewer(Revision x, Revision previous) {
@@ -526,7 +526,7 @@ public class MongoMK implements MicroKernel {
     }
     
     private static String stripBranchRevMarker(String revisionId){
-        if(revisionId.startsWith("b")){
+        if (revisionId.startsWith("b")) {
             return revisionId.substring(1);
         }
         return revisionId;

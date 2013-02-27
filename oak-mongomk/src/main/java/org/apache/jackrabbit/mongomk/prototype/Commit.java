@@ -33,8 +33,18 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
  */
 public class Commit {
     
-    // TODO too small
-    private static final int MAX_MAP_SIZE = 16 * 1024;
+    /**
+     * The maximum size of a document. If it is larger, it is split.
+     */
+    // TODO check which value is the best one
+    private static final int MAX_DOCUMENT_SIZE = 16 * 1024;
+    
+    /**
+     * Whether to purge old revisions if a node gets too large. If false, old
+     * revisions are stored in a separate document. If true, old revisions are
+     * removed (purged).
+     */
+    private static final boolean PURGE_OLD_REVISIONS = true;
     
     private final MongoMK mk;
     private final Revision revision;
@@ -133,34 +143,45 @@ public class Commit {
             newNodes.add(root);
             root = null;
         }
-        if (newNodes.size() > 0) {
-            store.create(Collection.NODES, newNodes);
-        }
-        for (UpdateOp op : changedNodes) {
-            createOrUpdateNode(store, op);
-        }
-        if (root != null) {
-            long increment = mk.getWriteCountIncrement(commitRoot);
-            root.increment(UpdateOp.WRITE_COUNT, 1 + increment);
-            root.addMapEntry(UpdateOp.REVISIONS + "." + revision.toString(), "true");
-            createOrUpdateNode(store, root);
-            operations.put(commitRoot, root);
+        try {
+            if (newNodes.size() > 0) {
+                store.create(Collection.NODES, newNodes);
+            }
+            for (UpdateOp op : changedNodes) {
+                createOrUpdateNode(store, op);
+            }
+            if (root != null) {
+                long increment = mk.getWriteCountIncrement(commitRoot);
+                root.increment(UpdateOp.WRITE_COUNT, 1 + increment);
+                root.addMapEntry(UpdateOp.REVISIONS + "." + revision.toString(), "true");
+                createOrUpdateNode(store, root);
+                operations.put(commitRoot, root);
+            }
+        } catch (MicroKernelException e) {
+            throw new MicroKernelException("Exception committing " + diff.toString(), e);
         }
     }
     
     private void createOrUpdateNode(DocumentStore store, UpdateOp op) {
         Map<String, Object> map = store.createOrUpdate(Collection.NODES, op);
         int size = Utils.getMapSize(map);
-        if (size > MAX_MAP_SIZE) {
+        if (size > MAX_DOCUMENT_SIZE) {
             UpdateOp[] split = splitDocument(map);
             
             // TODO check if the new main document is actually smaller;
             // otherwise, splitting doesn't make sense
             
             // the old version
-            store.createOrUpdate(Collection.NODES, split[0]);
+            UpdateOp old = split[0];
+            if (old != null) {
+                store.createOrUpdate(Collection.NODES, old);
+            }
+            
             // the (shrunken) main document
-            store.createOrUpdate(Collection.NODES, split[1]);
+            UpdateOp main = split[1];
+            if (main != null) {
+                store.createOrUpdate(Collection.NODES, main);
+            }
         }
         // TODO detect conflicts here
         Long count = (Long) map.get(UpdateOp.WRITE_COUNT);
@@ -217,6 +238,9 @@ public class Commit {
                     }
                 }
             }
+        }
+        if (PURGE_OLD_REVISIONS) {
+            old = null;
         }
         return new UpdateOp[]{old, main};
     }
