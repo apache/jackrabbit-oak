@@ -28,7 +28,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
- * AccessControlInitializer... TODO
+ * Implementation of the {@code WorkspaceInitializer} interface that creates
+ * a property index definitions for {@link #REP_PRINCIPAL_NAME rep:principalName}
+ * properties defined with ACE nodes.
  */
 public class AccessControlInitializer implements WorkspaceInitializer, AccessControlConstants {
 
