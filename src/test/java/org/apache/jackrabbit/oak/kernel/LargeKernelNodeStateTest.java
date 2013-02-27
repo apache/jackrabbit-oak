@@ -74,7 +74,6 @@ public class LargeKernelNodeStateTest {
     }
 
     @Test
-    @SuppressWarnings("unused")
     public void testGetChildNodeEntries() {
         long count = 0;
         for (ChildNodeEntry entry : state.getChildNodeEntries()) {
