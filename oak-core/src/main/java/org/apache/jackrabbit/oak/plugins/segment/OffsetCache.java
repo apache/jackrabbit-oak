@@ -17,6 +17,13 @@
 package org.apache.jackrabbit.oak.plugins.segment;
 
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+
+import com.google.common.collect.Lists;
 
 abstract class OffsetCache<T> {
 
@@ -28,9 +35,35 @@ abstract class OffsetCache<T> {
 
     private int length = 0;
 
-    private int[] offsets = NO_OFFSETS;
+    private int[] offsets;
 
-    private Object[] values = NO_VALUES;
+    private Object[] values;
+
+    OffsetCache() {
+        offsets = NO_OFFSETS;
+        values = NO_VALUES;
+    }
+
+    OffsetCache(Map<T, RecordId> entries) {
+        List<Map.Entry<T, RecordId>> list =
+                Lists.newArrayList(entries.entrySet());
+        Collections.sort(list, new Comparator<Map.Entry<T, RecordId>>() {
+            @Override
+            public int compare(Entry<T, RecordId> a, Entry<T, RecordId> b) {
+                return Integer.valueOf(a.getValue().getOffset()).compareTo(
+                        Integer.valueOf(b.getValue().getOffset()));
+            }
+        });
+
+        int n = list.size();
+        offsets = new int[n];
+        values = new Object[n];
+        for (int i = 0; i < n; i++) {
+            Entry<T, RecordId> entry = list.get(i);
+            offsets[i] = entry.getValue().getOffset();
+            values[i] = entry.getKey();
+        }
+    }
 
     @SuppressWarnings("unchecked")
     public synchronized T get(int offset) {
