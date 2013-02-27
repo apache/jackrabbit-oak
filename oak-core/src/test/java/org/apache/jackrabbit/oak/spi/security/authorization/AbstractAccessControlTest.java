@@ -22,6 +22,7 @@ import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
+import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -78,6 +79,10 @@ public abstract class AbstractAccessControlTest extends AbstractSecurityTest {
             restrictionProvider = getSecurityProvider().getAccessControlConfiguration().getRestrictionProvider(getNamePathMapper());
         }
         return restrictionProvider;
+    }
+
+    protected PrincipalManager getPrincipalManager() {
+        return getSecurityProvider().getPrincipalConfiguration().getPrincipalManager(root, getNamePathMapper());
     }
 
     protected PrivilegeManager getPrivilegeManager() {
