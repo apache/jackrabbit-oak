@@ -16,18 +16,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
-import java.io.File;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
-import com.google.common.cache.RemovalListener;
-import com.google.common.cache.RemovalNotification;
-import com.google.common.cache.Weigher;
 
 /**
  * Combined memory and disk cache for segments.
