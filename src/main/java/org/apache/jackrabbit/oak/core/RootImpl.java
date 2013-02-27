@@ -94,7 +94,7 @@ public class RootImpl implements Root {
     private TreeImpl rootTree;
 
     /**
-     * Number of {@link #updated} occurred so since the lase
+     * Number of {@link #updated} occurred so since the last
      * purge.
      */
     private int modCount;
