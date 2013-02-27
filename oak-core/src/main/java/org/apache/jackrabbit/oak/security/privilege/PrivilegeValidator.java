@@ -120,12 +120,6 @@ class PrivilegeValidator implements PrivilegeConstants, Validator {
         }
     }
 
-    private void validateBits(PrivilegeBits bits, PrivilegeBits expectedNext) throws CommitFailedException {
-        if (!expectedNext.equals(bits.nextBits())) {
-            throw new CommitFailedException("PrivilegeBits violation: Expected " + expectedNext + "; Found" + bits + '.');
-        }
-    }
-
     @Nonnull
     private Tree getPrivilegesTree(Root root) throws CommitFailedException {
         Tree privilegesTree = root.getTree(PRIVILEGES_PATH);
