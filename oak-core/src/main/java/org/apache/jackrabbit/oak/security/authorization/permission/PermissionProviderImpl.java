@@ -46,6 +46,8 @@ import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 /**
  * PermissionProviderImpl... TODO
  * <p/>
@@ -124,7 +126,8 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
     @Override
     public boolean isGranted(@Nonnull Tree tree, long permissions) {
         if (isVersionContent(tree)) {
-            return compiledPermissions.isGranted(getVersionablePath(tree, null), permissions);
+            String path = getVersionablePath(tree, null);
+            return path != null && compiledPermissions.isGranted(path, permissions);
         } else {
             return compiledPermissions.isGranted(tree, permissions);
         }
@@ -133,7 +136,8 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
     @Override
     public boolean isGranted(@Nonnull Tree parent, @Nonnull PropertyState property, long permissions) {
         if (isVersionContent(parent)) {
-            return compiledPermissions.isGranted(getVersionablePath(parent, property), permissions);
+            String path = getVersionablePath(parent, property);
+            return path != null && compiledPermissions.isGranted(path, permissions);
         } else {
             return compiledPermissions.isGranted(parent, property, permissions);
         }
@@ -146,10 +150,15 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
         if (!location.exists()) {
             // TODO: deal with version content
             return compiledPermissions.isGranted(oakPath, permissions);
-        } else if (location.getProperty() != null) {
-            return isGranted(location.getTree(), location.getProperty(), permissions);
+        }
+
+        PropertyState property = location.getProperty();
+        if (property != null) {
+            Tree parent = location.getParent().getTree();
+            return parent != null && isGranted(parent, property, permissions);
         } else {
-            return isGranted(location.getTree(), permissions);
+            Tree tree = location.getTree();
+            return tree != null && isGranted(tree, permissions);
         }
     }
 
@@ -217,7 +226,7 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
         Tree t = versionStoreTree;
         while (t != null && !JcrConstants.JCR_VERSIONSTORAGE.equals(t.getName())) {
             String name = t.getName();
-            String ntName = TreeUtil.getPrimaryTypeName(t);
+            String ntName = checkNotNull(TreeUtil.getPrimaryTypeName(t));
             if (VersionConstants.JCR_FROZENNODE.equals(name) && t != versionStoreTree) {
                 relPath = PathUtils.relativize(t.getPath(), versionStoreTree.getPath());
             } else if (JcrConstants.NT_VERSIONHISTORY.equals(ntName)) {
