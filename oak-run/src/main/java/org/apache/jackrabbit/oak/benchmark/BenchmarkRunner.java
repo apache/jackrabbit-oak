@@ -34,12 +34,16 @@ import com.google.common.collect.Sets;
 
 public class BenchmarkRunner {
 
+    private static final long MB = 1024 * 1024;
+
     public static void main(String[] args) throws Exception {
         OptionParser parser = new OptionParser();
         OptionSpec<String> host = parser.accepts("host", "MongoDB host")
                 .withRequiredArg().defaultsTo("localhost");
         OptionSpec<Integer> port = parser.accepts("port", "MongoDB port")
                 .withRequiredArg().ofType(Integer.class).defaultsTo(27017);
+        OptionSpec<Integer> cache = parser.accepts("cache", "cache size (MB)")
+                .withRequiredArg().ofType(Integer.class).defaultsTo(100);
         OptionSpec<File> wikipedia =
                 parser.accepts("wikipedia", "Wikipedia dump")
                 .withRequiredArg().ofType(File.class);
@@ -50,7 +54,9 @@ public class BenchmarkRunner {
                 OakRepositoryFixture.getMemory(),
                 OakRepositoryFixture.getDefault(),
                 OakRepositoryFixture.getMongo(host.value(options), port.value(options)),
-                OakRepositoryFixture.getSegment(host.value(options), port.value(options))
+                OakRepositoryFixture.getSegment(
+                        host.value(options), port.value(options),
+                        cache.value(options) * MB)
         };
         Benchmark[] allBenchmarks = new Benchmark[] {
             new LoginTest(),
