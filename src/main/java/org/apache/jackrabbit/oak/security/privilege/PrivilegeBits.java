@@ -66,7 +66,6 @@ public final class PrivilegeBits implements PrivilegeConstants {
     public static final PrivilegeBits EMPTY = new PrivilegeBits(UnmodifiableData.EMPTY);
 
     static final Map<String, PrivilegeBits> BUILT_IN = new HashMap<String, PrivilegeBits>();
-
     static {
         BUILT_IN.put(REP_READ_NODES, getInstance(READ_NODES));
         BUILT_IN.put(REP_READ_PROPERTIES, getInstance(READ_PROPERTIES));
@@ -99,6 +98,8 @@ public final class PrivilegeBits implements PrivilegeConstants {
 
     /**
      * Private constructor.
+     *
+     * @param d The data that backs this instance.
      */
     private PrivilegeBits(Data d) {
         this.d = d;
@@ -186,7 +187,6 @@ public final class PrivilegeBits implements PrivilegeConstants {
             return new PrivilegeBits(new UnmodifiableData(bits));
         }
     }
-
 
     /**
      * Internal method to create a new instance of {@code PrivilegeBits}.
@@ -525,10 +525,9 @@ public final class PrivilegeBits implements PrivilegeConstants {
     /**
      * Immutable Data object
      */
-    private static class UnmodifiableData extends Data {
+    private static final class UnmodifiableData extends Data {
 
         private static final long MAX = Long.MAX_VALUE / 2;
-
         private static final UnmodifiableData EMPTY = new UnmodifiableData(NO_PRIVILEGE);
 
         private final long bits;
@@ -610,7 +609,7 @@ public final class PrivilegeBits implements PrivilegeConstants {
         //---------------------------------------------------------< Object >---
         @Override
         public int hashCode() {
-            return (isSimple) ? new Long(bits).hashCode() : Arrays.hashCode(bitsArr);
+            return (isSimple) ? Long.valueOf(bits).hashCode() : Arrays.hashCode(bitsArr);
         }
 
         @Override
@@ -636,7 +635,7 @@ public final class PrivilegeBits implements PrivilegeConstants {
     /**
      * Mutable implementation of the Data base class.
      */
-    private static class ModifiableData extends Data {
+    private static final class ModifiableData extends Data {
 
         private long[] bits;
 
