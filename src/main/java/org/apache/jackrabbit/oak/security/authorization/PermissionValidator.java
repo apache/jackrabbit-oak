@@ -33,6 +33,8 @@ import org.apache.jackrabbit.oak.spi.security.authorization.Permissions;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 /**
  * Validator implementation that checks for sufficient permission for all
  * write operations executed by a given content session.
@@ -91,7 +93,7 @@ class PermissionValidator implements Validator {
 
     @Override
     public Validator childNodeAdded(String name, NodeState after) throws CommitFailedException {
-        Tree child = parentAfter.getChild(name);
+        Tree child = checkNotNull(parentAfter.getChild(name));
         return checkPermissions(child, false, Permissions.ADD_NODE);
     }
 
@@ -107,7 +109,7 @@ class PermissionValidator implements Validator {
 
     @Override
     public Validator childNodeDeleted(String name, NodeState before) throws CommitFailedException {
-        Tree child = parentBefore.getChild(name);
+        Tree child = checkNotNull(parentBefore.getChild(name));
         return checkPermissions(child, true, Permissions.REMOVE_NODE);
     }
 
