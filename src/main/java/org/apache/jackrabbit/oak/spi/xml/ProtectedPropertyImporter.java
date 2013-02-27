@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.xml;
 
+import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.PropertyDefinition;
 
@@ -41,7 +42,7 @@ public interface ProtectedPropertyImporter extends ProtectedItemImporter {
      * {@code false} otherwise.
      * @throws javax.jcr.RepositoryException If an error occurs.
      */
-    boolean handlePropInfo(Tree parent, PropInfo protectedPropInfo,
-                           PropertyDefinition def) throws RepositoryException;
+    boolean handlePropInfo(@Nonnull Tree parent, @Nonnull PropInfo protectedPropInfo,
+                           @Nonnull PropertyDefinition def) throws RepositoryException;
 
 }
