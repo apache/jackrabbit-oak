@@ -56,7 +56,7 @@ public class KernelNodeStoreCacheTest {
         store = new KernelNodeStore(wrapper);
         NodeStoreBranch branch = store.branch();
 
-        NodeBuilder builder = branch.getRoot().builder();
+        NodeBuilder builder = branch.getHead().builder();
         builder.child("a");
         NodeBuilder b = builder.child("b");
         b.child("c");
@@ -140,7 +140,7 @@ public class KernelNodeStoreCacheTest {
 
     private void modifyContent() throws Exception {
         NodeStoreBranch branch = store.branch();
-        NodeBuilder builder = branch.getRoot().builder();
+        NodeBuilder builder = branch.getHead().builder();
         builder.child("a").setProperty("foo", "bar");
         branch.setRoot(builder.getNodeState());
         branch.merge(EmptyHook.INSTANCE);

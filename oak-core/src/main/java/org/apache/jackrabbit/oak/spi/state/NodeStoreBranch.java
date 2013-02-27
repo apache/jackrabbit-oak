@@ -30,6 +30,8 @@ public interface NodeStoreBranch {
 
     /**
      * Returns the base state of this branch.
+     * The base state is the state of the tree as it was at the time
+     * {@link NodeStore#branch()} was used to obtain this instance.
      *
      * @return root node state
      */
@@ -37,13 +39,17 @@ public interface NodeStoreBranch {
     NodeState getBase();
 
     /**
-     * Returns the latest state of the branch.
+     * Returns the head state of this branch.
+     * The head state is the state resulting from the
+     * base state by applying all subsequent modifications to this branch
+     * by {@link #setRoot(NodeState)}, {@link #move(String, String)},
+     * and {@link #copy(String, String)}.
      *
      * @return root node state
      * @throws IllegalStateException if the branch is already merged
      */
     @Nonnull
-    NodeState getRoot();
+    NodeState getHead();
 
     /**
      * Updates the state of the content tree of this private branch.

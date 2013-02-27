@@ -16,9 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.concurrent.atomic.AtomicReference;
@@ -29,6 +26,9 @@ import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 
 /**
  * Basic in-memory node store implementation. Useful as a base class for
@@ -85,7 +85,7 @@ public class MemoryNodeStore implements NodeStore {
         }
 
         @Override
-        public NodeState getRoot() {
+        public NodeState getHead() {
             checkNotMerged();
             return root;
         }
