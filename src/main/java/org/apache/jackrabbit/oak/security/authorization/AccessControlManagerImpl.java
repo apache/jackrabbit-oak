@@ -58,7 +58,6 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.plugins.memory.MemoryPropertyBuilder;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.security.authorization.restriction.PrincipalRestrictionProvider;
 import org.apache.jackrabbit.oak.security.principal.PrincipalImpl;
@@ -72,6 +71,7 @@ import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restrict
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 import org.apache.jackrabbit.oak.spi.state.PropertyBuilder;
 import org.apache.jackrabbit.oak.util.NodeUtil;
+import org.apache.jackrabbit.oak.util.PropertyUtil;
 import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.apache.jackrabbit.util.ISO9075;
 import org.apache.jackrabbit.util.Text;
@@ -402,7 +402,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
             if (mixins == null) {
                 tree.setProperty(JcrConstants.JCR_MIXINTYPES, Collections.singleton(mixinName), Type.NAMES);
             } else {
-                PropertyBuilder pb = MemoryPropertyBuilder.copy(Type.NAME, mixins);
+                PropertyBuilder pb = PropertyUtil.getPropertyBuilder(Type.NAME, mixins);
                 pb.addValue(mixinName);
                 tree.setProperty(pb.getPropertyState());
             }
