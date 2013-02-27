@@ -38,14 +38,14 @@ abstract class AuthorizableBaseProvider implements UserConstants {
     final Root root;
     final IdentifierManager identifierManager;
 
-    AuthorizableBaseProvider(Root root, ConfigurationParameters config) {
+    AuthorizableBaseProvider(@Nonnull Root root, @Nonnull ConfigurationParameters config) {
         this.root = checkNotNull(root);
         this.config = checkNotNull(config);
         this.identifierManager = new IdentifierManager(root);
     }
 
     @CheckForNull
-    Tree getByID(String authorizableId, AuthorizableType authorizableType) {
+    Tree getByID(@Nonnull String authorizableId, @Nonnull AuthorizableType authorizableType) {
         Tree tree = identifierManager.getTree(getContentID(authorizableId));
         if (UserUtility.isType(tree, authorizableType)) {
             return tree;
@@ -55,7 +55,7 @@ abstract class AuthorizableBaseProvider implements UserConstants {
     }
 
     @CheckForNull
-    Tree getByPath(String authorizableOakPath) {
+    Tree getByPath(@Nonnull String authorizableOakPath) {
         Tree tree = root.getTree(authorizableOakPath);
         if (UserUtility.isType(tree, AuthorizableType.AUTHORIZABLE)) {
             return tree;
@@ -65,12 +65,12 @@ abstract class AuthorizableBaseProvider implements UserConstants {
     }
 
     @Nonnull
-    String getContentID(Tree authorizableTree) {
+    String getContentID(@Nonnull Tree authorizableTree) {
         return identifierManager.getIdentifier(authorizableTree);
     }
 
     @Nonnull
-    static String getContentID(String authorizableId) {
+    static String getContentID(@Nonnull String authorizableId) {
         return IdentifierManager.generateUUID(authorizableId.toLowerCase());
     }
 }
