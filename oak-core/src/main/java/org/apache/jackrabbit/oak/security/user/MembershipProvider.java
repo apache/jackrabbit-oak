@@ -31,13 +31,13 @@ import org.apache.jackrabbit.commons.iterator.RangeIteratorAdapter;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.plugins.memory.MemoryPropertyBuilder;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtility;
 import org.apache.jackrabbit.oak.spi.state.PropertyBuilder;
 import org.apache.jackrabbit.oak.util.NodeUtil;
+import org.apache.jackrabbit.oak.util.PropertyUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -231,12 +231,11 @@ class MembershipProvider extends AuthorizableBaseProvider {
     //-----------------------------------------< private MembershipProvider >---
 
     private PropertyBuilder<String> getMembersPropertyBuilder(Tree groupTree) {
-        // FIXME: remove usage of MemoryPropertyBuilder (OAK-372)
         PropertyState property = groupTree.getProperty(REP_MEMBERS);
         if (property == null) {
-            return MemoryPropertyBuilder.array(WEAKREFERENCE, REP_MEMBERS);
+            return PropertyUtil.getPropertyBuilder(WEAKREFERENCE, REP_MEMBERS, true);
         } else {
-            return MemoryPropertyBuilder.copy(WEAKREFERENCE, property);
+            return PropertyUtil.getPropertyBuilder(WEAKREFERENCE, property);
         }
     }
 
