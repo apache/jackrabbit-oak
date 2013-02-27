@@ -109,35 +109,40 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
 
         Subject subject = Subject.getSubject(AccessController.getContext());
         Set<Principal> principals = (subject != null) ? subject.getPrincipals() : Collections.<Principal>emptySet();
+        // FIXME: keep permission provider up to date.
         permissionProvider = acConfig.getPermissionProvider(root, principals);
         restrictionProvider = acConfig.getRestrictionProvider(namePathMapper);
         ntMgr = ReadOnlyNodeTypeManager.getInstance(root, namePathMapper);
     }
 
     //-----------------------------------------------< AccessControlManager >---
+    @Nonnull
     @Override
-    public Privilege[] getSupportedPrivileges(String absPath) throws RepositoryException {
+    public Privilege[] getSupportedPrivileges(@Nullable String absPath) throws RepositoryException {
         checkValidPath(absPath);
         return privilegeManager.getRegisteredPrivileges();
     }
 
+    @Nonnull
     @Override
-    public Privilege privilegeFromName(String privilegeName) throws RepositoryException {
+    public Privilege privilegeFromName(@Nonnull String privilegeName) throws RepositoryException {
         return privilegeManager.getPrivilege(privilegeName);
     }
 
     @Override
-    public boolean hasPrivileges(String absPath, Privilege[] privileges) throws RepositoryException {
+    public boolean hasPrivileges(@Nullable String absPath, @Nonnull Privilege[] privileges) throws RepositoryException {
         return hasPrivileges(absPath, privileges, permissionProvider);
     }
 
+    @Nonnull
     @Override
-    public Privilege[] getPrivileges(String absPath) throws RepositoryException {
+    public Privilege[] getPrivileges(@Nullable String absPath) throws RepositoryException {
         return getPrivileges(absPath, permissionProvider);
     }
 
+    @Nonnull
     @Override
-    public AccessControlPolicy[] getPolicies(String absPath) throws RepositoryException {
+    public AccessControlPolicy[] getPolicies(@Nullable String absPath) throws RepositoryException {
         String oakPath = getOakPath(absPath);
         Tree tree = getTree(oakPath);
         AccessControlPolicy policy = createACL(oakPath, tree, false);
@@ -148,8 +153,9 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
         }
     }
 
+    @Nonnull
     @Override
-    public AccessControlPolicy[] getEffectivePolicies(String absPath) throws RepositoryException {
+    public AccessControlPolicy[] getEffectivePolicies(@Nullable String absPath) throws RepositoryException {
         String oakPath = getOakPath(absPath);
         Tree tree = getTree(oakPath);
         List<AccessControlPolicy> effective = new ArrayList<AccessControlPolicy>();
@@ -171,8 +177,9 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
         return effective.toArray(new AccessControlPolicy[effective.size()]);
     }
 
+    @Nonnull
     @Override
-    public AccessControlPolicyIterator getApplicablePolicies(String absPath) throws RepositoryException {
+    public AccessControlPolicyIterator getApplicablePolicies(@Nullable String absPath) throws RepositoryException {
         String oakPath = getOakPath(absPath);
         Tree tree = getTree(oakPath);
 
@@ -202,7 +209,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
     }
 
     @Override
-    public void setPolicy(String absPath, AccessControlPolicy policy) throws RepositoryException {
+    public void setPolicy(@Nullable String absPath, @Nonnull AccessControlPolicy policy) throws RepositoryException {
         String oakPath = getOakPath(absPath);
         checkValidPolicy(oakPath, policy);
 
@@ -247,7 +254,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
     }
 
     @Override
-    public void removePolicy(String absPath, AccessControlPolicy policy) throws RepositoryException {
+    public void removePolicy(@Nullable String absPath, @Nonnull AccessControlPolicy policy) throws RepositoryException {
         String oakPath = getOakPath(absPath);
         checkValidPolicy(oakPath, policy);
 
@@ -266,8 +273,9 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
     }
 
     //-------------------------------------< JackrabbitAccessControlManager >---
+    @Nonnull
     @Override
-    public JackrabbitAccessControlPolicy[] getApplicablePolicies(Principal principal) throws RepositoryException {
+    public JackrabbitAccessControlPolicy[] getApplicablePolicies(@Nonnull Principal principal) throws RepositoryException {
         Result aceResult = searchAces(Collections.<Principal>singleton(principal));
         if (aceResult.getSize() > 0) {
             return new JackrabbitAccessControlPolicy[0];
@@ -276,8 +284,9 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
         }
     }
 
+    @Nonnull
     @Override
-    public JackrabbitAccessControlPolicy[] getPolicies(Principal principal) throws RepositoryException {
+    public JackrabbitAccessControlPolicy[] getPolicies(@Nonnull Principal principal) throws RepositoryException {
         Result aceResult = searchAces(Collections.<Principal>singleton(principal));
         if (aceResult.getSize() > 0) {
             return new JackrabbitAccessControlPolicy[]{createPrincipalACL(principal, aceResult)};
@@ -286,8 +295,9 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
         }
     }
 
+    @Nonnull
     @Override
-    public AccessControlPolicy[] getEffectivePolicies(Set<Principal> principals) throws RepositoryException {
+    public AccessControlPolicy[] getEffectivePolicies(@Nonnull Set<Principal> principals) throws RepositoryException {
         Result aceResult = searchAces(principals);
         List<AccessControlPolicy> effective = new ArrayList<AccessControlPolicy>();
         for (ResultRow row : aceResult.getRows()) {
@@ -310,20 +320,20 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
     }
 
     @Override
-    public boolean hasPrivileges(String absPath, Set<Principal> principals, Privilege[] privileges) throws RepositoryException {
+    public boolean hasPrivileges(@Nullable String absPath, @Nonnull Set<Principal> principals, @Nonnull Privilege[] privileges) throws RepositoryException {
         PermissionProvider provider = acConfig.getPermissionProvider(root, principals);
         return hasPrivileges(absPath, privileges, provider);
     }
 
     @Override
-    public Privilege[] getPrivileges(String absPath, Set<Principal> principals) throws RepositoryException {
+    public Privilege[] getPrivileges(@Nullable String absPath, @Nonnull Set<Principal> principals) throws RepositoryException {
         PermissionProvider provider = acConfig.getPermissionProvider(root, principals);
         return getPrivileges(absPath, provider);
     }
 
     //------------------------------------------------------------< private >---
     @CheckForNull
-    private String getOakPath(String jcrPath) throws RepositoryException {
+    private String getOakPath(@Nullable String jcrPath) throws RepositoryException {
         if (jcrPath == null) {
             return null;
         } else {
@@ -359,7 +369,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
         getTree(getOakPath(jcrPath));
     }
 
-    private static void checkValidPolicy(@Nullable String oakPath, @Nullable AccessControlPolicy policy) throws AccessControlException {
+    private static void checkValidPolicy(@Nullable String oakPath, @Nonnull AccessControlPolicy policy) throws AccessControlException {
         if (policy instanceof ACL) {
             String path = ((ACL) policy).getOakPath();
             if ((path == null && oakPath != null) || (path != null && !path.equals(oakPath))) {
@@ -370,11 +380,11 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
         }
     }
 
-    private boolean isAccessControlled(@Nonnull Tree tree, @Nonnull String nodeTypeName) throws RepositoryException {
+    private boolean isAccessControlled(@Nonnull Tree tree, @Nonnull String nodeTypeName) {
         return ntMgr.isNodeType(tree, nodeTypeName);
     }
 
-    private boolean isACE(@Nonnull Tree tree) throws RepositoryException {
+    private boolean isACE(@Nonnull Tree tree) {
         return ntMgr.isNodeType(tree, NT_REP_ACE);
     }
 
@@ -382,10 +392,9 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
      * @param oakPath the Oak path as specified with the ac mgr call.
      * @param tree    the access controlled node.
      * @return the new acl tree.
-     * @throws RepositoryException if an error occurs
      */
     @Nonnull
-    private NodeUtil createAclNode(@Nullable String oakPath, @Nonnull Tree tree) throws RepositoryException {
+    private NodeUtil createAclNode(@Nullable String oakPath, @Nonnull Tree tree) {
         String mixinName = getMixinName(oakPath);
 
         if (!isAccessControlled(tree, mixinName)) {
@@ -458,8 +467,9 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
     }
 
     @Nonnull
-    private JackrabbitAccessControlEntry createACE(String oakPath, Tree aceTree,
-                                                   RestrictionProvider restrictionProvider) throws RepositoryException {
+    private JackrabbitAccessControlEntry createACE(@Nullable String oakPath,
+                                                   @Nonnull Tree aceTree,
+                                                   @Nonnull RestrictionProvider restrictionProvider) throws RepositoryException {
         boolean isAllow = NT_REP_GRANT_ACE.equals(TreeUtil.getPrimaryTypeName(aceTree));
         Set<Restriction> restrictions = restrictionProvider.readRestrictions(oakPath, aceTree);
         return new ACE(getPrincipal(aceTree), getPrivileges(aceTree), isAllow, restrictions);
@@ -519,7 +529,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
     }
 
     @Nonnull
-    private Privilege[] getPrivileges(String absPath, PermissionProvider provider) throws RepositoryException {
+    private Privilege[] getPrivileges(@Nullable String absPath, @Nonnull PermissionProvider provider) throws RepositoryException {
         // TODO
         String oakPath = getOakPath(absPath);
         Tree tree = getTree(oakPath);
@@ -535,7 +545,8 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
         }
     }
 
-    private boolean hasPrivileges(String absPath, Privilege[] privileges, PermissionProvider provider) throws RepositoryException {
+    private boolean hasPrivileges(@Nullable String absPath, @Nonnull Privilege[] privileges,
+                                  @Nonnull PermissionProvider provider) throws RepositoryException {
         // TODO
         String oakPath = getOakPath(absPath);
         Tree tree = getTree(oakPath);
@@ -547,7 +558,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
     }
 
     @CheckForNull
-    private NodeUtil getAclNode(@Nullable String oakPath, @Nonnull Tree accessControlledTree) throws RepositoryException {
+    private NodeUtil getAclNode(@Nullable String oakPath, @Nonnull Tree accessControlledTree) {
         if (isAccessControlled(accessControlledTree, getMixinName(oakPath))) {
             Tree policyTree = accessControlledTree.getChild(getAclName(oakPath));
             if (policyTree != null) {

@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.spi.security.authorization;
 
 import javax.jcr.NamespaceRegistry;
+import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
@@ -26,7 +27,6 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.name.ReadWriteNamespaceRegistry;
-import org.apache.jackrabbit.oak.security.authorization.AccessControlManagerImpl;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 
 /**
@@ -65,9 +65,12 @@ public abstract class AbstractAccessControlTest extends AbstractSecurityTest {
     }
 
     protected JackrabbitAccessControlManager getAccessControlManager(Root root) {
-        // TODO
-        //acMgr = securityProvider.getAccessControlConfiguration().getAccessControlManager(root, NamePathMapper.DEFAULT);
-        return new AccessControlManagerImpl(root, getNamePathMapper(), getSecurityProvider());
+        AccessControlManager acMgr = securityProvider.getAccessControlConfiguration().getAccessControlManager(root, NamePathMapper.DEFAULT);
+        if (acMgr instanceof JackrabbitAccessControlManager) {
+            return (JackrabbitAccessControlManager) acMgr;
+        } else {
+            throw new UnsupportedOperationException("Expected JackrabbitAccessControlManager found " + acMgr.getClass());
+        }
     }
 
     protected RestrictionProvider getRestrictionProvider() {
