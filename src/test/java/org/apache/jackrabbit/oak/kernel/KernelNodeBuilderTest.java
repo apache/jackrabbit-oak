@@ -49,7 +49,7 @@ public class KernelNodeBuilderTest {
 
     private static void init(NodeStore store) throws CommitFailedException {
         NodeStoreBranch branch = store.branch();
-        NodeBuilder builder = branch.getRoot().builder();
+        NodeBuilder builder = branch.getHead().builder();
         builder.child("x").child("y").child("z");
         branch.setRoot(builder.getNodeState());
         branch.merge(EmptyHook.INSTANCE);
@@ -57,7 +57,7 @@ public class KernelNodeBuilderTest {
 
     private static void run(NodeStore store) throws CommitFailedException {
         NodeStoreBranch branch = store.branch();
-        NodeBuilder builder = branch.getRoot().builder();
+        NodeBuilder builder = branch.getHead().builder();
 
         assertTrue("child node x should be present", builder.hasChildNode("x"));
         assertTrue("child node x/y should be present", builder.child("x")

@@ -50,7 +50,7 @@ public class KernelNodeStateTest {
         NodeStore store = new KernelNodeStore(new MicroKernelImpl());
         NodeStoreBranch branch = store.branch();
 
-        NodeBuilder builder = branch.getRoot().builder();
+        NodeBuilder builder = branch.getHead().builder();
         builder.setProperty("a", 1);
         builder.setProperty("b", 2);
         builder.setProperty("c", 3);

@@ -376,7 +376,7 @@ public class RootImpl implements Root {
     }
 
     NodeBuilder createRootBuilder() {
-        return branch.getRoot().builder();
+        return branch.getHead().builder();
     }
 
     // TODO better way to determine purge limit. See OAK-175
@@ -405,7 +405,7 @@ public class RootImpl implements Root {
      * Reset the root builder to the branch's current root state
      */
     private void reset() {
-        rootTree.getNodeBuilder().reset(branch.getRoot());
+        rootTree.getNodeBuilder().reset(branch.getHead());
     }
 
 }

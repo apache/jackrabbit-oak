@@ -70,7 +70,7 @@ public class KernelNodeStoreTest {
     public void branch() throws CommitFailedException {
         NodeStoreBranch branch = store.branch();
 
-        NodeBuilder rootBuilder = branch.getRoot().builder();
+        NodeBuilder rootBuilder = branch.getHead().builder();
         NodeBuilder testBuilder = rootBuilder.child("test");
         NodeBuilder newNodeBuilder = testBuilder.child("newNode");
 
@@ -85,14 +85,14 @@ public class KernelNodeStoreTest {
         assertEquals(42, (long) testState.getChildNode("newNode").getProperty("n").getValue(LONG));
 
         // Assert changes are not yet present in the branch
-        testState = branch.getRoot().getChildNode("test");
+        testState = branch.getHead().getChildNode("test");
         assertNull(testState.getChildNode("newNode"));
         assertNotNull(testState.getChildNode("x"));
 
         branch.setRoot(rootBuilder.getNodeState());
 
         // Assert changes are present in the branch
-        testState = branch.getRoot().getChildNode("test");
+        testState = branch.getHead().getChildNode("test");
         assertNotNull(testState.getChildNode("newNode"));
         assertNull(testState.getChildNode("x"));
         assertEquals(42, (long) testState.getChildNode("newNode").getProperty("n").getValue(LONG));

@@ -67,7 +67,7 @@ public class NodeTypeIndexTest {
     @Test
     public void nodeType() throws Exception {
         NodeStoreBranch branch = store.branch();
-        NodeBuilder root = branch.getRoot().builder();
+        NodeBuilder root = branch.getHead().builder();
 
         root.removeNode("rep:security"); // interferes with tests
         addFolder(root, "folder-1");
