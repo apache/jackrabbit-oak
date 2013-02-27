@@ -105,7 +105,8 @@ public abstract class OakRepositoryFixture implements RepositoryFixture {
         };
     }
 
-    public static RepositoryFixture getSegment(final String host, final int port) {
+    public static RepositoryFixture getSegment(
+            final String host, final int port, final long cacheSize) {
         return new OakRepositoryFixture("Oak-Segment") {
             private Mongo mongo;
             @Override
@@ -113,7 +114,8 @@ public abstract class OakRepositoryFixture implements RepositoryFixture {
                 Repository[] cluster = new Repository[n];
                 mongo = new Mongo(host, port);
                 for (int i = 0; i < cluster.length; i++) {
-                    SegmentStore store = new MongoStore(mongo.getDB(unique));
+                    SegmentStore store =
+                            new MongoStore(mongo.getDB(unique), cacheSize);
                     Oak oak = new Oak(new SegmentNodeStore(store));
                     cluster[i] = new Jcr(oak).createRepository();
                 }

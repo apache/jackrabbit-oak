@@ -53,13 +53,13 @@ public class MongoStore implements SegmentStore {
         }
     }
 
-    public MongoStore(DB db) {
-        this(db, new SegmentCache());
+    public MongoStore(DB db, long cacheSize) {
+        this(db, new SegmentCache(cacheSize));
     }
 
 
-    public MongoStore(Mongo mongo) {
-        this(mongo.getDB("Oak"));
+    public MongoStore(Mongo mongo, long cacheSize) {
+        this(mongo.getDB("Oak"), cacheSize);
     }
 
     @Override
