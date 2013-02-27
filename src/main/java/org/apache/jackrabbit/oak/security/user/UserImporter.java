@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.jcr.ImportUUIDBehavior;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -333,12 +334,12 @@ public class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImp
     // ---------------------------------------------< ProtectedNodeImporter >---
     @Override
     public boolean start(Tree protectedParent) throws RepositoryException {
-        if (NT_REP_MEMBERS.equals(TreeUtil.getPrimaryTypeName(protectedParent))) {
+        if (isMemberNode(protectedParent)) {
             Tree groupTree = protectedParent;
-            while (!groupTree.isRoot() && NT_REP_MEMBERS.equals(TreeUtil.getPrimaryTypeName(groupTree))) {
+            while (isMemberNode(groupTree)) {
                 groupTree = groupTree.getParent();
             }
-            Authorizable auth = userManager.getAuthorizable(groupTree);
+            Authorizable auth = (groupTree == null) ? null : userManager.getAuthorizable(groupTree);
             if (auth == null) {
                 log.debug("Cannot handle protected node " + protectedParent + ". It nor one of its parents represent a valid Authorizable.");
                 return false;
@@ -401,6 +402,14 @@ public class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImp
     private boolean isValid(PropertyDefinition definition, String oakNodeTypeName, boolean multipleStatus) {
         return multipleStatus == definition.isMultiple() &&
                 definition.getDeclaringNodeType().isNodeType(namePathMapper.getJcrName(oakNodeTypeName));
+    }
+
+    private static boolean isMemberNode(@Nullable Tree tree) {
+        if (tree == null) {
+            return false;
+        } else {
+            return NT_REP_MEMBERS.equals(TreeUtil.getPrimaryTypeName(tree));
+        }
     }
 
     /**
@@ -557,7 +566,7 @@ public class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImp
                 throw new RepositoryException(userId + " does not represent a valid user.");
             }
 
-            Impersonation imp = ((User) a).getImpersonation();
+            Impersonation imp = checkNotNull(((User) a).getImpersonation());
 
             // 1. collect principals to add and to remove.
             Map<String, Principal> toRemove = new HashMap<String, Principal>();
@@ -594,15 +603,17 @@ public class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImp
             }
 
             if (!nonExisting.isEmpty()) {
-                Tree userTree = root.getTree(a.getPath());
+                Tree userTree = checkNotNull(root.getTree(a.getPath()));
                 // copy over all existing impersonators to the nonExisting list
-                PropertyState impersonators = userTree.getProperty(REP_PRINCIPAL_NAME);
-                for (String existing : impersonators.getValue(STRINGS)) {
-                    nonExisting.add(existing);
+                PropertyState impersonators = userTree.getProperty(REP_IMPERSONATORS);
+                if (impersonators != null) {
+                    for (String existing : impersonators.getValue(STRINGS)) {
+                        nonExisting.add(existing);
+                    }
                 }
                 // and write back the complete list including those principal
                 // names that are unknown to principal provider.
-                userTree.setProperty(REP_PRINCIPAL_NAME, nonExisting, Type.STRINGS);
+                userTree.setProperty(REP_IMPERSONATORS, nonExisting, Type.STRINGS);
             }
         }
     }

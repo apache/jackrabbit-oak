@@ -69,7 +69,7 @@ class ResultRowToAuthorizable implements Function<ResultRow, Authorizable> {
                 tree = tree.getParent();
                 type = UserUtility.getType(tree);
             }
-            if (type != null && (targetType == null || targetType == type)) {
+            if (tree != null && (targetType == null || targetType == type)) {
                 authorizable = userManager.getAuthorizableByPath(tree.getPath());
             }
         } catch (RepositoryException e) {

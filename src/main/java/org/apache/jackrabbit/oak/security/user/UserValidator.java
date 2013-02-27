@@ -56,7 +56,7 @@ class UserValidator extends DefaultValidator implements UserConstants {
         this.parentAfter = parentAfter;
         this.provider = provider;
 
-        authorizableType = (parentAfter == null) ? null : UserUtility.getType(parentAfter);
+        authorizableType = UserUtility.getType(parentAfter);
     }
 
     //----------------------------------------------------------< Validator >---
@@ -175,7 +175,7 @@ class UserValidator extends DefaultValidator implements UserConstants {
 
     private static boolean isValidUUID(@Nonnull Tree parent, @Nonnull String uuid) {
         String id = UserProvider.getAuthorizableId(parent);
-        return uuid.equals(UserProvider.getContentID(id));
+        return id != null && uuid.equals(UserProvider.getContentID(id));
     }
 
     private static boolean isUser(@Nullable Tree tree) {
