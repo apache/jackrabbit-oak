@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.spi.security.user.util;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
@@ -35,16 +36,16 @@ public final class UserUtility implements UserConstants {
     }
 
     @Nonnull
-    public static String getAdminId(ConfigurationParameters parameters) {
+    public static String getAdminId(@Nonnull ConfigurationParameters parameters) {
         return parameters.getConfigValue(PARAM_ADMIN_ID, DEFAULT_ADMIN_ID);
     }
 
     @Nonnull
-    public static String getAnonymousId(ConfigurationParameters parameters) {
+    public static String getAnonymousId(@Nonnull ConfigurationParameters parameters) {
         return parameters.getConfigValue(PARAM_ANONYMOUS_ID, DEFAULT_ANONYMOUS_ID);
     }
 
-    public static boolean isType(Tree authorizableTree, AuthorizableType type) {
+    public static boolean isType(@Nullable Tree authorizableTree, @Nonnull AuthorizableType type) {
         // FIXME: check for node type according to the specified type constraint
         if (authorizableTree != null) {
             String ntName = TreeUtil.getPrimaryTypeName(authorizableTree);
@@ -61,8 +62,8 @@ public final class UserUtility implements UserConstants {
     }
 
     @CheckForNull
-    public static AuthorizableType getType(@Nonnull Tree authorizableNode) {
-        String ntName = TreeUtil.getPrimaryTypeName(authorizableNode);
+    public static AuthorizableType getType(@Nullable Tree authorizableNode) {
+        String ntName = (authorizableNode == null) ? null : TreeUtil.getPrimaryTypeName(authorizableNode);
         if (ntName != null) {
             if (UserConstants.NT_REP_GROUP.equals(ntName)) {
                 return AuthorizableType.GROUP;
