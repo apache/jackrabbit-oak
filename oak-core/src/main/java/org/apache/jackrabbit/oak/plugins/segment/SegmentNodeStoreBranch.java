@@ -58,7 +58,7 @@ class SegmentNodeStoreBranch implements NodeStoreBranch {
     }
 
     @Override @Nonnull
-    public synchronized NodeState getRoot() {
+    public synchronized NodeState getHead() {
         return new SegmentNodeState(reader, rootId);
     }
 
@@ -74,7 +74,7 @@ class SegmentNodeStoreBranch implements NodeStoreBranch {
         if (!baseId.equals(newBaseId)) {
             NodeBuilder builder =
                     new MemoryNodeBuilder(new SegmentNodeState(reader, newBaseId));
-            getRoot().compareAgainstBaseState(getBase(), new RebaseDiff(builder));
+            getHead().compareAgainstBaseState(getBase(), new RebaseDiff(builder));
             this.baseId = newBaseId;
             this.rootId = writer.writeNode(builder.getNodeState()).getRecordId();
             writer.flush();
@@ -91,14 +91,14 @@ class SegmentNodeStoreBranch implements NodeStoreBranch {
             // rebase to latest head and apply commit hooks
             rebase();
             RecordId headId = writer.writeNode(
-                    hook.processCommit(getBase(), getRoot())).getRecordId();
+                    hook.processCommit(getBase(), getHead())).getRecordId();
             writer.flush();
 
             // use optimistic locking to update the journal
             if (store.setJournalHead(journal, headId, baseId)) {
                 baseId = headId;
                 rootId = headId;
-                return getRoot();
+                return getHead();
             }
 
             // someone else was faster, so clear state and try again later
@@ -124,7 +124,7 @@ class SegmentNodeStoreBranch implements NodeStoreBranch {
             return true;
         }
 
-        NodeBuilder builder = getRoot().builder();
+        NodeBuilder builder = getHead().builder();
 
         NodeBuilder targetBuilder = builder;
         String targetParent = PathUtils.getParentPath(target);
@@ -164,7 +164,7 @@ class SegmentNodeStoreBranch implements NodeStoreBranch {
 
     @Override
     public boolean copy(String source, String target) {
-        NodeBuilder builder = getRoot().builder();
+        NodeBuilder builder = getHead().builder();
 
         NodeBuilder targetBuilder = builder;
         String targetParent = PathUtils.getParentPath(target);

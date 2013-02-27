@@ -71,7 +71,7 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
     }
 
     @Override
-    public NodeState getRoot() {
+    public NodeState getHead() {
         checkNotMerged();
         return head;
     }
@@ -80,7 +80,7 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
     public void setRoot(NodeState newRoot) {
         checkNotMerged();
         if (!head.equals(newRoot)) {
-            NodeState oldRoot = head;
+            NodeState oldHead = head;
             head = newRoot;
             if (++updates > 1) {
                 // persist unless this is the first update
@@ -90,7 +90,7 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
                     success = true;
                 } finally {
                     if (!success) {
-                        head = oldRoot;
+                        head = oldHead;
                     }
                 }
             }
@@ -143,7 +143,7 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
     public NodeState merge(CommitHook hook) throws CommitFailedException {
         checkNotMerged();
         NodeState toCommit = checkNotNull(hook).processCommit(base, head);
-            NodeState oldRoot = head;
+        NodeState oldRoot = head;
         head = toCommit;
 
         try {
@@ -189,7 +189,7 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
             // Nothing written to persistent branch yet
             // perform rebase in memory
             NodeBuilder builder = new MemoryNodeBuilder(root);
-            getRoot().compareAgainstBaseState(getBase(), new RebaseDiff(builder));
+            getHead().compareAgainstBaseState(getBase(), new RebaseDiff(builder));
             head = builder.getNodeState();
             base = root;
             baseRevision = root.getRevision();
@@ -211,7 +211,7 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
 
     private NodeState getNode(String path) {
         checkArgument(path.startsWith("/"));
-        NodeState node = getRoot();
+        NodeState node = getHead();
         for (String name : elements(path)) {
             node = node.getChildNode(name);
             if (node == null) {

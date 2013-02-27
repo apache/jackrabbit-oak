@@ -45,7 +45,7 @@ public class LargeKernelNodeStateTest {
         NodeStore store = new KernelNodeStore(new MicroKernelImpl());
         NodeStoreBranch branch = store.branch();
 
-        NodeBuilder builder = branch.getRoot().builder();
+        NodeBuilder builder = branch.getHead().builder();
         builder.setProperty("a", 1);
         for (int i = 0; i <= N; i++) {
             builder.child("x" + i);

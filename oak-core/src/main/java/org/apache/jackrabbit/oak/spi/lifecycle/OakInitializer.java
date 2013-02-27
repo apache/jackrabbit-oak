@@ -35,7 +35,7 @@ public class OakInitializer {
                                   @Nonnull RepositoryInitializer initializer,
                                   @Nonnull IndexHookProvider indexHook) {
         NodeStoreBranch branch = store.branch();
-        NodeState before = branch.getRoot();
+        NodeState before = branch.getHead();
         branch.setRoot(initializer.initialize(before));
         try {
             branch.merge(IndexHookManager.of(indexHook));
@@ -51,7 +51,7 @@ public class OakInitializer {
                                   @Nonnull QueryIndexProvider indexProvider,
                                   @Nonnull CommitHook commitHook) {
         NodeStoreBranch branch = store.branch();
-        NodeState root = branch.getRoot();
+        NodeState root = branch.getHead();
         for (WorkspaceInitializer wspInit : initializer) {
             root = wspInit.initialize(root, workspaceName, indexHook, indexProvider, commitHook);
         }
