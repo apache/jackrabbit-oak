@@ -109,7 +109,6 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
 
         Subject subject = Subject.getSubject(AccessController.getContext());
         Set<Principal> principals = (subject != null) ? subject.getPrincipals() : Collections.<Principal>emptySet();
-        // FIXME: keep permission provider up to date.
         permissionProvider = acConfig.getPermissionProvider(root, principals);
         restrictionProvider = acConfig.getRestrictionProvider(namePathMapper);
         ntMgr = ReadOnlyNodeTypeManager.getInstance(root, namePathMapper);
@@ -131,12 +130,14 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
 
     @Override
     public boolean hasPrivileges(@Nullable String absPath, @Nonnull Privilege[] privileges) throws RepositoryException {
+        permissionProvider.refresh();
         return hasPrivileges(absPath, privileges, permissionProvider);
     }
 
     @Nonnull
     @Override
     public Privilege[] getPrivileges(@Nullable String absPath) throws RepositoryException {
+        permissionProvider.refresh();
         return getPrivileges(absPath, permissionProvider);
     }
 

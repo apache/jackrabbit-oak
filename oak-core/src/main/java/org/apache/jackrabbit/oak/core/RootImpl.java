@@ -78,10 +78,9 @@ public class RootImpl implements Root {
 
     private final Subject subject;
 
-    /**
-     * The security provider.
-     */
     private final SecurityProvider securityProvider;
+
+    private final QueryIndexProvider indexProvider;
 
     /**
      * Current branch this root operates on
@@ -99,7 +98,7 @@ public class RootImpl implements Root {
      */
     private int modCount;
 
-    private final QueryIndexProvider indexProvider;
+    private PermissionProvider permissionProvider;
 
     /**
      * New instance bases on a given {@link NodeStore} and a workspace
@@ -228,6 +227,7 @@ public class RootImpl implements Root {
             purgePendingChanges();
             branch.rebase();
             rootTree = TreeImpl.createRoot(this);
+            permissionProvider = createPermissionProvider();
         }
     }
 
@@ -237,6 +237,11 @@ public class RootImpl implements Root {
         branch = store.branch();
         rootTree = TreeImpl.createRoot(this);
         modCount = 0;
+        if (permissionProvider == null) {
+            permissionProvider = createPermissionProvider();
+        } else {
+            permissionProvider.refresh();
+        }
     }
 
     @Override
@@ -355,6 +360,7 @@ public class RootImpl implements Root {
         };
     }
 
+    @Nonnull
     private QueryIndexProvider getIndexProvider() {
         if (hasPendingChanges()) {
             return new UUIDDiffIndexProviderWrapper(indexProvider,
@@ -375,6 +381,7 @@ public class RootImpl implements Root {
         return branch.getBase();
     }
 
+    @Nonnull
     NodeBuilder createRootBuilder() {
         return branch.getHead().builder();
     }
@@ -387,8 +394,9 @@ public class RootImpl implements Root {
         }
     }
 
+    @Nonnull
     PermissionProvider getPermissionProvider() {
-        return securityProvider.getAccessControlConfiguration().getPermissionProvider(this, subject.getPrincipals());
+        return permissionProvider;
     }
 
     //------------------------------------------------------------< private >---
@@ -408,4 +416,7 @@ public class RootImpl implements Root {
         rootTree.getNodeBuilder().reset(branch.getHead());
     }
 
+    private PermissionProvider createPermissionProvider() {
+        return  securityProvider.getAccessControlConfiguration().getPermissionProvider(this, subject.getPrincipals());
+    }
 }

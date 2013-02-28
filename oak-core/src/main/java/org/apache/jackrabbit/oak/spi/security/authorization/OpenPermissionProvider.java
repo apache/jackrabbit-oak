@@ -39,6 +39,11 @@ public final class OpenPermissionProvider implements PermissionProvider {
         return INSTANCE;
     }
 
+    @Override
+    public void refresh() {
+        // nothing to do
+    }
+
     @Nonnull
     @Override
     public Set<String> getPrivileges(@Nullable Tree tree) {

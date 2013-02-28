@@ -28,6 +28,8 @@ import org.apache.jackrabbit.oak.api.Tree;
  */
 public interface PermissionProvider {
 
+    void refresh();
+
     @Nonnull
     Set<String> getPrivileges(@Nullable Tree tree);
 
