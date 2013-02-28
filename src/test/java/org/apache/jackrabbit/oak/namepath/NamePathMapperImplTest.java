@@ -24,6 +24,7 @@ import javax.jcr.RepositoryException;
 
 import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -56,6 +57,7 @@ public class NamePathMapperImplTest {
     private NamePathMapper npMapper = new NamePathMapperImpl(mapper);
 
     @Test
+    @Ignore("OAK-658")
     public void testInvalidIdentifierPath() {
         String uuid = IdentifierManager.generateUUID();
         List<String> invalid = new ArrayList<String>();
@@ -168,6 +170,7 @@ public class NamePathMapperImplTest {
     }
 
     @Test
+    @Ignore("OAK-658")
     public void testInvalidJcrPaths() {
         String[] paths = {"//", "/foo//", "/..//", "/..", "/foo/../.."};
 

@@ -149,11 +149,12 @@ public class NamePathMapperImpl implements NamePathMapper {
         // identifier path?
         if (length > 0 && jcrPath.charAt(0) == '[') {
             if (jcrPath.charAt(length - 1) != ']') {
-                String msg = "Could not parse path " + jcrPath + ": invalid or unterminated identifier";
-                log.debug(msg);
-                throw new IllegalArgumentException(msg);
+                // TODO error handling?
+                log.debug("Could not parse path " + jcrPath + ": unterminated identifier");
+                return null;
             }
             if (this.idManager == null) {
+                // TODO error handling?
                 log.debug("Could not parse path " + jcrPath + ": could not resolve identifier");
                 return null;
             }
@@ -195,9 +196,8 @@ public class NamePathMapperImpl implements NamePathMapper {
                     return jcrPath;
                 }
                 else {
-                    String msg = "Invalid path: " + jcrPath;
-                    log.debug(msg);
-                    throw new IllegalArgumentException(msg);
+                    log.debug("Invalid path: {}", jcrPath);
+                    return null;
                 }
             }
         }
@@ -207,18 +207,18 @@ public class NamePathMapperImpl implements NamePathMapper {
         PathListener listener = new PathListener() {
             @Override
             public void error(String message) {
-                throw new IllegalArgumentException(message);
+                parseErrors.append(message);
             }
 
             @Override
             public boolean name(String name, int index) {
                 if (!keepIndex && index > 1) {
-                    parseErrors.append("index > 1");
+                    error("index > 1");
                     return false;
                 }
                 String p = nameMapper.getOakNameOrNull(name);
                 if (p == null) {
-                    parseErrors.append("Invalid name: ").append(name);
+                    error("Invalid name: " + name);
                     return false;
                 }
                 if (keepIndex && index > 0) {
