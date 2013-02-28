@@ -261,6 +261,7 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
                 NodeState branchHead = store.getRootState(headRevision);
                 if (head.equals(branchHead)) {
                     // nothing to persist
+                    success = true;
                     return;
                 } else {
                     head.compareAgainstBaseState(branchHead, diff);
