@@ -51,7 +51,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 /**
  * PermissionProviderImpl... TODO
  * <p/>
- * FIXME: permissions need to be refreshed if something changes in the permission tree
  * FIXME: define read/write access patterns on version-store content
  * FIXME: proper access permissions on activity-store and configuration-store
  */
