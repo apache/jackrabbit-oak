@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.plugins.nodetype;
 import java.util.List;
 
 import javax.jcr.Value;
-import javax.jcr.ValueFactory;
 import javax.jcr.nodetype.PropertyDefinition;
 import javax.jcr.query.qom.QueryObjectModelConstants;
 
@@ -63,9 +62,8 @@ class PropertyDefinitionImpl extends ItemDefinitionImpl implements PropertyDefin
 
     private static final Value[] NO_VALUES = new Value[0];
 
-    public PropertyDefinitionImpl(
-            Tree definition, ValueFactory factory, NamePathMapper mapper) {
-        super(definition, factory, mapper);
+    PropertyDefinitionImpl(Tree definition, NamePathMapper mapper) {
+        super(definition, mapper);
     }
 
     /**

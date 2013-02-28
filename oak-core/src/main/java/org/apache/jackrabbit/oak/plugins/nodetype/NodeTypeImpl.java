@@ -30,7 +30,6 @@ import javax.annotation.CheckForNull;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
-import javax.jcr.ValueFactory;
 import javax.jcr.nodetype.NoSuchNodeTypeException;
 import javax.jcr.nodetype.NodeDefinition;
 import javax.jcr.nodetype.NodeType;
@@ -93,8 +92,8 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
 
     private static final String[] NO_NAMES = new String[0];
 
-    NodeTypeImpl(Tree type, ValueFactory factory, NamePathMapper mapper) {
-        super(type, factory, mapper);
+    NodeTypeImpl(Tree type, NamePathMapper mapper) {
+        super(type, mapper);
     }
 
     private String getOakName() {
@@ -165,8 +164,7 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
         List<PropertyDefinition> definitions = Lists.newArrayList();
         for (Tree child : definition.getChildren()) {
             if (child.getName().startsWith(JCR_PROPERTYDEFINITION)) {
-                definitions.add(
-                        new PropertyDefinitionImpl(child, factory, mapper));
+                definitions.add(new PropertyDefinitionImpl(child, mapper));
             }
         }
         return definitions.toArray(NO_PROPERTY_DEFINITIONS);
@@ -177,8 +175,7 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
         List<NodeDefinition> definitions = Lists.newArrayList();
         for (Tree child : definition.getChildren()) {
             if (child.getName().startsWith(JCR_CHILDNODEDEFINITION)) {
-                definitions.add(
-                        new NodeDefinitionImpl(child, factory, mapper));
+                definitions.add(new NodeDefinitionImpl(child, mapper));
             }
         }
         return definitions.toArray(NO_NODE_DEFINITIONS);
@@ -200,7 +197,7 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
                     Tree supertype = root.getChild(oakName);
                     checkState(supertype != null);
                     supertypes.put(
-                            oakName, new NodeTypeImpl(supertype, factory, mapper));
+                            oakName, new NodeTypeImpl(supertype, mapper));
                     addSupertypes(supertype, supertypes);
                 }
             }
@@ -217,7 +214,7 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
             for (int i = 0; i < oakNames.length; i++) {
                 Tree type = root.getChild(oakNames[i]);
                 checkState(type != null);
-                supertypes[i] = new NodeTypeImpl(type, factory, mapper);
+                supertypes[i] = new NodeTypeImpl(type, mapper);
             }
         }
         return supertypes;
@@ -256,8 +253,7 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
             for (String subname : subnames) {
                 if (!subtypes.containsKey(subname)) {
                     Tree tree = root.getChild(subname);
-                    subtypes.put(
-                            subname, new NodeTypeImpl(tree, factory, mapper));
+                    subtypes.put(subname, new NodeTypeImpl(tree, mapper));
                 }
             }
         }
@@ -274,7 +270,7 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
             if (supertypes != null) {
                 for (String name : supertypes.getValue(Type.NAMES)) {
                     if (oakName.equals(name)) {
-                        subtypes.add(new NodeTypeImpl(child, factory, mapper));
+                        subtypes.add(new NodeTypeImpl(child, mapper));
                         break;
                     }
                 }
