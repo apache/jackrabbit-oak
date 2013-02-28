@@ -26,6 +26,7 @@ import javax.jcr.security.AccessControlManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.version.VersionablePathHook;
+import org.apache.jackrabbit.oak.security.authorization.permission.PermissionStoreValidatorProvider;
 import org.apache.jackrabbit.oak.security.authorization.permission.PermissionValidatorProvider;
 import org.apache.jackrabbit.oak.security.authorization.restriction.RestrictionProviderImpl;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
@@ -85,7 +86,10 @@ public class AccessControlConfigurationImpl extends SecurityConfiguration.Defaul
             @Nonnull
             @Override
             public CommitHook getCommitHook(@Nonnull final String workspaceName) {
-                return new ValidatingHook(new PermissionValidatorProvider(securityProvider, workspaceName), new AccessControlValidatorProvider(securityProvider));
+                return new ValidatingHook(
+                        new PermissionStoreValidatorProvider(),
+                        new PermissionValidatorProvider(securityProvider, workspaceName),
+                        new AccessControlValidatorProvider(securityProvider));
             }
         };
     }
