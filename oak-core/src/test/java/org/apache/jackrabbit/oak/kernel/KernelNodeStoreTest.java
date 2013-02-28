@@ -18,12 +18,19 @@
  */
 package org.apache.jackrabbit.oak.kernel;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.plugins.memory.MultiStringPropertyState;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
+import org.apache.jackrabbit.oak.spi.state.EmptyNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
@@ -34,6 +41,7 @@ import static org.apache.jackrabbit.oak.api.Type.LONG;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 public class KernelNodeStoreTest {
 
@@ -181,6 +189,129 @@ public class KernelNodeStoreTest {
         assertNull(test.getChildNode("a"));
         assertEquals(42, (long) test.getChildNode("newNode").getProperty("n").getValue(LONG));
         assertEquals(test, store.getRoot().getChildNode("test"));
+    }
+
+    @Test
+    public void manyChildNodes() throws CommitFailedException {
+        NodeStoreBranch branch = store.branch();
+        NodeBuilder root = branch.getHead().builder();
+        NodeBuilder parent = root.child("parent");
+        for (int i = 0; i <= KernelNodeState.MAX_CHILD_NODE_NAMES; i++) {
+            parent.child("child-" + i);
+        }
+        branch.setRoot(root.getNodeState());
+        branch.merge(EmptyHook.INSTANCE);
+
+        NodeState base = store.getRoot();
+        branch = store.branch();
+        root = branch.getHead().builder();
+        parent = root.child("parent");
+        parent.child("child-new");
+        branch.setRoot(root.getNodeState());
+        branch.merge(EmptyHook.INSTANCE);
+
+        Diff diff = new Diff();
+        store.getRoot().compareAgainstBaseState(base, diff);
+
+        assertEquals(0, diff.removed.size());
+        assertEquals(1, diff.added.size());
+        assertEquals("child-new", diff.added.get(0));
+
+        base = store.getRoot();
+        branch = store.branch();
+        branch.move("/parent/child-new", "/parent/child-moved");
+        branch.merge(EmptyHook.INSTANCE);
+
+        diff = new Diff();
+        store.getRoot().compareAgainstBaseState(base, diff);
+
+        assertEquals(1, diff.removed.size());
+        assertEquals("child-new", diff.removed.get(0));
+        assertEquals(1, diff.added.size());
+        assertEquals("child-moved", diff.added.get(0));
+
+        base = store.getRoot();
+        branch = store.branch();
+        root = branch.getHead().builder();
+        parent = root.child("parent");
+        parent.child("child-moved").setProperty("foo", "value");
+        parent.child("child-moved").setProperty(
+                new MultiStringPropertyState("bar", Arrays.asList("value")));
+        branch.setRoot(root.getNodeState());
+        branch.merge(EmptyHook.INSTANCE);
+
+        diff = new Diff();
+        store.getRoot().compareAgainstBaseState(base, diff);
+
+        assertEquals(0, diff.removed.size());
+        assertEquals(0, diff.added.size());
+        assertEquals(2, diff.addedProperties.size());
+        assertTrue(diff.addedProperties.contains("foo"));
+        assertTrue(diff.addedProperties.contains("bar"));
+
+        base = store.getRoot();
+        branch = store.branch();
+        root = branch.getHead().builder();
+        parent = root.child("parent");
+        parent.setProperty("foo", "value");
+        parent.setProperty(new MultiStringPropertyState(
+                "bar", Arrays.asList("value")));
+        branch.setRoot(root.getNodeState());
+        branch.merge(EmptyHook.INSTANCE);
+
+        diff = new Diff();
+        store.getRoot().compareAgainstBaseState(base, diff);
+
+        assertEquals(0, diff.removed.size());
+        assertEquals(0, diff.added.size());
+        assertEquals(2, diff.addedProperties.size());
+        assertTrue(diff.addedProperties.contains("foo"));
+        assertTrue(diff.addedProperties.contains("bar"));
+
+        base = store.getRoot();
+        branch = store.branch();
+        root = branch.getHead().builder();
+        parent = root.child("parent");
+        parent.removeNode("child-moved");
+        branch.setRoot(root.getNodeState());
+        branch.merge(EmptyHook.INSTANCE);
+
+        diff = new Diff();
+        store.getRoot().compareAgainstBaseState(base, diff);
+
+        assertEquals(1, diff.removed.size());
+        assertEquals(0, diff.added.size());
+        assertEquals("child-moved", diff.removed.get(0));
+
+    }
+
+    private static class Diff extends EmptyNodeStateDiff {
+
+        List<String> addedProperties = new ArrayList<String>();
+        List<String> added = new ArrayList<String>();
+        List<String> removed = new ArrayList<String>();
+
+        @Override
+        public void childNodeAdded(String name, NodeState after) {
+            added.add(name);
+        }
+
+        @Override
+        public void childNodeDeleted(String name, NodeState before) {
+            removed.add(name);
+        }
+
+        @Override
+        public void childNodeChanged(String name,
+                                     NodeState before,
+                                     NodeState after) {
+            after.compareAgainstBaseState(before, this);
+        }
+
+        @Override
+        public void propertyAdded(PropertyState after) {
+            addedProperties.add(after.getName());
+        }
     }
 
 }

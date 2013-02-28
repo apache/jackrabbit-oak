@@ -98,25 +98,7 @@ public abstract class AbstractNodeState implements NodeState {
      */
     @Override
     public void compareAgainstBaseState(NodeState base, NodeStateDiff diff) {
-        Set<String> baseProperties = new HashSet<String>();
-        for (PropertyState beforeProperty : base.getProperties()) {
-            String name = beforeProperty.getName();
-            PropertyState afterProperty = getProperty(name);
-            if (afterProperty == null) {
-                diff.propertyDeleted(beforeProperty);
-            } else {
-                baseProperties.add(name);
-                if (!beforeProperty.equals(afterProperty)) {
-                    diff.propertyChanged(beforeProperty, afterProperty);
-                }
-            }
-        }
-        for (PropertyState afterProperty : getProperties()) {
-            if (!baseProperties.contains(afterProperty.getName())) {
-                diff.propertyAdded(afterProperty);
-            }
-        }
-
+        comparePropertiesAgainstBaseState(base, diff);
         Set<String> baseChildNodes = new HashSet<String>();
         for (ChildNodeEntry beforeCNE : base.getChildNodeEntries()) {
             String name = beforeCNE.getName();
@@ -217,6 +199,35 @@ public abstract class AbstractNodeState implements NodeState {
     @Override
     public int hashCode() {
         return 0;
+    }
+
+    /**
+     * Compares the properties of <code>base</code> state with <code>this</code>
+     * state.
+     *
+     * @param base the base node state.
+     * @param diff the node state diff.
+     */
+    protected void comparePropertiesAgainstBaseState(NodeState base,
+                                                     NodeStateDiff diff) {
+        Set<String> baseProperties = new HashSet<String>();
+        for (PropertyState beforeProperty : base.getProperties()) {
+            String name = beforeProperty.getName();
+            PropertyState afterProperty = getProperty(name);
+            if (afterProperty == null) {
+                diff.propertyDeleted(beforeProperty);
+            } else {
+                baseProperties.add(name);
+                if (!beforeProperty.equals(afterProperty)) {
+                    diff.propertyChanged(beforeProperty, afterProperty);
+                }
+            }
+        }
+        for (PropertyState afterProperty : getProperties()) {
+            if (!baseProperties.contains(afterProperty.getName())) {
+                diff.propertyAdded(afterProperty);
+            }
+        }
     }
 
     //-----------------------------------------------------------< private >--

@@ -65,7 +65,7 @@ public final class KernelNodeState extends AbstractNodeState {
     /**
      * Maximum number of child nodes kept in memory.
      */
-    static final int MAX_CHILD_NODE_NAMES = 10000;
+    static final int MAX_CHILD_NODE_NAMES = 1000;
 
     private final MicroKernel kernel;
 
@@ -278,11 +278,12 @@ public final class KernelNodeState extends AbstractNodeState {
                         return; // no differences
                     } else if (id != null && id.equals(kbase.id)) {
                         return; // no differences
-                    } else if (path.equals(kbase.path) && !path.equals("/")) {
+                    } else if (path.equals(kbase.path)
+                            && childNodeCount > MAX_CHILD_NODE_NAMES) {
+                        // use MK.diff() when there are 'many' child nodes
                         String jsonDiff = kernel.diff(kbase.getRevision(), revision, path, 0);
-                        if (!hasChanges(jsonDiff)) {
-                            return; // no differences
-                        }
+                        processJsonDiff(jsonDiff, kbase, diff);
+                        return;
                     }
                 }
             }
@@ -347,6 +348,81 @@ public final class KernelNodeState extends AbstractNodeState {
 
     private boolean hasChanges(String journal) {
         return !journal.trim().isEmpty();
+    }
+
+    /**
+     * Process the given JSON diff, which is the diff of of the <code>base</code>
+     * node state to this node state.
+     *
+     * @param jsonDiff the JSON diff.
+     * @param base the base node state.
+     * @param diff where diffs are reported to.
+     */
+    private void processJsonDiff(String jsonDiff,
+                                 KernelNodeState base,
+                                 NodeStateDiff diff) {
+        if (!hasChanges(jsonDiff)) {
+            return;
+        }
+        comparePropertiesAgainstBaseState(base, diff);
+        JsopTokenizer t = new JsopTokenizer(jsonDiff);
+        while (true) {
+            int r = t.read();
+            if (r == JsopReader.END) {
+                break;
+            }
+            switch (r) {
+                case '+': {
+                    String path = t.readString();
+                    t.read(':');
+                    t.read('{');
+                    while (t.read() != '}') {
+                        // skip properties
+                    }
+                    String name = PathUtils.getName(path);
+                    diff.childNodeAdded(name, getChildNode(name));
+                    break;
+                }
+                case '-': {
+                    String path = t.readString();
+                    String name = PathUtils.getName(path);
+                    diff.childNodeDeleted(name, base.getChildNode(name));
+                    break;
+                }
+                case '^': {
+                    String path = t.readString();
+                    t.read(':');
+                    if (t.matches('{')) {
+                        t.read('}');
+                        String name = PathUtils.getName(path);
+                        diff.childNodeChanged(name,
+                                base.getChildNode(name), getChildNode(name));
+                    } else if (t.matches('[')) {
+                        // ignore multi valued property
+                        while (t.read() != ']') {
+                            // skip values
+                        }
+                    } else {
+                        // ignore single valued property
+                        t.read();
+                    }
+                    break;
+                }
+                case '>': {
+                    String from = t.readString();
+                    t.read(':');
+                    String to = t.readString();
+                    String fromName = PathUtils.getName(from);
+                    diff.childNodeDeleted(fromName, base.getChildNode(fromName));
+                    String toName = PathUtils.getName(to);
+                    diff.childNodeAdded(toName, getChildNode(toName));
+                    break;
+                }
+                default:
+                    throw new IllegalArgumentException("jsonDiff: illegal token '"
+                            + t.getToken() + "' at pos: " + t.getLastPos() + " " + jsonDiff);
+            }
+        }
     }
 
     private Iterable<ChildNodeEntry> getChildNodeEntries(
