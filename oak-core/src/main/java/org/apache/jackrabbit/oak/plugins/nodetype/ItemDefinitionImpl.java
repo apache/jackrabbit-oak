@@ -16,14 +16,14 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype;
 
+import javax.jcr.ValueFactory;
 import javax.jcr.nodetype.ItemDefinition;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.version.OnParentVersionAction;
 
 import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.oak.util.NodeUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 
 /**
  * <pre>
@@ -37,55 +37,62 @@ import org.slf4j.LoggerFactory;
  *   ...
  * </pre>
  */
-class ItemDefinitionImpl implements ItemDefinition {
+class ItemDefinitionImpl extends AbstractTypeDefinition
+        implements ItemDefinition {
 
-    private static final Logger log = LoggerFactory.getLogger(ItemDefinitionImpl.class);
+    protected ItemDefinitionImpl(
+            Tree definition, ValueFactory factory, NamePathMapper mapper) {
+        super(definition, factory, mapper);
+    }
 
-    private final NodeType type;
-
-    protected final NodeUtil node;
-
-    protected ItemDefinitionImpl(NodeType type, NodeUtil node) {
-        this.type = type;
-        this.node = node;
+    String getOakName() {
+        String oakName = getName(JcrConstants.JCR_NAME);
+        if (oakName == null) {
+            oakName = NodeTypeConstants.RESIDUAL_NAME;
+        }
+        return oakName;
     }
 
     //-----------------------------------------------------< ItemDefinition >---
+
     @Override
     public NodeType getDeclaringNodeType() {
-        return type;
+        return new NodeTypeImpl(definition.getParent(), factory, mapper);
     }
 
     @Override
     public String getName() {
-        return node.getName(JcrConstants.JCR_NAME, NodeTypeConstants.RESIDUAL_NAME);
+        String oakName = getName(JcrConstants.JCR_NAME);
+        if (oakName != null) {
+            return mapper.getJcrName(oakName);
+        } else {
+            return NodeTypeConstants.RESIDUAL_NAME;
+        }
     }
 
     @Override
     public boolean isAutoCreated() {
-        return node.getBoolean(JcrConstants.JCR_AUTOCREATED);
+        return getBoolean(JcrConstants.JCR_AUTOCREATED);
     }
 
     @Override
     public boolean isMandatory() {
-        return node.getBoolean(JcrConstants.JCR_MANDATORY);
+        return getBoolean(JcrConstants.JCR_MANDATORY);
     }
 
     @Override
     public int getOnParentVersion() {
-        try {
-            return OnParentVersionAction.valueFromName(node.getString(
-                    "jcr:onParentVersion",
-                    OnParentVersionAction.ACTIONNAME_COPY));
-        } catch (IllegalArgumentException e) {
-            log.warn("Unexpected jcr:onParentVersion value", e);
+        String action = getString(JcrConstants.JCR_ONPARENTVERSION);
+        if (action != null) {
+            return OnParentVersionAction.valueFromName(action);
+        } else {
             return OnParentVersionAction.COPY;
         }
     }
 
     @Override
     public boolean isProtected() {
-        return node.getBoolean(JcrConstants.JCR_PROTECTED);
+        return getBoolean(JcrConstants.JCR_PROTECTED);
     }
 
     @Override
@@ -93,8 +100,4 @@ class ItemDefinitionImpl implements ItemDefinition {
         return getName();
     }
 
-    //-----------------------------------------------------------< internal >---
-    String getOakName() {
-        return node.getString(JcrConstants.JCR_NAME, NodeTypeConstants.RESIDUAL_NAME);
-    }
 }

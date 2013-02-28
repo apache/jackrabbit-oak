@@ -61,7 +61,6 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.util.NodeUtil;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static javax.jcr.PropertyType.UNDEFINED;
@@ -191,10 +190,10 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
         List<NodeType> list = Lists.newArrayList();
         Tree types = getTypes();
         if (types != null) {
+            ValueFactory factory = getValueFactory();
+            NamePathMapper mapper = getNamePathMapper();
             for (Tree type : types.getChildren()) {
-                list.add(new NodeTypeImpl(this, getValueFactory(),
-                        new NodeUtil(type, getNamePathMapper())));
-
+                list.add(new NodeTypeImpl(type, factory, mapper));
             }
         }
         return new NodeTypeIteratorAdapter(list);
@@ -470,14 +469,17 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
     //-----------------------------------------------------------< internal >---
 
     NodeTypeImpl internalGetNodeType(String oakName) throws NoSuchNodeTypeException {
+        ValueFactory factory = getValueFactory();
+        NamePathMapper mapper = getNamePathMapper();
+
         Tree types = getTypes();
         if (types != null) {
             Tree type = types.getChild(oakName);
             if (type != null) {
-                return new NodeTypeImpl(this, getValueFactory(), new NodeUtil(type, getNamePathMapper()));
+                return new NodeTypeImpl(type, factory, mapper);
             }
         }
-        throw new NoSuchNodeTypeException(getNamePathMapper().getJcrName(oakName));
+        throw new NoSuchNodeTypeException(mapper.getJcrName(oakName));
     }
 
     //------------------------------------------------------------< private >---

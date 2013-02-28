@@ -16,18 +16,15 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype;
 
-import java.util.ArrayList;
-import java.util.List;
+import static com.google.common.base.Preconditions.checkState;
 
-import javax.jcr.RepositoryException;
+import javax.jcr.ValueFactory;
 import javax.jcr.nodetype.NodeDefinition;
 import javax.jcr.nodetype.NodeType;
-import javax.jcr.nodetype.NodeTypeManager;
 
 import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.oak.util.NodeUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 
 /**
  * <pre>
@@ -40,57 +37,68 @@ import org.slf4j.LoggerFactory;
  */
 class NodeDefinitionImpl extends ItemDefinitionImpl implements NodeDefinition {
 
-    private static final Logger log = LoggerFactory.getLogger(NodeDefinitionImpl.class);
-
-    private final NodeTypeManager manager;
-
-    protected NodeDefinitionImpl(NodeTypeManager manager, NodeType type, NodeUtil node) {
-        super(type, node);
-        this.manager = manager;
+    protected NodeDefinitionImpl(
+            Tree definition, ValueFactory factory, NamePathMapper mapper) {
+        super(definition, factory, mapper);
     }
 
     //-----------------------------------------------------< NodeDefinition >---
+
     @Override
     public String[] getRequiredPrimaryTypeNames() {
-        return node.getNames(JcrConstants.JCR_REQUIREDPRIMARYTYPES, JcrConstants.NT_BASE);
+        String[] names = getNames(JcrConstants.JCR_REQUIREDPRIMARYTYPES);
+        if (names == null) {
+            names = new String[] { JcrConstants.NT_BASE };
+        }
+        for (int i = 0; i < names.length; i++) {
+            names[i] = mapper.getJcrName(names[i]);
+        }
+        return names;
     }
 
     @Override
     public NodeType[] getRequiredPrimaryTypes() {
-        String[] names = getRequiredPrimaryTypeNames();
-        List<NodeType> types = new ArrayList<NodeType>(names.length);
-        for (String name : names) {
-            try {
-                types.add(manager.getNodeType(name));
-            } catch (RepositoryException e) {
-                log.warn("Unable to access required primary type "
-                        + name + " of node " + getName(), e);
-            }
+        String[] oakNames = getNames(JcrConstants.JCR_REQUIREDPRIMARYTYPES);
+        if (oakNames == null) {
+            oakNames = new String[] { JcrConstants.NT_BASE };
         }
-        return types.toArray(new NodeType[types.size()]);
+
+        NodeType[] types = new NodeType[oakNames.length];
+        Tree root = definition.getParent().getParent();
+        for (int i = 0; i < oakNames.length; i++) {
+            Tree type = root.getChild(oakNames[i]);
+            checkState(type != null);
+            types[i] = new NodeTypeImpl(type, factory, mapper);
+        }
+        return types;
     }
 
     @Override
     public String getDefaultPrimaryTypeName() {
-        return node.getName(JcrConstants.JCR_DEFAULTPRIMARYTYPE, null);
+        String oakName = getName(JcrConstants.JCR_DEFAULTPRIMARYTYPE);
+        if (oakName != null) {
+            return mapper.getJcrName(oakName);
+        } else {
+            return null;
+        }
     }
 
     @Override
     public NodeType getDefaultPrimaryType() {
-        String name = getDefaultPrimaryTypeName();
-        if (name != null) {
-            try {
-                return manager.getNodeType(name);
-            } catch (RepositoryException e) {
-                log.warn("Unable to access default primary type "
-                        + name + " of node " + getName(), e);
-            }
+        String oakName = getName(JcrConstants.JCR_DEFAULTPRIMARYTYPE);
+        if (oakName != null) {
+            Tree root = definition.getParent().getParent();
+            Tree type = root.getChild(oakName);
+            checkState(type != null);
+            return new NodeTypeImpl(type, factory, mapper);
+        } else {
+            return null;
         }
-        return null;
     }
 
     @Override
     public boolean allowsSameNameSiblings() {
-        return node.getBoolean(JcrConstants.JCR_SAMENAMESIBLINGS);
+        return getBoolean(JcrConstants.JCR_SAMENAMESIBLINGS);
     }
+
 }

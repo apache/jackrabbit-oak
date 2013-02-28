@@ -16,16 +16,18 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype;
 
+import java.util.List;
+
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
-import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.PropertyDefinition;
 import javax.jcr.query.qom.QueryObjectModelConstants;
 
 import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.oak.util.NodeUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 
 import static javax.jcr.PropertyType.BINARY;
 import static javax.jcr.PropertyType.BOOLEAN;
@@ -37,19 +39,6 @@ import static javax.jcr.PropertyType.NAME;
 import static javax.jcr.PropertyType.PATH;
 import static javax.jcr.PropertyType.REFERENCE;
 import static javax.jcr.PropertyType.STRING;
-import static javax.jcr.PropertyType.TYPENAME_BINARY;
-import static javax.jcr.PropertyType.TYPENAME_BOOLEAN;
-import static javax.jcr.PropertyType.TYPENAME_DATE;
-import static javax.jcr.PropertyType.TYPENAME_DECIMAL;
-import static javax.jcr.PropertyType.TYPENAME_DOUBLE;
-import static javax.jcr.PropertyType.TYPENAME_LONG;
-import static javax.jcr.PropertyType.TYPENAME_NAME;
-import static javax.jcr.PropertyType.TYPENAME_PATH;
-import static javax.jcr.PropertyType.TYPENAME_REFERENCE;
-import static javax.jcr.PropertyType.TYPENAME_STRING;
-import static javax.jcr.PropertyType.TYPENAME_UNDEFINED;
-import static javax.jcr.PropertyType.TYPENAME_URI;
-import static javax.jcr.PropertyType.TYPENAME_WEAKREFERENCE;
 import static javax.jcr.PropertyType.UNDEFINED;
 import static javax.jcr.PropertyType.URI;
 import static javax.jcr.PropertyType.WEAKREFERENCE;
@@ -72,13 +61,11 @@ import static javax.jcr.PropertyType.WEAKREFERENCE;
  */
 class PropertyDefinitionImpl extends ItemDefinitionImpl implements PropertyDefinition {
 
-    private static final Logger log = LoggerFactory.getLogger(PropertyDefinitionImpl.class);
+    private static final Value[] NO_VALUES = new Value[0];
 
-    private final ValueFactory factory;
-
-    public PropertyDefinitionImpl(NodeType type, ValueFactory factory, NodeUtil node) {
-        super(type, node);
-        this.factory = factory;
+    public PropertyDefinitionImpl(
+            Tree definition, ValueFactory factory, NamePathMapper mapper) {
+        super(definition, factory, mapper);
     }
 
     /**
@@ -90,47 +77,48 @@ class PropertyDefinitionImpl extends ItemDefinitionImpl implements PropertyDefin
      *
      * @param name the name of the property type.
      * @return the numeric constant value.
-     * @throws IllegalArgumentException if {@code name} is not a valid property type name.
+     * @throws IllegalStateException if {@code name} is not a valid property type name.
      */
     public static int valueFromName(String name) {
-        if (name.equals(TYPENAME_STRING.toUpperCase())) {
+        if ("STRING".equals(name)) {
             return STRING;
-        } else if (name.equals(TYPENAME_BINARY.toUpperCase())) {
+        } else if ("BINARY".equals(name)) {
             return BINARY;
-        } else if (name.equals(TYPENAME_BOOLEAN.toUpperCase())) {
+        } else if ("BOOLEAN".equals(name)) {
             return BOOLEAN;
-        } else if (name.equals(TYPENAME_LONG.toUpperCase())) {
+        } else if ("LONG".equals(name)) {
             return LONG;
-        } else if (name.equals(TYPENAME_DOUBLE.toUpperCase())) {
+        } else if ("DOUBLE".equals(name)) {
             return DOUBLE;
-        } else if (name.equals(TYPENAME_DECIMAL.toUpperCase())) {
+        } else if ("DECIMAL".equals(name)) {
             return DECIMAL;
-        } else if (name.equals(TYPENAME_DATE.toUpperCase())) {
+        } else if ("DATE".equals(name)) {
             return DATE;
-        } else if (name.equals(TYPENAME_NAME.toUpperCase())) {
+        } else if ("NAME".equals(name)) {
             return NAME;
-        } else if (name.equals(TYPENAME_PATH.toUpperCase())) {
+        } else if ("PATH".equals(name)) {
             return PATH;
-        } else if (name.equals(TYPENAME_REFERENCE.toUpperCase())) {
+        } else if ("REFERENCE".equals(name)) {
             return REFERENCE;
-        } else if (name.equals(TYPENAME_WEAKREFERENCE.toUpperCase())) {
+        } else if ("WEAKREFERENCE".equals(name)) {
             return WEAKREFERENCE;
-        } else if (name.equals(TYPENAME_URI.toUpperCase())) {
+        } else if ("URI".equals(name)) {
             return URI;
-        } else if (name.equals(TYPENAME_UNDEFINED.toUpperCase())) {
+        } else if ("UNDEFINED".equals(name)) {
             return UNDEFINED;
         } else {
-            throw new IllegalArgumentException("unknown type: " + name);
+            throw new IllegalStateException("unknown property type: " + name);
         }
     }
 
     //-------------------------------------------------< PropertyDefinition >---
+
     @Override
     public int getRequiredType() {
-        try {
-            return valueFromName(node.getString(JcrConstants.JCR_REQUIREDTYPE, TYPENAME_UNDEFINED));
-        } catch (IllegalArgumentException e) {
-            log.warn("Unexpected jcr:requiredType value", e);
+        String string = getString(JcrConstants.JCR_REQUIREDTYPE);
+        if (string != null) {
+            return valueFromName(string);
+        } else {
             return UNDEFINED;
         }
     }
@@ -138,33 +126,35 @@ class PropertyDefinitionImpl extends ItemDefinitionImpl implements PropertyDefin
     @Override
     public String[] getValueConstraints() {
         // TODO: namespace mapping?
-        String[] constraints = node.getStrings(JcrConstants.JCR_VALUECONSTRAINTS);
-        if (constraints == null) {
-            constraints = new String[0];
-        }
-        return constraints;
+        return getStrings(JcrConstants.JCR_VALUECONSTRAINTS);
     }
 
     @Override
     public Value[] getDefaultValues() {
-        if (factory != null) {
-            return node.getValues(JcrConstants.JCR_DEFAULTVALUES, factory);
-        } else {
-            log.warn("Cannot create default values: no value factory");
+        PropertyState property =
+                definition.getProperty(JcrConstants.JCR_DEFAULTVALUES);
+        if (property == null) {
             return null;
+        } else if (property.isArray()) {
+            List<Value> values = ValueFactoryImpl.createValues(property, mapper);
+            return values.toArray(NO_VALUES);
+        } else {
+            Value value = ValueFactoryImpl.createValue(property, mapper);
+            return new Value[] { value };
         }
     }
 
     @Override
     public boolean isMultiple() {
-        return node.getBoolean(JcrConstants.JCR_MULTIPLE);
+        return getBoolean(JcrConstants.JCR_MULTIPLE);
     }
 
     @Override
     public String[] getAvailableQueryOperators() {
-        String[] ops = node.getStrings(NodeTypeConstants.JCR_AVAILABLE_QUERY_OPERATORS);
-        if (ops == null) {
-            ops = new String[] {
+        String[] operators =
+                getStrings(NodeTypeConstants.JCR_AVAILABLE_QUERY_OPERATORS);
+        if (operators == null) {
+            operators = new String[] {
                     QueryObjectModelConstants.JCR_OPERATOR_EQUAL_TO,
                     QueryObjectModelConstants.JCR_OPERATOR_NOT_EQUAL_TO,
                     QueryObjectModelConstants.JCR_OPERATOR_GREATER_THAN,
@@ -173,16 +163,17 @@ class PropertyDefinitionImpl extends ItemDefinitionImpl implements PropertyDefin
                     QueryObjectModelConstants.JCR_OPERATOR_LESS_THAN_OR_EQUAL_TO,
                     QueryObjectModelConstants.JCR_OPERATOR_LIKE };
         }
-        return ops;
+        return operators;
     }
 
     @Override
     public boolean isFullTextSearchable() {
-        return node.getBoolean(NodeTypeConstants.JCR_IS_FULLTEXT_SEARCHABLE);
+        return getBoolean(NodeTypeConstants.JCR_IS_FULLTEXT_SEARCHABLE);
     }
 
     @Override
     public boolean isQueryOrderable() {
-        return node.getBoolean(NodeTypeConstants.JCR_IS_QUERY_ORDERABLE);
+        return getBoolean(NodeTypeConstants.JCR_IS_QUERY_ORDERABLE);
     }
+
 }
