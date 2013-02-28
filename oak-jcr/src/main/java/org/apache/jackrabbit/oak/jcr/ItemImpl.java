@@ -51,9 +51,14 @@ abstract class ItemImpl<T extends ItemDelegate> extends AbstractItem {
      */
     private static final Logger log = LoggerFactory.getLogger(ItemImpl.class);
 
-    protected ItemImpl(SessionDelegate sessionDelegate, T itemDelegate) {
-        this.sessionDelegate = sessionDelegate;
+    protected ItemImpl(T itemDelegate) {
+        this.sessionDelegate = itemDelegate.getSessionDelegate();
         this.dlg = itemDelegate;
+    }
+
+    protected <X> X perform(SessionOperation<X> operation)
+            throws RepositoryException {
+        return sessionDelegate.perform(operation);
     }
 
     //---------------------------------------------------------------< Item >---
@@ -64,7 +69,7 @@ abstract class ItemImpl<T extends ItemDelegate> extends AbstractItem {
     @Override
     @Nonnull
     public String getName() throws RepositoryException {
-        return sessionDelegate.perform(new SessionOperation<String>() {
+        return perform(new SessionOperation<String>() {
             @Override
             public String perform() throws RepositoryException {
                 String oakName = dlg.getName();
@@ -81,7 +86,7 @@ abstract class ItemImpl<T extends ItemDelegate> extends AbstractItem {
     @Nonnull
     public String getPath() throws RepositoryException {
         checkStatus();
-        return sessionDelegate.perform(new SessionOperation<String>() {
+        return perform(new SessionOperation<String>() {
             @Override
             public String perform() throws RepositoryException {
                 return toJcrPath(dlg.getPath());
