@@ -74,7 +74,8 @@ public class BenchmarkRunner {
             new CreateManyChildNodesTest(),
             new UpdateManyChildNodesTest(),
             new TransientManyChildNodesTest(),
-            new WikipediaImport(wikipedia.value(options))
+            new WikipediaImport(wikipedia.value(options)),
+            new ManyNodes()
         };
 
         Set<String> argset = Sets.newHashSet(options.nonOptionArguments());
