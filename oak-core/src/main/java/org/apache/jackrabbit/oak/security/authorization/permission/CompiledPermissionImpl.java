@@ -18,9 +18,11 @@ package org.apache.jackrabbit.oak.security.authorization.permission;
 
 import java.security.Principal;
 import java.security.acl.Group;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
@@ -28,6 +30,7 @@ import com.google.common.collect.ImmutableSortedMap;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.core.ReadOnlyRoot;
 import org.apache.jackrabbit.oak.core.ReadOnlyTree;
 import org.apache.jackrabbit.oak.security.authorization.AccessControlConstants;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeBits;
@@ -35,6 +38,7 @@ import org.apache.jackrabbit.oak.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.Permissions;
 import org.apache.jackrabbit.util.Text;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
@@ -43,28 +47,29 @@ import static com.google.common.base.Preconditions.checkNotNull;
 class CompiledPermissionImpl implements CompiledPermissions, AccessControlConstants {
 
     private final Set<Principal> principals;
-    private final PrivilegeBitsProvider bitsProvider;
+    private final Map<String, ReadOnlyTree> trees;
 
-    private final Map<Key, Entry> userEntries;
-    private final Map<Key, Entry> groupEntries;
+    private PrivilegeBitsProvider bitsProvider;
+    private Map<Key, Entry> userEntries;
+    private Map<Key, Entry> groupEntries;
 
     CompiledPermissionImpl(@Nonnull Set<Principal> principals,
-                           @Nonnull PrivilegeBitsProvider bitsProvider,
-                           @Nonnull ReadOnlyTree permissionsTree) {
+                           @Nonnull ReadOnlyTree permissionsTree,
+                           @Nonnull PrivilegeBitsProvider bitsProvider) {
         this.principals = checkNotNull(principals);
-        this.bitsProvider = bitsProvider;
-
-        EntriesBuilder builder = new EntriesBuilder();
-        for (Principal principal : principals) {
-            Tree t = permissionsTree.getChild(Text.escapeIllegalJcrChars(principal.getName()));
-            if (t != null) {
-                builder.addEntry(principal, t);
-            }
-        }
-        userEntries = builder.userEntries.build();
-        groupEntries = builder.groupEntries.build();
+        checkArgument(!principals.isEmpty());
+        this.trees = new HashMap<String, ReadOnlyTree>(principals.size());
+        update(permissionsTree, bitsProvider);
     }
 
+    void update(@Nonnull ReadOnlyTree permissionsTree, @Nonnull PrivilegeBitsProvider bitsProvider) {
+        // TODO: determine if entries need to be reloaded due to changes to the
+        // TODO: affected permission-nodes.
+        this.bitsProvider = bitsProvider;
+        buildEntries(permissionsTree);
+    }
+
+    //------------------------------------------------< CompiledPermissions >---
     @Override
     public boolean canRead(Tree tree) {
         return isGranted(tree, Permissions.READ_NODE);
@@ -108,6 +113,25 @@ class CompiledPermissionImpl implements CompiledPermissions, AccessControlConsta
     }
 
     //------------------------------------------------------------< private >---
+
+    private void buildEntries(ReadOnlyTree permissionsTree) {
+        EntriesBuilder builder = new EntriesBuilder();
+        for (Principal principal : principals) {
+            ReadOnlyTree t = getPrincipalRoot(permissionsTree, principal);
+            if (t != null) {
+                trees.put(principal.getName(), t);
+                builder.addEntry(principal, t);
+            }
+        }
+        userEntries = builder.userEntries.build();
+        groupEntries = builder.groupEntries.build();
+    }
+
+    @CheckForNull
+    private static ReadOnlyTree getPrincipalRoot(ReadOnlyTree permissionsTree, Principal principal) {
+        return permissionsTree.getChild(Text.escapeIllegalJcrChars(principal.getName()));
+    }
+
     private boolean hasPermissions(@Nonnull Tree tree, @Nullable PropertyState property,
                                    long permissions) {
         // TODO
@@ -150,6 +174,10 @@ class CompiledPermissionImpl implements CompiledPermissions, AccessControlConsta
         }
     }
 
+    /**
+     * Collects permission entries for different principals and asserts they are
+     * in the correct order for proper and efficient evaluation.
+     */
     private static final class EntriesBuilder {
 
         private ImmutableSortedMap.Builder<Key, Entry> userEntries = ImmutableSortedMap.naturalOrder();
