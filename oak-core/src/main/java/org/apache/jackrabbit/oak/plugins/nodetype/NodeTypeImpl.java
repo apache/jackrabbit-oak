@@ -22,11 +22,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Queue;
+import java.util.Map;
 import java.util.Set;
+
+import javax.annotation.CheckForNull;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
@@ -38,14 +38,22 @@ import javax.jcr.nodetype.NodeTypeIterator;
 import javax.jcr.nodetype.PropertyDefinition;
 
 import org.apache.jackrabbit.commons.iterator.NodeTypeIteratorAdapter;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.JcrNameParser;
 import org.apache.jackrabbit.oak.namepath.JcrPathParser;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.plugins.nodetype.constraint.Constraints;
-import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+
+import static com.google.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.JcrConstants.JCR_CHILDNODEDEFINITION;
 import static org.apache.jackrabbit.JcrConstants.JCR_HASORDERABLECHILDNODES;
 import static org.apache.jackrabbit.JcrConstants.JCR_ISMIXIN;
@@ -71,161 +79,214 @@ import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.RESID
  * + jcr:childNodeDefinition (nt:childNodeDefinition) = nt:childNodeDefinition protected sns
  * </pre>
  */
-class NodeTypeImpl implements NodeType {
+class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
 
     private static final Logger log = LoggerFactory.getLogger(NodeTypeImpl.class);
 
-    private final ReadOnlyNodeTypeManager manager;
+    private static final PropertyDefinition[] NO_PROPERTY_DEFINITIONS =
+            new PropertyDefinition[0];
 
-    private final ValueFactory factory;
+    private static final NodeDefinition[] NO_NODE_DEFINITIONS =
+            new NodeDefinition[0];
 
-    private final NodeUtil node;
+    private static final NodeType[] NO_NODE_TYPES = new NodeType[0];
 
-    public NodeTypeImpl(ReadOnlyNodeTypeManager manager, ValueFactory factory, NodeUtil node) {
-        this.manager = manager;
-        this.factory = factory;
-        this.node = node;
+    private static final String[] NO_NAMES = new String[0];
+
+    NodeTypeImpl(Tree type, ValueFactory factory, NamePathMapper mapper) {
+        super(type, factory, mapper);
+    }
+
+    private String getOakName() {
+        return getOakName(definition);
+    }
+
+    private String getOakName(Tree tree) {
+        PropertyState property = tree.getProperty(JCR_NODETYPENAME);
+        if (property != null) {
+            return property.getValue(Type.NAME);
+        } else {
+            return tree.getName();
+        }
     }
 
     //-----------------------------------------------------------< NodeType >---
+
     @Override
     public String getName() {
-        String name = node.getName(JCR_NODETYPENAME);
-        if (name == null) {
-            name = node.getName();
-        }
-        return name;
+        return mapper.getJcrName(getOakName());
     }
 
     @Override
     public String[] getDeclaredSupertypeNames() {
-        return node.getNames(JCR_SUPERTYPES);
+        String[] names = getNames(JCR_SUPERTYPES);
+        if (names != null) {
+            for (int i = 0; i < names.length; i++) {
+                names[i] = mapper.getJcrName(names[i]);
+            }
+        } else {
+            names = NO_NAMES;
+        }
+        return names;
     }
 
     @Override
     public boolean isAbstract() {
-        return node.getBoolean(JCR_IS_ABSTRACT);
+        return getBoolean(JCR_IS_ABSTRACT);
     }
 
     @Override
     public boolean isMixin() {
-        return node.getBoolean(JCR_ISMIXIN);
+        return getBoolean(JCR_ISMIXIN);
     }
 
     @Override
     public boolean hasOrderableChildNodes() {
-        return node.getBoolean(JCR_HASORDERABLECHILDNODES);
+        return getBoolean(JCR_HASORDERABLECHILDNODES);
     }
 
     @Override
     public boolean isQueryable() {
-        return node.getBoolean(JCR_IS_QUERYABLE);
+        return getBoolean(JCR_IS_QUERYABLE);
     }
 
     @Override
     public String getPrimaryItemName() {
-        return node.getName(JCR_PRIMARYITEMNAME);
+        String oakName = getName(JCR_PRIMARYITEMNAME);
+        if (oakName != null) {
+            return mapper.getJcrName(oakName);
+        } else {
+            return null;
+        }
     }
 
     @Override
     public PropertyDefinition[] getDeclaredPropertyDefinitions() {
-        List<NodeUtil> nodes = node.getNodes(JCR_PROPERTYDEFINITION);
-        PropertyDefinition[] definitions = new PropertyDefinition[nodes.size()];
-        for (int i = 0; i < nodes.size(); i++) {
-            definitions[i] = new PropertyDefinitionImpl(
-                    this, factory, nodes.get(i));
+        List<PropertyDefinition> definitions = Lists.newArrayList();
+        for (Tree child : definition.getChildren()) {
+            if (child.getName().startsWith(JCR_PROPERTYDEFINITION)) {
+                definitions.add(
+                        new PropertyDefinitionImpl(child, factory, mapper));
+            }
         }
-        return definitions;
+        return definitions.toArray(NO_PROPERTY_DEFINITIONS);
     }
 
     @Override
     public NodeDefinition[] getDeclaredChildNodeDefinitions() {
-        List<NodeUtil> nodes = node.getNodes(JCR_CHILDNODEDEFINITION);
-        NodeDefinition[] definitions = new NodeDefinition[nodes.size()];
-        for (int i = 0; i < nodes.size(); i++) {
-            definitions[i] = new NodeDefinitionImpl(manager, this, nodes.get(i));
+        List<NodeDefinition> definitions = Lists.newArrayList();
+        for (Tree child : definition.getChildren()) {
+            if (child.getName().startsWith(JCR_CHILDNODEDEFINITION)) {
+                definitions.add(
+                        new NodeDefinitionImpl(child, factory, mapper));
+            }
         }
-        return definitions;
+        return definitions.toArray(NO_NODE_DEFINITIONS);
     }
 
     @Override
     public NodeType[] getSupertypes() {
-        Collection<NodeType> types = new ArrayList<NodeType>();
-        Set<String> added = new HashSet<String>();
-        Queue<String> queue = new LinkedList<String>(Arrays.asList(getDeclaredSupertypeNames()));
-        while (!queue.isEmpty()) {
-            String name = queue.remove();
-            if (added.add(name)) {
-                try {
-                    NodeType type = manager.getNodeType(name);
-                    types.add(type);
-                    queue.addAll(Arrays.asList(type.getDeclaredSupertypeNames()));
-                } catch (RepositoryException e) {
-                    throw new IllegalStateException("Inconsistent node type: " + this, e);
+        Map<String, NodeType> supertypes = Maps.newLinkedHashMap();
+        addSupertypes(definition, supertypes);
+        return supertypes.values().toArray(NO_NODE_TYPES);
+    }
+
+    private void addSupertypes(Tree type, Map<String, NodeType> supertypes) {
+        PropertyState property = type.getProperty(JCR_SUPERTYPES);
+        if (property != null) {
+            Tree root = definition.getParent();
+            for (String oakName : property.getValue(Type.NAMES)) {
+                if (!supertypes.containsKey(oakName)) {
+                    Tree supertype = root.getChild(oakName);
+                    checkState(supertype != null);
+                    supertypes.put(
+                            oakName, new NodeTypeImpl(supertype, factory, mapper));
+                    addSupertypes(supertype, supertypes);
                 }
             }
         }
-        return types.toArray(new NodeType[types.size()]);
     }
 
     @Override
     public NodeType[] getDeclaredSupertypes() {
-        String[] names = getDeclaredSupertypeNames();
-        List<NodeType> types = new ArrayList<NodeType>(names.length);
-        for (String name : names) {
-            try {
-                NodeType type = manager.getNodeType(name);
-                types.add(type);
-            }
-            catch (RepositoryException e) {
-                log.warn("Unable to access declared supertype "
-                        + name + " of " + getName(), e);
+        NodeType[] supertypes = NO_NODE_TYPES;
+        String[] oakNames = getNames(JCR_SUPERTYPES);
+        if (oakNames != null && oakNames.length > 0) {
+            supertypes = new NodeType[oakNames.length];
+            Tree root = definition.getParent();
+            for (int i = 0; i < oakNames.length; i++) {
+                Tree type = root.getChild(oakNames[i]);
+                checkState(type != null);
+                supertypes[i] = new NodeTypeImpl(type, factory, mapper);
             }
         }
-        return types.toArray(new NodeType[types.size()]);
+        return supertypes;
     }
 
     @Override
     public NodeTypeIterator getSubtypes() {
-        Collection<NodeType> types = new ArrayList<NodeType>();
-        try {
-            NodeTypeIterator iterator = manager.getAllNodeTypes();
-            while (iterator.hasNext()) {
-                NodeType type = iterator.nextNodeType();
-                if (type.isNodeType(getName()) && !isNodeType(type.getName())) {
-                    types.add(type);
+        Map<String, Set<String>> inheritance = Maps.newHashMap();
+        
+        Tree root = definition.getParent();
+        for (Tree child : root.getChildren()) {
+            String oakName = getOakName(child);
+            PropertyState supertypes = child.getProperty(JCR_SUPERTYPES);
+            if (supertypes != null) {
+                for (String supername : supertypes.getValue(Type.NAMES)) {
+                    Set<String> subtypes = inheritance.get(supername);
+                    if (subtypes == null) {
+                        subtypes = Sets.newHashSet();
+                        inheritance.put(supername, subtypes);
+                    }
+                    subtypes.add(oakName);
                 }
             }
-        } catch (RepositoryException e) {
-            log.warn("Unable to access subtypes of " + getName(), e);
         }
-        return new NodeTypeIteratorAdapter(types);
+
+        Map<String, NodeType> subtypes = Maps.newHashMap();
+        addSubtypes(getOakName(), subtypes, root, inheritance);
+        return new NodeTypeIteratorAdapter(subtypes.values());
+    }
+
+    private void addSubtypes(
+            String typeName, Map<String, NodeType> subtypes,
+            Tree root, Map<String, Set<String>> inheritance) {
+        Set<String> subnames = inheritance.get(typeName);
+        if (subnames != null) {
+            for (String subname : subnames) {
+                if (!subtypes.containsKey(subname)) {
+                    Tree tree = root.getChild(subname);
+                    subtypes.put(
+                            subname, new NodeTypeImpl(tree, factory, mapper));
+                }
+            }
+        }
     }
 
     @Override
     public NodeTypeIterator getDeclaredSubtypes() {
-        Collection<NodeType> types = new ArrayList<NodeType>();
-        try {
-            NodeTypeIterator iterator = manager.getAllNodeTypes();
-            while (iterator.hasNext()) {
-                NodeType type = iterator.nextNodeType();
-                String name = type.getName();
-                if (type.isNodeType(getName()) && !isNodeType(name)) {
-                    List<String> declaredSuperTypeNames = Arrays.asList(type.getDeclaredSupertypeNames());
-                    if (declaredSuperTypeNames.contains(name)) {
-                        types.add(type);
+        List<NodeType> subtypes = Lists.newArrayList();
+
+        String oakName = getOakName();
+        Tree root = definition.getParent();
+        for (Tree child : root.getChildren()) {
+            PropertyState supertypes = child.getProperty(JCR_SUPERTYPES);
+            if (supertypes != null) {
+                for (String name : supertypes.getValue(Type.NAMES)) {
+                    if (oakName.equals(name)) {
+                        subtypes.add(new NodeTypeImpl(child, factory, mapper));
+                        break;
                     }
                 }
             }
-        } catch (RepositoryException e) {
-            log.warn("Unable to access declared subtypes of " + getName(), e);
         }
-        return new NodeTypeIteratorAdapter(types);
+
+        return new NodeTypeIteratorAdapter(subtypes);
     }
 
     @Override
     public boolean isNodeType(String nodeTypeName) {
-        String oakName = node.getNameMapper().getOakNameOrNull(nodeTypeName);
+        String oakName = mapper.getOakNameOrNull(nodeTypeName);
         return internalIsNodeType(oakName);
     }
 
@@ -249,7 +310,7 @@ class NodeTypeImpl implements NodeType {
 
         try {
             Iterable<NodeType> nts = Collections.singleton((NodeType) this);
-            PropertyDefinition def = manager.getDefinition(nts, propertyName, false, value.getType(), false);
+            PropertyDefinition def = getManager().getDefinition(nts, propertyName, false, value.getType(), false);
             return !def.isProtected() &&
                     meetsTypeConstraints(value, def.getRequiredType()) &&
                     meetsValueConstraints(value, def.getValueConstraints());
@@ -268,7 +329,7 @@ class NodeTypeImpl implements NodeType {
         try {
             Iterable<NodeType> nts = Collections.singleton((NodeType) this);
             int type = (values.length == 0) ? PropertyType.STRING : values[0].getType();
-            PropertyDefinition def = manager.getDefinition(nts, propertyName, true, type, false);
+            PropertyDefinition def = getManager().getDefinition(nts, propertyName, true, type, false);
             return !def.isProtected() &&
                     meetsTypeConstraints(values, def.getRequiredType()) &&
                     meetsValueConstraints(values, def.getValueConstraints());
@@ -294,7 +355,7 @@ class NodeTypeImpl implements NodeType {
     public boolean canAddChildNode(String childNodeName, String nodeTypeName) {
         NodeType type;
         try {
-            type = manager.getNodeType(nodeTypeName);
+            type = getManager().getNodeType(nodeTypeName);
             if (type.isAbstract()) {
                 return false;
             }
@@ -363,8 +424,15 @@ class NodeTypeImpl implements NodeType {
     }
 
     //-----------------------------------------------------------< internal >---
-    String getOakName() {
-        return node.getTree().getName();
+
+    private ReadOnlyNodeTypeManager getManager() {
+        final Tree types = definition.getParent();
+        return new ReadOnlyNodeTypeManager() {
+            @Override @CheckForNull
+            protected Tree getTypes() {
+                return types;
+            }
+        };
     }
 
     boolean internalIsNodeType(String oakName) {
@@ -499,8 +567,8 @@ class NodeTypeImpl implements NodeType {
     }
 
     private boolean matches(String childNodeName, String name) {
-        String oakChildName = node.getNameMapper().getOakNameOrNull(childNodeName);
-        String oakName = node.getNameMapper().getOakNameOrNull(name);
+        String oakChildName = mapper.getOakNameOrNull(childNodeName);
+        String oakName = mapper.getOakNameOrNull(name);
         // TODO need a better way to handle SNS
         return oakChildName != null && oakChildName.startsWith(oakName);
     }
