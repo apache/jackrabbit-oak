@@ -57,7 +57,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
     private static final Logger log = LoggerFactory.getLogger(PropertyImpl.class);
 
     PropertyImpl(PropertyDelegate dlg) {
-        super(dlg.getSessionDelegate(), dlg);
+        super(dlg);
     }
 
     //---------------------------------------------------------------< Item >---
@@ -76,7 +76,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
     @Override
     @Nonnull
     public Node getParent() throws RepositoryException {
-        return sessionDelegate.perform(new SessionOperation<NodeImpl<?>>() {
+        return perform(new SessionOperation<NodeImpl<?>>() {
             @Override
             public NodeImpl<?> perform() throws RepositoryException {
                 NodeDelegate parent = dlg.getParent();
@@ -95,7 +95,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
     @Override
     public boolean isNew() {
         try {
-            return sessionDelegate.perform(new SessionOperation<Boolean>() {
+            return perform(new SessionOperation<Boolean>() {
                 @Override
                 public Boolean perform() throws RepositoryException {
                     return dlg.getStatus() == Status.NEW;
@@ -112,7 +112,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
     @Override
     public boolean isModified() {
         try {
-            return sessionDelegate.perform(new SessionOperation<Boolean>() {
+            return perform(new SessionOperation<Boolean>() {
                 @Override
                 public Boolean perform() throws RepositoryException {
                     return dlg.getStatus() == Status.MODIFIED;
@@ -131,7 +131,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
         checkStatus();
         checkProtected();
 
-        sessionDelegate.perform(new SessionOperation<Void>() {
+        perform(new SessionOperation<Void>() {
             @Override
             public Void perform() throws RepositoryException {
                 dlg.remove();
@@ -170,7 +170,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
     public void setValue(final Value[] values) throws RepositoryException {
         checkStatus();
 
-        sessionDelegate.perform(new SessionOperation<Void>() {
+        perform(new SessionOperation<Void>() {
             @Override
             public Void perform() throws RepositoryException {
                 // assert equal types for all values entries
@@ -348,7 +348,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
     public Value getValue() throws RepositoryException {
         checkStatus();
 
-        return sessionDelegate.perform(new SessionOperation<Value>() {
+        return perform(new SessionOperation<Value>() {
             @Override
             public Value perform() throws RepositoryException {
                 if (isMultiple()) {
@@ -365,7 +365,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
     public Value[] getValues() throws RepositoryException {
         checkStatus();
 
-        return sessionDelegate.perform(new SessionOperation<Value[]>() {
+        return perform(new SessionOperation<Value[]>() {
             @Override
             public Value[] perform() throws RepositoryException {
                 if (!isMultiple()) {
@@ -453,7 +453,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
     @Override
     @Nonnull
     public Node getNode() throws RepositoryException {
-        return sessionDelegate.perform(new SessionOperation<Node>() {
+        return perform(new SessionOperation<Node>() {
             @Override
             public Node perform() throws RepositoryException {
                 Value value = getValue();
@@ -508,7 +508,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
     @Override
     @Nonnull
     public Property getProperty() throws RepositoryException {
-        return sessionDelegate.perform(new SessionOperation<Property>() {
+        return perform(new SessionOperation<Property>() {
             @Override
             public Property perform() throws RepositoryException {
                 Value value = getValue();
@@ -557,7 +557,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
      */
     @Override
     public int getType() throws RepositoryException {
-        return sessionDelegate.perform(new SessionOperation<Integer>() {
+        return perform(new SessionOperation<Integer>() {
             @Override
             public Integer perform() throws RepositoryException {
                 if (isMultiple()) {
@@ -579,7 +579,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
     public boolean isMultiple() throws RepositoryException {
         checkStatus();
 
-        return sessionDelegate.perform(new SessionOperation<Boolean>() {
+        return perform(new SessionOperation<Boolean>() {
             @Override
             public Boolean perform() throws RepositoryException {
                 return dlg.isMultivalue();
