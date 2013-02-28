@@ -33,6 +33,7 @@ import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
 import org.apache.jackrabbit.oak.spi.commit.ValidatingHook;
 import org.apache.jackrabbit.oak.spi.lifecycle.OakInitializer;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceReference;
@@ -44,7 +45,9 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer, Rep
 
     private BundleContext context;
 
-    private ServiceTracker tracker;
+    private ServiceTracker microKernelTracker;
+
+    private ServiceTracker nodeStoreTracker;
 
     private final OsgiIndexProvider indexProvider = new OsgiIndexProvider();
 
@@ -68,14 +71,18 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer, Rep
         validatorProvider.start(bundleContext);
         repositoryInitializerTracker.setObserver(this);
         repositoryInitializerTracker.start(bundleContext);
-        tracker = new ServiceTracker(
+        microKernelTracker = new ServiceTracker(
                 context, MicroKernel.class.getName(), this);
-        tracker.open();
+        microKernelTracker.open();
+        nodeStoreTracker = new ServiceTracker(
+                context, NodeStore.class.getName(), this);
+        nodeStoreTracker.open();
     }
 
     @Override
     public void stop(BundleContext bundleContext) throws Exception {
-        tracker.close();
+        nodeStoreTracker.close();
+        microKernelTracker.close();
         indexProvider.stop();
         indexHookProvider.stop();
         validatorProvider.stop();
@@ -86,21 +93,32 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer, Rep
 
     @Override
     public Object addingService(ServiceReference reference) {
-        MicroKernel kernel = (MicroKernel) context.getService(reference);
-        OakInitializer.initialize(new KernelNodeStore(kernel),
-                repositoryInitializerTracker, indexHookProvider);
-            Oak oak = new Oak(kernel)
-                    .with(new CompositeHook(
+        Object service = context.getService(reference);
+        if (service instanceof MicroKernel) {
+            MicroKernel kernel = (MicroKernel) service;
+            services.put(reference, context.registerService(
+                    NodeStore.class.getName(),
+                    new KernelNodeStore(kernel),
+                    new Properties()));
+        } else if (service instanceof NodeStore) {
+            NodeStore store = (NodeStore) service;
+            OakInitializer.initialize(
+                    store, repositoryInitializerTracker, indexHookProvider);
+            Oak oak = new Oak(store)
+                .with(new CompositeHook(
                         // TODO: DefaultTypeEditor is JCR specific and does not belong here
                         new DefaultTypeEditor(),
                         new ValidatingHook(validatorProvider)))
-                    .with(indexProvider)
-                    .with(indexHookProvider);
+                .with(indexProvider)
+                .with(indexHookProvider);
             services.put(reference, context.registerService(
                     ContentRepository.class.getName(),
                     oak.createContentRepository(),
                     new Properties()));
-            return kernel;
+        } else {
+            service = null;
+        }
+        return service;
     }
 
     @Override
