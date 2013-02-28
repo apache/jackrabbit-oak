@@ -190,10 +190,9 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
         List<NodeType> list = Lists.newArrayList();
         Tree types = getTypes();
         if (types != null) {
-            ValueFactory factory = getValueFactory();
             NamePathMapper mapper = getNamePathMapper();
             for (Tree type : types.getChildren()) {
-                list.add(new NodeTypeImpl(type, factory, mapper));
+                list.add(new NodeTypeImpl(type, mapper));
             }
         }
         return new NodeTypeIteratorAdapter(list);
@@ -469,17 +468,14 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
     //-----------------------------------------------------------< internal >---
 
     NodeTypeImpl internalGetNodeType(String oakName) throws NoSuchNodeTypeException {
-        ValueFactory factory = getValueFactory();
-        NamePathMapper mapper = getNamePathMapper();
-
         Tree types = getTypes();
         if (types != null) {
             Tree type = types.getChild(oakName);
             if (type != null) {
-                return new NodeTypeImpl(type, factory, mapper);
+                return new NodeTypeImpl(type, getNamePathMapper());
             }
         }
-        throw new NoSuchNodeTypeException(mapper.getJcrName(oakName));
+        throw new NoSuchNodeTypeException(getNamePathMapper().getJcrName(oakName));
     }
 
     //------------------------------------------------------------< private >---
