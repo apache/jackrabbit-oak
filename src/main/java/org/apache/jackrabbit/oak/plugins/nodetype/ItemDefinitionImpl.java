@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype;
 
-import javax.jcr.ValueFactory;
 import javax.jcr.nodetype.ItemDefinition;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.version.OnParentVersionAction;
@@ -40,9 +39,8 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 class ItemDefinitionImpl extends AbstractTypeDefinition
         implements ItemDefinition {
 
-    protected ItemDefinitionImpl(
-            Tree definition, ValueFactory factory, NamePathMapper mapper) {
-        super(definition, factory, mapper);
+    protected ItemDefinitionImpl(Tree definition, NamePathMapper mapper) {
+        super(definition, mapper);
     }
 
     String getOakName() {
@@ -57,7 +55,7 @@ class ItemDefinitionImpl extends AbstractTypeDefinition
 
     @Override
     public NodeType getDeclaringNodeType() {
-        return new NodeTypeImpl(definition.getParent(), factory, mapper);
+        return new NodeTypeImpl(definition.getParent(), mapper);
     }
 
     @Override

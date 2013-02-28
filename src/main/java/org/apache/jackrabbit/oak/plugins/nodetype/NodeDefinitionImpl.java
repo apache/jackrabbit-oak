@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.plugins.nodetype;
 
 import static com.google.common.base.Preconditions.checkState;
 
-import javax.jcr.ValueFactory;
 import javax.jcr.nodetype.NodeDefinition;
 import javax.jcr.nodetype.NodeType;
 
@@ -37,9 +36,8 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
  */
 class NodeDefinitionImpl extends ItemDefinitionImpl implements NodeDefinition {
 
-    protected NodeDefinitionImpl(
-            Tree definition, ValueFactory factory, NamePathMapper mapper) {
-        super(definition, factory, mapper);
+    NodeDefinitionImpl(Tree definition, NamePathMapper mapper) {
+        super(definition, mapper);
     }
 
     //-----------------------------------------------------< NodeDefinition >---
@@ -68,7 +66,7 @@ class NodeDefinitionImpl extends ItemDefinitionImpl implements NodeDefinition {
         for (int i = 0; i < oakNames.length; i++) {
             Tree type = root.getChild(oakNames[i]);
             checkState(type != null);
-            types[i] = new NodeTypeImpl(type, factory, mapper);
+            types[i] = new NodeTypeImpl(type, mapper);
         }
         return types;
     }
@@ -90,7 +88,7 @@ class NodeDefinitionImpl extends ItemDefinitionImpl implements NodeDefinition {
             Tree root = definition.getParent().getParent();
             Tree type = root.getChild(oakName);
             checkState(type != null);
-            return new NodeTypeImpl(type, factory, mapper);
+            return new NodeTypeImpl(type, mapper);
         } else {
             return null;
         }

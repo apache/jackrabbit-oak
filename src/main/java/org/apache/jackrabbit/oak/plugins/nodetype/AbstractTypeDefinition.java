@@ -20,7 +20,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
-import javax.jcr.ValueFactory;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -37,14 +36,10 @@ abstract class AbstractTypeDefinition {
 
     protected final Tree definition;
 
-    protected final ValueFactory factory;
-
     protected final NamePathMapper mapper;
 
-    protected AbstractTypeDefinition(
-            Tree definition, ValueFactory factory, NamePathMapper mapper) {
+    protected AbstractTypeDefinition(Tree definition, NamePathMapper mapper) {
         this.definition = checkNotNull(definition);
-        this.factory = factory;
         this.mapper = checkNotNull(mapper);
     }
 
