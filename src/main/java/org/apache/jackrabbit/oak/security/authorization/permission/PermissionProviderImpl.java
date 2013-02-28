@@ -59,7 +59,7 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
 
     private static final Logger log = LoggerFactory.getLogger(PermissionProviderImpl.class);
 
-    private final ReadOnlyRoot root;
+    private final Root root;
 
     private final Context acContext;
 
@@ -69,19 +69,24 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
 
     public PermissionProviderImpl(@Nonnull Root root, @Nonnull Set<Principal> principals,
                                   @Nonnull SecurityProvider securityProvider) {
-        this.root = new ReadOnlyRoot(root);
+        this.root = root;
         this.acContext = securityProvider.getAccessControlConfiguration().getContext();
         if (principals.contains(SystemPrincipal.INSTANCE) || isAdmin(principals)) {
             compiledPermissions = AllPermissions.getInstance();
         } else {
-            String relativePath = PERMISSIONS_STORE_PATH + '/' + workspaceName;
-            ReadOnlyTree rootTree = this.root.getTree("/");
-            ReadOnlyTree permissionsTree = getPermissionsRoot(rootTree, relativePath);
-            if (permissionsTree == null) {
+            ReadOnlyTree permissionsTree = getPermissionsRoot();
+            if (permissionsTree == null || principals.isEmpty()) {
                 compiledPermissions = NoPermissions.getInstance();
             } else {
-                compiledPermissions = new CompiledPermissionImpl(principals, new PrivilegeBitsProvider(this.root), permissionsTree);
+                compiledPermissions = new CompiledPermissionImpl(principals, permissionsTree, getBitsProvider());
             }
+        }
+    }
+
+    @Override
+    public void refresh() {
+        if (compiledPermissions instanceof CompiledPermissionImpl) {
+            ((CompiledPermissionImpl) compiledPermissions).update(getPermissionsRoot(), getBitsProvider());
         }
     }
 
@@ -145,7 +150,7 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
 
     @Override
     public boolean hasPermission(@Nonnull String oakPath, @Nonnull String jcrActions) {
-        TreeLocation location = root.getLocation(oakPath);
+        TreeLocation location = getReadOnlyRoot().getLocation(oakPath);
         long permissions = Permissions.getPermissions(jcrActions, location);
         if (!location.exists()) {
             // TODO: deal with version content
@@ -173,10 +178,25 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
         return false;
     }
 
+    private ReadOnlyRoot getReadOnlyRoot() {
+        if (root instanceof ReadOnlyRoot) {
+            return (ReadOnlyRoot) root;
+        } else {
+            return new ReadOnlyRoot(root);
+        }
+    }
+
     @CheckForNull
-    private static ReadOnlyTree getPermissionsRoot(ReadOnlyTree rootTree, String relativePath) {
+    private ReadOnlyTree getPermissionsRoot() {
+        String relativePath = PERMISSIONS_STORE_PATH + '/' + workspaceName;
+        ReadOnlyTree rootTree = checkNotNull(getReadOnlyRoot().getTree("/"));
         Tree tree = rootTree.getLocation().getChild(relativePath).getTree();
         return (tree == null) ? null : (ReadOnlyTree) tree;
+    }
+
+    @Nonnull
+    private PrivilegeBitsProvider getBitsProvider() {
+        return new PrivilegeBitsProvider(getReadOnlyRoot());
     }
 
     private boolean isAccessControlContent(@Nonnull Tree tree) {
