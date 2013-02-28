@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.security.authorization.permission;
 
 import java.security.Principal;
 import java.security.acl.Group;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -30,7 +31,6 @@ import com.google.common.collect.ImmutableSortedMap;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.core.ReadOnlyRoot;
 import org.apache.jackrabbit.oak.core.ReadOnlyTree;
 import org.apache.jackrabbit.oak.security.authorization.AccessControlConstants;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeBits;
@@ -62,7 +62,7 @@ class CompiledPermissionImpl implements CompiledPermissions, AccessControlConsta
         update(permissionsTree, bitsProvider);
     }
 
-    void update(@Nonnull ReadOnlyTree permissionsTree, @Nonnull PrivilegeBitsProvider bitsProvider) {
+    void update(@Nullable ReadOnlyTree permissionsTree, @Nonnull PrivilegeBitsProvider bitsProvider) {
         // TODO: determine if entries need to be reloaded due to changes to the
         // TODO: affected permission-nodes.
         this.bitsProvider = bitsProvider;
@@ -114,17 +114,22 @@ class CompiledPermissionImpl implements CompiledPermissions, AccessControlConsta
 
     //------------------------------------------------------------< private >---
 
-    private void buildEntries(ReadOnlyTree permissionsTree) {
-        EntriesBuilder builder = new EntriesBuilder();
-        for (Principal principal : principals) {
-            ReadOnlyTree t = getPrincipalRoot(permissionsTree, principal);
-            if (t != null) {
-                trees.put(principal.getName(), t);
-                builder.addEntry(principal, t);
+    private void buildEntries(@Nullable ReadOnlyTree permissionsTree) {
+        if (permissionsTree == null) {
+            userEntries = Collections.emptyMap();
+            groupEntries = Collections.emptyMap();
+        } else {
+            EntriesBuilder builder = new EntriesBuilder();
+            for (Principal principal : principals) {
+                ReadOnlyTree t = getPrincipalRoot(permissionsTree, principal);
+                if (t != null) {
+                    trees.put(principal.getName(), t);
+                    builder.addEntry(principal, t);
+                }
             }
+            userEntries = builder.userEntries.build();
+            groupEntries = builder.groupEntries.build();
         }
-        userEntries = builder.userEntries.build();
-        groupEntries = builder.groupEntries.build();
     }
 
     @CheckForNull
