@@ -59,6 +59,7 @@ import javax.jcr.version.VersionHistory;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
@@ -1253,17 +1254,22 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     @Override
     @Nonnull
     public NodeIterator getSharedSet() throws RepositoryException {
-        throw new UnsupportedRepositoryOperationException("TODO: Node.getSharedSet");
+        checkStatus();
+        checkProtected();
+        return new NodeIteratorAdapter(ImmutableSet.of(this));
     }
 
     @Override
     public void removeSharedSet() throws RepositoryException {
-        throw new UnsupportedRepositoryOperationException("TODO: Node.removeSharedSet");
+        NodeIterator iter = getSharedSet();
+        while (iter.hasNext()) {
+            iter.nextNode().removeShare();
+        }
     }
 
     @Override
     public void removeShare() throws RepositoryException {
-        throw new UnsupportedRepositoryOperationException("TODO: Node.removeShare");
+        remove();
     }
 
     /**
