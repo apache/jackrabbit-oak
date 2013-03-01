@@ -52,7 +52,7 @@ public class MongoDocumentStore implements DocumentStore {
     private long time;
     
     private Cache<String, Map<String, Object>> cache =
-            new Cache<String, Map<String, Object>>(1024);
+            new Cache<String, Map<String, Object>>(1024 * 20);
 
     public MongoDocumentStore(DB db) {
         nodesCollection = db.getCollection(Collection.NODES.toString());

@@ -49,11 +49,7 @@ public class Node {
     }
 
     public void copyTo(Node newNode) {
-        for (Map.Entry<String, String> e : properties.entrySet()) {
-            if (!filter(e.getKey())) {
-                newNode.setProperty(e.getKey(), e.getValue());
-            }
-        }
+        newNode.properties.putAll(properties);
     }
 
     public String toString() {
@@ -74,7 +70,8 @@ public class Node {
         UpdateOp op = new UpdateOp(path, id, isNew);
         op.set(UpdateOp.ID, id);
         for (String p : properties.keySet()) {
-            op.addMapEntry(p + "." + rev.toString(), properties.get(p));
+            String key = Utils.escapePropertyName(p);
+            op.addMapEntry(key + "." + rev.toString(), properties.get(p));
         }
         return op;
     }
@@ -95,17 +92,6 @@ public class Node {
         for (String p : properties.keySet()) {
             json.key(p).encodedValue(properties.get(p));
         }
-    }
-
-    /**
-     * Determines if the key is system generated
-     */
-    private static boolean filter(String key) {
-        //TODO We need to move node properties to a sub key
-        // so that all other top level props can be considered as
-        // system generated and handled in a better way,
-        // or escape properties that start with a _
-        return key.startsWith("_");
     }
     
     /**

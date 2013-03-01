@@ -260,8 +260,7 @@ public class MongoMK implements MicroKernel {
             if (key.equals(UpdateOp.WRITE_COUNT)) {
                 writeCount += (Long) map.get(key);
             }
-            if (key.startsWith("_")) {
-                // TODO property name escaping
+            if (!Utils.isPropertyName(key)) {
                 continue;
             }
             Object v = map.get(key);
@@ -269,7 +268,8 @@ public class MongoMK implements MicroKernel {
             Map<String, String> valueMap = (Map<String, String>) v;
             if (valueMap != null) {
                 String value = getLatestValue(valueMap, rev);
-                n.setProperty(key, value);
+                String propertyName = Utils.unescapePropertyName(key);
+                n.setProperty(propertyName, value);
             }
         }
         n.setWriteCount(writeCount);

@@ -61,5 +61,28 @@ public class Utils {
         ObjectId objId = new ObjectId();
         return objId._machine();
     }
+
+    public static String escapePropertyName(String propertyName) {
+        String key = propertyName;
+        if (key.startsWith("$") || key.startsWith("_")) {
+            key = "_" + key;
+        }
+        // '*' in a property name is illegal in JCR I believe
+        // TODO find a better solution
+        key = key.replace('.', '*');
+        return key;
+    }
+    
+    public static String unescapePropertyName(String key) {
+        if (key.startsWith("__") || key.startsWith("_$")) {
+            key = key.substring(1);
+        }
+        key = key.replace('*', '.');
+        return key;
+    }
+    
+    public static boolean isPropertyName(String key) {
+        return !key.startsWith("_") || key.startsWith("__") || key.startsWith("_$");
+    }
     
 }
