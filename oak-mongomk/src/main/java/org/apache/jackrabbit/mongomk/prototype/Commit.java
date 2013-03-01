@@ -69,7 +69,7 @@ public class Commit {
     private UpdateOp getUpdateOperationForNode(String path) {
         UpdateOp op = operations.get(path);
         if (op == null) {
-            String id = Node.convertPathToDocumentId(path);
+            String id = Utils.getIdFromPath(path);
             op = new UpdateOp(path, id, false);
             operations.put(path, op);
         }
@@ -90,7 +90,8 @@ public class Commit {
     
     void updateProperty(String path, String propertyName, String value) {
         UpdateOp op = getUpdateOperationForNode(path);
-        op.addMapEntry(propertyName + "." + revision.toString(), value);
+        String key = Utils.escapePropertyName(propertyName);
+        op.addMapEntry(key + "." + revision.toString(), value);
         long increment = mk.getWriteCountIncrement(path);
         op.increment(UpdateOp.WRITE_COUNT, 1 + increment);
     }
@@ -208,7 +209,7 @@ public class Commit {
     
     private UpdateOp[] splitDocument(Map<String, Object> map) {
         String id = (String) map.get(UpdateOp.ID);
-        String path = id.substring(1);
+        String path = Utils.getPathFromId(id);
         Long previous = (Long) map.get(UpdateOp.PREVIOUS);
         if (previous == null) {
             previous = 0L;
@@ -299,7 +300,7 @@ public class Commit {
                     writeCountInc = 0;
                 } else {
                     writeCountInc++;
-                    String id = Node.convertPathToDocumentId(path);
+                    String id = Utils.getIdFromPath(path);
                     Map<String, Object> map = mk.getDocumentStore().find(Collection.NODES, id);
                     Long oldWriteCount = (Long) map.get(UpdateOp.WRITE_COUNT);
                     writeCount = oldWriteCount == null ? 0 : oldWriteCount;
@@ -321,6 +322,9 @@ public class Commit {
     }
 
     private void markChanged(String path) {
+        if (!PathUtils.denotesRoot(path) && !PathUtils.isAbsolute(path)) {
+            throw new IllegalArgumentException("path: " + path);
+        }
         while (true) {
             changedNodes.add(path);
             if (PathUtils.denotesRoot(path)) {
