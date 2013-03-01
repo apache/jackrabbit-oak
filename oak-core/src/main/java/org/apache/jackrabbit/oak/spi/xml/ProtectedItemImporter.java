@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.xml;
 
+import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
@@ -45,10 +46,10 @@ public abstract interface ProtectedItemImporter {
      * @return {@code true} if this importer was successfully initialized and
      * is able to handle an import with the given setup; {@code false} otherwise.
      */
-    boolean init(Session session, Root root,
-                 NamePathMapper namePathMapper,
+    boolean init(@Nonnull Session session, @Nonnull Root root,
+                 @Nonnull NamePathMapper namePathMapper,
                  boolean isWorkspaceImport, int uuidBehavior,
-                 ReferenceChangeTracker referenceTracker);
+                 @Nonnull ReferenceChangeTracker referenceTracker);
 
     /**
      * Post processing protected reference properties underneath a protected
