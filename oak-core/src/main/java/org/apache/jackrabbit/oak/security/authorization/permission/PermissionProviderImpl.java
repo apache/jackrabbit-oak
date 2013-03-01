@@ -32,11 +32,13 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.ReadOnlyRoot;
 import org.apache.jackrabbit.oak.core.ReadOnlyTree;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
 import org.apache.jackrabbit.oak.security.authorization.AccessControlConstants;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.Permissions;
 import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
@@ -69,7 +71,8 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
     public PermissionProviderImpl(@Nonnull Root root, @Nonnull Set<Principal> principals,
                                   @Nonnull SecurityProvider securityProvider) {
         this.root = root;
-        this.acContext = securityProvider.getAccessControlConfiguration().getContext();
+        AccessControlConfiguration acConfig = securityProvider.getAccessControlConfiguration();
+        this.acContext = acConfig.getContext();
         if (principals.contains(SystemPrincipal.INSTANCE) || isAdmin(principals)) {
             compiledPermissions = AllPermissions.getInstance();
         } else {
@@ -77,7 +80,7 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
             if (permissionsTree == null || principals.isEmpty()) {
                 compiledPermissions = NoPermissions.getInstance();
             } else {
-                compiledPermissions = new CompiledPermissionImpl(principals, permissionsTree, getBitsProvider());
+                compiledPermissions = new CompiledPermissionImpl(principals, permissionsTree, getBitsProvider(), acConfig.getRestrictionProvider(NamePathMapper.DEFAULT));
             }
         }
     }
@@ -85,7 +88,7 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
     @Override
     public void refresh() {
         if (compiledPermissions instanceof CompiledPermissionImpl) {
-            ((CompiledPermissionImpl) compiledPermissions).update(getPermissionsRoot(), getBitsProvider());
+            ((CompiledPermissionImpl) compiledPermissions).refresh(getPermissionsRoot(), getBitsProvider());
         }
     }
 

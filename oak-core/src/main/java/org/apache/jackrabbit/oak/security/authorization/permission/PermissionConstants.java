@@ -41,6 +41,7 @@ interface PermissionConstants {
     String PERMISSIONS_STORE_PATH = JcrConstants.JCR_SYSTEM + '/' + REP_PERMISSION_STORE;
 
     String REP_ACCESS_CONTROLLED_PATH = "rep:accessControlledPath";
+    String REP_PRIVILEGE_BITS = "rep:privileges";
     String REP_INDEX = "rep:index";
     char PREFIX_ALLOW = 'a';
     char PREFIX_DENY = 'd';

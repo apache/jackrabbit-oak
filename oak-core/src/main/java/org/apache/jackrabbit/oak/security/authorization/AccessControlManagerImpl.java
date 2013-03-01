@@ -93,12 +93,13 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
 
     private final PrivilegeManager privilegeManager;
     private final PrincipalManager principalManager;
-    private final PermissionProvider permissionProvider;
     private final RestrictionProvider restrictionProvider;
     private final ReadOnlyNodeTypeManager ntMgr;
 
-    public AccessControlManagerImpl(Root root, NamePathMapper namePathMapper,
-                                    SecurityProvider securityProvider) {
+    private PermissionProvider permissionProvider;
+
+    public AccessControlManagerImpl(@Nonnull Root root, @Nonnull NamePathMapper namePathMapper,
+                                    @Nonnull SecurityProvider securityProvider) {
         this.root = root;
         this.namePathMapper = namePathMapper;
 
@@ -106,10 +107,6 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
         principalManager = securityProvider.getPrincipalConfiguration().getPrincipalManager(root, namePathMapper);
 
         acConfig = securityProvider.getAccessControlConfiguration();
-
-        Subject subject = Subject.getSubject(AccessController.getContext());
-        Set<Principal> principals = (subject != null) ? subject.getPrincipals() : Collections.<Principal>emptySet();
-        permissionProvider = acConfig.getPermissionProvider(root, principals);
         restrictionProvider = acConfig.getRestrictionProvider(namePathMapper);
         ntMgr = ReadOnlyNodeTypeManager.getInstance(root, namePathMapper);
     }
@@ -130,15 +127,13 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
 
     @Override
     public boolean hasPrivileges(@Nullable String absPath, @Nonnull Privilege[] privileges) throws RepositoryException {
-        permissionProvider.refresh();
-        return hasPrivileges(absPath, privileges, permissionProvider);
+        return hasPrivileges(absPath, privileges, getPermissionProvider());
     }
 
     @Nonnull
     @Override
     public Privilege[] getPrivileges(@Nullable String absPath) throws RepositoryException {
-        permissionProvider.refresh();
-        return getPrivileges(absPath, permissionProvider);
+        return getPrivileges(absPath, getPermissionProvider());
     }
 
     @Nonnull
@@ -360,6 +355,18 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
             throw new AccessControlException("Tree " + tree.getPath() + " defines access control content.");
         }
         return tree;
+    }
+
+    @Nonnull
+    private PermissionProvider getPermissionProvider() {
+        if (permissionProvider == null) {
+            Subject subject = Subject.getSubject(AccessController.getContext());
+            Set<Principal> principals = (subject != null) ? subject.getPrincipals() : Collections.<Principal>emptySet();
+            permissionProvider = acConfig.getPermissionProvider(root, principals);
+        } else {
+            permissionProvider.refresh();
+        }
+        return permissionProvider;
     }
 
     private void checkPermission(@Nonnull Tree tree) throws AccessDeniedException {
