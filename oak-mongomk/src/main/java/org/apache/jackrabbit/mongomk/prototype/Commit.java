@@ -27,12 +27,16 @@ import org.apache.jackrabbit.mk.json.JsopStream;
 import org.apache.jackrabbit.mk.json.JsopWriter;
 import org.apache.jackrabbit.mongomk.prototype.DocumentStore.Collection;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A higher level object representing a commit.
  */
 public class Commit {
-    
+
+    private static final Logger LOG = LoggerFactory.getLogger(Commit.class);
+
     /**
      * The maximum size of a document. If it is larger, it is split.
      */
@@ -93,7 +97,9 @@ public class Commit {
 
     void addNode(Node n) {
         if (operations.containsKey(n.path)) {
-            throw new MicroKernelException("Node already added: " + n.path);
+            String msg = "Node already added: " + n.path;
+            LOG.error(msg);
+            throw new MicroKernelException(msg);
         }
         operations.put(n.path, n.asOperation(true));
         addedNodes.add(n.path);
@@ -145,7 +151,13 @@ public class Commit {
         }
         try {
             if (newNodes.size() > 0) {
-                store.create(Collection.NODES, newNodes);
+                if (!store.create(Collection.NODES, newNodes)) {
+                    for (UpdateOp op : newNodes) {
+                        op.unset(UpdateOp.ID);
+                        op.addMapEntry(UpdateOp.DELETED + "." + revision.toString(), "false");
+                        createOrUpdateNode(store, op);
+                    }
+                }
             }
             for (UpdateOp op : changedNodes) {
                 createOrUpdateNode(store, op);
@@ -158,7 +170,9 @@ public class Commit {
                 operations.put(commitRoot, root);
             }
         } catch (MicroKernelException e) {
-            throw new MicroKernelException("Exception committing " + diff.toString(), e);
+            String msg = "Exception committing " + diff.toString();
+            LOG.error(msg, e);
+            throw new MicroKernelException(msg, e);
         }
     }
     
@@ -193,8 +207,8 @@ public class Commit {
     }
     
     private UpdateOp[] splitDocument(Map<String, Object> map) {
-        String path = (String) map.get(UpdateOp.PATH);
         String id = (String) map.get(UpdateOp.ID);
+        String path = id.substring(1);
         Long previous = (Long) map.get(UpdateOp.PREVIOUS);
         if (previous == null) {
             previous = 0L;
@@ -206,9 +220,7 @@ public class Commit {
         main.set(UpdateOp.PREVIOUS, previous);
         for (Entry<String, Object> e : map.entrySet()) {
             String key = e.getKey();
-            if (key.equals(UpdateOp.PATH)) {
-                // ok
-            } else if (key.equals(UpdateOp.ID)) {
+            if (key.equals(UpdateOp.ID)) {
                 // ok
             } else if (key.equals(UpdateOp.PREVIOUS)) {
                 // ok
@@ -278,6 +290,7 @@ public class Commit {
             UpdateOp op = operations.get(path);
             boolean isNew = op != null && op.isNew;
             boolean isWritten = op != null;
+            boolean isDelete = op != null && op.isDelete;
             long writeCountInc = mk.getWriteCountIncrement(path);
             Long writeCount = writeCounts.get(path);
             if (writeCount == null) {
@@ -293,7 +306,7 @@ public class Commit {
                 }
             }
             mk.applyChanges(revision, path, 
-                    isNew, isWritten, 
+                    isNew, isDelete, isWritten, 
                     writeCount, writeCountInc,
                     added, removed);
         }
@@ -328,6 +341,7 @@ public class Commit {
     public void removeNode(String path) {
         removedNodes.add(path);
         UpdateOp op = getUpdateOperationForNode(path);
+        op.setDelete(true);
         op.addMapEntry(UpdateOp.DELETED + "." + revision.toString(), "true");
         long increment = mk.getWriteCountIncrement(path);
         op.increment(UpdateOp.WRITE_COUNT, 1 + increment);

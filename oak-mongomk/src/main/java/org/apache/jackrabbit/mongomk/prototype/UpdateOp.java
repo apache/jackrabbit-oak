@@ -25,7 +25,6 @@ import java.util.TreeMap;
 public class UpdateOp {
     
     static final String ID = "_id";
-    static final String PATH = "_path";
     static final String WRITE_COUNT = "_writeCount";
     static final String REVISIONS = "_revisions";
     static final String PREVIOUS = "_prev";
@@ -36,6 +35,7 @@ public class UpdateOp {
     final String key;
     
     final boolean isNew;
+    boolean isDelete;
     
     final Map<String, Operation> changes = new TreeMap<String, Operation>();
     
@@ -46,6 +46,7 @@ public class UpdateOp {
      * @param path the node path (for nodes)
      * @param key the primary key
      * @param isNew whether this is a new document
+     * @param isDelete whether the _deleted property is set 
      * @param rev the revision
      */
     UpdateOp(String path, String key, boolean isNew) {
@@ -60,6 +61,10 @@ public class UpdateOp {
     
     boolean isNew() {
         return isNew;
+    }
+    
+    void setDelete(boolean isDelete) {
+        this.isDelete = isDelete;
     }
     
     /**
@@ -99,6 +104,15 @@ public class UpdateOp {
         op.type = Operation.Type.SET;
         op.value = value;
         changes.put(property, op);
+    }
+    
+    /**
+     * Do not set the property (after it has been set).
+     * 
+     * @param property the property name
+     */
+    void unset(String property) {
+        changes.remove(property);
     }
 
     /**

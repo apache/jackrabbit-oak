@@ -58,16 +58,27 @@ public class SimpleTest {
     public void addNodeGetNode() {
         MongoMK mk = new MongoMK();
         Revision rev = mk.newRevision();
-        Node n = new Node("/", rev);
+        Node n = new Node("/test", rev);
         n.setProperty("name", "Hello");
         UpdateOp op = n.asOperation(true);
         DocumentStore s = mk.getDocumentStore();
-        s.create(Collection.NODES, Lists.newArrayList(op));
-        Node n2 = mk.getNode("/", rev);
+        assertTrue(s.create(Collection.NODES, Lists.newArrayList(op)));
+        Node n2 = mk.getNode("/test", rev);
         assertEquals("Hello", n2.getProperty("name"));
         mk.dispose();
     }
 
+    @Test
+    public void reAddDeleted() {
+        MongoMK mk = createMK();
+        String rev = mk.commit("/", "+\"test\":{\"name\": \"Hello\"}", null, null);
+        rev = mk.commit("/", "-\"test\"", rev, null);
+        rev = mk.commit("/", "+\"test\":{\"name\": \"Hallo\"}", null, null);
+        String test = mk.getNodes("/test", rev, 0, 0, Integer.MAX_VALUE, null);
+        assertEquals("{\"name\":\"Hallo\",\":childNodeCount\":0}", test);
+        mk.dispose();
+    }
+    
     @Test
     public void commit() {
         MongoMK mk = createMK();

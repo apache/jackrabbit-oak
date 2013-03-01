@@ -25,6 +25,8 @@ import java.util.Map.Entry;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mongomk.prototype.MongoMK.Cache;
 import org.apache.jackrabbit.mongomk.prototype.UpdateOp.Operation;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
@@ -40,9 +42,10 @@ import com.mongodb.WriteResult;
  * A document store that uses MongoDB as the backend.
  */
 public class MongoDocumentStore implements DocumentStore {
-    
-    private static final boolean LOG = false;
-    private static final boolean LOG_TIME = true;
+
+    private static final Logger LOG = LoggerFactory.getLogger(MongoDocumentStore.class);
+
+    private static final boolean LOG_TIME = false;
 
     private final DBCollection nodesCollection;
     
@@ -216,7 +219,7 @@ public class MongoDocumentStore implements DocumentStore {
     }
 
     @Override
-    public void create(Collection collection, List<UpdateOp> updateOps) {
+    public boolean create(Collection collection, List<UpdateOp> updateOps) {
         log("create", updateOps);       
         ArrayList<Map<String, Object>> maps = new ArrayList<Map<String, Object>>();
         DBObject[] inserts = new DBObject[updateOps.size()];
@@ -259,7 +262,7 @@ public class MongoDocumentStore implements DocumentStore {
             try {
                 WriteResult writeResult = dbCollection.insert(inserts, WriteConcern.SAFE);
                 if (writeResult.getError() != null) {
-                    throw new MicroKernelException("Batch create failed: " + writeResult.getError());
+                    return false;
                 }
                 synchronized (cache) {
                     for (Map<String, Object> map : maps) {
@@ -269,8 +272,9 @@ public class MongoDocumentStore implements DocumentStore {
                         }
                     }
                 }
+                return true;
             } catch (MongoException e) {
-                throw new MicroKernelException("Batch create failed", e);
+                return false;
             }
         } finally {
             end(start);
@@ -319,19 +323,19 @@ public class MongoDocumentStore implements DocumentStore {
     
     @Override
     public void dispose() {
-        if (LOG_TIME) {
-            System.out.println("MongoDB time: " + time);
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("MongoDB time: " + time);
         }
         nodesCollection.getDB().getMongo().close();
     }
     
-    private static void log(Object... args) {
-        if (LOG) {
-            String msg = Arrays.toString(args);
-            if (msg.length() > 10000) {
-                msg = msg.length() + ": " + msg;
+    private static void log(String message, Object... args) {
+        if (LOG.isDebugEnabled()) {
+            String argList = Arrays.toString(args);
+            if (argList.length() > 10000) {
+                argList = argList.length() + ": " + argList;
             }
-            System.out.println(msg);
+            LOG.debug(message + argList);
         }
     }
 

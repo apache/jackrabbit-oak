@@ -20,6 +20,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 
+import org.bson.types.ObjectId;
+
 /**
  * Utility methods.
  */
@@ -48,6 +50,16 @@ public class Utils {
             }
         }
         return size;
+    }
+
+    /**
+     * Generate a unique cluster id, similar to the machine id field in MongoDB ObjectId objects.
+     * 
+     * @return the unique machine id
+     */
+    public static int getUniqueClusterId() {
+        ObjectId objId = new ObjectId();
+        return objId._machine();
     }
     
 }
