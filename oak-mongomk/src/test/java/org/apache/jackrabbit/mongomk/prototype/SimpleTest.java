@@ -80,6 +80,16 @@ public class SimpleTest {
     }
     
     @Test
+    public void escapePropertyName() {
+        MongoMK mk = createMK();
+        String rev = mk.commit(
+                "/", "+\"test\":{\"name.first\": \"Hello\", \"_id\": \"a\", \"$x\": \"1\"}", null, null);
+        String test = mk.getNodes("/test", rev, 0, 0, Integer.MAX_VALUE, null);
+        assertEquals("{\"$x\":\"1\",\"_id\":\"a\",\"name.first\":\"Hello\",\":childNodeCount\":0}", test);
+        mk.dispose();
+    }
+    
+    @Test
     public void commit() {
         MongoMK mk = createMK();
         
