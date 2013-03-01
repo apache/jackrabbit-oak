@@ -65,11 +65,13 @@ public class SolrQueryIndexProvider implements QueryIndexProvider {
         List<QueryIndex> tempIndexes = new ArrayList<QueryIndex>();
         for (IndexDefinition child : buildIndexDefinitions(nodeState, "/",
                 SolrQueryIndex.TYPE)) {
-            if (log.isInfoEnabled()) {
-                log.info("found a Solr index definition {}", child);
+            if (log.isDebugEnabled()) {
+                log.debug("found a Solr index definition {}", child);
             }
             try {
-                tempIndexes.add(new SolrQueryIndex(child, solrServerProvider.getSolrServer(), oakSolrConfigurationProvider.getConfiguration()));
+                if (solrServerProvider != null && oakSolrConfigurationProvider != null) {
+                    tempIndexes.add(new SolrQueryIndex(child, solrServerProvider.getSolrServer(), oakSolrConfigurationProvider.getConfiguration()));
+                }
             } catch (Exception e) {
                 log.error("unable to create Solr query index at {} due to {}", new Object[]{child.getPath(), e});
             }

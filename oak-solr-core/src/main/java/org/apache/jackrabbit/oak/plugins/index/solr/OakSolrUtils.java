@@ -52,11 +52,19 @@ public class OakSolrUtils {
      * @return a {@link SolrIndexHookProvider}
      */
     public static IndexHookProvider adaptOsgiIndexHookProvider() {
-        BundleContext ctx = BundleReference.class.cast(SolrIndexHookProvider.class
-                .getClassLoader()).getBundle().getBundleContext();
+        IndexHookProvider indexHookProvider = null;
+        try {
+            BundleContext ctx = BundleReference.class.cast(SolrIndexHookProvider.class
+                    .getClassLoader()).getBundle().getBundleContext();
 
-        ServiceReference serviceReference = ctx.getServiceReference(SolrIndexHookProvider.class.getName());
-        return SolrIndexHookProvider.class.cast(ctx.getService(serviceReference));
+            ServiceReference serviceReference = ctx.getServiceReference(IndexHookProvider.class.getName());
+            if (serviceReference != null) {
+                indexHookProvider = IndexHookProvider.class.cast(ctx.getService(serviceReference));
+            }
+        } catch (Throwable e) {
+            // do nothing
+        }
+        return indexHookProvider;
     }
 
     /**
@@ -65,11 +73,91 @@ public class OakSolrUtils {
      * @return a {@link SolrQueryIndexProvider}
      */
     public static QueryIndexProvider adaptOsgiQueryIndexProvider() {
-        BundleContext ctx = BundleReference.class.cast(SolrQueryIndexProvider.class
-                .getClassLoader()).getBundle().getBundleContext();
+        QueryIndexProvider queryIndexProvider = null;
+        try {
+            BundleContext ctx = BundleReference.class.cast(SolrQueryIndexProvider.class
+                    .getClassLoader()).getBundle().getBundleContext();
 
-        ServiceReference serviceReference = ctx.getServiceReference(SolrQueryIndexProvider.class.getName());
-        return SolrQueryIndexProvider.class.cast(ctx.getService(serviceReference));
+            ServiceReference serviceReference = ctx.getServiceReference(QueryIndexProvider.class.getName());
+            if (serviceReference != null) {
+                queryIndexProvider = QueryIndexProvider.class.cast(ctx.getService(serviceReference));
+            }
+        } catch (Throwable e) {
+            // do nothing
+        }
+        return queryIndexProvider;
+    }
+
+    /**
+     * adapt the OSGi Solr {@link SolrServerProvider} service of a given extending class
+     * and tries to instantiate it if non existing.
+     *
+     * @param providerClass the {@link Class} extending {@link SolrServerProvider}
+     *                      to adapt or instantiate
+     * @param <T>           the {@link SolrServerProvider} extension
+     * @return a {@link SolrServerProvider} adapted from the OSGi service, or a
+     *         directly instantiated one or <code>null</code> if both failed
+     */
+    public static <T extends SolrServerProvider> SolrServerProvider adaptOsgiSolrServerProvider(Class<T> providerClass) {
+        SolrServerProvider solrServerProvider = null;
+        try {
+            BundleContext ctx = BundleReference.class.cast(providerClass
+                    .getClassLoader()).getBundle().getBundleContext();
+            ServiceReference serviceReference = ctx.getServiceReference(SolrServerProvider.class.getName());
+            if (serviceReference != null) {
+                solrServerProvider = SolrServerProvider.class.cast(ctx.getService(serviceReference));
+            }
+        } catch (Exception e) {
+            // do nothing
+        }
+
+        if (solrServerProvider == null && providerClass != null) {
+            try {
+                solrServerProvider = providerClass.newInstance();
+            } catch (InstantiationException e) {
+                // do nothing
+            } catch (IllegalAccessException e) {
+                // do nothing
+            }
+        }
+
+        return solrServerProvider;
+    }
+
+    /**
+     * adapt the OSGi Solr {@link OakSolrConfigurationProvider} service of a given
+     * extending class and tries to instantiate it if non existing.
+     *
+     * @param providerClass the {@link Class} extending {@link OakSolrConfigurationProvider}
+     *                      to adapt or instantiate
+     * @param <T>           the {@link OakSolrConfigurationProvider} extension
+     * @return a {@link OakSolrConfigurationProvider} adapted from the OSGi service, or a
+     *         directly instantiated one or <code>null</code> if both failed
+     */
+    public static <T extends OakSolrConfigurationProvider> OakSolrConfigurationProvider adaptOsgiOakSolrConfigurationProvider(Class<T> providerClass) {
+        OakSolrConfigurationProvider oakSolrConfigurationProvider = null;
+        try {
+            BundleContext ctx = BundleReference.class.cast(providerClass
+                    .getClassLoader()).getBundle().getBundleContext();
+            ServiceReference serviceReference = ctx.getServiceReference(OakSolrConfigurationProvider.class.getName());
+            if (serviceReference != null) {
+                oakSolrConfigurationProvider = OakSolrConfigurationProvider.class.cast(ctx.getService(serviceReference));
+            }
+        } catch (Exception e) {
+            // do nothing
+        }
+
+        if (oakSolrConfigurationProvider == null && providerClass != null) {
+            try {
+                oakSolrConfigurationProvider = providerClass.newInstance();
+            } catch (InstantiationException e) {
+                // do nothing
+            } catch (IllegalAccessException e) {
+                // do nothing
+            }
+        }
+
+        return oakSolrConfigurationProvider;
     }
 
     /**

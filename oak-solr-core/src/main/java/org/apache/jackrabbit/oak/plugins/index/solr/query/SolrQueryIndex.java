@@ -150,8 +150,8 @@ public class SolrQueryIndex implements QueryIndex {
         String escapedQuery = queryBuilder.toString();
         solrQuery.setQuery(escapedQuery);
 
-        if (log.isInfoEnabled()) {
-            log.info(new StringBuilder("JCR query: \n" + filter.getQueryStatement() + " \nhas been converted to Solr query: \n").
+        if (log.isDebugEnabled()) {
+            log.debug(new StringBuilder("JCR query: \n" + filter.getQueryStatement() + " \nhas been converted to Solr query: \n").
                     append(solrQuery.toString()).toString());
         }
 
