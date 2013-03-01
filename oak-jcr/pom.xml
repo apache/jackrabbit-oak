@@ -48,13 +48,13 @@
       org.apache.jackrabbit.test.api.NodeTest#testRemoveNodeParentLocked
       org.apache.jackrabbit.test.api.NodeUUIDTest#testSaveReferentialIntegrityException<!--OAK-66-->
       org.apache.jackrabbit.test.api.NodeUUIDTest#testSaveMovedRefNode<!--OAK-66-->
-      org.apache.jackrabbit.test.api.NodeOrderableChildNodesTest#testOrderBeforeUnsupportedRepositoryOperationException<!--OAK-169-->
+      org.apache.jackrabbit.test.api.NodeOrderableChildNodesTest#testOrderBeforeUnsupportedRepositoryOperationException<!--OAK-169 michid check -->
       org.apache.jackrabbit.test.api.SetValueValueFormatExceptionTest#testNodeNotReferenceable
       org.apache.jackrabbit.test.api.NodeSetPrimaryTypeTest#testLocked
-      org.apache.jackrabbit.test.api.WorkspaceCopyReferenceableTest#testCopyNodesNewUUID
-      org.apache.jackrabbit.test.api.WorkspaceCopyVersionableTest#testCopyNodesVersionableAndCheckedIn
-      org.apache.jackrabbit.test.api.WorkspaceMoveReferenceableTest#testMoveNodesReferenceableNodesNewUUID
-      org.apache.jackrabbit.test.api.WorkspaceMoveVersionableTest#testMoveNodesVersionableAndCheckedIn
+      org.apache.jackrabbit.test.api.WorkspaceCopyReferenceableTest#testCopyNodesNewUUID                    <!-- OAK-118 -->
+      org.apache.jackrabbit.test.api.WorkspaceCopyVersionableTest#testCopyNodesVersionableAndCheckedIn      <!-- OAK-118 -->
+      org.apache.jackrabbit.test.api.WorkspaceMoveReferenceableTest#testMoveNodesReferenceableNodesNewUUID  <!-- OAK-118 -->
+      org.apache.jackrabbit.test.api.WorkspaceMoveVersionableTest#testMoveNodesVersionableAndCheckedIn      <!-- OAK-118 -->
       org.apache.jackrabbit.test.api.SessionRemoveItemTest#testRemoveLockedNode
       org.apache.jackrabbit.test.api.SessionRemoveItemTest#testRemoveLockedChildItem
       org.apache.jackrabbit.test.api.SessionRemoveItemTest#testRemoveCheckedInItem
@@ -65,17 +65,17 @@
       org.apache.jackrabbit.test.api.NodeCanAddMixinTest#testLocked
       org.apache.jackrabbit.test.api.NodeRemoveMixinTest#testLocked
       org.apache.jackrabbit.test.api.ValueFactoryTest#testValueFormatException<!--OAK-204-->
-      org.apache.jackrabbit.test.api.WorkspaceCopySameNameSibsTest
-      org.apache.jackrabbit.test.api.WorkspaceCopyTest#testCopyNodesAccessDenied
-      org.apache.jackrabbit.test.api.WorkspaceCopyTest#testCopyNodesLocked
-      org.apache.jackrabbit.test.api.WorkspaceMoveSameNameSibsTest
-      org.apache.jackrabbit.test.api.WorkspaceMoveTest#testMoveNodesLocked
-      org.apache.jackrabbit.test.api.WorkspaceMoveTest#testMoveNodesAccessDenied
+      org.apache.jackrabbit.test.api.WorkspaceCopySameNameSibsTest                                     <!-- OAK-118 -->
+      org.apache.jackrabbit.test.api.WorkspaceCopyTest#testCopyNodesAccessDenied                       <!-- OAK-118 -->
+      org.apache.jackrabbit.test.api.WorkspaceCopyTest#testCopyNodesLocked                             <!-- OAK-118 -->
+      org.apache.jackrabbit.test.api.WorkspaceMoveSameNameSibsTest                                     <!-- OAK-118 -->
+      org.apache.jackrabbit.test.api.WorkspaceMoveTest#testMoveNodesLocked                             <!-- OAK-118 -->
+      org.apache.jackrabbit.test.api.WorkspaceMoveTest#testMoveNodesAccessDenied                       <!-- OAK-118 -->
       org.apache.jackrabbit.test.api.CheckPermissionTest
       org.apache.jackrabbit.test.api.DocumentViewImportTest
       org.apache.jackrabbit.test.api.SerializationTest
       org.apache.jackrabbit.test.api.HasPermissionTest
-      org.apache.jackrabbit.test.api.lock.LockManagerTest#testAddInvalidLockToken
+      org.apache.jackrabbit.test.api.lock.LockManagerTest#testAddInvalidLockToken                      <!-- OAK-150 ... -->
       org.apache.jackrabbit.test.api.lock.LockManagerTest#testLockNonLockable
       org.apache.jackrabbit.test.api.lock.LockTest#testGetNode
       org.apache.jackrabbit.test.api.lock.LockTest#testAddRemoveLockToken
@@ -188,7 +188,7 @@
       org.apache.jackrabbit.test.api.lock.SessionScopedLockTest#testHoldsLockNewChild
       org.apache.jackrabbit.test.api.lock.SessionScopedLockTest#testGetLockOnChild
       org.apache.jackrabbit.test.api.lock.SessionScopedLockTest#testGetLockOnNewChild
-      org.apache.jackrabbit.test.api.lock.SessionScopedLockTest#testRemoveMixLockableFromLockedNode
+      org.apache.jackrabbit.test.api.lock.SessionScopedLockTest#testRemoveMixLockableFromLockedNode  <!-- ... OAK-150 -->
       org.apache.jackrabbit.test.api.LifecycleTest
       org.apache.jackrabbit.test.api.query.ElementTest#testElementTestNameTestSomeNTWithSNS          <!-- OAK-203 -->
       org.apache.jackrabbit.test.api.query.SaveTest#testItemExistsException                          <!-- OAK-203 -->
