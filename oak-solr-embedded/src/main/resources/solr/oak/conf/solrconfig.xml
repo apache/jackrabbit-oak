@@ -458,8 +458,8 @@ Lucene will flush based on whichever limit is hit first.  -->
                  and old cache.
         -->
         <filterCache class="solr.FastLRUCache"
-                     size="512"
-                     initialSize="512"
+                     size="0"
+                     initialSize="0"
                      autowarmCount="0"/>
 
         <!-- Query Result Cache
@@ -468,8 +468,8 @@ Lucene will flush based on whichever limit is hit first.  -->
            (DocList) based on a query, a sort, and the range of documents requested.
         -->
         <queryResultCache class="solr.LRUCache"
-                          size="512"
-                          initialSize="512"
+                          size="0"
+                          initialSize="0"
                           autowarmCount="0"/>
 
         <!-- Document Cache
@@ -479,8 +479,8 @@ Lucene will flush based on whichever limit is hit first.  -->
            this cache will not be autowarmed.
         -->
         <documentCache class="solr.LRUCache"
-                       size="512"
-                       initialSize="512"
+                       size="0"
+                       initialSize="0"
                        autowarmCount="0"/>
 
         <!-- Field Value Cache

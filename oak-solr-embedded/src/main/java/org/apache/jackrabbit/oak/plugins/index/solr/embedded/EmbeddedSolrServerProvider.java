@@ -27,6 +27,7 @@ import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.plugins.index.solr.OakSolrUtils;
 import org.apache.jackrabbit.oak.plugins.index.solr.SolrServerProvider;
+import org.apache.lucene.codecs.lucene40.Lucene40Codec;
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.embedded.EmbeddedSolrServer;
@@ -60,7 +61,7 @@ public class EmbeddedSolrServerProvider implements SolrServerProvider {
     @Property(value = DEFAULT_PORT)
     private static final String SOLR_HTTP_PORT = "solr.http.port";
 
-    private SolrServer solrServer;
+    private static SolrServer solrServer;
 
     private String solrHome;
     private Integer solrHttpPort;
@@ -119,6 +120,13 @@ public class EmbeddedSolrServerProvider implements SolrServerProvider {
 
     private SolrServer initializeWithNewHttpServer() throws Exception {
         // try spawning a new Solr server using Jetty and connect to it via HTTP
+
+        // hack needed to let lucene SPIs work in an OSGi deploy
+        Thread thread = Thread.currentThread();
+        ClassLoader loader = thread.getContextClassLoader();
+        thread.setContextClassLoader(Lucene40Codec.class.getClassLoader());
+        thread.setContextClassLoader(loader);
+
         enableSolrCloud(solrHome, DEFAULT_CORE_NAME);
         JettySolrRunner jettySolrRunner = new JettySolrRunner(solrHome, CONTEXT, solrHttpPort, "solrconfig.xml", "schema.xml", true);
         jettySolrRunner.start(true);
