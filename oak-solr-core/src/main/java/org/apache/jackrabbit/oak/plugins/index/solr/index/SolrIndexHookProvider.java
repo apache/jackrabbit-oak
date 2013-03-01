@@ -63,11 +63,12 @@ public class SolrIndexHookProvider implements IndexHookProvider {
     @Override
     @Nonnull
     public List<? extends IndexHook> getIndexHooks(String type, NodeBuilder builder) {
-        if (SolrQueryIndex.TYPE.equals(type)) {
-            if (log.isInfoEnabled()) {
-                log.info("Creating a Solr index hook");
-            }
+
+        if (SolrQueryIndex.TYPE.equals(type) && solrServerProvider != null && oakSolrConfigurationProvider != null) {
             try {
+                if (log.isDebugEnabled()) {
+                    log.debug("Creating a Solr index hook");
+                }
                 IndexHook indexHook = new SolrIndexDiff(builder, solrServerProvider.getSolrServer(), oakSolrConfigurationProvider.getConfiguration());
                 return ImmutableList.of(indexHook);
             } catch (Exception e) {
