@@ -177,10 +177,17 @@ public class MemoryDocumentStore implements DocumentStore {
     }
 
     @Override
-    public void create(Collection collection, List<UpdateOp> updateOps) {
+    public boolean create(Collection collection, List<UpdateOp> updateOps) {
+        ConcurrentSkipListMap<String, Map<String, Object>> map = getMap(collection);
+        for (UpdateOp op : updateOps) {
+            if (map.containsKey(op.key)) {
+                return false;
+            }
+        }
         for (UpdateOp op : updateOps) {
             createOrUpdate(collection, op);
         }
+        return true;
     }
 
     public String toString() {

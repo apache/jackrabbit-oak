@@ -268,20 +268,27 @@ public class MongoMK implements MicroKernel {
             @SuppressWarnings("unchecked")
             Map<String, String> valueMap = (Map<String, String>) v;
             if (valueMap != null) {
-                Revision latestRev = null;
-                for (String r : valueMap.keySet()) {
-                    Revision propRev = Revision.fromString(r);
-                    if (includeRevision(propRev, rev)) {
-                        if (latestRev == null || isRevisionNewer(propRev, latestRev)) {
-                            latestRev = propRev;
-                            n.setProperty(key, valueMap.get(r));
-                        }
-                    }
-                }
+                String value = getLatestValue(valueMap, rev);
+                n.setProperty(key, value);
             }
         }
         n.setWriteCount(writeCount);
         return n;
+    }
+    
+    private String getLatestValue(Map<String, String> valueMap, Revision rev) {
+        String value = null;
+        Revision latestRev = null;
+        for (String r : valueMap.keySet()) {
+            Revision propRev = Revision.fromString(r);
+            if (includeRevision(propRev, rev)) {
+                if (latestRev == null || isRevisionNewer(propRev, latestRev)) {
+                    latestRev = propRev;
+                    value = valueMap.get(r);
+                }
+            }
+        }
+        return value;
     }
 
     @Override
@@ -510,22 +517,15 @@ public class MongoMK implements MicroKernel {
         Map<String, String> valueMap = (Map<String, String>) nodeProps
                 .get(UpdateOp.DELETED);
         if (valueMap != null) {
-            for (Map.Entry<String, String> e : valueMap.entrySet()) {
-                // TODO What if multiple revisions are there?. Should we sort
-                // them and then
-                // determine include revision based on that
-                Revision propRev = Revision.fromString(e.getKey());
-                if (includeRevision(propRev, rev)) {
-                    if ("true".equals(e.getValue())) {
-                        return true;
-                    }
-                }
+            String value = getLatestValue(valueMap, rev);
+            if ("true".equals(value)) {
+                return true;
             }
         }
         return false;
     }
     
-    private static String stripBranchRevMarker(String revisionId){
+    private static String stripBranchRevMarker(String revisionId) {
         if (revisionId.startsWith("b")) {
             return revisionId.substring(1);
         }
@@ -679,7 +679,7 @@ public class MongoMK implements MicroKernel {
     }
 
     public void applyChanges(Revision rev, String path, 
-            boolean isNew, boolean isWritten, 
+            boolean isNew, boolean isDelete, boolean isWritten, 
             long oldWriteCount, long writeCountInc,
             ArrayList<String> added, ArrayList<String> removed) {
         if (!isWritten) {
@@ -693,7 +693,7 @@ public class MongoMK implements MicroKernel {
         }
         long newWriteCount = oldWriteCount + writeCountInc;
         Children c = nodeChildrenCache.get(path + "@" + (newWriteCount - 1));
-        if (isNew || c != null) {
+        if (isNew || (!isDelete && c != null)) {
             String id = path + "@" + newWriteCount;
             Children c2 = new Children(path, id, rev);
             TreeSet<String> set = new TreeSet<String>();

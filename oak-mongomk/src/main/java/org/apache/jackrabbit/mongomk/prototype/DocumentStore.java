@@ -49,7 +49,14 @@ public interface DocumentStore {
      */
     void remove(Collection collection, String key);
 
-    void create(Collection collection, List<UpdateOp> updateOps);
+    /**
+     * Try to create a list of documents.
+     * 
+     * @param collection the collection
+     * @param updateOps the list of documents to add
+     * @return true if this worked (if none of the documents already existed)
+     */
+    boolean create(Collection collection, List<UpdateOp> updateOps);
     
     /**
      * Create or update a document. For MongoDb, this is using "findAndModify" with
