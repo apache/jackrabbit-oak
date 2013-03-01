@@ -299,6 +299,7 @@ public class TreeImpl implements Tree {
 
     @Override
     public void setOrderableChildren(boolean enable) {
+        root.checkLive();
         if (enable) {
             ensureChildOrderProperty();
         } else {
