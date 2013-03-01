@@ -227,7 +227,7 @@ public class RootImpl implements Root {
             purgePendingChanges();
             branch.rebase();
             rootTree = TreeImpl.createRoot(this);
-            permissionProvider = createPermissionProvider();
+            permissionProvider = null;
         }
     }
 
@@ -237,9 +237,7 @@ public class RootImpl implements Root {
         branch = store.branch();
         rootTree = TreeImpl.createRoot(this);
         modCount = 0;
-        if (permissionProvider == null) {
-            permissionProvider = createPermissionProvider();
-        } else {
+        if (permissionProvider != null) {
             permissionProvider.refresh();
         }
     }
@@ -396,6 +394,9 @@ public class RootImpl implements Root {
 
     @Nonnull
     PermissionProvider getPermissionProvider() {
+        if (permissionProvider == null) {
+            permissionProvider = createPermissionProvider();
+        }
         return permissionProvider;
     }
 

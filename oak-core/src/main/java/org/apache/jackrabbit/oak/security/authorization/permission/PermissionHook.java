@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
-import java.util.Collections;
 import java.util.Set;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -44,8 +43,6 @@ import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restrict
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
-import org.apache.jackrabbit.oak.spi.state.PropertyBuilder;
-import org.apache.jackrabbit.oak.util.PropertyUtil;
 import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
@@ -122,7 +119,7 @@ public class PermissionHook implements CommitHook, AccessControlConstants, Permi
         return Lists.newArrayList(ordering.getValue(Type.STRINGS)).indexOf(aceName);
     }
 
-    private static String generateName(NodeBuilder principalRoot, Entry entry) {
+    private static String generateName(NodeBuilder principalRoot, PermissionEntry entry) {
         StringBuilder name = new StringBuilder();
         name.append((entry.isAllow) ? PREFIX_ALLOW : PREFIX_DENY).append('-').append(principalRoot.getChildNodeCount());
         return name.toString();
@@ -204,12 +201,12 @@ public class PermissionHook implements CommitHook, AccessControlConstants, Permi
         }
 
         private void addEntry(String name, NodeState ace) {
-            Entry entry = createEntry(name, ace, parentAfter);
-            entry.writeTo(permissionRoot.child(entry.principalName));
+            PermissionEntry entry = createPermissionEntry(name, ace, parentAfter);
+            entry.writeTo(permissionRoot);
         }
 
         private void removeEntry(String name, NodeState ace) {
-            Entry entry = createEntry(name, ace, parentBefore);
+            PermissionEntry entry = createPermissionEntry(name, ace, parentBefore);
             String permissionName = getPermissionNodeName(entry);
             if (permissionName != null) {
                 permissionRoot.child(entry.principalName).removeNode(permissionName);
@@ -222,33 +219,33 @@ public class PermissionHook implements CommitHook, AccessControlConstants, Permi
         }
 
         @CheckForNull
-        private String getPermissionNodeName(Entry aceEntry) {
-            if (permissionRoot.hasChildNode(aceEntry.principalName)) {
-                NodeBuilder principalRoot = permissionRoot.child(aceEntry.principalName);
+        private String getPermissionNodeName(PermissionEntry permissionEntry) {
+            if (permissionRoot.hasChildNode(permissionEntry.principalName)) {
+                NodeBuilder principalRoot = permissionRoot.child(permissionEntry.principalName);
                 for (String childName : principalRoot.getChildNodeNames()) {
                     NodeState state = principalRoot.child(childName).getNodeState();
-                    if (aceEntry.isSame(childName, state)) {
+                    if (permissionEntry.isSame(childName, state)) {
                         return childName;
                     }
                 }
-                log.warn("No entry node for " + aceEntry);
+                log.warn("No permission entry for " + permissionEntry);
             } else {
                 // inconsistency: removing an ACE that doesn't have a corresponding
                 // entry in the permission store.
-                log.warn("Missing permission node for principal " + aceEntry.principalName);
+                log.warn("Missing permission node for principal " + permissionEntry.principalName);
             }
             return null;
         }
 
         @Nonnull
-        private Entry createEntry(String name, NodeState ace, BaseNode acl) {
+        private PermissionEntry createPermissionEntry(String name, NodeState ace, BaseNode acl) {
             Tree aceTree = getTree(name, ace);
+            String accessControlledPath = getAccessControlledPath(acl);
             String principalName = checkNotNull(TreeUtil.getString(aceTree, REP_PRINCIPAL_NAME));
             PrivilegeBits privilegeBits = bitsProvider.getBits(TreeUtil.getStrings(aceTree, REP_PRIVILEGES));
             boolean isAllow = NT_REP_GRANT_ACE.equals(TreeUtil.getPrimaryTypeName(aceTree));
-            String accessControlledPath = getAccessControlledPath(acl);
 
-            return new Entry(accessControlledPath, getAceIndex(acl, name), principalName,
+            return new PermissionEntry(accessControlledPath, getAceIndex(acl, name), principalName,
                     privilegeBits, isAllow, getRestrictions(accessControlledPath, aceTree));
         }
     }
@@ -276,7 +273,7 @@ public class PermissionHook implements CommitHook, AccessControlConstants, Permi
         abstract NodeState getNodeState();
     }
 
-    private static class BeforeNode extends BaseNode {
+    private static final class BeforeNode extends BaseNode {
 
         private final NodeState nodeState;
 
@@ -297,7 +294,7 @@ public class PermissionHook implements CommitHook, AccessControlConstants, Permi
         }
     }
 
-    private static class Node extends BaseNode {
+    private static final class Node extends BaseNode {
 
         private final NodeBuilder builder;
 
@@ -321,7 +318,7 @@ public class PermissionHook implements CommitHook, AccessControlConstants, Permi
         }
     }
 
-    private final class Entry {
+    private final class PermissionEntry {
 
         private final String accessControlledPath;
         private final int index;
@@ -331,7 +328,7 @@ public class PermissionHook implements CommitHook, AccessControlConstants, Permi
         private final boolean isAllow;
         private final Set<Restriction> restrictions;
 
-        private Entry(@Nonnull String accessControlledPath,
+        private PermissionEntry(@Nonnull String accessControlledPath,
                       int index,
                       @Nonnull String principalName,
                       @Nonnull PrivilegeBits privilegeBits,
@@ -339,32 +336,22 @@ public class PermissionHook implements CommitHook, AccessControlConstants, Permi
             this.accessControlledPath = accessControlledPath;
             this.index = index;
 
-            this.principalName = principalName;
+            this.principalName = Text.escapeIllegalJcrChars(principalName);
             this.privilegeBits = privilegeBits;
             this.isAllow = isAllow;
             this.restrictions = restrictions;
         }
 
-        private void writeTo(NodeBuilder principalRoot) {
+        private void writeTo(NodeBuilder permissionRoot) {
+            NodeBuilder principalRoot = permissionRoot.child(principalName);
             String entryName = generateName(principalRoot, this);
             NodeBuilder entry = principalRoot.child(entryName)
                     .setProperty(JCR_PRIMARYTYPE, NT_REP_PERMISSIONS)
                     .setProperty(REP_ACCESS_CONTROLLED_PATH, accessControlledPath)
                     .setProperty(REP_INDEX, index)
-                    .setProperty(privilegeBits.asPropertyState(REP_PRIVILEGES));
+                    .setProperty(privilegeBits.asPropertyState(REP_PRIVILEGE_BITS));
             for (Restriction restriction : restrictions) {
                 entry.setProperty(restriction.getProperty());
-            }
-
-            PropertyState ordering = principalRoot.getProperty(TreeImpl.OAK_CHILD_ORDER);
-            if (ordering == null) {
-                principalRoot.setProperty(TreeImpl.OAK_CHILD_ORDER, Collections.singleton(entryName), Type.NAMES);
-            } else {
-                PropertyBuilder pb = PropertyUtil.getPropertyBuilder(Type.NAME, ordering);
-                // TODO: determine ordering index
-                int index = 0;
-                pb.setValue(entryName, index);
-                principalRoot.setProperty(pb.getPropertyState());
             }
         }
 
@@ -391,7 +378,7 @@ public class PermissionHook implements CommitHook, AccessControlConstants, Permi
 
         public String toString() {
             StringBuilder sb = new StringBuilder();
-            sb.append("entry: ").append(accessControlledPath);
+            sb.append("permission entry: ").append(accessControlledPath);
             sb.append(';').append(principalName);
             sb.append(';').append(isAllow ? "allow" : "deny");
             sb.append(';').append(privilegeBits);
