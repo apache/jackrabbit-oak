@@ -223,10 +223,10 @@ public class MongoMK implements MicroKernel {
             return c;
         }
         String from = PathUtils.concat(path, "a");
-        from = Node.convertPathToDocumentId(from);
+        from = Utils.getIdFromPath(from);
         from = from.substring(0, from.length() - 1);
         String to = PathUtils.concat(path, "z");
-        to = Node.convertPathToDocumentId(to);
+        to = Utils.getIdFromPath(to);
         to = to.substring(0, to.length() - 2) + "0";
         List<Map<String, Object>> list = store.query(DocumentStore.Collection.NODES, from, to, limit);
         c = new Node.Children(path, nodeId, rev);
@@ -237,7 +237,7 @@ public class MongoMK implements MicroKernel {
             }
             // TODO put the whole node in the cache
             String id = e.get(UpdateOp.ID).toString();
-            String p = id.substring(2);
+            String p = Utils.getPathFromId(id);
             c.children.add(p);
         }
         nodeChildrenCache.put(nodeId, c);
@@ -245,7 +245,7 @@ public class MongoMK implements MicroKernel {
     }
 
     private Node readNode(String path, Revision rev) {
-        String id = Node.convertPathToDocumentId(path);
+        String id = Utils.getIdFromPath(path);
         Map<String, Object> map = store.find(DocumentStore.Collection.NODES, id);
         if (map == null) {
             return null;
@@ -500,11 +500,13 @@ public class MongoMK implements MicroKernel {
 
             // remove from the cache
             nodeCache.remove(path + "@" + rev);
-
-            Node.Children c = readChildren(path, n.getId(), rev,
-                    Integer.MAX_VALUE);
-            for (String childPath : c.children) {
-                markAsDeleted(childPath, commit, true);
+            
+            if (n != null) {
+                Node.Children c = readChildren(path, n.getId(), rev,
+                        Integer.MAX_VALUE);
+                for (String childPath : c.children) {
+                    markAsDeleted(childPath, commit, true);
+                }
             }
         }
 

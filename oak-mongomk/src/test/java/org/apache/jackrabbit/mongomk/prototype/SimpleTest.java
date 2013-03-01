@@ -43,6 +43,26 @@ public class SimpleTest {
     }
     
     @Test
+    public void pathToId() {
+        assertEquals("0:/", Utils.getIdFromPath("/"));
+        assertEquals("/", Utils.getPathFromId("0:/"));
+        assertEquals("1:/test", Utils.getIdFromPath("/test"));
+        assertEquals("/test", Utils.getPathFromId("1:/test"));
+        assertEquals("10:/1/2/3/3/4/6/7/8/9/a", Utils.getIdFromPath("/1/2/3/3/4/6/7/8/9/a"));
+        assertEquals("/1/2/3/3/4/6/7/8/9/a", Utils.getPathFromId("10:/1/2/3/3/4/6/7/8/9/a"));
+    }
+    
+    @Test
+    public void pathDepth() {
+        assertEquals(0, Utils.pathDepth(""));
+        assertEquals(0, Utils.pathDepth("/"));
+        assertEquals(1, Utils.pathDepth("1/"));
+        assertEquals(2, Utils.pathDepth("/a/"));
+        assertEquals(2, Utils.pathDepth("/a/b"));
+        assertEquals(3, Utils.pathDepth("/a/b/c"));
+    }
+    
+    @Test
     public void revision() {
         for (int i = 0; i < 100; i++) {
             Revision r = Revision.newRevision(i);

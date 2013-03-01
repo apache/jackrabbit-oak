@@ -28,7 +28,16 @@ import org.bson.types.ObjectId;
 public class Utils {
     
     static int pathDepth(String path) {
-        return path.equals("/") ? 0 : path.replaceAll("[^/]", "").length();
+        if (path.equals("/")) {
+            return 0;
+        }
+        int depth = 0;
+        for (int i = 0; i < path.length(); i++) {
+            if (path.charAt(i) == '/') {
+                depth++;
+            }
+        }
+        return depth;
     }
     
     static <K, V> Map<K, V> newMap() {
@@ -83,6 +92,16 @@ public class Utils {
     
     public static boolean isPropertyName(String key) {
         return !key.startsWith("_") || key.startsWith("__") || key.startsWith("_$");
+    }
+
+    public static String getIdFromPath(String path) {
+        int depth = Utils.pathDepth(path);
+        return depth + ":" + path;
+    }
+    
+    public static String getPathFromId(String id) {
+        int index = id.indexOf(':');
+        return id.substring(index + 1);
     }
     
 }

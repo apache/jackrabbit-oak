@@ -66,7 +66,7 @@ public class Node {
      * Create an add node operation for this node.
      */
     UpdateOp asOperation(boolean isNew) {
-        String id = convertPathToDocumentId(path);
+        String id = Utils.getIdFromPath(path);
         UpdateOp op = new UpdateOp(path, id, isNew);
         op.set(UpdateOp.ID, id);
         for (String p : properties.keySet()) {
@@ -76,11 +76,6 @@ public class Node {
         return op;
     }
 
-    static String convertPathToDocumentId(String path) {
-        int depth = Utils.pathDepth(path);
-        return depth + ":" + path;
-    }
-    
     public String getId() {
         return path + "@" + writeCount;        
     }

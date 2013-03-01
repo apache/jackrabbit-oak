@@ -77,23 +77,25 @@ public class MongoDocumentStore implements DocumentStore {
 
     @Override
     public Map<String, Object> find(Collection collection, String path) {
-        Map<String, Object> result;
         synchronized (cache) {
-            result = cache.get(path);
-        }
-        if (result != null) {
-            return result;
+            // support null values
+            if (cache.containsKey(path)) {
+                return cache.get(path);
+            }
         }
         log("find", path);
         DBCollection dbCollection = getDBCollection(collection);
         long start = start();
         try {
             DBObject doc = dbCollection.findOne(getByPathQuery(path));
+            Map<String, Object> result;
             if (doc == null) {
-                return null;
+                result = null;
+            } else {
+                result = convertFromDBObject(doc);
             }
-            result = convertFromDBObject(doc);
             synchronized (cache) {
+                // support caching null values
                 cache.put(path, result);
             }
             return result;
