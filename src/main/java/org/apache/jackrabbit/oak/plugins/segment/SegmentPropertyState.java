@@ -73,6 +73,7 @@ class SegmentPropertyState extends AbstractPropertyState {
     @Override @Nonnull @SuppressWarnings("unchecked")
     public <T> T getValue(Type<T> type) {
         if (type.isArray()) {
+            final int count = count();
             final Type<?> base = type.getBaseType();
             return (T) new Iterable<Object>() {
                 @Override
@@ -81,7 +82,7 @@ class SegmentPropertyState extends AbstractPropertyState {
                         private int index = 0;
                         @Override
                         public boolean hasNext() {
-                            return index < count();
+                            return index < count;
                         }
                         @Override
                         public Object next() {
@@ -115,15 +116,14 @@ class SegmentPropertyState extends AbstractPropertyState {
 
         Segment segment = reader.getStore().readSegment(recordId.getSegmentId());
 
-        Type<?> base;
+        Type<?> base = getType();
         ListRecord values;
-        if (isArray()) {
-            base = getType().getBaseType();
+        if (base.isArray()) {
+            base = base.getBaseType();
             int size = segment.readInt(recordId.getOffset());
             RecordId listId = segment.readRecordId(recordId.getOffset() + 4);
             values = new ListRecord(listId, size);
         } else {
-            base = getType();
             values = new ListRecord(recordId, 1);
         }
         checkElementIndex(index, values.size());
