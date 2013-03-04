@@ -48,6 +48,7 @@ import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import com.google.common.base.Charsets;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.io.ByteStreams;
@@ -290,19 +291,42 @@ public class SegmentWriter {
                 }
 
                 int newSize = 0;
+                List<MapRecord> newBuckets = Lists.newArrayList();
                 RecordId[] bucketIds = ((MapBranch) base).getBuckets();
                 for (int i = 0; i < BUCKETS_PER_LEVEL; i++) {
                     MapRecord newBucket = writeMapBucket(
                             bucketIds[i], buckets.get(i), level + 1);
                     if (newBucket != null) {
+                        newBuckets.add(newBucket);
                         bucketIds[i] = newBucket.getRecordId();
                         newSize += newBucket.size();
                     } else {
                         bucketIds[i] = null;
                     }
                 }
-                
-                return writeMapBranch(level, newSize, bucketIds);
+
+                // OAK-654: what if the updated map is smaller?
+                if (newSize > MapRecord.BUCKETS_PER_LEVEL) {
+                    return writeMapBranch(level, newSize, bucketIds);
+                } else if (newSize == 0) {
+                    if (level == 0) {
+                        RecordId id = prepare(4);
+                        writeInt(0);
+                        return new MapLeaf(store, id, 0, 0);
+                    } else {
+                        return null;
+                    }
+                } else if (newBuckets.size() == 1) {
+                    return newBuckets.iterator().next();
+                } else {
+                    // FIXME: ugly hack, flush() shouldn't be needed here
+                    flush();
+                    List<MapEntry> list = Lists.newArrayList();
+                    for (MapRecord record : newBuckets) {
+                        Iterables.addAll(list, record.getEntries());
+                    }
+                    return writeMapLeaf(level, list);
+                }
             }
         } else if (entries.size() <= MapRecord.BUCKETS_PER_LEVEL
                 || level == MapRecord.MAX_NUMBER_OF_LEVELS) {
