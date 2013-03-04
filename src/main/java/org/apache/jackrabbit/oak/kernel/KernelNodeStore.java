@@ -25,6 +25,10 @@ import javax.annotation.Nonnull;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+import com.google.common.cache.Weigher;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.SettableFuture;
+
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.oak.spi.commit.EmptyObserver;
@@ -52,17 +56,33 @@ public class KernelNodeStore implements NodeStore {
     private volatile Observer observer = EmptyObserver.INSTANCE;
 
     private final LoadingCache<String, KernelNodeState> cache =
-            CacheBuilder.newBuilder().maximumSize(10000).build(
-                    new CacheLoader<String, KernelNodeState>() {
-                        @Override
-                        public KernelNodeState load(String key) {
-                            int slash = key.indexOf('/');
-                            String revision = key.substring(0, slash);
-                            String path = key.substring(slash);
-                            return new KernelNodeState(
-                                    kernel, path, revision, cache);
-                        }
-                    });
+            CacheBuilder.newBuilder().maximumWeight(16 * 1024 * 1024).weigher(
+                    new Weigher<String, KernelNodeState>() {
+                @Override
+                public int weigh(String key, KernelNodeState state) {
+                    return state.getMemory();
+                }
+            }).build(new CacheLoader<String, KernelNodeState>() {
+                @Override
+                public KernelNodeState load(String key) {
+                    int slash = key.indexOf('/');
+                    String revision = key.substring(0, slash);
+                    String path = key.substring(slash);
+                    return new KernelNodeState(kernel, path, revision, cache);
+                }
+
+                @Override
+                public ListenableFuture<KernelNodeState> reload(String key,
+                                                                KernelNodeState oldValue)
+                        throws Exception {
+                    // LoadingCache.reload() is only used to re-calculate the
+                    // memory usage on KernelNodeState.init(). Therefore
+                    // we simply return the old value as is (OAK-643)
+                    SettableFuture<KernelNodeState> future = SettableFuture.create();
+                    future.set(oldValue);
+                    return future;
+                }
+            });
 
     /**
      * State of the current root node.
