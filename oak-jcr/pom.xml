@@ -73,7 +73,7 @@
       org.apache.jackrabbit.test.api.WorkspaceMoveTest#testMoveNodesAccessDenied                       <!-- OAK-118 -->
       org.apache.jackrabbit.test.api.CheckPermissionTest
       org.apache.jackrabbit.test.api.DocumentViewImportTest                                            <!-- OAK-127 -->
-      org.apache.jackrabbit.test.api.SerializationTest
+      org.apache.jackrabbit.test.api.SerializationTest                                                 <!-- OAK-127 -->
       org.apache.jackrabbit.test.api.HasPermissionTest
       org.apache.jackrabbit.test.api.lock.LockManagerTest#testAddInvalidLockToken                      <!-- OAK-150 ... -->
       org.apache.jackrabbit.test.api.lock.LockManagerTest#testLockNonLockable
