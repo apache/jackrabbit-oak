@@ -152,6 +152,10 @@ public final class KernelNodeState extends AbstractNodeState {
                 initialized = true;
             }
         }
+        if (initialized) {
+            // refresh cache to force re-calculation of weight (OAK-643)
+            cache.refresh(revision + path);
+        }
         if (initialized && !PathUtils.denotesRoot(path)) {
             // OAK-591: check if we can re-use a previous revision
             // by looking up the node state by hash or id (if available)
@@ -342,6 +346,46 @@ public final class KernelNodeState extends AbstractNodeState {
     @Nonnull
     String getPath() {
         return path;
+    }
+
+    /**
+     * @return the approximate memory usage of this node state.
+     */
+    synchronized int getMemory() {
+        // base memory footprint is roughly 64 bytes
+        int memory = 64;
+        // path String
+        memory += 12 + path.length() * 2;
+        // revision String
+        memory += 12 + revision.length() * 2;
+        // optional hash String
+        if (hash != null) {
+            memory += 12 + hash.length() * 2;
+        }
+        // optional id String
+        if (id != null && !id.equals(hash)) {
+            memory += 12 + id.length() * 2;
+        }
+        // rough approximation for properties
+        if (properties != null) {
+            for (Map.Entry<String, PropertyState> entry : properties.entrySet()) {
+                // name
+                memory += 12 + entry.getKey().length() * 2;
+                PropertyState propState = entry.getValue();
+                if (propState.getType() != Type.BINARY
+                        && propState.getType() != Type.BINARIES) {
+                    // assume binaries go into blob store
+                    for (int i = 0; i < propState.count(); i++) {
+                        memory += propState.size(i);
+                    }
+                }
+            }
+        }
+        // rough approximation for child nodes
+        if (childNames != null) {
+            memory += childNames.size() * 150;
+        }
+        return memory;
     }
 
     //------------------------------------------------------------< private >---
