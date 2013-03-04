@@ -18,6 +18,9 @@
  */
 package org.apache.jackrabbit.oak.kernel;
 
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -31,6 +34,8 @@ import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
 
 import com.google.common.base.Function;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -66,6 +71,33 @@ public final class KernelNodeState extends AbstractNodeState {
      * Maximum number of child nodes kept in memory.
      */
     static final int MAX_CHILD_NODE_NAMES = 1000;
+
+    /**
+     * Dummy cache instance for static {@link #NULL} kernel node state.
+     */
+    private static final LoadingCache<String, KernelNodeState> DUMMY_CACHE =
+        CacheBuilder.newBuilder().build(new CacheLoader<String, KernelNodeState>() {
+            @Override
+            public KernelNodeState load(String key) throws Exception {
+                throw new UnsupportedOperationException();
+            }
+        });
+
+    /**
+     * This <code>NULL</code> kernel node state is used as a value in the
+     * {@link #cache} to indicate that there is no node state at the given
+     * path and revision. This object is only used internally and never leaves
+     * this {@link KernelNodeState}.
+     */
+    private static final KernelNodeState NULL = new KernelNodeState(
+            (MicroKernel) Proxy.newProxyInstance(MicroKernel.class.getClassLoader(),
+                    new Class[]{MicroKernel.class}, new InvocationHandler() {
+        @Override
+        public Object invoke(Object proxy, Method method, Object[] args)
+                throws Throwable {
+            throw new UnsupportedOperationException();
+        }
+    }), "null", "null", DUMMY_CACHE);
 
     private final MicroKernel kernel;
 
@@ -221,9 +253,18 @@ public final class KernelNodeState extends AbstractNodeState {
             // OAK-506: Avoid the nodeExists() call when already cached
             NodeState state = cache.getIfPresent(revision + path);
             if (state != null) {
-                return state;
-            } else if (kernel.nodeExists(path, revision)) {
+                if (state != NULL) {
+                    return state;
+                } else {
+                    return null;
+                }
+            }
+            // not able to tell from cache if node exists
+            // need to ask MicroKernel
+            if (kernel.nodeExists(path, revision)) {
                 childPath = path;
+            } else {
+                cache.put(revision + path, NULL);
             }
         }
         if (childPath == null) {
