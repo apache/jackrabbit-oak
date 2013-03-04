@@ -56,6 +56,8 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
      */
     private static final Logger log = LoggerFactory.getLogger(PropertyImpl.class);
 
+    private static final Value[] NO_VALUES = new Value[0];
+
     PropertyImpl(PropertyDelegate dlg) {
         super(dlg);
     }
@@ -351,10 +353,6 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
         return perform(new SessionOperation<Value>() {
             @Override
             public Value perform() throws RepositoryException {
-                if (isMultiple()) {
-                    throw new ValueFormatException(this + " is multi-valued.");
-                }
-
                 return dlg.getValue();
             }
         });
@@ -365,16 +363,12 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
     public Value[] getValues() throws RepositoryException {
         checkStatus();
 
-        return perform(new SessionOperation<Value[]>() {
+        return perform(new SessionOperation<List<Value>>() {
             @Override
-            public Value[] perform() throws RepositoryException {
-                if (!isMultiple()) {
-                    throw new ValueFormatException(this + " is not multi-valued.");
-                }
-
-                return Iterables.toArray(dlg.getValues(), Value.class);
+            public List<Value> perform() throws RepositoryException {
+                return dlg.getValues();
             }
-        });
+        }).toArray(NO_VALUES);
     }
 
     /**

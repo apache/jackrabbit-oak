@@ -22,6 +22,7 @@ import javax.annotation.Nonnull;
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
+import javax.jcr.ValueFormatException;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.TreeLocation;
@@ -45,10 +46,15 @@ public class PropertyDelegate extends ItemDelegate {
      *
      * @return the value of the property
      * @throws InvalidItemStateException
+     * @throws ValueFormatException if this property is multi-valued
      */
     @Nonnull
-    public Value getValue() throws InvalidItemStateException {
-        return ValueFactoryImpl.createValue(getPropertyState(), sessionDelegate.getNamePathMapper());
+    public Value getValue() throws InvalidItemStateException, ValueFormatException {
+        PropertyState property = getPropertyState();
+        if (property.isArray()) {
+            throw new ValueFormatException(this + " is multi-valued.");
+        }
+        return ValueFactoryImpl.createValue(property, sessionDelegate.getNamePathMapper());
     }
 
     /**
@@ -56,10 +62,15 @@ public class PropertyDelegate extends ItemDelegate {
      *
      * @return the values of the property
      * @throws InvalidItemStateException
+     * @throws ValueFormatException if this property is single-valued
      */
     @Nonnull
-    public List<Value> getValues() throws InvalidItemStateException {
-        return ValueFactoryImpl.createValues(getPropertyState(), sessionDelegate.getNamePathMapper());
+    public List<Value> getValues() throws InvalidItemStateException, ValueFormatException {
+        PropertyState property = getPropertyState();
+        if (!property.isArray()) {
+            throw new ValueFormatException(this + " is single-valued.");
+        }
+        return ValueFactoryImpl.createValues(property, sessionDelegate.getNamePathMapper());
     }
 
     /**
