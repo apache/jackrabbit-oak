@@ -294,4 +294,23 @@ public class RecordTest {
         assertEquals(before, after);
     }
 
+    @Test
+    public void testManyMapDeletes() {
+        NodeBuilder builder = MemoryNodeState.EMPTY_NODE.builder();
+        for (int i = 0; i < 1000; i++) {
+            builder.child("test" + i);
+        }
+        NodeState before = writer.writeNode(builder.getNodeState());
+        writer.flush();
+        assertEquals(builder.getNodeState(), before);
+
+        builder = before.builder();
+        for (int i = 0; i < 900; i++) {
+            builder.removeNode("test" + i);
+        }
+        NodeState after = writer.writeNode(builder.getNodeState());
+        writer.flush();
+        assertEquals(builder.getNodeState(), after);
+    }
+
 }

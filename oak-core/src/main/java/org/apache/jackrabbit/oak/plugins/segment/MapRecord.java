@@ -24,8 +24,6 @@ import static java.lang.Integer.numberOfTrailingZeros;
 
 import java.util.UUID;
 
-import com.google.common.base.Preconditions;
-
 abstract class MapRecord extends Record {
 
     /**
