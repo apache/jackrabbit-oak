@@ -91,7 +91,7 @@ public class SegmentNodeStoreService extends SegmentNodeStore {
     }
 
     public SegmentNodeStoreService() {
-        this(new SegmentStore[0]);
+        this(new SegmentStore[1]);
     }
 
     @Override
