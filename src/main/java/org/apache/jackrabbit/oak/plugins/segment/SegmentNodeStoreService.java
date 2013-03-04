@@ -61,13 +61,8 @@ public class SegmentNodeStoreService extends SegmentNodeStore {
     public SegmentNodeStoreService(final SegmentStore[] store) {
         super(new SegmentStore() {
             @Override
-            public RecordId getJournalHead(String name) {
-                return store[0].getJournalHead(name);
-            }
-            @Override
-            public boolean setJournalHead(
-                    String name, RecordId head, RecordId base) {
-                return store[0].setJournalHead(name, head, base);
+            public Journal getJournal(String name) {
+                return store[0].getJournal(name);
             }
             @Override
             public Segment readSegment(UUID segmentId) {
