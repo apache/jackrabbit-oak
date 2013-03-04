@@ -98,7 +98,18 @@ public class SimpleTest {
         assertEquals("{\"name\":\"Hallo\",\":childNodeCount\":0}", test);
         mk.dispose();
     }
-    
+
+    @Test
+    public void reAddDeleted2() {
+        MongoMK mk = createMK();
+        String rev = mk.commit("/", "+\"test\":{\"child\": {}}", null, null);
+        rev = mk.commit("/", "-\"test\"", rev, null);
+        rev = mk.commit("/", "+\"test\":{}", null, null);
+        String test = mk.getNodes("/test", rev, 0, 0, Integer.MAX_VALUE, null);
+        assertEquals("{\":childNodeCount\":0}", test);
+        mk.dispose();
+    }
+
     @Test
     public void escapePropertyName() {
         MongoMK mk = createMK();
