@@ -20,9 +20,7 @@ import java.util.UUID;
 
 public interface SegmentStore {
 
-    RecordId getJournalHead(String name);
-
-    boolean setJournalHead(String name, RecordId head, RecordId base);
+    Journal getJournal(String name);
 
     Segment readSegment(UUID segmentId);
 

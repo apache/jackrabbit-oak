@@ -44,18 +44,23 @@ public class MemoryStore implements SegmentStore {
     }
 
     @Override
-    public RecordId getJournalHead(String name) {
-        RecordId head = journals.get(name);
-        if (head != null) {
-            return head;
-        } else {
-            throw new IllegalArgumentException("Journal not found: " + name);
-        }
-    }
-
-    @Override
-    public boolean setJournalHead(String name, RecordId head, RecordId base) {
-        return journals.replace(name, base, head);
+    public Journal getJournal(final String name) {
+        return new Journal() {
+            @Override
+            public RecordId getHead() {
+                RecordId head = journals.get(name);
+                if (head != null) {
+                    return head;
+                } else {
+                    throw new IllegalArgumentException(
+                            "Journal not found: " + name);
+                }
+            }
+            @Override
+            public boolean setHead(RecordId base, RecordId head) {
+                return journals.replace(name, base, head);
+            }
+        };
     }
 
     @Override
