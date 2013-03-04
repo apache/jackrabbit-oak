@@ -63,18 +63,22 @@ public class MongoStore implements SegmentStore {
     }
 
     @Override
-    public RecordId getJournalHead(String name) {
-        DBObject journal = journals.findOne(new BasicDBObject("_id", name));
-        return RecordId.fromString(journal.get("head").toString());
-    }
-
-    @Override
-    public boolean setJournalHead(String name, RecordId head, RecordId base) {
-        DBObject baseObject = new BasicDBObject(
-                ImmutableMap.of("_id", name, "head", base.toString()));
-        DBObject headObject = new BasicDBObject(
-                ImmutableMap.of("_id", name, "head", head.toString()));
-        return journals.findAndModify(baseObject, headObject) != null;
+    public Journal getJournal(final String name) {
+        return new Journal() {
+            @Override
+            public RecordId getHead() {
+                DBObject journal = journals.findOne(new BasicDBObject("_id", name));
+                return RecordId.fromString(journal.get("head").toString());
+            }
+            @Override
+            public boolean setHead(RecordId base, RecordId head) {
+                DBObject baseObject = new BasicDBObject(
+                        ImmutableMap.of("_id", name, "head", base.toString()));
+                DBObject headObject = new BasicDBObject(
+                        ImmutableMap.of("_id", name, "head", head.toString()));
+                return journals.findAndModify(baseObject, headObject) != null;
+            }
+        };
     }
 
     @Override

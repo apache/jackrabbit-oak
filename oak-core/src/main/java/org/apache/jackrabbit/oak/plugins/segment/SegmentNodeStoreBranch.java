@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
-import java.util.concurrent.TimeUnit;
+import java.util.Random;
 
 import javax.annotation.Nonnull;
 
@@ -31,9 +31,9 @@ import org.apache.jackrabbit.oak.spi.state.RebaseDiff;
 
 class SegmentNodeStoreBranch implements NodeStoreBranch {
 
-    private final SegmentStore store;
+    private static final Random RANDOM = new Random();
 
-    private final String journal;
+    private final Journal journal;
 
     private final SegmentReader reader;
 
@@ -43,12 +43,12 @@ class SegmentNodeStoreBranch implements NodeStoreBranch {
 
     private RecordId rootId;
 
-    SegmentNodeStoreBranch(SegmentStore store, String journal, SegmentReader reader) {
-        this.store = store;
+    SegmentNodeStoreBranch(
+            SegmentStore store, Journal journal, SegmentReader reader) {
         this.journal = journal;
         this.reader = reader;
         this.writer = new SegmentWriter(store, reader);
-        this.baseId = store.getJournalHead(journal);
+        this.baseId = journal.getHead();
         this.rootId = baseId;
     }
 
@@ -70,7 +70,7 @@ class SegmentNodeStoreBranch implements NodeStoreBranch {
 
     @Override
     public synchronized void rebase() {
-        RecordId newBaseId = store.getJournalHead(journal);
+        RecordId newBaseId = journal.getHead();
         if (!baseId.equals(newBaseId)) {
             NodeBuilder builder =
                     new MemoryNodeBuilder(new SegmentNodeState(reader, newBaseId));
@@ -84,36 +84,42 @@ class SegmentNodeStoreBranch implements NodeStoreBranch {
     @Override @Nonnull
     public synchronized NodeState merge(CommitHook hook)
             throws CommitFailedException {
+        rebase();
+
         RecordId originalBaseId = baseId;
         RecordId originalRootId = rootId;
         long backoff = 1;
-        for (int i = 0; i < 10; i++) {
-            // rebase to latest head and apply commit hooks
-            rebase();
+        while (baseId != rootId) {
+            // apply commit hooks on the rebased changes
             RecordId headId = writer.writeNode(
                     hook.processCommit(getBase(), getHead())).getRecordId();
             writer.flush();
 
             // use optimistic locking to update the journal
-            if (store.setJournalHead(journal, headId, baseId)) {
+            if (journal.setHead(baseId, headId)) {
                 baseId = headId;
                 rootId = headId;
-                return getHead();
-            }
+            } else if (backoff < 10000) {
+                // someone else was faster, so try again later
+                // use exponential backoff to reduce contention
+                try {
+                    Thread.sleep(backoff, RANDOM.nextInt(1000000));
+                    backoff *= 2;
+                } catch (InterruptedException e) {
+                    throw new CommitFailedException("Commit was interrupted", e);
+                }
 
-            // someone else was faster, so clear state and try again later
-            baseId = originalBaseId;
-            rootId = originalRootId;
-
-            // use exponential backoff to reduce contention
-            try {
-                TimeUnit.MICROSECONDS.sleep(backoff);
-                backoff *= 2;
-            } catch (InterruptedException e) {
-                throw new CommitFailedException("Commit was interrupted", e);
+                // rebase to latest head before trying again
+                baseId = originalBaseId;
+                rootId = originalRootId;
+                rebase();
+            } else {
+                // 
+                throw new CommitFailedException("System overloaded, try again later");
             }
         }
-        throw new CommitFailedException("System overloaded, try again later");
+
+        return getHead();
     }
 
     @Override

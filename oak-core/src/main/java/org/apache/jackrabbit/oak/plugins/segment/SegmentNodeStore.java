@@ -30,13 +30,13 @@ public class SegmentNodeStore implements NodeStore {
 
     private final SegmentStore store;
 
-    private final String journal;
+    private final Journal journal;
 
     private final SegmentReader reader;
 
     public SegmentNodeStore(SegmentStore store, String journal) {
         this.store = store;
-        this.journal = journal;
+        this.journal = store.getJournal(journal);
         this.reader = new SegmentReader(store);
     }
 
@@ -46,7 +46,7 @@ public class SegmentNodeStore implements NodeStore {
 
     @Override @Nonnull
     public NodeState getRoot() {
-        return new SegmentNodeState(reader, store.getJournalHead(journal));
+        return new SegmentNodeState(reader, journal.getHead());
     }
 
     @Override @Nonnull
