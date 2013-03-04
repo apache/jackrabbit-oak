@@ -28,9 +28,7 @@ import org.apache.felix.scr.annotations.ConfigurationPolicy;
 import org.apache.felix.scr.annotations.Property;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mongomk.impl.MongoConnection;
-import org.apache.jackrabbit.mongomk.impl.MongoMicroKernel;
-import org.apache.jackrabbit.mongomk.impl.MongoNodeStore;
-import org.apache.jackrabbit.mongomk.impl.blob.MongoGridFSBlobStore;
+import org.apache.jackrabbit.mongomk.prototype.MongoMK;
 import org.apache.sling.commons.osgi.PropertiesUtil;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
@@ -64,7 +62,7 @@ public class MongoMicroKernelService {
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
     private ServiceRegistration reg;
-    private MongoMicroKernel mk;
+    private MongoMK mk;
 
     @Activate
     private void activate(BundleContext context,Map<String,?> config) throws Exception {
@@ -80,9 +78,7 @@ public class MongoMicroKernelService {
 
         logger.info("Connected to database {}", mongoDB);
 
-        MongoNodeStore nodeStore = new MongoNodeStore(mongoDB);
-        MongoGridFSBlobStore blobStore = new MongoGridFSBlobStore(mongoDB);
-        MongoMicroKernel mk = new MongoMicroKernel(connection, nodeStore, blobStore);
+        mk = new MongoMK(mongoDB, 0);
 
         Properties props = new Properties();
         props.setProperty("oak.mk.type","mongo");
