@@ -99,23 +99,27 @@ class SegmentNodeStoreBranch implements NodeStoreBranch {
             if (journal.setHead(baseId, headId)) {
                 baseId = headId;
                 rootId = headId;
-            } else if (backoff < 10000) {
-                // someone else was faster, so try again later
+            } else {
+                // someone else was faster, so restore state and retry later
+                baseId = originalBaseId;
+                rootId = originalRootId;
+
                 // use exponential backoff to reduce contention
-                try {
-                    Thread.sleep(backoff, RANDOM.nextInt(1000000));
-                    backoff *= 2;
-                } catch (InterruptedException e) {
-                    throw new CommitFailedException("Commit was interrupted", e);
+                if (backoff < 10000) {
+                    try {
+                        Thread.sleep(backoff, RANDOM.nextInt(1000000));
+                        backoff *= 2;
+                    } catch (InterruptedException e) {
+                        throw new CommitFailedException(
+                                "Commit was interrupted", e);
+                    }
+                } else {
+                    throw new CommitFailedException(
+                            "System overloaded, try again later");
                 }
 
                 // rebase to latest head before trying again
-                baseId = originalBaseId;
-                rootId = originalRootId;
                 rebase();
-            } else {
-                // 
-                throw new CommitFailedException("System overloaded, try again later");
             }
         }
 
