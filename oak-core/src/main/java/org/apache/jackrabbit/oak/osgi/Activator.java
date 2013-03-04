@@ -115,8 +115,6 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer, Rep
                     ContentRepository.class.getName(),
                     oak.createContentRepository(),
                     new Properties()));
-        } else {
-            service = null;
         }
         return service;
     }
