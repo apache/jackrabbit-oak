@@ -38,6 +38,8 @@ import org.apache.jackrabbit.mk.json.JsopTokenizer;
 import org.apache.jackrabbit.mongomk.impl.blob.MongoBlobStore;
 import org.apache.jackrabbit.mongomk.prototype.Node.Children;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.mongodb.DB;
 
@@ -45,6 +47,8 @@ import com.mongodb.DB;
  * A MicroKernel implementation that stores the data in a MongoDB.
  */
 public class MongoMK implements MicroKernel {
+    
+    private static final Logger LOG = LoggerFactory.getLogger(MongoMK.class);
     
     /**
      * The delay for asynchronous operations (delayed commit propagation and
@@ -637,19 +641,41 @@ public class MongoMK implements MicroKernel {
 
         private static final long serialVersionUID = 1L;
         private int size;
+        private TreeSet<K> keySet = new TreeSet<K>();
 
         Cache(int size) {
             super(size, (float) 0.75, true);
             this.size = size;
         }
+        
+        public synchronized V put(K key, V value) {
+            keySet.add(key);
+            return super.put(key, value);
+        }
+        
+        public synchronized V remove(Object key) {
+            keySet.remove(key);
+            return super.remove(key);
+        }
 
-        protected boolean removeEldestEntry(Map.Entry<K, V> eldest) {
-            return size() > size;
+        protected synchronized boolean removeEldestEntry(Map.Entry<K, V> eldest) {
+            boolean remove = size() > size;
+            if (remove) {
+                Object k = eldest.getKey();
+                if (k != null) {
+                    keySet.remove(k);
+                }
+            }
+            return remove;
         }
         
         public String toString() {
             return super.toString().replace(',', '\n');
         }
+        
+        // public synchronized SortedSet<K> subSet(K fromElement, K toElement) {
+        //   return keySet.subSet(fromElement, toElement);
+        // }
 
     }
 
@@ -706,7 +732,11 @@ public class MongoMK implements MicroKernel {
             set.addAll(added);
             c2.children.addAll(set);
             if (nodeChildrenCache.get(id) != null) {
-                throw new AssertionError("New child list already cached");
+                // TODO should not happend, 
+                // probably a problem with add/delete/add
+                MicroKernelException e = new MicroKernelException(
+                        "New child list already cached for id " + id);
+                LOG.error("Error updating the cache", e);
             }
             nodeChildrenCache.put(id, c2);
         }

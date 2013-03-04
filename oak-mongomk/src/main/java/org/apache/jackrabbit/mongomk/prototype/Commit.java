@@ -156,6 +156,7 @@ public class Commit {
                     for (UpdateOp op : newNodes) {
                         op.unset(UpdateOp.ID);
                         op.addMapEntry(UpdateOp.DELETED + "." + revision.toString(), "false");
+                        op.increment(UpdateOp.WRITE_COUNT, 1);
                         createOrUpdateNode(store, op);
                     }
                 }
