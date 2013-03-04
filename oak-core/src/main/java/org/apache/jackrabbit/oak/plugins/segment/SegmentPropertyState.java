@@ -180,4 +180,22 @@ class SegmentPropertyState extends AbstractPropertyState {
         return reader.readLength(values.getEntry(reader, 0));
     }
 
+    //------------------------------------------------------------< Object >--
+
+    @Override
+    public boolean equals(Object object) {
+        // optimize for common cases
+        if (this == object) {
+            return true;
+        } else if (object instanceof SegmentPropertyState) {
+            SegmentPropertyState that = (SegmentPropertyState) object;
+            if (recordId.equals(that.recordId)
+                    && template.equals(that.template)) {
+                return true;
+            }
+        }
+        // fall back to default equality check in AbstractPropertyState
+        return super.equals(object);
+    }
+
 }
