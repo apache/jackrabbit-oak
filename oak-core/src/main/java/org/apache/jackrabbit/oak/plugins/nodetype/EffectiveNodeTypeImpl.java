@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Set;
 import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
+import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.Value;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.ItemDefinition;
@@ -289,6 +290,18 @@ class EffectiveNodeTypeImpl implements EffectiveNodeType {
                 }
             }
         }
+    }
+
+    @Override
+    public void checkOrderableChildNodes() throws UnsupportedRepositoryOperationException {
+        Iterable<NodeType> nts = getAllNodeTypes();
+        for (NodeType nt : nts) {
+            if (nt.hasOrderableChildNodes()) {
+                return;
+            }
+        }
+
+        throw new UnsupportedRepositoryOperationException("Child node ordering is not supported on this node");
     }
 
     //------------------------------------------------------------< private >---
