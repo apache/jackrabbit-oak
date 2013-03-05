@@ -293,6 +293,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         perform(new SessionOperation<Void>() {
             @Override
             public Void perform() throws RepositoryException {
+                getEffectiveNodeType().checkOrderableChildNodes();
                 String oakSrcChildRelPath =
                         sessionDelegate.getOakPathOrThrowNotFound(srcChildRelPath);
                 String oakDestChildRelPath = null;
