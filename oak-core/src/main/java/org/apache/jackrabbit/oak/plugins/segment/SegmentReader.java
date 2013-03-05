@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.plugins.segment;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkPositionIndexes;
-import static org.apache.jackrabbit.oak.plugins.segment.SegmentWriter.BLOCK_SIZE;
 
 public class SegmentReader {
 
@@ -41,23 +40,7 @@ public class SegmentReader {
 
     public SegmentStream readStream(RecordId recordId) {
         Segment segment = store.readSegment(recordId.getSegmentId());
-        int offset = recordId.getOffset();
-        long length = readLength(segment, offset);
-        if (length < Segment.MEDIUM_LIMIT) {
-            if (length < Segment.SMALL_LIMIT) {
-                offset += 1;
-            } else {
-                offset += 2;
-            }
-            byte[] data = new byte[(int) length];
-            segment.readBytes(offset, data, 0, data.length);
-            return new SegmentStream(recordId, data);
-        } else {
-            int size = (int) ((length + BLOCK_SIZE - 1) / BLOCK_SIZE);
-            ListRecord list =
-                    new ListRecord(segment.readRecordId(offset + 8), size);
-            return new SegmentStream(this, recordId, list, length);
-        }
+        return segment.readStream(recordId.getOffset());
     }
 
     public byte readByte(RecordId recordId, int position) {

@@ -43,7 +43,7 @@ public class SegmentStream extends InputStream {
     }
 
 
-    private final SegmentReader reader;
+    private final SegmentStore store;
 
     private final RecordId recordId;
 
@@ -58,9 +58,9 @@ public class SegmentStream extends InputStream {
     private long mark = 0;
 
     SegmentStream(
-            SegmentReader reader, RecordId recordId,
+            SegmentStore store, RecordId recordId,
             ListRecord blocks, long length) {
-        this.reader = checkNotNull(reader);
+        this.store = checkNotNull(store);
         this.recordId = checkNotNull(recordId);
         this.inline = null;
         this.blocks = checkNotNull(blocks);
@@ -69,7 +69,7 @@ public class SegmentStream extends InputStream {
     }
 
     SegmentStream(RecordId recordId, byte[] inline) {
-        this.reader = null;
+        this.store = null;
         this.recordId = checkNotNull(recordId);
         this.inline = checkNotNull(inline);
         this.blocks = null;
@@ -87,7 +87,7 @@ public class SegmentStream extends InputStream {
             throw new IllegalStateException("Too long value: " + length);
         } else {
             SegmentStream stream =
-                    new SegmentStream(reader, recordId, blocks, length);
+                    new SegmentStream(store, recordId, blocks, length);
             try {
                 byte[] data = new byte[(int) length];
                 ByteStreams.readFully(stream, data);
@@ -156,6 +156,7 @@ public class SegmentStream extends InputStream {
                 len = (int) (length - position);
             }
 
+            SegmentReader reader = new SegmentReader(store);
             BlockRecord block = reader.readBlock(
                     blocks.getEntry(reader, blockIndex), BLOCK_SIZE);
             len = block.read(reader, blockOffset, b, off, len);
