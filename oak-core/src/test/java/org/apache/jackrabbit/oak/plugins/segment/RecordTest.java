@@ -51,7 +51,7 @@ public class RecordTest {
 
     private SegmentReader reader = new SegmentReader(store);
 
-    private SegmentWriter writer = new SegmentWriter(store, reader);
+    private SegmentWriter writer = new SegmentWriter(store);
 
     private final Random random = new Random(0xcafefaceL);
 

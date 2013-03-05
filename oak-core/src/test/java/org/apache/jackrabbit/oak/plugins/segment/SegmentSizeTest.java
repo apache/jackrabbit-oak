@@ -145,8 +145,7 @@ public class SegmentSizeTest {
     @Test
     public void testFlatNodeUpdate() {
         SegmentStore store = new MemoryStore();
-        SegmentReader reader = new SegmentReader(store);
-        SegmentWriter writer = new SegmentWriter(store, reader);
+        SegmentWriter writer = new SegmentWriter(store);
 
         NodeBuilder builder = MemoryNodeState.EMPTY_NODE.builder();
         for (int i = 0; i < 1000; i++) {
@@ -168,7 +167,7 @@ public class SegmentSizeTest {
 
     private int getSize(NodeBuilder builder) {
         SegmentStore store = new MemoryStore();
-        SegmentWriter writer = new SegmentWriter(store, new SegmentReader(store));
+        SegmentWriter writer = new SegmentWriter(store);
         RecordId id = writer.writeNode(builder.getNodeState()).getRecordId();
         writer.flush();
         Segment segment = store.readSegment(id.getSegmentId());
@@ -177,7 +176,7 @@ public class SegmentSizeTest {
 
     private int getAmortizedSize(NodeBuilder builder) {
         SegmentStore store = new MemoryStore();
-        SegmentWriter writer = new SegmentWriter(store, new SegmentReader(store));
+        SegmentWriter writer = new SegmentWriter(store);
         NodeState state = builder.getNodeState();
         RecordId id = writer.writeNode(state).getRecordId();
         writer.flush();

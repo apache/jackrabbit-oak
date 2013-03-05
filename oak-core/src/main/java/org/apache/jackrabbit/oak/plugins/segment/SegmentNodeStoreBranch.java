@@ -33,9 +33,9 @@ class SegmentNodeStoreBranch implements NodeStoreBranch {
 
     private static final Random RANDOM = new Random();
 
-    private final Journal journal;
+    private final SegmentStore store;
 
-    private final SegmentReader reader;
+    private final Journal journal;
 
     private final SegmentWriter writer;
 
@@ -43,23 +43,22 @@ class SegmentNodeStoreBranch implements NodeStoreBranch {
 
     private RecordId rootId;
 
-    SegmentNodeStoreBranch(
-            SegmentStore store, Journal journal, SegmentReader reader) {
+    SegmentNodeStoreBranch(SegmentStore store, Journal journal) {
+        this.store = store;
         this.journal = journal;
-        this.reader = reader;
-        this.writer = new SegmentWriter(store, reader);
+        this.writer = new SegmentWriter(store);
         this.baseId = journal.getHead();
         this.rootId = baseId;
     }
 
     @Override @Nonnull
     public NodeState getBase() {
-        return new SegmentNodeState(reader, baseId);
+        return new SegmentNodeState(store, baseId);
     }
 
     @Override @Nonnull
     public synchronized NodeState getHead() {
-        return new SegmentNodeState(reader, rootId);
+        return new SegmentNodeState(store, rootId);
     }
 
     @Override
@@ -73,7 +72,7 @@ class SegmentNodeStoreBranch implements NodeStoreBranch {
         RecordId newBaseId = journal.getHead();
         if (!baseId.equals(newBaseId)) {
             NodeBuilder builder =
-                    new MemoryNodeBuilder(new SegmentNodeState(reader, newBaseId));
+                    new MemoryNodeBuilder(new SegmentNodeState(store, newBaseId));
             getHead().compareAgainstBaseState(getBase(), new RebaseDiff(builder));
             this.baseId = newBaseId;
             this.rootId = writer.writeNode(builder.getNodeState()).getRecordId();

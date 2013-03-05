@@ -31,9 +31,7 @@ public class CompareAgainstBaseStateTest {
 
     private final SegmentStore store = new MemoryStore();
 
-    private final SegmentReader reader = new SegmentReader(store);
-
-    private final SegmentWriter writer = new SegmentWriter(store, reader);
+    private final SegmentWriter writer = new SegmentWriter(store);
 
     private final NodeStateDiff diff = EasyMock.createMock(NodeStateDiff.class);
 
