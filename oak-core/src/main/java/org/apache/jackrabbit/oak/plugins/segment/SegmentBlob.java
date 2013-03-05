@@ -18,9 +18,6 @@ package org.apache.jackrabbit.oak.plugins.segment;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.Blob;
