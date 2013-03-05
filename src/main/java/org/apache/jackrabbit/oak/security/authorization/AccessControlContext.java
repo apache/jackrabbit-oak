@@ -18,13 +18,14 @@ package org.apache.jackrabbit.oak.security.authorization;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.security.authorization.permission.PermissionConstants;
 import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.util.TreeUtil;
 
 /**
  * AccessControlContext... TODO
  */
-final class AccessControlContext implements Context, AccessControlConstants {
+final class AccessControlContext implements Context, AccessControlConstants, PermissionConstants {
 
     private static final Context INSTANCE = new AccessControlContext();
 
@@ -44,6 +45,6 @@ final class AccessControlContext implements Context, AccessControlConstants {
     @Override
     public boolean definesTree(Tree tree) {
         String ntName = TreeUtil.getPrimaryTypeName(tree);
-        return AC_NODETYPE_NAMES.contains(ntName);
+        return AC_NODETYPE_NAMES.contains(ntName) || PERMISSION_NODETYPE_NAMES.contains(ntName);
     }
 }
