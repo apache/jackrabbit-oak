@@ -47,6 +47,21 @@ import com.mongodb.DB;
  * A MicroKernel implementation that stores the data in a MongoDB.
  */
 public class MongoMK implements MicroKernel {
+
+    /**
+     * The number of documents to cache.
+     */
+    static final int CACHE_DOCUMENTS = Integer.getInteger("oak.mongoMK.cacheDocs", 20 * 1024);
+    
+    /**
+     * The number of child node list entries to cache.
+     */
+    private static final int CACHE_CHILDREN = Integer.getInteger("oak.mongoMK.cacheChildren", 1024);
+    
+    /**
+     * The number of nodes to cache.
+     */
+    private static final int CACHE_NODES = Integer.getInteger("oak.mongoMK.cacheNodes", 1024);
     
     private static final Logger LOG = LoggerFactory.getLogger(MongoMK.class);
     
@@ -88,13 +103,14 @@ public class MongoMK implements MicroKernel {
      * Key: path@rev
      * Value: node
      */
-    private final Map<String, Node> nodeCache = new Cache<String, Node>(1024);
+    private final Map<String, Node> nodeCache = 
+            new Cache<String, Node>(CACHE_NODES);
     
     /**
      * Child node cache.
      */
     private Cache<String, Node.Children> nodeChildrenCache =
-            new Cache<String, Node.Children>(1024);
+            new Cache<String, Node.Children>(CACHE_CHILDREN);
 
     /**
      * The unsaved write count increments.
