@@ -63,6 +63,11 @@ public class TreeImpl implements Tree {
     private final NodeBuilder nodeBuilder;
 
     /**
+     * The node state this tree is based on. {@code null} if this is a newly added tree.
+     */
+    private final NodeState baseState;
+
+    /**
      * Parent of this tree. Null for the root.
      */
     private TreeImpl parent;
@@ -72,10 +77,11 @@ public class TreeImpl implements Tree {
      */
     private String name;
 
-    private TreeImpl(RootImpl root) {
+    TreeImpl(RootImpl root) {
         this.root = checkNotNull(root);
         this.name = "";
         this.nodeBuilder = root.createRootBuilder();
+        this.baseState = root.getBaseState();
     }
 
     private TreeImpl(RootImpl root, TreeImpl parent, String name) {
@@ -83,16 +89,13 @@ public class TreeImpl implements Tree {
         this.parent = checkNotNull(parent);
         this.name = checkNotNull(name);
         this.nodeBuilder = parent.getNodeBuilder().child(name);
-    }
 
-    @Nonnull
-    static TreeImpl createRoot(final RootImpl root) {
-        return new TreeImpl(root) {
-            @Override
-            protected NodeState getBaseState() {
-                return root.getBaseState();
-            }
-        };
+        if (parent.baseState == null) {
+            this.baseState = null;
+        }
+        else {
+            this.baseState = parent.baseState.getChildNode(name);
+        }
     }
 
     @Override
@@ -410,25 +413,21 @@ public class TreeImpl implements Tree {
         return new NodeLocation(this);
     }
 
-    //----------------------------------------------------------< protected >---
-
-    @CheckForNull
-    protected NodeState getBaseState() {
-        if (isDisconnected()) {
-            throw new IllegalStateException("Cannot get the base state of a disconnected tree");
-        }
-
-        NodeState parentBaseState = parent.getBaseState();
-        return parentBaseState == null
-                ? null
-                : parentBaseState.getChildNode(name);
-    }
-
     //-----------------------------------------------------------< internal >---
 
     @Nonnull
     NodeBuilder getNodeBuilder() {
         return nodeBuilder;
+    }
+
+    @CheckForNull
+    NodeState getBaseState() {
+        return baseState;
+    }
+
+    @Nonnull
+    NodeState getNodeState() {
+        return nodeBuilder.getNodeState();
     }
 
     /**
@@ -445,11 +444,6 @@ public class TreeImpl implements Tree {
 
         name = destName;
         parent = destParent;
-    }
-
-    @Nonnull
-    NodeState getNodeState() {
-        return nodeBuilder.getNodeState();
     }
 
     /**

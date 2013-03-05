@@ -226,7 +226,7 @@ public class RootImpl implements Root {
         if (!store.getRoot().equals(rootTree.getBaseState())) {
             purgePendingChanges();
             branch.rebase();
-            rootTree = TreeImpl.createRoot(this);
+            rootTree = new TreeImpl(this);
             permissionProvider = null;
         }
     }
@@ -235,7 +235,7 @@ public class RootImpl implements Root {
     public final void refresh() {
         checkLive();
         branch = store.branch();
-        rootTree = TreeImpl.createRoot(this);
+        rootTree = new TreeImpl(this);
         modCount = 0;
         if (permissionProvider != null) {
             permissionProvider.refresh();
