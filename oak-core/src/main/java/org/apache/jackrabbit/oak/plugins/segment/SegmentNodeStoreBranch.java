@@ -84,8 +84,6 @@ class SegmentNodeStoreBranch implements NodeStoreBranch {
     @Override @Nonnull
     public synchronized NodeState merge(CommitHook hook)
             throws CommitFailedException {
-        rebase();
-
         RecordId originalBaseId = baseId;
         RecordId originalRootId = rootId;
         long backoff = 1;
