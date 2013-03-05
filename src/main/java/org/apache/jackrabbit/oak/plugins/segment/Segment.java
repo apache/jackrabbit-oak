@@ -195,6 +195,10 @@ class Segment {
 
     RecordId readRecordId(int offset) {
         int pos = pos(offset, RECORD_ID_BYTES);
+        return internalReadRecordId(pos);
+    }
+
+    private RecordId internalReadRecordId(int pos) {
         return new RecordId(
                 uuids[data[pos] & 0xff],
                 (data[pos + 1] & 0xff) << (8 + Segment.RECORD_ALIGN_BITS)
@@ -231,10 +235,10 @@ class Segment {
             return new String(data, pos + 2, (int) length, Charsets.UTF_8);
         } else if (length < Integer.MAX_VALUE) {
             int size = (int) ((length + BLOCK_SIZE - 1) / BLOCK_SIZE);
-            ListRecord list = new ListRecord(readRecordId(offset + 8), size);
+            ListRecord list =
+                    new ListRecord(internalReadRecordId(pos + 8), size);
             SegmentStream stream = new SegmentStream(
-                    new SegmentReader(store), new RecordId(uuid, offset),
-                    list, length);
+                    store, new RecordId(uuid, offset), list, length);
             try {
                 return stream.getString();
             } finally {
@@ -334,6 +338,25 @@ class Segment {
                     | ((long) (data[pos++] & 0xff)) << 8
                     | ((long) (data[pos++] & 0xff)))
                     + MEDIUM_LIMIT;
+        }
+    }
+
+    SegmentStream readStream(int offset) {
+        RecordId id = new RecordId(uuid, offset);
+        int pos = pos(offset, 1);
+        long length = internalReadLength(pos);
+        if (length < Segment.MEDIUM_LIMIT) {
+            byte[] inline = new byte[(int) length];
+            if (length < Segment.SMALL_LIMIT) {
+                System.arraycopy(data, pos + 1, inline, 0, inline.length);
+            } else {
+                System.arraycopy(data, pos + 2, inline, 0, inline.length);
+            }
+            return new SegmentStream(id, inline);
+        } else {
+            int size = (int) ((length + BLOCK_SIZE - 1) / BLOCK_SIZE);
+            ListRecord list = new ListRecord(internalReadRecordId(pos + 8), size);
+            return new SegmentStream(store, id, list, length);
         }
     }
 
