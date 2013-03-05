@@ -39,11 +39,16 @@ import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * TODO document
  */
 class ChangeProcessor implements Runnable {
+
+    private static final Logger log = LoggerFactory.getLogger(ChangeProcessor.class);
+
     private final ObservationManagerImpl observationManager;
     private final NamePathMapper namePathMapper;
     private final ChangeExtractor changeExtractor;
@@ -111,6 +116,8 @@ class ChangeProcessor implements Runnable {
             if (!stopping) {
                 diff.sendEvents();
             }
+        } catch (Exception e) {
+            log.error("Unable to generate or send events", e);
         } finally {
             synchronized (this) {
                 running = false;
