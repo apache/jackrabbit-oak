@@ -17,8 +17,11 @@
 package org.apache.jackrabbit.oak.security.authorization;
 
 import java.security.Principal;
+import java.util.Collections;
 import java.util.Set;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import javax.jcr.Session;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
@@ -39,6 +42,25 @@ class TmpPermissionProvider extends PermissionProviderImpl {
     public TmpPermissionProvider(@Nonnull Root root, @Nonnull Set<Principal> principals, @Nonnull SecurityProvider securityProvider) {
         super(root, principals, securityProvider);
         isAdmin = principals.contains(SystemPrincipal.INSTANCE) || isAdmin(principals);
+    }
+
+    @Nonnull
+    @Override
+    public Set<String> getPrivileges(@Nullable Tree tree) {
+        if (isAdmin) {
+            return Collections.singleton("jcr:all");
+        } else {
+            return Collections.singleton("jcr:read");
+        }
+    }
+
+    @Override
+    public boolean hasPrivileges(@Nullable Tree tree, String... privilegeNames) {
+        if (isAdmin) {
+            return true;
+        } else {
+            return privilegeNames != null && privilegeNames.length == 1 && "jcr:read".equals(privilegeNames[0]);
+        }
     }
 
     @Override
@@ -75,6 +97,15 @@ class TmpPermissionProvider extends PermissionProviderImpl {
             return true;
         } else {
             return permissions == Permissions.READ_PROPERTY;
+        }
+    }
+
+    @Override
+    public boolean hasPermission(@Nonnull String oakPath, @Nonnull String jcrActions) {
+        if (isAdmin) {
+            return true;
+        } else {
+            return Session.ACTION_READ.equals(jcrActions);
         }
     }
 

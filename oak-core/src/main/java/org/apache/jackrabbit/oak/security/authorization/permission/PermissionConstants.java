@@ -16,12 +16,15 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
+import java.util.Set;
+
+import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.JcrConstants;
 
 /**
  * PermissionConstants... TODO
  */
-interface PermissionConstants {
+public interface PermissionConstants {
 
     /**
      * @since OAK 1.0
@@ -46,4 +49,5 @@ interface PermissionConstants {
     char PREFIX_ALLOW = 'a';
     char PREFIX_DENY = 'd';
 
+    Set<String> PERMISSION_NODETYPE_NAMES = ImmutableSet.of(NT_REP_PERMISSIONS, NT_REP_PERMISSION_STORE);
 }

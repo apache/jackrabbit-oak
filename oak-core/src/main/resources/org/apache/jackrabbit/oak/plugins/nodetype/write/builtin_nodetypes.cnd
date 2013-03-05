@@ -620,7 +620,7 @@
  */
 [rep:Permissions]
   - rep:accessControlledPath (PATH) protected mandatory
-  - rep:privileges (UNDEFINED) protected mandatory
+  - rep:privileges (LONG) protected multiple mandatory
   - rep:index (LONG) protected mandatory
   - * (UNDEFINED) protected
 

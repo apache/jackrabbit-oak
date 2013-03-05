@@ -350,8 +350,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
         checkPermission(tree);
 
         // check if the tree is access controlled
-        String ntName = TreeUtil.getPrimaryTypeName(tree);
-        if (AC_NODETYPE_NAMES.contains(ntName)) {
+        if (acConfig.getContext().definesTree(tree)) {
             throw new AccessControlException("Tree " + tree.getPath() + " defines access control content.");
         }
         return tree;
