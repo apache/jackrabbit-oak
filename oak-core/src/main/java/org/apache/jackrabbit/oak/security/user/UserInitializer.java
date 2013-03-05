@@ -104,11 +104,18 @@ public class UserInitializer implements WorkspaceInitializer, UserConstants {
         try {
             NodeUtil rootTree = checkNotNull(new NodeUtil(root.getTree("/")));
             NodeUtil index = rootTree.getOrAddChild(IndexConstants.INDEX_DEFINITIONS_NAME, JcrConstants.NT_UNSTRUCTURED);
-            IndexUtils.createIndexDefinition(index, "authorizableId", true, new String[]{REP_AUTHORIZABLE_ID}, null);
-            IndexUtils.createIndexDefinition(index, "principalName", true,
-                    new String[]{REP_PRINCIPAL_NAME},
-                    new String[]{NT_REP_GROUP, NT_REP_USER});
-            IndexUtils.createIndexDefinition(index, "members", false, new String[]{UserConstants.REP_MEMBERS}, null);
+
+            if (!index.hasChild("authorizableId")) {
+                IndexUtils.createIndexDefinition(index, "authorizableId", true, new String[]{REP_AUTHORIZABLE_ID}, null);
+            }
+            if (!index.hasChild("principalName")) {
+                IndexUtils.createIndexDefinition(index, "principalName", true,
+                        new String[]{REP_PRINCIPAL_NAME},
+                        new String[]{NT_REP_GROUP, NT_REP_USER});
+            }
+            if (!index.hasChild("members")) {
+                IndexUtils.createIndexDefinition(index, "members", false, new String[]{UserConstants.REP_MEMBERS}, null);
+            }
 
             String adminId = userConfiguration.getConfigurationParameters().getConfigValue(PARAM_ADMIN_ID, DEFAULT_ADMIN_ID);
             if (userManager.getAuthorizable(adminId) == null) {
