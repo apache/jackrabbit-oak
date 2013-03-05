@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.nodetype;
 
 import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
+import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.NodeDefinition;
 import javax.jcr.nodetype.NodeType;
@@ -118,4 +119,6 @@ public interface EffectiveNodeType {
     void checkRemoveNode(String name, NodeType nodeType) throws RepositoryException;
 
     void checkMandatoryItems(Tree tree) throws ConstraintViolationException;
+
+    void checkOrderableChildNodes() throws UnsupportedRepositoryOperationException;
 }
