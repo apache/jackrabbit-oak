@@ -16,27 +16,102 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.Collections;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentMap;
 
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.RebaseDiff;
 
 import com.google.common.collect.Maps;
 
 public class MemoryStore implements SegmentStore {
 
-    private final ConcurrentMap<String, RecordId> journals =
-            Maps.newConcurrentMap();
+    private static final class MemoryJournal implements Journal {
+
+        private final SegmentStore store;
+
+        private final Journal parent;
+
+        private RecordId base;
+
+        private RecordId head;
+
+        MemoryJournal(SegmentStore store, NodeState root) {
+            this.store = checkNotNull(store);
+            this.parent = null;
+
+            SegmentWriter writer =
+                    new SegmentWriter(store, new SegmentReader(store));
+            RecordId id = writer.writeNode(root).getRecordId();
+            writer.flush();
+
+            this.base = id;
+            this.head = id;
+        }
+
+        MemoryJournal(SegmentStore store, String parent) {
+            this.store = checkNotNull(store);
+            this.parent = store.getJournal(checkNotNull(parent));
+            this.base = this.parent.getHead();
+            this.head = base;
+        }
+
+        @Override
+        public synchronized RecordId getHead() {
+            return head;
+        }
+
+        @Override
+        public synchronized boolean setHead(RecordId base, RecordId head) {
+            if (checkNotNull(base).equals(this.head)) {
+                this.head = checkNotNull(head);
+                return true;
+            } else {
+                return false;
+            }
+        }
+
+        @Override
+        public synchronized void merge() {
+            if (parent != null) {
+                SegmentReader reader = new SegmentReader(store);
+                NodeState before = new SegmentNodeState(reader, base);
+                NodeState after = new SegmentNodeState(reader, head);
+
+                SegmentWriter writer = new SegmentWriter(store, reader);
+                while (!parent.setHead(base, head)) {
+                    RecordId newBase = parent.getHead();
+                    NodeBuilder builder =
+                            new SegmentNodeState(reader, newBase).builder();
+                    after.compareAgainstBaseState(
+                            before, new RebaseDiff(builder));
+                    NodeState state = builder.getNodeState();
+                    RecordId newHead = writer.writeNode(state).getRecordId();
+                    writer.flush();
+
+                    base = newBase;
+                    head = newHead;
+                }
+
+                base = head;
+            }
+        }
+
+    }
+
+    private final Map<String, Journal> journals = Maps.newHashMap();
 
     private final ConcurrentMap<UUID, Segment> segments =
             Maps.newConcurrentMap();
 
     public MemoryStore(NodeState root) {
-        SegmentWriter writer = new SegmentWriter(this, new SegmentReader(this));
-        journals.put("root", writer.writeNode(root).getRecordId());
-        writer.flush();
+        journals.put("root", new MemoryJournal(this, root));
     }
 
     public MemoryStore() {
@@ -44,23 +119,13 @@ public class MemoryStore implements SegmentStore {
     }
 
     @Override
-    public Journal getJournal(final String name) {
-        return new Journal() {
-            @Override
-            public RecordId getHead() {
-                RecordId head = journals.get(name);
-                if (head != null) {
-                    return head;
-                } else {
-                    throw new IllegalArgumentException(
-                            "Journal not found: " + name);
-                }
-            }
-            @Override
-            public boolean setHead(RecordId base, RecordId head) {
-                return journals.replace(name, base, head);
-            }
-        };
+    public synchronized Journal getJournal(final String name) {
+        Journal journal = journals.get(name);
+        if (journal == null) {
+            journal = new MemoryJournal(this, "root");
+            journals.put(name, journal);
+        }
+        return journal;
     }
 
     @Override
