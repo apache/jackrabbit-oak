@@ -74,7 +74,7 @@ abstract class AbstractTest extends Benchmark {
     @Override
     public void run(Iterable<RepositoryFixture> fixtures) {
         System.out.format(
-                "# %-34.34s     min     10%%     50%%     90%%     max       N%n",
+                "# %-26.26s     min     10%%     50%%     90%%     max       N%n",
                 toString());
         for (RepositoryFixture fixture : fixtures) {
             try {
@@ -84,7 +84,7 @@ abstract class AbstractTest extends Benchmark {
                     DescriptiveStatistics statistics = runTest(cluster[0]);
                     if (statistics.getN() > 0) {
                         System.out.format(
-                                "%-36.36s  %6.0f  %6.0f  %6.0f  %6.0f  %6.0f  %6d%n",
+                                "%-28.328  %6.0f  %6.0f  %6.0f  %6.0f  %6.0f  %6d%n",
                                 fixture.toString(),
                                 statistics.getMin(),
                                 statistics.getPercentile(10.0),
