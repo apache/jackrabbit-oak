@@ -78,6 +78,10 @@ public class MongoStore implements SegmentStore {
                         ImmutableMap.of("_id", name, "head", head.toString()));
                 return journals.findAndModify(baseObject, headObject) != null;
             }
+            @Override
+            public void merge() {
+                throw new UnsupportedOperationException();
+            }
         };
     }
 

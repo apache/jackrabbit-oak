@@ -71,6 +71,10 @@ public class SegmentNodeStoreService extends SegmentNodeStore {
                     public boolean setHead(RecordId base, RecordId head) {
                         return store[0].getJournal(name).setHead(base, head);
                     }
+                    @Override
+                    public void merge() {
+                        store[0].getJournal(name).merge();
+                    }
                 };
             }
             @Override
