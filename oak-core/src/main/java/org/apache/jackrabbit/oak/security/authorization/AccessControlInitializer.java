@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.security.authorization;
 import javax.annotation.Nonnull;
 
 import com.google.common.collect.ImmutableList;
-import org.apache.jackrabbit.oak.plugins.index.IndexHookProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.lifecycle.WorkspaceInitializer;
@@ -36,7 +35,7 @@ public class AccessControlInitializer implements WorkspaceInitializer, AccessCon
 
     @Nonnull
     @Override
-    public NodeState initialize(NodeState workspaceRoot, String workspaceName, IndexHookProvider indexHook, QueryIndexProvider indexProvider, CommitHook commitHook) {
+    public NodeState initialize(NodeState workspaceRoot, String workspaceName, QueryIndexProvider indexProvider, CommitHook commitHook) {
         NodeBuilder root = workspaceRoot.builder();
         // property index for rep:principalName stored in ACEs
         NodeBuilder index = IndexUtils.getOrCreateOakIndex(root);

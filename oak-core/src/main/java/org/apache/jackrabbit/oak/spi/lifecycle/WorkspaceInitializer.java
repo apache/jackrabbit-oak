@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.spi.lifecycle;
 
 import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.oak.plugins.index.IndexHookProvider;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -38,13 +37,13 @@ public interface WorkspaceInitializer {
      *
      * @param workspaceRoot The workspace root state.
      * @param workspaceName The name of the workspace that is being initialized.
-     * @param indexHook     The index hook provider.
      * @param indexProvider The query index provider used within this workspace.
      * @param commitHook    The commit hook(s) defined for this workspace.
      * @return The modified workspace root state.
      */
     @Nonnull
-    NodeState initialize(NodeState workspaceRoot, String workspaceName,
-                         IndexHookProvider indexHook, QueryIndexProvider indexProvider,
+    NodeState initialize(NodeState workspaceRoot, 
+                         String workspaceName,
+                         QueryIndexProvider indexProvider,
                          CommitHook commitHook);
 }

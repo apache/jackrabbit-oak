@@ -22,7 +22,6 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.plugins.index.IndexHookProvider;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitHookProvider;
 import org.apache.jackrabbit.oak.spi.lifecycle.WorkspaceInitializer;
@@ -70,7 +69,7 @@ public interface SecurityConfiguration {
             return new WorkspaceInitializer() {
                 @Nonnull
                 @Override
-                public NodeState initialize(NodeState workspaceRoot, String workspaceName, IndexHookProvider indexHook, QueryIndexProvider indexProvider, CommitHook commitHook) {
+                public NodeState initialize(NodeState workspaceRoot, String workspaceName, QueryIndexProvider indexProvider, CommitHook commitHook) {
                     return workspaceRoot;
                 }
             };
