@@ -358,8 +358,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
             throw new RepositoryException("Invalid JCR path: " + absPath);
         }
 
-        // TODO implement hasPermission
-        return TODO.unimplemented().returnValue(true);
+        return dlg.getPermissionProvider().hasPermission(absPath, actions);
     }
 
     @Override

@@ -344,9 +344,12 @@ public class PermissionHook implements CommitHook, AccessControlConstants, Permi
 
         private void writeTo(NodeBuilder permissionRoot) {
             NodeBuilder principalRoot = permissionRoot.child(principalName);
+            if (principalRoot.getProperty(JCR_PRIMARYTYPE) == null) {
+                principalRoot.setProperty(JCR_PRIMARYTYPE, NT_REP_PERMISSION_STORE, Type.NAME);
+            }
             String entryName = generateName(principalRoot, this);
             NodeBuilder entry = principalRoot.child(entryName)
-                    .setProperty(JCR_PRIMARYTYPE, NT_REP_PERMISSIONS)
+                    .setProperty(JCR_PRIMARYTYPE, NT_REP_PERMISSIONS, Type.NAME)
                     .setProperty(REP_ACCESS_CONTROLLED_PATH, accessControlledPath)
                     .setProperty(REP_INDEX, index)
                     .setProperty(privilegeBits.asPropertyState(REP_PRIVILEGE_BITS));
