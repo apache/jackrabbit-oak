@@ -56,7 +56,7 @@ public final class OakInitializer {
         NodeStoreBranch branch = store.branch();
         NodeState root = branch.getHead();
         for (WorkspaceInitializer wspInit : initializer) {
-            root = wspInit.initialize(root, workspaceName, indexHook, indexProvider, commitHook);
+            root = wspInit.initialize(root, workspaceName, indexProvider, commitHook);
         }
         branch.setRoot(root);
         try {

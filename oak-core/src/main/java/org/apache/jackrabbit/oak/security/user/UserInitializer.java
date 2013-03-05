@@ -26,12 +26,11 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.core.RootImpl;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
-import org.apache.jackrabbit.oak.plugins.index.IndexHookManager;
-import org.apache.jackrabbit.oak.plugins.index.IndexHookProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.security.authentication.SystemSubject;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
+import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.lifecycle.WorkspaceInitializer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
@@ -86,13 +85,13 @@ public class UserInitializer implements WorkspaceInitializer, UserConstants {
     @Nonnull
     @Override
     public NodeState initialize(NodeState workspaceRoot, String workspaceName,
-                                IndexHookProvider indexHook, QueryIndexProvider indexProvider,
+                                QueryIndexProvider indexProvider,
                                 CommitHook commitHook) {
         MemoryNodeStore store = new MemoryNodeStore();
         NodeStoreBranch branch = store.branch();
         branch.setRoot(workspaceRoot);
         try {
-            branch.merge(IndexHookManager.of(indexHook));
+            branch.merge(EmptyHook.INSTANCE);
         } catch (CommitFailedException e) {
             throw new RuntimeException(e);
         }
