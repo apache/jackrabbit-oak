@@ -46,17 +46,17 @@ public class SegmentNodeStore implements NodeStore {
 
     @Override @Nonnull
     public NodeState getRoot() {
-        return new SegmentNodeState(reader, journal.getHead());
+        return new SegmentNodeState(store, journal.getHead());
     }
 
     @Override @Nonnull
     public NodeStoreBranch branch() {
-        return new SegmentNodeStoreBranch(store, journal, reader);
+        return new SegmentNodeStoreBranch(store, journal);
     }
 
     @Override
     public Blob createBlob(InputStream stream) throws IOException {
-        SegmentWriter writer = new SegmentWriter(store, reader);
+        SegmentWriter writer = new SegmentWriter(store);
         RecordId recordId = writer.writeStream(stream);
         writer.flush();
         return new SegmentBlob(reader, recordId);

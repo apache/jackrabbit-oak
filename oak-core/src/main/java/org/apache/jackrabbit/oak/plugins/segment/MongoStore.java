@@ -45,7 +45,7 @@ public class MongoStore implements SegmentStore {
         this.cache = cache;
 
         if (journals.findOne(new BasicDBObject("_id", "root")) == null) {
-            SegmentWriter writer = new SegmentWriter(this, new SegmentReader(this));
+            SegmentWriter writer = new SegmentWriter(this);
             RecordId id = writer.writeNode(MemoryNodeState.EMPTY_NODE).getRecordId();
             writer.flush();
             journals.insert(new BasicDBObject(ImmutableMap.of(

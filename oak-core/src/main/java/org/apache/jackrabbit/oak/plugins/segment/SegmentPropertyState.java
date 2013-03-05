@@ -34,15 +34,14 @@ class SegmentPropertyState extends AbstractPropertyState {
 
     private final PropertyTemplate template;
 
-    private final SegmentReader reader;
+    private final SegmentStore store;
 
     private final RecordId recordId;
 
     public SegmentPropertyState(
-            PropertyTemplate template,
-            SegmentReader reader, RecordId recordId) {
+            PropertyTemplate template, SegmentStore store, RecordId recordId) {
         this.template = checkNotNull(template);
-        this.reader = checkNotNull(reader);
+        this.store = checkNotNull(store);
         this.recordId = checkNotNull(recordId);
     }
 
@@ -64,7 +63,8 @@ class SegmentPropertyState extends AbstractPropertyState {
     @Override
     public int count() {
         if (isArray()) {
-            return reader.readInt(recordId, 0);
+            Segment segment = store.readSegment(recordId.getSegmentId());
+            return segment.readInt(recordId.getOffset());
         } else {
             return 1;
         }
@@ -114,7 +114,7 @@ class SegmentPropertyState extends AbstractPropertyState {
         checkNotNull(type);
         checkArgument(!type.isArray(), "Type must not be an array type");
 
-        Segment segment = reader.getStore().readSegment(recordId.getSegmentId());
+        Segment segment = store.readSegment(recordId.getSegmentId());
 
         Type<?> base = getType();
         ListRecord values;
@@ -128,6 +128,7 @@ class SegmentPropertyState extends AbstractPropertyState {
         }
         checkElementIndex(index, values.size());
 
+        SegmentReader reader = new SegmentReader(store);
         RecordId valueId = values.getEntry(reader, index);
         if (type == Type.BINARY) {
             return (T) new SegmentBlob(reader, valueId);
@@ -170,13 +171,15 @@ class SegmentPropertyState extends AbstractPropertyState {
     public long size(int index) {
         ListRecord values;
         if (isArray()) {
-            int size = reader.readInt(recordId, 0);
-            RecordId listId = reader.readRecordId(recordId, 4);
+            Segment segment = store.readSegment(recordId.getSegmentId());
+            int size = segment.readInt(recordId.getOffset());
+            RecordId listId = segment.readRecordId(recordId.getOffset() + 4);
             values = new ListRecord(listId, size);
         } else {
             values = new ListRecord(recordId, 1);
         }
         checkElementIndex(index, values.size());
+        SegmentReader reader = new SegmentReader(store);
         return reader.readLength(values.getEntry(reader, 0));
     }
 

@@ -59,8 +59,6 @@ public class SegmentWriter {
 
     private final SegmentStore store;
 
-    private final SegmentReader reader;
-
     private final Map<String, RecordId> strings = Maps.newHashMap();
 
     private final Map<Template, RecordId> templates = Maps.newHashMap();
@@ -95,9 +93,8 @@ public class SegmentWriter {
      */
     private int position;
 
-    public SegmentWriter(SegmentStore store, SegmentReader reader) {
+    public SegmentWriter(SegmentStore store) {
         this.store = store;
-        this.reader = reader;
     }
 
     public synchronized void flush() {
@@ -678,7 +675,7 @@ public class SegmentWriter {
         for (RecordId id : ids) {
             writeRecordId(id);
         }
-        return new SegmentNodeState(reader, recordId);
+        return new SegmentNodeState(store, recordId);
     }
 
 }
