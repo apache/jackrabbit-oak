@@ -21,17 +21,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkPositionIndexes;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentWriter.BLOCK_SIZE;
 
-import java.util.Arrays;
-import java.util.concurrent.ExecutionException;
-
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
-
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
-
 public class SegmentReader {
 
     private final SegmentStore store;
