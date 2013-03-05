@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.segment;
 import static com.google.common.base.Preconditions.checkElementIndex;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.oak.plugins.segment.Segment.RECORD_ID_BYTES;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -176,7 +177,7 @@ class Template {
     }
 
     public PropertyState getProperty(
-            String name, SegmentReader reader, RecordId recordId) {
+            String name, SegmentStore store, RecordId recordId) {
         if ("jcr:primaryType".equals(name) && primaryType != null) {
             return primaryType;
         } else if ("jcr:mixinTypes".equals(name) && mixinTypes != null) {
@@ -191,7 +192,7 @@ class Template {
             while (index < properties.length
                     && properties[index].getName().hashCode() == hash) {
                 if (name.equals(properties[index].getName())) {
-                    return getProperty(reader, recordId, index);
+                    return getProperty(store, recordId, index);
                 }
                 index++;
             }
@@ -200,22 +201,23 @@ class Template {
     }
 
     private PropertyState getProperty(
-            SegmentReader reader, RecordId recordId, int index) {
-        checkNotNull(reader);
+            SegmentStore store, RecordId recordId, int index) {
+        checkNotNull(store);
         checkNotNull(recordId);
         checkElementIndex(index, properties.length);
 
-        int offset = 1;
+        int offset = recordId.getOffset() + RECORD_ID_BYTES;
         if (!hasNoChildNodes()) {
-            offset++;
+            offset += RECORD_ID_BYTES;
         }
+        offset += index * RECORD_ID_BYTES;
+        Segment segment = store.readSegment(recordId.getSegmentId());
         return new SegmentPropertyState(
-                properties[index], reader, reader.readRecordId(
-                        recordId, (offset + index) * Segment.RECORD_ID_BYTES));
+                properties[index], store, segment.readRecordId(offset));
     }
 
     public Iterable<PropertyState> getProperties(
-            SegmentReader reader, RecordId recordId) {
+            SegmentStore store, RecordId recordId) {
         List<PropertyState> list =
                 Lists.newArrayListWithCapacity(properties.length + 2);
         if (primaryType != null) {
@@ -224,44 +226,45 @@ class Template {
         if (mixinTypes != null) {
             list.add(mixinTypes);
         }
-        int offset = 1;
+        int offset = recordId.getOffset() + RECORD_ID_BYTES;
         if (!hasNoChildNodes()) {
-            offset++;
+            offset += RECORD_ID_BYTES;
         }
+        Segment segment = store.readSegment(recordId.getSegmentId());
         for (int i = 0; i < properties.length; i++) {
-            RecordId propertyId = reader.readRecordId(
-                    recordId, (offset + i) * Segment.RECORD_ID_BYTES);
+            RecordId propertyId = segment.readRecordId(offset);
             list.add(new SegmentPropertyState(
-                    properties[i], reader, propertyId));
+                    properties[i], store, propertyId));
+            offset += RECORD_ID_BYTES;
         }
         return list;
     }
 
-    public long getChildNodeCount(SegmentReader reader, RecordId recordId) {
+    public long getChildNodeCount(SegmentStore store, RecordId recordId) {
         if (hasNoChildNodes()) {
             return 0;
         } else if (hasManyChildNodes()) {
-            RecordId childNodesId =
-                    reader.readRecordId(recordId, Segment.RECORD_ID_BYTES);
-            return MapRecord.readMap(reader.getStore(), childNodesId).size();
+            MapRecord map = getChildNodeMap(store, recordId);
+            return map.size();
         } else {
             return 1;
         }
     }
 
-    MapRecord getChildNodeMap(SegmentReader reader, RecordId recordId) {
+    MapRecord getChildNodeMap(SegmentStore store, RecordId recordId) {
         checkState(hasManyChildNodes());
-        return MapRecord.readMap(
-                reader.getStore(),
-                reader.readRecordId(recordId, Segment.RECORD_ID_BYTES));
+        int offset = recordId.getOffset() + RECORD_ID_BYTES;
+        Segment segment = store.readSegment(recordId.getSegmentId());
+        RecordId childNodesId = segment.readRecordId(offset);
+        return MapRecord.readMap(store, childNodesId);
     }
 
     public boolean hasChildNode(
-            String name, SegmentReader reader, RecordId recordId) {
+            String name, SegmentStore store, RecordId recordId) {
         if (hasNoChildNodes()) {
             return false;
         } else if (hasManyChildNodes()) {
-            MapRecord map = getChildNodeMap(reader, recordId);
+            MapRecord map = getChildNodeMap(store, recordId);
             return map.getEntry(name) != null;
         } else {
             return name.equals(childName);
@@ -269,56 +272,59 @@ class Template {
     }
 
     public NodeState getChildNode(
-            String name, SegmentReader reader, RecordId recordId) {
+            String name, SegmentStore store, RecordId recordId) {
         if (hasNoChildNodes()) {
             return null;
         } else if (hasManyChildNodes()) {
-            RecordId childNodeId =
-                    getChildNodeMap(reader, recordId).getEntry(name);
+            MapRecord map = getChildNodeMap(store, recordId);
+            RecordId childNodeId = map.getEntry(name);
             if (childNodeId != null) {
-                return new SegmentNodeState(reader, childNodeId);
+                return new SegmentNodeState(store, childNodeId);
             } else {
                 return null;
             }
         } else if (name.equals(childName)) {
-            RecordId childNodeId =
-                    reader.readRecordId(recordId, Segment.RECORD_ID_BYTES);
-            return new SegmentNodeState(reader, childNodeId);
+            int offset = recordId.getOffset() + RECORD_ID_BYTES;
+            Segment segment = store.readSegment(recordId.getSegmentId());
+            RecordId childNodeId = segment.readRecordId(offset);
+            return new SegmentNodeState(store, childNodeId);
         } else {
             return null;
         }
     }
 
-    public Iterable<String> getChildNodeNames(
-            SegmentReader reader, RecordId recordId) {
+    Iterable<String> getChildNodeNames(SegmentStore store, RecordId recordId) {
         if (hasNoChildNodes()) {
             return Collections.emptyList();
         } else if (hasManyChildNodes()) {
-            return getChildNodeMap(reader, recordId).getKeys();
+            MapRecord map = getChildNodeMap(store, recordId);
+            return map.getKeys();
         } else {
             return Collections.singletonList(childName);
         }
     }
 
-    public Iterable<? extends ChildNodeEntry> getChildNodeEntries(
-            final SegmentReader reader, RecordId recordId) {
+    Iterable<? extends ChildNodeEntry> getChildNodeEntries(
+            SegmentStore store, RecordId recordId) {
         if (hasNoChildNodes()) {
             return Collections.emptyList();
         } else if (hasManyChildNodes()) {
-            return getChildNodeMap(reader, recordId).getEntries();
+            MapRecord map = getChildNodeMap(store, recordId);
+            return map.getEntries();
         } else {
-            RecordId childNodeId =
-                    reader.readRecordId(recordId, Segment.RECORD_ID_BYTES);
+            int offset = recordId.getOffset() + RECORD_ID_BYTES;
+            Segment segment = store.readSegment(recordId.getSegmentId());
+            RecordId childNodeId = segment.readRecordId(offset);
             return Collections.singletonList(new MemoryChildNodeEntry(
-                    childName, new SegmentNodeState(reader, childNodeId)));
+                    childName, new SegmentNodeState(store, childNodeId)));
         }
     }
 
     public void compareAgainstBaseState(
-            SegmentReader reader, RecordId afterId,
+            SegmentStore store, RecordId afterId,
             Template beforeTemplate, RecordId beforeId,
             NodeStateDiff diff) {
-        checkNotNull(reader);
+        checkNotNull(store);
         checkNotNull(afterId);
         checkNotNull(beforeTemplate);
         checkNotNull(beforeId);
@@ -342,37 +348,37 @@ class Template {
             PropertyState beforeProperty = null;
             PropertyState afterProperty = null;
             if (d < 0) {
-                afterProperty = getProperty(reader, afterId, afterIndex++);
+                afterProperty = getProperty(store, afterId, afterIndex++);
             } else if (d > 0) {
                 beforeProperty = beforeTemplate.getProperty(
-                        reader, beforeId, beforeIndex++);
+                        store, beforeId, beforeIndex++);
             } else {
-                afterProperty = getProperty(reader, afterId, afterIndex++);
+                afterProperty = getProperty(store, afterId, afterIndex++);
                 beforeProperty = beforeTemplate.getProperty(
-                        reader, beforeId, beforeIndex++);
+                        store, beforeId, beforeIndex++);
             }
             compareProperties(beforeProperty, afterProperty, diff);
         }
         while (afterIndex < properties.length) {
-            diff.propertyAdded(getProperty(reader, afterId, afterIndex++));
+            diff.propertyAdded(getProperty(store, afterId, afterIndex++));
         }
         while (beforeIndex < beforeTemplate.properties.length) {
             diff.propertyDeleted(beforeTemplate.getProperty(
-                    reader, beforeId, beforeIndex++));
+                    store, beforeId, beforeIndex++));
         }
 
         if (hasNoChildNodes()) {
             if (!beforeTemplate.hasNoChildNodes()) {
                 for (ChildNodeEntry entry :
-                        beforeTemplate.getChildNodeEntries(reader, beforeId)) {
+                        beforeTemplate.getChildNodeEntries(store, beforeId)) {
                     diff.childNodeDeleted(
                             entry.getName(), entry.getNodeState());
                 }
             }
         } else if (hasOneChildNode()) {
-            NodeState afterNode = getChildNode(childName, reader, afterId);
+            NodeState afterNode = getChildNode(childName, store, afterId);
             NodeState beforeNode = beforeTemplate.getChildNode(
-                    childName, reader, beforeId);
+                    childName, store, beforeId);
             if (beforeNode == null) {
                 diff.childNodeAdded(childName, afterNode);
             } else if (!beforeNode.equals(afterNode)) {
@@ -381,7 +387,7 @@ class Template {
             if ((beforeTemplate.hasOneChildNode() && beforeNode == null)
                     || beforeTemplate.hasManyChildNodes()) {
                 for (ChildNodeEntry entry :
-                    beforeTemplate.getChildNodeEntries(reader, beforeId)) {
+                    beforeTemplate.getChildNodeEntries(store, beforeId)) {
                     if (!childName.equals(entry.getName())) {
                         diff.childNodeDeleted(
                                 entry.getName(), entry.getNodeState());
@@ -392,10 +398,10 @@ class Template {
             // TODO: Leverage the HAMT data structure for the comparison
             Set<String> baseChildNodes = new HashSet<String>();
             for (ChildNodeEntry beforeCNE
-                    : beforeTemplate.getChildNodeEntries(reader, beforeId)) {
+                    : beforeTemplate.getChildNodeEntries(store, beforeId)) {
                 String name = beforeCNE.getName();
                 NodeState beforeChild = beforeCNE.getNodeState();
-                NodeState afterChild = getChildNode(name, reader, afterId);
+                NodeState afterChild = getChildNode(name, store, afterId);
                 if (afterChild == null) {
                     diff.childNodeDeleted(name, beforeChild);
                 } else {
@@ -406,7 +412,7 @@ class Template {
                 }
             }
             for (ChildNodeEntry afterChild
-                    : getChildNodeEntries(reader, afterId)) {
+                    : getChildNodeEntries(store, afterId)) {
                 String name = afterChild.getName();
                 if (!baseChildNodes.contains(name)) {
                     diff.childNodeAdded(name, afterChild.getNodeState());

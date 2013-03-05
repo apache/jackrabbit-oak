@@ -46,8 +46,7 @@ public class MemoryStore implements SegmentStore {
             this.store = checkNotNull(store);
             this.parent = null;
 
-            SegmentWriter writer =
-                    new SegmentWriter(store, new SegmentReader(store));
+            SegmentWriter writer = new SegmentWriter(store);
             RecordId id = writer.writeNode(root).getRecordId();
             writer.flush();
 
@@ -80,15 +79,14 @@ public class MemoryStore implements SegmentStore {
         @Override
         public synchronized void merge() {
             if (parent != null) {
-                SegmentReader reader = new SegmentReader(store);
-                NodeState before = new SegmentNodeState(reader, base);
-                NodeState after = new SegmentNodeState(reader, head);
+                NodeState before = new SegmentNodeState(store, base);
+                NodeState after = new SegmentNodeState(store, head);
 
-                SegmentWriter writer = new SegmentWriter(store, reader);
+                SegmentWriter writer = new SegmentWriter(store);
                 while (!parent.setHead(base, head)) {
                     RecordId newBase = parent.getHead();
                     NodeBuilder builder =
-                            new SegmentNodeState(reader, newBase).builder();
+                            new SegmentNodeState(store, newBase).builder();
                     after.compareAgainstBaseState(
                             before, new RebaseDiff(builder));
                     NodeState state = builder.getNodeState();

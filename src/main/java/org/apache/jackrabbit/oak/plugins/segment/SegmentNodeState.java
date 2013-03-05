@@ -31,14 +31,14 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 
 class SegmentNodeState extends AbstractNodeState {
 
-    private final SegmentReader reader;
+    private final SegmentStore store;
 
     private final RecordId recordId;
 
     private Template template = null;
 
-    SegmentNodeState(SegmentReader reader, RecordId id) {
-        this.reader = checkNotNull(reader);
+    SegmentNodeState(SegmentStore store, RecordId id) {
+        this.store = checkNotNull(store);
         this.recordId = checkNotNull(id);
     }
 
@@ -48,7 +48,7 @@ class SegmentNodeState extends AbstractNodeState {
 
     private synchronized Template getTemplate() {
         if (template == null) {
-            Segment segment = reader.getStore().readSegment(recordId.getSegmentId());
+            Segment segment = store.readSegment(recordId.getSegmentId());
             RecordId templateId = segment.readRecordId(recordId.getOffset());
             template = segment.readTemplate(templateId);
         }
@@ -56,7 +56,7 @@ class SegmentNodeState extends AbstractNodeState {
     }
 
     MapRecord getChildNodeMap() {
-        return getTemplate().getChildNodeMap(reader, recordId);
+        return getTemplate().getChildNodeMap(store, recordId);
     }
 
     @Override
@@ -67,37 +67,37 @@ class SegmentNodeState extends AbstractNodeState {
     @Override @CheckForNull
     public PropertyState getProperty(String name) {
         checkNotNull(name);
-        return getTemplate().getProperty(name, reader, recordId);
+        return getTemplate().getProperty(name, store, recordId);
     }
 
     @Override @Nonnull
     public Iterable<PropertyState> getProperties() {
-        return getTemplate().getProperties(reader, recordId);
+        return getTemplate().getProperties(store, recordId);
     }
 
     @Override
     public long getChildNodeCount() {
-        return getTemplate().getChildNodeCount(reader, recordId);
+        return getTemplate().getChildNodeCount(store, recordId);
     }
 
     @Override
     public boolean hasChildNode(String name) {
-        return getTemplate().hasChildNode(checkNotNull(name), reader, recordId);
+        return getTemplate().hasChildNode(checkNotNull(name), store, recordId);
     }
 
     @Override @CheckForNull
     public NodeState getChildNode(String name) {
-        return getTemplate().getChildNode(checkNotNull(name), reader, recordId);
+        return getTemplate().getChildNode(checkNotNull(name), store, recordId);
     }
 
     @Override
     public Iterable<String> getChildNodeNames() {
-        return getTemplate().getChildNodeNames(reader, recordId);
+        return getTemplate().getChildNodeNames(store, recordId);
     }
 
     @Override @Nonnull
     public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
-        return getTemplate().getChildNodeEntries(reader, recordId);
+        return getTemplate().getChildNodeEntries(store, recordId);
     }
 
     @Override @Nonnull
@@ -111,7 +111,7 @@ class SegmentNodeState extends AbstractNodeState {
             SegmentNodeState that = (SegmentNodeState) base;
             if (!recordId.equals(that.recordId)) {
                 getTemplate().compareAgainstBaseState(
-                        reader, recordId, that.getTemplate(), that.recordId,
+                        store, recordId, that.getTemplate(), that.recordId,
                         diff);
             }
         } else {
