@@ -84,7 +84,7 @@ abstract class AbstractTest extends Benchmark {
                     DescriptiveStatistics statistics = runTest(cluster[0]);
                     if (statistics.getN() > 0) {
                         System.out.format(
-                                "%-28.328  %6.0f  %6.0f  %6.0f  %6.0f  %6.0f  %6d%n",
+                                "%-28.28s  %6.0f  %6.0f  %6.0f  %6.0f  %6.0f  %6d%n",
                                 fixture.toString(),
                                 statistics.getMin(),
                                 statistics.getPercentile(10.0),
