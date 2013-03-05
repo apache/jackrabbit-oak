@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.segment;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
 
@@ -31,6 +32,9 @@ import com.mongodb.DBObject;
 import com.mongodb.Mongo;
 
 public class MongoStore implements SegmentStore {
+
+    private static final long UPDATE_INTERVAL =
+            TimeUnit.NANOSECONDS.convert(10, TimeUnit.MILLISECONDS);
 
     private final DBCollection segments;
 
@@ -65,19 +69,39 @@ public class MongoStore implements SegmentStore {
     @Override
     public Journal getJournal(final String name) {
         return new Journal() {
+
+            private long nextUpdate = System.nanoTime() - 2 * UPDATE_INTERVAL;
+
+            private RecordId head = getHead();
+
             @Override
-            public RecordId getHead() {
-                DBObject journal = journals.findOne(new BasicDBObject("_id", name));
-                return RecordId.fromString(journal.get("head").toString());
+            public synchronized RecordId getHead() {
+                long now = System.nanoTime();
+                if (now >= nextUpdate) {
+                    DBObject journal = journals.findOne(new BasicDBObject("_id", name));
+                    head = RecordId.fromString(journal.get("head").toString());
+                    nextUpdate = now + UPDATE_INTERVAL;
+                }
+                return head;
             }
+
             @Override
             public boolean setHead(RecordId base, RecordId head) {
                 DBObject baseObject = new BasicDBObject(
                         ImmutableMap.of("_id", name, "head", base.toString()));
                 DBObject headObject = new BasicDBObject(
                         ImmutableMap.of("_id", name, "head", head.toString()));
-                return journals.findAndModify(baseObject, headObject) != null;
+                if (journals.findAndModify(baseObject, headObject) != null) {
+                    this.head = head;
+                    nextUpdate = System.nanoTime() + UPDATE_INTERVAL;
+                    return true;
+                } else if (base.equals(this.head)) {
+                    // force an update at next getHead() call
+                    nextUpdate = System.nanoTime();
+                }
+                return false;
             }
+
             @Override
             public void merge() {
                 throw new UnsupportedOperationException();
