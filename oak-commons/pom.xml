@@ -45,7 +45,6 @@
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
-      <version>1.6.4</version>
     </dependency>
     <dependency>
       <groupId>com.google.code.findbugs</groupId>
@@ -62,7 +61,6 @@
     <dependency>
       <groupId>ch.qos.logback</groupId>
       <artifactId>logback-classic</artifactId>
-      <version>1.0.1</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
