@@ -23,6 +23,7 @@ import static com.google.common.base.Preconditions.checkPositionIndex;
 import static com.google.common.base.Preconditions.checkPositionIndexes;
 import static com.google.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.plugins.segment.MapRecord.BUCKETS_PER_LEVEL;
+import static org.apache.jackrabbit.oak.plugins.segment.Segment.MAX_SEGMENT_SIZE;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -55,6 +56,8 @@ import com.google.common.io.ByteStreams;
 
 public class SegmentWriter {
 
+    private static final byte[] EMPTY_BUFFER = new byte[0];
+
     static final int BLOCK_SIZE = 1 << 12; // 4kB
 
     private final SegmentStore store;
@@ -74,12 +77,10 @@ public class SegmentWriter {
 
     /**
      * The segment write buffer, filled from the end to the beginning
-     * (see OAK-629). Note that we currently allocate the entire buffer
-     * right from the beginning. It might turn out that a better approach
-     * would be to start with a smaller buffer that grows automatically,
-     * or to use a pool of pre-allocated buffers.
+     * (see OAK-629). The buffer grows automatically up to
+     * {@link Segment#MAX_SEGMENT_SIZE}.
      */
-    private final byte[] buffer = new byte[Segment.MAX_SEGMENT_SIZE];
+    private byte[] buffer = EMPTY_BUFFER;
 
     /**
      * The number of bytes already written (or allocated). Counted from
@@ -102,14 +103,15 @@ public class SegmentWriter {
             byte[] data = buffer;
             if (length < buffer.length) {
                 data = new byte[length];
-                int start = buffer.length - length;
-                System.arraycopy(buffer, start, data, 0, data.length);
+                System.arraycopy(
+                        buffer, buffer.length - length, data, 0, data.length);
             }
 
             store.createSegment(new Segment(
                     store, uuid, data, uuids.keySet(), strings, templates));
 
             uuid = UUID.randomUUID();
+            buffer = EMPTY_BUFFER;
             length = 0;
             uuids.clear();
             strings.clear();
@@ -137,14 +139,26 @@ public class SegmentWriter {
 
         int alignment = Segment.RECORD_ALIGN_BYTES - 1;
         int alignedSize = (fullSize + alignment) & ~alignment;
-        if (length + alignedSize > buffer.length
+        if (length + alignedSize > MAX_SEGMENT_SIZE
                 || uuids.size() + segmentIds.size() > 0x100) {
             flush();
         }
+        if (length + alignedSize > buffer.length) {
+            int newBufferLength = Math.max(2 * buffer.length, 4096);
+            while (length + alignedSize > newBufferLength) {
+                newBufferLength *= 2;
+            }
+            byte[] newBuffer = new byte[newBufferLength];
+            System.arraycopy(
+                    buffer, buffer.length - length,
+                    newBuffer, newBuffer.length - length, length);
+            buffer = newBuffer;
+        }
 
         length += alignedSize;
+        checkState(length <= MAX_SEGMENT_SIZE);
         position = buffer.length - length;
-        return new RecordId(uuid, position);
+        return new RecordId(uuid, MAX_SEGMENT_SIZE - length);
     }
 
     private synchronized void writeRecordId(RecordId id) {
@@ -159,7 +173,7 @@ public class SegmentWriter {
         }
 
         int offset = id.getOffset();
-        checkState(0 <= offset && offset < buffer.length);
+        checkState(0 <= offset && offset < MAX_SEGMENT_SIZE);
         checkState((offset & (Segment.RECORD_ALIGN_BYTES - 1)) == 0);
 
         buffer[position++] = segmentIndex.byteValue();
