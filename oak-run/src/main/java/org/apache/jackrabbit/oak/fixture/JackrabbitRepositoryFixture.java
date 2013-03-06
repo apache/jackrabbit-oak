@@ -36,12 +36,12 @@ public class JackrabbitRepositoryFixture implements RepositoryFixture {
     @Override
     public Repository[] setUpCluster(int n) throws Exception {
         if (n == 1) {
-            Repository[] cluster = new Repository[n];
-            File directory = new File("jackrabbit-repository");
+            String name = "Jackrabbit-" + System.currentTimeMillis();
+            File directory = new File(name);
             RepositoryConfig config = RepositoryConfig.install(directory);
-            this.cluster[0] = RepositoryImpl.create(config);
-            cluster[0] = this.cluster[0];
-            return cluster;
+            RepositoryImpl repository = RepositoryImpl.create(config);
+            this.cluster = new RepositoryImpl[] { repository };
+            return new Repository[] { repository };
         } else {
             throw new UnsupportedOperationException("TODO");
         }
@@ -59,6 +59,11 @@ public class JackrabbitRepositoryFixture implements RepositoryFixture {
             repository.shutdown();
             FileUtils.deleteQuietly(directory);
         }
+    }
+
+    @Override
+    public String toString() {
+        return "Jackrabbit";
     }
 
 }

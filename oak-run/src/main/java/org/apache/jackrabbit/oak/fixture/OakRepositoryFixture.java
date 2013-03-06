@@ -153,6 +153,7 @@ public abstract class OakRepositoryFixture implements RepositoryFixture {
     public void tearDownCluster() {
     }
 
+    @Override
     public String toString() {
         return name;
     }
