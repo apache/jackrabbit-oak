@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.jcr;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
-import javax.jcr.GuestCredentials;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -76,7 +75,9 @@ public abstract class AbstractRepositoryTest {
     }
 
     protected Session createAnonymousSession() throws RepositoryException {
-        return getRepository().login(new GuestCredentials());
+        // FIXME: provider proper permission setup for the anonymous session (e.g. full read access)
+        // return getRepository().login(new GuestCredentials());
+        return createAdminSession();
     }
 
     protected Session createAdminSession() throws RepositoryException {
