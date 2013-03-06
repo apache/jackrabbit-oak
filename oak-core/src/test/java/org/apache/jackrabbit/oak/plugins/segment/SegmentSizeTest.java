@@ -162,7 +162,7 @@ public class SegmentSizeTest {
         state = writer.writeNode(builder.getNodeState());
         writer.flush();
         segment = store.readSegment(state.getRecordId().getSegmentId());
-        assertEquals(260, segment.getData().length);
+        assertEquals(256, segment.getData().length);
     }
 
     private int getSize(NodeBuilder builder) {
