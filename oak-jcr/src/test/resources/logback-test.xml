@@ -30,6 +30,7 @@
     </appender>
 
     <logger name="org.apache.jackrabbit.test.api" level="DEBUG"/>
+    <logger name="com.mongodb.tcp" level="ERROR"/>
 
     <root level="INFO">
         <!--
