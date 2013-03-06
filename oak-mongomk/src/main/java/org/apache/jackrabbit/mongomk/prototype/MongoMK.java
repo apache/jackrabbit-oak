@@ -19,6 +19,7 @@ package org.apache.jackrabbit.mongomk.prototype;
 import java.io.InputStream;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -129,8 +130,12 @@ public class MongoMK implements MicroKernel {
     private Revision headRevision;
     
     private Thread backgroundThread;
-    
-    private final Map<String, String> branchCommits = new HashMap<String, String>();
+
+    /**
+     * Maps branch commit revision to revision it is based on
+     */
+    private final Map<String, String> branchCommits =
+            Collections.synchronizedMap(new HashMap<String, String>());
 
     /**
      * Create a new in-memory MongoMK used for testing.
@@ -313,7 +318,11 @@ public class MongoMK implements MicroKernel {
 
     @Override
     public String getHeadRevision() throws MicroKernelException {
-        return headRevision.toString();
+        String head = headRevision.toString();
+        while (branchCommits.containsKey(head)) {
+            head = branchCommits.get(head);
+        }
+        return head;
     }
 
     @Override
@@ -466,8 +475,11 @@ public class MongoMK implements MicroKernel {
         if (revisionId.startsWith("b")) {
             // just commit to head currently
             applyCommit(commit);
+            // remember branch commit
+            branchCommits.put(rev.toString(), revisionId.substring(1));
+
             return "b" + rev.toString();
-            
+
             // String jsonBranch = branchCommits.remove(revisionId);
             // jsonBranch += commit.getDiff().toString();
             // String branchRev = revisionId + "+";
@@ -594,15 +606,24 @@ public class MongoMK implements MicroKernel {
     @Override
     public String merge(String branchRevisionId, String message)
             throws MicroKernelException {
+        // TODO improve implementation if needed
+        if (!branchRevisionId.startsWith("b")) {
+            throw new MicroKernelException("Not a branch: " + branchRevisionId);
+        }
+
         // reading from the branch is reading from the trunk currently
         String revisionId = branchRevisionId.substring(1).replace('+', ' ').trim();
+        String baseRevId = revisionId;
+        while (baseRevId != null) {
+            baseRevId = branchCommits.remove(baseRevId);
+        }
         return revisionId;
-        
+
         // TODO improve implementation if needed
         // if (!branchRevisionId.startsWith("b")) {
         //     throw new MicroKernelException("Not a branch: " + branchRevisionId);
         // }
-        // 
+        //
         // String commit = branchCommits.remove(branchRevisionId);
         // return commit("", commit, null, null);
     }
