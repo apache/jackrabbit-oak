@@ -19,8 +19,8 @@ package org.apache.jackrabbit.oak.jcr.tck;
 import java.lang.reflect.Field;
 import java.util.Properties;
 
-import org.apache.jackrabbit.oak.jcr.OakMongoMKRepositoryStub;
 import org.apache.jackrabbit.oak.jcr.OakRepositoryStub;
+import org.apache.jackrabbit.oak.jcr.OakSegmentMKRepositoryStub;
 import org.apache.jackrabbit.test.AbstractJCRTest;
 import org.apache.jackrabbit.test.RepositoryHelper;
 import org.apache.jackrabbit.test.RepositoryHelperPool;
@@ -38,12 +38,16 @@ public abstract class TCKBase extends TestSuite {
         super(name);
         addTest(new Setup(OakRepositoryStub.class.getName()));
         addTests();
-        // OAK-588: CI builds take too long with MongoMK
-        // -> disabled for now
-        if (false && OakMongoMKRepositoryStub.isMongoDBAvailable()) {
-            addTest(new Setup(OakMongoMKRepositoryStub.class.getName()));
+        if (OakSegmentMKRepositoryStub.isAvailable()) {
+            addTest(new Setup(OakSegmentMKRepositoryStub.class.getName()));
             addTests();
         }
+        // OAK-588: CI builds take too long with MongoMK
+        // -> disabled for now
+//        if (OakMongoMKRepositoryStub.isMongoDBAvailable()) {
+//            addTest(new Setup(OakMongoMKRepositoryStub.class.getName()));
+//            addTests();
+//        }
     }
 
     abstract protected void addTests();

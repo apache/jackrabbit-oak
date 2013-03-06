@@ -45,6 +45,7 @@
     <mongo.port>27017</mongo.port>
     <mongo.db>MongoMKDB</mongo.db>
     <mongo.db2>MongoMKDB2</mongo.db2>
+    <segment.db>SegmentMK</segment.db>
     <solr.version>4.0.0</solr.version>
   </properties>
 
@@ -143,6 +144,7 @@
               <mongo.port>${mongo.port}</mongo.port>
               <mongo.db>${mongo.db}</mongo.db>
               <mongo.db2>${mongo.db2}</mongo.db2>
+              <segment.db>${segment.db}</segment.db>
             </systemPropertyVariables>
             <redirectTestOutputToFile>true</redirectTestOutputToFile>
           </configuration>
