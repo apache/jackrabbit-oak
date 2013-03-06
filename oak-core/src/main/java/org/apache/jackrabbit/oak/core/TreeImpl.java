@@ -92,8 +92,7 @@ public class TreeImpl implements Tree {
 
         if (parent.baseState == null) {
             this.baseState = null;
-        }
-        else {
+        } else {
             this.baseState = parent.baseState.getChildNode(name);
         }
     }
