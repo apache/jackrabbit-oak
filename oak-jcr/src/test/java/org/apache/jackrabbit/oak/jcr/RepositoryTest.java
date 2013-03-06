@@ -2072,6 +2072,38 @@ public class RepositoryTest extends AbstractRepositoryTest {
     }
 
     @Test
+    @Ignore("OAK-677")
+    public void observationOnRootNode() throws Exception {
+        final AtomicReference<CountDownLatch> hasEvents = new AtomicReference<CountDownLatch>(new CountDownLatch(1));
+        Session observingSession = createAdminSession();
+        try {
+            ObservationManager obsMgr = observingSession.getWorkspace().getObservationManager();
+            EventListener listener = new EventListener() {
+                @Override
+                public void onEvent(EventIterator events) {
+                    while (events.hasNext()) {
+                        events.next();
+                        hasEvents.get().countDown();
+                    }
+                }
+            };
+
+            obsMgr.addEventListener(listener, Event.PROPERTY_ADDED,
+                    "/", true, null, null, false);
+
+            // add property to root node
+            Node root = getNode("/");
+            root.setProperty("prop", "value");
+            root.getSession().save();
+
+            assertTrue(hasEvents.get().await(2, TimeUnit.SECONDS));
+            obsMgr.removeEventListener(listener);
+        } finally {
+            observingSession.logout();
+        }
+    }
+
+    @Test
     public void liveNode() throws RepositoryException {
         Session session = getAdminSession();
 
