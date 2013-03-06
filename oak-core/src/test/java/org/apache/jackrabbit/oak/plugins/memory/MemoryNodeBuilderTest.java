@@ -182,4 +182,14 @@ public class MemoryNodeBuilderTest {
         assertEquals(x.getBaseState(), x.getNodeState());
     }
 
+    @Test(expected = IllegalStateException.class)
+    public void testReadOnRemovedNode() {
+        NodeBuilder root = new MemoryNodeBuilder(BASE);
+        NodeBuilder m = root.child("m");
+        NodeBuilder n = m.child("n");
+
+        root.removeNode("m");
+        n.hasChildNode("any");
+    }
+
 }
