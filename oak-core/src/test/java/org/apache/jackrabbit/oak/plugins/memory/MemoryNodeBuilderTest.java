@@ -106,14 +106,15 @@ public class MemoryNodeBuilderTest {
         for (String name : new String[] {"x", "new"}) {
             NodeBuilder root = new MemoryNodeBuilder(BASE);
             NodeBuilder child = root.child(name);
+            child.child("q");
 
             root.removeNode(name);
+            assertEquals(1, child.getChildNodeCount());
+
             try {
-                child.getChildNodeCount();
+                child.setProperty("p", "v");
                 fail();
-            } catch (IllegalStateException e) {
-                // expected
-            }
+            } catch (IllegalStateException expected) {}
 
             root.child(name);
             assertEquals(0, child.getChildNodeCount()); // reconnect!
@@ -180,16 +181,6 @@ public class MemoryNodeBuilderTest {
         NodeBuilder root = new MemoryNodeBuilder(BASE);
         NodeBuilder x = root.child("x");
         assertEquals(x.getBaseState(), x.getNodeState());
-    }
-
-    @Test(expected = IllegalStateException.class)
-    public void testReadOnRemovedNode() {
-        NodeBuilder root = new MemoryNodeBuilder(BASE);
-        NodeBuilder m = root.child("m");
-        NodeBuilder n = m.child("n");
-
-        root.removeNode("m");
-        n.hasChildNode("any");
     }
 
 }

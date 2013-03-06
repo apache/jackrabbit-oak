@@ -225,13 +225,13 @@ public class MemoryNodeBuilder implements NodeBuilder {
 
             return false;
         }
-        return writeState != null || baseState != null;
+        assert classInvariants();
+        return true;
     }
 
     @Nonnull
     private NodeState read() {
-        checkState(updateReadState(), "This node has been removed or is disconnected");
-        assert classInvariants();
+        updateReadState();
         return writeState != null ? writeState : baseState;
     }
 
@@ -473,6 +473,8 @@ public class MemoryNodeBuilder implements NodeBuilder {
         boolean modified = writeState != null && (writeState.base != baseState || writeState.nodes.containsKey(name));
         if (!hasBaseState(name) || modified) {
             builder.write(root.revision + 1, true);
+        } else {
+            builder.read();
         }
         return builder;
     }
