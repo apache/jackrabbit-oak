@@ -31,20 +31,12 @@ import org.apache.jackrabbit.oak.http.OakServlet;
 import org.apache.jackrabbit.oak.jcr.RepositoryImpl;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.commit.JcrConflictHandler;
-import org.apache.jackrabbit.oak.plugins.index.CompositeIndexHookProvider;
-import org.apache.jackrabbit.oak.plugins.index.IndexHookManager;
-import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexHookProvider;
 import org.apache.jackrabbit.oak.plugins.index.p2.Property2IndexHookProvider;
 import org.apache.jackrabbit.oak.plugins.name.NameValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.DefaultTypeEditor;
 import org.apache.jackrabbit.oak.plugins.nodetype.RegistrationValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypeValidatorProvider;
-import org.apache.jackrabbit.oak.spi.commit.CommitHook;
-import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
-import org.apache.jackrabbit.oak.spi.commit.CompositeValidatorProvider;
-import org.apache.jackrabbit.oak.spi.commit.ValidatingHook;
-import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.webdav.jcr.JCRWebdavServerServlet;
@@ -172,7 +164,13 @@ public class Main {
             SecurityProvider securityProvider = new OpenSecurityProvider();
             ContentRepository repository = new Oak(kernel)
                 .with(JcrConflictHandler.JCR_CONFLICT_HANDLER)
-                .with(buildDefaultCommitHook())
+                .with(new ConflictValidatorProvider())
+                .with(new NameValidatorProvider())
+                .with(new NamespaceValidatorProvider())
+                .with(new TypeValidatorProvider())
+                .with(new RegistrationValidatorProvider())
+                .with(new DefaultTypeEditor())
+                .with(new Property2IndexHookProvider())
                 .with(securityProvider)
                 .createContentRepository();
 
@@ -212,25 +210,6 @@ public class Main {
                     JCRWebdavServerServlet.INIT_PARAM_MISSING_AUTH_MAPPING,
                     "admin:admin");
             context.addServlet(davex, path + "/davex/*");
-        }
-
-        private static CommitHook buildDefaultCommitHook() {
-            return new CompositeHook(
-                    new DefaultTypeEditor(),
-                    new ValidatingHook(createDefaultValidatorProvider()),
-                    IndexHookManager.of(
-                            new CompositeIndexHookProvider(
-                            new Property2IndexHookProvider(), 
-                            new LuceneIndexHookProvider())));
-        }
-
-        private static ValidatorProvider createDefaultValidatorProvider() {
-            return new CompositeValidatorProvider(
-                    new ConflictValidatorProvider(),
-                    new NameValidatorProvider(),
-                    new NamespaceValidatorProvider(),
-                    new TypeValidatorProvider(),
-                    new RegistrationValidatorProvider());
         }
 
     }
