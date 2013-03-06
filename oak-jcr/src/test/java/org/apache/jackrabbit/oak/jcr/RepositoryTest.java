@@ -2072,7 +2072,6 @@ public class RepositoryTest extends AbstractRepositoryTest {
     }
 
     @Test
-    @Ignore("OAK-677")
     public void observationOnRootNode() throws Exception {
         final AtomicReference<CountDownLatch> hasEvents = new AtomicReference<CountDownLatch>(new CountDownLatch(1));
         Session observingSession = createAdminSession();

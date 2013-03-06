@@ -51,7 +51,7 @@ public class ReadOnlyTree implements Tree {
      */
     private final NodeState state;
 
-    public ReadOnlyTree(NodeState rootState) {
+    public ReadOnlyTree(@Nonnull NodeState rootState) {
         this(null, "", rootState);
     }
 
