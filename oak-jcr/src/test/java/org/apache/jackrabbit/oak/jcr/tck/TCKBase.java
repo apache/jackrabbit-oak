@@ -25,6 +25,7 @@ import org.apache.jackrabbit.test.AbstractJCRTest;
 import org.apache.jackrabbit.test.RepositoryHelper;
 import org.apache.jackrabbit.test.RepositoryHelperPool;
 import org.apache.jackrabbit.test.RepositoryStub;
+import org.slf4j.bridge.SLF4JBridgeHandler;
 
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
@@ -33,6 +34,11 @@ import junit.framework.TestSuite;
  * Base class for TCK tests.
  */
 public abstract class TCKBase extends TestSuite {
+
+    static {
+        SLF4JBridgeHandler.removeHandlersForRootLogger();
+        SLF4JBridgeHandler.install();
+    }
 
     public TCKBase(String name) {
         super(name);
