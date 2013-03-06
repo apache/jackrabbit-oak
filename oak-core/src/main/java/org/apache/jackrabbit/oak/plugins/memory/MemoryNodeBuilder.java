@@ -189,13 +189,13 @@ public class MemoryNodeBuilder implements NodeBuilder {
     }
 
     /**
-     * Determine whether this child exists with its direct parent or existed with its direct
-     * parent and got disconnected.
-     * @return  {@code true} iff this child either exists or got disconnected from its direct parent.
+     * Determine whether this child exists at its direct parent.
+     * @return  {@code true} iff this child exists at its direct parent.
      */
-    private boolean existsOrDisconnected() {
-        // No need to check the base state. The fact that we have this
-        // builder instance proofs that this child existed at some point.
+    private boolean exists() {
+        // No need to check the base state if write state is null. The fact that we have this
+        // builder instance proofs that this child existed at some point as it must have been
+        // retrieved from the base state.
         return isRoot() || parent.writeState == null || parent.writeState.hasChildNode(name);
     }
 
@@ -206,7 +206,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
     private boolean updateReadState() {
         if (revision != root.revision) {
             assert(!isRoot()); // root never gets here since revision == root.revision
-            if (!existsOrDisconnected()) {
+            if (!exists()) {
                 return false;
             }
             parent.updateReadState();
@@ -235,11 +235,11 @@ public class MemoryNodeBuilder implements NodeBuilder {
     }
 
     @Nonnull
-    private MutableNodeState write(long newRevision, boolean skipRemovedCheck) {
+    private MutableNodeState write(long newRevision, boolean reconnect) {
         // make sure that all revision numbers up to the root gets updated
         if (!isRoot()) {
-            checkState(skipRemovedCheck || existsOrDisconnected(), "This node has been removed");
-            parent.write(newRevision, skipRemovedCheck);
+            checkState(reconnect || exists(), "This node has been removed");
+            parent.write(newRevision, reconnect);
         }
 
         if (writeState == null || revision != root.revision) {
@@ -250,7 +250,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
 
             writeState = parent.getWriteState(name);
             if (writeState == null) {
-                if (existsOrDisconnected()) {
+                if (exists()) {
                     assert baseState != null;
                     writeState = new MutableNodeState(baseState);
                 }
