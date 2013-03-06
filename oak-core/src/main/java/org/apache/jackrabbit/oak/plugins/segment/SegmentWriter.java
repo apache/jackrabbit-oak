@@ -642,9 +642,15 @@ public class SegmentWriter {
         }
 
         Template template = new Template(state);
+        RecordId templateId;
+        if (before != null && template.equals(before.getTemplate())) {
+            templateId = before.getTemplateId();
+        } else {
+            templateId = writeTemplate(template);
+        }
 
         List<RecordId> ids = Lists.newArrayList();
-        ids.add(writeTemplate(template));
+        ids.add(templateId);
 
         if (template.hasManyChildNodes()) {
             MapRecord base;

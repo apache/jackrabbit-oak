@@ -35,6 +35,8 @@ class SegmentNodeState extends AbstractNodeState {
 
     private final RecordId recordId;
 
+    private RecordId templateId = null;
+
     private Template template = null;
 
     SegmentNodeState(SegmentStore store, RecordId id) {
@@ -46,10 +48,15 @@ class SegmentNodeState extends AbstractNodeState {
         return recordId;
     }
 
-    private synchronized Template getTemplate() {
+    RecordId getTemplateId() {
+        getTemplate(); // force loading of the template
+        return templateId;
+    }
+
+    synchronized Template getTemplate() {
         if (template == null) {
             Segment segment = store.readSegment(recordId.getSegmentId());
-            RecordId templateId = segment.readRecordId(recordId.getOffset());
+            templateId = segment.readRecordId(recordId.getOffset());
             template = segment.readTemplate(templateId);
         }
         return template;
