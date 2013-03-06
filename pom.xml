@@ -41,18 +41,18 @@
     <module>oak-mk-api</module>
     <module>oak-mk</module>
     <module>oak-mk-remote</module>
-    <!--module>oak-mongomk</module-->
+    <module>oak-mongomk</module>
     <module>oak-core</module>
     <module>oak-jcr</module>
     <module>oak-sling</module>
     <module>oak-http</module>
     <module>oak-lucene</module>
-    <!--module>oak-solr-core</module>
+    <module>oak-solr-core</module>
     <module>oak-solr-remote</module>
-    <module>oak-solr-embedded</module-->
+    <module>oak-solr-embedded</module>
     <module>oak-run</module>
     <module>oak-it</module>
-    <!--module>oak-mk-perf</module-->
+    <module>oak-mk-perf</module>
   </modules>
 
   <scm>
