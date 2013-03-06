@@ -34,6 +34,9 @@ import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.security.authorization.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionDefinition;
+import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionDefinitionImpl;
+import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionImpl;
+import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionPattern;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 
 /**
@@ -87,5 +90,11 @@ public class PrincipalRestrictionProvider implements RestrictionProvider, Access
     @Override
     public void validateRestrictions(String oakPath, @Nonnull Tree aceTree) throws AccessControlException {
         base.validateRestrictions(oakPath, aceTree);
+    }
+
+    @Nonnull
+    @Override
+    public RestrictionPattern getPattern(@Nullable String oakPath, @Nonnull Tree tree) {
+        return base.getPattern(oakPath, tree);
     }
 }

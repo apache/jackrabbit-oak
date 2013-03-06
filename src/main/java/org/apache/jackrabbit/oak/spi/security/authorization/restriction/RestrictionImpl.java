@@ -14,11 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.security.authorization.restriction;
-
-/**
- * {@code RestrictionImpl}
- */
+package org.apache.jackrabbit.oak.spi.security.authorization.restriction;
 
 import javax.annotation.Nonnull;
 import javax.jcr.Value;
@@ -27,14 +23,16 @@ import com.google.common.base.Objects;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
-import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
 
-class RestrictionImpl extends RestrictionDefinitionImpl implements Restriction {
+/**
+ * {@code RestrictionImpl}
+ */
+public class RestrictionImpl extends RestrictionDefinitionImpl implements Restriction {
 
     private final PropertyState property;
 
-    RestrictionImpl(@Nonnull PropertyState property, boolean isMandatory,
-                    @Nonnull NamePathMapper namePathMapper) {
+    public RestrictionImpl(@Nonnull PropertyState property, boolean isMandatory,
+                           @Nonnull NamePathMapper namePathMapper) {
         super(property.getName(), property.getType().tag(), isMandatory, namePathMapper);
         this.property = property;
     }

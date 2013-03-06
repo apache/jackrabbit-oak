@@ -16,34 +16,30 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.restriction;
 
-import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import javax.jcr.RepositoryException;
-import javax.jcr.Value;
-import javax.jcr.security.AccessControlException;
 
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 
 /**
- * RestrictionProvider... TODO
+ * RestrictionPattern... TODO
  */
-public interface RestrictionProvider {
+public interface RestrictionPattern {
 
-    @Nonnull
-    Set<RestrictionDefinition> getSupportedRestrictions(@Nullable String oakPath);
+    boolean matches(@Nonnull Tree tree, @Nullable PropertyState property);
 
-    @Nonnull
-    Restriction createRestriction(@Nullable String oakPath,
-                                  @Nonnull String jcrName, @Nonnull Value value) throws RepositoryException;
+    boolean matches(@Nonnull String path);
 
-    @Nonnull
-    Set<Restriction> readRestrictions(@Nullable String oakPath, @Nonnull Tree aceTree);
+    RestrictionPattern EMPTY = new RestrictionPattern() {
+        @Override
+        public boolean matches(@Nonnull Tree tree, @Nullable PropertyState property) {
+            return true;
+        }
 
-    void writeRestrictions(String oakPath, Tree aceTree, Set<Restriction> restrictions) throws AccessControlException;
-
-    void validateRestrictions(@Nullable String oakPath, @Nonnull Tree aceTree) throws AccessControlException;
-
-    @Nonnull
-    RestrictionPattern getPattern(@Nullable String oakPath, @Nonnull Tree tree);
+        @Override
+        public boolean matches(@Nonnull String path) {
+            return true;
+        }
+    };
 }
