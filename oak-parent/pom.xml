@@ -47,9 +47,11 @@
     <mongo.db2>MongoMKDB2</mongo.db2>
     <segment.db>SegmentMK</segment.db>
     <solr.version>4.0.0</solr.version>
-    <!-- SLF4J and Logback versions should be kept in sync -->
-    <slf4j.version>1.7.2</slf4j.version>
-    <logback.version>1.0.9</logback.version>
+    <!-- SLF4J and Logback versions should be kept in sync.   -->
+    <!-- Using 1.6.6/1.0.7 instead of later versions to avoid -->
+    <!-- forcing OSGi deployments to upgrade to SLF4J 1.7.x.  -->
+    <slf4j.version>1.6.6</slf4j.version>
+    <logback.version>1.0.7</logback.version>
   </properties>
 
   <issueManagement>
