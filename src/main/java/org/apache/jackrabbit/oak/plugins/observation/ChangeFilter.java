@@ -61,10 +61,11 @@ class ChangeFilter {
         this.noLocal = noLocal;
     }
 
-    public boolean include(int eventType, String path, NodeState associatedParentNode) {
+    public boolean include(int eventType, String path, @Nullable NodeState associatedParentNode) {
         return include(eventType)
                 && include(path)
-                && includeByType(new ReadOnlyTree(associatedParentNode));
+                && (associatedParentNode == null
+                    || includeByType(new ReadOnlyTree(associatedParentNode)));
     }
 
     public boolean includeChildren(String path) {
