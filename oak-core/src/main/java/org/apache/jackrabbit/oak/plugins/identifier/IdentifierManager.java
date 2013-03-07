@@ -101,6 +101,7 @@ public class IdentifierManager {
         } else if (tree.isRoot()) {
             return tree.getPath();
         } else {
+            // FIXME parent might not be accessible
             return PathUtils.concat(getIdentifier(tree.getParent()), tree.getName());
         }
     }
