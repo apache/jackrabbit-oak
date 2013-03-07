@@ -73,10 +73,11 @@ public class Property2IndexLookup {
      * 
      * @param propertyName property name
      * @param path lookup path
+     * @param filter for the node type restriction (null if no node type restriction)
      * @return true if the property is indexed
      */
     public boolean isIndexed(String propertyName, String path, Filter filter) {
-        if(PathUtils.denotesRoot(path)){
+        if (PathUtils.denotesRoot(path)) {
             return getIndexDataNode(root, propertyName, filter) != null;
         }
         NodeState node = root;
@@ -113,7 +114,7 @@ public class Property2IndexLookup {
      * applicable index with data.
      * 
      * @param propertyName the property name
-     * @param filter for the node type restriction
+     * @param filter for the node type restriction (null if no node type restriction)
      * @return the node where the index data is stored, or null if no index
      *         definition or index data node was found
      */

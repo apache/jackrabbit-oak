@@ -132,7 +132,7 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
         if (matchCount == 0) {
             index.removeNode(key);
         } else if (unique && matchCount > 1) {
-            throw new CommitFailedException("Uniqueness constraint violated");
+            throw new CommitFailedException("Uniqueness constraint violated for key " + key);
         }
     }
     
