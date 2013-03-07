@@ -23,7 +23,7 @@ import java.util.Map;
 import javax.jcr.RepositoryException;
 
 import com.google.common.collect.ImmutableMap;
-import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
+import org.apache.jackrabbit.oak.core.IdentifierManager;
 import org.junit.Ignore;
 import org.junit.Test;
 
