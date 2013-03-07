@@ -27,6 +27,8 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexHook;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
+import org.apache.jackrabbit.oak.query.index.FilterImpl;
+import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -79,14 +81,18 @@ public class Property2IndexTest {
         assertEquals(MANY + 2, find(lookup, "foo", null).size());
 
         double cost;
-        cost = lookup.getCost("foo", PropertyValues.newString("xyz"));
+        cost = lookup.getCost(null, "foo", PropertyValues.newString("xyz"));
         assertTrue("cost: " + cost, cost >= MANY);
-        cost = lookup.getCost("foo", null);
+        cost = lookup.getCost(null, "foo", null);
         assertTrue("cost: " + cost, cost >= MANY);
     }
 
+    private static Set<String> find(Property2IndexLookup lookup, String name, String value, Filter filter) {
+        return Sets.newHashSet(lookup.query(filter, name, value == null ? null : PropertyValues.newString(value)));
+    }
+
     private static Set<String> find(Property2IndexLookup lookup, String name, String value) {
-        return Sets.newHashSet(lookup.query(null, name, value == null ? null : PropertyValues.newString(value)));
+        return find(lookup, name, value, null);
     }
 
     @Test
@@ -127,6 +133,130 @@ public class Property2IndexTest {
         
         try {
             assertEquals(ImmutableSet.of(), find(lookup, "pqr", "foo"));
+            fail();
+        } catch (IllegalArgumentException e) {
+            // expected: no index for "pqr"
+        }
+    }
+
+    /**
+     * @see <a href="https://issues.apache.org/jira/browse/OAK-666">OAK-666:
+     *      Property2Index: node type is used when indexing, but ignored when
+     *      querying</a>
+     */
+    @Test
+    public void testCustomConfigNodeType() throws Exception {
+        NodeState root = MemoryNodeState.EMPTY_NODE;
+
+        // Add index definitions
+        NodeBuilder builder = root.builder();
+        NodeBuilder index = builder.child("oak:index");
+        index.child("fooIndex")
+                .setProperty("jcr:primaryType", "oak:queryIndexDefinition",
+                        Type.NAME)
+                .setProperty("type", "p2")
+                .setProperty("propertyNames", Arrays.asList("foo", "extrafoo"),
+                        Type.STRINGS)
+                .setProperty("declaringNodeTypes",
+                        Arrays.asList("nt:unstructured"), Type.STRINGS);
+        index.child("fooIndexFile")
+                .setProperty("jcr:primaryType", "oak:queryIndexDefinition",
+                        Type.NAME)
+                .setProperty("type", "p2")
+                .setProperty("propertyNames", Arrays.asList("foo"),
+                        Type.STRINGS)
+                .setProperty("declaringNodeTypes", Arrays.asList("nt:file"),
+                        Type.STRINGS);
+        NodeState before = builder.getNodeState();
+
+        // Add some content and process it through the property index hook
+        builder = before.builder();
+        builder.child("a").setProperty("jcr:primaryType", "nt:unstructured")
+                .setProperty("foo", "abc");
+        builder.child("b").setProperty("jcr:primaryType", "nt:unstructured")
+                .setProperty("foo", Arrays.asList("abc", "def"), Type.STRINGS);
+        NodeState after = builder.getNodeState();
+
+        // Add an index
+        IndexHook p = new Property2IndexDiff(builder);
+        after.compareAgainstBaseState(before, p);
+        p.apply();
+        p.close();
+
+        NodeState indexedState = builder.getNodeState();
+
+        FilterImpl f = new FilterImpl(null, null);
+        f.setNodeType("nt:unstructured");
+
+        // Query the index
+        Property2IndexLookup lookup = new Property2IndexLookup(indexedState);
+        assertEquals(ImmutableSet.of("a", "b"), find(lookup, "foo", "abc", f));
+        assertEquals(ImmutableSet.of("b"), find(lookup, "foo", "def", f));
+        assertEquals(ImmutableSet.of(), find(lookup, "foo", "ghi", f));
+
+        try {
+            assertEquals(ImmutableSet.of(), find(lookup, "pqr", "foo", f));
+            fail();
+        } catch (IllegalArgumentException e) {
+            // expected: no index for "pqr"
+        }
+    }
+
+    /**
+     * @see <a href="https://issues.apache.org/jira/browse/OAK-666">OAK-666:
+     *      Property2Index: node type is used when indexing, but ignored when
+     *      querying</a>
+     */
+    @Test
+    public void testCustomConfigNodeTypeFallback() throws Exception {
+        NodeState root = MemoryNodeState.EMPTY_NODE;
+
+        // Add index definitions
+        NodeBuilder builder = root.builder();
+        NodeBuilder index = builder.child("oak:index");
+        index.child("fooIndex")
+                .setProperty("jcr:primaryType", "oak:queryIndexDefinition",
+                        Type.NAME)
+                .setProperty("type", "p2")
+                .setProperty("propertyNames", Arrays.asList("foo", "extrafoo"),
+                        Type.STRINGS);
+        index.child("fooIndexFile")
+                .setProperty("jcr:primaryType", "oak:queryIndexDefinition",
+                        Type.NAME)
+                .setProperty("type", "p2")
+                .setProperty("propertyNames", Arrays.asList("foo"),
+                        Type.STRINGS)
+                .setProperty("declaringNodeTypes", Arrays.asList("nt:file"),
+                        Type.STRINGS);
+        NodeState before = builder.getNodeState();
+
+        // Add some content and process it through the property index hook
+        builder = before.builder();
+        builder.child("a").setProperty("jcr:primaryType", "nt:unstructured")
+                .setProperty("foo", "abc");
+        builder.child("b").setProperty("jcr:primaryType", "nt:unstructured")
+                .setProperty("foo", Arrays.asList("abc", "def"), Type.STRINGS);
+        NodeState after = builder.getNodeState();
+
+        // Add an index
+        IndexHook p = new Property2IndexDiff(builder);
+        after.compareAgainstBaseState(before, p);
+        p.apply();
+        p.close();
+
+        NodeState indexedState = builder.getNodeState();
+
+        FilterImpl f = new FilterImpl(null, null);
+        f.setNodeType("nt:unstructured");
+
+        // Query the index
+        Property2IndexLookup lookup = new Property2IndexLookup(indexedState);
+        assertEquals(ImmutableSet.of("a", "b"), find(lookup, "foo", "abc", f));
+        assertEquals(ImmutableSet.of("b"), find(lookup, "foo", "def", f));
+        assertEquals(ImmutableSet.of(), find(lookup, "foo", "ghi", f));
+
+        try {
+            assertEquals(ImmutableSet.of(), find(lookup, "pqr", "foo", f));
             fail();
         } catch (IllegalArgumentException e) {
             // expected: no index for "pqr"

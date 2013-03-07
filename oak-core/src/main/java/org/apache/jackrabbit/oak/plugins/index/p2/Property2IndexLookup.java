@@ -16,7 +16,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.p2;
 
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DECLARING_NODE_TYPES;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.PROPERTY_NAMES;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 
 import java.util.Iterator;
 import java.util.List;
@@ -27,7 +30,6 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.p2.strategy.ContentMirrorStoreStrategy;
 import org.apache.jackrabbit.oak.plugins.index.p2.strategy.IndexStoreStrategy;
 import org.apache.jackrabbit.oak.spi.query.Filter;
@@ -73,27 +75,23 @@ public class Property2IndexLookup {
      * @param path lookup path
      * @return true if the property is indexed
      */
-    public boolean isIndexed(String propertyName, String path) {
-        return isIndexed(root, propertyName, path);
-    }
-    
-    private static boolean isIndexed(NodeState root, String propertyName, String path) {
+    public boolean isIndexed(String propertyName, String path, Filter filter) {
+        if(PathUtils.denotesRoot(path)){
+            return getIndexDataNode(root, propertyName, filter) != null;
+        }
         NodeState node = root;
         Iterator<String> it = PathUtils.elements(path).iterator();
-        while (true) {
-            if (getIndexDataNode(node, propertyName) != null) {
+        while (it.hasNext()) {
+            if (getIndexDataNode(node, propertyName, filter) != null) {
                 return true;
-            }
-            if (!it.hasNext()) {
-                break;
             }
             node = node.getChildNode(it.next());
         }
         return false;
     }
-    
+
     public Iterable<String> query(Filter filter, String propertyName, PropertyValue value) {
-        NodeState state = getIndexDataNode(root, propertyName);
+        NodeState state = getIndexDataNode(root, propertyName, filter);
         if (state == null) {
             throw new IllegalArgumentException("No index for " + propertyName);
         }
@@ -101,8 +99,8 @@ public class Property2IndexLookup {
         return store.query(filter, propertyName, state, values);
     }
 
-    public double getCost(String name, PropertyValue value) {
-        NodeState state = getIndexDataNode(root, name);
+    public double getCost(Filter filter, String name, PropertyValue value) {
+        NodeState state = getIndexDataNode(root, name, filter);
         if (state == null) {
             return Double.POSITIVE_INFINITY;
         }
@@ -115,32 +113,54 @@ public class Property2IndexLookup {
      * applicable index with data.
      * 
      * @param propertyName the property name
+     * @param filter for the node type restriction
      * @return the node where the index data is stored, or null if no index
      *         definition or index data node was found
      */
     @Nullable
-    private static NodeState getIndexDataNode(NodeState node, String propertyName) {
+    private static NodeState getIndexDataNode(NodeState node, String propertyName, Filter filter) {
         NodeState state = node.getChildNode(INDEX_DEFINITIONS_NAME);
-        if (state != null) {
-            for (ChildNodeEntry entry : state.getChildNodeEntries()) {
-                PropertyState type = entry.getNodeState().getProperty(IndexConstants.TYPE_PROPERTY_NAME);
-                if (type == null || type.isArray() || !Property2Index.TYPE.equals(type.getValue(Type.STRING))) {
-                    continue;
+        if (state == null) {
+            return null;
+        }
+        String filterNodeType = null;
+        if (filter != null) {
+            filterNodeType = filter.getNodeType();
+        }
+        //keep a fallback to a matching index def that has *no* node type constraints
+        NodeState fallback = null;
+        for (ChildNodeEntry entry : state.getChildNodeEntries()) {
+            NodeState ns = entry.getNodeState();
+            PropertyState type = ns.getProperty(TYPE_PROPERTY_NAME);
+            if (type == null || type.isArray() || !Property2Index.TYPE.equals(type.getValue(Type.STRING))) {
+                continue;
+            }
+            if (containsValue(ns.getProperty(PROPERTY_NAMES), propertyName)) {
+                if (filterNodeType == null
+                        || containsValue(ns.getProperty(DECLARING_NODE_TYPES),
+                                filterNodeType)) {
+                    return ns.getChildNode(":index");
                 }
-                PropertyState names = entry.getNodeState().getProperty("propertyNames");
-                if (names != null) {
-                    for (int i = 0; i < names.count(); i++) {
-                        if (propertyName.equals(names.getValue(Type.STRING, i))) {
-                            NodeState indexDef = entry.getNodeState();
-                            NodeState index = indexDef.getChildNode(":index");
-                            if (index != null) {
-                                return index;
-                            }
-                        }
-                    }
+                if (ns.getProperty(DECLARING_NODE_TYPES) == null) {
+                    fallback = ns.getChildNode(":index");
                 }
             }
         }
-        return null;
+        return fallback;
+    }
+
+    private static boolean containsValue(PropertyState values, String lookup) {
+        if (values == null) {
+            return false;
+        }
+        if (values.isArray()) {
+            for (String v : values.getValue(Type.STRINGS)) {
+                if (lookup.equals(v)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        return lookup.equals(values.getValue(Type.STRING));
     }
 }
