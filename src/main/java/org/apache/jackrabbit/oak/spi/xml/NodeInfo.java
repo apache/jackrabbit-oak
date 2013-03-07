@@ -68,7 +68,7 @@ public class NodeInfo {
      *
      * @return node name
      */
-    public String getString() {
+    public String getName() {
         return name;
     }
 

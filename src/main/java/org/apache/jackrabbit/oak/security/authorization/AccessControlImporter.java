@@ -243,18 +243,15 @@ class AccessControlImporter implements ProtectedNodeImporter, AccessControlConst
         private void setPrivilegeNames(TextValue[] txtValues) throws RepositoryException {
             privileges = new ArrayList<Privilege>();
             for (TextValue value : txtValues) {
-                // FIXME: proper namespace handling (in case of local remapping)
-                Value privilegeName = value.getValue(PropertyType.NAME, namePathMapper);
+                Value privilegeName = value.getValue(PropertyType.NAME);
                 privileges.add(acMgr.privilegeFromName(privilegeName.getString()));
             }
         }
 
         private void addRestriction(PropInfo propInfo) throws RepositoryException {
-            // FIXME: proper namespace handling (in case of local remapping)
             String restrictionName = propInfo.getName();
             int targetType = acl.getRestrictionType(restrictionName);
-            // FIXME: proper namespace handling (in case of local remapping)
-            restrictions.put(propInfo.getName(), propInfo.getValue(targetType, namePathMapper));
+            restrictions.put(propInfo.getName(), propInfo.getValue(targetType));
         }
 
         private void addRestrictions(List<PropInfo> propInfos) throws RepositoryException {
