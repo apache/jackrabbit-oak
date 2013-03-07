@@ -34,11 +34,12 @@ class MongoJournal implements Journal {
 
     private long nextUpdate = System.nanoTime() - 2 * UPDATE_INTERVAL;
 
-    private RecordId head = getHead();
+    private RecordId head;
 
     MongoJournal(DBCollection journals, String name) {
         this.journals = journals;
         this.name = name;
+        head = getHead();
     }
 
     @Override
