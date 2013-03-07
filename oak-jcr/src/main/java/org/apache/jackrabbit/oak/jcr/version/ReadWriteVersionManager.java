@@ -34,7 +34,7 @@ import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
- * <code>ReadWriteVersionManager</code>...
+ * {@code ReadWriteVersionManager}...
  */
 public class ReadWriteVersionManager extends ReadOnlyVersionManager {
 
@@ -61,8 +61,8 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
 
     @Override
     @Nonnull
-    protected Tree getVersionStorageTree() {
-        return versionStorageLocation.getTree();
+    protected TreeLocation getVersionStorageLocation() {
+        return versionStorageLocation;
     }
 
     @Override
