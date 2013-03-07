@@ -95,14 +95,12 @@ public class IdentifierManager {
      */
     @Nonnull
     public String getIdentifier(Tree tree) {
-        PropertyState property = tree.getProperty(JcrConstants.JCR_UUID);
-        if (property != null) {
-            return property.getValue(STRING);
-        } else if (tree.isRoot()) {
-            return tree.getPath();
+        if (tree instanceof TreeImpl) {
+            return ((TreeImpl) tree).getIdentifier();
+        } else if (tree instanceof ReadOnlyTree) {
+            return ((ReadOnlyTree) tree).getIdentifier();
         } else {
-            // FIXME parent might not be accessible
-            return PathUtils.concat(getIdentifier(tree.getParent()), tree.getName());
+            return tree.getPath();
         }
     }
 

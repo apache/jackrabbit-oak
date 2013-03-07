@@ -30,10 +30,12 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryPropertyBuilder;
 import org.apache.jackrabbit.oak.plugins.memory.MultiStringPropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -43,6 +45,7 @@ import org.apache.jackrabbit.oak.spi.state.PropertyBuilder;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 
 public class TreeImpl implements Tree {
@@ -487,6 +490,18 @@ public class TreeImpl implements Tree {
                 Type.STRING, OAK_CHILD_ORDER);
         builder.setValues(names);
         nodeBuilder.setProperty(builder.getPropertyState());
+    }
+
+    @Nonnull
+    String getIdentifier() {
+        PropertyState property = internalGetProperty(JcrConstants.JCR_UUID);
+        if (property != null) {
+            return property.getValue(STRING);
+        } else if (parent == null) {
+            return "/";
+        } else {
+            return PathUtils.concat(parent.getIdentifier(), name);
+        }
     }
 
     //------------------------------------------------------------< private >---
