@@ -20,7 +20,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.RebaseDiff;
 
 final class MemoryJournal implements Journal {
 
@@ -77,8 +76,7 @@ final class MemoryJournal implements Journal {
                 RecordId newBase = parent.getHead();
                 NodeBuilder builder =
                         new SegmentNodeState(store, newBase).builder();
-                after.compareAgainstBaseState(
-                        before, new RebaseDiff(builder));
+                after.compareAgainstBaseState(before, new MergeDiff(builder));
                 NodeState state = builder.getNodeState();
                 RecordId newHead = writer.writeNode(state).getRecordId();
                 writer.flush();
