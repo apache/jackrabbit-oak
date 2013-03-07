@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.index.p2;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -180,6 +181,7 @@ class Property2IndexDiff implements IndexHook {
         PropertyState appliesTo = builder.getProperty(declaringNodeTypes);
         if (appliesTo != null) {
             typeNames = newArrayList(appliesTo.getValue(Type.STRINGS));
+            Collections.sort(typeNames);
         }
         PropertyState ps = builder.getProperty(propertyNames);
 
@@ -192,8 +194,10 @@ class Property2IndexDiff implements IndexHook {
                 this.indexMap.put(pname, list);
             }
             boolean exists = false;
+            String localPath = getPath();
             for (Property2IndexUpdate piu : list) {
-                if (piu.getPath().equals(getPath())) {
+                if (localPath.equals(piu.getPath())
+                        && typeNames.equals(piu.getNodeTypeNames())) {
                     exists = true;
                     break;
                 }

@@ -114,14 +114,14 @@ class Property2Index implements QueryIndex {
         for (PropertyRestriction pr : filter.getPropertyRestrictions()) {
             // TODO support indexes on a path
             // currently, only indexes on the root node are supported
-            if (lookup.isIndexed(pr.propertyName, "/")) {
+            if (lookup.isIndexed(pr.propertyName, "/", filter)) {
                 if (pr.firstIncluding && pr.lastIncluding
                     && pr.first != null && pr.first.equals(pr.last)) {
                     // "[property] = $value"
-                    return lookup.getCost(pr.propertyName, pr.first);
+                    return lookup.getCost(filter, pr.propertyName, pr.first);
                 } else if (pr.first == null && pr.last == null) {
                     // "[property] is not null"
-                    return lookup.getCost(pr.propertyName, null);
+                    return lookup.getCost(filter, pr.propertyName, null);
                 }
             }
         }
@@ -137,7 +137,7 @@ class Property2Index implements QueryIndex {
         for (PropertyRestriction pr : filter.getPropertyRestrictions()) {
             // TODO support indexes on a path
             // currently, only indexes on the root node are supported
-            if (lookup.isIndexed(pr.propertyName, "/")) {
+            if (lookup.isIndexed(pr.propertyName, "/", filter)) {
                 // equality
                 if (pr.firstIncluding && pr.lastIncluding
                     && pr.first != null && pr.first.equals(pr.last)) {
@@ -164,7 +164,7 @@ class Property2Index implements QueryIndex {
         for (PropertyRestriction pr : filter.getPropertyRestrictions()) {
             // TODO support indexes on a path
             // currently, only indexes on the root node are supported
-            if (lookup.isIndexed(pr.propertyName, "/")) {
+            if (lookup.isIndexed(pr.propertyName, "/", filter)) {
                 if (pr.firstIncluding && pr.lastIncluding
                     && pr.first != null && pr.first.equals(pr.last)) {
                     buff.append(' ').append(pr.propertyName).append('=').append(pr.first);
