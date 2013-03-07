@@ -47,7 +47,7 @@ public abstract class ReadOnlyVersionManager {
      *         {@code Root} returned by {@link #getWorkspaceRoot()}.
      */
     @Nonnull
-    protected abstract Tree getVersionStorageTree();
+    protected abstract TreeLocation getVersionStorageLocation();
 
     /**
      * @return the {@code Root} of the workspace.
@@ -100,16 +100,14 @@ public abstract class ReadOnlyVersionManager {
             throws UnsupportedRepositoryOperationException,
             RepositoryException {
         checkVersionable(versionable);
-        String uuid = versionable.getProperty(
-                VersionConstants.JCR_UUID).getValue(Type.STRING);
-        return getVersionStorageTree().getLocation().getChild(
-                getVersionHistoryPath(uuid)).getTree();
+        String uuid = versionable.getProperty(VersionConstants.JCR_UUID).getValue(Type.STRING);
+        return getVersionStorageLocation().getChild(getVersionHistoryPath(uuid)).getTree();
     }
 
     /**
      * Returns the path of the version history for the given {@code uuid}.
      * The returned path is relative to the version storage tree as returned
-     * by {@link #getVersionStorageTree()}.
+     * by {@link #getVersionStorageLocation()}.
      *
      * @param uuid the uuid of the versionable node
      * @return the relative path of the version history for the given uuid.

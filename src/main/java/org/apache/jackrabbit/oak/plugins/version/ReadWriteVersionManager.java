@@ -26,7 +26,7 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.ReadOnlyRoot;
@@ -77,8 +77,8 @@ class ReadWriteVersionManager extends ReadOnlyVersionManager {
 
     @Nonnull
     @Override
-    protected Tree getVersionStorageTree() {
-        return new ReadOnlyTree(versionStorageNode.getNodeState());
+    protected TreeLocation getVersionStorageLocation() {
+        return new ReadOnlyTree(versionStorageNode.getNodeState()).getLocation();
     }
 
     @Nonnull
