@@ -64,6 +64,8 @@ public class MongoMK implements MicroKernel {
      */
     private static final int CACHE_NODES = Integer.getInteger("oak.mongoMK.cacheNodes", 1024);
     
+    private static final int WARN_REVISION_AGE = Integer.getInteger("oak.mongoMK.revisionAge", 10000);
+    
     private static final Logger LOG = LoggerFactory.getLogger(MongoMK.class);
     
     /**
@@ -214,6 +216,7 @@ public class MongoMK implements MicroKernel {
      * @return the node
      */
     Node getNode(String path, Revision rev) {
+        checkRevisionAge(rev, path);
         String key = path + "@" + rev;
         Node node = nodeCache.get(key);
         if (node == null) {
@@ -223,6 +226,16 @@ public class MongoMK implements MicroKernel {
             }
         }
         return node;
+    }
+    
+    private void checkRevisionAge(Revision r, String path) {
+        if (headRevision.getTimestamp() - r.getTimestamp() > WARN_REVISION_AGE) {
+            LOG.warn("Requesting an old revision for path " + path + ", " + 
+                    ((headRevision.getTimestamp() - r.getTimestamp()) / 1000) + " seconds old");
+            if (LOG.isDebugEnabled()) {
+                LOG.warn("Requesting an old revision", new Exception());
+            }
+        }
     }
     
     private boolean includeRevision(Revision x, Revision requestRevision) {
@@ -412,7 +425,7 @@ public class MongoMK implements MicroKernel {
     }
 
     @Override
-    public String commit(String rootPath, String json, String revisionId,
+    public synchronized String commit(String rootPath, String json, String revisionId,
             String message) throws MicroKernelException {
         revisionId = revisionId == null ? headRevision.toString() : revisionId;
         JsopReader t = new JsopTokenizer(json);
@@ -556,7 +569,7 @@ public class MongoMK implements MicroKernel {
                 .get(UpdateOp.DELETED);
         if (valueMap != null) {
             String value = getLatestValue(valueMap, rev);
-            if ("true".equals(value)) {
+            if (value == null || "true".equals(value)) {
                 return true;
             }
         }

@@ -116,6 +116,10 @@ public class Revision {
         return buff.toString();
     }
     
+    public long getTimestamp() {
+        return timestamp;
+    }
+    
     public int hashCode() {
         return (int) (timestamp >>> 32) ^ (int) timestamp ^ counter ^ clusterId;
     }
@@ -135,5 +139,5 @@ public class Revision {
     public int getClusterId() {
         return clusterId;
     }
-    
+
 }
