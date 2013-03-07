@@ -75,6 +75,7 @@
               org.apache.jackrabbit.oak.spi.security.user,
               org.apache.jackrabbit.oak.spi.security.user.action,
               org.apache.jackrabbit.oak.spi.security.user.util,
+              org.apache.jackrabbit.oak.spi.xml,
               org.apache.jackrabbit.oak.security
             </Export-Package>
             <Bundle-Activator>
