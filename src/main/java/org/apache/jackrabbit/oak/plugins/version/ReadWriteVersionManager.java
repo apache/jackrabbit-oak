@@ -96,12 +96,12 @@ class ReadWriteVersionManager extends ReadOnlyVersionManager {
 
     /**
      * Gets or creates the version history for the given
-     * <code>versionable</code> node.
+     * {@code versionable} node.
      *
      * @param versionable the versionable node.
      * @return the version history node.
      * @throws IllegalArgumentException if the given node does not have a
-     *                                  <code>jcr:uuid</code> property.
+     *                                  {@code jcr:uuid} property.
      */
     @Nonnull
     NodeBuilder getOrCreateVersionHistory(@Nonnull NodeBuilder versionable) {
