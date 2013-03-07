@@ -47,8 +47,8 @@ class NodeTypeIndexLookup implements JcrConstants {
      */
     public boolean isIndexed(String path) {
         Property2IndexLookup lookup = new Property2IndexLookup(root);
-        if (lookup.isIndexed(JCR_PRIMARYTYPE, path)
-                && lookup.isIndexed(JCR_MIXINTYPES, path)) {
+        if (lookup.isIndexed(JCR_PRIMARYTYPE, path, null)
+                && lookup.isIndexed(JCR_MIXINTYPES, path, null)) {
             return true;
         }
 
@@ -68,10 +68,10 @@ class NodeTypeIndexLookup implements JcrConstants {
     public double getCost(Iterable<String> nodeTypes) {
         PropertyValue ntNames = PropertyValues.newName(nodeTypes);
         Property2IndexLookup lookup = new Property2IndexLookup(root);
-        return lookup.getCost(JCR_PRIMARYTYPE, ntNames)
-                + lookup.getCost(JCR_MIXINTYPES, ntNames);
+        return lookup.getCost(null, JCR_PRIMARYTYPE, ntNames)
+                + lookup.getCost(null, JCR_MIXINTYPES, ntNames);
     }
-    
+
     /**
      * Returns the paths that match the given node types.
      *
