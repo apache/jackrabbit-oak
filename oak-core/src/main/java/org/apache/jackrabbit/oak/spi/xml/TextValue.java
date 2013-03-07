@@ -20,8 +20,6 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.ValueFormatException;
 
-import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-
 /**
  * {@code TextValue} represents a serialized property value read
  * from a System or Document View XML document.
@@ -30,8 +28,7 @@ public interface TextValue {
 
     String getString();
 
-    // TODO: review again
-    Value getValue(int targetType, NamePathMapper namePathMapper) throws ValueFormatException, RepositoryException;
+    Value getValue(int targetType) throws ValueFormatException, RepositoryException;
 
     /**
      * Dispose this value, i.e. free all bound resources. Once a value has
