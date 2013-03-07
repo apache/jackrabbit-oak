@@ -69,6 +69,7 @@ public class Node {
         String id = Utils.getIdFromPath(path);
         UpdateOp op = new UpdateOp(path, id, isNew);
         op.set(UpdateOp.ID, id);
+        op.addMapEntry(UpdateOp.DELETED + "." + rev.toString(), "false");
         for (String p : properties.keySet()) {
             String key = Utils.escapePropertyName(p);
             op.addMapEntry(key + "." + rev.toString(), properties.get(p));
