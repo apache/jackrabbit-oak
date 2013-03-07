@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Tree.Status;
+import org.apache.jackrabbit.oak.api.Type;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -99,18 +100,42 @@ public class RootImplTest {
         Tree tree = root.getTree("/");
 
         Tree y = tree.getChild("y");
+        Tree x = tree.getChild("x");
+        assertNotNull(x);
 
-        assertTrue(tree.hasChild("x"));
         root.move("/x", "/y/xx");
         assertFalse(tree.hasChild("x"));
         assertTrue(y.hasChild("xx"));
-        
+        assertEquals("/y/xx", x.getPath());
+
         root.commit();
         tree = root.getTree("/");
 
         assertFalse(tree.hasChild("x"));
         assertTrue(tree.hasChild("y"));
         assertTrue(tree.getChild("y").hasChild("xx"));
+    }
+
+    @Test
+    public void moveRemoveAdd() {
+        Root root = session.getLatestRoot();
+
+        Tree x = root.getTree("/x");
+        Tree z = root.getTree("/z");
+        z.setProperty("p", "1");
+
+        root.move("/z", "/x/z");
+        root.getTree("/x/z").remove();
+
+        assertEquals(Status.DISCONNECTED, z.getStatus());
+
+        x.addChild("z");
+        assertEquals(Status.EXISTING, z.getStatus());
+
+        x.getChild("z").setProperty("p", "2");
+        PropertyState p = z.getProperty("p");
+        assertNotNull(p);
+        assertEquals("2", p.getValue(Type.STRING));
     }
 
     @Test
@@ -121,7 +146,7 @@ public class RootImplTest {
         Tree t = tree.addChild("new");
 
         root.move("/new", "/y/new");
-        assertEquals(Status.DISCONNECTED, t.getStatus());
+        assertEquals("/y/new", t.getPath());
 
         assertNull(tree.getChild("new"));
     }
@@ -153,11 +178,13 @@ public class RootImplTest {
     public void rename() throws CommitFailedException {
         Root root = session.getLatestRoot();
         Tree tree = root.getTree("/");
+        Tree x = tree.getChild("x");
+        assertNotNull(x);
 
-        assertTrue(tree.hasChild("x"));
         root.move("/x", "/xx");
         assertFalse(tree.hasChild("x"));
         assertTrue(tree.hasChild("xx"));
+        assertEquals("/xx", x.getPath());
         
         root.commit();
         tree = root.getTree("/");
@@ -172,6 +199,8 @@ public class RootImplTest {
         Tree tree = root.getTree("/");
 
         Tree y = tree.getChild("y");
+        Tree x = tree.getChild("x");
+        assertNotNull(x);
 
         assertTrue(tree.hasChild("x"));
         root.copy("/x", "/y/xx");
