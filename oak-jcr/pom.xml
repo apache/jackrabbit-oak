@@ -38,7 +38,6 @@
       org.apache.jackrabbit.test.api.AddNodeTest#testSameNameSiblings<!-- OAK-203 -->
       org.apache.jackrabbit.test.api.SessionTest#testMoveConstraintViolationExceptionSrc<!--OAK-132-->
       org.apache.jackrabbit.test.api.SessionTest#testMoveConstraintViolationExceptionDest<!--OAK-132-->
-      org.apache.jackrabbit.test.api.SessionTest#testSaveConstraintViolationException<!--OAK-66-->
       org.apache.jackrabbit.test.api.SessionTest#testHasCapability
       org.apache.jackrabbit.test.api.SessionTest#testMoveLockException
       org.apache.jackrabbit.test.api.SessionUUIDTest#testSaveReferentialIntegrityException<!--OAK-66-->
@@ -57,9 +56,6 @@
       org.apache.jackrabbit.test.api.SessionRemoveItemTest#testRemoveLockedNode
       org.apache.jackrabbit.test.api.SessionRemoveItemTest#testRemoveLockedChildItem
       org.apache.jackrabbit.test.api.SessionRemoveItemTest#testRemoveCheckedInItem
-      org.apache.jackrabbit.test.api.SetPropertyAssumeTypeTest#testValueConstraintViolationExceptionBecauseOfInvalidTypeParameter
-      org.apache.jackrabbit.test.api.SetPropertyAssumeTypeTest#testValuesConstraintViolationExceptionBecauseOfInvalidTypeParameter
-      org.apache.jackrabbit.test.api.SetPropertyAssumeTypeTest#testStringConstraintViolationExceptionBecauseOfInvalidTypeParameter
       org.apache.jackrabbit.test.api.NodeAddMixinTest#testLocked
       org.apache.jackrabbit.test.api.NodeCanAddMixinTest#testLocked
       org.apache.jackrabbit.test.api.NodeRemoveMixinTest#testLocked
