@@ -43,7 +43,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.JcrNameParser;
 import org.apache.jackrabbit.oak.namepath.JcrPathParser;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
+import org.apache.jackrabbit.oak.core.IdentifierManager;
 import org.apache.jackrabbit.oak.plugins.nodetype.constraint.Constraints;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

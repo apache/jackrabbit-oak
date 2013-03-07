@@ -23,7 +23,7 @@ import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.JcrPathParser.Listener;
-import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
+import org.apache.jackrabbit.oak.core.IdentifierManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
