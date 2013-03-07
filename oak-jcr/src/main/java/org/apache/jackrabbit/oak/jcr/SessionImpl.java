@@ -46,7 +46,7 @@ import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.AbstractSession;
 import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.jcr.xml.XmlImportHandler;
+import org.apache.jackrabbit.oak.jcr.xml.ImportHandler;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
 import org.apache.jackrabbit.oak.util.TODO;
 import org.apache.jackrabbit.util.Text;
@@ -307,8 +307,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     @Nonnull
     public ContentHandler getImportContentHandler(
             String parentAbsPath, int uuidBehavior) throws RepositoryException {
-        final Node parent = getNode(parentAbsPath);
-        return new XmlImportHandler(parent, uuidBehavior);
+        return new ImportHandler(getNode(parentAbsPath), dlg.getRoot(), this, uuidBehavior);
     }
 
     /**
