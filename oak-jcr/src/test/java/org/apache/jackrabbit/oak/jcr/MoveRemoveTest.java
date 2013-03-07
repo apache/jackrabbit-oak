@@ -159,13 +159,7 @@ public class MoveRemoveTest extends AbstractRepositoryTest {
         Node n = session.getNode("/new");
         session.move("/new", "/moved");
 
-        try {
-            n.getPath();
-            fail();
-        } catch (InvalidItemStateException e) {}
-
-        session.getRootNode().addNode("new");
-        assertEquals("/new", n.getPath());
+        assertEquals("/moved", n.getPath());
     }
 
     @Test
@@ -176,13 +170,7 @@ public class MoveRemoveTest extends AbstractRepositoryTest {
         Node n = session.getNode("/new");
         session.move("/new", "/moved");
 
-        try {
-            n.getPath();
-            fail();
-        } catch (InvalidItemStateException e) {}
-
-        session.getRootNode().addNode("new");
-        assertEquals("/new", n.getPath());
+        assertEquals("/moved", n.getPath());
     }
 
     @Test
@@ -228,13 +216,7 @@ public class MoveRemoveTest extends AbstractRepositoryTest {
         Node n = session.getNode("/parent/new");
         session.move("/parent", "/moved");
 
-        try {
-            n.getPath();
-            fail();
-        } catch (InvalidItemStateException e) {}
-
-        session.getRootNode().addNode("parent").addNode("new");
-        assertEquals("/parent/new", n.getPath());
+        assertEquals("/moved/new", n.getPath());
     }
 
     @Test
@@ -245,13 +227,7 @@ public class MoveRemoveTest extends AbstractRepositoryTest {
         Node n = session.getNode("/parent/new");
         session.move("/parent", "/moved");
 
-        try {
-            n.getPath();
-            fail();
-        } catch (InvalidItemStateException e) {}
-
-        session.getRootNode().addNode("parent").addNode("new");
-        assertEquals("/parent/new", n.getPath());
+        assertEquals("/moved/new", n.getPath());
     }
 
     @Test

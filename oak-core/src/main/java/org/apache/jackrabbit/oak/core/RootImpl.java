@@ -87,6 +87,9 @@ public class RootImpl implements Root {
      */
     private NodeStoreBranch branch;
 
+    /** Sentinel for the next move operation to take place on the this root */
+    private Move lastMove;
+
     /**
      * Current root {@code Tree}
      */
@@ -192,6 +195,8 @@ public class RootImpl implements Root {
             getTree(getParentPath(sourcePath)).updateChildOrder();
             getTree(getParentPath(destPath)).updateChildOrder();
         }
+
+        lastMove = lastMove.setMove(sourcePath, destParent, destName);
         return success;
     }
 
@@ -226,7 +231,8 @@ public class RootImpl implements Root {
         if (!store.getRoot().equals(rootTree.getBaseState())) {
             purgePendingChanges();
             branch.rebase();
-            rootTree = new TreeImpl(this);
+            lastMove = new Move();
+            rootTree = new TreeImpl(this, lastMove);
             permissionProvider = null;
         }
     }
@@ -235,7 +241,8 @@ public class RootImpl implements Root {
     public final void refresh() {
         checkLive();
         branch = store.branch();
-        rootTree = new TreeImpl(this);
+        lastMove = new Move();
+        rootTree = new TreeImpl(this, lastMove);
         modCount = 0;
         if (permissionProvider != null) {
             permissionProvider.refresh();
@@ -419,5 +426,58 @@ public class RootImpl implements Root {
 
     private PermissionProvider createPermissionProvider() {
         return  securityProvider.getAccessControlConfiguration().getPermissionProvider(this, subject.getPrincipals());
+    }
+
+    //------------------------------------------------------------< MoveRecord >---
+
+    /**
+     * Instances of this class record move operations which took place on this root.
+     * They form a singly linked list where each move instance points to the next one.
+     * The last entry in the list is always an empty slot to be filled in by calling
+     * {@code setMove()}. This fills the slot with the source and destination of the move
+     * and links this move to the next one which will be the new empty slot.
+     *
+     * Moves can be applied to {@code TreeImpl} instances by calling {@code apply()},
+     * which will execute all moves in the list on the passed tree instance
+     */
+    class Move {
+
+        /** source path */
+        private String source;
+
+        /** Parent tree of the destination */
+        private TreeImpl destParent;
+
+        /** Name at the destination */
+        private String destName;
+
+        /** Pointer to the next move. {@code null} if this is the last, empty slot */
+        private Move next;
+
+        /**
+         * Set this move to the given source and destination. Creates a new empty slot,
+         * sets this as the next move and returns it.
+         */
+        Move setMove(String source, TreeImpl destParent, String destName) {
+            this.source = source;
+            this.destParent = destParent;
+            this.destName = destName;
+            return next = new Move();
+        }
+
+        /**
+         * Apply this and all subsequent moves to the passed tree instance.
+         */
+        Move apply(TreeImpl tree) {
+            Move move = this;
+            while (move.next != null) {
+                if (move.source.equals(tree.getPathInternal())) {
+                    tree.moveTo(move.destParent, move.destName);
+                }
+                move = move.next;
+            }
+            return move;
+        }
+
     }
 }

@@ -22,16 +22,8 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.nodetype.ConstraintViolationException;
 
-import org.apache.jackrabbit.oak.Oak;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.api.Tree;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 /**
@@ -121,26 +113,6 @@ public class CompatibilityIssuesTest extends AbstractRepositoryTest {
         catch (InvalidItemStateException expected) {
             // sourceNode is stale
         }
-    }
-
-    @Test
-    public void move2() throws CommitFailedException {
-        ContentSession session = new Oak().createContentSession();
-        Root root = session.getLatestRoot();
-        root.getTree("/").addChild("x");
-        root.getTree("/").addChild("y");
-        root.commit();
-
-        Tree r = root.getTree("/");
-        Tree x = r.getChild("x");
-        Tree y = r.getChild("y");
-
-        assertFalse(y.hasChild("x"));
-        assertEquals("", x.getParent().getName());
-        root.move("/x", "/y/x");
-        assertTrue(y.hasChild("x"));
-        // assertEquals("y", x.getParent().getName());  // passed on JR2, fails on Oak
-        assertEquals("", x.getParent().getName());      // fails on JR2, passes on Oak
     }
 
     /**
