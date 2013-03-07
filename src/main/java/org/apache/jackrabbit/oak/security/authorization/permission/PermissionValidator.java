@@ -56,8 +56,7 @@ class PermissionValidator implements Validator {
     PermissionValidator(Tree parentBefore, Tree parentAfter,
                         PermissionProvider permissionProvider,
                         PermissionValidatorProvider provider) {
-        this(parentBefore, parentAfter, permissionProvider, provider,
-                Permissions.getPermission(getPath(parentBefore, parentAfter), Permissions.NO_PERMISSION));
+        this(parentBefore, parentAfter, permissionProvider, provider, Permissions.NO_PERMISSION);
     }
 
     PermissionValidator(Tree parentBefore, Tree parentAfter,
@@ -68,7 +67,11 @@ class PermissionValidator implements Validator {
         this.provider = provider;
         this.parentBefore = parentBefore;
         this.parentAfter = parentAfter;
-        this.permission = permission;
+        if (Permissions.NO_PERMISSION == permission) {
+            this.permission = Permissions.getPermission(getPath(parentBefore, parentAfter), Permissions.NO_PERMISSION);
+        } else {
+            this.permission = permission;
+        }
     }
 
     //----------------------------------------------------------< Validator >---
