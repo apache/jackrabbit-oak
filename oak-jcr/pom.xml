@@ -67,8 +67,39 @@
       org.apache.jackrabbit.test.api.WorkspaceMoveTest#testMoveNodesLocked                             <!-- OAK-118 -->
       org.apache.jackrabbit.test.api.WorkspaceMoveTest#testMoveNodesAccessDenied                       <!-- OAK-118 -->
       org.apache.jackrabbit.test.api.CheckPermissionTest
-      org.apache.jackrabbit.test.api.DocumentViewImportTest                                            <!-- OAK-127 -->
-      org.apache.jackrabbit.test.api.SerializationTest                                                 <!-- OAK-127 -->
+      org.apache.jackrabbit.test.api.DocumentViewImportTest#testSameUUIDAtAncestorWorkspaceHandler              <!-- OAK-127: no workspace import yet -->
+      org.apache.jackrabbit.test.api.DocumentViewImportTest#testSameUUIDAtAncestorWorkspace                     <!-- OAK-127: no workspace import yet -->
+      org.apache.jackrabbit.test.api.DocumentViewImportTest#testSessionGetImportContentHandler                  <!-- OAK-127: no workspace import yet, test method is misnamed -->
+      org.apache.jackrabbit.test.api.DocumentViewImportTest#testWorkspaceImportXml                              <!-- OAK-127: no workspace import yet -->
+      org.apache.jackrabbit.test.api.SerializationTest#testVersioningExceptionFileParentWorkspaceContentHandler <!-- OAK-127: no workspace import yet, NodeImpl.checkin() not implemented -->
+      org.apache.jackrabbit.test.api.SerializationTest#testVersioningExceptionFileParentSessionContentHandler   <!-- OAK-127: NodeImpl.checkin() not implemented -->
+      org.apache.jackrabbit.test.api.SerializationTest#testVersioningExceptionFileParentWorkspace               <!-- OAK-127: no workspace import yet, NodeImpl.checkin() not implemented -->
+      org.apache.jackrabbit.test.api.SerializationTest#testVersioningExceptionFileParentSession                 <!-- OAK-127: NodeImpl.checkin() not implemented -->
+      org.apache.jackrabbit.test.api.SerializationTest#testVersioningExceptionFileChildWorkspaceContentHandler  <!-- OAK-127: no workspace import yet, NodeImpl.checkin() not implemented -->
+      org.apache.jackrabbit.test.api.SerializationTest#testVersioningExceptionFileChildSessionContentHandler    <!-- OAK-127: NodeImpl.checkin() not implemented -->
+      org.apache.jackrabbit.test.api.SerializationTest#testVersioningExceptionFileChildWorkspace                <!-- OAK-127: no workspace import yet, NodeImpl.checkin() not implemented -->
+      org.apache.jackrabbit.test.api.SerializationTest#testVersioningExceptionFileChildSession                  <!-- OAK-127: NodeImpl.checkin() not implemented -->
+      org.apache.jackrabbit.test.api.SerializationTest#testLockExceptionWorkspaceWithHandler                    <!-- OAK-127: no workspace import yet, no session scoped locking -->
+      org.apache.jackrabbit.test.api.SerializationTest#testLockExceptionSessionWithHandler                      <!-- OAK-127: no session scoped locking -->
+      org.apache.jackrabbit.test.api.SerializationTest#testLockExceptionWorkspace                               <!-- OAK-127: no workspace import yet, no session scoped locking -->
+      org.apache.jackrabbit.test.api.SerializationTest#testLockExceptionSession                                 <!-- OAK-127: no session scoped locking -->
+      org.apache.jackrabbit.test.api.SerializationTest#testWorkspaceGetImportContentHandlerExceptions           <!-- OAK-127: no workspace import yet -->
+      org.apache.jackrabbit.test.api.SerializationTest#testWorkspaceImportXmlExceptions                         <!-- OAK-127: no workspace import yet -->
+      org.apache.jackrabbit.test.api.SerializationTest#testOverwriteExceptionWorkspaceWithHandler               <!-- OAK-127: no workspace import yet -->
+      org.apache.jackrabbit.test.api.SerializationTest#testOverwriteExceptionWorkspace                          <!-- OAK-127: no workspace import yet -->
+      org.apache.jackrabbit.test.api.SerializationTest#testNodeTypeConstraintViolationWorkspaceWithHandler      <!-- OAK-127: no workspace import yet -->
+      org.apache.jackrabbit.test.api.SerializationTest#testNodeTypeConstraintViolationWorkspace                 <!-- OAK-127: no workspace import yet -->
+      org.apache.jackrabbit.test.api.SerializationTest#testStreamHandling                                       <!-- OAK-127: no workspace import yet -->
+      org.apache.jackrabbit.test.api.SerializationTest#testInvalidXmlThrowsSaxException                         <!-- OAK-127: no workspace import yet -->
+      org.apache.jackrabbit.test.api.SerializationTest#testInvalidXmlThrowsInvalidSerializedDataException       <!-- OAK-127: no workspace import yet -->
+      org.apache.jackrabbit.test.api.SerializationTest#testExportSysView_stream_workspace_skipBinary_noRecurse  <!-- OAK-127: no workspace import yet -->
+      org.apache.jackrabbit.test.api.SerializationTest#testExportSysView_stream_workspace_skipBinary_recurse    <!-- OAK-127: no workspace import yet -->
+      org.apache.jackrabbit.test.api.SerializationTest#testExportSysView_stream_workspace_saveBinary_noRecurse  <!-- OAK-127: no workspace import yet -->
+      org.apache.jackrabbit.test.api.SerializationTest#testExportSysView_stream_workspace_saveBinary_recurse    <!-- OAK-127: no workspace import yet -->
+      org.apache.jackrabbit.test.api.SerializationTest#testExportSysView_handler_workspace_skipBinary_noRecurse <!-- OAK-127: no workspace import yet -->
+      org.apache.jackrabbit.test.api.SerializationTest#testExportSysView_handler_workspace_skipBinary_recurse   <!-- OAK-127: no workspace import yet -->
+      org.apache.jackrabbit.test.api.SerializationTest#testExportSysView_handler_workspace_saveBinary_noRecurse <!-- OAK-127: no workspace import yet -->
+      org.apache.jackrabbit.test.api.SerializationTest#testExportSysView_handler_workspace_saveBinary_recurse   <!-- OAK-127: no workspace import yet -->
       org.apache.jackrabbit.test.api.HasPermissionTest
       org.apache.jackrabbit.test.api.lock.LockManagerTest#testAddInvalidLockToken                      <!-- OAK-150 ... -->
       org.apache.jackrabbit.test.api.lock.LockManagerTest#testLockNonLockable
