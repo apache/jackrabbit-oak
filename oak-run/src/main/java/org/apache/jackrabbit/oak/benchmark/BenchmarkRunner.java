@@ -75,7 +75,13 @@ public class BenchmarkRunner {
             new UpdateManyChildNodesTest(),
             new TransientManyChildNodesTest(),
             new WikipediaImport(wikipedia.value(options)),
-            new ManyNodes()
+            new ManyNodes(),
+            ReadManyTest.linear("LinearReadEmpty", 1, ReadManyTest.EMPTY),
+            ReadManyTest.linear("LinearReadFiles", 1, ReadManyTest.FILES),
+            ReadManyTest.linear("LinearReadNodes", 1, ReadManyTest.NODES),
+            ReadManyTest.uniform("UniformReadEmpty", 1, ReadManyTest.EMPTY),
+            ReadManyTest.uniform("UniformReadFiles", 1, ReadManyTest.FILES),
+            ReadManyTest.uniform("UniformReadNodes", 1, ReadManyTest.NODES),
         };
 
         Set<String> argset = Sets.newHashSet(options.nonOptionArguments());
