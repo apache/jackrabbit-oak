@@ -21,7 +21,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.nodetype.PropertyDefinition;
 
-import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.nodetype.EffectiveNodeType;
 
 /**
  * Information about a property being imported. This class is used
@@ -125,18 +125,47 @@ public class PropInfo {
         return values;
     }
 
-    public Value getValue(int targetType, NamePathMapper namePathMapper) throws RepositoryException {
+    public Value getValue(int targetType) throws RepositoryException {
         if (multipleStatus == MultipleStatus.MULTIPLE) {
             throw new RepositoryException("TODO");
         }
-        return values[0].getValue(targetType, namePathMapper);
+        return values[0].getValue(targetType);
     }
 
-    public Value[] getValues(int targetType, NamePathMapper namePathMapper) throws RepositoryException {
+    public Value[] getValues(int targetType) throws RepositoryException {
         Value[] va = new Value[values.length];
         for (int i = 0; i < values.length; i++) {
-            va[i] = values[i].getValue(targetType, namePathMapper);
+            va[i] = values[i].getValue(targetType);
         }
         return va;
+    }
+
+    //TODO check multivalue handling
+    public PropertyDefinition getPropertyDef(EffectiveNodeType ent) {
+        Iterable<PropertyDefinition> definitions = ent.getNamedPropertyDefinitions(getName());
+        int knownType = getType();
+        for (PropertyDefinition def : definitions) {
+            int requiredType = def.getRequiredType();
+            if ((requiredType == PropertyType.UNDEFINED || knownType == PropertyType.UNDEFINED || requiredType == knownType)
+                    && (def.isMultiple() || multipleStatus == MultipleStatus.UNKNOWN)) {
+                return def;
+            }
+        }
+        definitions = ent.getResidualPropertyDefinitions();
+        for (PropertyDefinition def : definitions) {
+            int requiredType = def.getRequiredType();
+            if ((requiredType == PropertyType.UNDEFINED || knownType == PropertyType.UNDEFINED || requiredType == knownType)
+                    && !def.isMultiple() && multipleStatus == MultipleStatus.UNKNOWN) {
+                return def;
+            }
+        }
+        for (PropertyDefinition def : definitions) {
+            int requiredType = def.getRequiredType();
+            if ((requiredType == PropertyType.UNDEFINED || knownType == PropertyType.UNDEFINED || requiredType == knownType)
+                    && def.isMultiple()) {
+                return def;
+            }
+        }
+        return null;
     }
 }

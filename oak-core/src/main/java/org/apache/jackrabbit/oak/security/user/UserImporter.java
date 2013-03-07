@@ -364,7 +364,7 @@ public class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImp
                 }
             }
         } else {
-            log.warn("{} is not of type {}", childInfo.getString(), NT_REP_MEMBERS);
+            log.warn("{} is not of type {}", childInfo.getName(), NT_REP_MEMBERS);
         }
     }
 
