@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
-import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.Collections;
 import java.util.Map;
@@ -24,84 +23,11 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentMap;
 
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.RebaseDiff;
 
 import com.google.common.collect.Maps;
 
 public class MemoryStore implements SegmentStore {
-
-    private static final class MemoryJournal implements Journal {
-
-        private final SegmentStore store;
-
-        private final Journal parent;
-
-        private RecordId base;
-
-        private RecordId head;
-
-        MemoryJournal(SegmentStore store, NodeState root) {
-            this.store = checkNotNull(store);
-            this.parent = null;
-
-            SegmentWriter writer = new SegmentWriter(store);
-            RecordId id = writer.writeNode(root).getRecordId();
-            writer.flush();
-
-            this.base = id;
-            this.head = id;
-        }
-
-        MemoryJournal(SegmentStore store, String parent) {
-            this.store = checkNotNull(store);
-            this.parent = store.getJournal(checkNotNull(parent));
-            this.base = this.parent.getHead();
-            this.head = base;
-        }
-
-        @Override
-        public synchronized RecordId getHead() {
-            return head;
-        }
-
-        @Override
-        public synchronized boolean setHead(RecordId base, RecordId head) {
-            if (checkNotNull(base).equals(this.head)) {
-                this.head = checkNotNull(head);
-                return true;
-            } else {
-                return false;
-            }
-        }
-
-        @Override
-        public synchronized void merge() {
-            if (parent != null) {
-                NodeState before = new SegmentNodeState(store, base);
-                NodeState after = new SegmentNodeState(store, head);
-
-                SegmentWriter writer = new SegmentWriter(store);
-                while (!parent.setHead(base, head)) {
-                    RecordId newBase = parent.getHead();
-                    NodeBuilder builder =
-                            new SegmentNodeState(store, newBase).builder();
-                    after.compareAgainstBaseState(
-                            before, new RebaseDiff(builder));
-                    NodeState state = builder.getNodeState();
-                    RecordId newHead = writer.writeNode(state).getRecordId();
-                    writer.flush();
-
-                    base = newBase;
-                    head = newHead;
-                }
-
-                base = head;
-            }
-        }
-
-    }
 
     private final Map<String, Journal> journals = Maps.newHashMap();
 
