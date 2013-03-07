@@ -27,11 +27,8 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.UnsupportedRepositoryOperationException;
 
-import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.mongomk.impl.MongoConnection;
-import org.apache.jackrabbit.mongomk.impl.MongoMicroKernel;
-import org.apache.jackrabbit.mongomk.impl.MongoNodeStore;
-import org.apache.jackrabbit.mongomk.impl.blob.MongoGridFSBlobStore;
+import org.apache.jackrabbit.mongomk.prototype.MongoMK;
 import org.apache.jackrabbit.test.NotExecutableException;
 import org.apache.jackrabbit.test.RepositoryStub;
 
@@ -66,9 +63,7 @@ public class OakMongoMKRepositoryStub extends RepositoryStub {
         Session session = null;
         try {
             this.connection = new MongoConnection(HOST, PORT, DB);
-            Jcr jcr = new Jcr(new MongoMicroKernel(connection,
-                    new MongoNodeStore(connection.getDB()),
-                    new MongoGridFSBlobStore(connection.getDB())));
+            Jcr jcr = new Jcr(new MongoMK(connection.getDB(), 0));
             jcr.with(Executors.newScheduledThreadPool(1));
             this.repository = jcr.createRepository();
 
@@ -91,12 +86,17 @@ public class OakMongoMKRepositoryStub extends RepositoryStub {
     }
 
     public static boolean isMongoDBAvailable() {
+        MongoConnection connection = null;
         try {
-            MongoConnection connection = new MongoConnection(HOST, PORT, DB);
+            connection = new MongoConnection(HOST, PORT, DB);
             connection.getDB().command(new BasicDBObject("ping", 1));
             return true;
         } catch (Exception e) {
             return false;
+        } finally {
+            if (connection != null) {
+                connection.close();
+            }
         }
     }
 
