@@ -88,7 +88,7 @@ public class RootImpl implements Root {
     private NodeStoreBranch branch;
 
     /** Sentinel for the next move operation to take place on the this root */
-    private Move lastMove;
+    private Move lastMove = new Move();
 
     /**
      * Current root {@code Tree}
@@ -231,7 +231,6 @@ public class RootImpl implements Root {
         if (!store.getRoot().equals(rootTree.getBaseState())) {
             purgePendingChanges();
             branch.rebase();
-            lastMove = new Move();
             rootTree = new TreeImpl(this, lastMove);
             permissionProvider = null;
         }
@@ -241,7 +240,6 @@ public class RootImpl implements Root {
     public final void refresh() {
         checkLive();
         branch = store.branch();
-        lastMove = new Move();
         rootTree = new TreeImpl(this, lastMove);
         modCount = 0;
         if (permissionProvider != null) {
