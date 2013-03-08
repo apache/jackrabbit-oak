@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.name;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.core.ReadOnlyTree;
+import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -29,8 +30,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * are properly registered.
  */
 @Component
-@Service(ValidatorProvider.class)
-public class NameValidatorProvider implements ValidatorProvider {
+@Service(EditorProvider.class)
+public class NameValidatorProvider extends ValidatorProvider {
 
     @Override
     public Validator getRootValidator(NodeState before, NodeState after) {

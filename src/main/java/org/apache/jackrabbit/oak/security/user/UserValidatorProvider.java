@@ -29,7 +29,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 /**
  * Provides a validator for user and group management.
  */
-class UserValidatorProvider implements ValidatorProvider {
+class UserValidatorProvider extends ValidatorProvider {
 
     private final ConfigurationParameters config;
 

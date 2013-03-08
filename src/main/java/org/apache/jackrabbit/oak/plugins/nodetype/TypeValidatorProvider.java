@@ -25,13 +25,14 @@ import org.apache.jackrabbit.oak.namepath.GlobalNameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
 import org.apache.jackrabbit.oak.plugins.name.Namespaces;
+import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 @Component
-@Service(ValidatorProvider.class)
-public class TypeValidatorProvider implements ValidatorProvider {
+@Service(EditorProvider.class)
+public class TypeValidatorProvider extends ValidatorProvider {
 
     @Override
     public Validator getRootValidator(NodeState before, final NodeState after) {

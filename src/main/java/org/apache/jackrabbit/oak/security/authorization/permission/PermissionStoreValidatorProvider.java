@@ -28,7 +28,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 /**
  * Validator implementation that asserts that the permission store is read-only.
  */
-public class PermissionStoreValidatorProvider implements ValidatorProvider, PermissionConstants {
+public class PermissionStoreValidatorProvider extends ValidatorProvider implements PermissionConstants {
 
     @Nonnull
     @Override

@@ -31,7 +31,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * is responsible for making sure that any modifications made to node type
  * definitions are valid.
  */
-public class RegistrationValidatorProvider implements ValidatorProvider {
+public class RegistrationValidatorProvider extends ValidatorProvider {
 
     @Nonnull
     @Override

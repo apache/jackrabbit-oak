@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.commit;
 
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Service;
+import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -26,8 +27,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * TODO document
  */
 @Component
-@Service(ValidatorProvider.class)
-public class ConflictValidatorProvider implements ValidatorProvider {
+@Service(EditorProvider.class)
+public class ConflictValidatorProvider extends ValidatorProvider {
 
     @Override
     public Validator getRootValidator(NodeState before, NodeState after) {

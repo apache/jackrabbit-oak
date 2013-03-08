@@ -24,6 +24,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitHookProvider;
+import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.lifecycle.WorkspaceInitializer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -44,7 +45,7 @@ public interface SecurityConfiguration {
     CommitHookProvider getSecurityHooks();
 
     @Nonnull
-    CommitHookProvider getValidators();
+    List<? extends ValidatorProvider> getValidators(String workspaceName);
 
     @Nonnull
     List<ProtectedItemImporter> getProtectedItemImporters();
@@ -83,8 +84,8 @@ public interface SecurityConfiguration {
 
         @Nonnull
         @Override
-        public CommitHookProvider getValidators() {
-            return new CommitHookProvider.Empty();
+        public List<? extends ValidatorProvider> getValidators(String workspaceName) {
+            return Collections.emptyList();
         }
 
         @Nonnull
