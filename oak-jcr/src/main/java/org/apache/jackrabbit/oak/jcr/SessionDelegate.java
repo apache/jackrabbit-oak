@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.jcr;
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.ItemExistsException;
@@ -46,11 +47,11 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.core.IdentifierManager;
 import org.apache.jackrabbit.oak.namepath.LocalNameMapper;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
-import org.apache.jackrabbit.oak.core.IdentifierManager;
 import org.apache.jackrabbit.oak.plugins.name.Namespaces;
 import org.apache.jackrabbit.oak.plugins.nodetype.DefinitionProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.EffectiveNodeTypeProvider;
@@ -127,9 +128,10 @@ public class SessionDelegate {
      * @return  the result of {@code sessionOperation.perform()}
      * @throws RepositoryException
      */
-    public <T> T perform(SessionOperation<T> sessionOperation) throws RepositoryException {
+    public synchronized <T> T perform(SessionOperation<T> sessionOperation) throws RepositoryException {
+        // Synchronize to avoid conflicting refreshes from concurrent JCR API calls
+        sessionOpCount++;
         try {
-            sessionOpCount++;
             if (needsRefresh()) {
                 refresh(true);
             }
