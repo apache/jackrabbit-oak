@@ -420,6 +420,18 @@ public class SessionImporter implements Importer {
 
         // process properties
 
+        //TODO remove hack that processes principal name first
+        int principalNameIndex = -1;
+        for (int k = 0; k < propInfos.size(); k++) {
+            PropInfo propInfo = propInfos.get(k);
+            if ("rep:principalName".equals(propInfo.getName())) {
+                principalNameIndex = k;
+                break;
+            }
+        }
+        if (principalNameIndex >= 0) {
+            propInfos.add(0, propInfos.remove(principalNameIndex));
+        }
         for (PropInfo pi : propInfos) {
             // find applicable definition
             //TODO find a proper way to get the EffectiveNodeTypeProvider
