@@ -23,6 +23,12 @@ import javax.annotation.CheckForNull;
 
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
+/**
+ * Editor wrapper that passes only changes in the specified subtree to
+ * the given delegate editor.
+ *
+ * @since Oak 0.7
+ */
 public class SubtreeEditor extends DefaultEditor {
 
     private final Editor editor;
