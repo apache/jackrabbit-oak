@@ -307,7 +307,8 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     @Nonnull
     public ContentHandler getImportContentHandler(
             String parentAbsPath, int uuidBehavior) throws RepositoryException {
-        return new ImportHandler(getNode(parentAbsPath), dlg.getRoot(), this, uuidBehavior);
+        return new ImportHandler(getNode(parentAbsPath), dlg.getRoot(), this,
+                dlg, dlg.getUserConfiguration(), dlg.getAccessControlConfiguration(), uuidBehavior);
     }
 
     /**

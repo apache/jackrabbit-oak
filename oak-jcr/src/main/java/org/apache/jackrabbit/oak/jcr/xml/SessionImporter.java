@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.jcr.xml;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Stack;
 import javax.jcr.ImportUUIDBehavior;
 import javax.jcr.ItemExistsException;
@@ -40,9 +39,10 @@ import javax.jcr.nodetype.PropertyDefinition;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.NamespaceHelper;
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.namepath.GlobalNameMapper;
-import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
+import org.apache.jackrabbit.oak.jcr.SessionDelegate;
 import org.apache.jackrabbit.oak.plugins.nodetype.EffectiveNodeTypeProvider;
+import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfiguration;
+import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.xml.NodeInfo;
 import org.apache.jackrabbit.oak.spi.xml.PropInfo;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
@@ -75,7 +75,6 @@ public class SessionImporter implements Importer {
 
     //TODO clarify how to provide ProtectedItemImporters
     private final List<ProtectedItemImporter> pItemImporters = new ArrayList<ProtectedItemImporter>();
-    private final List<ProtectedItemImporter> pItemImportersInitialized = new ArrayList<ProtectedItemImporter>();
 
     /**
      * Currently active importer for protected nodes.
@@ -84,45 +83,37 @@ public class SessionImporter implements Importer {
 
     /**
      * Creates a new <code>SessionImporter</code> instance.
-     *
-     * @param importTargetNode the target node
-     * @param session          session
-     * @param uuidBehavior     any of the constants declared by
-     *                         {@link javax.jcr.ImportUUIDBehavior}
      */
     public SessionImporter(Node importTargetNode,
                            Root root,
                            Session session,
+                           SessionDelegate dlg,
                            NamespaceHelper helper,
-                           int uuidBehavior) {
+                           UserConfiguration userConfig,
+                           AccessControlConfiguration accessControlConfig,
+                           int uuidBehavior) throws RepositoryException {
         this.importTargetNode = importTargetNode;
         this.session = session;
         this.root = root;
         this.namespaceHelper = helper;
         this.uuidBehavior = uuidBehavior;
 
-
         refTracker = new ReferenceChangeTracker();
 
         parents = new Stack<Node>();
         parents.push(importTargetNode);
 
-        //TODO clarify how to provide correct NamePathMapper
-        NamePathMapperImpl namePathMapper = new NamePathMapperImpl(new GlobalNameMapper() {
-            @Override
-            protected Map<String, String> getNamespaceMap() {
-                try {
-                    return namespaceHelper.getNamespaces();
-                } catch (RepositoryException e) {
-                    log.warn("could not read namespace mappings", e);
-                    return null;
-                }
+        pItemImporters.clear();
+
+        //TODO clarify how to provide ProtectedItemImporters
+        for (ProtectedItemImporter importer : userConfig.getProtectedItemImporters()) {
+            if (importer.init(session, root, dlg.getNamePathMapper(), false, uuidBehavior, refTracker)) {
+                pItemImporters.add(importer);
             }
-        });
-        pItemImportersInitialized.clear();
-        for (ProtectedItemImporter importer : pItemImporters) {
-            if (importer.init(session, root, namePathMapper, false, uuidBehavior, refTracker)) {
-                pItemImportersInitialized.add(importer);
+        }
+        for (ProtectedItemImporter importer : accessControlConfig.getProtectedItemImporters()) {
+            if (importer.init(session, root, dlg.getNamePathMapper(), false, uuidBehavior, refTracker)) {
+                pItemImporters.add(importer);
             }
         }
     }
@@ -140,7 +131,7 @@ public class SessionImporter implements Importer {
      */
     protected void checkPermission(Node parent, String nodeName)
             throws RepositoryException {
-        //TODO clarify how to check permissions (is it necessary at all?)
+        //TODO clarify how to check permissions
 //        if (!session.getAccessControlManager().isGranted(session.getQPath(parent.getPath()), nodeName, Permissions.NODE_TYPE_MANAGEMENT)) {
 //            throw new AccessDeniedException("Insufficient permission.");
 //        }
@@ -149,13 +140,16 @@ public class SessionImporter implements Importer {
     protected Node createNode(Node parent,
                               String nodeName,
                               String nodeTypeName,
-                              String[] mixinNames)
+                              String[] mixinNames,
+                              String uuid)
             throws RepositoryException {
         Node node;
 
-
         // add node
         node = parent.addNode(nodeName, nodeTypeName == null ? namespaceHelper.getJcrName(NamespaceRegistry.NAMESPACE_NT, "unstructured") : nodeTypeName);
+        if (uuid != null) {
+            root.getTree(node.getPath()).setProperty(NamespaceRegistry.PREFIX_JCR + ":uuid", uuid);
+        }
         // add mixins
         if (mixinNames != null) {
             for (String mixinName : mixinNames) {
@@ -217,7 +211,7 @@ public class SessionImporter implements Importer {
             // create new with new uuid
             checkPermission(parent, nodeInfo.getName());
             node = createNode(parent, nodeInfo.getName(),
-                    nodeInfo.getPrimaryTypeName(), nodeInfo.getMixinTypeNames());
+                    nodeInfo.getPrimaryTypeName(), nodeInfo.getMixinTypeNames(), null);
             // remember uuid mapping
             if (node.isNodeType(JcrConstants.MIX_REFERENCEABLE)) {
                 refTracker.put(nodeInfo.getUUID(), node.getIdentifier());
@@ -247,7 +241,7 @@ public class SessionImporter implements Importer {
             // create new with given uuid
             checkPermission(parent, nodeInfo.getName());
             node = createNode(parent, nodeInfo.getName(),
-                    nodeInfo.getPrimaryTypeName(), nodeInfo.getMixinTypeNames());
+                    nodeInfo.getPrimaryTypeName(), nodeInfo.getMixinTypeNames(), nodeInfo.getUUID());
         } else if (uuidBehavior == ImportUUIDBehavior.IMPORT_UUID_COLLISION_REPLACE_EXISTING) {
             if (conflicting == null) {
                 // since the conflicting node can't be read,
@@ -270,7 +264,7 @@ public class SessionImporter implements Importer {
             //TODO ordering! (what happened to replace?)
             conflicting.remove();
             node = createNode(parent, nodeInfo.getName(),
-                    nodeInfo.getPrimaryTypeName(), nodeInfo.getMixinTypeNames());
+                    nodeInfo.getPrimaryTypeName(), nodeInfo.getMixinTypeNames(), nodeInfo.getUUID());
         } else {
             String msg = "unknown uuidBehavior: " + uuidBehavior;
             log.debug(msg);
@@ -391,7 +385,7 @@ public class SessionImporter implements Importer {
             if (id == null) {
                 // no potential uuid conflict, always add new node
                 checkPermission(parent, nodeName);
-                node = createNode(parent, nodeName, ntName, mixins);
+                node = createNode(parent, nodeName, ntName, mixins, id);
             } else {
                 // potential uuid conflict
                 boolean isConflicting;
@@ -419,7 +413,7 @@ public class SessionImporter implements Importer {
                 } else {
                     // create new with given uuid
                     checkPermission(parent, nodeName);
-                    node = createNode(parent, nodeName, ntName, mixins);
+                    node = createNode(parent, nodeName, ntName, mixins, id);
                 }
             }
         }

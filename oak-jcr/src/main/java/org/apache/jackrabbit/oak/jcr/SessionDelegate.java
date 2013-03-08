@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.jcr;
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.ItemExistsException;
@@ -58,7 +57,9 @@ import org.apache.jackrabbit.oak.plugins.nodetype.EffectiveNodeTypeProvider;
 import org.apache.jackrabbit.oak.plugins.observation.ObservationManagerImpl;
 import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.PermissionProvider;
+import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -86,6 +87,8 @@ public class SessionDelegate {
     private UserManager userManager;
     private PrivilegeManager privilegeManager;
     private AccessControlManager accessControlManager;
+    private UserConfiguration userConfiguration;
+    private AccessControlConfiguration accessControlConfiguration;
     private boolean isAlive = true;
     private int sessionOpCount;
     private int revision;
@@ -529,6 +532,22 @@ public class SessionDelegate {
             privilegeManager = securityProvider.getPrivilegeConfiguration().getPrivilegeManager(root, getNamePathMapper());
         }
         return privilegeManager;
+    }
+
+    @Nonnull
+    UserConfiguration getUserConfiguration() throws UnsupportedRepositoryOperationException {
+        if (userConfiguration == null) {
+            userConfiguration = securityProvider.getUserConfiguration();
+        }
+        return userConfiguration;
+    }
+
+    @Nonnull
+    AccessControlConfiguration getAccessControlConfiguration() throws UnsupportedRepositoryOperationException {
+        if (accessControlConfiguration == null) {
+            accessControlConfiguration = securityProvider.getAccessControlConfiguration();
+        }
+        return accessControlConfiguration;
     }
 
     @Nonnull

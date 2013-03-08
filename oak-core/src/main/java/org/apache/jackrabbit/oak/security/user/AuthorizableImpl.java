@@ -66,7 +66,9 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
         } else {
             String msg = "Authorizable without principal name " + id;
             log.warn(msg);
-            throw new RepositoryException(msg);
+            //FIXME OAK-414 UserImport needs this workaround
+            //throw new RepositoryException(msg);
+            principalName = id;
         }
     }
 
