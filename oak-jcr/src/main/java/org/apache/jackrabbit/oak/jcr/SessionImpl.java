@@ -132,9 +132,12 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     @Override
     @Nonnull
     public Node getRootNode() throws RepositoryException {
-        ensureIsAlive();
-
         return dlg.perform(new SessionOperation<NodeImpl<?>>() {
+            @Override
+            protected void checkPreconditions() throws RepositoryException {
+                ensureIsAlive();
+            }
+
             @Override
             public NodeImpl<?> perform() throws AccessDeniedException {
                 NodeDelegate nd = dlg.getRootNode();
@@ -156,9 +159,12 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     @Override
     @Nonnull
     public Node getNodeByIdentifier(final String id) throws RepositoryException {
-        ensureIsAlive();
-
         return dlg.perform(new SessionOperation<NodeImpl<?>>() {
+            @Override
+            protected void checkPreconditions() throws RepositoryException {
+                ensureIsAlive();
+            }
+
             @Override
             public NodeImpl<?> perform() throws RepositoryException {
                 NodeDelegate d = dlg.getNodeByIdentifier(id);
@@ -186,9 +192,12 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
 
     @Override
     public Node getNode(final String absPath) throws RepositoryException {
-        ensureIsAlive();
-
         return dlg.perform(new SessionOperation<NodeImpl<?>>() {
+            @Override
+            protected void checkPreconditions() throws RepositoryException {
+                ensureIsAlive();
+            }
+
             @Override
             public NodeImpl<?> perform() throws RepositoryException {
                 String oakPath = dlg.getOakPath(absPath);
@@ -203,9 +212,12 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
 
     @Override
     public boolean nodeExists(final String absPath) throws RepositoryException {
-        ensureIsAlive();
-
         return dlg.perform(new SessionOperation<Boolean>() {
+            @Override
+            protected void checkPreconditions() throws RepositoryException {
+                ensureIsAlive();
+            }
+
             @Override
             public Boolean perform() throws RepositoryException {
                 String oakPath = dlg.getOakPath(absPath);
@@ -252,9 +264,12 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
 
     @Override
     public void move(final String srcAbsPath, final String destAbsPath) throws RepositoryException {
-        ensureIsAlive();
-
         dlg.perform(new SessionOperation<Void>() {
+            @Override
+            protected void checkPreconditions() throws RepositoryException {
+                ensureIsAlive();
+            }
+
             @Override
             public Void perform() throws RepositoryException {
                 dlg.checkProtectedNodes(Text.getRelativeParent(srcAbsPath, 1), Text.getRelativeParent(destAbsPath, 1));

@@ -120,9 +120,12 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     @Override
     @Nonnull
     public Node getParent() throws RepositoryException {
-        checkStatus();
-
         return perform(new SessionOperation<NodeImpl<NodeDelegate>>() {
+            @Override
+            protected void checkPreconditions() throws RepositoryException {
+                checkStatus();
+            }
+
             @Override
             public NodeImpl<NodeDelegate> perform() throws RepositoryException {
                 if (dlg.isRoot()) {
@@ -177,10 +180,13 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
      */
     @Override
     public void remove() throws RepositoryException {
-        checkStatus();
-        checkProtected();
-
         perform(new SessionOperation<Void>() {
+            @Override
+            protected void checkPreconditions() throws RepositoryException {
+                checkStatus();
+                checkProtected();
+            }
+
             @Override
             public Void perform() throws RepositoryException {
                 if (dlg.isRoot()) {
@@ -290,10 +296,13 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
 
     @Override
     public void orderBefore(final String srcChildRelPath, final String destChildRelPath) throws RepositoryException {
-        checkStatus();
-        checkProtected();
-
         perform(new SessionOperation<Void>() {
+            @Override
+            protected void checkPreconditions() throws RepositoryException {
+                checkStatus();
+                checkProtected();
+            }
+
             @Override
             public Void perform() throws RepositoryException {
                 getEffectiveNodeType().checkOrderableChildNodes();
@@ -479,9 +488,12 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     @Override
     @Nonnull
     public Node getNode(final String relPath) throws RepositoryException {
-        checkStatus();
-
         return perform(new SessionOperation<NodeImpl<?>>() {
+            @Override
+            protected void checkPreconditions() throws RepositoryException {
+                checkStatus();
+            }
+
             @Override
             public NodeImpl<?> perform() throws RepositoryException {
                 String oakPath = sessionDelegate.getOakPathOrThrowNotFound(relPath);
@@ -499,9 +511,12 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     @Override
     @Nonnull
     public NodeIterator getNodes() throws RepositoryException {
-        checkStatus();
-
         return perform(new SessionOperation<NodeIterator>() {
+            @Override
+            protected void checkPreconditions() throws RepositoryException {
+                checkStatus();
+            }
+
             @Override
             public NodeIterator perform() throws RepositoryException {
                 Iterator<NodeDelegate> children = dlg.getChildren();
@@ -515,9 +530,13 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     @Nonnull
     public NodeIterator getNodes(final String namePattern)
             throws RepositoryException {
-        checkStatus();
 
         return perform(new SessionOperation<NodeIterator>() {
+            @Override
+            protected void checkPreconditions() throws RepositoryException {
+                checkStatus();
+            }
+
             @Override
             public NodeIterator perform() throws RepositoryException {
                 Iterator<NodeDelegate> children = Iterators.filter(dlg.getChildren(),
@@ -540,9 +559,12 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     @Override
     @Nonnull
     public NodeIterator getNodes(final String[] nameGlobs) throws RepositoryException {
-        checkStatus();
-
         return perform(new SessionOperation<NodeIterator>() {
+            @Override
+            protected void checkPreconditions() throws RepositoryException {
+                checkStatus();
+            }
+
             @Override
             public NodeIterator perform() throws RepositoryException {
                 Iterator<NodeDelegate> children = Iterators.filter(dlg.getChildren(),
@@ -565,9 +587,12 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     @Override
     @Nonnull
     public Property getProperty(final String relPath) throws RepositoryException {
-        checkStatus();
-
         return perform(new SessionOperation<PropertyImpl>() {
+            @Override
+            protected void checkPreconditions() throws RepositoryException {
+                checkStatus();
+            }
+
             @Override
             public PropertyImpl perform() throws RepositoryException {
                 String oakPath = sessionDelegate.getOakPathOrThrowNotFound(relPath);
@@ -584,9 +609,12 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     @Override
     @Nonnull
     public PropertyIterator getProperties() throws RepositoryException {
-        checkStatus();
-
         return perform(new SessionOperation<PropertyIterator>() {
+            @Override
+            protected void checkPreconditions() throws RepositoryException {
+                checkStatus();
+            }
+
             @Override
             public PropertyIterator perform() throws RepositoryException {
                 Iterator<PropertyDelegate> properties = dlg.getProperties();
@@ -599,9 +627,12 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     @Override
     @Nonnull
     public PropertyIterator getProperties(final String namePattern) throws RepositoryException {
-        checkStatus();
-
         return perform(new SessionOperation<PropertyIterator>() {
+            @Override
+            protected void checkPreconditions() throws RepositoryException {
+                checkStatus();
+            }
+
             @Override
             public PropertyIterator perform() throws RepositoryException {
                 Iterator<PropertyDelegate> properties = Iterators.filter(dlg.getProperties(),
@@ -624,9 +655,12 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     @Override
     @Nonnull
     public PropertyIterator getProperties(final String[] nameGlobs) throws RepositoryException {
-        checkStatus();
-
         return perform(new SessionOperation<PropertyIterator>() {
+            @Override
+            protected void checkPreconditions() throws RepositoryException {
+                checkStatus();
+            }
+
             @Override
             public PropertyIterator perform() throws RepositoryException {
                 Iterator<PropertyDelegate> propertyNames = Iterators.filter(dlg.getProperties(),
@@ -652,9 +686,12 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     @Override
     @Nonnull
     public Item getPrimaryItem() throws RepositoryException {
-        checkStatus();
-
         return perform(new SessionOperation<Item>() {
+            @Override
+            protected void checkPreconditions() throws RepositoryException {
+                checkStatus();
+            }
+
             @Override
             public Item perform() throws RepositoryException {
                 String name = getPrimaryNodeType().getPrimaryItemName();
@@ -678,9 +715,12 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     @Override
     @Nonnull
     public String getUUID() throws RepositoryException {
-        checkStatus();
-
         return perform(new SessionOperation<String>() {
+            @Override
+            protected void checkPreconditions() throws RepositoryException {
+                checkStatus();
+            }
+
             @Override
             public String perform() throws RepositoryException {
                 if (isNodeType(NodeType.MIX_REFERENCEABLE)) {
@@ -695,9 +735,12 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     @Override
     @Nonnull
     public String getIdentifier() throws RepositoryException {
-        checkStatus();
-
         return perform(new SessionOperation<String>() {
+            @Override
+            protected void checkPreconditions() throws RepositoryException {
+                checkStatus();
+            }
+
             @Override
             public String perform() throws RepositoryException {
                 return dlg.getIdentifier();
@@ -768,9 +811,12 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
 
     @Override
     public boolean hasNode(final String relPath) throws RepositoryException {
-        checkStatus();
-
         return perform(new SessionOperation<Boolean>() {
+            @Override
+            protected void checkPreconditions() throws RepositoryException {
+                checkStatus();
+            }
+
             @Override
             public Boolean perform() throws RepositoryException {
                 String oakPath = sessionDelegate.getOakPath(relPath);
@@ -781,9 +827,12 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
 
     @Override
     public boolean hasProperty(final String relPath) throws RepositoryException {
-        checkStatus();
-
         return perform(new SessionOperation<Boolean>() {
+            @Override
+            protected void checkPreconditions() throws RepositoryException {
+                checkStatus();
+            }
+
             @Override
             public Boolean perform() throws RepositoryException {
                 String oakPath = sessionDelegate.getOakPath(relPath);
@@ -794,9 +843,12 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
 
     @Override
     public boolean hasNodes() throws RepositoryException {
-        checkStatus();
-
         return perform(new SessionOperation<Boolean>() {
+            @Override
+            protected void checkPreconditions() throws RepositoryException {
+                checkStatus();
+            }
+
             @Override
             public Boolean perform() throws RepositoryException {
                 return dlg.getChildCount() != 0;
@@ -806,9 +858,12 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
 
     @Override
     public boolean hasProperties() throws RepositoryException {
-        checkStatus();
-
         return perform(new SessionOperation<Boolean>() {
+            @Override
+            protected void checkPreconditions() throws RepositoryException {
+                checkStatus();
+            }
+
             @Override
             public Boolean perform() throws RepositoryException {
                 return dlg.getPropertyCount() != 0;
@@ -822,9 +877,12 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     @Override
     @Nonnull
     public NodeType getPrimaryNodeType() throws RepositoryException {
-        checkStatus();
-
         return perform(new SessionOperation<NodeType>() {
+            @Override
+            protected void checkPreconditions() throws RepositoryException {
+                checkStatus();
+            }
+
             @Override
             public NodeType perform() throws RepositoryException {
                 NodeTypeManager ntMgr = sessionDelegate.getNodeTypeManager();
@@ -845,9 +903,12 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     @Override
     @Nonnull
     public NodeType[] getMixinNodeTypes() throws RepositoryException {
-        checkStatus();
-
         return perform(new SessionOperation<NodeType[]>() {
+            @Override
+            protected void checkPreconditions() throws RepositoryException {
+                checkStatus();
+            }
+
             @Override
             public NodeType[] perform() throws RepositoryException {
                 // TODO: check if transient changes to mixin-types are reflected here
@@ -888,10 +949,13 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
 
     @Override
     public void addMixin(final String mixinName) throws RepositoryException {
-        checkStatus();
-        checkProtected();
-
         perform(new SessionOperation<Void>() {
+            @Override
+            protected void checkPreconditions() throws RepositoryException {
+                checkStatus();
+                checkProtected();
+            }
+
             @Override
             public Void perform() throws RepositoryException {
                 // TODO: figure out the right place for this check
@@ -929,10 +993,13 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
 
     @Override
     public void removeMixin(final String mixinName) throws RepositoryException {
-        checkStatus();
-        checkProtected();
-
         perform(new SessionOperation<Void>() {
+            @Override
+            protected void checkPreconditions() throws RepositoryException {
+                checkStatus();
+                checkProtected();
+            }
+
             @Override
             public Void perform() throws RepositoryException {
                 if (!isNodeType(mixinName)) {
@@ -946,9 +1013,12 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
 
     @Override
     public boolean canAddMixin(final String mixinName) throws RepositoryException {
-        checkStatus();
-
         return perform(new SessionOperation<Boolean>() {
+            @Override
+            protected void checkPreconditions() throws RepositoryException {
+                checkStatus();
+            }
+
             @Override
             public Boolean perform() throws RepositoryException {
                 // TODO: figure out the right place for this check
@@ -1457,10 +1527,13 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
 
     private Property internalSetProperty(final String jcrName, final Value value,
                                          final int type, final boolean exactTypeMatch) throws RepositoryException {
-        checkStatus();
-        checkProtected();
-
         return perform(new SessionOperation<Property>() {
+            @Override
+            protected void checkPreconditions() throws RepositoryException {
+                checkStatus();
+                checkProtected();
+            }
+
             @Override
             public Property perform() throws RepositoryException {
                 String oakName = sessionDelegate.getOakPath(jcrName);
@@ -1502,10 +1575,13 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
 
     private Property internalSetProperty(final String jcrName, final Value[] values,
                                          final int type, final boolean exactTypeMatch) throws RepositoryException {
-        checkStatus();
-        checkProtected();
-
         return perform(new SessionOperation<Property>() {
+            @Override
+            protected void checkPreconditions() throws RepositoryException {
+                checkStatus();
+                checkProtected();
+            }
+
             @Override
             public Property perform() throws RepositoryException {
                 String oakName = sessionDelegate.getOakPath(jcrName);

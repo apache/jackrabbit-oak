@@ -23,6 +23,7 @@ import javax.jcr.RepositoryException;
 /**
  * A {@code SessionOperation} provides an execution context for executing session scoped operations.
  */
-public interface SessionOperation<T> {
-    T perform() throws RepositoryException;
+public abstract class SessionOperation<T> {
+    protected void checkPreconditions() throws RepositoryException {}
+    protected abstract T perform() throws RepositoryException;
 }

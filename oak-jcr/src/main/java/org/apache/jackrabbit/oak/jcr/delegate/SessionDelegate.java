@@ -96,6 +96,23 @@ public class SessionDelegate {
     private int sessionOpCount;
     private int revision;
 
+    private abstract class SessionReadOperation<T> extends SessionOperation<T> {
+        @Override
+        protected void checkPreconditions() throws RepositoryException {
+            checkAlive();
+        }
+    }
+
+    private abstract class SessionWriteOperation<T> extends SessionReadOperation<T> {
+        @Override
+        protected void checkPreconditions() throws RepositoryException {
+            super.checkPreconditions();
+            if (isReadOnly()) {
+                throw new RepositoryException("This session is read only");
+            }
+        }
+    }
+
     public SessionDelegate(@Nonnull Repository repository, @Nonnull ScheduledExecutorService executor,
                     @Nonnull ContentSession contentSession, @Nonnull SecurityProvider securityProvider,
                     boolean autoRefresh) {
@@ -123,6 +140,14 @@ public class SessionDelegate {
         this.valueFactory = new ValueFactoryImpl(root.getBlobFactory(), namePathMapper);
     }
 
+    private boolean needsRefresh() {
+        // Refresh is always needed if this is an auto refresh session. Otherwise
+        // refresh in only needed for non re-entrant session operations and only if
+        // observation events have actually been delivered
+        return autoRefresh ||
+                (sessionOpCount <= 1 && observationManager != null && observationManager.hasEvents());
+    }
+
     /**
      * Performs the passed {@code SessionOperation} in a safe execution context. This
      * context ensures that the session is refreshed if necessary and that refreshing
@@ -136,23 +161,41 @@ public class SessionDelegate {
      */
     public synchronized <T> T perform(SessionOperation<T> sessionOperation) throws RepositoryException {
         // Synchronize to avoid conflicting refreshes from concurrent JCR API calls
-        sessionOpCount++;
         try {
             if (needsRefresh()) {
                 refresh(true);
             }
+
+            sessionOpCount++;
+            sessionOperation.checkPreconditions();
             return sessionOperation.perform();
         } finally {
             sessionOpCount--;
         }
     }
 
-    private boolean needsRefresh() {
-        // Refresh is always needed if this is an auto refresh session. Otherwise
-        // refresh in only needed for non re-entrant session operations and only if
-        // observation events have actually been delivered
-        return autoRefresh ||
-                (sessionOpCount <= 1 && observationManager != null && observationManager.hasEvents());
+    public <T> T safePerform(SessionOperation<T> sessionOperation) {
+        try {
+            return perform(sessionOperation);
+        } catch (RepositoryException e) {
+            String msg = sessionOperation + "threw an unexpected exception";
+            log.error(msg, e);
+            throw new IllegalArgumentException(msg, e);
+        }
+    }
+
+    public boolean isAlive() {
+        return isAlive;
+    }
+
+    public void checkAlive() throws RepositoryException {
+        if (!isAlive()) {
+            throw new RepositoryException("This session has been closed.");
+        }
+    }
+
+    public boolean isReadOnly() {
+        return false;
     }
 
     /**
@@ -163,10 +206,6 @@ public class SessionDelegate {
      */
     int getRevision() {
         return revision;
-    }
-
-    public boolean isAlive() {
-        return isAlive;
     }
 
     @Nonnull
