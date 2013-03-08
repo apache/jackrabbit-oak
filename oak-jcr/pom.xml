@@ -246,7 +246,9 @@
       org.apache.jackrabbit.test.api.observation.AddEventListenerTest#testUUID
       org.apache.jackrabbit.test.api.observation.LockingTest#testAddLockToNode
       org.apache.jackrabbit.test.api.observation.LockingTest#testRemoveLockFromNode
-      org.apache.jackrabbit.oak.jcr.security.user.GroupTest#testCyclicGroups2                            <!-- OAK-615 -->
+      org.apache.jackrabbit.oak.jcr.security.user.GroupTest#testCyclicGroups2                               <!-- OAK-615 -->
+      org.apache.jackrabbit.oak.jcr.security.authorization.AccessControlImporterTest#testImportACLRemoveACE <!-- OAK-414 -->
+      org.apache.jackrabbit.oak.jcr.security.authorization.AccessControlImporterTest#testImportACLUnknown   <!-- OAK-414 -->
       org.apache.jackrabbit.oak.jcr.version.VersionHistoryTest#testGetVersionHistoryFromNode             <!-- OAK-601 -->
       org.apache.jackrabbit.oak.jcr.version.VersionHistoryTest#testGetVersionHistory                     <!-- OAK-602 -->
       org.apache.jackrabbit.oak.jcr.version.VersionHistoryTest#testGetVersionHistoryAfterMove            <!-- OAK-602 -->
