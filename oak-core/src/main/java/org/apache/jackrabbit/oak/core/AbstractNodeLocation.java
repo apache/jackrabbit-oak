@@ -22,6 +22,7 @@ import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 
+import static com.google.common.base.Objects.toStringHelper;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -111,5 +112,10 @@ abstract class AbstractNodeLocation<T extends Tree> extends AbstractTreeLocation
     @Override
     public boolean set(PropertyState property) {
         return false;
+    }
+
+    @Override
+    public String toString() {
+        return toStringHelper(this).add("tree", tree).toString();
     }
 }

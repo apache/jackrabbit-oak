@@ -44,6 +44,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.PropertyBuilder;
 
+import static com.google.common.base.Objects.toStringHelper;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
@@ -412,6 +413,11 @@ public class TreeImpl implements Tree {
     public TreeLocation getLocation() {
         enter();
         return new NodeLocation(this);
+    }
+
+    @Override
+    public String toString() {
+        return toStringHelper(this).add("path", getPathInternal()).toString();
     }
 
     //-----------------------------------------------------------< internal >---

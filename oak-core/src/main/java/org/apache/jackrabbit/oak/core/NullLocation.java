@@ -23,6 +23,8 @@ import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 
+import static com.google.common.base.Objects.toStringHelper;
+
 /**
  * This {@code TreeLocation} refers to an invalid location in a tree. That is
  * to a location where no item resides.
@@ -83,5 +85,10 @@ final class NullLocation extends AbstractTreeLocation {
     @Override
     public boolean set(PropertyState property) {
         return false;
+    }
+
+    @Override
+    public String toString() {
+        return toStringHelper(this).add("path", getPath()).toString();
     }
 }
