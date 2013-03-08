@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.jcr;
+package org.apache.jackrabbit.oak.jcr.delegate;
 
 import java.util.Collections;
 import java.util.Iterator;
@@ -248,7 +248,7 @@ public class NodeDelegate extends ItemDelegate {
     //------------------------------------------------------------< internal >---
 
     @Nonnull
-    protected Tree getTree() throws InvalidItemStateException {
+    public Tree getTree() throws InvalidItemStateException {
         Tree tree = getLocation().getTree();
         if (tree == null) {
             throw new InvalidItemStateException();

@@ -46,6 +46,10 @@ import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.AbstractSession;
 import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
+import org.apache.jackrabbit.oak.jcr.delegate.PropertyDelegate;
+import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
+import org.apache.jackrabbit.oak.jcr.delegate.SessionOperation;
 import org.apache.jackrabbit.oak.jcr.xml.ImportHandler;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
 import org.apache.jackrabbit.oak.util.TODO;
@@ -75,7 +79,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
      */
     private final Map<String, String> namespaces;
 
-    SessionImpl(SessionDelegate dlg, Map<String, String> namespaces) {
+    public SessionImpl(SessionDelegate dlg, Map<String, String> namespaces) {
         this.dlg = dlg;
         this.namespaces = namespaces;
     }

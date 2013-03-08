@@ -14,13 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.jcr.version;
+package org.apache.jackrabbit.oak.jcr.delegate;
 
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.jcr.NodeDelegate;
-import org.apache.jackrabbit.oak.jcr.SessionDelegate;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 

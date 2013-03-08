@@ -140,7 +140,7 @@ public class CompatibilityIssuesTest extends AbstractRepositoryTest {
      *    at sun.reflect.DelegatingConstructorAccessorImpl.newInstance(DelegatingConstructorAccessorImpl.java:27)
      *    at java.lang.reflect.Constructor.newInstance(Constructor.java:513)
      *    at org.apache.jackrabbit.oak.api.CommitFailedException.throwRepositoryException(CommitFailedException.java:57)
-     *    at org.apache.jackrabbit.oak.jcr.SessionDelegate.save(SessionDelegate.java:258)
+     *    at org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate.save(SessionDelegate.java:258)
      *    at org.apache.jackrabbit.oak.jcr.SessionImpl.save(SessionImpl.java:277)
      *    ...
      *Caused by: org.apache.jackrabbit.oak.api.CommitFailedException: Cannot add node 'f1362578685631' at /
@@ -148,7 +148,7 @@ public class CompatibilityIssuesTest extends AbstractRepositoryTest {
      *    at org.apache.jackrabbit.oak.spi.commit.CompositeValidator.childNodeAdded(CompositeValidator.java:68)
      *    at org.apache.jackrabbit.oak.spi.commit.ValidatingHook$ValidatorDiff.childNodeAdded(ValidatingHook.java:159)
      *    at org.apache.jackrabbit.oak.core.RootImpl.commit(RootImpl.java:250)
-     *    at org.apache.jackrabbit.oak.jcr.SessionDelegate.save(SessionDelegate.java:255)
+     *    at org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate.save(SessionDelegate.java:255)
      *    ...
      *Caused by: javax.jcr.nodetype.ConstraintViolationException: Node 'jcr:content' in 'nt:file' is mandatory
      *    at org.apache.jackrabbit.oak.plugins.nodetype.EffectiveNodeTypeImpl.checkMandatoryItems(EffectiveNodeTypeImpl.java:288)

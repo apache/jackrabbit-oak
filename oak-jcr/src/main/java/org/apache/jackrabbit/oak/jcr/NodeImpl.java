@@ -74,6 +74,9 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.IdentifierManager;
+import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
+import org.apache.jackrabbit.oak.jcr.delegate.PropertyDelegate;
+import org.apache.jackrabbit.oak.jcr.delegate.SessionOperation;
 import org.apache.jackrabbit.oak.plugins.nodetype.DefinitionProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.EffectiveNodeType;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
@@ -966,9 +969,9 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     @Nonnull
     public NodeDefinition getDefinition() throws RepositoryException {
         if (getDepth() == 0) {
-            return dlg.sessionDelegate.getDefinitionProvider().getRootDefinition();
+            return dlg.getSessionDelegate().getDefinitionProvider().getRootDefinition();
         } else {
-            return dlg.sessionDelegate.getDefinitionProvider().getDefinition(getParent(), this);
+            return dlg.getSessionDelegate().getDefinitionProvider().getDefinition(getParent(), this);
         }
     }
 
@@ -1339,7 +1342,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     }
 
     private void autoCreateItems() throws RepositoryException {
-        EffectiveNodeType effective = dlg.sessionDelegate.getEffectiveNodeTypeProvider().getEffectiveNodeType(this);
+        EffectiveNodeType effective = dlg.getSessionDelegate().getEffectiveNodeTypeProvider().getEffectiveNodeType(this);
         for (PropertyDefinition pd : effective.getAutoCreatePropertyDefinitions()) {
             if (dlg.getProperty(pd.getName()) == null) {
                 if (pd.isMultiple()) {
@@ -1480,7 +1483,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                         if (hasProperty(jcrName)) {
                             definition = getProperty(jcrName).getDefinition();
                         } else {
-                            definition = dlg.sessionDelegate.getDefinitionProvider().getDefinition(NodeImpl.this, oakName, false, type, exactTypeMatch);
+                            definition = dlg.getSessionDelegate().getDefinitionProvider().getDefinition(NodeImpl.this, oakName, false, type, exactTypeMatch);
                         }
                         checkProtected(definition);
                         if (definition.isMultiple()) {
@@ -1524,7 +1527,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                         if (hasProperty(jcrName)) {
                             definition = getProperty(jcrName).getDefinition();
                         } else {
-                            definition = dlg.sessionDelegate.getDefinitionProvider().getDefinition(NodeImpl.this, oakName, true, type, exactTypeMatch);
+                            definition = dlg.getSessionDelegate().getDefinitionProvider().getDefinition(NodeImpl.this, oakName, true, type, exactTypeMatch);
                         }
                         checkProtected(definition);
                         if (!definition.isMultiple()) {
