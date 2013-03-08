@@ -18,28 +18,33 @@
  */
 package org.apache.jackrabbit.oak.osgi;
 
-import org.apache.jackrabbit.oak.spi.commit.CompositeValidatorProvider;
-import org.apache.jackrabbit.oak.spi.commit.Validator;
-import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
+import javax.annotation.CheckForNull;
+
+import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
+import org.apache.jackrabbit.oak.spi.commit.Editor;
+import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
- * This validator provider combines all validators of all available OSGi validator
+ * This editor provider combines all editors of all available OSGi editor
  * providers.
  */
-public class OsgiValidatorProvider
-        extends AbstractServiceTracker<ValidatorProvider>
-        implements ValidatorProvider {
+public class OsgiEditorProvider
+        extends AbstractServiceTracker<EditorProvider>
+        implements EditorProvider {
 
-    public OsgiValidatorProvider() {
-        super(ValidatorProvider.class);
+    public OsgiEditorProvider() {
+        super(EditorProvider.class);
     }
 
-    //------------------------------------------------------------< ValidatorProvider >---
+    //----------------------------------------------------< EditorProvider >--
 
-    @Override
-    public Validator getRootValidator(NodeState before, NodeState after) {
-        return CompositeValidatorProvider.compose(getServices())
-                .getRootValidator(before, after);
+    @Override @CheckForNull
+    public Editor getRootEditor(
+            NodeState before, NodeState after, NodeBuilder builder) {
+        EditorProvider provider =
+                CompositeEditorProvider.compose(getServices());
+        return provider.getRootEditor(before, after, builder);
     }
 }

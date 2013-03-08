@@ -35,7 +35,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 /**
  * PermissionValidatorProvider... TODO
  */
-public class PermissionValidatorProvider implements ValidatorProvider {
+public class PermissionValidatorProvider extends ValidatorProvider {
 
     private final SecurityProvider securityProvider;
     private final String workspaceName;

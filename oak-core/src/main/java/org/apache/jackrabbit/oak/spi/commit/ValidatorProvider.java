@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.commit;
 
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import javax.annotation.Nonnull;
@@ -24,7 +25,7 @@ import javax.annotation.Nonnull;
  * Extension point for plugging in different kinds of validation rules
  * for content changes.
  */
-public interface ValidatorProvider {
+public abstract class ValidatorProvider implements EditorProvider {
 
     /**
      * Returns a validator for checking the changes between the given
@@ -35,6 +36,15 @@ public interface ValidatorProvider {
      * @return validator for checking the modifications
      */
     @Nonnull
-    Validator getRootValidator(NodeState before, NodeState after);
+    protected abstract Validator getRootValidator(
+            NodeState before, NodeState after);
+
+    //----------------------------------------------------< EditorProvider >--
+
+    @Override @Nonnull
+    public final Editor getRootEditor(
+            NodeState before, NodeState after, NodeBuilder builder) {
+        return getRootValidator(before, after);
+    }
 
 }

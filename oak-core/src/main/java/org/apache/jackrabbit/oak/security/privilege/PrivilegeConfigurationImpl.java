@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.security.privilege;
 
+import java.util.Collections;
+import java.util.List;
+
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
@@ -23,7 +26,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitHookProvider;
-import org.apache.jackrabbit.oak.spi.commit.ValidatingHook;
+import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
@@ -61,14 +64,8 @@ public class PrivilegeConfigurationImpl extends SecurityConfiguration.Default im
 
     @Nonnull
     @Override
-    public CommitHookProvider getValidators() {
-        return new CommitHookProvider() {
-            @Nonnull
-            @Override
-            public CommitHook getCommitHook(@Nonnull String workspaceName) {
-                return new ValidatingHook(new PrivilegeValidatorProvider());
-            }
-        };
+    public List<? extends ValidatorProvider> getValidators(String workspaceName) {
+        return Collections.singletonList(new PrivilegeValidatorProvider());
     }
 
     @Nonnull

@@ -40,8 +40,8 @@ import org.apache.jackrabbit.oak.plugins.version.VersionHook;
 import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.ConflictHandler;
-import org.apache.jackrabbit.oak.spi.commit.Validator;
-import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
+import org.apache.jackrabbit.oak.spi.commit.Editor;
+import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
@@ -113,14 +113,14 @@ public class Jcr {
     }
 
     @Nonnull
-    public Jcr with(@Nonnull ValidatorProvider provider) {
+    public Jcr with(@Nonnull EditorProvider provider) {
         oak.with(checkNotNull(provider));
         return this;
     }
 
     @Nonnull
-    public Jcr with(@Nonnull Validator validator) {
-        oak.with(checkNotNull(validator));
+    public Jcr with(@Nonnull Editor editor) {
+        oak.with(checkNotNull(editor));
         return this;
     }
 

@@ -26,7 +26,7 @@ import javax.annotation.CheckForNull;
  * Content change validator. An instance of this interface is used to
  * validate changes against a specific {@link NodeState}.
  */
-public interface Validator {
+public interface Validator extends Editor {
 
     /**
      * Validate an added property
