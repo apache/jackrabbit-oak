@@ -25,6 +25,8 @@ import javax.annotation.CheckForNull;
  * Extension point for content change editors. Used by the {@link EditorHook}
  * class to allow multiple components to process content changes during just
  * a single content diff.
+ *
+ * @since Oak 0.7
  */
 public interface EditorProvider {
 
