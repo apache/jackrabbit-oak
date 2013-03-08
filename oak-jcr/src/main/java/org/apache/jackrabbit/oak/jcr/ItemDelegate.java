@@ -25,6 +25,7 @@ import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 
+import static com.google.common.base.Objects.toStringHelper;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
@@ -124,8 +125,7 @@ public abstract class ItemDelegate {
 
     @Override
     public String toString() {
-        // don't disturb the state: avoid resolving location
-        return getClass().getSimpleName() + '[' + location.getPath() + ']';
+        return toStringHelper(this).add("location", location).toString();
     }
 
     //------------------------------------------------------------< private >---

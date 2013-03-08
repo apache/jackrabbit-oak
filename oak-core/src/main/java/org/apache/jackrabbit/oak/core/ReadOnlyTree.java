@@ -33,6 +33,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
+import static com.google.common.base.Objects.toStringHelper;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
@@ -244,6 +245,11 @@ public class ReadOnlyTree implements Tree {
     @Override
     public void removeProperty(String name) {
         throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public String toString() {
+        return toStringHelper(this).add("path", getPath()).toString();
     }
 
     //------------------------------------------------------------< internal >---

@@ -1534,12 +1534,13 @@ public class RepositoryTest extends AbstractRepositoryTest {
         Session session = getAdminSession();
 
         Node node = getNode(TEST_PATH);
-        node.addNode("source").addNode("node");
+        Node source = node.addNode("source").addNode("node");
         node.addNode("target");
         session.save();
 
         session.refresh(true);
         session.move(TEST_PATH + "/source/node", TEST_PATH + "/target/moved");
+        assertEquals(TEST_PATH + "/target/moved", source.getPath());
 
         assertFalse(node.hasNode("source/node"));
         assertTrue(node.hasNode("source"));
