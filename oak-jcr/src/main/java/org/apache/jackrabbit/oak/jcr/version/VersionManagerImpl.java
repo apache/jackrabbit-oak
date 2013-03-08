@@ -30,9 +30,10 @@ import javax.jcr.version.VersionHistory;
 import javax.jcr.version.VersionManager;
 
 import org.apache.jackrabbit.commons.iterator.NodeIteratorAdapter;
-import org.apache.jackrabbit.oak.jcr.NodeDelegate;
-import org.apache.jackrabbit.oak.jcr.SessionDelegate;
-import org.apache.jackrabbit.oak.jcr.SessionOperation;
+import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
+import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
+import org.apache.jackrabbit.oak.jcr.delegate.SessionOperation;
+import org.apache.jackrabbit.oak.jcr.delegate.VersionManagerDelegate;
 import org.apache.jackrabbit.oak.util.TODO;
 
 public class VersionManagerImpl implements VersionManager {

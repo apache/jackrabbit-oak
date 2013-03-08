@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.jcr;
+package org.apache.jackrabbit.oak.jcr.delegate;
 
 import java.util.List;
 
@@ -37,7 +37,7 @@ import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
  */
 public class PropertyDelegate extends ItemDelegate {
 
-    PropertyDelegate(SessionDelegate sessionDelegate, TreeLocation location) {
+    public PropertyDelegate(SessionDelegate sessionDelegate, TreeLocation location) {
         super(sessionDelegate, location);
     }
 

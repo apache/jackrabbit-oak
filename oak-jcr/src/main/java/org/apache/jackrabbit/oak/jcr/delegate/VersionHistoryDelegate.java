@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.jcr.version;
+package org.apache.jackrabbit.oak.jcr.delegate;
 
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -28,17 +28,13 @@ import javax.jcr.InvalidItemStateException;
 import javax.jcr.RepositoryException;
 import javax.jcr.version.VersionException;
 
+import com.google.common.base.Function;
+import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.jcr.NodeDelegate;
-import org.apache.jackrabbit.oak.jcr.PropertyDelegate;
-import org.apache.jackrabbit.oak.jcr.SessionDelegate;
 import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
-
-import com.google.common.base.Function;
-import com.google.common.collect.Iterators;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 

@@ -40,6 +40,9 @@ import javax.jcr.nodetype.PropertyDefinition;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.Tree.Status;
+import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
+import org.apache.jackrabbit.oak.jcr.delegate.PropertyDelegate;
+import org.apache.jackrabbit.oak.jcr.delegate.SessionOperation;
 import org.apache.jackrabbit.value.ValueHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -543,7 +546,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
     @Override
     @Nonnull
     public PropertyDefinition getDefinition() throws RepositoryException {
-        return dlg.sessionDelegate.getDefinitionProvider().getDefinition(getParent(), this);
+        return dlg.getSessionDelegate().getDefinitionProvider().getDefinition(getParent(), this);
     }
 
     /**

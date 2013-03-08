@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.jcr.version;
+package org.apache.jackrabbit.oak.jcr.delegate;
 
 import javax.annotation.Nonnull;
 import javax.jcr.InvalidItemStateException;
@@ -24,8 +24,7 @@ import javax.jcr.UnsupportedRepositoryOperationException;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.TreeLocation;
-import org.apache.jackrabbit.oak.jcr.NodeDelegate;
-import org.apache.jackrabbit.oak.jcr.SessionDelegate;
+import org.apache.jackrabbit.oak.jcr.version.ReadWriteVersionManager;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -44,7 +43,7 @@ public class VersionManagerDelegate {
 
     private final ReadWriteVersionManager versionManager;
 
-    static VersionManagerDelegate create(SessionDelegate sessionDelegate) {
+    public static VersionManagerDelegate create(SessionDelegate sessionDelegate) {
         TreeLocation location = sessionDelegate.getRoot().getLocation(VERSION_STORAGE_PATH);
         return new VersionManagerDelegate(sessionDelegate, location);
     }
@@ -62,7 +61,7 @@ public class VersionManagerDelegate {
         };
     }
 
-    SessionDelegate getSessionDelegate() {
+    public SessionDelegate getSessionDelegate() {
         return sessionDelegate;
     }
 

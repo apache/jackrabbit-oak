@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.jackrabbit.oak.jcr;
+package org.apache.jackrabbit.oak.jcr.delegate;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;

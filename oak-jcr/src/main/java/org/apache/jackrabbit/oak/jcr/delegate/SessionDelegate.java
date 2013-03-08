@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.jcr;
+package org.apache.jackrabbit.oak.jcr.delegate;
 
 import java.io.IOException;
 import java.util.Map;
@@ -47,6 +47,9 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.IdentifierManager;
+import org.apache.jackrabbit.oak.jcr.NodeImpl;
+import org.apache.jackrabbit.oak.jcr.SessionImpl;
+import org.apache.jackrabbit.oak.jcr.WorkspaceImpl;
 import org.apache.jackrabbit.oak.namepath.LocalNameMapper;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -93,7 +96,7 @@ public class SessionDelegate {
     private int sessionOpCount;
     private int revision;
 
-    SessionDelegate(@Nonnull Repository repository, @Nonnull ScheduledExecutorService executor,
+    public SessionDelegate(@Nonnull Repository repository, @Nonnull ScheduledExecutorService executor,
                     @Nonnull ContentSession contentSession, @Nonnull SecurityProvider securityProvider,
                     boolean autoRefresh) {
 
@@ -492,12 +495,12 @@ public class SessionDelegate {
     }
 
     @Nonnull
-    TreeLocation getLocation(String path) {
+    public TreeLocation getLocation(String path) {
         return root.getLocation(path);
     }
 
     @Nonnull
-    AccessControlManager getAccessControlManager() throws RepositoryException {
+    public AccessControlManager getAccessControlManager() throws RepositoryException {
         if (accessControlManager == null) {
             accessControlManager = securityProvider.getAccessControlConfiguration().getAccessControlManager(root, getNamePathMapper());
         }
@@ -505,13 +508,13 @@ public class SessionDelegate {
     }
 
     @Nonnull
-    PermissionProvider getPermissionProvider() throws RepositoryException {
+    public PermissionProvider getPermissionProvider() throws RepositoryException {
         // TODO
         return securityProvider.getAccessControlConfiguration().getPermissionProvider(root, getAuthInfo().getPrincipals());
     }
 
     @Nonnull
-    PrincipalManager getPrincipalManager() throws RepositoryException {
+    public PrincipalManager getPrincipalManager() throws RepositoryException {
         if (principalManager == null) {
             principalManager = securityProvider.getPrincipalConfiguration().getPrincipalManager(root, getNamePathMapper());
         }
@@ -519,7 +522,7 @@ public class SessionDelegate {
     }
 
     @Nonnull
-    UserManager getUserManager() throws UnsupportedRepositoryOperationException {
+    public UserManager getUserManager() throws UnsupportedRepositoryOperationException {
         if (userManager == null) {
             userManager = securityProvider.getUserConfiguration().getUserManager(root, getNamePathMapper());
         }
@@ -527,7 +530,7 @@ public class SessionDelegate {
     }
 
     @Nonnull
-    PrivilegeManager getPrivilegeManager() throws UnsupportedRepositoryOperationException {
+    public PrivilegeManager getPrivilegeManager() throws UnsupportedRepositoryOperationException {
         if (privilegeManager == null) {
             privilegeManager = securityProvider.getPrivilegeConfiguration().getPrivilegeManager(root, getNamePathMapper());
         }
@@ -535,7 +538,7 @@ public class SessionDelegate {
     }
 
     @Nonnull
-    UserConfiguration getUserConfiguration() throws UnsupportedRepositoryOperationException {
+    public UserConfiguration getUserConfiguration() throws UnsupportedRepositoryOperationException {
         if (userConfiguration == null) {
             userConfiguration = securityProvider.getUserConfiguration();
         }
@@ -543,7 +546,7 @@ public class SessionDelegate {
     }
 
     @Nonnull
-    AccessControlConfiguration getAccessControlConfiguration() throws UnsupportedRepositoryOperationException {
+    public AccessControlConfiguration getAccessControlConfiguration() throws UnsupportedRepositoryOperationException {
         if (accessControlConfiguration == null) {
             accessControlConfiguration = securityProvider.getAccessControlConfiguration();
         }
@@ -551,16 +554,16 @@ public class SessionDelegate {
     }
 
     @Nonnull
-    EffectiveNodeTypeProvider getEffectiveNodeTypeProvider() throws RepositoryException {
+    public EffectiveNodeTypeProvider getEffectiveNodeTypeProvider() throws RepositoryException {
         return (EffectiveNodeTypeProvider) workspace.getNodeTypeManager();
     }
 
     @Nonnull
-    DefinitionProvider getDefinitionProvider() throws RepositoryException {
+    public DefinitionProvider getDefinitionProvider() throws RepositoryException {
         return (DefinitionProvider) workspace.getNodeTypeManager();
     }
 
-    void checkProtectedNodes(String... absJcrPaths) throws RepositoryException {
+    public void checkProtectedNodes(String... absJcrPaths) throws RepositoryException {
         for (String absPath : absJcrPaths) {
             NodeImpl<?> node = (NodeImpl<?>) session.getNode(absPath);
             node.checkProtected();

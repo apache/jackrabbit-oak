@@ -28,6 +28,9 @@ import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.ItemDefinition;
 
 import org.apache.jackrabbit.commons.AbstractItem;
+import org.apache.jackrabbit.oak.jcr.delegate.ItemDelegate;
+import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
+import org.apache.jackrabbit.oak.jcr.delegate.SessionOperation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -180,7 +183,7 @@ abstract class ItemImpl<T extends ItemDelegate> extends AbstractItem {
         // TODO: validate item state.
     }
 
-    void checkProtected() throws RepositoryException {
+    public void checkProtected() throws RepositoryException {
         if (DISABLE_TRANSIENT_DEFINITION_CHECKS) {
             return;
         }
