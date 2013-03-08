@@ -88,8 +88,12 @@ abstract class ItemImpl<T extends ItemDelegate> extends AbstractItem {
     @Override
     @Nonnull
     public String getPath() throws RepositoryException {
-        checkStatus();
         return perform(new SessionOperation<String>() {
+            @Override
+            protected void checkPreconditions() throws RepositoryException {
+                checkStatus();
+            }
+
             @Override
             public String perform() throws RepositoryException {
                 return toJcrPath(dlg.getPath());
