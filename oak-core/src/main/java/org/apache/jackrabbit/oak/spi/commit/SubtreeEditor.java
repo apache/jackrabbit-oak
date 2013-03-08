@@ -21,10 +21,9 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import javax.annotation.CheckForNull;
 
-import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
-public class SubtreeEditor implements Editor {
+public class SubtreeEditor extends DefaultEditor {
 
     private final Editor editor;
 
@@ -51,18 +50,6 @@ public class SubtreeEditor implements Editor {
         } else {
             return editor;
         }
-    }
-
-    @Override
-    public void propertyAdded(PropertyState after) {
-    }
-
-    @Override
-    public void propertyChanged(PropertyState before, PropertyState after) {
-    }
-
-    @Override
-    public void propertyDeleted(PropertyState before) {
     }
 
     @Override @CheckForNull
