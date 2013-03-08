@@ -31,6 +31,8 @@ import javax.annotation.CheckForNull;
  * Note that the given builder can contain updates from multiple different
  * editors, so its state might not match exactly the state of the given
  * after state.
+ *
+ * @since Oak 0.7
  */
 public interface Editor {
 

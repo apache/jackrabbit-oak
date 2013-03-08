@@ -32,6 +32,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
  * This commit hook implementation processes changes to be committed
  * using the {@link Editor} instance provided by the {@link EditorProvider}
  * passed to the constructor.
+ *
+ * @since Oak 0.7
  */
 public class EditorHook implements CommitHook {
 
