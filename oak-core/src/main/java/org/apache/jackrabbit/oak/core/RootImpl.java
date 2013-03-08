@@ -40,8 +40,11 @@ import org.apache.jackrabbit.oak.plugins.index.diffindex.UUIDDiffIndexProviderWr
 import org.apache.jackrabbit.oak.query.QueryEngineImpl;
 import org.apache.jackrabbit.oak.security.authentication.SystemSubject;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
+import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
+import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
+import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.observation.ChangeExtractor;
 import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
@@ -282,9 +285,10 @@ public class RootImpl implements Root {
         commitHooks.add(hook);
         List<CommitHook> securityHooks = new ArrayList<CommitHook>();
         for (SecurityConfiguration sc : securityProvider.getSecurityConfigurations()) {
-            CommitHook validators = sc.getValidators().getCommitHook(workspaceName);
-            if (validators != EmptyHook.INSTANCE) {
-                commitHooks.add(validators);
+            List<? extends ValidatorProvider> validators = sc.getValidators(workspaceName);
+            if (!validators.isEmpty()) {
+                commitHooks.add(new EditorHook(
+                        CompositeEditorProvider.compose(validators)));
             }
             CommitHook ch = sc.getSecurityHooks().getCommitHook(workspaceName);
             if (ch != EmptyHook.INSTANCE) {

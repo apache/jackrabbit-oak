@@ -32,7 +32,7 @@ import org.apache.jackrabbit.oak.security.authorization.restriction.RestrictionP
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitHookProvider;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
-import org.apache.jackrabbit.oak.spi.commit.ValidatingHook;
+import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.lifecycle.WorkspaceInitializer;
 import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
@@ -41,6 +41,8 @@ import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfigu
 import org.apache.jackrabbit.oak.spi.security.authorization.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
+
+import com.google.common.collect.ImmutableList;
 
 /**
  * {@code AccessControlConfigurationImpl} ... TODO
@@ -81,17 +83,11 @@ public class AccessControlConfigurationImpl extends SecurityConfiguration.Defaul
     }
 
     @Override
-    public CommitHookProvider getValidators() {
-        return new CommitHookProvider() {
-            @Nonnull
-            @Override
-            public CommitHook getCommitHook(@Nonnull final String workspaceName) {
-                return new ValidatingHook(
-                        new PermissionStoreValidatorProvider(),
-                        new PermissionValidatorProvider(securityProvider, workspaceName),
-                        new AccessControlValidatorProvider(securityProvider));
-            }
-        };
+    public List<ValidatorProvider> getValidators(String workspaceName) {
+        return ImmutableList.of(
+                new PermissionStoreValidatorProvider(),
+                new PermissionValidatorProvider(securityProvider, workspaceName),
+                new AccessControlValidatorProvider(securityProvider));
     }
 
     @Nonnull

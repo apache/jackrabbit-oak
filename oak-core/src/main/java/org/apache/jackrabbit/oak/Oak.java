@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak;
 
 import java.util.List;
+
 import javax.annotation.Nonnull;
 import javax.jcr.NoSuchWorkspaceException;
 import javax.security.auth.login.LoginException;
@@ -36,11 +37,11 @@ import org.apache.jackrabbit.oak.plugins.index.IndexHookManager;
 import org.apache.jackrabbit.oak.plugins.index.IndexHookProvider;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
-import org.apache.jackrabbit.oak.spi.commit.CompositeValidatorProvider;
+import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.ConflictHandler;
-import org.apache.jackrabbit.oak.spi.commit.ValidatingHook;
-import org.apache.jackrabbit.oak.spi.commit.Validator;
-import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
+import org.apache.jackrabbit.oak.spi.commit.Editor;
+import org.apache.jackrabbit.oak.spi.commit.EditorHook;
+import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
 import org.apache.jackrabbit.oak.spi.lifecycle.CompositeInitializer;
 import org.apache.jackrabbit.oak.spi.lifecycle.OakInitializer;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
@@ -50,6 +51,7 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
@@ -81,7 +83,7 @@ public class Oak {
 
     private final List<CommitHook> commitHooks = newArrayList();
 
-    private List<ValidatorProvider> validatorProviders = newArrayList();
+    private List<EditorProvider> editorProviders = newArrayList();
 
     // TODO: review if we really want to have the OpenSecurityProvider as default.
     private SecurityProvider securityProvider = new OpenSecurityProvider();
@@ -154,54 +156,53 @@ public class Oak {
      */
     @Nonnull
     public Oak with(@Nonnull CommitHook hook) {
-        withValidatorHook();
+        withEditorHook();
         commitHooks.add(hook);
         return this;
     }
 
     /**
-     * Turns all currently tracked validators to a validating commit hook
-     * and associates that hook with the repository to be created. This way
-     * a sequence of {@code with()} calls that alternates between validators
-     * and other commit hooks will have all the validators in the correct
+     * Turns all currently tracked editors to an editor commit hook and
+     * associates that hook with the repository to be created. This way
+     * a sequence of {@code with()} calls that alternates between editors
+     * and other commit hooks will have all the editors in the correct
      * order while still being able to leverage the performance gains of
-     * multiple validators iterating over the changes simultaneously.
+     * multiple editors iterating over the changes simultaneously.
      */
-    private void withValidatorHook() {
-        if (!validatorProviders.isEmpty()) {
-            commitHooks.add(new ValidatingHook(
-                    CompositeValidatorProvider.compose(validatorProviders)));
-            validatorProviders = newArrayList();
+    private void withEditorHook() {
+        if (!editorProviders.isEmpty()) {
+            commitHooks.add(new EditorHook(
+                    CompositeEditorProvider.compose(editorProviders)));
+            editorProviders = newArrayList();
         }
     }
 
     /**
-     * Associates the given validator provider with the repository to
-     * be created.
+     * Associates the given editor provider with the repository to be created.
      *
-     * @param provider validator provider
+     * @param provider editor provider
      * @return this builder
      */
     @Nonnull
-    public Oak with(@Nonnull ValidatorProvider provider) {
-        validatorProviders.add(provider);
+    public Oak with(@Nonnull EditorProvider provider) {
+        editorProviders.add(checkNotNull(provider));
         return this;
     }
 
     /**
-     * Associates the given validator with the repository to be created.
+     * Associates the given editor with the repository to be created.
      *
-     * @param validator validator
+     * @param editor editor
      * @return this builder
      */
     @Nonnull
-    public Oak with(@Nonnull final Validator validator) {
-        return with(new ValidatorProvider() {
-            @Override
-            @Nonnull
-            public Validator getRootValidator(
-                    NodeState before, NodeState after) {
-                return validator;
+    public Oak with(@Nonnull final Editor editor) {
+        checkNotNull(editor);
+        return with(new EditorProvider() {
+            @Override @Nonnull
+            public Editor getRootEditor(
+                    NodeState before, NodeState after, NodeBuilder builder) {
+                return editor;
             }
         });
     }
@@ -221,7 +222,7 @@ public class Oak {
      */
     @Nonnull
     public Oak with(@Nonnull ConflictHandler conflictHandler) {
-        withValidatorHook();
+        withEditorHook();
         commitHooks.add(new ConflictHook(conflictHandler));
         return this;
     }
@@ -230,8 +231,8 @@ public class Oak {
         IndexHookProvider indexHooks = CompositeIndexHookProvider.compose(indexHookProviders);
         OakInitializer.initialize(store, new CompositeInitializer(initializers), indexHooks);
 
+        withEditorHook();
         commitHooks.add(IndexHookManager.of(indexHooks));
-        withValidatorHook();
         CommitHook commitHook = CompositeHook.compose(commitHooks);
         QueryIndexProvider indexProvider = CompositeQueryIndexProvider.compose(queryIndexProviders);
 

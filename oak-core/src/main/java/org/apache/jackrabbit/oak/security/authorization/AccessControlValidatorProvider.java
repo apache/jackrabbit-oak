@@ -45,7 +45,7 @@ import org.slf4j.LoggerFactory;
  * and removing access control policies) are valid according to the
  * constraints defined by this access control implementation.
  */
-class AccessControlValidatorProvider implements ValidatorProvider {
+class AccessControlValidatorProvider extends ValidatorProvider {
 
     private static final Logger log = LoggerFactory.getLogger(AccessControlValidatorProvider.class);
 

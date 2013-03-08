@@ -29,8 +29,6 @@ import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.osgi.OsgiRepositoryInitializer.RepositoryInitializerObserver;
 import org.apache.jackrabbit.oak.plugins.nodetype.DefaultTypeEditor;
-import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
-import org.apache.jackrabbit.oak.spi.commit.ValidatingHook;
 import org.apache.jackrabbit.oak.spi.lifecycle.OakInitializer;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -53,7 +51,7 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer, Rep
 
     private final OsgiIndexHookProvider indexHookProvider = new OsgiIndexHookProvider();
 
-    private final OsgiValidatorProvider validatorProvider = new OsgiValidatorProvider();
+    private final OsgiEditorProvider validatorProvider = new OsgiEditorProvider();
 
     private final OsgiRepositoryInitializer repositoryInitializerTracker = new OsgiRepositoryInitializer();
 
@@ -105,10 +103,9 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer, Rep
             OakInitializer.initialize(
                     store, repositoryInitializerTracker, indexHookProvider);
             Oak oak = new Oak(store)
-                .with(new CompositeHook(
-                        // TODO: DefaultTypeEditor is JCR specific and does not belong here
-                        new DefaultTypeEditor(),
-                        new ValidatingHook(validatorProvider)))
+                // TODO: DefaultTypeEditor is JCR specific and does not belong here
+                .with(new DefaultTypeEditor())
+                .with(validatorProvider)
                 .with(indexProvider)
                 .with(indexHookProvider);
             services.put(reference, context.registerService(

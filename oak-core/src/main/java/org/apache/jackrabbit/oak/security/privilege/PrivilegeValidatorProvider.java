@@ -31,7 +31,7 @@ import static org.apache.jackrabbit.oak.security.privilege.PrivilegeConstants.RE
  * to make sure modifications to the /jcr:system/rep:privileges tree are compliant
  * with constraints applied for custom privileges.
  */
-class PrivilegeValidatorProvider implements ValidatorProvider {
+class PrivilegeValidatorProvider extends ValidatorProvider {
 
     @Nonnull
     @Override
