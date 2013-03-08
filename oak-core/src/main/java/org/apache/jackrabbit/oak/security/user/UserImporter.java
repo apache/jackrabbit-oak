@@ -219,13 +219,16 @@ public class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImp
     public boolean handlePropInfo(Tree parent, PropInfo propInfo, PropertyDefinition def) throws RepositoryException {
         checkInitialized();
 
-        Authorizable a = userManager.getAuthorizable(parent);
-        if (a == null) {
+        //TODO remove hack that processes principal name first
+        String propName = propInfo.getName();
+        Authorizable a = null;
+        try {
+            a = userManager.getAuthorizable(parent);
+        } catch (RepositoryException ignore) {}
+        if (a == null && !REP_PRINCIPAL_NAME.equals(propName)) {
             log.warn("Cannot handle protected PropInfo " + propInfo + ". Node " + parent + " doesn't represent a valid Authorizable.");
             return false;
         }
-
-        String propName = propInfo.getName();
         if (REP_PRINCIPAL_NAME.equals(propName)) {
             if (!isValid(def, NT_REP_AUTHORIZABLE, false)) {
                 return false;
@@ -240,6 +243,11 @@ public class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImp
             In case of a NEW user the actions are executed if the password
             has been imported before.
             */
+            a = userManager.getAuthorizable(parent);
+            if (a == null) {
+                log.warn("Cannot handle protected PropInfo " + propInfo + ". Node " + parent + " doesn't represent a valid Authorizable.");
+                return false;
+            }
             if (parent.getStatus() == Tree.Status.NEW) {
                 if (a.isGroup()) {
                     userManager.onCreate((Group) a);
