@@ -444,6 +444,7 @@ public class MongoMK implements MicroKernel {
     @Override
     public boolean nodeExists(String path, String revisionId)
             throws MicroKernelException {
+        revisionId = revisionId != null ? revisionId : headRevision.toString();
         Revision rev = Revision.fromString(stripBranchRevMarker(revisionId));
         Node n = getNode(path, rev);
         return n != null;
@@ -463,6 +464,7 @@ public class MongoMK implements MicroKernel {
         if (depth != 0) {
             throw new MicroKernelException("Only depth 0 is supported, depth is " + depth);
         }
+        revisionId = revisionId != null ? revisionId : headRevision.toString();
         if (revisionId.startsWith("b")) {
             // reading from the branch is reading from the trunk currently
             revisionId = revisionId.substring(1).replace('+', ' ').trim();
