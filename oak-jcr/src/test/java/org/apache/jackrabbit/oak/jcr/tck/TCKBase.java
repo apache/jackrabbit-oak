@@ -24,6 +24,7 @@ import org.apache.jackrabbit.oak.jcr.OakSegmentMKRepositoryStub;
 import org.apache.jackrabbit.test.AbstractJCRTest;
 import org.apache.jackrabbit.test.RepositoryHelper;
 import org.apache.jackrabbit.test.RepositoryHelperPool;
+import org.apache.jackrabbit.test.RepositoryHelperPoolImpl;
 import org.apache.jackrabbit.test.RepositoryStub;
 import org.slf4j.bridge.SLF4JBridgeHandler;
 
@@ -73,10 +74,10 @@ public abstract class TCKBase extends TestSuite {
 
         public void testSetup() throws Exception {
             // replace the existing helper with our parametrized version
-            Field poolField = AbstractJCRTest.class.getDeclaredField("HELPER_POOL");
-            poolField.setAccessible(true);
-            RepositoryHelperPool helperPool = (RepositoryHelperPool) poolField.get(null);
-            helperPool.borrowHelper();
+            RepositoryHelperPool helperPool = RepositoryHelperPoolImpl.getInstance();
+            // drain helpers
+            helperPool.borrowHelpers();
+            // replace with our own stub
             Properties props = new Properties();
             props.load(getClass().getClassLoader().getResourceAsStream(RepositoryStub.STUB_IMPL_PROPS));
             props.put(RepositoryStub.PROP_STUB_IMPL_CLASS, stubClass);
