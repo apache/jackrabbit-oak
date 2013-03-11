@@ -24,6 +24,7 @@ import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.List;
+
 import javax.annotation.Nonnull;
 import javax.security.auth.Subject;
 
@@ -37,6 +38,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.diffindex.UUIDDiffIndexProviderWrapper;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
 import org.apache.jackrabbit.oak.query.QueryEngineImpl;
 import org.apache.jackrabbit.oak.security.authentication.SystemSubject;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
@@ -123,24 +125,21 @@ public class RootImpl implements Root {
                     SecurityProvider securityProvider,
                     QueryIndexProvider indexProvider) {
         this.store = checkNotNull(store);
-        this.workspaceName = checkNotNull(workspaceName);
         this.hook = checkNotNull(hook);
+        this.workspaceName = checkNotNull(workspaceName);
         this.subject = checkNotNull(subject);
         this.securityProvider = checkNotNull(securityProvider);
         this.indexProvider = indexProvider;
-        refresh();
+
+        branch = this.store.branch();
+        rootTree = new TreeImpl(this, lastMove);
     }
 
     // TODO: review if this constructor really makes sense and cannot be replaced.
     public RootImpl(NodeStore store) {
-        this.store = checkNotNull(store);
         // FIXME: define proper default or pass workspace name with the constructor
-        this.workspaceName = Oak.DEFAULT_WORKSPACE_NAME;
-        this.hook = EmptyHook.INSTANCE;
-        this.subject = SystemSubject.INSTANCE;
-        this.securityProvider = new OpenSecurityProvider();
-        this.indexProvider = new CompositeQueryIndexProvider();
-        refresh();
+        this(store, EmptyHook.INSTANCE, Oak.DEFAULT_WORKSPACE_NAME, SystemSubject.INSTANCE,
+                new OpenSecurityProvider(), new CompositeQueryIndexProvider());
     }
 
     /**
