@@ -170,6 +170,7 @@ public class RootImplTest {
         assertFalse(r.hasChild("b"));
 
         root.commit();
+        r = root.getTree("/");
         assertFalse(r.hasChild("a"));
         assertFalse(r.hasChild("b"));
     }

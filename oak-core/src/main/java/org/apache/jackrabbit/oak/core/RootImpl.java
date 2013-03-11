@@ -68,6 +68,12 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 public class RootImpl implements Root {
 
     /**
+     * Disable checks for invalid trees.
+     * FIXME: remove once OAK-690 and dependencies are fixed
+     */
+    static final boolean OAK_690 = Boolean.getBoolean("OAK-690");
+
+    /**
      * Number of {@link #updated} calls for which changes are kept in memory.
      */
     private static final int PURGE_LIMIT = Integer.getInteger("oak.root.purgeLimit", 100);
@@ -242,6 +248,11 @@ public class RootImpl implements Root {
     public final void refresh() {
         checkLive();
         branch = store.branch();
+
+        // Disconnect all children -> access to now invalid trees fails fast
+        if (OAK_690) {
+            rootTree.getNodeBuilder().reset(MemoryNodeState.EMPTY_NODE);
+        }
         rootTree = new TreeImpl(this, lastMove);
         modCount = 0;
         if (permissionProvider != null) {

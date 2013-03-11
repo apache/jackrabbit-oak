@@ -23,13 +23,18 @@ import javax.annotation.Nonnull;
 
 /**
  * The root of a {@link Tree}.
- * <p>
+ * <p/>
  * The data returned by this class filtered for the access rights that are set
  * in the {@link ContentSession} that created this object.
- * <p>
+ * <p/>
  * All root instances created by a content session become invalid after the
  * content session is closed. Any method called on an invalid root instance
  * will throw an {@code InvalidStateException}.
+ * <p/>
+ * All {@link Tree} instances acquired through a root become invalid upon call of
+ * {@link #refresh()}, {@link #rebase()} or {@link #commit()}. Any access to invalid
+ * tree instances - except for hierarchy related methods - will cause an
+ * {@code InvalidStateException}.
  */
 public interface Root {
 
