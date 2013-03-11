@@ -47,6 +47,7 @@ import org.apache.jackrabbit.oak.spi.state.PropertyBuilder;
 import static com.google.common.base.Objects.toStringHelper;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 
@@ -109,25 +110,25 @@ public class TreeImpl implements Tree {
 
     @Override
     public String getName() {
-        enter();
+        enterNoStateCheck();
         return name;
     }
 
     @Override
     public boolean isRoot() {
-        enter();
+        enterNoStateCheck();
         return parent == null;
     }
 
     @Override
     public String getPath() {
-        enter();
+        enterNoStateCheck();
         return getPathInternal();
     }
 
     @Override
     public Tree getParent() {
-        enter();
+        enterNoStateCheck();
         if (parent != null && canRead(parent)) {
             return parent;
         } else {
@@ -229,7 +230,7 @@ public class TreeImpl implements Tree {
 
     @Override
     public Status getStatus() {
-        enter();
+        enterNoStateCheck();
 
         if (isDisconnected()) {
             return Status.DISCONNECTED;
@@ -526,6 +527,14 @@ public class TreeImpl implements Tree {
     //------------------------------------------------------------< private >---
 
     private void enter() {
+        root.checkLive();
+        if (RootImpl.OAK_690) {
+            checkState(parent != null || this == root.getTree("/"), "Tree access after commit, refresh or rebase");
+        }
+        applyPendingMoves();
+    }
+
+    private void enterNoStateCheck() {
         root.checkLive();
         applyPendingMoves();
     }
