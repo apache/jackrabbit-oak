@@ -41,7 +41,7 @@ public class SimpleTest {
         MongoMK mk = new MongoMK();
         mk.dispose();
     }
-    
+
     @Test
     public void pathToId() {
         assertEquals("0:/", Utils.getIdFromPath("/"));
@@ -87,6 +87,25 @@ public class SimpleTest {
         assertEquals("Hello", n2.getProperty("name"));
         mk.dispose();
     }
+    
+    @Test
+    public void diff() {
+        MongoMK mk = createMK();
+        String rev0 = mk.getHeadRevision();
+        // TODO
+//        String rev1 = mk.commit("/", "+\"test\":{\"name\": \"Hello\"}", null, null);
+//        String rev2 = mk.commit("/", "-\"test\"", null, null);
+//        String rev3 = mk.commit("/", "+\"test\":{\"name\": \"Hallo\"}", null, null);
+//        String test0 = mk.getNodes("/test", rev0, 0, 0, Integer.MAX_VALUE, null);
+//        assertNull(null, test0);
+//        String test1 = mk.getNodes("/test", rev1, 0, 0, Integer.MAX_VALUE, null);
+//        assertEquals("{\"name\":\"Hello\",\":childNodeCount\":0}", test1);
+//        String test2 = mk.getNodes("/test", rev2, 0, 0, Integer.MAX_VALUE, null);
+//        assertNull(null, test2);
+//        String test3 = mk.getNodes("/test", rev3, 0, 0, Integer.MAX_VALUE, null);
+//        assertEquals("{\"name\":\"Hallo\",\":childNodeCount\":0}", test3);
+        mk.dispose();
+    }
 
     @Test
     public void reAddDeleted() {
@@ -109,7 +128,7 @@ public class SimpleTest {
     @Test
     public void reAddDeleted2() {
         MongoMK mk = createMK();
-        String rev = mk.commit("/", "+\"test\":{\"child\": {}}", null, null);
+        String rev = mk.commit("/", "+\"test\":{\"x\":\"1\",\"child\": {}}", null, null);
         rev = mk.commit("/", "-\"test\"", rev, null);
         rev = mk.commit("/", "+\"test\":{}", null, null);
         String test = mk.getNodes("/test", rev, 0, 0, Integer.MAX_VALUE, null);

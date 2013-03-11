@@ -21,9 +21,11 @@ import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -36,6 +38,7 @@ import org.apache.jackrabbit.mk.blobs.MemoryBlobStore;
 import org.apache.jackrabbit.mk.json.JsopReader;
 import org.apache.jackrabbit.mk.json.JsopStream;
 import org.apache.jackrabbit.mk.json.JsopTokenizer;
+import org.apache.jackrabbit.mk.json.JsopWriter;
 import org.apache.jackrabbit.mongomk.impl.blob.MongoBlobStore;
 import org.apache.jackrabbit.mongomk.prototype.Node.Children;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -72,6 +75,7 @@ public class MongoMK implements MicroKernel {
      * The delay for asynchronous operations (delayed commit propagation and
      * cache update).
      */
+    // TODO test observation with multiple Oak instances
     protected static final long ASYNC_DELAY = 1000;
 
     /**
@@ -251,7 +255,7 @@ public class MongoMK implements MicroKernel {
     
     boolean isRevisionNewer(Revision x, Revision previous) {
         // TODO currently we only compare the timestamps
-        return x.compareRevisionTime(previous) >= 0;
+        return x.compareRevisionTime(previous) > 0;
     }
     
     public Node.Children readChildren(String path, String nodeId, Revision rev, int limit) {
@@ -269,8 +273,8 @@ public class MongoMK implements MicroKernel {
         List<Map<String, Object>> list = store.query(DocumentStore.Collection.NODES, from, to, limit);
         c = new Node.Children(path, nodeId, rev);
         for (Map<String, Object> e : list) {
-            // Filter out deleted children
-            if (isDeleted(e, rev)) {
+            // filter out deleted children
+            if (getLiveRevision(e, rev) == null) {
                 continue;
             }
             // TODO put the whole node in the cache
@@ -288,7 +292,9 @@ public class MongoMK implements MicroKernel {
         if (map == null) {
             return null;
         }
-        if (isDeleted(map, rev)) {
+        Revision min = getLiveRevision(map, rev);
+        if (min == null) {
+            // deleted
             return null;
         }
         Node n = new Node(path, rev);
@@ -305,7 +311,7 @@ public class MongoMK implements MicroKernel {
             @SuppressWarnings("unchecked")
             Map<String, String> valueMap = (Map<String, String>) v;
             if (valueMap != null) {
-                String value = getLatestValue(valueMap, rev);
+                String value = getLatestValue(valueMap, min, rev);
                 String propertyName = Utils.unescapePropertyName(key);
                 n.setProperty(propertyName, value);
             }
@@ -314,12 +320,26 @@ public class MongoMK implements MicroKernel {
         return n;
     }
     
-    private String getLatestValue(Map<String, String> valueMap, Revision rev) {
+    /**
+     * Get the latest property value that is larger or equal the min revision,
+     * and smaller or equal the max revision.
+     * 
+     * @param valueMap the revision-value map
+     * @param min the minimum revision (null meaning unlimited)
+     * @param max the maximum revision
+     * @return the value, or null if not found
+     */
+    private String getLatestValue(Map<String, String> valueMap, Revision min, Revision max) {
         String value = null;
         Revision latestRev = null;
         for (String r : valueMap.keySet()) {
             Revision propRev = Revision.fromString(r);
-            if (includeRevision(propRev, rev)) {
+            if (min != null) {
+                if (isRevisionNewer(min, propRev)) {
+                    continue;
+                }
+            }
+            if (includeRevision(propRev, max)) {
                 if (latestRev == null || isRevisionNewer(propRev, latestRev)) {
                     latestRev = propRev;
                     value = valueMap.get(r);
@@ -366,7 +386,59 @@ public class MongoMK implements MicroKernel {
             return "";
         }
         // TODO implement if needed
-        return "{}";
+        if (true) {
+            return "{}";        
+        }
+        if (depth != 0) {
+            throw new MicroKernelException("Only depth 0 is supported, depth is " + depth);
+        }
+        fromRevisionId = stripBranchRevMarker(fromRevisionId);
+        toRevisionId = stripBranchRevMarker(toRevisionId);
+        Node from = getNode(path, Revision.fromString(fromRevisionId));
+        Node to = getNode(path, Revision.fromString(toRevisionId));
+        if (from == null || to == null) {
+            // TODO implement correct behavior if the node does't/didn't exist
+            throw new MicroKernelException("Diff is only supported if the node exists in both cases");
+        }
+        JsopWriter w = new JsopStream();
+        for (String p : from.getPropertyNames()) {
+            // changed or removed properties
+            String fromValue = from.getProperty(p);
+            String toValue = to.getProperty(p);
+            if (!fromValue.equals(toValue)) {
+                w.tag('^').key(p).value(toValue).newline();
+            }
+        }
+        for (String p : to.getPropertyNames()) {
+            // added properties
+            if (from.getProperty(p) == null) {
+                w.tag('^').key(p).value(to.getProperty(p)).newline();
+            }
+        }
+        Revision fromRev = Revision.fromString(fromRevisionId);
+        Revision toRev = Revision.fromString(toRevisionId);
+        // TODO this does not work well for large child node lists 
+        // use a MongoDB index instead
+        Children fromChildren = readChildren(path, from.getId(), fromRev, Integer.MAX_VALUE);
+        Children toChildren = readChildren(path, to.getId(), toRev, Integer.MAX_VALUE);
+        Set<String> childrenSet = new HashSet<String>(toChildren.children);
+        for (String n : fromChildren.children) {
+            if (!childrenSet.contains(n)) {
+                w.tag('-').key(n).object().endObject().newline();
+            } else {
+                // TODO currently all children seem to diff, 
+                // which is not necessarily the case
+                // (compare write counters)
+                w.tag('^').key(n).object().endObject().newline();
+            }
+        }
+        childrenSet = new HashSet<String>(fromChildren.children);
+        for (String n : toChildren.children) {
+            if (!childrenSet.contains(n)) {
+                w.tag('+').key(n).object().endObject().newline();
+            }
+        }
+        return w.toString();
     }
 
     @Override
@@ -562,18 +634,38 @@ public class MongoMK implements MicroKernel {
         // Remove the node from the cache
         nodeCache.remove(path + "@" + rev);
     }
-
-    private boolean isDeleted(Map<String, Object> nodeProps, Revision rev) {
+    
+    /**
+     * Get the latest revision where the node was alive at or before the the
+     * provided revision.
+     * 
+     * @param nodeMap the node map
+     * @param maxRev the maximum revision to return
+     * @return the earliest revision, or null if the node is deleted at the
+     *         given revision
+     */
+    private Revision getLiveRevision(Map<String, Object> nodeMap,
+            Revision maxRev) {
         @SuppressWarnings("unchecked")
-        Map<String, String> valueMap = (Map<String, String>) nodeProps
+        Map<String, String> valueMap = (Map<String, String>) nodeMap
                 .get(UpdateOp.DELETED);
-        if (valueMap != null) {
-            String value = getLatestValue(valueMap, rev);
-            if (value == null || "true".equals(value)) {
-                return true;
+        Revision firstRev = null;
+        String value = null;
+        for (String r : valueMap.keySet()) {
+            Revision propRev = Revision.fromString(r);
+            if (isRevisionNewer(propRev, maxRev)) {
+                continue;
+            }
+            String v = valueMap.get(r);
+            if (firstRev == null || isRevisionNewer(propRev, firstRev)) {
+                firstRev = propRev;
+                value = v;
             }
         }
-        return false;
+        if ("true".equals(value)) {
+            return null;
+        }
+        return firstRev;
     }
     
     private static String stripBranchRevMarker(String revisionId) {
