@@ -18,11 +18,10 @@ package org.apache.jackrabbit.mk.test;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.blobs.BlobStore;
-import org.apache.jackrabbit.mk.test.MicroKernelFixture;
 import org.apache.jackrabbit.mongomk.impl.MongoConnection;
-import org.apache.jackrabbit.mongomk.impl.MongoMicroKernel;
-import org.apache.jackrabbit.mongomk.impl.MongoNodeStore;
 import org.apache.jackrabbit.mongomk.impl.blob.MongoBlobStore;
+import org.apache.jackrabbit.mongomk.prototype.DocumentStore;
+import org.apache.jackrabbit.mongomk.prototype.MongoMK;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
@@ -38,9 +37,9 @@ public abstract class BaseMongoMicroKernelFixture implements MicroKernelFixture 
     protected static final String DB =
             System.getProperty("mongo.db", "MongoMKDB");
 
-    private static MongoConnection mongoConnection = null;
+    private MongoConnection mongoConnection = null;
 
-    public static MongoConnection getMongoConnection() throws Exception {
+    private MongoConnection getMongoConnection() throws Exception {
         if (mongoConnection == null) {
             mongoConnection = new MongoConnection(HOST, PORT, DB);
         }
@@ -49,13 +48,17 @@ public abstract class BaseMongoMicroKernelFixture implements MicroKernelFixture 
 
     @Override
     public boolean isAvailable() {
+        MongoConnection connection = null;
         try {
-            MongoConnection connection =
-                    BaseMongoMicroKernelFixture.getMongoConnection();
+            connection = new MongoConnection(HOST, PORT, DB);
             connection.getDB().command(new BasicDBObject("ping", 1));
             return true;
         } catch (Exception e) {
             return false;
+        } finally {
+            if (connection != null) {
+                connection.close();
+            }
         }
     }
 
@@ -65,12 +68,8 @@ public abstract class BaseMongoMicroKernelFixture implements MicroKernelFixture 
         DB db = connection.getDB();
         dropCollections(db);
 
-        MongoNodeStore nodeStore = new MongoNodeStore(db);
-        BlobStore blobStore = getBlobStore(db);
-        MicroKernel mk = new MongoMicroKernel(connection, nodeStore, blobStore);
-
         for (int i = 0; i < cluster.length; i++) {
-            cluster[i] = mk;
+            cluster[i] = new MongoMK(db, i);
         }
     }
 
@@ -83,6 +82,8 @@ public abstract class BaseMongoMicroKernelFixture implements MicroKernelFixture 
         try {
             DB db = getMongoConnection().getDB();
             dropCollections(db);
+            mongoConnection.close();
+            mongoConnection = null;
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -92,8 +93,6 @@ public abstract class BaseMongoMicroKernelFixture implements MicroKernelFixture 
 
     private void dropCollections(DB db) {
         db.getCollection(MongoBlobStore.COLLECTION_BLOBS).drop();
-        db.getCollection(MongoNodeStore.COLLECTION_COMMITS).drop();
-        db.getCollection(MongoNodeStore.COLLECTION_NODES).drop();
-        db.getCollection(MongoNodeStore.COLLECTION_SYNC).drop();
+        db.getCollection(DocumentStore.Collection.NODES.name()).drop();
     }
 }
