@@ -538,6 +538,7 @@ public class MongoMK implements MicroKernel {
                 commit.updatePropertyDiff(p, propertyName, value);
                 break;
             case '>': {
+                // TODO support moving nodes that were modified within this commit
                 t.read(':');
                 String sourcePath = path;
                 String targetPath = t.readString();
@@ -549,14 +550,15 @@ public class MongoMK implements MicroKernel {
                 break;
             }
             case '*': {
-                // TODO possibly support target position notation
+                // TODO support copying nodes that were modified within this commit
                 t.read(':');
-                String target = t.readString();
-                if (!PathUtils.isAbsolute(target)) {
-                    target = PathUtils.concat(rootPath, target);
+                String sourcePath = path;
+                String targetPath = t.readString();
+                if (!PathUtils.isAbsolute(targetPath)) {
+                    targetPath = PathUtils.concat(path, targetPath);
                 }
-                String to = PathUtils.relativize("/", target);
-                // TODO support copy operations
+                commit.copyNode(sourcePath, targetPath);
+                copyNode(sourcePath, targetPath, commit);
                 break;
             }
             default:
@@ -581,7 +583,15 @@ public class MongoMK implements MicroKernel {
         return rev.toString();
     }
 
+    private void copyNode(String sourcePath, String targetPath, Commit commit) {
+        moveOrCopyNode(false, sourcePath, targetPath, commit);
+    }
+    
     private void moveNode(String sourcePath, String targetPath, Commit commit) {
+        moveOrCopyNode(true, sourcePath, targetPath, commit);
+    }
+    
+    private void moveOrCopyNode(boolean move, String sourcePath, String targetPath, Commit commit) {
         // TODO Optimize - Move logic would not work well with very move of very large subtrees
         // At minimum we can optimize by traversing breadth wise and collect node id
         // and fetch them via '$in' queries
@@ -601,13 +611,15 @@ public class MongoMK implements MicroKernel {
         n.copyTo(newNode);
 
         commit.addNode(newNode);
-        markAsDeleted(sourcePath, commit, false);
+        if (move) {
+            markAsDeleted(sourcePath, commit, false);
+        }
         Node.Children c = readChildren(sourcePath, n.getId(),
                 commit.getRevision(), Integer.MAX_VALUE);
         for (String srcChildPath : c.children) {
             String childName = PathUtils.getName(srcChildPath);
             String destChildPath = PathUtils.concat(targetPath, childName);
-            moveNode(srcChildPath, destChildPath, commit);
+            moveOrCopyNode(move, srcChildPath, destChildPath, commit);
         }
     }
 

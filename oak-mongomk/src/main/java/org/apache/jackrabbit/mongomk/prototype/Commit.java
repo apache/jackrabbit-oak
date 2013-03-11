@@ -317,6 +317,10 @@ public class Commit {
     public void moveNode(String sourcePath, String targetPath) {
         diff.tag('>').key(sourcePath).value(targetPath);
     }
+    
+    public void copyNode(String sourcePath, String targetPath) {
+        diff.tag('*').key(sourcePath).value(targetPath);
+    }
 
     public JsopWriter getDiff() {
         return diff;
