@@ -18,6 +18,7 @@ package org.apache.jackrabbit.mongomk.prototype;
 
 import java.util.ArrayList;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.jackrabbit.mk.json.JsopWriter;
 
@@ -46,6 +47,10 @@ public class Node {
     
     public String getProperty(String propertyName) {
         return properties.get(propertyName);
+    }
+    
+    public Set<String> getPropertyNames() {
+        return properties.keySet();
     }
 
     public void copyTo(Node newNode) {
