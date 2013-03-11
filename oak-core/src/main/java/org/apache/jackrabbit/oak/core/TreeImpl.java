@@ -440,19 +440,20 @@ public class TreeImpl implements Tree {
     /**
      * Move this tree to the parent at {@code destParent} with the new name
      * {@code destName}.
-     *
      * @param destParent new parent for this tree
      * @param destName   new name for this tree
      */
     void moveTo(TreeImpl destParent, String destName) {
         name = destName;
         parent = destParent;
-        if (parent.nodeBuilder.hasChildNode(name)) {
-            nodeBuilder = parent.nodeBuilder.child(name);
-        } else {
-            // make this builder disconnected from its new parent
-            nodeBuilder = parent.nodeBuilder.child(name);
-            parent.nodeBuilder.removeNode(name);
+        if (!parent.isDisconnected()) {
+            if (parent.nodeBuilder.hasChildNode(name)) {
+                nodeBuilder = parent.nodeBuilder.child(name);
+            } else {
+                // make this builder disconnected from its new parent
+                nodeBuilder = parent.nodeBuilder.child(name);
+                parent.nodeBuilder.removeNode(name);
+            }
         }
     }
 
