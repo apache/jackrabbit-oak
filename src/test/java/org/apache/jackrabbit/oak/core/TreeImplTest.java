@@ -31,6 +31,7 @@ import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.plugins.memory.LongPropertyState;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.api.Type.LONG;
@@ -40,6 +41,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * TreeImplTest...
@@ -386,10 +388,12 @@ public class TreeImplTest {
 
         tree.setOrderableChildren(true);
         root.commit();
+        tree = root.getTree("/").addChild("test");
         assertNotNull(((TreeImpl) tree).getNodeState().getProperty(TreeImpl.OAK_CHILD_ORDER));
 
         tree.setOrderableChildren(false);
         root.commit();
+        tree = root.getTree("/").addChild("test");
         assertNull(((TreeImpl) tree).getNodeState().getProperty(TreeImpl.OAK_CHILD_ORDER));
     }
 
@@ -407,5 +411,34 @@ public class TreeImplTest {
         for (Tree child : tree.getChildren()) {
             assertEquals(childNames[index++], child.getName());
         }
+    }
+
+    @Test
+    @Ignore("OAK-690")  // FIXME enable once OAK-690 is fixed
+    public void testInvalidTreeAccess() throws CommitFailedException {
+        Tree r = root.getTree("/");
+        Tree x = root.getTree("/x");
+
+        root.refresh();
+
+        try {
+            r.getChild("any");
+            fail("Expected IllegalStateException");
+        } catch (IllegalStateException expected) {}
+
+        try {
+            x.getChild("any");
+            fail("Expected IllegalStateException");
+        } catch (IllegalStateException expected) {}
+
+        try {
+            r.addChild("any");
+            fail("Expected IllegalStateException");
+        } catch (IllegalStateException expected) {}
+
+        try {
+            x.addChild("any");
+            fail("Expected IllegalStateException");
+        } catch (IllegalStateException expected) {}
     }
 }
