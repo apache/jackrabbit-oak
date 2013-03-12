@@ -46,6 +46,7 @@ import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
+import org.apache.jackrabbit.oak.spi.commit.PostValidationHook;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.observation.ChangeExtractor;
 import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
@@ -293,19 +294,21 @@ public class RootImpl implements Root {
     private CommitHook getCommitHook() {
         List<CommitHook> commitHooks = new ArrayList<CommitHook>();
         commitHooks.add(hook);
-        List<CommitHook> securityHooks = new ArrayList<CommitHook>();
+        List<CommitHook> postValidationHooks = new ArrayList<CommitHook>();
         for (SecurityConfiguration sc : securityProvider.getSecurityConfigurations()) {
+            CommitHook ch = sc.getSecurityHooks().getCommitHook(workspaceName);
+            if (ch instanceof PostValidationHook) {
+                postValidationHooks.add(ch);
+            } else if (ch != EmptyHook.INSTANCE) {
+                commitHooks.add(ch);
+            }
             List<? extends ValidatorProvider> validators = sc.getValidators(workspaceName);
             if (!validators.isEmpty()) {
                 commitHooks.add(new EditorHook(
                         CompositeEditorProvider.compose(validators)));
             }
-            CommitHook ch = sc.getSecurityHooks().getCommitHook(workspaceName);
-            if (ch != EmptyHook.INSTANCE) {
-                securityHooks.add(ch);
-            }
         }
-        commitHooks.addAll(securityHooks);
+        commitHooks.addAll(postValidationHooks);
         return CompositeHook.compose(commitHooks);
     }
 

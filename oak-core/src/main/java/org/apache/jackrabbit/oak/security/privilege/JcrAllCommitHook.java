@@ -21,7 +21,7 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.spi.commit.CommitHook;
+import org.apache.jackrabbit.oak.spi.commit.PostValidationHook;
 import org.apache.jackrabbit.oak.spi.state.EmptyNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -33,7 +33,7 @@ import org.apache.jackrabbit.util.Text;
  * JcrAllCommitHook is responsible for updating the jcr:all privilege definition
  * upon successful registration of a new privilege.
  */
-public class JcrAllCommitHook implements CommitHook, PrivilegeConstants {
+public class JcrAllCommitHook implements PostValidationHook, PrivilegeConstants {
 
     @Nonnull
     @Override

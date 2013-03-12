@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.plugins.version;
 import java.util.Collections;
 import java.util.GregorianCalendar;
 import java.util.Iterator;
-
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -29,10 +28,10 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.core.ReadOnlyRoot;
-import org.apache.jackrabbit.oak.core.ReadOnlyTree;
-import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.core.IdentifierManager;
+import org.apache.jackrabbit.oak.core.ImmutableRoot;
+import org.apache.jackrabbit.oak.core.ImmutableTree;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.plugins.value.Conversions;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -78,13 +77,13 @@ class ReadWriteVersionManager extends ReadOnlyVersionManager {
     @Nonnull
     @Override
     protected TreeLocation getVersionStorageLocation() {
-        return new ReadOnlyTree(versionStorageNode.getNodeState()).getLocation();
+        return new ImmutableTree(versionStorageNode.getNodeState()).getLocation();
     }
 
     @Nonnull
     @Override
     protected Root getWorkspaceRoot() {
-        return new ReadOnlyRoot(workspaceRoot.getNodeState());
+        return new ImmutableRoot(workspaceRoot.getNodeState());
     }
 
     @Nonnull

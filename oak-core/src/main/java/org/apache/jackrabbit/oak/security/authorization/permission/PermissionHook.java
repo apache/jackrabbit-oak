@@ -28,8 +28,8 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.core.ReadOnlyRoot;
-import org.apache.jackrabbit.oak.core.ReadOnlyTree;
+import org.apache.jackrabbit.oak.core.ImmutableRoot;
+import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.core.TreeImpl;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
@@ -37,7 +37,7 @@ import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.security.authorization.AccessControlConstants;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeBitsProvider;
-import org.apache.jackrabbit.oak.spi.commit.CommitHook;
+import org.apache.jackrabbit.oak.spi.commit.PostValidationHook;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -56,7 +56,7 @@ import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
  * access control content and updates persisted permission caches associated
  * with access control related data stored in the repository.
  */
-public class PermissionHook implements CommitHook, AccessControlConstants, PermissionConstants {
+public class PermissionHook implements PostValidationHook, AccessControlConstants, PermissionConstants {
 
     private static final Logger log = LoggerFactory.getLogger(PermissionHook.class);
 
@@ -79,7 +79,7 @@ public class PermissionHook implements CommitHook, AccessControlConstants, Permi
 
         permissionRoot = getPermissionRoot(rootAfter, workspaceName);
         ntMgr = ReadOnlyNodeTypeManager.getInstance(before);
-        bitsProvider = new PrivilegeBitsProvider(new ReadOnlyRoot(before));
+        bitsProvider = new PrivilegeBitsProvider(new ImmutableRoot(before));
 
         after.compareAgainstBaseState(before, new Diff(new BeforeNode(before), new Node(rootAfter)));
         return rootAfter.getNodeState();
@@ -102,8 +102,7 @@ public class PermissionHook implements CommitHook, AccessControlConstants, Permi
     }
 
     private static Tree getTree(String name, NodeState nodeState) {
-        // FIXME: this readonlytree is not properly connect to it's parent
-        return new ReadOnlyTree(null, name, nodeState);
+        return new ImmutableTree(ImmutableTree.ParentProvider.UNSUPPORTED, name, nodeState, ImmutableTree.TypeProvider.EMPTY);
     }
 
     private static String getAccessControlledPath(BaseNode aclNode) {

@@ -31,31 +31,30 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * Simple implementation of the Root interface that only supports simple read
- * operations (excluding query) based on the NodeState (or ReadOnly tree)
+ * operations (excluding query) based on the {@code NodeState} (or {@code ImmutableTree})
  * passed to the constructor.
- * <p/>
- * TODO: proper handle node state lifecycle that has an impact on this root.
  */
-public final class ReadOnlyRoot implements Root {
+public final class ImmutableRoot implements Root {
 
-    private final ReadOnlyTree rootTree;
+    private final ImmutableTree rootTree;
 
-    public ReadOnlyRoot(@Nonnull NodeState rootState) {
-        this(new ReadOnlyTree(rootState));
+    public ImmutableRoot(@Nonnull NodeState rootState) {
+        this(new ImmutableTree(rootState));
     }
 
-    public ReadOnlyRoot(@Nonnull Root root) {
-        this(ReadOnlyTree.createFromRoot(root));
+    public ImmutableRoot(@Nonnull Root root, @Nonnull ImmutableTree.TypeProvider typeProvider) {
+        this(ImmutableTree.createFromRoot(root, typeProvider));
     }
 
-    private ReadOnlyRoot(@Nonnull ReadOnlyTree rootTree) {
+    public ImmutableRoot(@Nonnull ImmutableTree rootTree) {
         checkArgument(rootTree.isRoot());
         this.rootTree = rootTree;
     }
 
+    //---------------------------------------------------------------< Root >---
     @Override
-    public ReadOnlyTree getTree(String path) {
-        return (ReadOnlyTree) getLocation(path).getTree();
+    public ImmutableTree getTree(String path) {
+        return (ImmutableTree) getLocation(path).getTree();
     }
 
     @Nonnull
@@ -64,8 +63,6 @@ public final class ReadOnlyRoot implements Root {
         checkArgument(PathUtils.isAbsolute(path));
         return rootTree.getLocation().getChild(path.substring(1));
     }
-
-    //---------------------< unsupported methods >------------------------------
 
     @Override
     public boolean move(String sourcePath, String destPath) {
@@ -94,7 +91,7 @@ public final class ReadOnlyRoot implements Root {
 
     @Override
     public boolean hasPendingChanges() {
-        throw new UnsupportedOperationException();
+        return false;
     }
 
     @Nonnull

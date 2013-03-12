@@ -25,7 +25,6 @@ import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.api.Type;
@@ -53,7 +52,7 @@ public class ReadOnlyTree implements Tree {
     /**
      * Underlying node state
      */
-    private final NodeState state;
+    final NodeState state;
 
     public ReadOnlyTree(@Nonnull NodeState rootState) {
         this(null, "", rootState);
@@ -64,16 +63,6 @@ public class ReadOnlyTree implements Tree {
         this.name = checkNotNull(name);
         this.state = checkNotNull(state);
         checkArgument(!name.isEmpty() || parent == null);
-    }
-
-    public static ReadOnlyTree createFromRoot(Root root) {
-        if (root instanceof RootImpl) {
-            return new ReadOnlyTree(((RootImpl) root).getBaseState());
-        } else if (root instanceof ReadOnlyRoot) {
-            return ((ReadOnlyRoot) root).getTree("/");
-        } else {
-            throw new IllegalArgumentException("Unsupported Root implementation.");
-        }
     }
 
     @Override
@@ -252,7 +241,7 @@ public class ReadOnlyTree implements Tree {
         return toStringHelper(this).add("path", getPath()).toString();
     }
 
-    //------------------------------------------------------------< internal >---
+    //-----------------------------------------------------------< internal >---
 
     @Nonnull
     String getIdentifier() {

@@ -25,8 +25,8 @@ import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.core.ReadOnlyRoot;
-import org.apache.jackrabbit.oak.core.ReadOnlyTree;
+import org.apache.jackrabbit.oak.core.ImmutableRoot;
+import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
@@ -59,8 +59,8 @@ class AccessControlValidatorProvider extends ValidatorProvider {
     @Nonnull
     @Override
     public Validator getRootValidator(NodeState before, NodeState after) {
-        Tree rootBefore = new ReadOnlyTree(before);
-        Tree rootAfter = new ReadOnlyTree(after);
+        Tree rootBefore = new ImmutableTree(before);
+        Tree rootAfter = new ImmutableTree(after);
 
         AccessControlConfiguration acConfig = securityProvider.getAccessControlConfiguration();
         RestrictionProvider restrictionProvider = acConfig.getRestrictionProvider(NamePathMapper.DEFAULT);
@@ -72,7 +72,7 @@ class AccessControlValidatorProvider extends ValidatorProvider {
     }
 
     private static Map<String, Privilege> getPrivileges(NodeState beforeRoot, PrivilegeConfiguration config) {
-        Root root = new ReadOnlyRoot(beforeRoot);
+        Root root = new ImmutableRoot(beforeRoot);
         PrivilegeManager pMgr = config.getPrivilegeManager(root, NamePathMapper.DEFAULT);
         ImmutableMap.Builder privileges = ImmutableMap.builder();
         try {
@@ -80,7 +80,7 @@ class AccessControlValidatorProvider extends ValidatorProvider {
                 privileges.put(privilege.getName(), privilege);
             }
         } catch (RepositoryException e) {
-            log.error("Unexpected error: failed to read privileges.");
+            log.error("Unexpected error: failed to read privileges.", e);
         }
         return privileges.build();
     }
