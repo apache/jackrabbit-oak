@@ -27,6 +27,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.UnsupportedRepositoryOperationException;
 
+import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.mongomk.impl.MongoConnection;
 import org.apache.jackrabbit.mongomk.prototype.MongoMK;
 import org.apache.jackrabbit.test.NotExecutableException;
@@ -117,7 +118,11 @@ public class OakMongoMKRepositoryStub extends RepositoryStub {
 
     @Override
     public Principal getKnownPrincipal(Session session) throws RepositoryException {
-        throw new UnsupportedRepositoryOperationException();
+        if (session instanceof JackrabbitSession) {
+            return ((JackrabbitSession) session).getPrincipalManager().getPrincipal(session.getUserID());
+        } else {
+            throw new UnsupportedRepositoryOperationException();
+        }
     }
 
     private static final Principal UNKNOWN_PRINCIPAL = new Principal() {
