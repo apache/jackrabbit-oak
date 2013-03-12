@@ -546,7 +546,7 @@ public class MongoMK implements MicroKernel {
                     targetPath = PathUtils.concat(path, targetPath);
                 }
                 commit.moveNode(sourcePath, targetPath);
-                moveNode(sourcePath, targetPath, commit);
+                moveNode(sourcePath, targetPath, Revision.fromString(stripBranchRevMarker(revisionId)), commit);
                 break;
             }
             case '*': {
@@ -558,7 +558,7 @@ public class MongoMK implements MicroKernel {
                     targetPath = PathUtils.concat(path, targetPath);
                 }
                 commit.copyNode(sourcePath, targetPath);
-                copyNode(sourcePath, targetPath, commit);
+                copyNode(sourcePath, targetPath, Revision.fromString(stripBranchRevMarker(revisionId)), commit);
                 break;
             }
             default:
@@ -583,15 +583,19 @@ public class MongoMK implements MicroKernel {
         return rev.toString();
     }
 
-    private void copyNode(String sourcePath, String targetPath, Commit commit) {
-        moveOrCopyNode(false, sourcePath, targetPath, commit);
+    private void copyNode(String sourcePath, String targetPath, Revision baseRev, Commit commit) {
+        moveOrCopyNode(false, sourcePath, targetPath, baseRev, commit);
     }
     
-    private void moveNode(String sourcePath, String targetPath, Commit commit) {
-        moveOrCopyNode(true, sourcePath, targetPath, commit);
+    private void moveNode(String sourcePath, String targetPath, Revision baseRev, Commit commit) {
+        moveOrCopyNode(true, sourcePath, targetPath, baseRev, commit);
     }
     
-    private void moveOrCopyNode(boolean move, String sourcePath, String targetPath, Commit commit) {
+    private void moveOrCopyNode(boolean move,
+                                String sourcePath,
+                                String targetPath,
+                                Revision baseRev,
+                                Commit commit) {
         // TODO Optimize - Move logic would not work well with very move of very large subtrees
         // At minimum we can optimize by traversing breadth wise and collect node id
         // and fetch them via '$in' queries
@@ -600,7 +604,7 @@ public class MongoMK implements MicroKernel {
         // of this commit i.e. transient nodes. If its required it would need to be looked
         // into
 
-        Node n = getNode(sourcePath, commit.getRevision());
+        Node n = getNode(sourcePath, baseRev);
 
         // Node might be deleted already
         if (n == null) {
@@ -615,11 +619,11 @@ public class MongoMK implements MicroKernel {
             markAsDeleted(sourcePath, commit, false);
         }
         Node.Children c = readChildren(sourcePath, n.getId(),
-                commit.getRevision(), Integer.MAX_VALUE);
+                baseRev, Integer.MAX_VALUE);
         for (String srcChildPath : c.children) {
             String childName = PathUtils.getName(srcChildPath);
             String destChildPath = PathUtils.concat(targetPath, childName);
-            moveOrCopyNode(move, srcChildPath, destChildPath, commit);
+            moveOrCopyNode(move, srcChildPath, destChildPath, baseRev, commit);
         }
     }
 
@@ -642,6 +646,7 @@ public class MongoMK implements MicroKernel {
                 for (String childPath : c.children) {
                     markAsDeleted(childPath, commit, true);
                 }
+                nodeChildrenCache.remove(n.getId());
             }
         }
 
