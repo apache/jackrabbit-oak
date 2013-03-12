@@ -16,9 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.commit;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState.EMPTY_NODE;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
@@ -27,6 +24,9 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState.EMPTY_NODE;
 
 /**
  * This commit hook implementation processes changes to be committed
@@ -62,9 +62,9 @@ public class EditorHook implements CommitHook {
     //------------------------------------------------------------< private >---
 
     /**
-     * Validates the given subtree by diffing and recursing through it.
+     * Validates and possibly edits the given subtree by diffing and recursing through it.
      *
-     * @param validator validator for the root of the subtree
+     * @param editor editor for the root of the subtree
      * @param before state of the original subtree
      * @param after state of the modified subtree
      * @return exception if the processing failed, {@code null} otherwise
