@@ -21,7 +21,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.Calendar;
-
 import javax.jcr.Node;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.PropertyType;
@@ -29,13 +28,15 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
+import javax.jcr.security.Privilege;
 
+import com.google.common.base.Charsets;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.commons.cnd.CndImporter;
 import org.apache.jackrabbit.commons.cnd.ParseException;
+import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
+import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.value.BinaryValue;
-
-import com.google.common.base.Charsets;
 
 public class TestContentLoader {
 
@@ -62,6 +63,9 @@ public class TestContentLoader {
         // TODO add retention test data
         // Node conf = getOrAddNode(session.getRootNode(), "testconf");
         // addRetentionTestData(getOrAddNode(conf, "retentionTest"));
+
+        // TODO add proper configuration for security setup
+        AccessControlUtils.addAccessControlEntry(session, "/", EveryonePrincipal.getInstance(), new String[]{Privilege.JCR_READ}, true);
 
         session.save();
     }
