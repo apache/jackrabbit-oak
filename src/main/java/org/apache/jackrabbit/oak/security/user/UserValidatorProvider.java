@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.security.user;
 
 import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.oak.core.ReadOnlyTree;
+import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
@@ -41,7 +41,7 @@ class UserValidatorProvider extends ValidatorProvider {
     @Nonnull
     @Override
     public Validator getRootValidator(NodeState before, NodeState after) {
-        return new UserValidator(new ReadOnlyTree(before), new ReadOnlyTree(after), this);
+        return new UserValidator(new ImmutableTree(before), new ImmutableTree(after), this);
     }
 
     //-----------------------------------------------------------< internal >---

@@ -23,13 +23,15 @@ import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.security.auth.Subject;
 
-import org.apache.jackrabbit.oak.core.ReadOnlyRoot;
-import org.apache.jackrabbit.oak.core.ReadOnlyTree;
+import org.apache.jackrabbit.oak.core.ImmutableRoot;
+import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.PermissionProvider;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
@@ -52,13 +54,8 @@ public class PermissionValidatorProvider extends ValidatorProvider {
     @Nonnull
     @Override
     public Validator getRootValidator(NodeState before, NodeState after) {
-        Subject subject = Subject.getSubject(AccessController.getContext());
-        Set<Principal> principals = (subject != null) ? subject.getPrincipals() : Collections.<Principal>emptySet();
-
-        ReadOnlyRoot root = new ReadOnlyRoot(before);
-        PermissionProvider pp = securityProvider.getAccessControlConfiguration().getPermissionProvider(root, principals);
-
-        return new PermissionValidator(new ReadOnlyTree(before), new ReadOnlyTree(after), pp, this);
+        PermissionProvider pp = getPermissionProvider(before);
+        return new PermissionValidator(createTree(before), createTree(after), pp, this);
     }
 
     //--------------------------------------------------------------------------
@@ -75,5 +72,20 @@ public class PermissionValidatorProvider extends ValidatorProvider {
             userCtx = securityProvider.getUserConfiguration().getContext();
         }
         return userCtx;
+    }
+
+    private ImmutableTree createTree(NodeState root) {
+        return new ImmutableTree(root, new ImmutableTree.DefaultTypeProvider(getAccessControlContext()));
+    }
+
+    private PermissionProvider getPermissionProvider(NodeState before) {
+        Subject subject = Subject.getSubject(AccessController.getContext());
+        if (subject == null || subject.getPublicCredentials(PrincipalProvider.class).isEmpty()) {
+            Set<Principal> principals = (subject != null) ? subject.getPrincipals() : Collections.<Principal>emptySet();
+            AccessControlConfiguration acConfig = securityProvider.getAccessControlConfiguration();
+            return acConfig.getPermissionProvider(new ImmutableRoot(createTree(before)), principals);
+        } else {
+            return subject.getPublicCredentials(PermissionProvider.class).iterator().next();
+        }
     }
 }
