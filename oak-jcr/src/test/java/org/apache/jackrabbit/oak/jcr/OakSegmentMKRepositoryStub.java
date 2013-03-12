@@ -27,6 +27,9 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.UnsupportedRepositoryOperationException;
 
+import org.apache.jackrabbit.api.JackrabbitSession;
+import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
+import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.plugins.segment.MongoStore;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
@@ -119,6 +122,13 @@ public class OakSegmentMKRepositoryStub extends RepositoryStub {
 
     @Override
     public Principal getKnownPrincipal(Session session) throws RepositoryException {
+        if (session instanceof JackrabbitSession) {
+            PrincipalIterator principals = ((JackrabbitSession) session).getPrincipalManager().getPrincipals(PrincipalManager.SEARCH_TYPE_NOT_GROUP);
+            if (principals.hasNext()) {
+                return principals.nextPrincipal();
+            }
+        }
+
         throw new UnsupportedRepositoryOperationException();
     }
 
@@ -130,8 +140,8 @@ public class OakSegmentMKRepositoryStub extends RepositoryStub {
     };
 
     @Override
-    public Principal getUnknownPrincipal(Session session) throws RepositoryException,
-            NotExecutableException {
+    public Principal getUnknownPrincipal(Session session) throws RepositoryException, NotExecutableException {
         return UNKNOWN_PRINCIPAL;
     }
+
 }
