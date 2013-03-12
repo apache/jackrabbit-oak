@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.jcr;
 import java.security.Principal;
 import java.util.Properties;
 import java.util.concurrent.Executors;
-
 import javax.jcr.Credentials;
 import javax.jcr.GuestCredentials;
 import javax.jcr.Repository;
@@ -39,7 +38,6 @@ public class OakRepositoryStubBase extends RepositoryStub {
      * Constructor as required by the JCR TCK.
      * 
      * @param settings repository settings
-     * @throws javax.jcr.RepositoryException If an error occurs.
      */
     public OakRepositoryStubBase(Properties settings) {
         super(settings);
