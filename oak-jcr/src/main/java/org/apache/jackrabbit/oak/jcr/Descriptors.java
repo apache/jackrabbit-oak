@@ -153,7 +153,7 @@ public class Descriptors {
                 falseValue, true, true));
         put(new Descriptor(
                 OPTION_ACCESS_CONTROL_SUPPORTED,
-                falseValue, true, true));
+                trueValue, true, true));
         put(new Descriptor(
                 OPTION_JOURNALED_OBSERVATION_SUPPORTED,
                 falseValue, true, true));
