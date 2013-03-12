@@ -16,13 +16,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
+import static org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState.EMPTY_NODE;
+
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 
-import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
-
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
@@ -43,14 +42,6 @@ public class MongoStore implements SegmentStore {
         this.journals = db.getCollection("journals");
 
         this.cache = cache;
-
-        if (journals.findOne(new BasicDBObject("_id", "root")) == null) {
-            SegmentWriter writer = new SegmentWriter(this);
-            RecordId id = writer.writeNode(MemoryNodeState.EMPTY_NODE).getRecordId();
-            writer.flush();
-            journals.insert(new BasicDBObject(ImmutableMap.of(
-                    "_id", "root", "head", id.toString())));
-        }
     }
 
     public MongoStore(DB db, long cacheSize) {
@@ -64,7 +55,11 @@ public class MongoStore implements SegmentStore {
 
     @Override
     public Journal getJournal(String name) {
-        return new MongoJournal(journals, name);
+        if ("root".equals(name)) {
+            return new MongoJournal(this, journals, EMPTY_NODE);
+        } else {
+            return new MongoJournal(this, journals, name);
+        }
     }
 
     @Override
