@@ -32,6 +32,7 @@ import org.apache.jackrabbit.oak.spi.security.authorization.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.Permissions;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
+import org.apache.jackrabbit.oak.util.TreeUtil;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -97,8 +98,15 @@ class PermissionValidator implements Validator {
     @Override
     public Validator childNodeAdded(String name, NodeState after) throws CommitFailedException {
         Tree child = checkNotNull(parentAfter.getChild(name));
+        if (isVersionstorageTree(child)) {
+            child = getVersionHistoryTree(child);
+            if (child == null) {
+                throw new CommitFailedException("New version storage node without version history: cannot verify permissions.");
+            }
+        }
         return checkPermissions(child, false, Permissions.ADD_NODE);
     }
+
 
     @Override
     public Validator childNodeChanged(String name, NodeState before, NodeState after) throws CommitFailedException {
@@ -113,6 +121,10 @@ class PermissionValidator implements Validator {
     @Override
     public Validator childNodeDeleted(String name, NodeState before) throws CommitFailedException {
         Tree child = checkNotNull(parentBefore.getChild(name));
+        if (isVersionstorageTree(child)) {
+            // TODO: check again
+            throw new CommitFailedException("Attempt to remove versionstorage node: Fail to verify delete permission.");
+        }
         return checkPermissions(child, true, Permissions.REMOVE_NODE);
     }
 
@@ -133,9 +145,13 @@ class PermissionValidator implements Validator {
             if (!permissionProvider.isGranted(tree, toTest)) {
                 throw new CommitFailedException(new AccessDeniedException());
             }
-            return (isBefore) ?
+            if (noTraverse(toTest)) {
+                return null;
+            } else {
+                return (isBefore) ?
                     nextValidator(tree, null) :
                     nextValidator(null, tree);
+            }
         }
     }
 
@@ -201,5 +217,33 @@ class PermissionValidator implements Validator {
 
     private static boolean isLockProperty(String name) {
         return JcrConstants.JCR_LOCKISDEEP.equals(name) || JcrConstants.JCR_LOCKOWNER.equals(name);
+    }
+
+    // TODO
+    public static boolean noTraverse(long permission) {
+        return permission == Permissions.MODIFY_ACCESS_CONTROL ||
+                permission == Permissions.VERSION_MANAGEMENT;
+    }
+
+    // TODO
+    private boolean isVersionstorageTree(Tree tree) {
+        return permission == Permissions.VERSION_MANAGEMENT &&
+                VersionConstants.REP_VERSIONSTORAGE.equals(TreeUtil.getPrimaryTypeName(tree));
+    }
+
+    // TODO
+    private Tree getVersionHistoryTree(Tree versionstorageTree) throws CommitFailedException {
+        Tree versionHistory = null;
+        for (Tree child : versionstorageTree.getChildren()) {
+            if (VersionConstants.NT_VERSIONHISTORY.equals(TreeUtil.getPrimaryTypeName(child))) {
+                versionHistory = child;
+            } else if (isVersionstorageTree(child)) {
+                versionHistory = getVersionHistoryTree(child);
+            } else {
+                // TODO:
+                throw new CommitFailedException("unexpected node");
+            }
+        }
+        return versionHistory;
     }
 }
