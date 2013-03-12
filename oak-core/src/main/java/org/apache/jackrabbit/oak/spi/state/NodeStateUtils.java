@@ -16,6 +16,12 @@
  */
 package org.apache.jackrabbit.oak.spi.state;
 
+import javax.annotation.CheckForNull;
+
+import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
+
 /**
  * Utility method for code that deals with node states.
  */
@@ -35,4 +41,9 @@ public final class NodeStateUtils {
         return name.startsWith(":");
     }
 
+    @CheckForNull
+    public static String getPrimaryTypeName(NodeState nodeState) {
+        PropertyState ps = nodeState.getProperty(JcrConstants.JCR_PRIMARYTYPE);
+        return (ps == null) ? null : ps.getValue(Type.STRING);
+    }
 }

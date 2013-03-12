@@ -24,7 +24,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.core.ReadOnlyTree;
+import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
@@ -114,8 +114,7 @@ public class VersionablePathHook implements CommitHook {
         }
 
         private boolean isVersionable(ReadWriteVersionManager versionManager) {
-            // FIXME: this readonlytree is not properly connect to it's parent
-            Tree tree = new ReadOnlyTree(null, PathUtils.getName(path), builder.getNodeState());
+            Tree tree = new ImmutableTree(ImmutableTree.ParentProvider.UNSUPPORTED, PathUtils.getName(path), builder.getNodeState());
             return versionManager.isVersionable(tree);
         }
     }

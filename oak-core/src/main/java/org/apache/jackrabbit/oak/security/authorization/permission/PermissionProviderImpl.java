@@ -30,13 +30,12 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.core.ReadOnlyRoot;
-import org.apache.jackrabbit.oak.core.ReadOnlyTree;
+import org.apache.jackrabbit.oak.core.ImmutableRoot;
+import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
 import org.apache.jackrabbit.oak.security.authorization.AccessControlConstants;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeBitsProvider;
-import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.PermissionProvider;
@@ -44,7 +43,6 @@ import org.apache.jackrabbit.oak.spi.security.authorization.Permissions;
 import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.SystemPrincipal;
 import org.apache.jackrabbit.oak.util.TreeUtil;
-import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,21 +60,20 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
 
     private final Root root;
 
-    private final Context acContext;
-
     private final String workspaceName = "default"; // FIXME: use proper workspace as associated with the root
+
+    private final AccessControlConfiguration acConfig;
 
     private final CompiledPermissions compiledPermissions;
 
     public PermissionProviderImpl(@Nonnull Root root, @Nonnull Set<Principal> principals,
                                   @Nonnull SecurityProvider securityProvider) {
         this.root = root;
-        AccessControlConfiguration acConfig = securityProvider.getAccessControlConfiguration();
-        this.acContext = acConfig.getContext();
+        acConfig = securityProvider.getAccessControlConfiguration();
         if (principals.contains(SystemPrincipal.INSTANCE) || isAdmin(principals)) {
             compiledPermissions = AllPermissions.getInstance();
         } else {
-            ReadOnlyTree permissionsTree = getPermissionsRoot();
+            ImmutableTree permissionsTree = getPermissionsRoot();
             if (permissionsTree == null || principals.isEmpty()) {
                 compiledPermissions = NoPermissions.getInstance();
             } else {
@@ -152,7 +149,7 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
 
     @Override
     public boolean hasPermission(@Nonnull String oakPath, @Nonnull String jcrActions) {
-        TreeLocation location = getReadOnlyRoot().getLocation(oakPath);
+        TreeLocation location = getImmutableRoot().getLocation(oakPath);
         long permissions = Permissions.getPermissions(jcrActions, location);
         if (!location.exists()) {
             // TODO: deal with version content
@@ -180,29 +177,29 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
         return false;
     }
 
-    private ReadOnlyRoot getReadOnlyRoot() {
-        if (root instanceof ReadOnlyRoot) {
-            return (ReadOnlyRoot) root;
+    private ImmutableRoot getImmutableRoot() {
+        if (root instanceof ImmutableRoot) {
+            return (ImmutableRoot) root;
         } else {
-            return new ReadOnlyRoot(root);
+            return new ImmutableRoot(root, new ImmutableTree.DefaultTypeProvider(acConfig.getContext()));
         }
     }
 
     @CheckForNull
-    private ReadOnlyTree getPermissionsRoot() {
+    private ImmutableTree getPermissionsRoot() {
         String relativePath = PERMISSIONS_STORE_PATH + '/' + workspaceName;
-        ReadOnlyTree rootTree = checkNotNull(getReadOnlyRoot().getTree("/"));
+        ImmutableTree rootTree = checkNotNull(getImmutableRoot().getTree("/"));
         Tree tree = rootTree.getLocation().getChild(relativePath).getTree();
-        return (tree == null) ? null : (ReadOnlyTree) tree;
+        return (tree == null) ? null : (ImmutableTree) tree;
     }
 
     @Nonnull
     private PrivilegeBitsProvider getBitsProvider() {
-        return new PrivilegeBitsProvider(getReadOnlyRoot());
+        return new PrivilegeBitsProvider(getImmutableRoot());
     }
 
     private boolean isAccessControlContent(@Nonnull Tree tree) {
-        return acContext.definesTree(tree);
+        return ImmutableTree.TypeProvider.TYPE_AC == ImmutableTree.getType(tree);
     }
 
     private boolean canReadAccessControlContent(@Nonnull Tree acTree, @Nullable PropertyState acProperty) {
@@ -214,20 +211,7 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
     }
 
     private static boolean isVersionContent(@Nonnull Tree tree) {
-        if (tree.isRoot()) {
-            return false;
-        }
-        if (VersionConstants.VERSION_NODE_NAMES.contains(tree.getName())) {
-            return true;
-        } else if (VersionConstants.VERSION_NODE_TYPE_NAMES.contains(TreeUtil.getPrimaryTypeName(tree))) {
-            return true;
-        } else {
-            return isVersionContent(tree.getPath());
-        }
-    }
-
-    private static boolean isVersionContent(@Nonnull String path) {
-        return VersionConstants.SYSTEM_PATHS.contains(Text.getAbsoluteParent(path, 1));
+        return ImmutableTree.TypeProvider.TYPE_VERSION == ImmutableTree.getType(tree);
     }
 
     private boolean canReadVersionContent(@Nonnull Tree versionStoreTree, @Nullable PropertyState property) {
