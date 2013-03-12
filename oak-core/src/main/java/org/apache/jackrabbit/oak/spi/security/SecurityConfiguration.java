@@ -23,7 +23,6 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
-import org.apache.jackrabbit.oak.spi.commit.CommitHookProvider;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.lifecycle.WorkspaceInitializer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
@@ -42,7 +41,7 @@ public interface SecurityConfiguration {
     WorkspaceInitializer getWorkspaceInitializer();
 
     @Nonnull
-    CommitHookProvider getSecurityHooks();
+    List<? extends CommitHook> getCommitHooks(String workspaceName);
 
     @Nonnull
     List<? extends ValidatorProvider> getValidators(String workspaceName);
@@ -78,8 +77,8 @@ public interface SecurityConfiguration {
 
         @Nonnull
         @Override
-        public CommitHookProvider getSecurityHooks() {
-            return new CommitHookProvider.Empty();
+        public List<? extends CommitHook> getCommitHooks(String workspaceName) {
+            return Collections.emptyList();
         }
 
         @Nonnull

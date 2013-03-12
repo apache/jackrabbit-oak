@@ -23,15 +23,15 @@ import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.jcr.security.AccessControlManager;
 
+import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.version.VersionablePathHook;
+import org.apache.jackrabbit.oak.security.authorization.permission.PermissionHook;
 import org.apache.jackrabbit.oak.security.authorization.permission.PermissionStoreValidatorProvider;
 import org.apache.jackrabbit.oak.security.authorization.permission.PermissionValidatorProvider;
 import org.apache.jackrabbit.oak.security.authorization.restriction.RestrictionProviderImpl;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
-import org.apache.jackrabbit.oak.spi.commit.CommitHookProvider;
-import org.apache.jackrabbit.oak.spi.commit.CompositeHook;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.lifecycle.WorkspaceInitializer;
 import org.apache.jackrabbit.oak.spi.security.Context;
@@ -41,8 +41,6 @@ import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfigu
 import org.apache.jackrabbit.oak.spi.security.authorization.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
-
-import com.google.common.collect.ImmutableList;
 
 /**
  * {@code AccessControlConfigurationImpl} ... TODO
@@ -70,16 +68,10 @@ public class AccessControlConfigurationImpl extends SecurityConfiguration.Defaul
 
     @Nonnull
     @Override
-    public CommitHookProvider getSecurityHooks() {
-        return new CommitHookProvider() {
-            @Override
-            public CommitHook getCommitHook(String workspaceName) {
-//                return new CompositeHook(
-//                        new PermissionHook(workspaceName, getRestrictionProvider(NamePathMapper.DEFAULT)),
-//                        new VersionablePathHook(workspaceName));
-                return new CompositeHook(new VersionablePathHook(workspaceName));
-            }
-        };
+    public List<? extends CommitHook> getCommitHooks(String workspaceName) {
+        return ImmutableList.of(
+                new VersionablePathHook(workspaceName),
+                new PermissionHook(workspaceName, getRestrictionProvider(NamePathMapper.DEFAULT)));
     }
 
     @Override
