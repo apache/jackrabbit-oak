@@ -296,16 +296,16 @@ public class RootImpl implements Root {
         commitHooks.add(hook);
         List<CommitHook> postValidationHooks = new ArrayList<CommitHook>();
         for (SecurityConfiguration sc : securityProvider.getSecurityConfigurations()) {
-            CommitHook ch = sc.getSecurityHooks().getCommitHook(workspaceName);
-            if (ch instanceof PostValidationHook) {
-                postValidationHooks.add(ch);
-            } else if (ch != EmptyHook.INSTANCE) {
-                commitHooks.add(ch);
+            for (CommitHook ch : sc.getCommitHooks(workspaceName)) {
+                if (ch instanceof PostValidationHook) {
+                    postValidationHooks.add(ch);
+                } else if (ch != EmptyHook.INSTANCE) {
+                    commitHooks.add(ch);
+                }
             }
             List<? extends ValidatorProvider> validators = sc.getValidators(workspaceName);
             if (!validators.isEmpty()) {
-                commitHooks.add(new EditorHook(
-                        CompositeEditorProvider.compose(validators)));
+                commitHooks.add(new EditorHook(CompositeEditorProvider.compose(validators)));
             }
         }
         commitHooks.addAll(postValidationHooks);
