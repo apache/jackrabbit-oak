@@ -103,8 +103,7 @@ public final class Permissions {
             | USER_MANAGEMENT
     );
 
-    private static final Map<Long, String> PERMISSION_NAMES = new LinkedHashMap<Long, String>();
-
+    public static final Map<Long, String> PERMISSION_NAMES = new LinkedHashMap<Long, String>();
     static {
         PERMISSION_NAMES.put(ALL, "ALL");
         PERMISSION_NAMES.put(READ, "READ");
@@ -159,6 +158,23 @@ public final class Permissions {
 
     public static boolean includes(long permissions, long permissionsToTest) {
         return (permissions & permissionsToTest) == permissionsToTest;
+    }
+
+     /**
+      * Returns those bits from {@code permissions} that are not present in
+      * the {@code otherPermissions}, i.e. subtracts the other permissions
+      * from permissions.<br>
+      * If the specified {@code otherPermissions} do not intersect with
+      * {@code permissions},  {@code permissions} are returned.<br>
+      * If {@code permissions} is included in {@code otherPermissions},
+      * {@link #NO_PERMISSION} is returned.
+      *
+      * @param permissions
+      * @param otherPermissions
+      * @return the differences of the 2 permissions or {@link #NO_PERMISSION}.
+      */
+    public static long diff(long permissions, long otherPermissions) {
+        return permissions & ~otherPermissions;
     }
 
     public static long getPermissions(String jcrActions, TreeLocation location) {
