@@ -16,62 +16,126 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
-import java.util.concurrent.TimeUnit;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.collect.ImmutableMap.of;
 
-import com.google.common.collect.ImmutableMap;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+
 import com.mongodb.BasicDBObject;
+import com.mongodb.BasicDBObjectBuilder;
 import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
 
 class MongoJournal implements Journal {
 
-    private static final long UPDATE_INTERVAL =
-            TimeUnit.NANOSECONDS.convert(10, TimeUnit.MILLISECONDS);
+    private final SegmentStore store;
 
     private final DBCollection journals;
 
     private final String name;
 
-    private long nextUpdate = System.nanoTime() - 2 * UPDATE_INTERVAL;
+    MongoJournal(SegmentStore store, DBCollection journals, NodeState root) {
+        this.store = checkNotNull(store);
+        this.journals = checkNotNull(journals);
+        this.name = "root";
 
-    private RecordId head;
+        DBObject state = journals.findOne(new BasicDBObject("_id", "root"));
+        if (state == null) {
+            SegmentWriter writer = new SegmentWriter(store);
+            RecordId id = writer.writeNode(root).getRecordId();
+            writer.flush();
+            state = new BasicDBObject(of("_id", "root", "head", id.toString()));
+            journals.insert(state);
+        }
+    }
 
-    MongoJournal(DBCollection journals, String name) {
-        this.journals = journals;
-        this.name = name;
-        head = getHead();
+    MongoJournal(SegmentStore store, DBCollection journals, String name) {
+        this.store = checkNotNull(store);
+        this.journals = checkNotNull(journals);
+        this.name = checkNotNull(name);
+        checkArgument(!"root".equals(name));
+
+        DBObject state = journals.findOne(new BasicDBObject("_id", name));
+        if (state == null) {
+            Journal root = store.getJournal("root");
+            String head = root.getHead().toString();
+            state = new BasicDBObject(of(
+                    "_id",    name,
+                    "parent", "root",
+                    "base",   head,
+                    "head",   head));
+            journals.insert(state);
+        }
     }
 
     @Override
-    public synchronized RecordId getHead() {
-        long now = System.nanoTime();
-        if (now >= nextUpdate) {
-            DBObject journal = journals.findOne(new BasicDBObject("_id", name));
-            head = RecordId.fromString(journal.get("head").toString());
-            nextUpdate = now + UPDATE_INTERVAL;
-        }
-        return head;
+    public RecordId getHead() {
+        DBObject state = journals.findOne(new BasicDBObject("_id", name));
+        checkState(state != null);
+        return RecordId.fromString(state.get("head").toString());
     }
 
     @Override
-    public boolean setHead(RecordId base, RecordId head) {
-        DBObject baseObject = new BasicDBObject(
-                ImmutableMap.of("_id", name, "head", base.toString()));
-        DBObject headObject = new BasicDBObject(
-                ImmutableMap.of("_id", name, "head", head.toString()));
-        if (journals.findAndModify(baseObject, headObject) != null) {
-            this.head = head;
-            nextUpdate = System.nanoTime() + UPDATE_INTERVAL;
-            return true;
-        } else if (base.equals(this.head)) {
-            // force an update at next getHead() call
-            nextUpdate = System.nanoTime();
+    public synchronized boolean setHead(RecordId base, RecordId head) {
+        DBObject state = journals.findOne(new BasicDBObject("_id", name));
+        checkState(state != null);
+        if (!base.toString().equals(state.get("head"))) {
+            return false;
         }
-        return false;
+
+        BasicDBObjectBuilder builder = BasicDBObjectBuilder.start();
+        builder.add("_id", name);
+        if (state.containsField("parent")) {
+            builder.add("parent", state.get("parent"));
+        }
+        if (state.containsField("base")) {
+            builder.add("base", state.get("base"));
+        }
+        builder.add("head", head.toString());
+        DBObject nextState = builder.get();
+
+        return journals.findAndModify(state, nextState) != null;
     }
 
     @Override
     public void merge() {
-        throw new UnsupportedOperationException();
+        DBObject state = journals.findOne(new BasicDBObject("_id", name));
+        checkState(state != null);
+
+        if (state.containsField("parent")) {
+            RecordId base = RecordId.fromString(state.get("base").toString());
+            RecordId head = RecordId.fromString(state.get("head").toString());
+
+            NodeState before = new SegmentNodeState(store, base);
+            NodeState after = new SegmentNodeState(store, head);
+
+            Journal parent = store.getJournal(state.get("parent").toString());
+            SegmentWriter writer = new SegmentWriter(store);
+            while (!parent.setHead(base, head)) {
+                RecordId newBase = parent.getHead();
+                NodeBuilder builder =
+                        new SegmentNodeState(store, newBase).builder();
+                after.compareAgainstBaseState(before, new MergeDiff(builder));
+                RecordId newHead =
+                        writer.writeNode(builder.getNodeState()).getRecordId();
+                writer.flush();
+
+                base = newBase;
+                head = newHead;
+            }
+
+            base = head;
+
+            BasicDBObjectBuilder builder = BasicDBObjectBuilder.start();
+            builder.add("_id", name);
+            builder.add("parent", state.get("parent"));
+            builder.add("base", base.toString());
+            builder.add("head", head.toString());
+            journals.update(state, builder.get());
+        }
     }
+
 }
