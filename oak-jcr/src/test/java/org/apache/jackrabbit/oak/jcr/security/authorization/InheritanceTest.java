@@ -21,20 +21,19 @@ import java.util.UUID;
 import javax.jcr.Node;
 import javax.jcr.Session;
 import javax.jcr.security.AccessControlEntry;
-import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
+import org.junit.Ignore;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * InheritanceTest... TODO
  */
+@Ignore("OAK-51")
 public class InheritanceTest extends AbstractEvaluationTest {
 
     @Test
