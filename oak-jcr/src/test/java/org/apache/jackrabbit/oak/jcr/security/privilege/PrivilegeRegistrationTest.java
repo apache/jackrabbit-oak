@@ -34,9 +34,11 @@ import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
+import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeConstants;
+import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -64,6 +66,13 @@ public class PrivilegeRegistrationTest extends AbstractPrivilegeTest {
         session = getAdminSession();
         privilegeManager = getPrivilegeManager(session);
 
+        // make sure the guest session has read access
+        try {
+            AccessControlUtils.addAccessControlEntry(session, "/", EveryonePrincipal.getInstance(), new String[]{Privilege.JCR_READ}, true);
+            session.save();
+        } catch (RepositoryException e) {
+            // failed to initialize
+        }
     }
     @After
     public void tearDown() throws Exception {
