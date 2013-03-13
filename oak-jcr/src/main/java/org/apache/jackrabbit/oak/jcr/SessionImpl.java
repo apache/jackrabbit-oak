@@ -21,6 +21,7 @@ import java.util.HashSet;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+
 import javax.annotation.Nonnull;
 import javax.jcr.AccessDeniedException;
 import javax.jcr.Credentials;
@@ -87,6 +88,13 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     public SessionImpl(SessionDelegate dlg, Map<String, String> namespaces) {
         this.dlg = dlg;
         this.namespaces = namespaces;
+    }
+
+    public void checkProtectedNodes(String... absJcrPaths) throws RepositoryException {
+        for (String absPath : absJcrPaths) {
+            NodeImpl<?> node = (NodeImpl<?>) getNode(absPath);
+            node.checkProtected();
+        }
     }
 
     //------------------------------------------------------------< Session >---
@@ -281,11 +289,11 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
             @Override
             protected void checkPreconditions() throws RepositoryException {
                 ensureIsAlive();
+                checkProtectedNodes(Text.getRelativeParent(srcAbsPath, 1), Text.getRelativeParent(destAbsPath, 1));
             }
 
             @Override
             public Void perform() throws RepositoryException {
-                dlg.checkProtectedNodes(Text.getRelativeParent(srcAbsPath, 1), Text.getRelativeParent(destAbsPath, 1));
                 String oakPath = SessionContextProvider.getOakPathKeepIndexOrThrowNotFound(dlg, destAbsPath);
                 String oakName = PathUtils.getName(oakPath);
                 // handle index

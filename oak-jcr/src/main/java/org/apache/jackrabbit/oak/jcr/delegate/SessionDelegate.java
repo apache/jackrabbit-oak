@@ -23,7 +23,6 @@ import javax.annotation.Nonnull;
 import javax.jcr.ItemExistsException;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
-import javax.jcr.Session;
 
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -34,8 +33,6 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.IdentifierManager;
-import org.apache.jackrabbit.oak.jcr.NodeImpl;
-import org.apache.jackrabbit.oak.jcr.SessionContextProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -357,13 +354,5 @@ public class SessionDelegate {
     @CheckForNull
     private Tree getTree(String path) {
         return root.getTree(path);
-    }
-
-    public void checkProtectedNodes(String... absJcrPaths) throws RepositoryException {
-        Session session = SessionContextProvider.getSession(this);
-        for (String absPath : absJcrPaths) {
-            NodeImpl<?> node = (NodeImpl<?>) session.getNode(absPath);
-            node.checkProtected();
-        }
     }
 }
