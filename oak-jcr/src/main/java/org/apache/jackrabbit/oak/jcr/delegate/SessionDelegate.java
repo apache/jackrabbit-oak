@@ -131,7 +131,7 @@ public class SessionDelegate {
         }
     }
 
-    @Nonnull
+    @Nonnull  // FIXME this should be package private
     public Root getRoot() {
         return root;
     }

@@ -38,12 +38,16 @@ import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+/**
+ * TODO doc
+ */
 public abstract class SessionContext implements NamePathMapper {
     private final RepositoryImpl repository;
     private final SessionDelegate delegate;
     private final NamePathMapper namePathMapper;
     private final ValueFactory valueFactory;
 
+    // FIXME lazy initialisation is not thread safe
     private AccessControlManager accessControlManager;
     private PrincipalManager principalManager;
     private UserManager userManager;
