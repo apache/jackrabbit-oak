@@ -85,6 +85,7 @@ import org.apache.jackrabbit.oak.plugins.nodetype.DefinitionProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.EffectiveNodeType;
 import org.apache.jackrabbit.oak.plugins.nodetype.EffectiveNodeTypeProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
+import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.util.TODO;
 import org.apache.jackrabbit.value.ValueHelper;
 import org.slf4j.Logger;
@@ -997,7 +998,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                             JcrConstants.JCR_MIXINTYPES, Collections.singletonList(value)));
                 } else {
                     PropertyState property = mixins.getMultiState();
-                    List<Value> values = getValueFactory().createValues(property);
+                    List<Value> values = ValueFactoryImpl.createValues(property, sessionContext.getNamePathMapper());
                     if (!values.contains(value)) {
                         values.add(value);
                         nodeModified = true;
