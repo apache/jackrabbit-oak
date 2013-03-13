@@ -1,5 +1,6 @@
 package org.apache.jackrabbit.oak.plugins.index.diffindex;
 
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -7,7 +8,6 @@ import static org.junit.Assert.assertTrue;
 import java.util.Iterator;
 import java.util.Set;
 
-import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
 import org.apache.jackrabbit.oak.query.ast.Operator;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
@@ -19,7 +19,7 @@ public class DiffCollectorTest {
 
     @Test
     public void testUUID() throws Exception {
-        NodeState root = MemoryNodeState.EMPTY_NODE;
+        NodeState root = EMPTY_NODE;
 
         NodeBuilder builder = root.builder();
         builder.child("a").setProperty("jcr:uuid", "abc");
@@ -43,7 +43,7 @@ public class DiffCollectorTest {
 
     @Test
     public void testUUIDInner() throws Exception {
-        NodeState root = MemoryNodeState.EMPTY_NODE;
+        NodeState root = EMPTY_NODE;
         NodeBuilder builder = root.builder();
 
         builder.child("a").setProperty("jcr:uuid", "abc");
@@ -68,7 +68,7 @@ public class DiffCollectorTest {
 
     @Test
     public void testDeepChange() throws Exception {
-        NodeState root = MemoryNodeState.EMPTY_NODE;
+        NodeState root = EMPTY_NODE;
         NodeBuilder builder = root.builder();
 
         NodeBuilder b1 = builder.child("rep:security").child(

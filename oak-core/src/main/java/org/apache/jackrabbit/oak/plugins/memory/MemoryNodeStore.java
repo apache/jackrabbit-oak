@@ -29,6 +29,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 /**
  * Basic in-memory node store implementation. Useful as a base class for
@@ -37,7 +38,7 @@ import static com.google.common.base.Preconditions.checkState;
 public class MemoryNodeStore implements NodeStore {
 
     private final AtomicReference<NodeState> root =
-            new AtomicReference<NodeState>(MemoryNodeState.EMPTY_NODE);
+            new AtomicReference<NodeState>(EMPTY_NODE);
 
     @Override
     public NodeState getRoot() {

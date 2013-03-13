@@ -38,7 +38,6 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.diffindex.UUIDDiffIndexProviderWrapper;
-import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
 import org.apache.jackrabbit.oak.query.QueryEngineImpl;
 import org.apache.jackrabbit.oak.security.authentication.SystemSubject;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
@@ -65,6 +64,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 public class RootImpl implements Root {
 
@@ -252,7 +252,7 @@ public class RootImpl implements Root {
 
         // Disconnect all children -> access to now invalid trees fails fast
         if (OAK_690) {
-            rootTree.getNodeBuilder().reset(MemoryNodeState.EMPTY_NODE);
+            rootTree.getNodeBuilder().reset(EMPTY_NODE);
         }
         rootTree = new TreeImpl(this, lastMove);
         modCount = 0;

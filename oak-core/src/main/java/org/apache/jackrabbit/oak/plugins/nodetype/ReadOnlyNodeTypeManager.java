@@ -59,7 +59,6 @@ import org.apache.jackrabbit.oak.core.ReadOnlyTree;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
-import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -68,6 +67,7 @@ import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
 
 /**
@@ -161,7 +161,7 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
                 .getChild(NODE_TYPES_PATH.substring(1)).getTree();
 
         final Tree types = tree == null
-            ? new ReadOnlyTree(MemoryNodeState.EMPTY_NODE)  // No node types in content, use an empty node
+            ? new ReadOnlyTree(EMPTY_NODE)  // No node types in content, use an empty node
             : tree;
 
         return new ReadOnlyNodeTypeManager() {

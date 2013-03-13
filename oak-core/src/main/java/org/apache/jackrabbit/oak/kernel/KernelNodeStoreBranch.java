@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.kernel;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -188,7 +187,7 @@ class KernelNodeStoreBranch implements NodeStoreBranch {
         } else if (headRevision == null) {
             // Nothing written to persistent branch yet
             // perform rebase in memory
-            NodeBuilder builder = new MemoryNodeBuilder(root);
+            NodeBuilder builder = root.builder();
             getHead().compareAgainstBaseState(getBase(), new RebaseDiff(builder));
             head = builder.getNodeState();
             base = root;

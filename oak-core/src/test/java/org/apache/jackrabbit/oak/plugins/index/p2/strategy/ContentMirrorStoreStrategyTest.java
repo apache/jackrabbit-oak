@@ -16,8 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.p2.strategy;
 
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Assert;
@@ -45,7 +46,7 @@ public class ContentMirrorStoreStrategyTest {
     public void testIndexPruning() throws Exception {
         IndexStoreStrategy store = new ContentMirrorStoreStrategy();
 
-        NodeState root = MemoryNodeState.EMPTY_NODE;
+        NodeState root = EMPTY_NODE;
         NodeBuilder index = root.builder();
 
         store.insert(index, "key", false,

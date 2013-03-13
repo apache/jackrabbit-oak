@@ -17,11 +17,13 @@
 package org.apache.jackrabbit.oak.plugins.segment;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -114,7 +116,11 @@ class SegmentNodeState extends AbstractNodeState {
 
     @Override
     public void compareAgainstBaseState(NodeState base, NodeStateDiff diff) {
-        if (base instanceof SegmentNodeState) {
+        if (base == this) {
+             return; // no changes
+        } else if (base == EMPTY_NODE) {
+            EmptyNodeState.compareAgainstEmptyState(this, diff); // special case
+        } else if (base instanceof SegmentNodeState) {
             SegmentNodeState that = (SegmentNodeState) base;
             if (!recordId.equals(that.recordId)) {
                 getTemplate().compareAgainstBaseState(

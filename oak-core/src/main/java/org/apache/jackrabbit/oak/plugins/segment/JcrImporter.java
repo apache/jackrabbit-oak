@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+
 import java.util.Arrays;
 
 import javax.jcr.Node;
@@ -24,8 +26,6 @@ import javax.jcr.Property;
 import javax.jcr.PropertyIterator;
 import javax.jcr.RepositoryException;
 
-import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
-import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -39,8 +39,7 @@ public class JcrImporter {
     }
 
     public NodeState writeNode(Node node) throws RepositoryException {
-        NodeBuilder builder =
-                new MemoryNodeBuilder(MemoryNodeState.EMPTY_NODE);
+        NodeBuilder builder = EMPTY_NODE.builder();
         buildNode(builder, node);
         return writer.writeNode(builder.getNodeState());
     }

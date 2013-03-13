@@ -16,7 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
-import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
@@ -35,7 +36,7 @@ public class CompareAgainstBaseStateTest {
 
     private final NodeStateDiff diff = EasyMock.createMock(NodeStateDiff.class);
 
-    private final NodeBuilder builder = MemoryNodeState.EMPTY_NODE.builder();
+    private final NodeBuilder builder = EMPTY_NODE.builder();
 
     @Before
     public void setUp() {

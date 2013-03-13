@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -27,7 +28,6 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexHook;
-import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
@@ -151,7 +151,7 @@ public class LuceneIndexDiff implements IndexHook, LuceneIndexConstants {
         for (LuceneIndexUpdate update : updates.values()) {
             update.insert(concat(getPath(), name), new ReadOnlyBuilder(after));
         }
-        after.compareAgainstBaseState(MemoryNodeState.EMPTY_NODE, child(name));
+        after.compareAgainstBaseState(EMPTY_NODE, child(name));
     }
 
     @Override
@@ -191,7 +191,7 @@ public class LuceneIndexDiff implements IndexHook, LuceneIndexConstants {
         }
         if (reindex) {
             state.getNodeState().compareAgainstBaseState(
-                    MemoryNodeState.EMPTY_NODE,
+                    EMPTY_NODE,
                     new LuceneIndexDiff(null, state, null, "/", updates));
         }
     }

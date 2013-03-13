@@ -17,12 +17,12 @@
 package org.apache.jackrabbit.oak.plugins.segment;
 
 import static junit.framework.Assert.assertEquals;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 import java.util.Calendar;
 import java.util.Collections;
 
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -38,27 +38,27 @@ public class SegmentSizeTest {
 
     @Test
     public void testNodeSize() {
-        NodeBuilder builder = MemoryNodeState.EMPTY_NODE.builder();
+        NodeBuilder builder = EMPTY_NODE.builder();
         assertEquals(8, getSize(builder));
         assertEquals(4, getAmortizedSize(builder));
 
-        builder = MemoryNodeState.EMPTY_NODE.builder();
+        builder = EMPTY_NODE.builder();
         builder.setProperty("foo", "bar");
         assertEquals(24, getSize(builder));
         assertEquals(8, getAmortizedSize(builder));
 
-        builder = MemoryNodeState.EMPTY_NODE.builder();
+        builder = EMPTY_NODE.builder();
         builder.setProperty("foo", "bar");
         builder.setProperty("baz", 123);
         assertEquals(40, getSize(builder));
         assertEquals(12, getAmortizedSize(builder));
 
-        builder = MemoryNodeState.EMPTY_NODE.builder();
+        builder = EMPTY_NODE.builder();
         builder.child("foo");
         assertEquals(28, getSize(builder));
         assertEquals(12, getAmortizedSize(builder));
 
-        builder = MemoryNodeState.EMPTY_NODE.builder();
+        builder = EMPTY_NODE.builder();
         builder.child("foo");
         builder.child("bar");
         assertEquals(56, getSize(builder));
@@ -69,7 +69,7 @@ public class SegmentSizeTest {
     public void testDuplicateStrings() {
         String string = "More than just a few bytes of example content.";
 
-        NodeBuilder builder = MemoryNodeState.EMPTY_NODE.builder();
+        NodeBuilder builder = EMPTY_NODE.builder();
         builder.setProperty(PropertyStates.createProperty(
                 "test", Collections.nCopies(1, string), Type.STRINGS));
         int base = getSize(builder);
@@ -87,7 +87,7 @@ public class SegmentSizeTest {
     public void testDuplicateDates() {
         String now = ISO8601.format(Calendar.getInstance());
 
-        NodeBuilder builder = MemoryNodeState.EMPTY_NODE.builder();
+        NodeBuilder builder = EMPTY_NODE.builder();
         builder.setProperty(PropertyStates.createProperty(
                 "test", Collections.nCopies(1, now), Type.DATES));
         int base = getSize(builder);
@@ -103,7 +103,7 @@ public class SegmentSizeTest {
 
     @Test
     public void testAccessControlNodes() {
-        NodeBuilder builder = MemoryNodeState.EMPTY_NODE.builder();
+        NodeBuilder builder = EMPTY_NODE.builder();
         builder.setProperty("jcr:primaryType", "rep:ACL", Type.NAME);
         assertEquals(20, getSize(builder));
         assertEquals(4, getAmortizedSize(builder));
@@ -147,7 +147,7 @@ public class SegmentSizeTest {
         SegmentStore store = new MemoryStore();
         SegmentWriter writer = new SegmentWriter(store);
 
-        NodeBuilder builder = MemoryNodeState.EMPTY_NODE.builder();
+        NodeBuilder builder = EMPTY_NODE.builder();
         for (int i = 0; i < 1000; i++) {
             builder.child("child" + i);
         }

@@ -22,6 +22,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFIN
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.property.PropertyIndex.TYPE;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -34,7 +35,6 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexHook;
-import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
@@ -204,7 +204,7 @@ class PropertyIndexDiff implements IndexHook {
 
     @Override
     public void childNodeAdded(String name, NodeState after) {
-        childNodeChanged(name, MemoryNodeState.EMPTY_NODE, after);
+        childNodeChanged(name, EMPTY_NODE, after);
     }
 
     @Override
@@ -217,7 +217,7 @@ class PropertyIndexDiff implements IndexHook {
 
     @Override
     public void childNodeDeleted(String name, NodeState before) {
-        childNodeChanged(name, before, MemoryNodeState.EMPTY_NODE);
+        childNodeChanged(name, before, EMPTY_NODE);
     }
 
     // -----------------------------------------------------< IndexHook >--
@@ -243,7 +243,7 @@ class PropertyIndexDiff implements IndexHook {
         }
         if (reindex) {
             state.getNodeState().compareAgainstBaseState(
-                    MemoryNodeState.EMPTY_NODE,
+                    EMPTY_NODE,
                     new PropertyIndexDiff(null, state, null, "/", updates));
         }
     }

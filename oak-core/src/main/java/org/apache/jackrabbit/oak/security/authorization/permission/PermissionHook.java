@@ -31,7 +31,6 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.ImmutableRoot;
 import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.core.TreeImpl;
-import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.security.authorization.AccessControlConstants;
@@ -50,6 +49,7 @@ import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 /**
  * {@code CommitHook} implementation that processes any modification made to
@@ -160,7 +160,7 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
             if (isACE(name, after)) {
                 addEntry(name, after);
             } else {
-                BeforeNode before = new BeforeNode(parentBefore.getPath(), name, MemoryNodeState.EMPTY_NODE);
+                BeforeNode before = new BeforeNode(parentBefore.getPath(), name, EMPTY_NODE);
                 Node node = new Node(parentAfter, name);
                 after.compareAgainstBaseState(before.getNodeState(), new Diff(before, node));
             }
@@ -185,7 +185,7 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
                 removeEntry(name, before);
             } else {
                 BeforeNode nodeBefore = new BeforeNode(parentBefore.getPath(), name, before);
-                Node after = new Node(parentAfter.getPath(), name, MemoryNodeState.EMPTY_NODE);
+                Node after = new Node(parentAfter.getPath(), name, EMPTY_NODE);
                 after.getNodeState().compareAgainstBaseState(before, new Diff(nodeBefore, after));
             }
         }

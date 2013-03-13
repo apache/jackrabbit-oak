@@ -24,7 +24,6 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexHook;
-import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
 import org.apache.jackrabbit.oak.plugins.index.solr.OakSolrConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.query.SolrQueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -35,6 +34,7 @@ import org.apache.solr.client.solrj.SolrServer;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 /**
  * {@link IndexHook} implementation that is responsible for keeping the
@@ -159,7 +159,7 @@ public class SolrIndexDiff implements IndexHook {
         for (SolrIndexUpdate update : updates.values()) {
             update.insert(concat(getPath(), name), new ReadOnlyBuilder(after));
         }
-        after.compareAgainstBaseState(MemoryNodeState.EMPTY_NODE, child(name));
+        after.compareAgainstBaseState(EMPTY_NODE, child(name));
     }
 
     @Override
@@ -199,7 +199,7 @@ public class SolrIndexDiff implements IndexHook {
         }
         if (reindex) {
             state.getNodeState().compareAgainstBaseState(
-                    MemoryNodeState.EMPTY_NODE,
+                    EMPTY_NODE,
                     new SolrIndexDiff(null, state, solrServer, null, "/", updates, configuration));
         }
     }

@@ -48,6 +48,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.BinaryPropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.BooleanPropertyState;
+import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.plugins.memory.StringPropertyState;
 import org.apache.jackrabbit.oak.plugins.value.Conversions;
@@ -59,6 +60,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 
 /**
@@ -311,6 +313,8 @@ public final class KernelNodeState extends AbstractNodeState {
     public void compareAgainstBaseState(NodeState base, NodeStateDiff diff) {
         if (this == base) {
             return; // no differences
+        } else if (base == EMPTY_NODE) {
+            EmptyNodeState.compareAgainstEmptyState(this, diff); // special case
         } else if (base instanceof KernelNodeState) {
             KernelNodeState kbase = (KernelNodeState) base;
             if (kernel.equals(kbase.kernel)) {

@@ -16,10 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.name;
 
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+
 import java.util.Collections;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.junit.Test;
 
@@ -30,51 +31,51 @@ public class NameValidatorTest {
 
     @Test(expected = CommitFailedException.class)
     public void testCurrentPath() throws CommitFailedException {
-        validator.childNodeAdded(".", MemoryNodeState.EMPTY_NODE);
+        validator.childNodeAdded(".", EMPTY_NODE);
     }
 
     @Test(expected = CommitFailedException.class)
     public void testParentPath() throws CommitFailedException {
-        validator.childNodeAdded("..", MemoryNodeState.EMPTY_NODE);
+        validator.childNodeAdded("..", EMPTY_NODE);
     }
 
     @Test // valid as of OAK-182
     public void testEmptyPrefix() throws CommitFailedException {
-        validator.childNodeAdded(":name", MemoryNodeState.EMPTY_NODE);
+        validator.childNodeAdded(":name", EMPTY_NODE);
     }
 
     @Test(expected = CommitFailedException.class)
     public void testInvalidPrefix() throws CommitFailedException {
-        validator.childNodeAdded("invalid:name", MemoryNodeState.EMPTY_NODE);
+        validator.childNodeAdded("invalid:name", EMPTY_NODE);
     }
 
     @Test
     public void testValidPrefix() throws CommitFailedException {
-        validator.childNodeAdded("valid:name", MemoryNodeState.EMPTY_NODE);
+        validator.childNodeAdded("valid:name", EMPTY_NODE);
     }
 
     @Test(expected = CommitFailedException.class)
     public void testSlashName() throws CommitFailedException {
-        validator.childNodeAdded("invalid/name", MemoryNodeState.EMPTY_NODE);
+        validator.childNodeAdded("invalid/name", EMPTY_NODE);
     }
 
     @Test(expected = CommitFailedException.class)
     public void testIndexInName() throws CommitFailedException {
-        validator.childNodeAdded("name[1]", MemoryNodeState.EMPTY_NODE);
+        validator.childNodeAdded("name[1]", EMPTY_NODE);
     }
 
     @Test
     public void testValidName() throws CommitFailedException {
-        validator.childNodeAdded("name", MemoryNodeState.EMPTY_NODE);
+        validator.childNodeAdded("name", EMPTY_NODE);
     }
 
     @Test
     public void testDeleted() throws CommitFailedException {
-        validator.childNodeDeleted(".", MemoryNodeState.EMPTY_NODE);
-        validator.childNodeDeleted("..", MemoryNodeState.EMPTY_NODE);
-        validator.childNodeDeleted("valid:name", MemoryNodeState.EMPTY_NODE);
-        validator.childNodeDeleted("invalid:name", MemoryNodeState.EMPTY_NODE);
-        validator.childNodeDeleted("invalid/name", MemoryNodeState.EMPTY_NODE);
+        validator.childNodeDeleted(".", EMPTY_NODE);
+        validator.childNodeDeleted("..", EMPTY_NODE);
+        validator.childNodeDeleted("valid:name", EMPTY_NODE);
+        validator.childNodeDeleted("invalid:name", EMPTY_NODE);
+        validator.childNodeDeleted("invalid/name", EMPTY_NODE);
     }
 
 }
