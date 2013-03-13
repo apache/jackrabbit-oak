@@ -55,7 +55,7 @@ public interface Importer {
 
     /**
      * Called to end the import of a node. This method is called after
-     * a {@link #startNode(NodeInfo, List)} call with the stame node
+     * a {@link #startNode(NodeInfo, List)} call with the same node
      * information and after all the possible child nodes have been
      * imported with respective startNode/endNode calls.
      * <p/>
