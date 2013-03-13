@@ -21,12 +21,14 @@ import java.util.Iterator;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.plugins.index.solr.query.SolrQueryIndex;
+import org.apache.jackrabbit.oak.plugins.index.solr.OakSolrConfiguration;
+import org.apache.jackrabbit.oak.plugins.index.solr.TestUtils;
+import org.apache.jackrabbit.oak.plugins.index.solr.server.OakSolrNodeStateConfiguration;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.query.JsopUtil;
-import org.apache.jackrabbit.oak.plugins.index.solr.OakSolrConfiguration;
-import org.apache.jackrabbit.oak.plugins.index.solr.TestUtils;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.solr.client.solrj.SolrServer;
 import org.junit.After;
 import org.junit.Ignore;
@@ -35,6 +37,9 @@ import org.junit.Test;
 import static junit.framework.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * General query extensive testcase for {@link org.apache.jackrabbit.oak.plugins.index.solr.query.SolrQueryIndex} and {@link org.apache.jackrabbit.oak.plugins.index.solr.index.SolrIndexDiff}
@@ -58,7 +63,8 @@ public class SolrIndexQueryTest extends AbstractQueryTest {
 
     @Override
     protected ContentRepository createRepository() {
-        OakSolrConfiguration testConfiguration = TestUtils.getTestConfiguration();
+        NodeState mockedNodeState = createMockedConfigurationNodeState();
+        OakSolrConfiguration testConfiguration = TestUtils.getTestConfiguration(mockedNodeState);
         try {
             solrServer = TestUtils.createSolrServer();
             return new Oak().with(new InitialContent())
@@ -68,6 +74,20 @@ public class SolrIndexQueryTest extends AbstractQueryTest {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private NodeState createMockedConfigurationNodeState() {
+        NodeState mockedNodeState = mock(NodeState.class);
+        when(mockedNodeState.getProperty(anyString())).thenReturn(null);
+//        when(mockedNodeState.getProperty(OakSolrNodeStateConfiguration.Properties.SOLRHOME_PATH)).
+//                thenReturn(PropertyStates.createProperty(OakSolrNodeStateConfiguration.Properties.SOLRHOME_PATH, TestUtils.SOLR_HOME_PATH));
+//        when(mockedNodeState.getProperty(OakSolrNodeStateConfiguration.Properties.SOLRCONFIG_PATH)).
+//                thenReturn(PropertyStates.createProperty(OakSolrNodeStateConfiguration.Properties.SOLRCONFIG_PATH, TestUtils.SOLRCONFIG_PATH));
+//        when(mockedNodeState.getProperty(OakSolrNodeStateConfiguration.Properties.PATH_FIELD)).
+//                thenReturn(PropertyStates.createProperty(OakSolrNodeStateConfiguration.Properties.PATH_FIELD, "path_exact"));
+//        when(mockedNodeState.getProperty(OakSolrNodeStateConfiguration.Properties.COMMIT_POLICY)).
+//                thenReturn(PropertyStates.createProperty(OakSolrNodeStateConfiguration.Properties.COMMIT_POLICY, "HARD"));
+        return mockedNodeState;
     }
 
     @Test
