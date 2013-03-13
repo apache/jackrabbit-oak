@@ -16,13 +16,15 @@
  */
 package org.apache.jackrabbit.oak.jcr.delegate;
 
-import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
+import javax.jcr.ValueFormatException;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.TreeLocation;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 
 /**
@@ -35,6 +37,45 @@ public class PropertyDelegate extends ItemDelegate {
 
     public PropertyDelegate(SessionDelegate sessionDelegate, TreeLocation location) {
         super(sessionDelegate, location);
+    }
+
+    @Nonnull
+    private PropertyState getPropertyState() throws InvalidItemStateException {
+        PropertyState p = getLocation().getProperty();
+        if (p == null) {
+            throw new InvalidItemStateException();
+        }
+        return p;
+    }
+
+    public boolean isArray() throws InvalidItemStateException {
+        return getPropertyState().isArray();
+    }
+
+    @Nonnull
+    public PropertyState getSingle() throws InvalidItemStateException, ValueFormatException {
+        PropertyState p = getPropertyState();
+        if (p.isArray()) {
+            throw new ValueFormatException(p + " is multi-valued.");
+        }
+        return p;
+    }
+
+    public boolean getBoolean() throws ValueFormatException, InvalidItemStateException {
+        return getSingle().getValue(Type.BOOLEAN);
+    }
+
+    public String getString() throws ValueFormatException, InvalidItemStateException {
+        return getSingle().getValue(Type.STRING);
+    }
+
+    @Nonnull
+    public PropertyState getMulti() throws InvalidItemStateException, ValueFormatException {
+        PropertyState p = getPropertyState();
+        if (!p.isArray()) {
+            throw new ValueFormatException(p + " is single-valued.");
+        }
+        return p;
     }
 
     /**
@@ -64,11 +105,6 @@ public class PropertyDelegate extends ItemDelegate {
      */
     public void remove() throws InvalidItemStateException {
         getLocation().remove();
-    }
-
-    @CheckForNull
-    public PropertyState getPropertyState() throws InvalidItemStateException {
-        return getLocation().getProperty();
     }
 
 }
