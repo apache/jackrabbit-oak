@@ -42,8 +42,6 @@ import org.apache.jackrabbit.commons.NamespaceHelper;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.jcr.SessionContext;
 import org.apache.jackrabbit.oak.plugins.nodetype.EffectiveNodeTypeProvider;
-import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfiguration;
-import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.xml.NodeInfo;
 import org.apache.jackrabbit.oak.spi.xml.PropInfo;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
@@ -102,14 +100,7 @@ public class SessionImporter implements Importer {
         pItemImporters.clear();
 
         //TODO clarify how to provide ProtectedItemImporters
-        UserConfiguration userConfig = sessionContext.getUserConfiguration();
-        for (ProtectedItemImporter importer : userConfig.getProtectedItemImporters()) {
-            if (importer.init(session, root, sessionContext, false, uuidBehavior, refTracker)) {
-                pItemImporters.add(importer);
-            }
-        }
-        AccessControlConfiguration accessControlConfig = sessionContext.getAccessControlConfiguration();
-        for (ProtectedItemImporter importer : accessControlConfig.getProtectedItemImporters()) {
+        for (ProtectedItemImporter importer : sessionContext.getProtectedItemImporters()) {
             if (importer.init(session, root, sessionContext, false, uuidBehavior, refTracker)) {
                 pItemImporters.add(importer);
             }

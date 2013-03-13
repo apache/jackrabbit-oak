@@ -38,6 +38,7 @@ import javax.jcr.security.AccessControlPolicyIterator;
 import javax.jcr.security.Privilege;
 import javax.security.auth.Subject;
 
+import com.google.common.base.Objects;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
@@ -109,6 +110,8 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
         acConfig = securityProvider.getAccessControlConfiguration();
         restrictionProvider = acConfig.getRestrictionProvider(namePathMapper);
         ntMgr = ReadOnlyNodeTypeManager.getInstance(root, namePathMapper);
+
+        permissionProvider = getPermissionProvider();
     }
 
     //-----------------------------------------------< AccessControlManager >---
@@ -358,10 +361,15 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
 
     @Nonnull
     private PermissionProvider getPermissionProvider() {
+        // TODO
         if (permissionProvider == null) {
             Subject subject = Subject.getSubject(AccessController.getContext());
-            Set<Principal> principals = (subject != null) ? subject.getPrincipals() : Collections.<Principal>emptySet();
-            permissionProvider = acConfig.getPermissionProvider(root, principals);
+            if (subject != null && !subject.getPublicCredentials(PermissionProvider.class).isEmpty()) {
+                permissionProvider = subject.getPublicCredentials(PermissionProvider.class).iterator().next();
+            } else {
+                Set<Principal> principals = (subject != null) ? subject.getPrincipals() : Collections.<Principal>emptySet();
+                permissionProvider = acConfig.getPermissionProvider(root, principals);
+            }
         } else {
             permissionProvider.refresh();
         }
@@ -561,7 +569,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
         for (Privilege privilege : privileges) {
             privilegeNames.add(namePathMapper.getOakName(privilege.getName()));
         }
-        return provider.hasPrivileges(tree, privilegeNames.toArray(new String[privilegeNames.size()]));
+        return (privilegeNames.isEmpty()) || provider.hasPrivileges(tree, privilegeNames.toArray(new String[privilegeNames.size()]));
     }
 
     @CheckForNull
@@ -637,6 +645,24 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
         PrivilegeBitsProvider getPrivilegeBitsProvider() {
             return new PrivilegeBitsProvider(root);
         }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (obj == this) {
+                return true;
+            }
+            if (obj instanceof NodeACL) {
+                NodeACL other = (NodeACL) obj;
+                return Objects.equal(getOakPath(), other.getOakPath())
+                        && getEntries().equals(other.getEntries());
+            }
+            return false;
+        }
+
+        @Override
+        public int hashCode() {
+            return 0;
+        }
     }
 
     private final class PrincipalACL extends NodeACL {
@@ -653,6 +679,24 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
         @Override
         public RestrictionProvider getRestrictionProvider() {
             return rProvider;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (obj == this) {
+                return true;
+            }
+            if (obj instanceof PrincipalACL) {
+                PrincipalACL other = (PrincipalACL) obj;
+                return Objects.equal(getOakPath(), other.getOakPath())
+                        && getEntries().equals(other.getEntries());
+            }
+            return false;
+        }
+
+        @Override
+        public int hashCode() {
+            return 0;
         }
     }
 }
