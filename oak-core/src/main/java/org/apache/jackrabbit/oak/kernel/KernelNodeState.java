@@ -84,7 +84,7 @@ public final class KernelNodeState extends AbstractNodeState {
         });
 
     /**
-     * This <code>NULL</code> kernel node state is used as a value in the
+     * This {@code NULL} kernel node state is used as a value in the
      * {@link #cache} to indicate that there is no node state at the given
      * path and revision. This object is only used internally and never leaves
      * this {@link KernelNodeState}.
@@ -436,7 +436,7 @@ public final class KernelNodeState extends AbstractNodeState {
     }
 
     /**
-     * Process the given JSON diff, which is the diff of of the <code>base</code>
+     * Process the given JSON diff, which is the diff of of the {@code base}
      * node state to this node state.
      *
      * @param jsonDiff the JSON diff.
@@ -505,7 +505,7 @@ public final class KernelNodeState extends AbstractNodeState {
                 }
                 default:
                     throw new IllegalArgumentException("jsonDiff: illegal token '"
-                            + t.getToken() + "' at pos: " + t.getLastPos() + " " + jsonDiff);
+                            + t.getToken() + "' at pos: " + t.getLastPos() + ' ' + jsonDiff);
             }
         }
     }
