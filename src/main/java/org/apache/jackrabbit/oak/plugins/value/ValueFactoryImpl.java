@@ -81,26 +81,14 @@ public class ValueFactoryImpl implements ValueFactory {
     }
 
     /**
-     * Utility method for creating a {@code Value} based on a {@code PropertyState}.
-     * @param property  The property state
-     * @return  New {@code Value} instance
-     * @throws IllegalArgumentException if {@code property.isArray()} is {@code true}.
-     */
-    public Value createValue(PropertyState property) {
-        return new ValueImpl(property, namePathMapper);
-    }
-
-    public static Value createValue(PropertyValue property, NamePathMapper namePathMapper) {
-        return new ValueImpl(PropertyValues.create(property), namePathMapper);
-    }
-
-    /**
      * Utility method for creating a {@code Value} based on a {@code PropertyValue}.
      * @param property  The property value
+     * @param namePathMapper The name/path mapping used for converting JCR names/paths to
+     * the internal representation.
      * @return  New {@code Value} instance
      * @throws IllegalArgumentException if {@code property.isArray()} is {@code true}.
      */
-    public Value createValue(PropertyValue property) {
+    public static Value createValue(PropertyValue property, NamePathMapper namePathMapper) {
         return new ValueImpl(PropertyValues.create(property), namePathMapper);
     }
 
