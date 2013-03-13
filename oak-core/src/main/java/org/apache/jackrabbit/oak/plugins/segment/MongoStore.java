@@ -16,16 +16,19 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.ImmutableMap.of;
 import static com.mongodb.ReadPreference.nearest;
 import static com.mongodb.ReadPreference.primary;
 import static org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState.EMPTY_NODE;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
@@ -37,17 +40,20 @@ public class MongoStore implements SegmentStore {
 
     private final WriteConcern concern = WriteConcern.SAFE; // TODO: MAJORITY?
 
+    private final DB db;
+
     private final DBCollection segments;
 
-    private final DBCollection journals;
+    private final Map<String, Journal> journals = Maps.newHashMap();
 
     private final SegmentCache cache;
 
     public MongoStore(DB db, SegmentCache cache) {
+        this.db = checkNotNull(db);
         this.segments = db.getCollection("segments");
-        this.journals = db.getCollection("journals");
-
         this.cache = cache;
+        journals.put("root", new MongoJournal(
+                this, db.getCollection("journals"), concern, EMPTY_NODE));
     }
 
     public MongoStore(DB db, long cacheSize) {
@@ -60,12 +66,14 @@ public class MongoStore implements SegmentStore {
     }
 
     @Override
-    public Journal getJournal(String name) {
-        if ("root".equals(name)) {
-            return new MongoJournal(this, journals, concern, EMPTY_NODE);
-        } else {
-            return new MongoJournal(this, journals, concern, name);
+    public synchronized Journal getJournal(String name) {
+        Journal journal = journals.get(name);
+        if (journal == null) {
+            journal = new MongoJournal(
+                    this, db.getCollection("journals"), concern, name);
+            journals.put(name, journal);
         }
+        return journal;
     }
 
     @Override
