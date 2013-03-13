@@ -81,4 +81,9 @@ public class EmbeddedSolrConfiguration implements OakSolrConfiguration {
     public CommitPolicy getCommitPolicy() {
         return CommitPolicy.SOFT;
     }
+
+    @Override
+    public String getCoreName() {
+        return "oak";
+    }
 }

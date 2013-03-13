@@ -21,14 +21,12 @@ import java.util.ArrayList;
 import java.util.List;
 import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.IndexHook;
 import org.apache.jackrabbit.oak.plugins.index.IndexHookProvider;
-import org.apache.jackrabbit.oak.plugins.index.solr.OakSolrConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.index.SolrIndexDiff;
 import org.apache.jackrabbit.oak.plugins.index.solr.query.SolrQueryIndex;
-import org.apache.jackrabbit.oak.spi.query.Filter;
+import org.apache.jackrabbit.oak.plugins.index.solr.server.OakSolrNodeStateConfiguration;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -46,57 +44,8 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.buildIndexDefin
  */
 public class TestUtils {
 
-    private static final String SOLR_HOME_PATH = "target/test-classes/solr";
-    private static final String SOLRCONFIG_PATH = "target/test-classes/solr/solr.xml";
-
-    public static OakSolrConfiguration getTestConfiguration() {
-        return new OakSolrConfiguration() {
-            @Override
-            public String getFieldNameFor(Type<?> propertyType) {
-                return null;
-            }
-
-            @Override
-            public String getPathField() {
-                return "path_exact";
-            }
-
-            @Override
-            public String getFieldForPathRestriction(Filter.PathRestriction pathRestriction) {
-                String fieldName = null;
-                switch (pathRestriction) {
-                    case ALL_CHILDREN: {
-                        fieldName = "path_des";
-                        break;
-                    }
-                    case DIRECT_CHILDREN: {
-                        fieldName = "path_child";
-                        break;
-                    }
-                    case EXACT: {
-                        fieldName = "path_exact";
-                        break;
-                    }
-                    case PARENT: {
-                        fieldName = "path_anc";
-                        break;
-                    }
-
-                }
-                return fieldName;
-            }
-
-            @Override
-            public String getFieldForPropertyRestriction(Filter.PropertyRestriction propertyRestriction) {
-                return null;
-            }
-
-            @Override
-            public CommitPolicy getCommitPolicy() {
-                return CommitPolicy.HARD;
-            }
-        };
-    }
+    static final String SOLR_HOME_PATH = "target/test-classes/solr";
+    static final String SOLRCONFIG_PATH = "target/test-classes/solr/solr.xml";
 
     public static QueryIndexProvider getTestQueryIndexProvider(final SolrServer solrServer, final OakSolrConfiguration configuration) {
         return new QueryIndexProvider() {
@@ -136,7 +85,6 @@ public class TestUtils {
 
     }
 
-
     public static SolrServer createSolrServer() throws Exception {
         CoreContainer coreContainer = new CoreContainer(SOLR_HOME_PATH);
         coreContainer.load(SOLR_HOME_PATH, new File(SOLRCONFIG_PATH));
@@ -144,4 +92,7 @@ public class TestUtils {
     }
 
 
+    public static OakSolrConfiguration getTestConfiguration(NodeState nodeState) {
+        return new OakSolrNodeStateConfiguration(nodeState);
+    }
 }

@@ -41,7 +41,7 @@ public abstract class SolrBaseTest {
         store = new KernelNodeStore(microKernel);
         state = createInitialState(microKernel);
         server = TestUtils.createSolrServer();
-        configuration = TestUtils.getTestConfiguration();
+        configuration = TestUtils.getTestConfiguration(store.getRoot().getChildNode("solrIdx"));
     }
 
     @After
@@ -54,7 +54,10 @@ public abstract class SolrBaseTest {
     }
 
     protected NodeState createInitialState(MicroKernel microKernel) {
-        String jsop = "^\"a\":1 ^\"b\":2 ^\"c\":3 +\"x\":{} +\"y\":{} +\"z\":{}";
+        String jsop = "^\"a\":1 ^\"b\":2 ^\"c\":3 +\"x\":{} +\"y\":{} +\"z\":{} " +
+                "+\"solrIdx\":{\"core\":\"oak\", \"solrHome\":\"" +
+                TestUtils.SOLR_HOME_PATH + "\", \"solrConfig\":\"" +
+                TestUtils.SOLRCONFIG_PATH + "\"} ";
         microKernel.commit("/", jsop, microKernel.getHeadRevision(), "test data");
         return store.getRoot();
     }

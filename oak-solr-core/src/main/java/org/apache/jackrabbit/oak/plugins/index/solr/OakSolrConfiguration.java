@@ -64,4 +64,12 @@ public interface OakSolrConfiguration {
      */
     public CommitPolicy getCommitPolicy();
 
+    /**
+     * Provide the name of the Solr core to be used
+     *
+     * @return a <code>String</code> representing the name of the Solr core to
+     *         be used fo Oak
+     */
+    public String getCoreName();
+
 }
