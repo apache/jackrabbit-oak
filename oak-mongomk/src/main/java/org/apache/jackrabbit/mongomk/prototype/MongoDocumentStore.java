@@ -47,6 +47,12 @@ import com.mongodb.WriteResult;
  */
 public class MongoDocumentStore implements DocumentStore {
 
+    /**
+     * Marker instance to be used as a value in cache to indicate that no value exist for given key as Guava
+     * cache does not allow null values
+     */
+    static final Map<String, Object> NULL_VAL = Collections.emptyMap();
+
     private static final Logger LOG = LoggerFactory.getLogger(MongoDocumentStore.class);
 
     private static final boolean LOG_TIME = false;
@@ -57,18 +63,22 @@ public class MongoDocumentStore implements DocumentStore {
     
     private final Cache<String, Map<String, Object>> cache;
 
-    /**
-     * Marker instance to be used as a value in cache to indicate that no value exist for given key as Guava
-     * cache does not allow null values
-     */
-    private static final Map<String, Object> NULL_VAL = Collections.emptyMap();
-
     public MongoDocumentStore(DB db) {
         nodesCollection = db.getCollection(Collection.NODES.toString());
-        ensureIndex();
+        
+        // the _id field is the primary key, so we don't need to define it
+        // the following code is just a template in case we need more indexes
+        // DBObject index = new BasicDBObject();
+        // index.put(KEY_PATH, 1L);
+        // DBObject options = new BasicDBObject();
+        // options.put("unique", Boolean.TRUE);
+        // nodesCollection.ensureIndex(index, options);
+
+        // TODO expire entries if the parent was changed
         cache = CacheBuilder.newBuilder()
-                            .maximumSize(MongoMK.CACHE_DOCUMENTS)
-                            .build();
+                .maximumSize(MongoMK.CACHE_DOCUMENTS)
+                .build();
+        
     }
     
     private static long start() {
@@ -91,33 +101,32 @@ public class MongoDocumentStore implements DocumentStore {
     @Override
     public Map<String, Object> find(final Collection collection, final String path) {
         try {
-            Map<String, Object> returnVal = cache.get(path,new Callable<Map<String, Object>>() {
+            Map<String, Object> returnVal = cache.get(path, new Callable<Map<String, Object>>() {
                 @Override
                 public Map<String, Object> call() throws Exception {
-                    DBCollection dbCollection = getDBCollection(collection);
-                    long start = start();
-                    try {
-                        DBObject doc = dbCollection.findOne(getByPathQuery(path));
-                        Map<String, Object> result;
-                        if (doc == null) {
-                            //TODO Look into null handling. It might happen that some
-                            //other cluster node create a node at given path. So caching
-                            //this info can cause issue
-
-                            //In case of null let be cached as well
-                            result = NULL_VAL;
-                        } else {
-                            result = convertFromDBObject(doc);
-                        }
-                        return result;
-                    } finally {
-                        end(start);
-                    }
+                    Map<String, Object> result;
+                    result = loadDocument(collection, path);
+                    // support caching of null entries
+                    return result == null ? NULL_VAL : result;
                 }
             });
             return returnVal == NULL_VAL ?  null : returnVal;
         } catch (ExecutionException e) {
-            throw new IllegalStateException( "Failed to load node " + path, e);
+            throw new IllegalStateException("Failed to load node " + path, e);
+        }
+    }
+    
+    protected Map<String, Object> loadDocument(Collection collection, String path) {
+        DBCollection dbCollection = getDBCollection(collection);
+        long start = start();
+        try {
+            DBObject doc = dbCollection.findOne(getByPathQuery(path));
+            if (doc == null) {
+                return null;
+            }
+            return convertFromDBObject(doc);
+        } finally {
+            end(start);
         }
     }
     
@@ -288,16 +297,6 @@ public class MongoDocumentStore implements DocumentStore {
         } finally {
             end(start);
         }        
-    }
-
-    private void ensureIndex() {
-        // the _id field is the primary key, so we don't need to define it
-        // the following code is just a template in case we need more indexes
-        // DBObject index = new BasicDBObject();
-        // index.put(KEY_PATH, 1L);
-        // DBObject options = new BasicDBObject();
-        // options.put("unique", Boolean.TRUE);
-        // nodesCollection.ensureIndex(index, options);
     }
 
     private static Map<String, Object> convertFromDBObject(DBObject n) {
