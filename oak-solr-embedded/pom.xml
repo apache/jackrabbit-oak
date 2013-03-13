@@ -58,22 +58,8 @@
               !org.ietf.*,
               !org.eclipse.jetty.jmx.*,
               !org.apache.zookeeper.server.quorum.flexible.*,
-              !org.mortbay.jetty.*,
               !org.mortbay.util.*,
               !org.mortbay.log,
-              !com.sun.msv.*,
-              !org.relaxng.datatype,
-              !org.apache.tika.*,
-              !javax.servlet.jsp.*,
-              !org.apache.commons.digester.*,
-              !org.apache.commons.validator.*,
-              !org.apache.log.*,
-              !org.apache.struts.*,
-              !org.apache.tools.ant.*,
-              !org.dom4j.*,
-              !org.jdom.*,
-              !com.werken.*,
-              !org.apache.oro.*,
               *
             </Import-Package>
             <DynamicImport-Package>*</DynamicImport-Package>
@@ -159,6 +145,12 @@
       <artifactId>lucene-core</artifactId>
       <version>${solr.version}</version>
     </dependency>
+    <dependency>
+      <groupId>org.apache.lucene</groupId>
+      <artifactId>lucene-codecs</artifactId>
+      <version>${solr.version}</version>
+    </dependency>
+
 
     <dependency>
       <groupId>org.apache.felix</groupId>
