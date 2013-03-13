@@ -36,7 +36,7 @@ import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 
 /**
- * <code>SysViewImportHandler</code>  ...
+ * {@code SysViewImportHandler}  ...
  */
 class SysViewImportHandler extends TargetImportHandler {
 
@@ -47,6 +47,7 @@ class SysViewImportHandler extends TargetImportHandler {
      * when the corresponding sv:node element is encountered.
      */
     private final Stack<ImportState> stack = new Stack<ImportState>();
+    private final ArrayList<BufferedStringValue> currentPropValues = new ArrayList<BufferedStringValue>();
 
     /**
      * fields used temporarily while processing sv:property and sv:value elements
@@ -55,12 +56,10 @@ class SysViewImportHandler extends TargetImportHandler {
     private int currentPropType = PropertyType.UNDEFINED;
     private PropInfo.MultipleStatus currentPropMultipleStatus = PropInfo.MultipleStatus.UNKNOWN;
     // list of appendable value objects
-    private ArrayList<BufferedStringValue> currentPropValues =
-            new ArrayList<BufferedStringValue>();
     private BufferedStringValue currentPropValue;
 
     /**
-     * Constructs a new <code>SysViewImportHandler</code>.
+     * Constructs a new {@code SysViewImportHandler}.
      *
      * @param importer     the underlying importer
      * @param valueFactory the value factory
@@ -102,9 +101,6 @@ class SysViewImportHandler extends TargetImportHandler {
 
     //-------------------------------------------------------< ContentHandler >
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void startElement(String namespaceURI, String localName,
                              String qName, Attributes atts)
@@ -181,13 +177,10 @@ class SysViewImportHandler extends TargetImportHandler {
             currentPropValue.setBase64("xs:base64Binary".equals(xsiType));
         } else {
             throw new SAXException(new InvalidSerializedDataException(
-                    "Unexpected element in system view xml document: {" + namespaceURI + "}" + localName));
+                    "Unexpected element in system view xml document: {" + namespaceURI + '}' + localName));
         }
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void characters(char[] ch, int start, int length)
             throws SAXException {
@@ -202,9 +195,6 @@ class SysViewImportHandler extends TargetImportHandler {
         }
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void ignorableWhitespace(char[] ch, int start, int length)
             throws SAXException {
@@ -222,9 +212,6 @@ class SysViewImportHandler extends TargetImportHandler {
         }
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void endElement(String namespaceURI, String localName, String qName)
             throws SAXException {
@@ -336,7 +323,7 @@ class SysViewImportHandler extends TargetImportHandler {
         /**
          * list of PropInfo instances representing properties of current node
          */
-        List<PropInfo> props = new ArrayList<PropInfo>();
+        final List<PropInfo> props = new ArrayList<PropInfo>();
 
         /**
          * flag indicating whether startNode() has been called for current node
@@ -353,7 +340,7 @@ class SysViewImportHandler extends TargetImportHandler {
      * @param namespaceUri attribute namespace
      * @param localName attribute local name
      * @return attribute value,
-     *         or <code>null</code> if the named attribute is not found
+     *         or {@code null} if the named attribute is not found
      */
     private static String getAttribute(Attributes attributes, String namespaceUri, String localName) {
         return attributes.getValue(namespaceUri, localName);
