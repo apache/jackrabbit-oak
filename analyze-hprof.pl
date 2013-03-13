@@ -64,7 +64,7 @@ sub output {
 my $trace = '';
 while (<>) {
   /^TRACE (\d+)/  and $trace = $1 and $traces{$trace} = [] and next;
-  /^\s+([a-z].*?)(\(.*)?\r\n/ and $trace and $traces{$trace} = [ $1, @{$traces{$trace}} ] and next;
+  /^\s+([a-z].*?)(\(.*)?\r?\n/ and $trace and $traces{$trace} = [ $1, @{$traces{$trace}} ] and next;
   /^rank/ and $trace and $trace = '' and next;
   /^\s*\d+\s+\S+%\s+\S+%\s+(\d+)\s+(\d+)/ and accumulate($2, $1); 
 }
