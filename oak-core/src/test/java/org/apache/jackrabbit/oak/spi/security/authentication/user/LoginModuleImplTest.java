@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.security.authentication;
+package org.apache.jackrabbit.oak.spi.security.authentication.user;
 
 import javax.jcr.GuestCredentials;
 import javax.jcr.SimpleCredentials;
@@ -27,8 +27,8 @@ import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.security.ConfigurationUtil;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.apache.jackrabbit.oak.spi.security.authentication.ConfigurationUtil;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtility;
@@ -42,7 +42,7 @@ import static org.junit.Assert.fail;
 /**
  * LoginTest...
  */
-public class DefaultLoginModuleTest extends AbstractSecurityTest {
+public class LoginModuleImplTest extends AbstractSecurityTest {
 
     @Override
     protected Configuration getConfiguration() {

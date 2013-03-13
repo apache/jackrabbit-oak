@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.security.authentication;
+package org.apache.jackrabbit.oak.spi.security.authentication.token;
 
 import java.util.Collections;
 import javax.jcr.GuestCredentials;
@@ -27,9 +27,6 @@ import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.security.authentication.token.TokenLoginModule;
-import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenInfo;
-import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
