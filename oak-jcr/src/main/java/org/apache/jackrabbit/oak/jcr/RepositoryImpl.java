@@ -128,16 +128,13 @@ public class RepositoryImpl implements Repository {
             SessionDelegate sessionDelegate = new SessionDelegate(contentSession) {
                 @Override
                 protected void refresh() {
-                    if (needsRefresh()) {
+                    // Refresh is always needed if this is an auto refresh session or there
+                    // are pending observation events
+                    if (autoRefresh || SessionContextProvider.hasPendingEvents(this)) {
                         refresh(true);
                     }
                 }
 
-                private boolean needsRefresh() {
-                    // Refresh is always needed if this is an auto refresh session or there
-                    // are pending observation events
-                    return autoRefresh || SessionContextProvider.hasPendingEvents(this);
-                }
             };
             return SessionContextProvider.newSession(sessionDelegate, this);
         } catch (LoginException e) {
