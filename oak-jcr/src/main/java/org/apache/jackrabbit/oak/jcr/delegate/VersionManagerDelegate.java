@@ -29,7 +29,7 @@ import org.apache.jackrabbit.oak.jcr.version.ReadWriteVersionManager;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
- * <code>VersionManagerDelegate</code>...
+ * {@code VersionManagerDelegate}...
  */
 public class VersionManagerDelegate {
 
