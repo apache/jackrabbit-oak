@@ -26,7 +26,6 @@ import java.util.List;
 import javax.annotation.Nonnull;
 import javax.jcr.AccessDeniedException;
 import javax.jcr.Binary;
-import javax.jcr.InvalidItemStateException;
 import javax.jcr.ItemNotFoundException;
 import javax.jcr.ItemVisitor;
 import javax.jcr.Node;
@@ -40,7 +39,6 @@ import javax.jcr.nodetype.PropertyDefinition;
 
 import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
-import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.PropertyDelegate;
@@ -355,14 +353,6 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
         }
     }
 
-    private PropertyState getPropertyState() throws InvalidItemStateException {
-        PropertyState property = dlg.getPropertyState();
-        if (property == null) {
-            throw new InvalidItemStateException();
-        }
-        return property;
-    }
-
     @Override
     @Nonnull
     public Value getValue() throws RepositoryException {
@@ -374,11 +364,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
 
             @Override
             public Value perform() throws RepositoryException {
-                PropertyState property = getPropertyState();
-                if (property.isArray()) {
-                    throw new ValueFormatException(dlg + " is multi-valued.");
-                }
-                return getValueFactory().createValue(property);
+                return getValueFactory().createValue(dlg.getSingle());
             }
         });
     }
@@ -394,14 +380,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
 
             @Override
             public List<Value> perform() throws RepositoryException {
-                PropertyState property = dlg.getPropertyState();
-                if (property == null) {
-                    throw new InvalidItemStateException();
-                }
-                if (!property.isArray()) {
-                    throw new ValueFormatException(dlg + " is single-valued.");
-                }
-                return getValueFactory().createValues(property);
+                return getValueFactory().createValues(dlg.getMulti());
             }
         }).toArray(NO_VALUES);
     }
@@ -614,7 +593,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
 
             @Override
             public Boolean perform() throws RepositoryException {
-                return getPropertyState().isArray();
+                return dlg.isArray();
             }
         });
     }

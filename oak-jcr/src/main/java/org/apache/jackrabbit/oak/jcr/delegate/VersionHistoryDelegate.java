@@ -26,7 +26,6 @@ import java.util.TreeMap;
 import javax.annotation.Nonnull;
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.RepositoryException;
-import javax.jcr.ValueFormatException;
 import javax.jcr.version.VersionException;
 
 import com.google.common.base.Function;
@@ -126,23 +125,12 @@ public class VersionHistoryDelegate extends NodeDelegate {
         SortedMap<Calendar, String> versions = new TreeMap<Calendar, String>();
         for (Iterator<NodeDelegate> it = getChildren(); it.hasNext(); ) {
             NodeDelegate n = it.next();
-            PropertyState propertyState = n.getProperty(JcrConstants.JCR_PRIMARYTYPE).getPropertyState();
-            if (propertyState == null) {
-                throw new InvalidItemStateException();
-            }
-            String primaryType = propertyState.getValue(Type.STRING);
+            String primaryType = n.getProperty(JcrConstants.JCR_PRIMARYTYPE).getString();
             if (primaryType.equals(VersionConstants.NT_VERSION)) {
                 PropertyDelegate created = n.getProperty(JcrConstants.JCR_CREATED);
                 if (created != null) {
-                    PropertyState property = created.getPropertyState();
-                    if (property == null) {
-                        throw new InvalidItemStateException();
-                    }
-                    if (property.isArray()) {
-                        throw new ValueFormatException(created + " is multi-valued.");
-                    }
                     ValueFactoryImpl f = SessionContextProvider.getValueFactory(sessionDelegate);
-                    versions.put(f.createValue(property).getDate(), n.getName());
+                    versions.put(f.createValue(created.getSingle()).getDate(), n.getName());
                 }
             }
         }

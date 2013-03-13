@@ -75,7 +75,6 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Tree.Status;
-import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.IdentifierManager;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
@@ -995,13 +994,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                     nodeModified = true;
                     dlg.setProperty(JcrConstants.JCR_MIXINTYPES, Collections.singletonList(value));
                 } else {
-                    PropertyState property = mixins.getPropertyState();
-                    if (property == null) {
-                        throw new InvalidItemStateException();
-                    }
-                    if (!property.isArray()) {
-                        throw new ValueFormatException(mixins + " is single-valued.");
-                    }
+                    PropertyState property = mixins.getMulti();
                     List<Value> values = getValueFactory().createValues(property);
                     if (!values.contains(value)) {
                         values.add(value);
@@ -1225,9 +1218,8 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         while (parent != null) {
             if (parent.getProperty(lockOwner) != null) {
                 PropertyDelegate isDeep = parent.getProperty(lockIsDeep);
-                if (isDeep != null) {
-                    PropertyState p = isDeep.getPropertyState();
-                    if (p != null && !p.isArray() && p.getValue(Type.BOOLEAN)) {
+                if (isDeep != null && !isDeep.isArray()) {
+                    if (isDeep.getBoolean()) {
                         return true;
                     }
                 }

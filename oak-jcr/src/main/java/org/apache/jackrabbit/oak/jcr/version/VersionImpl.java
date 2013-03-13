@@ -30,7 +30,6 @@ import javax.jcr.version.Version;
 import javax.jcr.version.VersionHistory;
 
 import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.jcr.NodeImpl;
 import org.apache.jackrabbit.oak.jcr.SessionContextProvider;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
@@ -62,14 +61,7 @@ class VersionImpl extends NodeImpl<VersionDelegate> implements Version {
     @Override
     public Calendar getCreated() throws RepositoryException {
         PropertyDelegate dlg = getPropertyOrThrow(JcrConstants.JCR_CREATED);
-        PropertyState property = dlg.getPropertyState();
-        if (property == null) {
-            throw new InvalidItemStateException();
-        }
-        if (property.isArray()) {
-            throw new ValueFormatException(dlg + " is multi-valued.");
-        }
-        return getValueFactory().createValue(property).getDate();
+        return getValueFactory().createValue(dlg.getSingle()).getDate();
     }
 
     @Override
@@ -83,14 +75,7 @@ class VersionImpl extends NodeImpl<VersionDelegate> implements Version {
     }
 
     private List<Value> getValues(PropertyDelegate p) throws InvalidItemStateException, ValueFormatException {
-        PropertyState property = p.getPropertyState();
-        if (property == null) {
-            throw new InvalidItemStateException();
-        }
-        if (!property.isArray()) {
-            throw new ValueFormatException(p + " is single-valued.");
-        }
-        return getValueFactory().createValues(property);
+        return getValueFactory().createValues(p.getMulti());
     }
 
     @Override
