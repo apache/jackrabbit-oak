@@ -189,6 +189,7 @@ public final class ImmutableTree extends ReadOnlyTree {
         int TYPE_DEFAULT = 1;
         int TYPE_VERSION = 2;
         int TYPE_AC = 4;
+        int TYPE_HIDDEN = 8;
 
         TypeProvider EMPTY = new TypeProvider() {
             @Override
@@ -217,14 +218,20 @@ public final class ImmutableTree extends ReadOnlyTree {
 
             int type;
             switch (parent.getType()) {
+                case TYPE_HIDDEN:
+                    type = TYPE_HIDDEN;
+                    break;
                 case TYPE_VERSION:
-                    type = parent.getType();
+                    type = TYPE_VERSION;
                     break;
                 case TYPE_AC:
-                    type = parent.getType();
+                    type = TYPE_AC;
                     break;
                 default:
-                    if (VersionConstants.VERSION_NODE_NAMES.contains(tree.getName()) ||
+                    String name = tree.getName();
+                    if (NodeStateUtils.isHidden(name)) {
+                        type = TYPE_HIDDEN;
+                    } else if (VersionConstants.VERSION_NODE_NAMES.contains(name) ||
                             VersionConstants.VERSION_NODE_TYPE_NAMES.contains(NodeStateUtils.getPrimaryTypeName(tree.getNodeState()))) {
                         type = TYPE_VERSION;
                     } else if (contextInfo.definesTree(tree)) {
