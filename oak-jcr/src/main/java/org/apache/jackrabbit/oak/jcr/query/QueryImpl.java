@@ -33,9 +33,9 @@ import javax.jcr.version.VersionException;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.jcr.SessionContextProvider;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.NodeImpl;
-import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 
 /**
@@ -133,7 +133,7 @@ public class QueryImpl implements Query {
     public Node storeAsNode(String absPath) throws RepositoryException {
         manager.ensureIsAlive();
         SessionDelegate sessionDelegate = manager.getSessionDelegate();
-        String oakPath = sessionDelegate.getOakPath(absPath);
+        String oakPath = SessionContextProvider.getOakPath(sessionDelegate, absPath);
         String parent = PathUtils.getParentPath(oakPath);
         NodeDelegate parentDelegate = sessionDelegate.getNode(parent);
         if (parentDelegate == null) {
@@ -145,7 +145,7 @@ public class QueryImpl implements Query {
                     absPath + " is checked in.");
         }
         String nodeName = PathUtils.getName(oakPath);
-        ValueFactory vf = sessionDelegate.getValueFactory();
+        ValueFactory vf = SessionContextProvider.getValueFactory(sessionDelegate);
         Node n = parentNode.addNode(nodeName, JcrConstants.NT_QUERY);
         n.setProperty(JcrConstants.JCR_STATEMENT, vf.createValue(statement));
         n.setProperty(JcrConstants.JCR_LANGUAGE, vf.createValue(language));

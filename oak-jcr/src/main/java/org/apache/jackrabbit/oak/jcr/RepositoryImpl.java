@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.jcr;
 
 import java.util.concurrent.ScheduledExecutorService;
+
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.Credentials;
@@ -33,6 +34,8 @@ import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * TODO document
@@ -52,9 +55,9 @@ public class RepositoryImpl implements Repository {
     public RepositoryImpl(@Nonnull ContentRepository contentRepository,
                           @Nonnull ScheduledExecutorService executor,
                           @Nonnull SecurityProvider securityProvider) {
-        this.contentRepository = contentRepository;
-        this.executor = executor;
-        this.securityProvider = securityProvider;
+        this.contentRepository = checkNotNull(contentRepository);
+        this.executor = checkNotNull(executor);
+        this.securityProvider = checkNotNull(securityProvider);
     }
 
     //---------------------------------------------------------< Repository >---
@@ -119,9 +122,24 @@ public class RepositoryImpl implements Repository {
      */
     @Override
     public Session login(@Nullable Credentials credentials, @Nullable String workspaceName) throws RepositoryException {
+        final boolean autoRefresh = false; // TODO implement auto refresh configuration
         try {
             ContentSession contentSession = contentRepository.login(credentials, workspaceName);
-            return new SessionDelegate(this, executor, contentSession, securityProvider, false).getSession();
+            SessionDelegate sessionDelegate = new SessionDelegate(contentSession) {
+                @Override
+                protected void refresh() {
+                    if (needsRefresh()) {
+                        refresh(true);
+                    }
+                }
+
+                private boolean needsRefresh() {
+                    // Refresh is always needed if this is an auto refresh session or there
+                    // are pending observation events
+                    return autoRefresh || SessionContextProvider.hasPendingEvents(this);
+                }
+            };
+            return SessionContextProvider.newSession(sessionDelegate, this);
         } catch (LoginException e) {
             throw new javax.jcr.LoginException(e.getMessage(), e);
         }
@@ -164,5 +182,16 @@ public class RepositoryImpl implements Repository {
     public Session login(String workspace) throws RepositoryException {
         return login(null, workspace);
     }
+
+    //------------------------------------------------------------< internal >---
+
+    SecurityProvider getSecurityProvider() {
+        return securityProvider;
+    }
+
+    ScheduledExecutorService getObservationExecutor() {
+        return executor;
+    }
+
 
 }

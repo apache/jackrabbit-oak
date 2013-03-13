@@ -23,14 +23,17 @@ import javax.jcr.Node;
 import javax.jcr.Property;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-import javax.jcr.ValueFactory;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.ItemDefinition;
+import javax.jcr.nodetype.NodeTypeManager;
 
 import org.apache.jackrabbit.commons.AbstractItem;
 import org.apache.jackrabbit.oak.jcr.delegate.ItemDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionOperation;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.nodetype.DefinitionProvider;
+import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -104,7 +107,7 @@ abstract class ItemImpl<T extends ItemDelegate> extends AbstractItem {
     @Override
     @Nonnull
     public Session getSession() throws RepositoryException {
-        return sessionDelegate.getSession();
+        return SessionContextProvider.getSession(sessionDelegate);
     }
 
     /**
@@ -231,12 +234,23 @@ abstract class ItemImpl<T extends ItemDelegate> extends AbstractItem {
      * @return the value factory
      */
     @Nonnull
-    ValueFactory getValueFactory() {
-        return sessionDelegate.getValueFactory();
+    ValueFactoryImpl getValueFactory() {
+        return SessionContextProvider.getValueFactory(sessionDelegate);
+    }
+
+    @Nonnull
+    NodeTypeManager getNodeTypeManager() {
+        return SessionContextProvider.getNodeTypeManager(sessionDelegate);
+    }
+
+    @Nonnull
+    DefinitionProvider getDefinitionProvider() {
+        return SessionContextProvider.getDefinitionProvider(sessionDelegate);
     }
 
     @Nonnull
     String toJcrPath(String oakPath) {
-        return sessionDelegate.getNamePathMapper().getJcrPath(oakPath);
+        NamePathMapper namePathMapper = SessionContextProvider.getNamePathMapper(sessionDelegate);
+        return namePathMapper.getJcrPath(oakPath);
     }
 }

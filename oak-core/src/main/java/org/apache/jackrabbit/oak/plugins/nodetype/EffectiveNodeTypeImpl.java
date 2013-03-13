@@ -21,6 +21,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
 import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
@@ -326,7 +327,7 @@ class EffectiveNodeTypeImpl implements EffectiveNodeType {
         return ntMgr.getDefinition(nodeTypes, nameToCheck, nodeType);
     }
 
-    private class DefinitionNamePredicate implements Predicate<ItemDefinition> {
+    private static class DefinitionNamePredicate implements Predicate<ItemDefinition> {
 
         private final String oakName;
 

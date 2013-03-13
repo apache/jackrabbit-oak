@@ -20,6 +20,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
+import javax.annotation.Nonnull;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -27,7 +28,7 @@ import javax.jcr.lock.Lock;
 import javax.jcr.lock.LockException;
 import javax.jcr.lock.LockManager;
 
-import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
+import org.apache.jackrabbit.oak.jcr.SessionContextProvider;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 
 /**
@@ -96,7 +97,8 @@ public class LockManagerImpl implements LockManager {
         getSession().getNode(absPath).unlock();
     }
 
+    @Nonnull
     private Session getSession() {
-        return sessionDelegate.getSession();
+        return SessionContextProvider.getSession(sessionDelegate);
     }
 }
