@@ -112,10 +112,6 @@ public abstract class SessionContext implements NamePathMapper {
         return getWorkspaceInternal();
     }
 
-    public QueryManager getQueryManager() throws RepositoryException {
-        return getWorkspaceInternal().getQueryManager();
-    }
-
     public LockManager getLockManager() {
         return getWorkspaceInternal().getLockManager();
     }
