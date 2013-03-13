@@ -1,7 +1,10 @@
 package org.apache.jackrabbit.oak.jcr;
 
+import java.security.PrivilegedAction;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.PathNotFoundException;
@@ -16,6 +19,7 @@ import javax.jcr.observation.ObservationManager;
 import javax.jcr.query.QueryManager;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.version.VersionManager;
+import javax.security.auth.Subject;
 
 import com.google.common.collect.Maps;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
@@ -31,10 +35,10 @@ import org.apache.jackrabbit.oak.plugins.nodetype.DefinitionProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.EffectiveNodeTypeProvider;
 import org.apache.jackrabbit.oak.plugins.observation.ObservationManagerImpl;
 import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
+import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
-import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.PermissionProvider;
-import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
+import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -48,11 +52,10 @@ public abstract class SessionContext implements NamePathMapper {
     private final ValueFactory valueFactory;
 
     private AccessControlManager accessControlManager;
+    private PermissionProvider permissionProvider;
     private PrincipalManager principalManager;
     private UserManager userManager;
     private PrivilegeManager privilegeManager;
-    private UserConfiguration userConfiguration;
-    private AccessControlConfiguration accessControlConfiguration;
     private ObservationManagerImpl observationManager;
 
     private SessionContext(RepositoryImpl repository, SessionDelegate delegate,
@@ -138,22 +141,30 @@ public abstract class SessionContext implements NamePathMapper {
     }
 
     @Nonnull
-    public AccessControlManager getAccessControlManager(SessionDelegate delegate) {
+    public AccessControlManager getAccessControlManager() throws RepositoryException {
         if (accessControlManager == null) {
-            SecurityProvider securityProvider = repository.getSecurityProvider();
-            accessControlManager = securityProvider.getAccessControlConfiguration()
-                    .getAccessControlManager(delegate.getRoot(), namePathMapper);
+            // TODO
+            Subject subject = new Subject(true, delegate.getAuthInfo().getPrincipals(), Collections.singleton(getPermissionProvider()), Collections.<Object>emptySet());
+            accessControlManager = Subject.doAs(subject, new PrivilegedAction<AccessControlManager>() {
+                @Override
+                public AccessControlManager run() {
+                    SecurityProvider securityProvider = repository.getSecurityProvider();
+                    return securityProvider.getAccessControlConfiguration().getAccessControlManager(delegate.getRoot(), namePathMapper);
+                }
+            });
         }
         return accessControlManager;
     }
 
     @Nonnull
-    public PermissionProvider getPermissionProvider() {
-        SecurityProvider securityProvider = repository.getSecurityProvider();
-
-        // TODO
-        return securityProvider.getAccessControlConfiguration()
-                .getPermissionProvider(delegate.getRoot(), delegate.getAuthInfo().getPrincipals());
+    public PermissionProvider getPermissionProvider() throws RepositoryException {
+        if (permissionProvider == null) {
+            SecurityProvider securityProvider = repository.getSecurityProvider();
+            permissionProvider = securityProvider.getAccessControlConfiguration().getPermissionProvider(delegate.getRoot(), delegate.getAuthInfo().getPrincipals());
+        } else {
+            permissionProvider.refresh();
+        }
+        return permissionProvider;
     }
 
     @Nonnull
@@ -185,22 +196,15 @@ public abstract class SessionContext implements NamePathMapper {
     }
 
     @Nonnull
-    public UserConfiguration getUserConfiguration() {
-        if (userConfiguration == null) {
-            SecurityProvider securityProvider = repository.getSecurityProvider();
-            userConfiguration = securityProvider.getUserConfiguration();
+    public List<ProtectedItemImporter> getProtectedItemImporters() {
+        // TODO: take non-security related importers into account as well (proper configuration)
+        List<ProtectedItemImporter> importers = new ArrayList<ProtectedItemImporter>();
+        for (SecurityConfiguration sc : repository.getSecurityProvider().getSecurityConfigurations()) {
+            importers.addAll(sc.getProtectedItemImporters());
         }
-        return userConfiguration;
+        return importers;
     }
 
-    @Nonnull
-    public AccessControlConfiguration getAccessControlConfiguration() {
-        if (accessControlConfiguration == null) {
-            SecurityProvider securityProvider = repository.getSecurityProvider();
-            accessControlConfiguration = securityProvider.getAccessControlConfiguration();
-        }
-        return accessControlConfiguration;
-    }
 
     @Nonnull
     public ObservationManager getObservationManager() {

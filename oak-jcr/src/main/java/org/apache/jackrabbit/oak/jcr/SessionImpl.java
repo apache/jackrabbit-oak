@@ -428,7 +428,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     @Override
     @Nonnull
     public AccessControlManager getAccessControlManager() throws RepositoryException {
-        return sessionContext.getAccessControlManager(dlg);
+        return sessionContext.getAccessControlManager();
     }
 
     /**
