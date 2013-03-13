@@ -23,6 +23,8 @@ import static com.google.common.collect.ImmutableMap.of;
 import static com.mongodb.ReadPreference.nearest;
 import static com.mongodb.ReadPreference.primaryPreferred;
 
+import java.util.concurrent.TimeUnit;
+
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -30,10 +32,14 @@ import com.mongodb.BasicDBObject;
 import com.mongodb.BasicDBObjectBuilder;
 import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
+import com.mongodb.MongoException;
 import com.mongodb.WriteConcern;
 import com.mongodb.WriteResult;
 
 class MongoJournal implements Journal {
+
+    private static final long UPDATE_INTERVAL =
+            TimeUnit.NANOSECONDS.convert(10, TimeUnit.MILLISECONDS);
 
     private final SegmentStore store;
 
@@ -42,6 +48,10 @@ class MongoJournal implements Journal {
     private final WriteConcern concern;
 
     private final String name;
+
+    private DBObject state;
+
+    private long stateLastUpdated;
 
     MongoJournal(
             SegmentStore store, DBCollection journals,
@@ -52,8 +62,7 @@ class MongoJournal implements Journal {
         this.name = "root";
 
         DBObject id = new BasicDBObject("_id", "root");
-        DBObject fields = new BasicDBObject("head", 1);
-        DBObject state = journals.findOne(id, fields, primaryPreferred());
+        state = journals.findOne(id, null, primaryPreferred());
         if (state == null) {
             SegmentWriter writer = new SegmentWriter(store);
             RecordId head = writer.writeNode(root).getRecordId();
@@ -61,8 +70,16 @@ class MongoJournal implements Journal {
             state = new BasicDBObject(of(
                     "_id",  "root",
                     "head", head.toString()));
-            journals.insert(state, concern);
+            try {
+                journals.insert(state, concern);
+            } catch (MongoException.DuplicateKey e) {
+                // Someone else managed to concurrently create the journal,
+                // so let's just re-read it from the database
+                state = journals.findOne(id, null, primaryPreferred());
+                checkState(state != null);
+            }
         }
+        stateLastUpdated = System.nanoTime();
     }
 
     MongoJournal(
@@ -75,7 +92,7 @@ class MongoJournal implements Journal {
         checkArgument(!"root".equals(name));
 
         DBObject id = new BasicDBObject("_id", name);
-        DBObject state = journals.findOne(id, null, primaryPreferred());
+        state = journals.findOne(id, null, primaryPreferred());
         if (state == null) {
             Journal root = store.getJournal("root");
             String head = root.getHead().toString();
@@ -84,27 +101,37 @@ class MongoJournal implements Journal {
                     "parent", "root",
                     "base",   head,
                     "head",   head));
-            journals.insert(state, concern);
+            try {
+                journals.insert(state, concern);
+            } catch (MongoException.DuplicateKey e) {
+                // Someone else managed to concurrently create the journal,
+                // so let's just re-read it from the database
+                state = journals.findOne(id, null, primaryPreferred());
+                checkState(state != null);
+            }
         }
+        stateLastUpdated = System.nanoTime();
     }
 
     @Override
     public RecordId getHead() {
-        DBObject id = new BasicDBObject("_id", name);
-        DBObject state = journals.findOne(id, null, nearest());
-        if (state == null) {
-            state = journals.findOne(id, null, primaryPreferred());
+        long now = System.nanoTime();
+        if (stateLastUpdated + UPDATE_INTERVAL < now) {
+            DBObject id = new BasicDBObject("_id", name);
+            DBObject freshState = journals.findOne(id, null, nearest());
+            if (freshState == null) {
+                freshState = journals.findOne(id, null, primaryPreferred());
+                checkState(freshState != null);
+            }
+            state = freshState;
+            stateLastUpdated = now;
         }
-        checkState(state != null);
         return RecordId.fromString(state.get("head").toString());
     }
 
     @Override
     public synchronized boolean setHead(RecordId base, RecordId head) {
-        DBObject id = new BasicDBObject("_id", name);
-        DBObject state = journals.findOne(id, null, primaryPreferred());
-        checkState(state != null);
-        if (!base.toString().equals(state.get("head"))) {
+        if (!base.equals(getHead())) {
             return false;
         }
 
@@ -121,7 +148,15 @@ class MongoJournal implements Journal {
 
         WriteResult result =
                 journals.update(state, nextState, false, false, concern);
-        return result.getN() != 0;
+        if (result.getN() == 1) {
+            state = nextState;
+            stateLastUpdated = System.nanoTime();
+            return true;
+        } else {
+            // force refresh when next accessed
+            stateLastUpdated -= UPDATE_INTERVAL;
+            return false;
+        }
     }
 
     @Override
