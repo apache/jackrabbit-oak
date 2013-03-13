@@ -85,7 +85,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
      */
     private final Map<String, String> namespaces;
 
-    public SessionImpl(SessionDelegate dlg, Map<String, String> namespaces) {
+    SessionImpl(SessionDelegate dlg, SessionContext sessionContext, Map<String, String> namespaces) {
         this.dlg = dlg;
         this.namespaces = namespaces;
     }
