@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
+import static com.google.common.collect.ImmutableMap.of;
+import static com.mongodb.ReadPreference.nearest;
+import static com.mongodb.ReadPreference.primary;
 import static org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState.EMPTY_NODE;
 
 import java.util.List;
@@ -28,8 +31,11 @@ import com.mongodb.DB;
 import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
 import com.mongodb.Mongo;
+import com.mongodb.WriteConcern;
 
 public class MongoStore implements SegmentStore {
+
+    private final WriteConcern concern = WriteConcern.SAFE; // TODO: MAJORITY?
 
     private final DBCollection segments;
 
@@ -56,9 +62,9 @@ public class MongoStore implements SegmentStore {
     @Override
     public Journal getJournal(String name) {
         if ("root".equals(name)) {
-            return new MongoJournal(this, journals, EMPTY_NODE);
+            return new MongoJournal(this, journals, concern, EMPTY_NODE);
         } else {
-            return new MongoJournal(this, journals, name);
+            return new MongoJournal(this, journals, concern, name);
         }
     }
 
@@ -93,11 +99,16 @@ public class MongoStore implements SegmentStore {
     }
 
     private Segment findSegment(UUID segmentId) {
-        DBObject segment = segments.findOne(
-                new BasicDBObject("_id", segmentId.toString()));
+        DBObject id = new BasicDBObject("_id", segmentId.toString());
+        DBObject fields = new BasicDBObject(of("data", 1, "uuids", 1));
+
+        DBObject segment = segments.findOne(id, fields, nearest());
         if (segment == null) {
-            throw new IllegalStateException(
-                    "Segment " + segmentId + " not found");
+            segment = segments.findOne(id, fields, primary());
+            if (segment == null) {
+                throw new IllegalStateException(
+                        "Segment " + segmentId + " not found");
+            }
         }
 
         byte[] data = (byte[]) segment.get("data");
@@ -119,7 +130,7 @@ public class MongoStore implements SegmentStore {
         segment.put("_id", segmentId.toString());
         segment.put("data", data);
         segment.put("uuids", list);
-        segments.insert(segment);
+        segments.insert(segment, concern);
     }
 
     @Override
