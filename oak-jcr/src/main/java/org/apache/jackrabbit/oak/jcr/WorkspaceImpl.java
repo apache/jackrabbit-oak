@@ -18,11 +18,11 @@ package org.apache.jackrabbit.oak.jcr;
 
 import java.io.IOException;
 import java.io.InputStream;
+
 import javax.annotation.Nonnull;
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
-import javax.jcr.Session;
 import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.ValueFactory;
 import javax.jcr.lock.LockManager;
@@ -100,7 +100,7 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
     //----------------------------------------------------------< Workspace >---
     @Override
     @Nonnull
-    public Session getSession() {
+    public SessionImpl getSession() {
         return SessionContextProvider.getSession(sessionDelegate);
     }
 
@@ -126,7 +126,7 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
             throw new UnsupportedRepositoryOperationException("Not implemented.");
         }
 
-        sessionDelegate.checkProtectedNodes(Text.getRelativeParent(srcAbsPath, 1), Text.getRelativeParent(destAbsPath, 1));
+        getSession().checkProtectedNodes(Text.getRelativeParent(srcAbsPath, 1), Text.getRelativeParent(destAbsPath, 1));
 
         String oakPath = getOakPathKeepIndexOrThrowNotFound(destAbsPath);
         String oakName = PathUtils.getName(oakPath);
@@ -148,7 +148,7 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
     public void clone(String srcWorkspace, String srcAbsPath, String destAbsPath, boolean removeExisting) throws RepositoryException {
         ensureIsAlive();
 
-        sessionDelegate.checkProtectedNodes(Text.getRelativeParent(srcAbsPath, 1), Text.getRelativeParent(destAbsPath, 1));
+        getSession().checkProtectedNodes(Text.getRelativeParent(srcAbsPath, 1), Text.getRelativeParent(destAbsPath, 1));
 
         // TODO
         throw new UnsupportedRepositoryOperationException("Not implemented.");
@@ -158,7 +158,7 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
     public void move(String srcAbsPath, String destAbsPath) throws RepositoryException {
         ensureIsAlive();
 
-        sessionDelegate.checkProtectedNodes(Text.getRelativeParent(srcAbsPath, 1), Text.getRelativeParent(destAbsPath, 1));
+        getSession().checkProtectedNodes(Text.getRelativeParent(srcAbsPath, 1), Text.getRelativeParent(destAbsPath, 1));
 
         String oakPath = getOakPathKeepIndexOrThrowNotFound(destAbsPath);
         String oakName = PathUtils.getName(oakPath);
