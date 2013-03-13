@@ -42,7 +42,7 @@ import org.apache.jackrabbit.oak.jcr.delegate.VersionHistoryDelegate;
 import org.apache.jackrabbit.oak.util.TODO;
 
 /**
- * <code>VersionHistoryImpl</code>...
+ * {@code VersionHistoryImpl}...
  */
 public class VersionHistoryImpl extends NodeImpl<VersionHistoryDelegate>
         implements VersionHistory {

@@ -40,7 +40,7 @@ import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
- * <code>VersionHistoryDelegate</code>...
+ * {@code VersionHistoryDelegate}...
  */
 public class VersionHistoryDelegate extends NodeDelegate {
 
@@ -145,7 +145,7 @@ public class VersionHistoryDelegate extends NodeDelegate {
     //-----------------------------< internal >---------------------------------
 
     /**
-     * @return the jcr:versionLabels tree or throws a <code>RepositoryException</code>
+     * @return the jcr:versionLabels tree or throws a {@code RepositoryException}
      *         if it doesn't exist.
      * @throws RepositoryException if the jcr:versionLabels child does not
      *                             exist.
