@@ -360,7 +360,7 @@ public class MongoMK implements MicroKernel {
     }
 
     @Override
-    public String getHeadRevision() throws MicroKernelException {
+    public synchronized String getHeadRevision() throws MicroKernelException {
         String head = headRevision.toString();
         while (branchCommits.containsKey(head)) {
             head = branchCommits.get(head);
@@ -452,7 +452,7 @@ public class MongoMK implements MicroKernel {
     }
 
     @Override
-    public boolean nodeExists(String path, String revisionId)
+    public synchronized boolean nodeExists(String path, String revisionId)
             throws MicroKernelException {
         revisionId = revisionId != null ? revisionId : headRevision.toString();
         Revision rev = Revision.fromString(stripBranchRevMarker(revisionId));
