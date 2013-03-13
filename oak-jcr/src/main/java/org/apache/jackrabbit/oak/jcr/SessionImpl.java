@@ -89,11 +89,15 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
         this.namespaces = namespaces;
     }
 
-    public void checkProtectedNodes(String... absJcrPaths) throws RepositoryException {
+    public static void checkProtectedNodes(Session session, String... absJcrPaths) throws RepositoryException {
         for (String absPath : absJcrPaths) {
-            NodeImpl<?> node = (NodeImpl<?>) getNode(absPath);
+            NodeImpl<?> node = (NodeImpl<?>) session.getNode(absPath);
             node.checkProtected();
         }
+    }
+
+    public void checkProtectedNodes(String... absJcrPaths) throws RepositoryException {
+        checkProtectedNodes(this, absJcrPaths);
     }
 
     //------------------------------------------------------------< Session >---

@@ -22,6 +22,7 @@ import javax.jcr.Item;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
+import javax.jcr.ValueFactory;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.ItemDefinition;
 import javax.jcr.nodetype.NodeTypeManager;
@@ -32,7 +33,6 @@ import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionOperation;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.nodetype.DefinitionProvider;
-import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -237,7 +237,7 @@ abstract class ItemImpl<T extends ItemDelegate> extends AbstractItem {
      * @return the value factory
      */
     @Nonnull
-    ValueFactoryImpl getValueFactory() {
+    ValueFactory getValueFactory() {
         return sessionContext.getValueFactory();
     }
 

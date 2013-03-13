@@ -5,7 +5,11 @@ import java.util.Map;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.PathNotFoundException;
+import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+import javax.jcr.ValueFactory;
+import javax.jcr.Workspace;
 import javax.jcr.lock.LockManager;
 import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.observation.ObservationManager;
@@ -20,6 +24,7 @@ import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.namepath.LocalNameMapper;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
 import org.apache.jackrabbit.oak.plugins.name.Namespaces;
 import org.apache.jackrabbit.oak.plugins.nodetype.DefinitionProvider;
@@ -36,8 +41,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 public abstract class SessionContext {
     private final RepositoryImpl repository;
     private final SessionDelegate delegate;
-    private final NamePathMapperImpl namePathMapper;
-    private final ValueFactoryImpl valueFactory;
+    private final NamePathMapper namePathMapper;
+    private final ValueFactory valueFactory;
 
     private AccessControlManager accessControlManager;
     private PrincipalManager principalManager;
@@ -48,7 +53,7 @@ public abstract class SessionContext {
     private ObservationManagerImpl observationManager;
 
     private SessionContext(RepositoryImpl repository, SessionDelegate delegate,
-            NamePathMapperImpl namePathMapper, ValueFactoryImpl valueFactory) {
+            NamePathMapper namePathMapper, ValueFactory valueFactory) {
         this.delegate = delegate;
         this.repository = repository;
         this.namePathMapper = namePathMapper;
@@ -74,18 +79,18 @@ public abstract class SessionContext {
             private final WorkspaceImpl workspace = new WorkspaceImpl(this);
 
             @Override
-            public SessionImpl getSession() {
+            public Session getSession() {
                 return session;
             }
 
             @Override
-            public WorkspaceImpl getWorkspace() {
+            public WorkspaceImpl getWorkspaceInternal() {
                 return workspace;
             }
         };
     }
 
-    public RepositoryImpl getRepository() {
+    public Repository getRepository() {
         return repository;
     }
 
@@ -93,39 +98,43 @@ public abstract class SessionContext {
         return delegate;
     }
 
-    public abstract SessionImpl getSession();
+    public abstract Session getSession();
 
-    public abstract WorkspaceImpl getWorkspace();
+    protected abstract WorkspaceImpl getWorkspaceInternal();
+
+    public Workspace getWorkspace() {
+        return getWorkspaceInternal();
+    }
 
     public QueryManager getQueryManager() throws RepositoryException {
-        return getWorkspace().getQueryManager();
+        return getWorkspaceInternal().getQueryManager();
     }
 
     public LockManager getLockManager() {
-        return getWorkspace().getLockManager();
+        return getWorkspaceInternal().getLockManager();
     }
 
     public NodeTypeManager getNodeTypeManager() {
-        return getWorkspace().getNodeTypeManager();
+        return getWorkspaceInternal().getNodeTypeManager();
     }
 
     public VersionManager getVersionManager() throws RepositoryException {
-        return getWorkspace().getVersionManager();
+        return getWorkspaceInternal().getVersionManager();
     }
 
     public EffectiveNodeTypeProvider getEffectiveNodeTypeProvider() {
-        return getWorkspace().getReadWriteNodeTypeManager();
+        return getWorkspaceInternal().getReadWriteNodeTypeManager();
     }
 
     public DefinitionProvider getDefinitionProvider() {
-        return getWorkspace().getReadWriteNodeTypeManager();
+        return getWorkspaceInternal().getReadWriteNodeTypeManager();
     }
 
-    public NamePathMapperImpl getNamePathMapper() {
+    public NamePathMapper getNamePathMapper() {
         return namePathMapper;
     }
 
-    public ValueFactoryImpl getValueFactory() {
+    public ValueFactory getValueFactory() {
         return valueFactory;
     }
 

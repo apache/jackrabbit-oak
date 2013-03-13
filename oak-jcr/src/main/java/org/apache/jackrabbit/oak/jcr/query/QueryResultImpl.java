@@ -38,6 +38,7 @@ import org.apache.jackrabbit.oak.jcr.NodeImpl;
 import org.apache.jackrabbit.oak.jcr.SessionContext;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
+import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 
 /**
  * The implementation of the corresponding JCR interface.
@@ -240,7 +241,7 @@ public class QueryResultImpl implements QueryResult {
         if (value == null) {
             return null;
         } else {
-            return sessionContext.getValueFactory().createValue(value);
+            return ValueFactoryImpl.createValue(value, sessionContext.getNamePathMapper());
         }
     }
 
