@@ -89,56 +89,56 @@ public class Jcr {
     }
 
     @Nonnull
-    public Jcr with(@Nonnull RepositoryInitializer initializer) {
+    public final Jcr with(@Nonnull RepositoryInitializer initializer) {
        oak.with(checkNotNull(initializer));
        return this;
     }
 
     @Nonnull
-    public Jcr with(@Nonnull QueryIndexProvider provider) {
+    public final Jcr with(@Nonnull QueryIndexProvider provider) {
         oak.with(checkNotNull(provider));
         return this;
     }
 
     @Nonnull
-    public Jcr with(@Nonnull IndexHookProvider indexHookProvider) {
+    public final Jcr with(@Nonnull IndexHookProvider indexHookProvider) {
         oak.with(checkNotNull(indexHookProvider));
         return this;
     }
 
     @Nonnull
-    public Jcr with(@Nonnull CommitHook hook) {
+    public final Jcr with(@Nonnull CommitHook hook) {
         oak.with(checkNotNull(hook));
         return this;
     }
 
     @Nonnull
-    public Jcr with(@Nonnull EditorProvider provider) {
+    public final Jcr with(@Nonnull EditorProvider provider) {
         oak.with(checkNotNull(provider));
         return this;
     }
 
     @Nonnull
-    public Jcr with(@Nonnull Editor editor) {
+    public final Jcr with(@Nonnull Editor editor) {
         oak.with(checkNotNull(editor));
         return this;
     }
 
     @Nonnull
-    public Jcr with(@Nonnull SecurityProvider securityProvider) {
+    public final Jcr with(@Nonnull SecurityProvider securityProvider) {
         oak.with(checkNotNull(securityProvider));
         this.securityProvider = securityProvider;
         return this;
     }
 
     @Nonnull
-    public Jcr with(@Nonnull ConflictHandler conflictHandler) {
+    public final Jcr with(@Nonnull ConflictHandler conflictHandler) {
         oak.with(checkNotNull(conflictHandler));
         return this;
     }
 
     @Nonnull
-    public Jcr with(@Nonnull ScheduledExecutorService executor) {
+    public final Jcr with(@Nonnull ScheduledExecutorService executor) {
         this.executor = checkNotNull(executor);
         return this;
     }
