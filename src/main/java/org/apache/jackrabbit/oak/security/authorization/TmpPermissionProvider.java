@@ -26,8 +26,8 @@ import javax.jcr.Session;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.security.authorization.permission.PermissionProviderImpl;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.apache.jackrabbit.oak.spi.security.authorization.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.Permissions;
 import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.SystemPrincipal;
@@ -35,13 +35,17 @@ import org.apache.jackrabbit.oak.spi.security.principal.SystemPrincipal;
 /**
  * TmpPermissionProvider... TODO remove again once permission evaluation works.
  */
-class TmpPermissionProvider extends PermissionProviderImpl {
+class TmpPermissionProvider implements PermissionProvider {
 
     private final boolean isAdmin;
 
     public TmpPermissionProvider(@Nonnull Root root, @Nonnull Set<Principal> principals, @Nonnull SecurityProvider securityProvider) {
-        super(root, principals, securityProvider);
         isAdmin = principals.contains(SystemPrincipal.INSTANCE) || isAdmin(principals);
+    }
+
+    @Override
+    public void refresh() {
+        // nothing to do
     }
 
     @Nonnull
