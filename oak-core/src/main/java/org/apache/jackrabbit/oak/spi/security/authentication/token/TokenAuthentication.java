@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.security.authentication.token;
+package org.apache.jackrabbit.oak.spi.security.authentication.token;
 
 import java.util.Date;
 import javax.annotation.Nonnull;
@@ -23,8 +23,6 @@ import javax.security.auth.login.LoginException;
 
 import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
 import org.apache.jackrabbit.oak.spi.security.authentication.Authentication;
-import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenInfo;
-import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

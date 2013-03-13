@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.security.authentication.token;
+package org.apache.jackrabbit.oak.spi.security.authentication.token;
 
 import java.io.IOException;
 import java.security.Principal;
@@ -36,8 +36,6 @@ import org.apache.jackrabbit.oak.spi.security.authentication.AuthInfoImpl;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.AbstractLoginModule;
 import org.apache.jackrabbit.oak.spi.security.authentication.callback.TokenProviderCallback;
-import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenInfo;
-import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -84,8 +82,8 @@ import org.slf4j.LoggerFactory;
  * <h4>TokenLoginModule in combination with another LoginModule</h4>
  * <pre>
  *    jackrabbit.oak {
- *            org.apache.jackrabbit.oak.security.authentication.token.TokenLoginModule sufficient;
- *            org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl required;
+ *            org.apache.jackrabbit.oak.spi.security.authentication.token.TokenLoginModule sufficient;
+ *            org.apache.jackrabbit.oak.spi.security.authentication.user.LoginModuleImpl required;
  *    };
  * </pre>
  * In this case the TokenLoginModule would handle any login issued with
@@ -98,7 +96,7 @@ import org.slf4j.LoggerFactory;
  * <h4>TokenLoginModule as single way to login</h4>
  * <pre>
  *    jackrabbit.oak {
- *            org.apache.jackrabbit.oak.security.authentication.token.TokenLoginModule required;
+ *            org.apache.jackrabbit.oak.spi.security.authentication.token.TokenLoginModule required;
  *    };
  * </pre>
  * If the {@code TokenLoginModule} as single entry in the login configuration

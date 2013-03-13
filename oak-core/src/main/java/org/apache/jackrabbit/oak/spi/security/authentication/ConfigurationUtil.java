@@ -14,17 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.security;
+package org.apache.jackrabbit.oak.spi.security.authentication;
 
 import java.util.Collections;
 import java.util.Map;
 import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.login.Configuration;
 
-import org.apache.jackrabbit.oak.security.authentication.token.TokenLoginModule;
-import org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl;
+import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenLoginModule;
+import org.apache.jackrabbit.oak.spi.security.authentication.user.LoginModuleImpl;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
-import org.apache.jackrabbit.oak.spi.security.authentication.GuestLoginModule;
 
 /**
  * ConfigurationUtil... TODO

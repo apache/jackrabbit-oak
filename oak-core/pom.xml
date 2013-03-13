@@ -67,6 +67,8 @@
               org.apache.jackrabbit.oak.spi.security.authentication,
               org.apache.jackrabbit.oak.spi.security.authentication.callback,
               org.apache.jackrabbit.oak.spi.security.authentication.external,
+              org.apache.jackrabbit.oak.spi.security.authentication.token,
+              org.apache.jackrabbit.oak.spi.security.authentication.user,
               org.apache.jackrabbit.oak.spi.security.authorization,
               org.apache.jackrabbit.oak.spi.security.authorization.restriction,
               org.apache.jackrabbit.oak.spi.security.principal,

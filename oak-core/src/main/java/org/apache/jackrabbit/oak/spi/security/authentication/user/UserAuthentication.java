@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.security.authentication.user;
+package org.apache.jackrabbit.oak.spi.security.authentication.user;
 
 import java.util.Collections;
 import javax.jcr.Credentials;
@@ -68,6 +68,7 @@ class UserAuthentication implements Authentication {
         this.userManager = userManager;
     }
 
+    //-----------------------------------------------------< Authentication >---
     @Override
     public boolean authenticate(Credentials credentials) throws LoginException {
         if (userId == null || userManager == null) {
