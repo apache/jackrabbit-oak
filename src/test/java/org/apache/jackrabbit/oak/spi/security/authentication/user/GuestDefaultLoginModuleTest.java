@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.security.authentication;
+package org.apache.jackrabbit.oak.spi.security.authentication.user;
 
 import java.util.Collections;
 import javax.jcr.GuestCredentials;
@@ -24,8 +24,8 @@ import javax.security.auth.login.Configuration;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.GuestLoginModule;
+import org.apache.jackrabbit.oak.spi.security.authentication.user.LoginModuleImpl;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtility;
 import org.junit.Test;
 
