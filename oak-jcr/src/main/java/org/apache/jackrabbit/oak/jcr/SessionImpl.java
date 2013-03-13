@@ -72,7 +72,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
      */
     private static final Logger log = LoggerFactory.getLogger(SessionImpl.class);
 
-    private SessionContext sessionContext;
+    private final SessionContext sessionContext;
     private final SessionDelegate dlg;
 
     /**
