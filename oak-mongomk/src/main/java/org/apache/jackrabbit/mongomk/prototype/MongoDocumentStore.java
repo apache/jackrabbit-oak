@@ -18,12 +18,16 @@ package org.apache.jackrabbit.mongomk.prototype;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
-import org.apache.jackrabbit.mongomk.prototype.MongoMK.Cache;
 import org.apache.jackrabbit.mongomk.prototype.UpdateOp.Operation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,12 +55,20 @@ public class MongoDocumentStore implements DocumentStore {
     
     private long time;
     
-    private Cache<String, Map<String, Object>> cache =
-            new Cache<String, Map<String, Object>>(MongoMK.CACHE_DOCUMENTS);
+    private final Cache<String, Map<String, Object>> cache;
+
+    /**
+     * Marker instance to be used as a value in cache to indicate that no value exist for given key as Guava
+     * cache does not allow null values
+     */
+    private static final Map<String, Object> NULL_VAL = Collections.emptyMap();
 
     public MongoDocumentStore(DB db) {
         nodesCollection = db.getCollection(Collection.NODES.toString());
         ensureIndex();
+        cache = CacheBuilder.newBuilder()
+                            .maximumSize(MongoMK.CACHE_DOCUMENTS)
+                            .build();
     }
     
     private static long start() {
@@ -69,38 +81,43 @@ public class MongoDocumentStore implements DocumentStore {
         }
     }
     
-    public void finalize() {
+    public void finalize() throws Throwable {
+        super.finalize();
         // TODO should not be needed, but it seems
         // oak-jcr doesn't call dispose()
         dispose();
     }
 
     @Override
-    public Map<String, Object> find(Collection collection, String path) {
-        synchronized (cache) {
-            // support null values
-            if (cache.containsKey(path)) {
-                return cache.get(path);
-            }
-        }
-        log("find", path);
-        DBCollection dbCollection = getDBCollection(collection);
-        long start = start();
+    public Map<String, Object> find(final Collection collection, final String path) {
         try {
-            DBObject doc = dbCollection.findOne(getByPathQuery(path));
-            Map<String, Object> result;
-            if (doc == null) {
-                result = null;
-            } else {
-                result = convertFromDBObject(doc);
-            }
-            synchronized (cache) {
-                // support caching null values
-                cache.put(path, result);
-            }
-            return result;
-        } finally {
-            end(start);
+            Map<String, Object> returnVal = cache.get(path,new Callable<Map<String, Object>>() {
+                @Override
+                public Map<String, Object> call() throws Exception {
+                    DBCollection dbCollection = getDBCollection(collection);
+                    long start = start();
+                    try {
+                        DBObject doc = dbCollection.findOne(getByPathQuery(path));
+                        Map<String, Object> result;
+                        if (doc == null) {
+                            //TODO Look into null handling. It might happen that some
+                            //other cluster node create a node at given path. So caching
+                            //this info can cause issue
+
+                            //In case of null let be cached as well
+                            result = NULL_VAL;
+                        } else {
+                            result = convertFromDBObject(doc);
+                        }
+                        return result;
+                    } finally {
+                        end(start);
+                    }
+                }
+            });
+            return returnVal == NULL_VAL ?  null : returnVal;
+        } catch (ExecutionException e) {
+            throw new IllegalStateException( "Failed to load node " + path, e);
         }
     }
     
@@ -121,9 +138,7 @@ public class MongoDocumentStore implements DocumentStore {
                 DBObject o = cursor.next();
                 Map<String, Object> map = convertFromDBObject(o);
                 String path = (String) map.get(UpdateOp.ID);
-                synchronized (cache) {
-                    cache.put(path, map);
-                }
+                cache.put(path, map);
                 list.add(map);
             }
             return list;
@@ -138,9 +153,7 @@ public class MongoDocumentStore implements DocumentStore {
         DBCollection dbCollection = getDBCollection(collection);
         long start = start();
         try {
-            synchronized (cache) {
-                cache.remove(path);
-            }
+            cache.invalidate(path);
             WriteResult writeResult = dbCollection.remove(getByPathQuery(path), WriteConcern.SAFE);
             if (writeResult.getError() != null) {
                 throw new MicroKernelException("Remove failed: " + writeResult.getError());
@@ -208,10 +221,8 @@ public class MongoDocumentStore implements DocumentStore {
                     true /*upsert*/);
             Map<String, Object> map = convertFromDBObject(oldNode);
             String path = (String) map.get(UpdateOp.ID);
-            synchronized (cache) {
-                cache.put(path, map);
-            }
-            log("createOrUpdate returns ", map);      
+            cache.put(path, map);
+            log("createOrUpdate returns ", map);
             return map;
         } catch (Exception e) {
             throw new MicroKernelException(e);
@@ -266,13 +277,9 @@ public class MongoDocumentStore implements DocumentStore {
                 if (writeResult.getError() != null) {
                     return false;
                 }
-                synchronized (cache) {
-                    for (Map<String, Object> map : maps) {
-                        String path = (String) map.get(UpdateOp.ID);
-                        synchronized (cache) {
-                            cache.put(path, map);
-                        }
-                    }
+                for (Map<String, Object> map : maps) {
+                    String path = (String) map.get(UpdateOp.ID);
+                    cache.put(path, map);
                 }
                 return true;
             } catch (MongoException e) {
