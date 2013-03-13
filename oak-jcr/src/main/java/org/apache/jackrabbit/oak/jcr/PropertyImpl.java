@@ -62,8 +62,8 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
 
     private static final Value[] NO_VALUES = new Value[0];
 
-    PropertyImpl(PropertyDelegate dlg) {
-        super(dlg);
+    PropertyImpl(PropertyDelegate dlg, SessionContext sessionContext) {
+        super(dlg, sessionContext);
     }
 
     //---------------------------------------------------------------< Item >---
@@ -89,7 +89,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
                 if (parent == null) {
                     throw new AccessDeniedException();
                 } else {
-                    return new NodeImpl<NodeDelegate>(dlg.getParent());
+                    return new NodeImpl<NodeDelegate>(dlg.getParent(), sessionContext);
                 }
             }
         });

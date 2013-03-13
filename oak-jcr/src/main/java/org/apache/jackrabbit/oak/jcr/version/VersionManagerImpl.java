@@ -32,7 +32,7 @@ import javax.jcr.version.VersionHistory;
 import javax.jcr.version.VersionManager;
 
 import org.apache.jackrabbit.commons.iterator.NodeIteratorAdapter;
-import org.apache.jackrabbit.oak.jcr.SessionContextProvider;
+import org.apache.jackrabbit.oak.jcr.SessionContext;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionOperation;
@@ -41,9 +41,11 @@ import org.apache.jackrabbit.oak.util.TODO;
 
 public class VersionManagerImpl implements VersionManager {
 
+    private final SessionContext sessionContext;
     private final VersionManagerDelegate versionManagerDelegate;
 
-    public VersionManagerImpl(SessionDelegate sessionDelegate) {
+    public VersionManagerImpl(SessionDelegate sessionDelegate, SessionContext sessionContext) {
+        this.sessionContext = sessionContext;
         this.versionManagerDelegate = VersionManagerDelegate.create(sessionDelegate);
     }
 
@@ -129,9 +131,9 @@ public class VersionManagerImpl implements VersionManager {
         });
     }
 
-    private static String getOakPathOrThrowNotFound(SessionDelegate sessionDelegate, String absPath)
+    private String getOakPathOrThrowNotFound(SessionDelegate sessionDelegate, String absPath)
             throws PathNotFoundException {
-        return SessionContextProvider.getOakPathOrThrowNotFound(sessionDelegate, absPath);
+        return sessionContext.getOakPathOrThrowNotFound(absPath);
     }
 
     @Override
@@ -147,7 +149,7 @@ public class VersionManagerImpl implements VersionManager {
                     throw new PathNotFoundException(absPath);
                 }
                 return new VersionHistoryImpl(
-                        versionManagerDelegate.getVersionHistory(nodeDelegate));
+                        versionManagerDelegate.getVersionHistory(nodeDelegate), sessionContext);
             }
         });
     }
@@ -164,7 +166,7 @@ public class VersionManagerImpl implements VersionManager {
                     throw new PathNotFoundException(absPath);
                 }
                 return new VersionImpl(
-                        versionManagerDelegate.getBaseVersion(nodeDelegate));
+                        versionManagerDelegate.getBaseVersion(nodeDelegate), sessionContext);
             }
         });
     }
@@ -196,8 +198,8 @@ public class VersionManagerImpl implements VersionManager {
     }
 
     @Nonnull
-    private static LockManager getLockManager(SessionDelegate sessionDelegate) {
-        return SessionContextProvider.getLockManager(sessionDelegate);
+    private LockManager getLockManager(SessionDelegate sessionDelegate) {
+        return sessionContext.getLockManager();
     }
 
     @Override
@@ -240,7 +242,7 @@ public class VersionManagerImpl implements VersionManager {
                 if (getLockManager(sessionDelegate).isLocked(absPath)) {
                     throw new LockException("Node at " + absPath + " is locked");
                 }
-                return new VersionImpl(versionManagerDelegate.checkin(nodeDelegate));
+                return new VersionImpl(versionManagerDelegate.checkin(nodeDelegate), sessionContext);
             }
         });
     }

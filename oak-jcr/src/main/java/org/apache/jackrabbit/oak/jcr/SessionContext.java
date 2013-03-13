@@ -34,7 +34,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 public abstract class SessionContext {
     private final RepositoryImpl repository;
-    private final WorkspaceImpl workspace;
+    private final SessionDelegate delegate;
     private final NamePathMapperImpl namePathMapper;
     private final ValueFactoryImpl valueFactory;
 
@@ -46,10 +46,10 @@ public abstract class SessionContext {
     private AccessControlConfiguration accessControlConfiguration;
     private ObservationManagerImpl observationManager;
 
-    private SessionContext(RepositoryImpl repository, WorkspaceImpl workspace,
+    private SessionContext(RepositoryImpl repository, SessionDelegate delegate,
             NamePathMapperImpl namePathMapper, ValueFactoryImpl valueFactory) {
+        this.delegate = delegate;
         this.repository = repository;
-        this.workspace = workspace;
         this.namePathMapper = namePathMapper;
         this.valueFactory = valueFactory;
     }
@@ -65,15 +65,21 @@ public abstract class SessionContext {
             }
         };
 
-        WorkspaceImpl workspace = new WorkspaceImpl(delegate);
         NamePathMapperImpl namePathMapper = new NamePathMapperImpl(nameMapper, delegate.getIdManager());
         ValueFactoryImpl valueFactory = new ValueFactoryImpl(root.getBlobFactory(), namePathMapper);
 
-        return new SessionContext(checkNotNull(repository), workspace, namePathMapper, valueFactory){
-            SessionImpl session = new SessionImpl(delegate, this, namespaces);
+        return new SessionContext(checkNotNull(repository), delegate, namePathMapper, valueFactory){
+            private final SessionImpl session = new SessionImpl(delegate, this, namespaces);
+            private final WorkspaceImpl workspace = new WorkspaceImpl(delegate, this);
+
             @Override
             public SessionImpl getSession() {
                 return session;
+            }
+
+            @Override
+            public WorkspaceImpl getWorkspace() {
+                return workspace;
             }
         };
     }
@@ -82,30 +88,32 @@ public abstract class SessionContext {
         return repository;
     }
 
-    public abstract SessionImpl getSession();
-
-    public WorkspaceImpl getWorkspace() {
-        return workspace;
+    public SessionDelegate getSessionDelegate() {
+        return delegate;
     }
 
+    public abstract SessionImpl getSession();
+
+    public abstract WorkspaceImpl getWorkspace();
+
     public LockManager getLockManager() {
-        return workspace.getLockManager();
+        return getWorkspace().getLockManager();
     }
 
     public NodeTypeManager getNodeTypeManager() {
-        return workspace.getNodeTypeManager();
+        return getWorkspace().getNodeTypeManager();
     }
 
     public VersionManager getVersionManager() throws RepositoryException {
-        return workspace.getVersionManager();
+        return getWorkspace().getVersionManager();
     }
 
     public EffectiveNodeTypeProvider getEffectiveNodeTypeProvider() {
-        return workspace.getReadWriteNodeTypeManager();
+        return getWorkspace().getReadWriteNodeTypeManager();
     }
 
     public DefinitionProvider getDefinitionProvider() {
-        return workspace.getReadWriteNodeTypeManager();
+        return getWorkspace().getReadWriteNodeTypeManager();
     }
 
     public NamePathMapperImpl getNamePathMapper() {
@@ -184,7 +192,7 @@ public abstract class SessionContext {
      * @return Oak path, or {@code null}, with indexes left intact
      * @throws javax.jcr.PathNotFoundException
      */
-    @Nonnull
+    @CheckForNull
     public String getOakPathKeepIndex(String jcrPath) throws PathNotFoundException {
         return namePathMapper.getOakPathKeepIndex(jcrPath);
     }
@@ -217,7 +225,7 @@ public abstract class SessionContext {
     }
 
     @Nonnull
-    public PermissionProvider getPermissionProvider(SessionDelegate delegate) {
+    public PermissionProvider getPermissionProvider() {
         SecurityProvider securityProvider = repository.getSecurityProvider();
 
         // TODO
@@ -226,7 +234,7 @@ public abstract class SessionContext {
     }
 
     @Nonnull
-    public PrincipalManager getPrincipalManager(SessionDelegate delegate) {
+    public PrincipalManager getPrincipalManager() {
         if (principalManager == null) {
             SecurityProvider securityProvider = repository.getSecurityProvider();
             principalManager = securityProvider.getPrincipalConfiguration()
@@ -236,7 +244,7 @@ public abstract class SessionContext {
     }
 
     @Nonnull
-    public UserManager getUserManager(SessionDelegate delegate) {
+    public UserManager getUserManager() {
         if (userManager == null) {
             SecurityProvider securityProvider = repository.getSecurityProvider();
             userManager = securityProvider.getUserConfiguration().getUserManager(delegate.getRoot(), namePathMapper);
@@ -245,7 +253,7 @@ public abstract class SessionContext {
     }
 
     @Nonnull
-    public PrivilegeManager getPrivilegeManager(SessionDelegate delegate) {
+    public PrivilegeManager getPrivilegeManager() {
         if (privilegeManager == null) {
             SecurityProvider securityProvider = repository.getSecurityProvider();
             privilegeManager = securityProvider.getPrivilegeConfiguration().getPrivilegeManager(delegate.getRoot(), namePathMapper);
@@ -272,7 +280,7 @@ public abstract class SessionContext {
     }
 
     @Nonnull
-    public ObservationManager getObservationManager(SessionDelegate delegate) {
+    public ObservationManager getObservationManager() {
         if (observationManager == null) {
             observationManager = new ObservationManagerImpl(
                     delegate.getRoot(), namePathMapper, repository.getObservationExecutor());

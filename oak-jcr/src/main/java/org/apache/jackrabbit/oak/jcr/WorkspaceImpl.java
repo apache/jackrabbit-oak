@@ -56,16 +56,18 @@ import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_
 public class WorkspaceImpl implements JackrabbitWorkspace {
 
     private final SessionDelegate sessionDelegate;
+    private final SessionContext sessionContext;
     private final QueryManagerImpl queryManager;
     private final LockManager lockManager;
     private final VersionManagerImpl versionManager;
     private final ReadWriteNodeTypeManager nodeTypeManager;
 
-    public WorkspaceImpl(final SessionDelegate sessionDelegate) {
+    public WorkspaceImpl(final SessionDelegate sessionDelegate, final SessionContext sessionContext) {
         this.sessionDelegate = sessionDelegate;
-        this.queryManager = new QueryManagerImpl(sessionDelegate);
-        this.lockManager = new LockManagerImpl(sessionDelegate);
-        this.versionManager = new VersionManagerImpl(sessionDelegate);
+        this.sessionContext = sessionContext;
+        this.queryManager = new QueryManagerImpl(sessionDelegate, sessionContext);
+        this.lockManager = new LockManagerImpl(sessionDelegate, sessionContext);
+        this.versionManager = new VersionManagerImpl(sessionDelegate, sessionContext);
         this.nodeTypeManager = new ReadWriteNodeTypeManager() {
             @Override
             protected void refresh() throws RepositoryException {
@@ -86,13 +88,13 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
             @Override
             @Nonnull
             protected ValueFactory getValueFactory() {
-                return SessionContextProvider.getValueFactory(sessionDelegate);
+                return sessionContext.getValueFactory();
             }
 
             @Nonnull
             @Override
             protected NamePathMapper getNamePathMapper() {
-                return SessionContextProvider.getNamePathMapper(sessionDelegate);
+                return sessionContext.getNamePathMapper();
             }
         };
     }
@@ -101,7 +103,7 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
     @Override
     @Nonnull
     public SessionImpl getSession() {
-        return SessionContextProvider.getSession(sessionDelegate);
+        return sessionContext.getSession();
     }
 
     @Override
@@ -115,7 +117,7 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
     }
 
     private String getOakPathKeepIndexOrThrowNotFound(String absPath) throws PathNotFoundException {
-        return SessionContextProvider.getOakPathKeepIndexOrThrowNotFound(sessionDelegate, absPath);
+        return sessionContext.getOakPathKeepIndexOrThrowNotFound(absPath);
     }
 
     @Override
@@ -141,7 +143,7 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
     }
 
     private String getOakPathOrThrowNotFound(String srcAbsPath) throws PathNotFoundException {
-        return SessionContextProvider.getOakPathOrThrowNotFound(sessionDelegate, srcAbsPath);
+        return sessionContext.getOakPathOrThrowNotFound(srcAbsPath);
     }
 
     @Override
@@ -218,7 +220,7 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
     public ObservationManager getObservationManager() throws RepositoryException {
         ensureIsAlive();
 
-        return SessionContextProvider.getObservationManager(sessionDelegate);
+        return sessionContext.getObservationManager();
     }
 
     @Override
@@ -290,7 +292,7 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
      */
     @Override
     public PrivilegeManager getPrivilegeManager() throws RepositoryException {
-        return SessionContextProvider.getPrivilegeManager(sessionDelegate);
+        return sessionContext.getPrivilegeManager();
     }
 
     //------------------------------------------------------------< internal >---

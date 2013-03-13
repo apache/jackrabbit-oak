@@ -53,7 +53,6 @@ import org.apache.jackrabbit.oak.jcr.delegate.PropertyDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionOperation;
 import org.apache.jackrabbit.oak.jcr.xml.ImportHandler;
-import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.PermissionProvider;
@@ -77,6 +76,8 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
 
     private final SessionDelegate dlg;
 
+    private SessionContext sessionContext;
+
     /**
      * Local namespace remappings. Prefixes as keys and namespace URIs as values.
      * <p/>
@@ -87,6 +88,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
 
     SessionImpl(SessionDelegate dlg, SessionContext sessionContext, Map<String, String> namespaces) {
         this.dlg = dlg;
+        this.sessionContext = sessionContext;
         this.namespaces = namespaces;
     }
 
@@ -102,7 +104,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     @Override
     @Nonnull
     public Repository getRepository() {
-        return SessionContextProvider.getRepository(dlg);
+        return sessionContext.getRepository();
     }
 
     @Override
@@ -123,7 +125,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     @Override
     @Nonnull
     public Workspace getWorkspace() {
-        return SessionContextProvider.getWorkspace(dlg);
+        return sessionContext.getWorkspace();
     }
 
     @Override
@@ -139,7 +141,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     @Nonnull
     public ValueFactory getValueFactory() throws RepositoryException {
         ensureIsAlive();
-        return SessionContextProvider.getValueFactory(dlg);
+        return sessionContext.getValueFactory();
     }
 
     @Override
@@ -157,7 +159,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
                 if (nd == null) {
                     throw new AccessDeniedException("Root node is not accessible.");
                 } else {
-                    return new NodeImpl<NodeDelegate>(nd);
+                    return new NodeImpl<NodeDelegate>(nd, sessionContext);
                 }
             }
         });
@@ -184,7 +186,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
                 if (d == null) {
                     throw new ItemNotFoundException("Node with id " + id + " does not exist.");
                 }
-                return new NodeImpl<NodeDelegate>(d);
+                return new NodeImpl<NodeDelegate>(d, sessionContext);
             }
         });
     }
@@ -204,7 +206,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     }
 
     private String getOakPath(String absPath) throws RepositoryException {
-        return SessionContextProvider.getOakPath(dlg, absPath);
+        return sessionContext.getOakPath(absPath);
     }
 
     @Override
@@ -222,7 +224,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
                 if (d == null) {
                     throw new PathNotFoundException("Node with path " + absPath + " does not exist.");
                 }
-                return new NodeImpl<NodeDelegate>(d);
+                return new NodeImpl<NodeDelegate>(d, sessionContext);
             }
         });
     }
@@ -256,7 +258,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
                     if (loc.getProperty() == null) {
                         throw new PathNotFoundException(absPath);
                     } else {
-                        return new PropertyImpl(new PropertyDelegate(dlg, loc));
+                        return new PropertyImpl(new PropertyDelegate(dlg, loc), sessionContext);
                     }
                 }
             });
@@ -264,7 +266,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     }
 
     private String getOakPathOrThrowNotFound(String absPath) throws PathNotFoundException {
-        return SessionContextProvider.getOakPathOrThrowNotFound(dlg, absPath);
+        return sessionContext.getOakPathOrThrowNotFound(absPath);
     }
 
     @Override
@@ -294,7 +296,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
 
             @Override
             public Void perform() throws RepositoryException {
-                String oakPath = SessionContextProvider.getOakPathKeepIndexOrThrowNotFound(dlg, destAbsPath);
+                String oakPath = sessionContext.getOakPathKeepIndexOrThrowNotFound(destAbsPath);
                 String oakName = PathUtils.getName(oakPath);
                 // handle index
                 if (oakName.contains("[")) {
@@ -337,7 +339,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
 
     @Override
     public void logout() {
-        SessionContextProvider.remove(dlg);
+        sessionContext.dispose();
         dlg.logout();
         synchronized (namespaces) {
             namespaces.clear();
@@ -348,15 +350,15 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     @Nonnull
     public ContentHandler getImportContentHandler(
             String parentAbsPath, int uuidBehavior) throws RepositoryException {
-        UserConfiguration userConfiguration = SessionContextProvider.getUserConfiguration(dlg);
-        AccessControlConfiguration accessControlConfiguration = SessionContextProvider.getAccessControlConfiguration(dlg);
+        UserConfiguration userConfiguration = sessionContext.getUserConfiguration();
+        AccessControlConfiguration accessControlConfiguration = sessionContext.getAccessControlConfiguration();
         return new ImportHandler(getNode(parentAbsPath), dlg.getRoot(), this,
-                dlg, userConfiguration, accessControlConfiguration, uuidBehavior);
+                dlg, userConfiguration, accessControlConfiguration, uuidBehavior, sessionContext);
     }
 
     @Nonnull
     private LockManager getLockManager() {
-        return SessionContextProvider.getLockManager(dlg);
+        return sessionContext.getLockManager();
     }
 
     /**
@@ -401,13 +403,12 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     public boolean hasPermission(String absPath, String actions) throws RepositoryException {
         ensureIsAlive();
 
-        NamePathMapper namePathMapper = SessionContextProvider.getNamePathMapper(dlg);
-        String oakPath = namePathMapper.getOakPathKeepIndex(absPath);
+        String oakPath = sessionContext.getOakPathKeepIndex(absPath);
         if (oakPath == null) {
             throw new RepositoryException("Invalid JCR path: " + absPath);
         }
 
-        PermissionProvider permissionProvider = SessionContextProvider.getPermissionProvider(dlg);
+        PermissionProvider permissionProvider = sessionContext.getPermissionProvider();
         return permissionProvider.hasPermission(absPath, actions);
     }
 
@@ -429,7 +430,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     @Override
     @Nonnull
     public AccessControlManager getAccessControlManager() throws RepositoryException {
-        return SessionContextProvider.getAccessControlManager(dlg);
+        return sessionContext.getAccessControlManager(dlg);
     }
 
     /**
@@ -547,13 +548,13 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     @Override
     @Nonnull
     public PrincipalManager getPrincipalManager() throws RepositoryException {
-        return SessionContextProvider.getPrincipalManager(dlg);
+        return sessionContext.getPrincipalManager();
     }
 
     @Override
     @Nonnull
     public UserManager getUserManager() throws RepositoryException {
-        return SessionContextProvider.getUserManager(dlg);
+        return sessionContext.getUserManager();
     }
 
     //------------------------------------------------------------< private >---

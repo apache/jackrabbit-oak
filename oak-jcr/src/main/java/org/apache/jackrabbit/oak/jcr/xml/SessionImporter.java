@@ -40,7 +40,7 @@ import javax.jcr.nodetype.PropertyDefinition;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.NamespaceHelper;
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.jcr.SessionContextProvider;
+import org.apache.jackrabbit.oak.jcr.SessionContext;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.nodetype.EffectiveNodeTypeProvider;
@@ -66,6 +66,7 @@ public class SessionImporter implements Importer {
     private final Node importTargetNode;
     private final Root root;
     private final int uuidBehavior;
+    private final SessionContext sessionContext;
 
     private final NamespaceHelper namespaceHelper;
     private Stack<Node> parents;
@@ -94,12 +95,14 @@ public class SessionImporter implements Importer {
                            NamespaceHelper helper,
                            UserConfiguration userConfig,
                            AccessControlConfiguration accessControlConfig,
-                           int uuidBehavior) throws RepositoryException {
+                           int uuidBehavior,
+                           SessionContext sessionContext) throws RepositoryException {
         this.importTargetNode = importTargetNode;
         this.session = session;
         this.root = root;
         this.namespaceHelper = helper;
         this.uuidBehavior = uuidBehavior;
+        this.sessionContext = sessionContext;
 
         refTracker = new ReferenceChangeTracker();
 
@@ -109,7 +112,7 @@ public class SessionImporter implements Importer {
         pItemImporters.clear();
 
         //TODO clarify how to provide ProtectedItemImporters
-        NamePathMapper namePathMapper = SessionContextProvider.getNamePathMapper(dlg);
+        NamePathMapper namePathMapper = sessionContext.getNamePathMapper();
         for (ProtectedItemImporter importer : userConfig.getProtectedItemImporters()) {
             if (importer.init(session, root, namePathMapper, false, uuidBehavior, refTracker)) {
                 pItemImporters.add(importer);

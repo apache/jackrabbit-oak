@@ -48,6 +48,7 @@ abstract class ItemImpl<T extends ItemDelegate> extends AbstractItem {
     protected static final boolean DISABLE_TRANSIENT_DEFINITION_CHECKS =
             Boolean.getBoolean("OAK-652");
 
+    protected final SessionContext sessionContext;
     protected final SessionDelegate sessionDelegate;
     protected final T dlg;
 
@@ -56,7 +57,8 @@ abstract class ItemImpl<T extends ItemDelegate> extends AbstractItem {
      */
     private static final Logger log = LoggerFactory.getLogger(ItemImpl.class);
 
-    protected ItemImpl(T itemDelegate) {
+    protected ItemImpl(T itemDelegate, SessionContext sessionContext) {
+        this.sessionContext = sessionContext;
         this.sessionDelegate = itemDelegate.getSessionDelegate();
         this.dlg = itemDelegate;
     }
@@ -106,7 +108,7 @@ abstract class ItemImpl<T extends ItemDelegate> extends AbstractItem {
     @Override
     @Nonnull
     public Session getSession() throws RepositoryException {
-        return SessionContextProvider.getSession(sessionDelegate);
+        return sessionContext.getSession();
     }
 
     /**
@@ -236,22 +238,22 @@ abstract class ItemImpl<T extends ItemDelegate> extends AbstractItem {
      */
     @Nonnull
     ValueFactoryImpl getValueFactory() {
-        return SessionContextProvider.getValueFactory(sessionDelegate);
+        return sessionContext.getValueFactory();
     }
 
     @Nonnull
     NodeTypeManager getNodeTypeManager() {
-        return SessionContextProvider.getNodeTypeManager(sessionDelegate);
+        return sessionContext.getNodeTypeManager();
     }
 
     @Nonnull
     DefinitionProvider getDefinitionProvider() {
-        return SessionContextProvider.getDefinitionProvider(sessionDelegate);
+        return sessionContext.getDefinitionProvider();
     }
 
     @Nonnull
     String toJcrPath(String oakPath) {
-        NamePathMapper namePathMapper = SessionContextProvider.getNamePathMapper(sessionDelegate);
+        NamePathMapper namePathMapper = sessionContext.getNamePathMapper();
         return namePathMapper.getJcrPath(oakPath);
     }
 }

@@ -35,7 +35,7 @@ import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.NodeImpl;
-import org.apache.jackrabbit.oak.jcr.SessionContextProvider;
+import org.apache.jackrabbit.oak.jcr.SessionContext;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 
@@ -59,11 +59,13 @@ public class QueryResultImpl implements QueryResult {
      */
     private static final int PREFETCH_TIMEOUT = 100;
 
+    private final SessionContext sessionContext;
     final SessionDelegate sessionDelegate;
     final Result result;
     final String pathFilter;
 
-    public QueryResultImpl(SessionDelegate sessionDelegate, Result result) {
+    public QueryResultImpl(SessionDelegate sessionDelegate, Result result, SessionContext sessionContext) {
+        this.sessionContext = sessionContext;
         this.sessionDelegate = sessionDelegate;
         this.result = result;
 
@@ -158,7 +160,7 @@ public class QueryResultImpl implements QueryResult {
             return null;
         }
         NodeDelegate d = sessionDelegate.getNode(path);
-        return d == null ? null : new NodeImpl<NodeDelegate>(d);
+        return d == null ? null : new NodeImpl<NodeDelegate>(d, sessionContext);
     }
 
     String getLocalPath(String path) {
@@ -238,7 +240,7 @@ public class QueryResultImpl implements QueryResult {
         if (value == null) {
             return null;
         } else {
-            return SessionContextProvider.getValueFactory(sessionDelegate).createValue(value);
+            return sessionContext.getValueFactory().createValue(value);
         }
     }
 

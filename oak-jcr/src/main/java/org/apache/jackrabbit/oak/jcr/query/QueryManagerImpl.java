@@ -37,9 +37,9 @@ import javax.jcr.query.qom.QueryObjectModelFactory;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyValue;
-import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.QueryEngine;
-import org.apache.jackrabbit.oak.jcr.SessionContextProvider;
+import org.apache.jackrabbit.oak.api.Result;
+import org.apache.jackrabbit.oak.jcr.SessionContext;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.jcr.query.qom.QueryObjectModelFactoryImpl;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -51,14 +51,16 @@ import org.apache.jackrabbit.oak.spi.query.PropertyValues;
  */
 public class QueryManagerImpl implements QueryManager {
 
+    private final SessionDelegate sessionDelegate;
+    private final SessionContext sessionContext;
     private final QueryObjectModelFactoryImpl qomFactory;
     private final QueryEngine queryEngine;
-    private final SessionDelegate sessionDelegate;
     private final HashSet<String> supportedQueryLanguages = new HashSet<String>();
 
-    public QueryManagerImpl(SessionDelegate sessionDelegate) {
+    public QueryManagerImpl(SessionDelegate sessionDelegate, SessionContext sessionContext) {
         this.sessionDelegate = sessionDelegate;
-        qomFactory = new QueryObjectModelFactoryImpl(this, sessionDelegate);
+        this.sessionContext = sessionContext;
+        qomFactory = new QueryObjectModelFactoryImpl(this, sessionDelegate, sessionContext);
         queryEngine = sessionDelegate.getQueryEngine();
         supportedQueryLanguages.addAll(queryEngine.getSupportedQueryLanguages());
     }
@@ -68,7 +70,7 @@ public class QueryManagerImpl implements QueryManager {
         if (!supportedQueryLanguages.contains(language)) {
             throw new InvalidQueryException("The specified language is not supported: " + language);
         }
-        return new QueryImpl(this, statement, language);
+        return new QueryImpl(this, statement, language, sessionContext);
     }
 
     @Override
@@ -117,10 +119,10 @@ public class QueryManagerImpl implements QueryManager {
             long limit, long offset, HashMap<String, Value> bindVariableMap) throws RepositoryException {
         try {
             Map<String, PropertyValue> bindMap = convertMap(bindVariableMap);
-            NamePathMapper namePathMapper = SessionContextProvider.getNamePathMapper(sessionDelegate);
+            NamePathMapper namePathMapper = sessionContext.getNamePathMapper();
             Result r = queryEngine.executeQuery(statement, language, limit, offset,
                     bindMap, namePathMapper);
-            return new QueryResultImpl(sessionDelegate, r);
+            return new QueryResultImpl(sessionDelegate, r, sessionContext);
         } catch (IllegalArgumentException e) {
             throw new InvalidQueryException(e);
         } catch (ParseException e) {
