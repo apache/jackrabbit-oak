@@ -64,9 +64,9 @@ public class QueryResultImpl implements QueryResult {
     final Result result;
     final String pathFilter;
 
-    public QueryResultImpl(SessionDelegate sessionDelegate, Result result, SessionContext sessionContext) {
+    public QueryResultImpl(SessionContext sessionContext, Result result) {
         this.sessionContext = sessionContext;
-        this.sessionDelegate = sessionDelegate;
+        this.sessionDelegate = sessionContext.getSessionDelegate();
         this.result = result;
 
         // TODO the path currently contains the workspace name

@@ -44,9 +44,9 @@ public class VersionManagerImpl implements VersionManager {
     private final SessionContext sessionContext;
     private final VersionManagerDelegate versionManagerDelegate;
 
-    public VersionManagerImpl(SessionDelegate sessionDelegate, SessionContext sessionContext) {
+    public VersionManagerImpl(SessionContext sessionContext) {
         this.sessionContext = sessionContext;
-        this.versionManagerDelegate = VersionManagerDelegate.create(sessionDelegate);
+        this.versionManagerDelegate = VersionManagerDelegate.create(sessionContext.getSessionDelegate());
     }
 
     @Override

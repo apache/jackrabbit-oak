@@ -57,10 +57,10 @@ public class QueryManagerImpl implements QueryManager {
     private final QueryEngine queryEngine;
     private final HashSet<String> supportedQueryLanguages = new HashSet<String>();
 
-    public QueryManagerImpl(SessionDelegate sessionDelegate, SessionContext sessionContext) {
-        this.sessionDelegate = sessionDelegate;
+    public QueryManagerImpl(SessionContext sessionContext) {
+        this.sessionDelegate = sessionContext.getSessionDelegate();
         this.sessionContext = sessionContext;
-        qomFactory = new QueryObjectModelFactoryImpl(this, sessionDelegate, sessionContext);
+        qomFactory = new QueryObjectModelFactoryImpl(this, sessionContext);
         queryEngine = sessionDelegate.getQueryEngine();
         supportedQueryLanguages.addAll(queryEngine.getSupportedQueryLanguages());
     }
@@ -122,7 +122,7 @@ public class QueryManagerImpl implements QueryManager {
             NamePathMapper namePathMapper = sessionContext.getNamePathMapper();
             Result r = queryEngine.executeQuery(statement, language, limit, offset,
                     bindMap, namePathMapper);
-            return new QueryResultImpl(sessionDelegate, r, sessionContext);
+            return new QueryResultImpl(sessionContext, r);
         } catch (IllegalArgumentException e) {
             throw new InvalidQueryException(e);
         } catch (ParseException e) {
@@ -139,10 +139,6 @@ public class QueryManagerImpl implements QueryManager {
                             e.getValue())));
         }
         return map;
-    }
-
-    public SessionDelegate getSessionDelegate() {
-        return sessionDelegate;
     }
 
     void ensureIsAlive() throws RepositoryException {

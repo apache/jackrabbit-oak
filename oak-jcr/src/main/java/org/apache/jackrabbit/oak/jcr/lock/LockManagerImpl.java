@@ -29,7 +29,6 @@ import javax.jcr.lock.LockException;
 import javax.jcr.lock.LockManager;
 
 import org.apache.jackrabbit.oak.jcr.SessionContext;
-import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 
 /**
  * Simple lock manager implementation that just keeps track of a set of lock
@@ -38,12 +37,10 @@ import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
  */
 public class LockManagerImpl implements LockManager {
 
-    private final SessionDelegate sessionDelegate;
     private final SessionContext sessionContext;
     private final Set<String> tokens = new HashSet<String>();
 
-    public LockManagerImpl(SessionDelegate sessionDelegate, SessionContext sessionContext) {
-        this.sessionDelegate = sessionDelegate;
+    public LockManagerImpl(SessionContext sessionContext) {
         this.sessionContext = sessionContext;
     }
 
