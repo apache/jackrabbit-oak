@@ -20,6 +20,8 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.ImmutableMap.of;
+import static com.mongodb.ReadPreference.nearest;
+import static com.mongodb.ReadPreference.primaryPreferred;
 
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -28,6 +30,8 @@ import com.mongodb.BasicDBObject;
 import com.mongodb.BasicDBObjectBuilder;
 import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
+import com.mongodb.WriteConcern;
+import com.mongodb.WriteResult;
 
 class MongoJournal implements Journal {
 
@@ -35,30 +39,43 @@ class MongoJournal implements Journal {
 
     private final DBCollection journals;
 
+    private final WriteConcern concern;
+
     private final String name;
 
-    MongoJournal(SegmentStore store, DBCollection journals, NodeState root) {
+    MongoJournal(
+            SegmentStore store, DBCollection journals,
+            WriteConcern concern, NodeState root) {
         this.store = checkNotNull(store);
         this.journals = checkNotNull(journals);
+        this.concern = checkNotNull(concern);
         this.name = "root";
 
-        DBObject state = journals.findOne(new BasicDBObject("_id", "root"));
+        DBObject id = new BasicDBObject("_id", "root");
+        DBObject fields = new BasicDBObject("head", 1);
+        DBObject state = journals.findOne(id, fields, primaryPreferred());
         if (state == null) {
             SegmentWriter writer = new SegmentWriter(store);
-            RecordId id = writer.writeNode(root).getRecordId();
+            RecordId head = writer.writeNode(root).getRecordId();
             writer.flush();
-            state = new BasicDBObject(of("_id", "root", "head", id.toString()));
-            journals.insert(state);
+            state = new BasicDBObject(of(
+                    "_id",  "root",
+                    "head", head.toString()));
+            journals.insert(state, concern);
         }
     }
 
-    MongoJournal(SegmentStore store, DBCollection journals, String name) {
+    MongoJournal(
+            SegmentStore store, DBCollection journals,
+            WriteConcern concern, String name) {
         this.store = checkNotNull(store);
         this.journals = checkNotNull(journals);
+        this.concern = checkNotNull(concern);
         this.name = checkNotNull(name);
         checkArgument(!"root".equals(name));
 
-        DBObject state = journals.findOne(new BasicDBObject("_id", name));
+        DBObject id = new BasicDBObject("_id", name);
+        DBObject state = journals.findOne(id, null, primaryPreferred());
         if (state == null) {
             Journal root = store.getJournal("root");
             String head = root.getHead().toString();
@@ -67,20 +84,25 @@ class MongoJournal implements Journal {
                     "parent", "root",
                     "base",   head,
                     "head",   head));
-            journals.insert(state);
+            journals.insert(state, concern);
         }
     }
 
     @Override
     public RecordId getHead() {
-        DBObject state = journals.findOne(new BasicDBObject("_id", name));
+        DBObject id = new BasicDBObject("_id", name);
+        DBObject state = journals.findOne(id, null, nearest());
+        if (state == null) {
+            state = journals.findOne(id, null, primaryPreferred());
+        }
         checkState(state != null);
         return RecordId.fromString(state.get("head").toString());
     }
 
     @Override
     public synchronized boolean setHead(RecordId base, RecordId head) {
-        DBObject state = journals.findOne(new BasicDBObject("_id", name));
+        DBObject id = new BasicDBObject("_id", name);
+        DBObject state = journals.findOne(id, null, primaryPreferred());
         checkState(state != null);
         if (!base.toString().equals(state.get("head"))) {
             return false;
@@ -97,12 +119,15 @@ class MongoJournal implements Journal {
         builder.add("head", head.toString());
         DBObject nextState = builder.get();
 
-        return journals.findAndModify(state, nextState) != null;
+        WriteResult result =
+                journals.update(state, nextState, false, false, concern);
+        return result.getN() != 0;
     }
 
     @Override
-    public void merge() {
-        DBObject state = journals.findOne(new BasicDBObject("_id", name));
+    public synchronized void merge() {
+        DBObject id = new BasicDBObject("_id", name);
+        DBObject state = journals.findOne(id, null, primaryPreferred());
         checkState(state != null);
 
         if (state.containsField("parent")) {
@@ -134,7 +159,8 @@ class MongoJournal implements Journal {
             builder.add("parent", state.get("parent"));
             builder.add("base", base.toString());
             builder.add("head", head.toString());
-            journals.update(state, builder.get());
+            // TODO: concurrent updates?
+            journals.update(state, builder.get(), false, false, concern);
         }
     }
 
