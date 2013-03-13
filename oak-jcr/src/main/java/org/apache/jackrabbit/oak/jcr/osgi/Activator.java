@@ -25,6 +25,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import javax.jcr.Repository;
 
 import org.apache.jackrabbit.oak.api.ContentRepository;
+import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
@@ -39,7 +40,7 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer {
 
     private ScheduledExecutorService executor;
 
-    private SecurityProvider securityProvider; // TODO
+    private SecurityProvider securityProvider = new OpenSecurityProvider(); // TODO review
 
     private ServiceTracker tracker;
 
