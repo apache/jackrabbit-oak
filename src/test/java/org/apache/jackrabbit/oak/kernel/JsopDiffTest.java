@@ -16,13 +16,12 @@
  */
 package org.apache.jackrabbit.oak.kernel;
 
-import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.BooleanPropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.DoublePropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.LongPropertyState;
-import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.StringPropertyState;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
@@ -61,11 +60,10 @@ public class JsopDiffTest {
     public void testNodeChanges() {
         JsopDiff diff;
         NodeState before = EMPTY_NODE;
-        NodeState after = new MemoryNodeState(
-                ImmutableMap.<String, PropertyState>of(
-                        "a", LongPropertyState.createLongProperty("a", 1L)),
-                ImmutableMap.of("x", EMPTY_NODE));
-
+        NodeBuilder builder = before.builder();
+        builder.setProperty("a", 1L);
+        builder.child("x");
+        NodeState after = builder.getNodeState();
 
         diff = new JsopDiff(null);
         diff.childNodeAdded("test", before);
