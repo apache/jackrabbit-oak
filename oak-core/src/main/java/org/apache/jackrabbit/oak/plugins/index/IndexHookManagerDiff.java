@@ -30,7 +30,6 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
@@ -45,6 +44,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFIN
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_UNKNOWN;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 /**
  * Acts as a composite NodeStateDiff, it delegates all the diff's events to the
@@ -297,7 +297,7 @@ class IndexHookManagerDiff implements NodeStateDiff {
 
     @Override
     public void childNodeAdded(String nodeName, NodeState after) {
-        childNodeChanged(nodeName, MemoryNodeState.EMPTY_NODE, after);
+        childNodeChanged(nodeName, EMPTY_NODE, after);
     }
 
     @Override
@@ -318,6 +318,6 @@ class IndexHookManagerDiff implements NodeStateDiff {
 
     @Override
     public void childNodeDeleted(String nodeName, NodeState before) {
-        childNodeChanged(nodeName, before, MemoryNodeState.EMPTY_NODE);
+        childNodeChanged(nodeName, before, EMPTY_NODE);
     }
 }

@@ -17,12 +17,13 @@
 package org.apache.jackrabbit.oak.plugins.segment;
 
 
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+
 import java.util.Collections;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentMap;
 
-import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import com.google.common.collect.Maps;
@@ -39,7 +40,7 @@ public class MemoryStore implements SegmentStore {
     }
 
     public MemoryStore() {
-        this(MemoryNodeState.EMPTY_NODE);
+        this(EMPTY_NODE);
     }
 
     @Override

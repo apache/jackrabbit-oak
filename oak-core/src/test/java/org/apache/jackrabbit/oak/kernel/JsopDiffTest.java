@@ -27,6 +27,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
 import static junit.framework.Assert.assertEquals;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 public class JsopDiffTest {
 
@@ -59,12 +60,11 @@ public class JsopDiffTest {
     @Test
     public void testNodeChanges() {
         JsopDiff diff;
-        NodeState before = MemoryNodeState.EMPTY_NODE;
+        NodeState before = EMPTY_NODE;
         NodeState after = new MemoryNodeState(
                 ImmutableMap.<String, PropertyState>of(
                         "a", LongPropertyState.createLongProperty("a", 1L)),
-                ImmutableMap.of(
-                        "x", MemoryNodeState.EMPTY_NODE));
+                ImmutableMap.of("x", EMPTY_NODE));
 
 
         diff = new JsopDiff(null);

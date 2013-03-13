@@ -33,6 +33,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState.with;
 import static org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState.withNodes;
 import static org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState.withProperties;
@@ -517,7 +518,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
             if (base != null) {
                 this.base = base;
             } else {
-                this.base = MemoryNodeState.EMPTY_NODE;
+                this.base = EMPTY_NODE;
             }
         }
 

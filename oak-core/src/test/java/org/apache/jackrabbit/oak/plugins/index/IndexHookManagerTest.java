@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.index;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -30,7 +31,6 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.p2.Property2IndexHookProvider;
 import org.apache.jackrabbit.oak.plugins.index.p2.Property2IndexLookup;
-import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -52,7 +52,7 @@ public class IndexHookManagerTest {
      */
     @Test
     public void test() throws Exception {
-        NodeState root = MemoryNodeState.EMPTY_NODE;
+        NodeState root = EMPTY_NODE;
 
         NodeBuilder builder = root.builder();
 
@@ -113,7 +113,7 @@ public class IndexHookManagerTest {
      */
     @Test
     public void testReindex() throws Exception {
-        NodeState root = MemoryNodeState.EMPTY_NODE;
+        NodeState root = EMPTY_NODE;
 
         NodeBuilder builder = root.builder();
 
@@ -155,7 +155,7 @@ public class IndexHookManagerTest {
      */
     @Test
     public void testReindex2() throws Exception {
-        NodeState root = MemoryNodeState.EMPTY_NODE;
+        NodeState root = EMPTY_NODE;
 
         NodeBuilder builder = root.builder();
 
@@ -196,7 +196,7 @@ public class IndexHookManagerTest {
      */
     @Test
     public void testReindex3() throws Exception {
-        NodeState root = MemoryNodeState.EMPTY_NODE;
+        NodeState root = EMPTY_NODE;
 
         NodeBuilder builder = root.builder();
 

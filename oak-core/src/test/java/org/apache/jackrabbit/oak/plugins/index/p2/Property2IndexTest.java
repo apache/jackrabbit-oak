@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.p2;
 
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -26,7 +27,6 @@ import java.util.Set;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexHook;
-import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
@@ -46,7 +46,7 @@ public class Property2IndexTest {
 
     @Test
     public void testPropertyLookup() throws Exception {
-        NodeState root = MemoryNodeState.EMPTY_NODE;
+        NodeState root = EMPTY_NODE;
 
         // Add index definition
         NodeBuilder builder = root.builder();
@@ -97,7 +97,7 @@ public class Property2IndexTest {
 
     @Test
     public void testCustomConfigPropertyLookup() throws Exception {
-        NodeState root = MemoryNodeState.EMPTY_NODE;
+        NodeState root = EMPTY_NODE;
 
         // Add index definition
         NodeBuilder builder = root.builder();
@@ -146,7 +146,7 @@ public class Property2IndexTest {
      */
     @Test
     public void testCustomConfigNodeType() throws Exception {
-        NodeState root = MemoryNodeState.EMPTY_NODE;
+        NodeState root = EMPTY_NODE;
 
         // Add index definitions
         NodeBuilder builder = root.builder();
@@ -209,7 +209,7 @@ public class Property2IndexTest {
      */
     @Test
     public void testCustomConfigNodeTypeFallback() throws Exception {
-        NodeState root = MemoryNodeState.EMPTY_NODE;
+        NodeState root = EMPTY_NODE;
 
         // Add index definitions
         NodeBuilder builder = root.builder();
@@ -265,8 +265,7 @@ public class Property2IndexTest {
 
     @Test
     public void testUnique() throws Exception {
-
-        NodeState root = MemoryNodeState.EMPTY_NODE;
+        NodeState root = EMPTY_NODE;
 
         // Add index definition
         NodeBuilder builder = root.builder();
@@ -300,8 +299,7 @@ public class Property2IndexTest {
 
     @Test
     public void testUniqueByTypeOK() throws Exception {
-
-        NodeState root = MemoryNodeState.EMPTY_NODE;
+        NodeState root = EMPTY_NODE;
 
         // Add index definition
         NodeBuilder builder = root.builder();
@@ -329,8 +327,7 @@ public class Property2IndexTest {
 
     @Test
     public void testUniqueByTypeKO() throws Exception {
-
-        NodeState root = MemoryNodeState.EMPTY_NODE;
+        NodeState root = EMPTY_NODE;
 
         // Add index definition
         NodeBuilder builder = root.builder();
@@ -364,8 +361,7 @@ public class Property2IndexTest {
 
     @Test
     public void testUniqueByTypeDelete() throws Exception {
-
-        NodeState root = MemoryNodeState.EMPTY_NODE;
+        NodeState root = EMPTY_NODE;
 
         // Add index definition
         NodeBuilder builder = root.builder();

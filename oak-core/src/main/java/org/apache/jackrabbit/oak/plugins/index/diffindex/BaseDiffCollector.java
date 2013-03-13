@@ -17,11 +17,11 @@
 package org.apache.jackrabbit.oak.plugins.index.diffindex;
 
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 import java.util.HashSet;
 import java.util.Set;
 
-import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.state.EmptyNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -123,7 +123,7 @@ public abstract class BaseDiffCollector implements DiffCollector {
 
         @Override
         public void childNodeAdded(String name, NodeState after) {
-            childNodeChanged(name, MemoryNodeState.EMPTY_NODE, after);
+            childNodeChanged(name, EMPTY_NODE, after);
         }
 
         @Override

@@ -30,7 +30,6 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.core.ReadOnlyTree;
-import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -39,6 +38,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 /**
  * TODO document
@@ -135,7 +135,7 @@ public class VersionHook implements CommitHook {
 
         @Override
         public void childNodeAdded(String name, NodeState after) {
-            childNodeChanged(name, MemoryNodeState.EMPTY_NODE, after);
+            childNodeChanged(name, EMPTY_NODE, after);
         }
 
         @Override
@@ -154,7 +154,7 @@ public class VersionHook implements CommitHook {
             if (NodeStateUtils.isHidden(name)) {
                 return;
             }
-            NodeState after = MemoryNodeState.EMPTY_NODE;
+            NodeState after = EMPTY_NODE;
             after.compareAgainstBaseState(before,
                     new VersionDiff(this, vMgr, after.builder()));
         }

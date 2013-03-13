@@ -29,18 +29,13 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+
 /**
  * Basic in-memory node state implementation.
  */
 public class MemoryNodeState extends AbstractNodeState {
 
-    /**
-     * Singleton instance of an empty node state, i.e. one with neither
-     * properties nor child nodes.
-     */
-    public static final NodeState EMPTY_NODE = new MemoryNodeState(
-            Collections.<String, PropertyState>emptyMap(),
-            Collections.<String, NodeState>emptyMap());
+    public static final NodeState EMPTY_NODE = EmptyNodeState.EMPTY_NODE;
 
     private final Map<String, PropertyState> properties;
 
