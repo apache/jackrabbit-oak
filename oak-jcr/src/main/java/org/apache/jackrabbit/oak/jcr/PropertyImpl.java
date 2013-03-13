@@ -26,6 +26,7 @@ import java.util.List;
 import javax.annotation.Nonnull;
 import javax.jcr.AccessDeniedException;
 import javax.jcr.Binary;
+import javax.jcr.InvalidItemStateException;
 import javax.jcr.ItemNotFoundException;
 import javax.jcr.ItemVisitor;
 import javax.jcr.Node;
@@ -39,6 +40,7 @@ import javax.jcr.nodetype.PropertyDefinition;
 
 import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.PropertyDelegate;
@@ -248,7 +250,6 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
     /**
      * @see Property#setValue(InputStream)
      */
-    @SuppressWarnings("deprecation")
     @Override
     public void setValue(InputStream value) throws RepositoryException {
         checkStatus();
@@ -354,6 +355,14 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
         }
     }
 
+    private PropertyState getPropertyState() throws InvalidItemStateException {
+        PropertyState property = dlg.getPropertyState();
+        if (property == null) {
+            throw new InvalidItemStateException();
+        }
+        return property;
+    }
+
     @Override
     @Nonnull
     public Value getValue() throws RepositoryException {
@@ -365,7 +374,11 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
 
             @Override
             public Value perform() throws RepositoryException {
-                return dlg.getValue();
+                PropertyState property = getPropertyState();
+                if (property.isArray()) {
+                    throw new ValueFormatException(dlg + " is multi-valued.");
+                }
+                return getValueFactory().createValue(property);
             }
         });
     }
@@ -381,7 +394,14 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
 
             @Override
             public List<Value> perform() throws RepositoryException {
-                return dlg.getValues();
+                PropertyState property = dlg.getPropertyState();
+                if (property == null) {
+                    throw new InvalidItemStateException();
+                }
+                if (!property.isArray()) {
+                    throw new ValueFormatException(dlg + " is single-valued.");
+                }
+                return getValueFactory().createValues(property);
             }
         }).toArray(NO_VALUES);
     }
@@ -558,7 +578,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
     @Override
     @Nonnull
     public PropertyDefinition getDefinition() throws RepositoryException {
-        return dlg.getSessionDelegate().getDefinitionProvider().getDefinition(getParent(), this);
+        return getDefinitionProvider().getDefinition(getParent(), this);
     }
 
     /**
@@ -594,7 +614,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
 
             @Override
             public Boolean perform() throws RepositoryException {
-                return dlg.isMultivalue();
+                return getPropertyState().isArray();
             }
         });
     }
@@ -650,7 +670,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
         if (value == null) {
             dlg.remove();
         } else {
-            Value targetValue = ValueHelper.convert(value, requiredType, sessionDelegate.getValueFactory());
+            Value targetValue = ValueHelper.convert(value, requiredType, getValueFactory());
             dlg.setValue(targetValue);
         }
     }
@@ -671,7 +691,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
         if (values == null) {
             dlg.remove();
         } else {
-            Value[] targetValues = ValueHelper.convert(values, requiredType, sessionDelegate.getValueFactory());
+            Value[] targetValues = ValueHelper.convert(values, requiredType, getValueFactory());
             Iterable<Value> nonNullValues = Iterables.filter(
                     Arrays.asList(targetValues),
                     Predicates.notNull());

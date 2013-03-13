@@ -39,6 +39,7 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.QueryEngine;
+import org.apache.jackrabbit.oak.jcr.SessionContextProvider;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.jcr.query.qom.QueryObjectModelFactoryImpl;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -57,7 +58,7 @@ public class QueryManagerImpl implements QueryManager {
 
     public QueryManagerImpl(SessionDelegate sessionDelegate) {
         this.sessionDelegate = sessionDelegate;
-        qomFactory = new QueryObjectModelFactoryImpl(this, sessionDelegate.getValueFactory());
+        qomFactory = new QueryObjectModelFactoryImpl(this, sessionDelegate);
         queryEngine = sessionDelegate.getQueryEngine();
         supportedQueryLanguages.addAll(queryEngine.getSupportedQueryLanguages());
     }
@@ -116,7 +117,7 @@ public class QueryManagerImpl implements QueryManager {
             long limit, long offset, HashMap<String, Value> bindVariableMap) throws RepositoryException {
         try {
             Map<String, PropertyValue> bindMap = convertMap(bindVariableMap);
-            NamePathMapper namePathMapper = sessionDelegate.getNamePathMapper();
+            NamePathMapper namePathMapper = SessionContextProvider.getNamePathMapper(sessionDelegate);
             Result r = queryEngine.executeQuery(statement, language, limit, offset,
                     bindMap, namePathMapper);
             return new QueryResultImpl(sessionDelegate, r);

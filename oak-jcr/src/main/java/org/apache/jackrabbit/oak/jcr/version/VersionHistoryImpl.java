@@ -34,6 +34,7 @@ import javax.jcr.version.VersionIterator;
 import org.apache.jackrabbit.commons.iterator.FrozenNodeIteratorAdapter;
 import org.apache.jackrabbit.commons.iterator.VersionIteratorAdapter;
 import org.apache.jackrabbit.oak.jcr.NodeImpl;
+import org.apache.jackrabbit.oak.jcr.SessionContextProvider;
 import org.apache.jackrabbit.oak.jcr.delegate.VersionDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.VersionHistoryDelegate;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -102,7 +103,7 @@ public class VersionHistoryImpl extends NodeImpl<VersionHistoryDelegate>
     @Override
     public Version getVersionByLabel(String label)
             throws VersionException, RepositoryException {
-        String oakLabel = sessionDelegate.getOakName(label);
+        String oakLabel = SessionContextProvider.getOakName(sessionDelegate, label);
         return new VersionImpl(dlg.getVersionByLabel(oakLabel));
     }
 
@@ -134,7 +135,7 @@ public class VersionHistoryImpl extends NodeImpl<VersionHistoryDelegate>
 
     @Override
     public String[] getVersionLabels() throws RepositoryException {
-        NamePathMapper mapper = sessionDelegate.getNamePathMapper();
+        NamePathMapper mapper = SessionContextProvider.getNamePathMapper(sessionDelegate);
         List<String> labels = new ArrayList<String>();
         for (String label : dlg.getVersionLabels()) {
             labels.add(mapper.getJcrName(label));
@@ -149,7 +150,7 @@ public class VersionHistoryImpl extends NodeImpl<VersionHistoryDelegate>
             throw new VersionException("Version is not contained in this " +
                     "VersionHistory");
         }
-        NamePathMapper mapper = sessionDelegate.getNamePathMapper();
+        NamePathMapper mapper = SessionContextProvider.getNamePathMapper(sessionDelegate);
         List<String> labels = new ArrayList<String>();
         for (String label : dlg.getVersionLabels(version.getIdentifier())) {
             labels.add(mapper.getJcrName(label));

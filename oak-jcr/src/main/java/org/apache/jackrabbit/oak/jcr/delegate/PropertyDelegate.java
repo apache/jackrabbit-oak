@@ -16,18 +16,14 @@
  */
 package org.apache.jackrabbit.oak.jcr.delegate;
 
-import java.util.List;
-
-import javax.annotation.Nonnull;
+import javax.annotation.CheckForNull;
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
-import javax.jcr.ValueFormatException;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
-import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 
 /**
  * {@code PropertyDelegate} serve as internal representations of {@code Property}s.
@@ -39,47 +35,6 @@ public class PropertyDelegate extends ItemDelegate {
 
     public PropertyDelegate(SessionDelegate sessionDelegate, TreeLocation location) {
         super(sessionDelegate, location);
-    }
-
-    /**
-     * Get the value of the property
-     *
-     * @return the value of the property
-     * @throws InvalidItemStateException
-     * @throws ValueFormatException if this property is multi-valued
-     */
-    @Nonnull
-    public Value getValue() throws InvalidItemStateException, ValueFormatException {
-        PropertyState property = getPropertyState();
-        if (property.isArray()) {
-            throw new ValueFormatException(this + " is multi-valued.");
-        }
-        return ValueFactoryImpl.createValue(property, sessionDelegate.getNamePathMapper());
-    }
-
-    /**
-     * Get the values of the property
-     *
-     * @return the values of the property
-     * @throws InvalidItemStateException
-     * @throws ValueFormatException if this property is single-valued
-     */
-    @Nonnull
-    public List<Value> getValues() throws InvalidItemStateException, ValueFormatException {
-        PropertyState property = getPropertyState();
-        if (!property.isArray()) {
-            throw new ValueFormatException(this + " is single-valued.");
-        }
-        return ValueFactoryImpl.createValues(property, sessionDelegate.getNamePathMapper());
-    }
-
-    /**
-     * Determine whether the property is multi valued
-     *
-     * @return {@code true} if multi valued
-     */
-    public boolean isMultivalue() throws InvalidItemStateException {
-        return getPropertyState().isArray();
     }
 
     /**
@@ -111,15 +66,9 @@ public class PropertyDelegate extends ItemDelegate {
         getLocation().remove();
     }
 
-    //------------------------------------------------------------< private >---
-
-    @Nonnull
-    private PropertyState getPropertyState() throws InvalidItemStateException {
-        PropertyState property = getLocation().getProperty();
-        if (property == null) {
-            throw new InvalidItemStateException();
-        }
-        return property;
+    @CheckForNull
+    public PropertyState getPropertyState() throws InvalidItemStateException {
+        return getLocation().getProperty();
     }
 
 }

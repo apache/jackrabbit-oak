@@ -21,18 +21,23 @@ import java.util.Calendar;
 import java.util.List;
 
 import javax.annotation.Nonnull;
+import javax.jcr.InvalidItemStateException;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
+import javax.jcr.ValueFormatException;
 import javax.jcr.version.Version;
 import javax.jcr.version.VersionHistory;
 
 import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.jcr.NodeImpl;
+import org.apache.jackrabbit.oak.jcr.SessionContextProvider;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.PropertyDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.VersionDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.VersionManagerDelegate;
+import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
 import org.apache.jackrabbit.oak.util.TODO;
 
@@ -50,9 +55,21 @@ class VersionImpl extends NodeImpl<VersionDelegate> implements Version {
                 getVersionManagerDelegate().getVersionHistory(dlg.getParent()));
     }
 
+    private ValueFactoryImpl getValueFactory() {
+        return SessionContextProvider.getValueFactory(sessionDelegate);
+    }
+
     @Override
     public Calendar getCreated() throws RepositoryException {
-        return getPropertyOrThrow(JcrConstants.JCR_CREATED).getValue().getDate();
+        PropertyDelegate dlg = getPropertyOrThrow(JcrConstants.JCR_CREATED);
+        PropertyState property = dlg.getPropertyState();
+        if (property == null) {
+            throw new InvalidItemStateException();
+        }
+        if (property.isArray()) {
+            throw new ValueFormatException(dlg + " is multi-valued.");
+        }
+        return getValueFactory().createValue(property).getDate();
     }
 
     @Override
@@ -65,12 +82,23 @@ class VersionImpl extends NodeImpl<VersionDelegate> implements Version {
         return TODO.unimplemented().returnValue(null);
     }
 
+    private List<Value> getValues(PropertyDelegate p) throws InvalidItemStateException, ValueFormatException {
+        PropertyState property = p.getPropertyState();
+        if (property == null) {
+            throw new InvalidItemStateException();
+        }
+        if (!property.isArray()) {
+            throw new ValueFormatException(p + " is single-valued.");
+        }
+        return getValueFactory().createValues(property);
+    }
+
     @Override
     public Version[] getPredecessors() throws RepositoryException {
         PropertyDelegate p = getPropertyOrThrow(VersionConstants.JCR_PREDECESSORS);
         List<Version> predecessors = new ArrayList<Version>();
         VersionManagerDelegate vMgr = getVersionManagerDelegate();
-        for (Value v : p.getValues()) {
+        for (Value v : getValues(p)) {
             String id = v.getString();
             predecessors.add(new VersionImpl(vMgr.getVersionByIdentifier(id)));
         }
@@ -82,7 +110,7 @@ class VersionImpl extends NodeImpl<VersionDelegate> implements Version {
         PropertyDelegate p = getPropertyOrThrow(VersionConstants.JCR_SUCCESSORS);
         List<Version> successors = new ArrayList<Version>();
         VersionManagerDelegate vMgr = getVersionManagerDelegate();
-        for (Value v : p.getValues()) {
+        for (Value v : getValues(p)) {
             String id = v.getString();
             successors.add(new VersionImpl(vMgr.getVersionByIdentifier(id)));
         }

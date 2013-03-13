@@ -26,6 +26,7 @@ import java.util.TreeMap;
 import javax.annotation.Nonnull;
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.RepositoryException;
+import javax.jcr.ValueFormatException;
 import javax.jcr.version.VersionException;
 
 import com.google.common.base.Function;
@@ -34,6 +35,8 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.jcr.SessionContextProvider;
+import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -123,11 +126,23 @@ public class VersionHistoryDelegate extends NodeDelegate {
         SortedMap<Calendar, String> versions = new TreeMap<Calendar, String>();
         for (Iterator<NodeDelegate> it = getChildren(); it.hasNext(); ) {
             NodeDelegate n = it.next();
-            String primaryType = n.getProperty(JcrConstants.JCR_PRIMARYTYPE).getValue().getString();
+            PropertyState propertyState = n.getProperty(JcrConstants.JCR_PRIMARYTYPE).getPropertyState();
+            if (propertyState == null) {
+                throw new InvalidItemStateException();
+            }
+            String primaryType = propertyState.getValue(Type.STRING);
             if (primaryType.equals(VersionConstants.NT_VERSION)) {
                 PropertyDelegate created = n.getProperty(JcrConstants.JCR_CREATED);
                 if (created != null) {
-                    versions.put(created.getValue().getDate(), n.getName());
+                    PropertyState property = created.getPropertyState();
+                    if (property == null) {
+                        throw new InvalidItemStateException();
+                    }
+                    if (property.isArray()) {
+                        throw new ValueFormatException(created + " is multi-valued.");
+                    }
+                    ValueFactoryImpl f = SessionContextProvider.getValueFactory(sessionDelegate);
+                    versions.put(f.createValue(property).getDate(), n.getName());
                 }
             }
         }

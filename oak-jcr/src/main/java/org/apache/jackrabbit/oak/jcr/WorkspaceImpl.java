@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import javax.annotation.Nonnull;
 import javax.jcr.NamespaceRegistry;
+import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.UnsupportedRepositoryOperationException;
@@ -58,18 +59,49 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
     private final QueryManagerImpl queryManager;
     private final LockManager lockManager;
     private final VersionManagerImpl versionManager;
+    private final ReadWriteNodeTypeManager nodeTypeManager;
 
-    public WorkspaceImpl(SessionDelegate sessionDelegate) {
+    public WorkspaceImpl(final SessionDelegate sessionDelegate) {
         this.sessionDelegate = sessionDelegate;
         this.queryManager = new QueryManagerImpl(sessionDelegate);
         this.lockManager = new LockManagerImpl(sessionDelegate);
         this.versionManager = new VersionManagerImpl(sessionDelegate);
+        this.nodeTypeManager = new ReadWriteNodeTypeManager() {
+            @Override
+            protected void refresh() throws RepositoryException {
+                getSession().refresh(true);
+            }
+
+            @Override
+            protected Tree getTypes() {
+                return sessionDelegate.getRoot().getTree(NODE_TYPES_PATH);
+            }
+
+            @Nonnull
+            @Override
+            protected Root getWriteRoot() {
+                return sessionDelegate.getContentSession().getLatestRoot();
+            }
+
+            @Override
+            @Nonnull
+            protected ValueFactory getValueFactory() {
+                return SessionContextProvider.getValueFactory(sessionDelegate);
+            }
+
+            @Nonnull
+            @Override
+            protected NamePathMapper getNamePathMapper() {
+                return SessionContextProvider.getNamePathMapper(sessionDelegate);
+            }
+        };
     }
 
     //----------------------------------------------------------< Workspace >---
     @Override
+    @Nonnull
     public Session getSession() {
-        return sessionDelegate.getSession();
+        return SessionContextProvider.getSession(sessionDelegate);
     }
 
     @Override
@@ -82,6 +114,10 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
         copy(getName(), srcAbsPath, destAbsPath);
     }
 
+    private String getOakPathKeepIndexOrThrowNotFound(String absPath) throws PathNotFoundException {
+        return SessionContextProvider.getOakPathKeepIndexOrThrowNotFound(sessionDelegate, absPath);
+    }
+
     @Override
     public void copy(String srcWorkspace, String srcAbsPath, String destAbsPath) throws RepositoryException {
         ensureIsAlive();
@@ -92,7 +128,7 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
 
         sessionDelegate.checkProtectedNodes(Text.getRelativeParent(srcAbsPath, 1), Text.getRelativeParent(destAbsPath, 1));
 
-        String oakPath = sessionDelegate.getOakPathKeepIndexOrThrowNotFound(destAbsPath);
+        String oakPath = getOakPathKeepIndexOrThrowNotFound(destAbsPath);
         String oakName = PathUtils.getName(oakPath);
         // handle index
         if (oakName.contains("[")) {
@@ -100,8 +136,12 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
         }
 
         sessionDelegate.copy(
-                sessionDelegate.getOakPathOrThrowNotFound(srcAbsPath),
-                sessionDelegate.getOakPathOrThrowNotFound(oakPath));
+                getOakPathOrThrowNotFound(srcAbsPath),
+                getOakPathOrThrowNotFound(oakPath));
+    }
+
+    private String getOakPathOrThrowNotFound(String srcAbsPath) throws PathNotFoundException {
+        return SessionContextProvider.getOakPathOrThrowNotFound(sessionDelegate, srcAbsPath);
     }
 
     @Override
@@ -120,7 +160,7 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
 
         sessionDelegate.checkProtectedNodes(Text.getRelativeParent(srcAbsPath, 1), Text.getRelativeParent(destAbsPath, 1));
 
-        String oakPath = sessionDelegate.getOakPathKeepIndexOrThrowNotFound(destAbsPath);
+        String oakPath = getOakPathKeepIndexOrThrowNotFound(destAbsPath);
         String oakName = PathUtils.getName(oakPath);
         // handle index
         if (oakName.contains("[")) {
@@ -128,8 +168,8 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
         }
 
         sessionDelegate.move(
-                sessionDelegate.getOakPathOrThrowNotFound(srcAbsPath),
-                sessionDelegate.getOakPathOrThrowNotFound(oakPath),
+                getOakPathOrThrowNotFound(srcAbsPath),
+                getOakPathOrThrowNotFound(oakPath),
                 false);
     }
 
@@ -171,41 +211,14 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
 
     @Override
     public NodeTypeManager getNodeTypeManager() {
-        return new ReadWriteNodeTypeManager() {
-            @Override
-            protected void refresh() throws RepositoryException {
-                getSession().refresh(true);
-            }
-
-            @Override
-            protected Tree getTypes() {
-                return sessionDelegate.getRoot().getTree(NODE_TYPES_PATH);
-            }
-
-            @Nonnull
-            @Override
-            protected Root getWriteRoot() {
-                return sessionDelegate.getContentSession().getLatestRoot();
-            }
-
-            @Override
-            protected ValueFactory getValueFactory() {
-                return sessionDelegate.getValueFactory();
-            }
-
-            @Nonnull
-            @Override
-            protected NamePathMapper getNamePathMapper() {
-                return sessionDelegate.getNamePathMapper();
-            }
-        };
+        return getReadWriteNodeTypeManager();
     }
 
     @Override
     public ObservationManager getObservationManager() throws RepositoryException {
         ensureIsAlive();
 
-        return sessionDelegate.getObservationManager();
+        return SessionContextProvider.getObservationManager(sessionDelegate);
     }
 
     @Override
@@ -277,7 +290,13 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
      */
     @Override
     public PrivilegeManager getPrivilegeManager() throws RepositoryException {
-        return sessionDelegate.getPrivilegeManager();
+        return SessionContextProvider.getPrivilegeManager(sessionDelegate);
+    }
+
+    //------------------------------------------------------------< internal >---
+
+    ReadWriteNodeTypeManager getReadWriteNodeTypeManager() {
+        return nodeTypeManager;
     }
 
     //------------------------------------------------------------< private >---

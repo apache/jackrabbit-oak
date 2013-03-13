@@ -17,27 +17,14 @@
 package org.apache.jackrabbit.oak.jcr.delegate;
 
 import java.io.IOException;
-import java.util.Map;
-import java.util.concurrent.ScheduledExecutorService;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.ItemExistsException;
 import javax.jcr.PathNotFoundException;
-import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-import javax.jcr.UnsupportedRepositoryOperationException;
-import javax.jcr.Workspace;
-import javax.jcr.lock.LockManager;
-import javax.jcr.nodetype.NodeTypeManager;
-import javax.jcr.observation.ObservationManager;
-import javax.jcr.security.AccessControlManager;
-import javax.jcr.version.VersionManager;
 
-import com.google.common.collect.Maps;
-import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
-import org.apache.jackrabbit.api.security.principal.PrincipalManager;
-import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -48,21 +35,7 @@ import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.IdentifierManager;
 import org.apache.jackrabbit.oak.jcr.NodeImpl;
-import org.apache.jackrabbit.oak.jcr.SessionImpl;
-import org.apache.jackrabbit.oak.jcr.WorkspaceImpl;
-import org.apache.jackrabbit.oak.namepath.LocalNameMapper;
-import org.apache.jackrabbit.oak.namepath.NameMapper;
-import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
-import org.apache.jackrabbit.oak.plugins.name.Namespaces;
-import org.apache.jackrabbit.oak.plugins.nodetype.DefinitionProvider;
-import org.apache.jackrabbit.oak.plugins.nodetype.EffectiveNodeTypeProvider;
-import org.apache.jackrabbit.oak.plugins.observation.ObservationManagerImpl;
-import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
-import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
-import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfiguration;
-import org.apache.jackrabbit.oak.spi.security.authorization.PermissionProvider;
-import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
+import org.apache.jackrabbit.oak.jcr.SessionContextProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -91,27 +64,10 @@ import static com.google.common.base.Preconditions.checkNotNull;
 public class SessionDelegate {
     static final Logger log = LoggerFactory.getLogger(SessionDelegate.class);
 
-    private final NamePathMapper namePathMapper;
-    private final Repository repository;
-    private final ScheduledExecutorService executor;
     private final ContentSession contentSession;
-    private final ValueFactoryImpl valueFactory;
-    private final Workspace workspace;
-    private final SessionImpl session;
     private final Root root;
-    private final boolean autoRefresh;
-
-    private final SecurityProvider securityProvider;
-
     private final IdentifierManager idManager;
 
-    private ObservationManagerImpl observationManager;
-    private PrincipalManager principalManager;
-    private UserManager userManager;
-    private PrivilegeManager privilegeManager;
-    private AccessControlManager accessControlManager;
-    private UserConfiguration userConfiguration;
-    private AccessControlConfiguration accessControlConfiguration;
     private boolean isAlive = true;
     private int sessionOpCount;
     private int revision;
@@ -133,39 +89,13 @@ public class SessionDelegate {
         }
     }
 
-    public SessionDelegate(@Nonnull Repository repository, @Nonnull ScheduledExecutorService executor,
-                    @Nonnull ContentSession contentSession, @Nonnull SecurityProvider securityProvider,
-                    boolean autoRefresh) {
-
-        this.repository = checkNotNull(repository);
-        this.executor = executor;
+    public SessionDelegate(@Nonnull ContentSession contentSession) {
         this.contentSession = checkNotNull(contentSession);
-        this.securityProvider = checkNotNull(securityProvider);
-        this.autoRefresh = autoRefresh;
-
         this.root = contentSession.getLatestRoot();
-        // FIXME: do not pass partially initialized 'this'
-        this.workspace = new WorkspaceImpl(this);
-
-        Map<String, String> namespaces = Maps.newHashMap();
-        NameMapper mapper = new LocalNameMapper(namespaces) {
-            @Override
-            protected Map<String, String> getNamespaceMap() {
-                return Namespaces.getNamespaceMap(root.getTree("/"));
-            }
-        };
-        this.session = new SessionImpl(this, namespaces);
         this.idManager = new IdentifierManager(root);
-        this.namePathMapper = new NamePathMapperImpl(mapper, idManager);
-        this.valueFactory = new ValueFactoryImpl(root.getBlobFactory(), namePathMapper);
     }
 
-    private boolean needsRefresh() {
-        // Refresh is always needed if this is an auto refresh session. Otherwise
-        // refresh in only needed for non re-entrant session operations and only if
-        // observation events have actually been delivered
-        return autoRefresh ||
-                (sessionOpCount <= 1 && observationManager != null && observationManager.hasEvents());
+    protected void refresh() {
     }
 
     /**
@@ -182,10 +112,10 @@ public class SessionDelegate {
     public synchronized <T> T perform(SessionOperation<T> sessionOperation) throws RepositoryException {
         // Synchronize to avoid conflicting refreshes from concurrent JCR API calls
         try {
-            if (needsRefresh()) {
-                refresh(true);
+            if (sessionOpCount == 0) {
+                // Refresh only for non re-entrant session operations
+                refresh();
             }
-
             sessionOpCount++;
             sessionOperation.checkPreconditions();
             return sessionOperation.perform();
@@ -204,6 +134,16 @@ public class SessionDelegate {
         }
     }
 
+    @Nonnull
+    public Root getRoot() {
+        return root;
+    }
+
+    @Nonnull
+    public ContentSession getContentSession() {
+        return contentSession;
+    }
+
     public boolean isAlive() {
         return isAlive;
     }
@@ -218,29 +158,9 @@ public class SessionDelegate {
         return false;
     }
 
-    /**
-     * Revision of this session. The revision is incremented each time a session is refreshed or saved.
-     * This allows items to determine whether they need to re-resolve their underlying state when the
-     * revision on which an item is based does not match the revision of the session any more.
-     * @return  the current revision of this session
-     */
-    int getRevision() {
-        return revision;
-    }
-
-    @Nonnull
-    public Session getSession() {
-        return session;
-    }
-
     @Nonnull
     public AuthInfo getAuthInfo() {
         return contentSession.getAuthInfo();
-    }
-
-    @Nonnull
-    public Repository getRepository() {
-        return repository;
     }
 
     public void logout() {
@@ -250,9 +170,6 @@ public class SessionDelegate {
         }
 
         isAlive = false;
-        if (observationManager != null) {
-            observationManager.dispose();
-        }
         // TODO
 
         try {
@@ -262,14 +179,19 @@ public class SessionDelegate {
         }
     }
 
+    @Nonnull
+    public IdentifierManager getIdManager() {
+        return idManager;
+    }
+
+    @Nonnull
+    public TreeLocation getLocation(String path) {
+        return root.getLocation(path);
+    }
+
     @CheckForNull
     public NodeDelegate getRootNode() {
         return getNode("/");
-    }
-    
-    @CheckForNull
-    public Root getRoot() {
-        return root;
     }
 
     /**
@@ -289,28 +211,18 @@ public class SessionDelegate {
         return (tree == null) ? null : new NodeDelegate(this, tree);
     }
 
-    @CheckForNull
     /**
      * {@code PropertyDelegate} at the given path
      * @param path Oak path
      * @return  The {@code PropertyDelegate} at {@code path} or {@code null} if
      * none exists or not accessible.
      */
+    @CheckForNull
     public PropertyDelegate getProperty(String path) {
         TreeLocation location = root.getLocation(path);
         return location.getProperty() == null
             ? null
             : new PropertyDelegate(this, location);
-    }
-
-    @Nonnull
-    public ValueFactoryImpl getValueFactory() {
-        return valueFactory;
-    }
-
-    @Nonnull
-    public NamePathMapper getNamePathMapper() {
-        return namePathMapper;
     }
 
     public boolean hasPendingChanges() {
@@ -335,91 +247,7 @@ public class SessionDelegate {
         revision++;
     }
 
-    /**
-     * Returns the Oak name for the given JCR name, or throws a
-     * {@link RepositoryException} if the name is invalid or can
-     * otherwise not be mapped.
-     *
-     * @param jcrName JCR name
-     * @return Oak name
-     * @throws RepositoryException if the name is invalid
-     */
-    @Nonnull
-    public String getOakName(String jcrName) throws RepositoryException {
-        return getNamePathMapper().getOakName(jcrName);
-    }
-
-    /**
-     * Shortcut for {@code SessionDelegate.getNamePathMapper().getOakPath(jcrPath)}.
-     *
-     * @param jcrPath JCR path
-     * @return Oak path, or {@code null}
-     */
-    @CheckForNull
-    public String getOakPathOrNull(String jcrPath) {
-        return getNamePathMapper().getOakPath(jcrPath);
-    }
-
-    /**
-     * Shortcut for {@code SessionDelegate.getOakPathKeepIndex(jcrPath)}.
-     *
-     * @param jcrPath JCR path
-     * @return Oak path, or {@code null}, with indexes left intact
-     * @throws PathNotFoundException 
-     */
-    @Nonnull
-    public String getOakPathKeepIndexOrThrowNotFound(String jcrPath) throws PathNotFoundException {
-        String oakPath = getNamePathMapper().getOakPathKeepIndex(jcrPath);
-        if (oakPath != null) {
-            return oakPath;
-        } else {
-            throw new PathNotFoundException(jcrPath);
-        }
-    }
-
-    /**
-     * Returns the Oak path for the given JCR path, or throws a
-     * {@link PathNotFoundException} if the path can not be mapped.
-     *
-     * @param jcrPath JCR path
-     * @return Oak path
-     * @throws PathNotFoundException if the path can not be mapped
-     */
-    @Nonnull
-    public String getOakPathOrThrowNotFound(String jcrPath) throws PathNotFoundException {
-        String oakPath = getOakPathOrNull(jcrPath);
-        if (oakPath != null) {
-            return oakPath;
-        } else {
-            throw new PathNotFoundException(jcrPath);
-        }
-    }
-
-    /**
-     * Returns the Oak path for the given JCR path, or throws a
-     * {@link RepositoryException} if the path can not be mapped.
-     *
-     * @param jcrPath JCR path
-     * @return Oak path
-     * @throws RepositoryException if the path can not be mapped
-     */
-    @Nonnull
-    public String getOakPath(String jcrPath)
-            throws RepositoryException {
-        String oakPath = getOakPathOrNull(jcrPath);
-        if (oakPath != null) {
-            return oakPath;
-        } else {
-            throw new RepositoryException("Invalid name or path: " + jcrPath);
-        }
-    }
-
     //----------------------------------------------------------< Workspace >---
-
-    @Nonnull
-    public Workspace getWorkspace() {
-        return workspace;
-    }
 
     @Nonnull
     public String getWorkspaceName() {
@@ -504,43 +332,21 @@ public class SessionDelegate {
     }
 
     @Nonnull
-    public LockManager getLockManager() throws RepositoryException {
-        return workspace.getLockManager();
-    }
-
-    @Nonnull
     public QueryEngine getQueryEngine() {
         return root.getQueryEngine();
     }
 
-    @Nonnull
-    public NodeTypeManager getNodeTypeManager() throws RepositoryException {
-        return workspace.getNodeTypeManager();
-    }
-
-    @Nonnull
-    public VersionManager getVersionManager() throws RepositoryException {
-        return workspace.getVersionManager();
-    }
-
-    @Nonnull
-    public ObservationManager getObservationManager() {
-        if (observationManager == null) {
-            observationManager = new ObservationManagerImpl(getRoot(), getNamePathMapper(), executor);
-        }
-        return observationManager;
-    }
-
-    public IdentifierManager getIdManager() {
-        return idManager;
-    }
-
-    @Nonnull
-    public ContentSession getContentSession() {
-        return contentSession;
-    }
-
     //-----------------------------------------------------------< internal >---
+
+    /**
+     * Revision of this session. The revision is incremented each time a session is refreshed or saved.
+     * This allows items to determine whether they need to re-resolve their underlying state when the
+     * revision on which an item is based does not match the revision of the session any more.
+     * @return  the current revision of this session
+     */
+    int getRevision() {
+        return revision;
+    }
 
     /**
      * Get the {@code Tree} with the given path
@@ -549,80 +355,12 @@ public class SessionDelegate {
      * if the tree at {@code path} is not accessible.
      */
     @CheckForNull
-    Tree getTree(String path) {
+    private Tree getTree(String path) {
         return root.getTree(path);
     }
 
-    @Nonnull
-    public TreeLocation getLocation(String path) {
-        return root.getLocation(path);
-    }
-
-    @Nonnull
-    public AccessControlManager getAccessControlManager() throws RepositoryException {
-        if (accessControlManager == null) {
-            accessControlManager = securityProvider.getAccessControlConfiguration().getAccessControlManager(root, getNamePathMapper());
-        }
-        return accessControlManager;
-    }
-
-    @Nonnull
-    public PermissionProvider getPermissionProvider() throws RepositoryException {
-        // TODO
-        return securityProvider.getAccessControlConfiguration().getPermissionProvider(root, getAuthInfo().getPrincipals());
-    }
-
-    @Nonnull
-    public PrincipalManager getPrincipalManager() throws RepositoryException {
-        if (principalManager == null) {
-            principalManager = securityProvider.getPrincipalConfiguration().getPrincipalManager(root, getNamePathMapper());
-        }
-        return principalManager;
-    }
-
-    @Nonnull
-    public UserManager getUserManager() throws UnsupportedRepositoryOperationException {
-        if (userManager == null) {
-            userManager = securityProvider.getUserConfiguration().getUserManager(root, getNamePathMapper());
-        }
-        return userManager;
-    }
-
-    @Nonnull
-    public PrivilegeManager getPrivilegeManager() throws UnsupportedRepositoryOperationException {
-        if (privilegeManager == null) {
-            privilegeManager = securityProvider.getPrivilegeConfiguration().getPrivilegeManager(root, getNamePathMapper());
-        }
-        return privilegeManager;
-    }
-
-    @Nonnull
-    public UserConfiguration getUserConfiguration() throws UnsupportedRepositoryOperationException {
-        if (userConfiguration == null) {
-            userConfiguration = securityProvider.getUserConfiguration();
-        }
-        return userConfiguration;
-    }
-
-    @Nonnull
-    public AccessControlConfiguration getAccessControlConfiguration() throws UnsupportedRepositoryOperationException {
-        if (accessControlConfiguration == null) {
-            accessControlConfiguration = securityProvider.getAccessControlConfiguration();
-        }
-        return accessControlConfiguration;
-    }
-
-    @Nonnull
-    public EffectiveNodeTypeProvider getEffectiveNodeTypeProvider() throws RepositoryException {
-        return (EffectiveNodeTypeProvider) workspace.getNodeTypeManager();
-    }
-
-    @Nonnull
-    public DefinitionProvider getDefinitionProvider() throws RepositoryException {
-        return (DefinitionProvider) workspace.getNodeTypeManager();
-    }
-
     public void checkProtectedNodes(String... absJcrPaths) throws RepositoryException {
+        Session session = SessionContextProvider.getSession(this);
         for (String absPath : absJcrPaths) {
             NodeImpl<?> node = (NodeImpl<?>) session.getNode(absPath);
             node.checkProtected();

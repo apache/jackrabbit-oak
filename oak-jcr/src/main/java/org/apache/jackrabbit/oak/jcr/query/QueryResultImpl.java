@@ -34,12 +34,10 @@ import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.NodeImpl;
-import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
+import org.apache.jackrabbit.oak.jcr.SessionContextProvider;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
-import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 
 /**
  * The implementation of the corresponding JCR interface.
@@ -237,9 +235,11 @@ public class QueryResultImpl implements QueryResult {
     }
 
     Value createValue(PropertyValue value) {
-        return value == null
-            ? null
-            : ValueFactoryImpl.createValue(value, sessionDelegate.getNamePathMapper());
+        if (value == null) {
+            return null;
+        } else {
+            return SessionContextProvider.getValueFactory(sessionDelegate).createValue(value);
+        }
     }
 
 }
