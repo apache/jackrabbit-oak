@@ -34,8 +34,7 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.jcr.SessionContextProvider;
-import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
+import org.apache.jackrabbit.oak.plugins.value.Conversions;
 import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -129,8 +128,8 @@ public class VersionHistoryDelegate extends NodeDelegate {
             if (primaryType.equals(VersionConstants.NT_VERSION)) {
                 PropertyDelegate created = n.getProperty(JcrConstants.JCR_CREATED);
                 if (created != null) {
-                    ValueFactoryImpl f = SessionContextProvider.getValueFactory(sessionDelegate);
-                    versions.put(f.createValue(created.getSingle()).getDate(), n.getName());
+                    Calendar cal = Conversions.convert(created.getDate()).toCalendar();
+                    versions.put(cal, n.getName());
                 }
             }
         }

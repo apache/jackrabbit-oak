@@ -24,7 +24,6 @@ import javax.annotation.Nonnull;
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.ItemNotFoundException;
 import javax.jcr.RepositoryException;
-import javax.jcr.Value;
 import javax.jcr.ValueFormatException;
 
 import com.google.common.base.Function;
@@ -34,7 +33,6 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 
 /**
  * {@code NodeDelegate} serve as internal representations of {@code Node}s.
@@ -181,36 +179,21 @@ public class NodeDelegate extends ItemDelegate {
     /**
      * Set a property
      *
-     * @param name  oak name
-     * @param value
+     * @param propertyState
      * @return the set property
      */
     @Nonnull
-    public PropertyDelegate setProperty(String name, Value value) throws RepositoryException {
+    public PropertyDelegate setProperty(PropertyState propertyState) throws RepositoryException {
         Tree tree = getTree();
+        String name = propertyState.getName();
         PropertyState old = tree.getProperty(name);
-        if (old != null && old.isArray()) {
-            throw new ValueFormatException("Attempt to set a single value to multi-valued property.");
+        if (old != null && old.isArray() && !propertyState.isArray()) {
+            throw new ValueFormatException("Attempt to assign a single value to multi-valued property.");
         }
-        tree.setProperty(PropertyStates.createProperty(name, value));
-        return new PropertyDelegate(sessionDelegate, tree.getLocation().getChild(name));
-    }
-
-    /**
-     * Set a multi valued property
-     *
-     * @param name   oak name
-     * @param values
-     * @return the set property
-     */
-    @Nonnull
-    public PropertyDelegate setProperty(String name, Iterable<Value> values) throws RepositoryException {
-        Tree tree = getTree();
-        PropertyState old = tree.getProperty(name);
-        if (old != null && !old.isArray()) {
-            throw new ValueFormatException("Attempt to set multiple values to single valued property.");
+        if (old != null && !old.isArray() && propertyState.isArray()) {
+            throw new ValueFormatException("Attempt to assign multiple values to single valued property.");
         }
-        tree.setProperty(PropertyStates.createProperty(name, values));
+        tree.setProperty(propertyState);
         return new PropertyDelegate(sessionDelegate, tree.getLocation().getChild(name));
     }
 

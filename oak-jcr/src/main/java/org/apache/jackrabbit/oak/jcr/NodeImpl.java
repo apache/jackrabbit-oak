@@ -80,6 +80,7 @@ import org.apache.jackrabbit.oak.core.IdentifierManager;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.PropertyDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionOperation;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.nodetype.DefinitionProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.EffectiveNodeType;
 import org.apache.jackrabbit.oak.plugins.nodetype.EffectiveNodeTypeProvider;
@@ -992,14 +993,15 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                 boolean nodeModified = false;
                 if (mixins == null) {
                     nodeModified = true;
-                    dlg.setProperty(JcrConstants.JCR_MIXINTYPES, Collections.singletonList(value));
+                    dlg.setProperty(PropertyStates.createProperty(
+                            JcrConstants.JCR_MIXINTYPES, Collections.singletonList(value)));
                 } else {
-                    PropertyState property = mixins.getMulti();
+                    PropertyState property = mixins.getMultiState();
                     List<Value> values = getValueFactory().createValues(property);
                     if (!values.contains(value)) {
                         values.add(value);
                         nodeModified = true;
-                        dlg.setProperty(JcrConstants.JCR_MIXINTYPES, values);
+                        dlg.setProperty(PropertyStates.createProperty(JcrConstants.JCR_MIXINTYPES, values));
                     }
                 }
 
@@ -1441,9 +1443,9 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         for (PropertyDefinition pd : effective.getAutoCreatePropertyDefinitions()) {
             if (dlg.getProperty(pd.getName()) == null) {
                 if (pd.isMultiple()) {
-                    dlg.setProperty(pd.getName(), getAutoCreatedValues(pd));
+                    dlg.setProperty(PropertyStates.createProperty(pd.getName(), getAutoCreatedValues(pd)));
                 } else {
-                    dlg.setProperty(pd.getName(), getAutoCreatedValue(pd));
+                    dlg.setProperty(PropertyStates.createProperty(pd.getName(), getAutoCreatedValue(pd)));
                 }
             }
         }
@@ -1541,10 +1543,9 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
 
                 String jcrPrimaryType = getOakPath(Property.JCR_PRIMARY_TYPE);
                 Value value = getValueFactory().createValue(nodeTypeName, PropertyType.NAME);
-                dlg.setProperty(jcrPrimaryType, value);
 
+                dlg.setProperty(PropertyStates.createProperty(jcrPrimaryType, value));
                 dlg.setOrderableChildren(nt.hasOrderableChildNodes());
-
                 return null;
             }
         });
@@ -1592,7 +1593,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                         targetValue = ValueHelper.convert(value, targetType, getValueFactory());
                     }
 
-                    return new PropertyImpl(dlg.setProperty(oakName, targetValue));
+                    return new PropertyImpl(dlg.setProperty(PropertyStates.createProperty(oakName, targetValue)));
                 }
             }
         });
@@ -1642,7 +1643,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                     Iterable<Value> nonNullValues = Iterables.filter(
                             Arrays.asList(targetValues),
                             Predicates.notNull());
-                    return new PropertyImpl(dlg.setProperty(oakName, nonNullValues));
+                    return new PropertyImpl(dlg.setProperty(PropertyStates.createProperty(oakName, nonNullValues)));
                 }
             }
         });

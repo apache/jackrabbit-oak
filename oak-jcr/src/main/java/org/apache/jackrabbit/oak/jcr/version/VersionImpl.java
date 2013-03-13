@@ -61,7 +61,7 @@ class VersionImpl extends NodeImpl<VersionDelegate> implements Version {
     @Override
     public Calendar getCreated() throws RepositoryException {
         PropertyDelegate dlg = getPropertyOrThrow(JcrConstants.JCR_CREATED);
-        return getValueFactory().createValue(dlg.getSingle()).getDate();
+        return getValueFactory().createValue(dlg.getSingleState()).getDate();
     }
 
     @Override
@@ -75,7 +75,7 @@ class VersionImpl extends NodeImpl<VersionDelegate> implements Version {
     }
 
     private List<Value> getValues(PropertyDelegate p) throws InvalidItemStateException, ValueFormatException {
-        return getValueFactory().createValues(p.getMulti());
+        return getValueFactory().createValues(p.getMultiState());
     }
 
     @Override
