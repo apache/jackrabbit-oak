@@ -20,7 +20,6 @@ import javax.annotation.Nonnull;
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.Item;
 import javax.jcr.Node;
-import javax.jcr.Property;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.nodetype.ConstraintViolationException;
@@ -190,6 +189,8 @@ abstract class ItemImpl<T extends ItemDelegate> extends AbstractItem {
         // TODO: validate item state.
     }
 
+    protected abstract ItemDefinition getDefinition() throws RepositoryException;
+
     public void checkProtected() throws RepositoryException {
         if (DISABLE_TRANSIENT_DEFINITION_CHECKS) {
             return;
@@ -197,7 +198,7 @@ abstract class ItemImpl<T extends ItemDelegate> extends AbstractItem {
 
         ItemDefinition definition;
         try {
-            definition = (isNode()) ? ((Node) this).getDefinition() : ((Property) this).getDefinition();
+            definition = getDefinition();
         }
         catch (RepositoryException ignore) {
             // No definition -> not protected but a different error which should be handled else where
