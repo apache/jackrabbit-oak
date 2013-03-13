@@ -101,15 +101,6 @@ public abstract class ItemDelegate {
     }
 
     /**
-     * Get the session delegate with which this item is associated
-     * @return  {@link SessionDelegate} to which this item belongs
-     */
-    @Nonnull
-    public final SessionDelegate getSessionDelegate() {
-        return sessionDelegate;
-    }
-
-    /**
      * The underlying {@link org.apache.jackrabbit.oak.api.TreeLocation} of this item.
      * @return  tree location of the underlying item
      * @throws InvalidItemStateException if the location points to a stale item

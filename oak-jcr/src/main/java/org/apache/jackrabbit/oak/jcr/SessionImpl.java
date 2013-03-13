@@ -72,9 +72,8 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
      */
     private static final Logger log = LoggerFactory.getLogger(SessionImpl.class);
 
-    private final SessionDelegate dlg;
-
     private SessionContext sessionContext;
+    private final SessionDelegate dlg;
 
     /**
      * Local namespace remappings. Prefixes as keys and namespace URIs as values.
@@ -84,9 +83,9 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
      */
     private final Map<String, String> namespaces;
 
-    SessionImpl(SessionDelegate dlg, SessionContext sessionContext, Map<String, String> namespaces) {
-        this.dlg = dlg;
+    SessionImpl(SessionContext sessionContext, Map<String, String> namespaces) {
         this.sessionContext = sessionContext;
+        this.dlg = sessionContext.getSessionDelegate();
         this.namespaces = namespaces;
     }
 

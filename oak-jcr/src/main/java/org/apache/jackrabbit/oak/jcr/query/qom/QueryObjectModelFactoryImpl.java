@@ -48,7 +48,6 @@ import javax.jcr.query.qom.StaticOperand;
 import javax.jcr.query.qom.UpperCase;
 
 import org.apache.jackrabbit.oak.jcr.SessionContext;
-import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.jcr.query.QueryManagerImpl;
 
 /**
@@ -56,14 +55,12 @@ import org.apache.jackrabbit.oak.jcr.query.QueryManagerImpl;
  */
 public class QueryObjectModelFactoryImpl implements QueryObjectModelFactory {
 
-    private final QueryManagerImpl queryManager;
-    private final SessionDelegate sessionDelegate;
     private final SessionContext sessionContext;
+    private final QueryManagerImpl queryManager;
 
-    public QueryObjectModelFactoryImpl(QueryManagerImpl queryManager, SessionDelegate sessionDelegate, SessionContext sessionContext) {
-        this.queryManager = queryManager;
-        this.sessionDelegate = sessionDelegate;
+    public QueryObjectModelFactoryImpl(QueryManagerImpl queryManager, SessionContext sessionContext) {
         this.sessionContext = sessionContext;
+        this.queryManager = queryManager;
     }
 
     @Override

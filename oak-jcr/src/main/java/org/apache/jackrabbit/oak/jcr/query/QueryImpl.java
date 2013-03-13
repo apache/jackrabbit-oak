@@ -37,7 +37,6 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.NodeImpl;
 import org.apache.jackrabbit.oak.jcr.SessionContext;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
-import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 
 /**
  * The implementation of the corresponding JCR interface.
@@ -135,10 +134,9 @@ public class QueryImpl implements Query {
     @Override
     public Node storeAsNode(String absPath) throws RepositoryException {
         manager.ensureIsAlive();
-        SessionDelegate sessionDelegate = manager.getSessionDelegate();
         String oakPath = sessionContext.getOakPath(absPath);
         String parent = PathUtils.getParentPath(oakPath);
-        NodeDelegate parentDelegate = sessionDelegate.getNode(parent);
+        NodeDelegate parentDelegate = sessionContext.getSessionDelegate().getNode(parent);
         if (parentDelegate == null) {
             throw new PathNotFoundException("The specified path does not exist: " + parent);
         }

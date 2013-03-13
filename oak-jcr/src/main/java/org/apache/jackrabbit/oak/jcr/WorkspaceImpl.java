@@ -55,19 +55,19 @@ import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_
  */
 public class WorkspaceImpl implements JackrabbitWorkspace {
 
-    private final SessionDelegate sessionDelegate;
     private final SessionContext sessionContext;
+    private final SessionDelegate sessionDelegate;
     private final QueryManagerImpl queryManager;
     private final LockManager lockManager;
     private final VersionManagerImpl versionManager;
     private final ReadWriteNodeTypeManager nodeTypeManager;
 
-    public WorkspaceImpl(final SessionDelegate sessionDelegate, final SessionContext sessionContext) {
-        this.sessionDelegate = sessionDelegate;
+    public WorkspaceImpl(final SessionContext sessionContext) {
         this.sessionContext = sessionContext;
-        this.queryManager = new QueryManagerImpl(sessionDelegate, sessionContext);
-        this.lockManager = new LockManagerImpl(sessionDelegate, sessionContext);
-        this.versionManager = new VersionManagerImpl(sessionDelegate, sessionContext);
+        this.sessionDelegate = sessionContext.getSessionDelegate();
+        this.queryManager = new QueryManagerImpl(sessionContext);
+        this.lockManager = new LockManagerImpl(sessionContext);
+        this.versionManager = new VersionManagerImpl(sessionContext);
         this.nodeTypeManager = new ReadWriteNodeTypeManager() {
             @Override
             protected void refresh() throws RepositoryException {

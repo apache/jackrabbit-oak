@@ -69,8 +69,8 @@ public abstract class SessionContext {
         ValueFactoryImpl valueFactory = new ValueFactoryImpl(root.getBlobFactory(), namePathMapper);
 
         return new SessionContext(checkNotNull(repository), delegate, namePathMapper, valueFactory){
-            private final SessionImpl session = new SessionImpl(delegate, this, namespaces);
-            private final WorkspaceImpl workspace = new WorkspaceImpl(delegate, this);
+            private final SessionImpl session = new SessionImpl(this, namespaces);
+            private final WorkspaceImpl workspace = new WorkspaceImpl(this);
 
             @Override
             public SessionImpl getSession() {

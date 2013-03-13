@@ -49,8 +49,8 @@ abstract class ItemImpl<T extends ItemDelegate> extends AbstractItem {
             Boolean.getBoolean("OAK-652");
 
     protected final SessionContext sessionContext;
-    protected final SessionDelegate sessionDelegate;
     protected final T dlg;
+    protected final SessionDelegate sessionDelegate;
 
     /**
      * logger instance
@@ -59,8 +59,8 @@ abstract class ItemImpl<T extends ItemDelegate> extends AbstractItem {
 
     protected ItemImpl(T itemDelegate, SessionContext sessionContext) {
         this.sessionContext = sessionContext;
-        this.sessionDelegate = itemDelegate.getSessionDelegate();
         this.dlg = itemDelegate;
+        this.sessionDelegate = sessionContext.getSessionDelegate();
     }
 
     protected <X> X perform(SessionOperation<X> operation)

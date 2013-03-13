@@ -112,7 +112,7 @@ class VersionImpl extends NodeImpl<VersionDelegate> implements Version {
 
     @Nonnull
     private VersionManagerDelegate getVersionManagerDelegate() {
-        return VersionManagerDelegate.create(dlg.getSessionDelegate());
+        return VersionManagerDelegate.create(sessionContext.getSessionDelegate());
     }
 
     @Nonnull
