@@ -42,6 +42,7 @@ import org.apache.jackrabbit.oak.spi.security.authorization.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.Permissions;
 import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.SystemPrincipal;
+import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -102,7 +103,9 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
 
     @Override
     public boolean canRead(@Nonnull Tree tree) {
-        if (isAccessControlContent(tree)) {
+        if (isHidden(tree, null)) {
+            return false;
+        } else if (isAccessControlContent(tree)) {
             return canReadAccessControlContent(tree, null);
         } else if (isVersionContent(tree)) {
             return canReadVersionContent(tree, null);
@@ -113,7 +116,9 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
 
     @Override
     public boolean canRead(@Nonnull Tree tree, @Nonnull PropertyState property) {
-        if (isAccessControlContent(tree)) {
+        if (isHidden(tree, property)) {
+            return false;
+        } else if (isAccessControlContent(tree)) {
             return canReadAccessControlContent(tree, property);
         } else if (isVersionContent(tree)) {
             return canReadVersionContent(tree, property);
@@ -198,7 +203,12 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
         return new PrivilegeBitsProvider(getImmutableRoot());
     }
 
-    private boolean isAccessControlContent(@Nonnull Tree tree) {
+    private static boolean isHidden(@Nonnull Tree tree, @Nullable PropertyState propertyState) {
+        return ImmutableTree.TypeProvider.TYPE_HIDDEN == ImmutableTree.getType(tree)
+                || (propertyState != null && NodeStateUtils.isHidden(propertyState.getName()));
+    }
+
+    private static boolean isAccessControlContent(@Nonnull Tree tree) {
         return ImmutableTree.TypeProvider.TYPE_AC == ImmutableTree.getType(tree);
     }
 
