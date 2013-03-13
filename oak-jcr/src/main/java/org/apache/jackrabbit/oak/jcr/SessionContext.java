@@ -9,6 +9,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.lock.LockManager;
 import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.observation.ObservationManager;
+import javax.jcr.query.QueryManager;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.version.VersionManager;
 
@@ -95,6 +96,10 @@ public abstract class SessionContext {
     public abstract SessionImpl getSession();
 
     public abstract WorkspaceImpl getWorkspace();
+
+    public QueryManager getQueryManager() throws RepositoryException {
+        return getWorkspace().getQueryManager();
+    }
 
     public LockManager getLockManager() {
         return getWorkspace().getLockManager();
