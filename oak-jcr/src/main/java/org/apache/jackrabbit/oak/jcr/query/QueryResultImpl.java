@@ -241,7 +241,7 @@ public class QueryResultImpl implements QueryResult {
         if (value == null) {
             return null;
         } else {
-            return ValueFactoryImpl.createValue(value, sessionContext.getNamePathMapper());
+            return ValueFactoryImpl.createValue(value, sessionContext);
         }
     }
 

@@ -41,7 +41,6 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.NamespaceHelper;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.jcr.SessionContext;
-import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.nodetype.EffectiveNodeTypeProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
@@ -104,15 +103,14 @@ public class SessionImporter implements Importer {
 
         //TODO clarify how to provide ProtectedItemImporters
         UserConfiguration userConfig = sessionContext.getUserConfiguration();
-        NamePathMapper namePathMapper = sessionContext.getNamePathMapper();
         for (ProtectedItemImporter importer : userConfig.getProtectedItemImporters()) {
-            if (importer.init(session, root, namePathMapper, false, uuidBehavior, refTracker)) {
+            if (importer.init(session, root, sessionContext, false, uuidBehavior, refTracker)) {
                 pItemImporters.add(importer);
             }
         }
         AccessControlConfiguration accessControlConfig = sessionContext.getAccessControlConfiguration();
         for (ProtectedItemImporter importer : accessControlConfig.getProtectedItemImporters()) {
-            if (importer.init(session, root, namePathMapper, false, uuidBehavior, refTracker)) {
+            if (importer.init(session, root, sessionContext, false, uuidBehavior, refTracker)) {
                 pItemImporters.add(importer);
             }
         }

@@ -366,7 +366,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
 
             @Override
             public Value perform() throws RepositoryException {
-                return ValueFactoryImpl.createValue(dlg.getSingleState(), sessionContext.getNamePathMapper());
+                return ValueFactoryImpl.createValue(dlg.getSingleState(), sessionContext);
             }
         });
     }
@@ -382,7 +382,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
 
             @Override
             public List<Value> perform() throws RepositoryException {
-                return ValueFactoryImpl.createValues(dlg.getMultiState(), sessionContext.getNamePathMapper());
+                return ValueFactoryImpl.createValues(dlg.getMultiState(), sessionContext);
             }
         }).toArray(NO_VALUES);
     }

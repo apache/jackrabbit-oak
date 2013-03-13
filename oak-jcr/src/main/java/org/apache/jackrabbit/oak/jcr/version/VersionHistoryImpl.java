@@ -39,7 +39,6 @@ import org.apache.jackrabbit.oak.jcr.NodeImpl;
 import org.apache.jackrabbit.oak.jcr.SessionContext;
 import org.apache.jackrabbit.oak.jcr.delegate.VersionDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.VersionHistoryDelegate;
-import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.util.TODO;
 
 /**
@@ -134,10 +133,9 @@ public class VersionHistoryImpl extends NodeImpl<VersionHistoryDelegate>
 
     @Override
     public String[] getVersionLabels() throws RepositoryException {
-        NamePathMapper mapper = sessionContext.getNamePathMapper();
         List<String> labels = new ArrayList<String>();
         for (String label : dlg.getVersionLabels()) {
-            labels.add(mapper.getJcrName(label));
+            labels.add(sessionContext.getJcrName(label));
         }
         return labels.toArray(new String[labels.size()]);
     }
@@ -149,10 +147,9 @@ public class VersionHistoryImpl extends NodeImpl<VersionHistoryDelegate>
             throw new VersionException("Version is not contained in this " +
                     "VersionHistory");
         }
-        NamePathMapper mapper = sessionContext.getNamePathMapper();
         List<String> labels = new ArrayList<String>();
         for (String label : dlg.getVersionLabels(version.getIdentifier())) {
-            labels.add(mapper.getJcrName(label));
+            labels.add(sessionContext.getJcrName(label));
         }
         return labels.toArray(new String[labels.size()]);
     }

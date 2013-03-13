@@ -42,7 +42,6 @@ import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.jcr.SessionContext;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.jcr.query.qom.QueryObjectModelFactoryImpl;
-import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 
@@ -119,9 +118,8 @@ public class QueryManagerImpl implements QueryManager {
             long limit, long offset, HashMap<String, Value> bindVariableMap) throws RepositoryException {
         try {
             Map<String, PropertyValue> bindMap = convertMap(bindVariableMap);
-            NamePathMapper namePathMapper = sessionContext.getNamePathMapper();
             Result r = queryEngine.executeQuery(statement, language, limit, offset,
-                    bindMap, namePathMapper);
+                    bindMap, sessionContext);
             return new QueryResultImpl(sessionContext, r);
         } catch (IllegalArgumentException e) {
             throw new InvalidQueryException(e);
