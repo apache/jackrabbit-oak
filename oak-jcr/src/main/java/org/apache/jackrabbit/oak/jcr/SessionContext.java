@@ -47,7 +47,6 @@ public abstract class SessionContext implements NamePathMapper {
     private final NamePathMapper namePathMapper;
     private final ValueFactory valueFactory;
 
-    // FIXME lazy initialisation is not thread safe
     private AccessControlManager accessControlManager;
     private PrincipalManager principalManager;
     private UserManager userManager;
