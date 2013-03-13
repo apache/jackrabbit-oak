@@ -41,7 +41,6 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.NamespaceHelper;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.jcr.SessionContext;
-import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.nodetype.EffectiveNodeTypeProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfiguration;
@@ -56,20 +55,18 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * <code>SessionImporter</code> ...
+ * {@code SessionImporter} ...
  */
 public class SessionImporter implements Importer {
-
-    private static Logger log = LoggerFactory.getLogger(SessionImporter.class);
+    private static final Logger log = LoggerFactory.getLogger(SessionImporter.class);
 
     private final Session session;
     private final Node importTargetNode;
     private final Root root;
     private final int uuidBehavior;
-    private final SessionContext sessionContext;
 
     private final NamespaceHelper namespaceHelper;
-    private Stack<Node> parents;
+    private final Stack<Node> parents;
 
     /**
      * helper object that keeps track of remapped uuid's and imported reference
@@ -83,26 +80,20 @@ public class SessionImporter implements Importer {
     /**
      * Currently active importer for protected nodes.
      */
-    private ProtectedNodeImporter pnImporter = null;
+    private ProtectedNodeImporter pnImporter;
 
     /**
-     * Creates a new <code>SessionImporter</code> instance.
+     * Creates a new {@code SessionImporter} instance.
      */
     public SessionImporter(Node importTargetNode,
-                           Root root,
-                           Session session,
-                           SessionDelegate dlg,
+                           SessionContext sessionContext,
                            NamespaceHelper helper,
-                           UserConfiguration userConfig,
-                           AccessControlConfiguration accessControlConfig,
-                           int uuidBehavior,
-                           SessionContext sessionContext) throws RepositoryException {
+                           int uuidBehavior) {
         this.importTargetNode = importTargetNode;
-        this.session = session;
-        this.root = root;
+        this.session = sessionContext.getSession();
+        this.root = sessionContext.getSessionDelegate().getRoot();
         this.namespaceHelper = helper;
         this.uuidBehavior = uuidBehavior;
-        this.sessionContext = sessionContext;
 
         refTracker = new ReferenceChangeTracker();
 
@@ -112,12 +103,14 @@ public class SessionImporter implements Importer {
         pItemImporters.clear();
 
         //TODO clarify how to provide ProtectedItemImporters
+        UserConfiguration userConfig = sessionContext.getUserConfiguration();
         NamePathMapper namePathMapper = sessionContext.getNamePathMapper();
         for (ProtectedItemImporter importer : userConfig.getProtectedItemImporters()) {
             if (importer.init(session, root, namePathMapper, false, uuidBehavior, refTracker)) {
                 pItemImporters.add(importer);
             }
         }
+        AccessControlConfiguration accessControlConfig = sessionContext.getAccessControlConfiguration();
         for (ProtectedItemImporter importer : accessControlConfig.getProtectedItemImporters()) {
             if (importer.init(session, root, namePathMapper, false, uuidBehavior, refTracker)) {
                 pItemImporters.add(importer);
@@ -282,16 +275,12 @@ public class SessionImporter implements Importer {
 
     //-------------------------------------------------------------< Importer >
 
-    /**
-     * {@inheritDoc}
-     */
+    @Override
     public void start() throws RepositoryException {
         // nop
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    @Override
     public void startNode(NodeInfo nodeInfo, List<PropInfo> propInfos)
             throws RepositoryException {
         Node parent = parents.peek();
@@ -474,9 +463,7 @@ public class SessionImporter implements Importer {
     }
 
 
-    /**
-     * {@inheritDoc}
-     */
+    @Override
     public void endNode(NodeInfo nodeInfo) throws RepositoryException {
         Node parent = parents.pop();
         if (parent == null) {
@@ -493,9 +480,7 @@ public class SessionImporter implements Importer {
         }
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    @Override
     public void end() throws RepositoryException {
         /**
          * adjust references that refer to uuid's which have been mapped to

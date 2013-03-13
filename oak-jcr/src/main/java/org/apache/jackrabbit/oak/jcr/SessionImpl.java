@@ -54,9 +54,7 @@ import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionOperation;
 import org.apache.jackrabbit.oak.jcr.xml.ImportHandler;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
-import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.PermissionProvider;
-import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.util.TODO;
 import org.apache.jackrabbit.util.Text;
 import org.apache.jackrabbit.util.XMLChar;
@@ -348,12 +346,9 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
 
     @Override
     @Nonnull
-    public ContentHandler getImportContentHandler(
-            String parentAbsPath, int uuidBehavior) throws RepositoryException {
-        UserConfiguration userConfiguration = sessionContext.getUserConfiguration();
-        AccessControlConfiguration accessControlConfiguration = sessionContext.getAccessControlConfiguration();
-        return new ImportHandler(getNode(parentAbsPath), dlg.getRoot(), this,
-                dlg, userConfiguration, accessControlConfiguration, uuidBehavior, sessionContext);
+    public ContentHandler getImportContentHandler(String parentAbsPath, int uuidBehavior)
+            throws RepositoryException {
+        return new ImportHandler(getNode(parentAbsPath), sessionContext, uuidBehavior);
     }
 
     @Nonnull
