@@ -29,13 +29,10 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-
 /**
  * Basic in-memory node state implementation.
  */
-public class MemoryNodeState extends AbstractNodeState {
-
-    public static final NodeState EMPTY_NODE = EmptyNodeState.EMPTY_NODE;
+class MemoryNodeState extends AbstractNodeState {
 
     private final Map<String, PropertyState> properties;
 
