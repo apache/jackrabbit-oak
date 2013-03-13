@@ -21,16 +21,11 @@ import java.util.Map;
 
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
-import javax.jcr.Session;
 import javax.jcr.ValueFactory;
 
 import org.apache.jackrabbit.commons.NamespaceHelper;
-import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.jcr.SessionContext;
-import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceConstants;
-import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfiguration;
-import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.Attributes;
@@ -40,48 +35,39 @@ import org.xml.sax.SAXParseException;
 import org.xml.sax.helpers.DefaultHandler;
 
 /**
- * An <code>ImportHandler</code> instance can be used to import serialized
+ * An {@code ImportHandler} instance can be used to import serialized
  * data in System View XML or Document View XML. Processing of the XML is
- * handled by specialized <code>ContentHandler</code>s
- * (i.e. <code>SysViewImportHandler</code> and <code>DocViewImportHandler</code>).
+ * handled by specialized {@code ContentHandler}s
+ * (i.e. {@code SysViewImportHandler} and {@code DocViewImportHandler}).
  * <p/>
  * The actual task of importing though is delegated to the implementation of
- * the <code>{@link Importer}</code> interface.
+ * the {@code {@link Importer}} interface.
  * <p/>
  * <b>Important Note:</b>
  * <p/>
  * These SAX Event Handlers expect that Namespace URI's and local names are
- * reported in the <code>start/endElement</code> events and that
- * <code>start/endPrefixMapping</code> events are reported
+ * reported in the {@code start/endElement} events and that
+ * {@code start/endPrefixMapping} events are reported
  * (i.e. default SAX2 Namespace processing).
  */
 public class ImportHandler extends DefaultHandler {
-
-    private static Logger log = LoggerFactory.getLogger(ImportHandler.class);
+    private static final Logger log = LoggerFactory.getLogger(ImportHandler.class);
 
     private final Importer importer;
     private final NamespaceHelper helper;
     private final ValueFactory valueFactory;
     protected Locator locator;
-    private TargetImportHandler targetHandler = null;
+    private TargetImportHandler targetHandler;
     private final Map<String, String> tempPrefixMap = new HashMap<String, String>();
 
-    public ImportHandler(Node importTargetNode, Root root, Session session,
-                         SessionDelegate dlg, UserConfiguration userConfig,
-                         AccessControlConfiguration accessControlConfig,
-                         int uuidBehavior, SessionContext sessionContext)
-            throws RepositoryException {
-        this.helper = new NamespaceHelper(session);
-        this.importer = new SessionImporter(importTargetNode, root, session, dlg, helper, userConfig,
-                accessControlConfig, uuidBehavior, sessionContext);
-        this.valueFactory = session.getValueFactory();
+    public ImportHandler(Node importTargetNode, SessionContext sessionContext, int uuidBehavior) {
+        this.helper = new NamespaceHelper(sessionContext.getSession());
+        this.importer = new SessionImporter(importTargetNode, sessionContext, helper, uuidBehavior);
+        this.valueFactory = sessionContext.getValueFactory();
     }
 
     //---------------------------------------------------------< ErrorHandler >
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void warning(SAXParseException e) throws SAXException {
         // log exception and carry on...
@@ -90,9 +76,6 @@ public class ImportHandler extends DefaultHandler {
                 + " while parsing XML stream", e);
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void error(SAXParseException e) throws SAXException {
         // log exception and carry on...
@@ -101,9 +84,6 @@ public class ImportHandler extends DefaultHandler {
                 + " while parsing XML stream: " + e.toString());
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void fatalError(SAXParseException e) throws SAXException {
         // log and re-throw exception
@@ -115,9 +95,6 @@ public class ImportHandler extends DefaultHandler {
 
     //-------------------------------------------------------< ContentHandler >
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void endDocument() throws SAXException {
         // delegate to target handler
@@ -162,9 +139,6 @@ public class ImportHandler extends DefaultHandler {
         }
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void startElement(String namespaceURI, String localName, String qName,
                              Attributes atts) throws SAXException {
@@ -188,9 +162,6 @@ public class ImportHandler extends DefaultHandler {
         targetHandler.startElement(namespaceURI, localName, qName, atts);
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void characters(char[] ch, int start, int length) throws SAXException {
         // delegate to target handler
@@ -208,9 +179,6 @@ public class ImportHandler extends DefaultHandler {
         targetHandler.endElement(namespaceURI, localName, qName);
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void setDocumentLocator(Locator locator) {
         this.locator = locator;
