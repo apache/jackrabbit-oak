@@ -115,13 +115,17 @@ public class VersionManagerImpl implements VersionManager {
         return TODO.unimplemented().returnValue(NodeIteratorAdapter.EMPTY);
     }
 
+    private String getOakPathOrThrowNotFound(String absPath) throws PathNotFoundException {
+        return sessionContext.getOakPathOrThrowNotFound(absPath);
+    }
+
     @Override
     public boolean isCheckedOut(final String absPath) throws RepositoryException {
-        final SessionDelegate sessionDelegate = versionManagerDelegate.getSessionDelegate();
+        final SessionDelegate sessionDelegate = sessionContext.getSessionDelegate();
         return sessionDelegate.perform(new SessionOperation<Boolean>() {
             @Override
             public Boolean perform() throws RepositoryException {
-                String oakPath = getOakPathOrThrowNotFound(sessionDelegate, absPath);
+                String oakPath = getOakPathOrThrowNotFound(absPath);
                 NodeDelegate nodeDelegate = sessionDelegate.getNode(oakPath);
                 if (nodeDelegate == null) {
                     throw new PathNotFoundException(absPath);
@@ -131,19 +135,14 @@ public class VersionManagerImpl implements VersionManager {
         });
     }
 
-    private String getOakPathOrThrowNotFound(SessionDelegate sessionDelegate, String absPath)
-            throws PathNotFoundException {
-        return sessionContext.getOakPathOrThrowNotFound(absPath);
-    }
-
     @Override
     public VersionHistory getVersionHistory(final String absPath)
             throws RepositoryException {
-        final SessionDelegate sessionDelegate = versionManagerDelegate.getSessionDelegate();
+        final SessionDelegate sessionDelegate = sessionContext.getSessionDelegate();
         return sessionDelegate.perform(new SessionOperation<VersionHistory>() {
             @Override
             public VersionHistory perform() throws RepositoryException {
-                String oakPath = getOakPathOrThrowNotFound(sessionDelegate, absPath);
+                String oakPath = getOakPathOrThrowNotFound(absPath);
                 NodeDelegate nodeDelegate = sessionDelegate.getNode(oakPath);
                 if (nodeDelegate == null) {
                     throw new PathNotFoundException(absPath);
@@ -156,11 +155,11 @@ public class VersionManagerImpl implements VersionManager {
 
     @Override
     public Version getBaseVersion(final String absPath) throws RepositoryException {
-        final SessionDelegate sessionDelegate = versionManagerDelegate.getSessionDelegate();
+        final SessionDelegate sessionDelegate = sessionContext.getSessionDelegate();
         return sessionDelegate.perform(new SessionOperation<Version>() {
             @Override
             public Version perform() throws RepositoryException {
-                String oakPath = getOakPathOrThrowNotFound(sessionDelegate, absPath);
+                String oakPath = getOakPathOrThrowNotFound(absPath);
                 NodeDelegate nodeDelegate = sessionDelegate.getNode(oakPath);
                 if (nodeDelegate == null) {
                     throw new PathNotFoundException(absPath);
@@ -198,7 +197,7 @@ public class VersionManagerImpl implements VersionManager {
     }
 
     @Nonnull
-    private LockManager getLockManager(SessionDelegate sessionDelegate) {
+    private LockManager getLockManager() {
         return sessionContext.getLockManager();
     }
 
@@ -207,16 +206,16 @@ public class VersionManagerImpl implements VersionManager {
         if (true) {
             TODO.unimplemented().doNothing();
         }
-        final SessionDelegate sessionDelegate = versionManagerDelegate.getSessionDelegate();
+        final SessionDelegate sessionDelegate = sessionContext.getSessionDelegate();
         sessionDelegate.perform(new SessionOperation<Void>() {
             @Override
             public Void perform() throws RepositoryException {
-                String oakPath = getOakPathOrThrowNotFound(sessionDelegate, absPath);
+                String oakPath = getOakPathOrThrowNotFound(absPath);
                 NodeDelegate nodeDelegate = sessionDelegate.getNode(oakPath);
                 if (nodeDelegate == null) {
                     throw new PathNotFoundException(absPath);
                 }
-                if (getLockManager(sessionDelegate).isLocked(absPath)) {
+                if (getLockManager().isLocked(absPath)) {
                     throw new LockException("Node at " + absPath + " is locked");
                 }
                 versionManagerDelegate.checkout(nodeDelegate);
@@ -230,16 +229,16 @@ public class VersionManagerImpl implements VersionManager {
         if (true) {
             return TODO.dummyImplementation().returnValue(getBaseVersion(absPath));
         }
-        final SessionDelegate sessionDelegate = versionManagerDelegate.getSessionDelegate();
+        final SessionDelegate sessionDelegate = sessionContext.getSessionDelegate();
         return sessionDelegate.perform(new SessionOperation<Version>() {
             @Override
             public Version perform() throws RepositoryException {
-                String oakPath = getOakPathOrThrowNotFound(sessionDelegate, absPath);
+                String oakPath = getOakPathOrThrowNotFound(absPath);
                 NodeDelegate nodeDelegate = sessionDelegate.getNode(oakPath);
                 if (nodeDelegate == null) {
                     throw new PathNotFoundException(absPath);
                 }
-                if (getLockManager(sessionDelegate).isLocked(absPath)) {
+                if (getLockManager().isLocked(absPath)) {
                     throw new LockException("Node at " + absPath + " is locked");
                 }
                 return new VersionImpl(versionManagerDelegate.checkin(nodeDelegate), sessionContext);
