@@ -20,9 +20,9 @@ package org.apache.jackrabbit.oak.core;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import javax.annotation.Nonnull;
@@ -267,7 +267,7 @@ public class RootImpl implements Root {
         rebase();
         purgePendingChanges();
         CommitFailedException exception = Subject.doAs(
-                getCombinedSubject(), new PrivilegedAction<CommitFailedException>() {
+                getCommitSubject(), new PrivilegedAction<CommitFailedException>() {
             @Override
             public CommitFailedException run() {
                 try {
@@ -312,19 +312,16 @@ public class RootImpl implements Root {
         return CompositeHook.compose(commitHooks);
     }
 
-    // TODO: find a better solution for passing in additional principals
-    private Subject getCombinedSubject() {
-        Subject accSubject = Subject.getSubject(AccessController.getContext());
-        if (accSubject == null) {
-            return subject;
-        } else {
-            Subject combinedSubject = new Subject(false,
-                    subject.getPrincipals(), subject.getPublicCredentials(), subject.getPrivateCredentials());
-            combinedSubject.getPrincipals().addAll(accSubject.getPrincipals());
-            combinedSubject.getPrivateCredentials().addAll(accSubject.getPrivateCredentials());
-            combinedSubject.getPublicCredentials().addAll((accSubject.getPublicCredentials()));
-            return combinedSubject;
-        }
+    /**
+     * TODO: review again once the permission validation is completed.
+     * Build a read only subject for the {@link #commit()} call that makes the
+     * principals and the permission provider available to the commit hooks.
+     *
+     * @return a new read only subject.
+     */
+    private Subject getCommitSubject() {
+        return new Subject(true, subject.getPrincipals(),
+                Collections.singleton(getPermissionProvider()), Collections.<Object>emptySet());
     }
 
     @Override
@@ -443,7 +440,7 @@ public class RootImpl implements Root {
         return  securityProvider.getAccessControlConfiguration().getPermissionProvider(this, subject.getPrincipals());
     }
 
-    //------------------------------------------------------------< MoveRecord >---
+    //---------------------------------------------------------< MoveRecord >---
 
     /**
      * Instances of this class record move operations which took place on this root.

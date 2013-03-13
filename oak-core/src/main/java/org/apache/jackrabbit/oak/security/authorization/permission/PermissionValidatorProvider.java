@@ -31,7 +31,6 @@ import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.PermissionProvider;
-import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
@@ -80,7 +79,7 @@ public class PermissionValidatorProvider extends ValidatorProvider {
 
     private PermissionProvider getPermissionProvider(NodeState before) {
         Subject subject = Subject.getSubject(AccessController.getContext());
-        if (subject == null || subject.getPublicCredentials(PrincipalProvider.class).isEmpty()) {
+        if (subject == null || subject.getPublicCredentials(PermissionProvider.class).isEmpty()) {
             Set<Principal> principals = (subject != null) ? subject.getPrincipals() : Collections.<Principal>emptySet();
             AccessControlConfiguration acConfig = securityProvider.getAccessControlConfiguration();
             return acConfig.getPermissionProvider(new ImmutableRoot(createTree(before)), principals);
