@@ -42,12 +42,12 @@ import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 
 /**
- * <code>DocViewImportHandler</code> processes Document View XML SAX events
- * and 'translates' them into <code>{@link Importer}</code> method calls.
+ * {@code DocViewImportHandler} processes Document View XML SAX events
+ * and 'translates' them into {@code {@link Importer}} method calls.
  */
 class DocViewImportHandler extends TargetImportHandler {
 
-    private static Logger log = LoggerFactory.getLogger(DocViewImportHandler.class);
+    private static final Logger log = LoggerFactory.getLogger(DocViewImportHandler.class);
 
     /**
      * stack of NodeInfo instances; an instance is pushed onto the stack
@@ -56,10 +56,10 @@ class DocViewImportHandler extends TargetImportHandler {
      */
     private final Stack<NodeInfo> stack = new Stack<NodeInfo>();
     // buffer used to merge adjacent character data
-    private BufferedStringValue textHandler = null;
+    private BufferedStringValue textHandler;
 
     /**
-     * Constructs a new <code>DocViewImportHandler</code>.
+     * Constructs a new {@code DocViewImportHandler}.
      *
      * @param importer     the importer
      * @param valueFactory a value factory
@@ -118,10 +118,10 @@ class DocViewImportHandler extends TargetImportHandler {
 
     /**
      * Translates character data reported by the
-     * <code>{@link #characters(char[], int, int)}</code> &
-     * <code>{@link #ignorableWhitespace(char[], int, int)}</code> SAX events
-     * into a  <code>jcr:xmltext</code> child node with one
-     * <code>jcr:xmlcharacters</code> property.
+     * {@code {@link #characters(char[], int, int)}} &
+     * {@code {@link #ignorableWhitespace(char[], int, int)}} SAX events
+     * into a  {@code jcr:xmltext} child node with one
+     * {@code jcr:xmlcharacters} property.
      *
      * @throws SAXException if an error occurs
      * @see #appendCharacters(char[], int, int)
@@ -179,7 +179,7 @@ class DocViewImportHandler extends TargetImportHandler {
     }
 
     /**
-     * Processes the given <code>name</code>, i.e. decodes it and checks
+     * Processes the given {@code name}, i.e. decodes it and checks
      * the format of the decoded name.
      *
      * @param nameInfo name to process
@@ -195,7 +195,7 @@ class DocViewImportHandler extends TargetImportHandler {
             } catch (ConstraintViolationException e) {
                 // decoded name would be illegal according to jsr 170,
                 // use encoded name as a fallback
-                log.warn("encountered illegal decoded name '" + decodedLocalName + "'", e);
+                log.warn("encountered illegal decoded name '" + decodedLocalName + '\'', e);
                 return nameInfo;
             }
         }
@@ -252,7 +252,7 @@ class DocViewImportHandler extends TargetImportHandler {
                 if (NamespaceRegistry.NAMESPACE_JCR.equals(propNameInfo.getNamespaceUri())
                         && "primaryType".equals(propNameInfo.getLocalName())) {
                     // jcr:primaryType
-                    if (attrValue.length() > 0) {
+                    if (!attrValue.isEmpty()) {
                         //TODO
                         nodeTypeName = attrValue;
                     }
@@ -263,7 +263,7 @@ class DocViewImportHandler extends TargetImportHandler {
                 } else if (NamespaceRegistry.NAMESPACE_JCR.equals(propNameInfo.getNamespaceUri())
                         && "uuid".equals(propNameInfo.getLocalName())) {
                     // jcr:uuid
-                    if (attrValue.length() > 0) {
+                    if (!attrValue.isEmpty()) {
                         id = attrValue;
                     }
                 } else {
@@ -282,9 +282,6 @@ class DocViewImportHandler extends TargetImportHandler {
         }
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void characters(char[] ch, int start, int length)
             throws SAXException {
@@ -295,9 +292,6 @@ class DocViewImportHandler extends TargetImportHandler {
         appendCharacters(ch, start, length);
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void ignorableWhitespace(char[] ch, int start, int length)
             throws SAXException {
@@ -308,9 +302,6 @@ class DocViewImportHandler extends TargetImportHandler {
         appendCharacters(ch, start, length);
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void endElement(String namespaceURI, String localName, String qName)
             throws SAXException {

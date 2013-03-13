@@ -35,9 +35,9 @@ import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
 /**
- * <code>TargetImportHandler</code> serves as the base class for the concrete
- * classes <code>{@link DocViewImportHandler}</code> and
- * <code>{@link SysViewImportHandler}</code>.
+ * {@code TargetImportHandler} serves as the base class for the concrete
+ * classes {@code {@link DocViewImportHandler}} and
+ * {@code {@link SysViewImportHandler}}.
  */
 public abstract class TargetImportHandler extends DefaultHandler {
 
@@ -140,7 +140,7 @@ public abstract class TargetImportHandler extends DefaultHandler {
         private String repoPrefix;
 
         NameInfo(String docQualifiedName) throws RepositoryException {
-            int idx = docQualifiedName.indexOf(":");
+            int idx = docQualifiedName.indexOf(':');
             if (idx == -1) {
                 docPrefix = null;
                 localName = docQualifiedName;
@@ -191,23 +191,23 @@ public abstract class TargetImportHandler extends DefaultHandler {
         }
 
         String getDocQualifiedName() {
-            if (docPrefix == null || docPrefix.length() == 0) {
+            if (docPrefix == null || docPrefix.isEmpty()) {
                 return localName;
             } else {
-                return docPrefix + ":" + localName;
+                return docPrefix + ':' + localName;
             }
         }
 
         String getRepoQualifiedName() {
-            if (repoPrefix == null || repoPrefix.length() == 0) {
+            if (repoPrefix == null || repoPrefix.isEmpty()) {
                 return localName;
             } else {
-                return repoPrefix + ":" + localName;
+                return repoPrefix + ':' + localName;
             }
         }
 
         String getExpandedName() {
-            return "{" + namespaceUri + "}" + localName;
+            return '{' + namespaceUri + '}' + localName;
         }
     }
 }

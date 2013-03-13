@@ -44,17 +44,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * <code>BufferedStringValue</code> represents an appendable
+ * {@code BufferedStringValue} represents an appendable
  * serialized value that is either buffered in-memory or backed
  * by a temporary file if its size exceeds a certain limit.
  * <p/>
  * <b>Important:</b> Note that in order to free resources
- * <code>{@link #dispose()}</code> should be called as soon as
- * <code>BufferedStringValue</code> instance is not used anymore.
+ * {@code {@link #dispose()}} should be called as soon as
+ * {@code BufferedStringValue} instance is not used anymore.
  */
 class BufferedStringValue implements TextValue {
 
-    private static Logger log = LoggerFactory.getLogger(BufferedStringValue.class);
+    private static final Logger log = LoggerFactory.getLogger(BufferedStringValue.class);
 
     /**
      * The maximum size for buffering data in memory.
@@ -92,7 +92,7 @@ class BufferedStringValue implements TextValue {
     private boolean base64;
 
     /**
-     * Constructs a new empty <code>BufferedStringValue</code>.
+     * Constructs a new empty {@code BufferedStringValue}.
      */
     protected BufferedStringValue(ValueFactory valueFactory, NamePathMapper namePathMapper) {
         buffer = new StringWriter();
@@ -171,9 +171,9 @@ class BufferedStringValue implements TextValue {
     }
 
     /**
-     * Returns a <code>Reader</code> for reading the serialized value.
+     * Returns a {@code Reader} for reading the serialized value.
      *
-     * @return a <code>Reader</code> for reading the serialized value.
+     * @return a {@code Reader} for reading the serialized value.
      * @throws IOException if an I/O error occurs
      */
     public Reader reader() throws IOException {
@@ -239,6 +239,7 @@ class BufferedStringValue implements TextValue {
 
     //--------------------------------------------------------< TextValue >
 
+    @Override
     public Value getValue(int targetType) throws RepositoryException {
         try {
             if (targetType == PropertyType.NAME) {
@@ -271,9 +272,7 @@ class BufferedStringValue implements TextValue {
         }
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    @Override
     public void dispose() {
         if (buffer != null) {
             buffer = null;
@@ -323,6 +322,7 @@ class BufferedStringValue implements TextValue {
             out.reset();
         }
 
+        @Override
         public int read() throws IOException {
             if (remaining == 0) {
                 fillBuffer();

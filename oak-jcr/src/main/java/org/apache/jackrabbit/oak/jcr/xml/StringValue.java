@@ -27,7 +27,7 @@ import org.apache.jackrabbit.oak.spi.xml.TextValue;
 import org.apache.jackrabbit.value.ValueHelper;
 
 /**
- * <code>StringValue</code> represents an immutable serialized value.
+ * {@code StringValue} represents an immutable serialized value.
  */
 class StringValue implements TextValue {
 
@@ -36,7 +36,7 @@ class StringValue implements TextValue {
     private final NamePathMapper namePathMapper;
 
     /**
-     * Constructs a new <code>StringValue</code> representing the given
+     * Constructs a new {@code StringValue} representing the given
      * value.
      *
      * @param value serialized value from document
@@ -57,6 +57,7 @@ class StringValue implements TextValue {
         return this.value;
     }
 
+    @Override
     public Value getValue(int type) throws RepositoryException {
         String inputValue = type == PropertyType.NAME ?
                 namePathMapper.getOakName(value) :
@@ -66,6 +67,7 @@ class StringValue implements TextValue {
         return ValueHelper.deserialize(inputValue, type, false, valueFactory);
     }
 
+    @Override
     public void dispose() {
         // do nothing
     }

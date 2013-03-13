@@ -472,8 +472,8 @@ public class SessionImporter implements Importer {
     @Override
     public void end() throws RepositoryException {
         /**
-         * adjust references that refer to uuid's which have been mapped to
-         * newly generated uuid's on import
+         * adjust references that refer to uuids which have been mapped to
+         * newly generated uuids on import
          */
         // 1. let protected property/node importers handle protected ref-properties
         //    and (protected) properties underneath a protected parent node.
