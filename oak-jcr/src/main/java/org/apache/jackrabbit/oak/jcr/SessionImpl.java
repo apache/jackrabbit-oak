@@ -207,7 +207,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     }
 
     private String getOakPath(String absPath) throws RepositoryException {
-        return sessionContext.getOakPath(absPath);
+        return sessionContext.getOakPathOrThrow(absPath);
     }
 
     @Override

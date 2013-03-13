@@ -95,7 +95,7 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
             @Nonnull
             @Override
             protected NamePathMapper getNamePathMapper() {
-                return sessionContext.getNamePathMapper();
+                return sessionContext;
             }
         };
     }

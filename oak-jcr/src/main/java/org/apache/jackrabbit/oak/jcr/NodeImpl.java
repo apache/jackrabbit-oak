@@ -227,7 +227,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     }
 
     private String getOakPath(String jcrPath) throws RepositoryException {
-        return sessionContext.getOakPath(jcrPath);
+        return sessionContext.getOakPathOrThrow(jcrPath);
     }
 
     @Override
@@ -998,7 +998,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                             JcrConstants.JCR_MIXINTYPES, Collections.singletonList(value)));
                 } else {
                     PropertyState property = mixins.getMultiState();
-                    List<Value> values = ValueFactoryImpl.createValues(property, sessionContext.getNamePathMapper());
+                    List<Value> values = ValueFactoryImpl.createValues(property, sessionContext);
                     if (!values.contains(value)) {
                         values.add(value);
                         nodeModified = true;

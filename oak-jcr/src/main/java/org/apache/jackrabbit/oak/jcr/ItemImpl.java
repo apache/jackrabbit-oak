@@ -31,7 +31,6 @@ import org.apache.jackrabbit.commons.AbstractItem;
 import org.apache.jackrabbit.oak.jcr.delegate.ItemDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionOperation;
-import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.nodetype.DefinitionProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -253,7 +252,6 @@ abstract class ItemImpl<T extends ItemDelegate> extends AbstractItem {
 
     @Nonnull
     String toJcrPath(String oakPath) {
-        NamePathMapper namePathMapper = sessionContext.getNamePathMapper();
-        return namePathMapper.getJcrPath(oakPath);
+        return sessionContext.getJcrPath(oakPath);
     }
 }

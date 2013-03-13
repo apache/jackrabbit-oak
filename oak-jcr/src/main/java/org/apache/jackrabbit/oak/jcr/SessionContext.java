@@ -38,7 +38,7 @@ import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-public abstract class SessionContext {
+public abstract class SessionContext implements NamePathMapper {
     private final RepositoryImpl repository;
     private final SessionDelegate delegate;
     private final NamePathMapper namePathMapper;
@@ -130,102 +130,8 @@ public abstract class SessionContext {
         return getWorkspaceInternal().getReadWriteNodeTypeManager();
     }
 
-    public NamePathMapper getNamePathMapper() {
-        return namePathMapper;
-    }
-
     public ValueFactory getValueFactory() {
         return valueFactory;
-    }
-
-    /**
-     * Returns the Oak name for the given JCR name, or throws a
-     * {@link javax.jcr.RepositoryException} if the name is invalid or can
-     * otherwise not be mapped.
-     *
-     * @param jcrName JCR name
-     * @return Oak name
-     * @throws javax.jcr.RepositoryException if the name is invalid
-     */
-    @Nonnull
-    public String getOakName(String jcrName) throws RepositoryException {
-        return namePathMapper.getOakName(jcrName);
-    }
-
-    /**
-     * Returns the Oak path for the given JCR path, or throws a
-     * {@link javax.jcr.RepositoryException} if the path can not be mapped.
-     *
-     * @param jcrPath JCR path
-     * @return Oak path
-     * @throws javax.jcr.RepositoryException if the path can not be mapped
-     */
-    @Nonnull
-    public String getOakPath(String jcrPath) throws RepositoryException {
-        String oakPath = getOakPathOrNull(jcrPath);
-        if (oakPath != null) {
-            return oakPath;
-        } else {
-            throw new RepositoryException("Invalid name or path: " + jcrPath);
-        }
-    }
-
-    /**
-     * Shortcut for {@code SessionDelegate.getNamePathMapper().getOakPath(jcrPath)}.
-     *
-     * @param jcrPath JCR path
-     * @return Oak path, or {@code null}
-     */
-    @CheckForNull
-    public String getOakPathOrNull(String jcrPath) {
-        return namePathMapper.getOakPath(jcrPath);
-    }
-
-    /**
-     * Returns the Oak path for the given JCR path, or throws a
-     * {@link javax.jcr.PathNotFoundException} if the path can not be mapped.
-     *
-     * @param jcrPath JCR path
-     * @return Oak path
-     * @throws javax.jcr.PathNotFoundException if the path can not be mapped
-     */
-    @Nonnull
-    public String getOakPathOrThrowNotFound(String jcrPath) throws PathNotFoundException {
-        String oakPath = getOakPathOrNull(jcrPath);
-        if (oakPath != null) {
-            return oakPath;
-        } else {
-            throw new PathNotFoundException(jcrPath);
-        }
-    }
-
-    /**
-     * Shortcut for {@code SessionDelegate.getOakPathKeepIndex(jcrPath)}.
-     *
-     * @param jcrPath JCR path
-     * @return Oak path, or {@code null}, with indexes left intact
-     * @throws javax.jcr.PathNotFoundException
-     */
-    @CheckForNull
-    public String getOakPathKeepIndex(String jcrPath) throws PathNotFoundException {
-        return namePathMapper.getOakPathKeepIndex(jcrPath);
-    }
-
-    /**
-     * Shortcut for {@code SessionDelegate.getOakPathKeepIndex(jcrPath)}.
-     *
-     * @param jcrPath JCR path
-     * @return Oak path, or {@code null}, with indexes left intact
-     * @throws javax.jcr.PathNotFoundException
-     */
-    @Nonnull
-    public String getOakPathKeepIndexOrThrowNotFound(String jcrPath) throws PathNotFoundException {
-        String oakPath = namePathMapper.getOakPathKeepIndex(jcrPath);
-        if (oakPath != null) {
-            return oakPath;
-        } else {
-            throw new PathNotFoundException(jcrPath);
-        }
     }
 
     @Nonnull
@@ -304,6 +210,101 @@ public abstract class SessionContext {
 
     public boolean hasPendingEvents() {
         return observationManager != null && observationManager.hasEvents();
+    }
+
+    //------------------------------------------------------------< NamePathMapper >---
+
+    @Override
+    @Nonnull
+    public String getOakName(String jcrName) throws RepositoryException {
+        return namePathMapper.getOakName(jcrName);
+    }
+
+    @Override
+    @CheckForNull
+    public String getOakNameOrNull(@Nonnull String jcrName) {
+        return namePathMapper.getOakNameOrNull(jcrName);
+    }
+
+    @Override
+    public boolean hasSessionLocalMappings() {
+        return namePathMapper.hasSessionLocalMappings();
+    }
+
+    @Override
+    public String getJcrName(@Nonnull String oakName) {
+        return namePathMapper.getJcrName(oakName);
+    }
+
+    @Override
+    @CheckForNull
+    public String getOakPath(String jcrPath) {
+        return namePathMapper.getOakPath(jcrPath);
+    }
+
+    @Override
+    @CheckForNull
+    public String getOakPathKeepIndex(String jcrPath) {
+        return namePathMapper.getOakPathKeepIndex(jcrPath);
+    }
+
+    @Override
+    @Nonnull
+    public String getJcrPath(String oakPath) {
+        return namePathMapper.getJcrPath(oakPath);
+    }
+
+    /**
+     * Returns the Oak path for the given JCR path, or throws a
+     * {@link javax.jcr.RepositoryException} if the path can not be mapped.
+     *
+     * @param jcrPath JCR path
+     * @return Oak path
+     * @throws javax.jcr.RepositoryException if the path can not be mapped
+     */
+    @Nonnull
+    public String getOakPathOrThrow(String jcrPath) throws RepositoryException {
+        String oakPath = getOakPath(jcrPath);
+        if (oakPath != null) {
+            return oakPath;
+        } else {
+            throw new RepositoryException("Invalid name or path: " + jcrPath);
+        }
+    }
+
+    /**
+     * Returns the Oak path for the given JCR path, or throws a
+     * {@link javax.jcr.PathNotFoundException} if the path can not be mapped.
+     *
+     * @param jcrPath JCR path
+     * @return Oak path
+     * @throws javax.jcr.PathNotFoundException if the path can not be mapped
+     */
+    @Nonnull
+    public String getOakPathOrThrowNotFound(String jcrPath) throws PathNotFoundException {
+        String oakPath = getOakPath(jcrPath);
+        if (oakPath != null) {
+            return oakPath;
+        } else {
+            throw new PathNotFoundException(jcrPath);
+        }
+    }
+
+    /**
+     * Shortcut for {@code SessionDelegate.getOakPathKeepIndex(jcrPath)}.
+     *
+     * @param jcrPath JCR path
+     * @return Oak path, or {@code null}, with indexes left intact
+     * @throws javax.jcr.PathNotFoundException
+     */
+    @Nonnull
+    public String getOakPathKeepIndexOrThrowNotFound(String jcrPath) throws PathNotFoundException {
+        String oakPath = namePathMapper.getOakPathKeepIndex(jcrPath);
+        if (oakPath != null) {
+            return oakPath;
+        } else {
+            throw new PathNotFoundException(jcrPath);
+        }
     }
 
     //------------------------------------------------------------< internal >---
