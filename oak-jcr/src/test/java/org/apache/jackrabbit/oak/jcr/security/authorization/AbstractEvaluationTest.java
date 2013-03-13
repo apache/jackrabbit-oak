@@ -93,9 +93,6 @@ public abstract class AbstractEvaluationTest extends AbstractAccessControlTest {
         creds = new SimpleCredentials(uid, uid.toCharArray());
         testUser = uMgr.createUser(uid, uid);
 
-        testSession = getTestSession();
-        testAcMgr = getAccessControlManager(testSession);
-
         // create some nodes below the test root in order to apply ac-stuff
         Node node = testRootNode.addNode(nodeName1, testNodeType);
         Node cn1 = node.addNode(nodeName2, testNodeType);
@@ -111,6 +108,9 @@ public abstract class AbstractEvaluationTest extends AbstractAccessControlTest {
         childPPath = cp1.getPath();
         childchildPPath = ccp1.getPath();
         siblingPath = n2.getPath();
+
+        testSession = getTestSession();
+        testAcMgr = getAccessControlManager(testSession);
 
         /*
         precondition:
