@@ -16,7 +16,6 @@ import javax.jcr.Workspace;
 import javax.jcr.lock.LockManager;
 import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.observation.ObservationManager;
-import javax.jcr.query.QueryManager;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.version.VersionManager;
 import javax.security.auth.Subject;
