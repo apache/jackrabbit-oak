@@ -78,7 +78,7 @@ public class LiteralImpl extends StaticOperandImpl implements Literal {
         return "CAST(" + escape(value.getString()) + " AS " + type + ')';
     }
 
-    public static final String escape(String v) {
+    public static String escape(String v) {
         return '\'' + v.replace("'", "''") + '\'';
     }
 
