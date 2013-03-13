@@ -61,10 +61,6 @@ public class VersionManagerDelegate {
         };
     }
 
-    public SessionDelegate getSessionDelegate() {
-        return sessionDelegate;
-    }
-
     @Nonnull
     public VersionDelegate checkin(@Nonnull NodeDelegate nodeDelegate)
             throws RepositoryException {
