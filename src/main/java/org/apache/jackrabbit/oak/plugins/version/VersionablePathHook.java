@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.version;
 
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.JcrConstants;
@@ -25,7 +27,6 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.ImmutableTree;
-import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
@@ -88,7 +89,7 @@ public class VersionablePathHook implements CommitHook {
 
         @Override
         public void childNodeAdded(String name, NodeState after) {
-            childNodeChanged(name, MemoryNodeState.EMPTY_NODE, after);
+            childNodeChanged(name, EMPTY_NODE, after);
         }
 
         @Override

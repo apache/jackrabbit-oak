@@ -21,11 +21,11 @@ import java.util.Arrays;
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexHook;
-import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.junit.Assert.assertEquals;
 
 @Deprecated
@@ -35,7 +35,7 @@ public class PropertyIndexTest {
 
     @Test
     public void testPropertyLookup() throws Exception {
-        NodeState root = MemoryNodeState.EMPTY_NODE;
+        NodeState root = EMPTY_NODE;
 
         // Add index definition
         NodeBuilder builder = root.builder();
@@ -84,7 +84,7 @@ public class PropertyIndexTest {
 
     @Test
     public void testCustomConfigPropertyLookup() throws Exception {
-        NodeState root = MemoryNodeState.EMPTY_NODE;
+        NodeState root = EMPTY_NODE;
 
         // Add index definition
         NodeBuilder builder = root.builder();

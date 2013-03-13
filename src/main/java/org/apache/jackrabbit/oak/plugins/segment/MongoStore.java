@@ -20,7 +20,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.ImmutableMap.of;
 import static com.mongodb.ReadPreference.nearest;
 import static com.mongodb.ReadPreference.primary;
-import static org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState.EMPTY_NODE;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 import java.util.List;
 import java.util.Map;

@@ -22,7 +22,6 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -72,7 +71,7 @@ class SegmentNodeStoreBranch implements NodeStoreBranch {
         RecordId newBaseId = journal.getHead();
         if (!baseId.equals(newBaseId)) {
             NodeBuilder builder =
-                    new MemoryNodeBuilder(new SegmentNodeState(store, newBaseId));
+                    new SegmentNodeState(store, newBaseId).builder();
             getHead().compareAgainstBaseState(getBase(), new RebaseDiff(builder));
             this.baseId = newBaseId;
             this.rootId = writer.writeNode(builder.getNodeState()).getRecordId();

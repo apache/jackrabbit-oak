@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.segment.ListRecord.LEVEL_SIZE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -32,7 +33,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
-import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
@@ -263,7 +263,7 @@ public class RecordTest {
 
     @Test
     public void testEmptyNode() {
-        NodeState before = MemoryNodeState.EMPTY_NODE;
+        NodeState before = EMPTY_NODE;
         NodeState after = writer.writeNode(before);
         writer.flush();
         assertEquals(before, after);
@@ -271,7 +271,7 @@ public class RecordTest {
 
     @Test
     public void testSimpleNode() {
-        NodeState before = MemoryNodeState.EMPTY_NODE.builder()
+        NodeState before = EMPTY_NODE.builder()
                 .setProperty("foo", "abc")
                 .setProperty("bar", 123)
                 .setProperty("baz", Math.PI)
@@ -283,7 +283,7 @@ public class RecordTest {
 
     @Test
     public void testDeepNode() {
-        NodeBuilder root = MemoryNodeState.EMPTY_NODE.builder();
+        NodeBuilder root = EMPTY_NODE.builder();
         NodeBuilder builder = root;
         for (int i = 0; i < 1000; i++) {
             builder = builder.child("test");
@@ -296,7 +296,7 @@ public class RecordTest {
 
     @Test
     public void testManyMapDeletes() {
-        NodeBuilder builder = MemoryNodeState.EMPTY_NODE.builder();
+        NodeBuilder builder = EMPTY_NODE.builder();
         for (int i = 0; i < 1000; i++) {
             builder.child("test" + i);
         }
