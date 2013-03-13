@@ -27,7 +27,7 @@ import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.plugins.index.solr.OakSolrUtils;
 import org.apache.jackrabbit.oak.plugins.index.solr.SolrServerProvider;
-import org.apache.lucene.codecs.lucene40.Lucene40Codec;
+import org.apache.lucene.codecs.Codec;
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.embedded.EmbeddedSolrServer;
@@ -99,14 +99,22 @@ public class EmbeddedSolrServerProvider implements SolrServerProvider {
 
     @Override
     public SolrServer getSolrServer() throws Exception {
+        // hack needed to let lucene SPIs work in an OSGi deploy
+//        Thread thread = Thread.currentThread();
+//        ClassLoader loader = thread.getContextClassLoader();
+//        thread.setContextClassLoader(Lucene40Codec.class.getClassLoader());
+//        thread.setContextClassLoader(loader);
+
+        Codec.reloadCodecs(Thread.currentThread().getContextClassLoader());
+
         if (solrServer == null) {
             try {
                 solrServer = initializeWithNewHttpServer();
-            } catch (Exception e2) {
+            } catch (Exception e) {
                 log.warn("unable to spawn a new Solr server and initialize the default Solr HTTP client");
                 try {
                     solrServer = initializeWithEmbeddedSolrServer();
-                } catch (Exception e3) {
+                } catch (Exception e2) {
                     log.warn("unable to initialize embedded Solr client");
                     throw new IOException("unable to initialize an embedded Solr server", e2);
                 }
@@ -120,12 +128,6 @@ public class EmbeddedSolrServerProvider implements SolrServerProvider {
 
     private SolrServer initializeWithNewHttpServer() throws Exception {
         // try spawning a new Solr server using Jetty and connect to it via HTTP
-
-        // hack needed to let lucene SPIs work in an OSGi deploy
-        Thread thread = Thread.currentThread();
-        ClassLoader loader = thread.getContextClassLoader();
-        thread.setContextClassLoader(Lucene40Codec.class.getClassLoader());
-        thread.setContextClassLoader(loader);
 
         enableSolrCloud(solrHome, DEFAULT_CORE_NAME);
         JettySolrRunner jettySolrRunner = new JettySolrRunner(solrHome, CONTEXT, solrHttpPort, "solrconfig.xml", "schema.xml", true);

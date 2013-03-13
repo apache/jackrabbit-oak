@@ -24,7 +24,7 @@ import org.apache.jackrabbit.oak.plugins.index.solr.OakSolrConfigurationProvider
 /**
  * An {@link OakSolrConfigurationProvider} for the embedded Solr server
  */
-@Component
+@Component(immediate = true)
 @Service(OakSolrConfigurationProvider.class)
 public class EmbeddedSolrConfigurationProvider implements OakSolrConfigurationProvider {
 
