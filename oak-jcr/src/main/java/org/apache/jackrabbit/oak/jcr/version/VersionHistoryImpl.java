@@ -31,17 +31,16 @@ import javax.jcr.version.VersionException;
 import javax.jcr.version.VersionHistory;
 import javax.jcr.version.VersionIterator;
 
+import com.google.common.base.Function;
+import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.commons.iterator.FrozenNodeIteratorAdapter;
 import org.apache.jackrabbit.commons.iterator.VersionIteratorAdapter;
 import org.apache.jackrabbit.oak.jcr.NodeImpl;
-import org.apache.jackrabbit.oak.jcr.SessionContextProvider;
+import org.apache.jackrabbit.oak.jcr.SessionContext;
 import org.apache.jackrabbit.oak.jcr.delegate.VersionDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.VersionHistoryDelegate;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.util.TODO;
-
-import com.google.common.base.Function;
-import com.google.common.collect.Iterators;
 
 /**
  * <code>VersionHistoryImpl</code>...
@@ -49,8 +48,8 @@ import com.google.common.collect.Iterators;
 public class VersionHistoryImpl extends NodeImpl<VersionHistoryDelegate>
         implements VersionHistory {
 
-    public VersionHistoryImpl(VersionHistoryDelegate dlg) {
-        super(dlg);
+    public VersionHistoryImpl(VersionHistoryDelegate dlg, SessionContext sessionContext) {
+        super(dlg, sessionContext);
     }
 
     @Override
@@ -65,7 +64,7 @@ public class VersionHistoryImpl extends NodeImpl<VersionHistoryDelegate>
 
     @Override
     public Version getRootVersion() throws RepositoryException {
-        return new VersionImpl(dlg.getRootVersion());
+        return new VersionImpl(dlg.getRootVersion(), sessionContext);
     }
 
     @Override
@@ -79,7 +78,7 @@ public class VersionHistoryImpl extends NodeImpl<VersionHistoryDelegate>
                 dlg.getAllVersions(), new Function<VersionDelegate, Version>() {
             @Override
             public Version apply(VersionDelegate input) {
-                return new VersionImpl(input);
+                return new VersionImpl(input, sessionContext);
             }
         }));
     }
@@ -97,14 +96,14 @@ public class VersionHistoryImpl extends NodeImpl<VersionHistoryDelegate>
     @Override
     public Version getVersion(String versionName)
             throws VersionException, RepositoryException {
-        return new VersionImpl(dlg.getVersion(versionName));
+        return new VersionImpl(dlg.getVersion(versionName), sessionContext);
     }
 
     @Override
     public Version getVersionByLabel(String label)
             throws VersionException, RepositoryException {
-        String oakLabel = SessionContextProvider.getOakName(sessionDelegate, label);
-        return new VersionImpl(dlg.getVersionByLabel(oakLabel));
+        String oakLabel = sessionContext.getOakName(label);
+        return new VersionImpl(dlg.getVersionByLabel(oakLabel), sessionContext);
     }
 
     @Override
@@ -135,7 +134,7 @@ public class VersionHistoryImpl extends NodeImpl<VersionHistoryDelegate>
 
     @Override
     public String[] getVersionLabels() throws RepositoryException {
-        NamePathMapper mapper = SessionContextProvider.getNamePathMapper(sessionDelegate);
+        NamePathMapper mapper = sessionContext.getNamePathMapper();
         List<String> labels = new ArrayList<String>();
         for (String label : dlg.getVersionLabels()) {
             labels.add(mapper.getJcrName(label));
@@ -150,7 +149,7 @@ public class VersionHistoryImpl extends NodeImpl<VersionHistoryDelegate>
             throw new VersionException("Version is not contained in this " +
                     "VersionHistory");
         }
-        NamePathMapper mapper = SessionContextProvider.getNamePathMapper(sessionDelegate);
+        NamePathMapper mapper = sessionContext.getNamePathMapper();
         List<String> labels = new ArrayList<String>();
         for (String label : dlg.getVersionLabels(version.getIdentifier())) {
             labels.add(mapper.getJcrName(label));

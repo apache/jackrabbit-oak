@@ -26,6 +26,7 @@ import javax.jcr.ValueFactory;
 
 import org.apache.jackrabbit.commons.NamespaceHelper;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.jcr.SessionContext;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfiguration;
@@ -68,10 +69,11 @@ public class ImportHandler extends DefaultHandler {
     public ImportHandler(Node importTargetNode, Root root, Session session,
                          SessionDelegate dlg, UserConfiguration userConfig,
                          AccessControlConfiguration accessControlConfig,
-                         int uuidBehavior)
+                         int uuidBehavior, SessionContext sessionContext)
             throws RepositoryException {
         this.helper = new NamespaceHelper(session);
-        this.importer = new SessionImporter(importTargetNode, root, session, dlg, helper, userConfig, accessControlConfig, uuidBehavior);
+        this.importer = new SessionImporter(importTargetNode, root, session, dlg, helper, userConfig,
+                accessControlConfig, uuidBehavior, sessionContext);
         this.valueFactory = session.getValueFactory();
     }
 

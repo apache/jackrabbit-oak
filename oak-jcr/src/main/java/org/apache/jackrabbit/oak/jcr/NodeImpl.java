@@ -105,8 +105,8 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
      */
     private static final Logger log = LoggerFactory.getLogger(NodeImpl.class);
 
-    public NodeImpl(T dlg) {
-        super(dlg);
+    public NodeImpl(T dlg, SessionContext sessionContext) {
+        super(dlg, sessionContext);
     }
 
     //---------------------------------------------------------------< Item >---
@@ -140,7 +140,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                     if (parent == null) {
                         throw new AccessDeniedException();
                     }
-                    return new NodeImpl<NodeDelegate>(parent);
+                    return new NodeImpl<NodeDelegate>(parent, sessionContext);
                 }
             }
         });
@@ -226,7 +226,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     }
 
     private String getOakPath(String jcrPath) throws RepositoryException {
-        return SessionContextProvider.getOakPath(sessionDelegate, jcrPath);
+        return sessionContext.getOakPath(jcrPath);
     }
 
     @Override
@@ -238,7 +238,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         return perform(new SessionOperation<Node>() {
             @Override
             public Node perform() throws RepositoryException {
-                String oakPath = SessionContextProvider.getOakPathKeepIndexOrThrowNotFound(sessionDelegate, relPath);
+                String oakPath = sessionContext.getOakPathKeepIndexOrThrowNotFound(relPath);
                 String oakName = PathUtils.getName(oakPath);
                 String parentPath = getOakPath(PathUtils.getParentPath(oakPath));
 
@@ -270,7 +270,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                 if (ntName == null) {
                     DefinitionProvider dp = getDefinitionProvider();
                     String childName = getOakName(PathUtils.getName(relPath));
-                    NodeDefinition def = dp.getDefinition(new NodeImpl<NodeDelegate>(parent), childName);
+                    NodeDefinition def = dp.getDefinition(new NodeImpl<NodeDelegate>(parent, sessionContext), childName);
                     ntName = def.getDefaultPrimaryTypeName();
                     if (ntName == null) {
                         throw new ConstraintViolationException(
@@ -294,7 +294,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                     dlg.setOrderableChildren(true);
                 }
 
-                NodeImpl<?> childNode = new NodeImpl<NodeDelegate>(added);
+                NodeImpl<?> childNode = new NodeImpl<NodeDelegate>(added, sessionContext);
                 childNode.internalSetPrimaryType(ntName);
                 childNode.autoCreateItems();
                 return childNode;
@@ -304,7 +304,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
 
     @Nonnull
     private String getOakName(String name) throws RepositoryException {
-        return SessionContextProvider.getOakName(sessionDelegate, name);
+        return sessionContext.getOakName(name);
     }
 
     @Override
@@ -333,7 +333,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     }
 
     private String getOakPathOrThrowNotFound(String relPath) throws PathNotFoundException {
-        return SessionContextProvider.getOakPathOrThrowNotFound(sessionDelegate, relPath);
+        return sessionContext.getOakPathOrThrowNotFound(relPath);
     }
 
     /**
@@ -519,7 +519,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                 if (nd == null) {
                     throw new PathNotFoundException(relPath);
                 } else {
-                    return new NodeImpl<NodeDelegate>(nd);
+                    return new NodeImpl<NodeDelegate>(nd, sessionContext);
                 }
             }
         });
@@ -617,7 +617,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                 if (pd == null) {
                     throw new PathNotFoundException(relPath + " not found on " + getPath());
                 } else {
-                    return new PropertyImpl(pd);
+                    return new PropertyImpl(pd, sessionContext);
                 }
             }
         });
@@ -816,7 +816,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                             @Override
                             public Property apply(String oakPath) {
                                 PropertyDelegate pd = sessionDelegate.getProperty(oakPath);
-                                return pd == null ? null : new PropertyImpl(pd);
+                                return pd == null ? null : new PropertyImpl(pd, sessionContext);
                             }
                         }
                 );
@@ -945,7 +945,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
 
     @Nonnull
     private EffectiveNodeTypeProvider getEffectiveNodeTypeProvider() {
-        return SessionContextProvider.getEffectiveNodeTypeProvider(sessionDelegate);
+        return sessionContext.getEffectiveNodeTypeProvider();
     }
 
     @Override
@@ -1086,7 +1086,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
 
     @Nonnull
     private VersionManager getVersionManager() throws RepositoryException {
-        return SessionContextProvider.getVersionManager(sessionDelegate);
+        return sessionContext.getVersionManager();
     }
 
     /**
@@ -1393,24 +1393,24 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
 
     //------------------------------------------------------------< private >---
 
-    private static Iterator<Node> nodeIterator(Iterator<NodeDelegate> childNodes) {
+    private Iterator<Node> nodeIterator(Iterator<NodeDelegate> childNodes) {
         return Iterators.transform(
                 childNodes,
                 new Function<NodeDelegate, Node>() {
                     @Override
                     public Node apply(NodeDelegate nodeDelegate) {
-                        return new NodeImpl<NodeDelegate>(nodeDelegate);
+                        return new NodeImpl<NodeDelegate>(nodeDelegate, sessionContext);
                     }
                 });
     }
 
-    private static Iterator<Property> propertyIterator(Iterator<PropertyDelegate> properties) {
+    private Iterator<Property> propertyIterator(Iterator<PropertyDelegate> properties) {
         return Iterators.transform(
                 properties,
                 new Function<PropertyDelegate, Property>() {
                     @Override
                     public Property apply(PropertyDelegate propertyDelegate) {
-                        return new PropertyImpl(propertyDelegate);
+                        return new PropertyImpl(propertyDelegate, sessionContext);
                     }
                 });
     }
@@ -1521,7 +1521,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     }
 
     private void checkValidWorkspace(String workspaceName) throws RepositoryException {
-        Workspace workspace = SessionContextProvider.getWorkspace(sessionDelegate);
+        Workspace workspace = sessionContext.getWorkspace();
         for (String wn : workspace.getAccessibleWorkspaceNames()) {
             if (wn.equals(workspaceName)) {
                 return;
@@ -1571,7 +1571,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                     } else {
                         // Return a property instance which throws on access. See OAK-395
                         return new PropertyImpl(new PropertyDelegate(
-                                sessionDelegate, dlg.getLocation().getChild(oakName)));
+                                sessionDelegate, dlg.getLocation().getChild(oakName)), sessionContext);
                     }
                 } else {
                     Value targetValue;
@@ -1593,7 +1593,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                         targetValue = ValueHelper.convert(value, targetType, getValueFactory());
                     }
 
-                    return new PropertyImpl(dlg.setProperty(PropertyStates.createProperty(oakName, targetValue)));
+                    return new PropertyImpl(dlg.setProperty(PropertyStates.createProperty(oakName, targetValue)), sessionContext);
                 }
             }
         });
@@ -1618,7 +1618,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                         return property;
                     } else {
                         return new PropertyImpl(new PropertyDelegate(
-                                sessionDelegate, dlg.getLocation().getChild(oakName)));
+                                sessionDelegate, dlg.getLocation().getChild(oakName)), sessionContext);
                     }
                 } else {
                     Value[] targetValues;
@@ -1643,7 +1643,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                     Iterable<Value> nonNullValues = Iterables.filter(
                             Arrays.asList(targetValues),
                             Predicates.notNull());
-                    return new PropertyImpl(dlg.setProperty(PropertyStates.createProperty(oakName, nonNullValues)));
+                    return new PropertyImpl(dlg.setProperty(PropertyStates.createProperty(oakName, nonNullValues)), sessionContext);
                 }
             }
         });

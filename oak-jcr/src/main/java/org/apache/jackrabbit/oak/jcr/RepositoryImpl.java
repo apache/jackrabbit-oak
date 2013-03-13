@@ -125,18 +125,21 @@ public class RepositoryImpl implements Repository {
         final boolean autoRefresh = false; // TODO implement auto refresh configuration
         try {
             ContentSession contentSession = contentRepository.login(credentials, workspaceName);
+
+            final SessionContext[] context = new SessionContext[1];
             SessionDelegate sessionDelegate = new SessionDelegate(contentSession) {
                 @Override
                 protected void refresh() {
                     // Refresh is always needed if this is an auto refresh session or there
                     // are pending observation events
-                    if (autoRefresh || SessionContextProvider.hasPendingEvents(this)) {
+                    if (autoRefresh || context[0].hasPendingEvents()) {
                         refresh(true);
                     }
                 }
-
             };
-            return SessionContextProvider.newSession(sessionDelegate, this);
+
+            context[0] = SessionContext.create(sessionDelegate, this);
+            return context[0].getSession();
         } catch (LoginException e) {
             throw new javax.jcr.LoginException(e.getMessage(), e);
         }

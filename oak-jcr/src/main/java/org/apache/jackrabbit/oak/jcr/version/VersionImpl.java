@@ -31,7 +31,7 @@ import javax.jcr.version.VersionHistory;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.jcr.NodeImpl;
-import org.apache.jackrabbit.oak.jcr.SessionContextProvider;
+import org.apache.jackrabbit.oak.jcr.SessionContext;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.PropertyDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.VersionDelegate;
@@ -44,18 +44,18 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 class VersionImpl extends NodeImpl<VersionDelegate> implements Version {
 
-    public VersionImpl(VersionDelegate dlg) {
-        super(dlg);
+    public VersionImpl(VersionDelegate dlg, SessionContext sessionContext) {
+        super(dlg, sessionContext);
     }
 
     @Override
     public VersionHistory getContainingHistory() throws RepositoryException {
         return new VersionHistoryImpl(
-                getVersionManagerDelegate().getVersionHistory(dlg.getParent()));
+                getVersionManagerDelegate().getVersionHistory(dlg.getParent()), sessionContext);
     }
 
     private ValueFactoryImpl getValueFactory() {
-        return SessionContextProvider.getValueFactory(sessionDelegate);
+        return sessionContext.getValueFactory();
     }
 
     @Override
@@ -85,7 +85,7 @@ class VersionImpl extends NodeImpl<VersionDelegate> implements Version {
         VersionManagerDelegate vMgr = getVersionManagerDelegate();
         for (Value v : getValues(p)) {
             String id = v.getString();
-            predecessors.add(new VersionImpl(vMgr.getVersionByIdentifier(id)));
+            predecessors.add(new VersionImpl(vMgr.getVersionByIdentifier(id), sessionContext));
         }
         return predecessors.toArray(new Version[predecessors.size()]);
     }
@@ -97,7 +97,7 @@ class VersionImpl extends NodeImpl<VersionDelegate> implements Version {
         VersionManagerDelegate vMgr = getVersionManagerDelegate();
         for (Value v : getValues(p)) {
             String id = v.getString();
-            successors.add(new VersionImpl(vMgr.getVersionByIdentifier(id)));
+            successors.add(new VersionImpl(vMgr.getVersionByIdentifier(id), sessionContext));
         }
         return successors.toArray(new Version[successors.size()]);
     }
@@ -105,7 +105,7 @@ class VersionImpl extends NodeImpl<VersionDelegate> implements Version {
     @Override
     public Node getFrozenNode() throws RepositoryException {
         return new NodeImpl<NodeDelegate>(
-                dlg.getChild(VersionConstants.JCR_FROZENNODE));
+                dlg.getChild(VersionConstants.JCR_FROZENNODE), sessionContext);
     }
 
     //------------------------------< internal >--------------------------------

@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.jcr.query;
 
 import java.util.HashMap;
 import java.util.List;
+
 import javax.jcr.ItemNotFoundException;
 import javax.jcr.Node;
 import javax.jcr.PathNotFoundException;
@@ -33,9 +34,9 @@ import javax.jcr.version.VersionException;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.jcr.SessionContextProvider;
-import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.NodeImpl;
+import org.apache.jackrabbit.oak.jcr.SessionContext;
+import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 
 /**
@@ -43,6 +44,7 @@ import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
  */
 public class QueryImpl implements Query {
 
+    private final SessionContext sessionContext;
     private final QueryManagerImpl manager;
     private final HashMap<String, Value> bindVariableMap = new HashMap<String, Value>();
     private final String language;
@@ -52,7 +54,8 @@ public class QueryImpl implements Query {
     private boolean parsed;
     private String storedQueryPath;
 
-    QueryImpl(QueryManagerImpl manager, String statement, String language) {
+    QueryImpl(QueryManagerImpl manager, String statement, String language, SessionContext sessionContext) {
+        this.sessionContext = sessionContext;
         this.manager = manager;
         this.statement = statement;
         this.language = language;
@@ -133,19 +136,19 @@ public class QueryImpl implements Query {
     public Node storeAsNode(String absPath) throws RepositoryException {
         manager.ensureIsAlive();
         SessionDelegate sessionDelegate = manager.getSessionDelegate();
-        String oakPath = SessionContextProvider.getOakPath(sessionDelegate, absPath);
+        String oakPath = sessionContext.getOakPath(absPath);
         String parent = PathUtils.getParentPath(oakPath);
         NodeDelegate parentDelegate = sessionDelegate.getNode(parent);
         if (parentDelegate == null) {
             throw new PathNotFoundException("The specified path does not exist: " + parent);
         }
-        Node parentNode = new NodeImpl<NodeDelegate>(parentDelegate);
+        Node parentNode = new NodeImpl<NodeDelegate>(parentDelegate, sessionContext);
         if (!parentNode.isCheckedOut()) {
             throw new VersionException("Cannot store query. Node at " +
                     absPath + " is checked in.");
         }
         String nodeName = PathUtils.getName(oakPath);
-        ValueFactory vf = SessionContextProvider.getValueFactory(sessionDelegate);
+        ValueFactory vf = sessionContext.getValueFactory();
         Node n = parentNode.addNode(nodeName, JcrConstants.NT_QUERY);
         n.setProperty(JcrConstants.JCR_STATEMENT, vf.createValue(statement));
         n.setProperty(JcrConstants.JCR_LANGUAGE, vf.createValue(language));

@@ -47,7 +47,7 @@ import javax.jcr.query.qom.Source;
 import javax.jcr.query.qom.StaticOperand;
 import javax.jcr.query.qom.UpperCase;
 
-import org.apache.jackrabbit.oak.jcr.SessionContextProvider;
+import org.apache.jackrabbit.oak.jcr.SessionContext;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.jcr.query.QueryManagerImpl;
 
@@ -58,10 +58,12 @@ public class QueryObjectModelFactoryImpl implements QueryObjectModelFactory {
 
     private final QueryManagerImpl queryManager;
     private final SessionDelegate sessionDelegate;
+    private final SessionContext sessionContext;
 
-    public QueryObjectModelFactoryImpl(QueryManagerImpl queryManager, SessionDelegate sessionDelegate) {
+    public QueryObjectModelFactoryImpl(QueryManagerImpl queryManager, SessionDelegate sessionDelegate, SessionContext sessionContext) {
         this.queryManager = queryManager;
         this.sessionDelegate = sessionDelegate;
+        this.sessionContext = sessionContext;
     }
 
     @Override
@@ -221,7 +223,7 @@ public class QueryObjectModelFactoryImpl implements QueryObjectModelFactory {
     public QueryObjectModel createQuery(Source source, Constraint constraint, 
             Ordering[] orderings, Column[] columns) {
         QueryObjectModelImpl qom = new QueryObjectModelImpl(queryManager,
-                SessionContextProvider.getValueFactory(sessionDelegate),
+                sessionContext.getValueFactory(),
                 source, constraint, orderings, columns);
         qom.bindVariables();
         return qom;
@@ -231,7 +233,7 @@ public class QueryObjectModelFactoryImpl implements QueryObjectModelFactory {
         if (jcrName == null) {
             return null;
         }
-        return SessionContextProvider.getOakName(queryManager.getSessionDelegate(), jcrName);
+        return sessionContext.getOakName(jcrName);
     }
 
 }
