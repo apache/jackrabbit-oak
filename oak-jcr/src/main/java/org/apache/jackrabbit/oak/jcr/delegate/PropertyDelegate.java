@@ -18,14 +18,11 @@ package org.apache.jackrabbit.oak.jcr.delegate;
 
 import javax.annotation.Nonnull;
 import javax.jcr.InvalidItemStateException;
-import javax.jcr.RepositoryException;
-import javax.jcr.Value;
 import javax.jcr.ValueFormatException;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 
 /**
  * {@code PropertyDelegate} serve as internal representations of {@code Property}s.
@@ -53,7 +50,7 @@ public class PropertyDelegate extends ItemDelegate {
     }
 
     @Nonnull
-    public PropertyState getSingle() throws InvalidItemStateException, ValueFormatException {
+    public PropertyState getSingleState() throws InvalidItemStateException, ValueFormatException {
         PropertyState p = getPropertyState();
         if (p.isArray()) {
             throw new ValueFormatException(p + " is multi-valued.");
@@ -62,15 +59,19 @@ public class PropertyDelegate extends ItemDelegate {
     }
 
     public boolean getBoolean() throws ValueFormatException, InvalidItemStateException {
-        return getSingle().getValue(Type.BOOLEAN);
+        return getSingleState().getValue(Type.BOOLEAN);
     }
 
     public String getString() throws ValueFormatException, InvalidItemStateException {
-        return getSingle().getValue(Type.STRING);
+        return getSingleState().getValue(Type.STRING);
+    }
+
+    public String getDate() throws ValueFormatException, InvalidItemStateException {
+        return getSingleState().getValue(Type.DATE);
     }
 
     @Nonnull
-    public PropertyState getMulti() throws InvalidItemStateException, ValueFormatException {
+    public PropertyState getMultiState() throws InvalidItemStateException, ValueFormatException {
         PropertyState p = getPropertyState();
         if (!p.isArray()) {
             throw new ValueFormatException(p + " is single-valued.");
@@ -78,24 +79,8 @@ public class PropertyDelegate extends ItemDelegate {
         return p;
     }
 
-    /**
-     * Set the value of the property
-     *
-     * @param value
-     */
-    public void setValue(Value value) throws RepositoryException {
-        if (!getLocation().set(PropertyStates.createProperty(getName(), value))) {
-            throw new InvalidItemStateException();
-        }
-    }
-
-    /**
-     * Set the values of the property
-     *
-     * @param values
-     */
-    public void setValues(Iterable<Value> values) throws RepositoryException {
-        if (!getLocation().set(PropertyStates.createProperty(getName(), values))) {
+    public void setState(PropertyState propertyState) throws InvalidItemStateException {
+        if (!getLocation().set(propertyState)) {
             throw new InvalidItemStateException();
         }
     }
