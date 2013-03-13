@@ -126,7 +126,7 @@ public class RepositoryImpl implements Repository {
         try {
             ContentSession contentSession = contentRepository.login(credentials, workspaceName);
 
-            final SessionContext[] context = new SessionContext[1];
+            final SessionContext[] context = new SessionContext[1];  // FIXME hack[]
             SessionDelegate sessionDelegate = new SessionDelegate(contentSession) {
                 @Override
                 protected void refresh() {

@@ -230,7 +230,7 @@ public class NodeDelegate extends ItemDelegate {
 
     //------------------------------------------------------------< internal >---
 
-    @Nonnull
+    @Nonnull // FIXME this should be package private
     public Tree getTree() throws InvalidItemStateException {
         Tree tree = getLocation().getTree();
         if (tree == null) {
