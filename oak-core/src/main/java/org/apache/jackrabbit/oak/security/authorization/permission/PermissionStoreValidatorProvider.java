@@ -18,8 +18,7 @@ package org.apache.jackrabbit.oak.security.authorization.permission;
 
 import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.spi.commit.FailingValidator;
 import org.apache.jackrabbit.oak.spi.commit.SubtreeValidator;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
@@ -33,41 +32,9 @@ public class PermissionStoreValidatorProvider extends ValidatorProvider implemen
     @Nonnull
     @Override
     public Validator getRootValidator(NodeState before, NodeState after) {
-        return new SubtreeValidator(new PermissionStoreValidator(), PERMISSIONS_STORE_PATH);
+        FailingValidator validator =
+                new FailingValidator("Attempt to modify permission store.");
+        return new SubtreeValidator(validator, PERMISSIONS_STORE_PATH);
     }
 
-    private final static class PermissionStoreValidator implements Validator {
-
-        private static final String errorMsg = "Attempt to modify permission store.";
-
-        @Override
-        public void propertyAdded(PropertyState after) throws CommitFailedException {
-            throw new CommitFailedException(errorMsg);
-        }
-
-        @Override
-        public void propertyChanged(PropertyState before, PropertyState after) throws CommitFailedException {
-            throw new CommitFailedException(errorMsg);
-        }
-
-        @Override
-        public void propertyDeleted(PropertyState before) throws CommitFailedException {
-            throw new CommitFailedException(errorMsg);
-        }
-
-        @Override
-        public Validator childNodeAdded(String name, NodeState after) throws CommitFailedException {
-            throw new CommitFailedException(errorMsg);
-        }
-
-        @Override
-        public Validator childNodeChanged(String name, NodeState before, NodeState after) throws CommitFailedException {
-            throw new CommitFailedException(errorMsg);
-        }
-
-        @Override
-        public Validator childNodeDeleted(String name, NodeState before) throws CommitFailedException {
-            throw new CommitFailedException(errorMsg);
-        }
-    }
 }

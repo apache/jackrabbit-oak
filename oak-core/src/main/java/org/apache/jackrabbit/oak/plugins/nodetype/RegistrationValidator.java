@@ -23,6 +23,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.core.ReadOnlyTree;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceConstants;
+import org.apache.jackrabbit.oak.spi.commit.DefaultValidator;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.util.NodeUtil;
@@ -40,7 +41,7 @@ import org.apache.jackrabbit.util.Text;
  *     <li>prevent un-registration of built-in node types.</li>
  * </ul>
  */
-class RegistrationValidator implements Validator {
+class RegistrationValidator extends DefaultValidator {
 
     private final ReadOnlyNodeTypeManager beforeMgr;
     private final ReadOnlyNodeTypeManager afterMgr;

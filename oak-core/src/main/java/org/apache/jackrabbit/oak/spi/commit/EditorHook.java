@@ -77,8 +77,7 @@ public class EditorHook implements CommitHook {
         checkNotNull(after);
         if (editor != null) {
             EditorDiff diff = new EditorDiff(editor);
-            after.compareAgainstBaseState(before, diff);
-            return diff.exception;
+            return diff.process(before, after);
         } else {
             return null;
         }
@@ -97,6 +96,28 @@ public class EditorHook implements CommitHook {
 
         private EditorDiff(Editor editor) {
             this.editor = editor;
+        }
+
+        public CommitFailedException process(
+                NodeState before, NodeState after) {
+            try {
+                editor.enter(before, after);
+            } catch (CommitFailedException e) {
+                return e;
+            }
+
+            after.compareAgainstBaseState(before, this);
+            if (exception != null) {
+                return exception;
+            }
+
+            try {
+                editor.leave(before, after);
+            } catch (CommitFailedException e) {
+                return e;
+            }
+
+            return null;
         }
 
         //-------------------------------------------------< NodeStateDiff >--
@@ -139,7 +160,7 @@ public class EditorHook implements CommitHook {
             if (exception == null) {
                 try {
                     Editor e = editor.childNodeAdded(name, after);
-                    exception = process(e, EMPTY_NODE, after);
+                    exception = EditorHook.process(e, EMPTY_NODE, after);
                 } catch (CommitFailedException e) {
                     exception = e;
                 }
@@ -152,7 +173,7 @@ public class EditorHook implements CommitHook {
             if (exception == null) {
                 try {
                     Editor e = editor.childNodeChanged(name, before, after);
-                    exception = process(e, before, after);
+                    exception = EditorHook.process(e, before, after);
                 } catch (CommitFailedException e) {
                     exception = e;
                 }
@@ -164,7 +185,7 @@ public class EditorHook implements CommitHook {
             if (exception == null) {
                 try {
                     Editor e = editor.childNodeDeleted(name, before);
-                    exception = process(e, before, EMPTY_NODE);
+                    exception = EditorHook.process(e, before, EMPTY_NODE);
                 } catch (CommitFailedException e) {
                     exception = e;
                 }

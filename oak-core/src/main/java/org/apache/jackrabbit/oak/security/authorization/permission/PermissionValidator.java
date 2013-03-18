@@ -27,6 +27,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.core.TreeImpl;
 import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
+import org.apache.jackrabbit.oak.spi.commit.DefaultValidator;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.security.authorization.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.Permissions;
@@ -40,7 +41,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * Validator implementation that checks for sufficient permission for all
  * write operations executed by a given content session.
  */
-class PermissionValidator implements Validator {
+class PermissionValidator extends DefaultValidator {
 
     /* TODO
      * - Renaming nodes or Move with same parent are reflected as remove+add -> needs special handling

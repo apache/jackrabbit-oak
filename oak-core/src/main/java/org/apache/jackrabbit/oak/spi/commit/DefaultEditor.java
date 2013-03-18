@@ -31,6 +31,18 @@ public class DefaultEditor implements Editor {
     public static final Editor INSTANCE = new DefaultEditor();
 
     @Override
+    public void enter(NodeState before, NodeState after)
+            throws CommitFailedException {
+        // do nothing
+    }
+
+    @Override
+    public void leave(NodeState before, NodeState after)
+            throws CommitFailedException {
+        // do nothing
+    }
+
+    @Override
     public void propertyAdded(PropertyState after)
             throws CommitFailedException {
         // do nothing
