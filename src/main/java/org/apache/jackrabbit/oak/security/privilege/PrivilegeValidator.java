@@ -29,6 +29,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.core.ImmutableRoot;
 import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceConstants;
+import org.apache.jackrabbit.oak.spi.commit.DefaultValidator;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeDefinition;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -39,7 +40,7 @@ import org.apache.jackrabbit.util.Text;
  * Validator implementation that is responsible for validating any modifications
  * made to privileges stored in the repository.
  */
-class PrivilegeValidator implements PrivilegeConstants, Validator {
+class PrivilegeValidator extends DefaultValidator implements PrivilegeConstants {
 
     private final Root rootBefore;
     private final Root rootAfter;

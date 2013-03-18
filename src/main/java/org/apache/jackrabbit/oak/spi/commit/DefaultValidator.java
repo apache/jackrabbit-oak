@@ -31,6 +31,18 @@ public class DefaultValidator implements Validator {
     public static final Validator INSTANCE = new DefaultValidator();
 
     @Override
+    public void enter(NodeState before, NodeState after)
+            throws CommitFailedException {
+        // do nothing
+    }
+
+    @Override
+    public void leave(NodeState before, NodeState after)
+            throws CommitFailedException {
+        // do nothing
+    }
+
+    @Override
     public void propertyAdded(PropertyState after)
             throws CommitFailedException {
         // do nothing

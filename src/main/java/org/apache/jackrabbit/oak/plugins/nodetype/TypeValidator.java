@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.core.ReadOnlyTree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.spi.commit.DefaultValidator;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
@@ -46,7 +47,7 @@ import static org.apache.jackrabbit.oak.api.Type.STRINGS;
  *       cannot and should not check whether the value of the protected jcr:uuid
  *       is unique.
  */
-class TypeValidator implements Validator {
+class TypeValidator extends DefaultValidator {
     private static final Logger log = LoggerFactory.getLogger(TypeValidator.class);
 
     private final ReadOnlyNodeTypeManager ntm;

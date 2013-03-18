@@ -31,7 +31,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  *
  * @since Oak 0.7
  */
-public class VisibleEditor implements Editor {
+public class VisibleEditor extends DefaultEditor {
 
     @CheckForNull
     public static Editor wrap(@CheckForNull Editor editor) {

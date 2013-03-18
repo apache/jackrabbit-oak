@@ -60,6 +60,23 @@ public class CompositeEditor implements Editor {
     }
 
     @Override
+    public void enter(NodeState before, NodeState after)
+            throws CommitFailedException {
+        for (Editor editor : editors) {
+            editor.enter(before, after);
+        }
+    }
+
+    @Override
+    public void leave(NodeState before, NodeState after)
+            throws CommitFailedException {
+        for (Editor editor : editors) {
+            editor.leave(before, after);
+        }
+    }
+
+
+    @Override
     public void propertyAdded(PropertyState after)
             throws CommitFailedException {
         for (Editor editor : editors) {
