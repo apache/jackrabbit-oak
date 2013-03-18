@@ -29,6 +29,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.core.TreeImpl;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
+import org.apache.jackrabbit.oak.spi.commit.DefaultValidator;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -40,7 +41,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 /**
  * AccessControlValidator... TODO
  */
-class AccessControlValidator implements Validator, AccessControlConstants {
+class AccessControlValidator extends DefaultValidator implements AccessControlConstants {
 
     private final Tree parentBefore;
     private final Tree parentAfter;

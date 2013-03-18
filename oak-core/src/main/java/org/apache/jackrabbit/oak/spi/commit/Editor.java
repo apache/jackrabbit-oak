@@ -36,6 +36,10 @@ import javax.annotation.CheckForNull;
  */
 public interface Editor {
 
+    void enter(NodeState before, NodeState after) throws CommitFailedException;
+
+    void leave(NodeState before, NodeState after) throws CommitFailedException;
+
     /**
      * Processes an added property.
      *

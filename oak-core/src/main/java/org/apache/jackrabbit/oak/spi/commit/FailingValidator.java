@@ -39,6 +39,18 @@ public class FailingValidator implements Validator {
     }
 
     @Override
+    public void enter(NodeState before, NodeState after)
+            throws CommitFailedException {
+        throw new CommitFailedException(message);
+    }
+
+    @Override
+    public void leave(NodeState before, NodeState after)
+            throws CommitFailedException {
+        throw new CommitFailedException(message);
+    }
+
+    @Override
     public void propertyAdded(PropertyState after)
             throws CommitFailedException {
         throw new CommitFailedException(message);

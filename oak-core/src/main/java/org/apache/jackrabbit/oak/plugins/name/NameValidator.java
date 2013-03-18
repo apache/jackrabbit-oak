@@ -20,6 +20,7 @@ import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.spi.commit.DefaultValidator;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -29,7 +30,7 @@ import static org.apache.jackrabbit.oak.api.Type.NAMES;
 /**
  * TODO document
  */
-class NameValidator implements Validator {
+class NameValidator extends DefaultValidator {
 
     private final Set<String> prefixes;
 
