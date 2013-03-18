@@ -33,7 +33,7 @@ import org.apache.jackrabbit.oak.plugins.index.p2.Property2IndexProvider;
 import org.apache.jackrabbit.oak.plugins.name.NameValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.DefaultTypeEditor;
-import org.apache.jackrabbit.oak.plugins.nodetype.RegistrationValidatorProvider;
+import org.apache.jackrabbit.oak.plugins.nodetype.RegistrationEditorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypeValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.plugins.version.VersionHook;
@@ -71,7 +71,7 @@ public class Jcr {
         with(new NameValidatorProvider());
         with(new NamespaceValidatorProvider());
         with(new TypeValidatorProvider());
-        with(new RegistrationValidatorProvider());
+        with(new RegistrationEditorProvider());
         with(new ConflictValidatorProvider());
 
         with(new Property2IndexHookProvider());

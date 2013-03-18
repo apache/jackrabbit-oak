@@ -35,7 +35,7 @@ import org.apache.jackrabbit.oak.plugins.index.p2.Property2IndexHookProvider;
 import org.apache.jackrabbit.oak.plugins.name.NameValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.DefaultTypeEditor;
-import org.apache.jackrabbit.oak.plugins.nodetype.RegistrationValidatorProvider;
+import org.apache.jackrabbit.oak.plugins.nodetype.RegistrationEditorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypeValidatorProvider;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
@@ -168,7 +168,7 @@ public class Main {
                 .with(new NameValidatorProvider())
                 .with(new NamespaceValidatorProvider())
                 .with(new TypeValidatorProvider())
-                .with(new RegistrationValidatorProvider())
+                .with(new RegistrationEditorProvider())
                 .with(new DefaultTypeEditor())
                 .with(new Property2IndexHookProvider())
                 .with(securityProvider)
