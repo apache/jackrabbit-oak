@@ -425,6 +425,24 @@
   + jcr:propertyDefinition (nt:propertyDefinition) = nt:propertyDefinition protected sns
   + jcr:childNodeDefinition (nt:childNodeDefinition) = nt:childNodeDefinition protected sns
 
+[oak:nodeType] > nt:nodeType
+  + oak:namedPropertyDefinitions (oak:namedPropertyDefinitions) = oak:namedPropertyDefinitions protected mandatory
+  + oak:residualPropertyDefinitions (oak:propertyDefinitions) = oak:propertyDefinitions protected mandatory
+  + oak:namedChildNodeDefinitions (oak:namedChildNodeDefinitions) = oak:namedChildNodeDefinitions protected mandatory
+  + oak:residualChildNodeDefinitions (oak:childNodeDefinitions) = oak:childNodeDefinitions protected mandatory
+
+[oak:namedPropertyDefinitions]
+  + * (oak:propertyDefinitions) = oak:propertyDefinitions protected
+
+[oak:propertyDefinitions]
+  + * (nt:propertyDefinition) = nt:propertyDefinition protected
+
+[oak:namedChildNodeDefinitions]
+  + * (oak:childNodeDefinitions) = oak:childNodeDefinitions protected
+
+[oak:childNodeDefinitions]
+  + * (nt:childNodeDefinition) = nt:childNodeDefinition protected
+
 /**
  * This node type used to store a property definition within a node type definition,
  * which itself is stored as an nt:nodeType node.
