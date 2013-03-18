@@ -15,7 +15,7 @@
    limitations under the License.
   -->
 
-MongoMK^2 design proposal
+SegmentMK design overview
 =========================
 
 Segments
@@ -25,14 +25,16 @@ The content tree and all its revisions are stored in a collection of
 immutable *segments*. Each segment is identified by a UUID and typically
 contains a continuous subset of the content tree. Some segments might
 also be used to store commonly occurring property values or other shared
-data. Segments range from a few kilobytes to a few megabytes in size
+data. Segments range from a few dozens of bytes to up to 256kB in size
 and are stored as documents in a MongoDB collection.
 
 Since segments are immutable, it's easy for a client to keep a local
 in-memory cache of frequently accessed segments. Since segments also
 leverage locality of reference, i.e. nearby nodes are often stored
 in the same segment, it's common for things like small child nodes
-to already exist in the cache by the time they get accessed.
+to already exist in the cache by the time they get accessed. The intention
+is to avoid as many network or database roundtrips as possible by using
+local cache memory as efficiently as possible.
 
 Content within a segment can contain references to content within other
 segments. Each segment keeps a list of the UUIDs of all other segments
@@ -84,25 +86,28 @@ blocks, lists, maps, values, templates and nodes. These record types
 and their internal structures are described in subsections below.
 
 Each record is uniquely addressable by its location within the segment
-and the UUID of that segment. Assuming that the size of a segment is
-limited to 16MB (maximum size of a MongoDB document) and that a single
-segment can contain references to up to 255 other segments, then a
-reference to any record in any segment can be stored in just 4 bytes
-(1 byte to identify the segment, 3 bytes for the record offset).
+and the UUID of that segment. A single segment can contain up to 256kB
+of data and and references to up to 256 segments (including itself).
+Since all records are aligned at four-byte boundaries, 16 bits are needed
+to address all possible record locations within a segment. Thus only three
+bytes are needed to store a reference to any record in any segment
+(1 byte to identify the segment, 2 bytes for the record offset).
 
 Block records
 -------------
 
-Blocks are binary records of up to N kB (exact size TBD, N ~ 4).
-They're used as building blocks of large binary (or string) values
-and stored as-is with no extra metadata or structure. Blocks are
-the only record type that can't contain references to other records.
+Blocks are binary records of up to 4kB. They're used as building blocks
+of large binary (or string) values and stored as-is with no extra metadata
+or structure. Blocks are the only record type that can't contain references
+to other records. Block records are typically stored in *bulk segments*
+that consist only of block records and are thus easily identifiable as
+containing zero references to other segments.
 
 List records
 ------------
 
 List records are used as components of more complex record types.
-Lists are used for storing arrays of values for multivalued properties
+Lists are used for storing arrays of values for multi-valued properties
 and sequences of blocks for large binary values.
 
 The list of references is split into pieces of up to 2^B references
@@ -113,9 +118,9 @@ until the resulting list has less than 2^B entries. That top-level
 list is stored as a record prefixed with the total length of the list.
 
 The result is a hierarchically stored immutable list where each element
-can be accessed in log_B(N) time and the size overhead of updating or
+can be accessed in O(log N) time and the size overhead of updating or
 appending list elements (and thus creating a new immutable list) is
-also log_B(N).
+also O(log N).
 
 Map records
 -----------
@@ -134,8 +139,8 @@ When all packs are stored, the list of top-level pack references gets
 stored along with the total number of entries in the map.
 
 The result is a hierarchically stored immutable map where each element
-can be accessed in log_B(N) time and the size overhead of updating or
-inserting list elements is also log_B(N).
+can be accessed in O(log N) time and the size overhead of updating or
+inserting list elements is also O(log N).
 
 Value records
 -------------
