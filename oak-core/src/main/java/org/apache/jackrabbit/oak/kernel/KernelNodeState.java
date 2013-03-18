@@ -315,6 +315,7 @@ public final class KernelNodeState extends AbstractNodeState {
             return; // no differences
         } else if (base == EMPTY_NODE) {
             EmptyNodeState.compareAgainstEmptyState(this, diff); // special case
+            return;
         } else if (base instanceof KernelNodeState) {
             KernelNodeState kbase = (KernelNodeState) base;
             if (kernel.equals(kbase.kernel)) {
