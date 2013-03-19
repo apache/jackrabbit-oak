@@ -41,7 +41,7 @@ public interface PermissionConstants {
     /**
      * @since OAK 1.0
      */
-    String PERMISSIONS_STORE_PATH = JcrConstants.JCR_SYSTEM + '/' + REP_PERMISSION_STORE;
+    String PERMISSIONS_STORE_PATH = '/' + JcrConstants.JCR_SYSTEM + '/' + REP_PERMISSION_STORE;
 
     String REP_ACCESS_CONTROLLED_PATH = "rep:accessControlledPath";
     String REP_PRIVILEGE_BITS = "rep:privileges";

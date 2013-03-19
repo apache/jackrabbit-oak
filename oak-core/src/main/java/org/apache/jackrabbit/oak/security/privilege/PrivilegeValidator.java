@@ -26,7 +26,6 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.core.ImmutableRoot;
 import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceConstants;
 import org.apache.jackrabbit.oak.spi.commit.DefaultValidator;
@@ -46,9 +45,9 @@ class PrivilegeValidator extends DefaultValidator implements PrivilegeConstants 
     private final Root rootAfter;
     private final PrivilegeBitsProvider bitsProvider;
 
-    PrivilegeValidator(NodeState before, NodeState after) {
-        rootBefore = new ImmutableRoot(before);
-        rootAfter = new ImmutableRoot(after);
+    PrivilegeValidator(Root before, Root after) {
+        rootBefore = before;
+        rootAfter = after;
         bitsProvider = new PrivilegeBitsProvider(rootBefore);
     }
 

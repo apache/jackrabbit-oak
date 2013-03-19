@@ -130,13 +130,13 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
 
     @Override
     public boolean hasPrivileges(@Nullable String absPath, @Nonnull Privilege[] privileges) throws RepositoryException {
-        return hasPrivileges(absPath, privileges, getPermissionProvider());
+        return hasPrivileges(absPath, privileges, permissionProvider);
     }
 
     @Nonnull
     @Override
     public Privilege[] getPrivileges(@Nullable String absPath) throws RepositoryException {
-        return getPrivileges(absPath, getPermissionProvider());
+        return getPrivileges(absPath, permissionProvider);
     }
 
     @Nonnull
