@@ -91,7 +91,7 @@ class AccessControlImporter implements ProtectedNodeImporter, AccessControlConst
             this.namePathMapper = namePathMapper;
             AccessControlConfiguration config = securityProvider.getAccessControlConfiguration();
             if (isWorkspaceImport) {
-                acMgr = config.getAccessControlManager(root, namePathMapper);
+                acMgr = config.getAccessControlManager(root, namePathMapper, null);
             } else {
                 acMgr = session.getAccessControlManager();
             }

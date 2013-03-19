@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.spi.security.authorization;
 import java.security.Principal;
 import java.util.Set;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.jcr.security.AccessControlManager;
 
 import org.apache.jackrabbit.oak.api.Root;
@@ -32,11 +33,14 @@ import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restrict
 public interface AccessControlConfiguration extends SecurityConfiguration {
 
     @Nonnull
-    AccessControlManager getAccessControlManager(Root root, NamePathMapper namePathMapper);
+    AccessControlManager getAccessControlManager(@Nonnull Root root,
+                                                 @Nonnull NamePathMapper namePathMapper,
+                                                 @Nullable PermissionProvider permissionProvider);
 
     @Nonnull
-    RestrictionProvider getRestrictionProvider(NamePathMapper namePathMapper);
+    RestrictionProvider getRestrictionProvider(@Nonnull NamePathMapper namePathMapper);
 
     @Nonnull
-    PermissionProvider getPermissionProvider(Root root, Set<Principal> principals);
+    PermissionProvider getPermissionProvider(@Nonnull Root root,
+                                             @Nonnull Set<Principal> principals);
 }

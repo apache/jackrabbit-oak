@@ -90,8 +90,8 @@ public class AccessControlConfigurationImpl extends SecurityConfiguration.Defaul
 
     //-----------------------------------------< AccessControlConfiguration >---
     @Override
-    public AccessControlManager getAccessControlManager(Root root, NamePathMapper namePathMapper) {
-        return new AccessControlManagerImpl(root, namePathMapper, securityProvider);
+    public AccessControlManager getAccessControlManager(Root root, NamePathMapper namePathMapper, PermissionProvider permissionProvider) {
+        return new AccessControlManagerImpl(root, namePathMapper, securityProvider, permissionProvider);
     }
 
     @Nonnull
