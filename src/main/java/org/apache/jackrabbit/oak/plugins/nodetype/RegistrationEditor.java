@@ -18,14 +18,17 @@ package org.apache.jackrabbit.oak.plugins.nodetype;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.JcrConstants.JCR_CHILDNODEDEFINITION;
+import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_MULTIPLE;
 import static org.apache.jackrabbit.JcrConstants.JCR_NAME;
 import static org.apache.jackrabbit.JcrConstants.JCR_NODETYPENAME;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_PROPERTYDEFINITION;
+import static org.apache.jackrabbit.JcrConstants.JCR_REQUIREDPRIMARYTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_REQUIREDTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_SUPERTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
+import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
@@ -126,12 +129,20 @@ class RegistrationEditor extends DefaultEditor {
         PropertyState name = definition.getProperty(JCR_NAME);
         NodeBuilder definitions;
         if (name != null) {
+            String escapedName = name.getValue(NAME);
+            if (JCR_PRIMARYTYPE.equals(escapedName)) {
+                escapedName = "oak:primaryType";
+            } else if (JCR_MIXINTYPES.equals(escapedName)) {
+                escapedName = "oak:mixinTypes";
+            } else if (JCR_UUID.equals(escapedName)) {
+                escapedName = "oak:uuid";
+            }
             definitions = type.child("oak:namedPropertyDefinitions");
             definitions.setProperty(
                     JCR_PRIMARYTYPE, "oak:namedPropertyDefinitions", NAME);
-            definitions = definitions.child(name.getValue(NAME));
+            definitions = definitions.child(escapedName);
         } else {
-            definitions = type.child("oak:residualChildNodeDefinitions");
+            definitions = type.child("oak:residualPropertyDefinitions");
         }
         definitions.setProperty(
                 JCR_PRIMARYTYPE, "oak:propertyDefinitions", NAME);
@@ -149,7 +160,11 @@ class RegistrationEditor extends DefaultEditor {
         // - jcr:multiple (BOOLEAN) protected mandatory
         PropertyState multiple = definition.getProperty(JCR_MULTIPLE);
         if (multiple != null && multiple.getValue(Type.BOOLEAN)) {
-            key = key + "-ARRAY";
+            if ("BINARY".equals(key)) {
+                key = "BINARIES";
+            } else {
+                key = key + "S";
+            }
         }
 
         definitions.setNode(key, definition);
@@ -162,9 +177,9 @@ class RegistrationEditor extends DefaultEditor {
         PropertyState name = definition.getProperty(JCR_NAME);
         NodeBuilder definitions;
         if (name != null) {
-            definitions = type.child("oak:namedPropertyDefinitions");
+            definitions = type.child("oak:namedChildNodeDefinitions");
             definitions.setProperty(
-                    JCR_PRIMARYTYPE, "oak:namedPropertyDefinitions", NAME);
+                    JCR_PRIMARYTYPE, "oak:namedChildNodeDefinitions", NAME);
             definitions = definitions.child(name.getValue(NAME));
         } else {
             definitions = type.child("oak:residualChildNodeDefinitions");
@@ -174,7 +189,8 @@ class RegistrationEditor extends DefaultEditor {
 
         // - jcr:requiredPrimaryTypes (NAME)
         //   = 'nt:base' protected mandatory multiple
-        PropertyState requiredTypes = definition.getProperty(JCR_REQUIREDTYPE);
+        PropertyState requiredTypes =
+                definition.getProperty(JCR_REQUIREDPRIMARYTYPES);
         if (requiredTypes != null) {
             for (String key : requiredTypes.getValue(NAMES)) {
                 if (!types.hasChildNode(key)) {

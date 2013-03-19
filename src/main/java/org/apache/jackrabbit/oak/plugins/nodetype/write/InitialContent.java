@@ -24,6 +24,8 @@ import org.apache.jackrabbit.oak.core.RootImpl;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
+import org.apache.jackrabbit.oak.plugins.nodetype.RegistrationEditorProvider;
+import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -80,7 +82,7 @@ public class InitialContent implements RepositoryInitializer {
         } catch (CommitFailedException e) {
             throw new RuntimeException(e);
         }
-        BuiltInNodeTypes.register(new RootImpl(store));
+        BuiltInNodeTypes.register(new RootImpl(store, new EditorHook(new RegistrationEditorProvider())));
         return store.getRoot();
     }
 
