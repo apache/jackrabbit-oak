@@ -24,11 +24,36 @@ import java.util.TreeMap;
  */
 public class UpdateOp {
     
+    /**
+     * The node id, which contains the depth of the path
+     * (0 for root, 1 for children of the root), and then the path.
+     */
     static final String ID = "_id";
+    
+    /**
+     * The number of write operations to this node.
+     */
     static final String WRITE_COUNT = "_writeCount";
+    
+    /**
+     * The list of recent revisions against this node, where this node is the
+     * root of the commit.
+     */
     static final String REVISIONS = "_revisions";
+    
+    /**
+     * The number of previous documents (documents that contain old revisions of
+     * this node). This property is only set if multiple documents per node
+     * exist. This is the case when a node is updated very often in a short
+     * time, such that the document gets very big.
+     */
     static final String PREVIOUS = "_prev";
+    
+    /**
+     * Whether this node is
+     */
     static final String DELETED = "_deleted";
+    static final String MODIFIED = "_modified";
     
     final String path;
     

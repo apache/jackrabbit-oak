@@ -26,8 +26,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.annotation.Nonnull;
@@ -263,37 +261,39 @@ public class MongoMK implements MicroKernel {
         return x.compareRevisionTime(previous) > 0;
     }
     
-    public Node.Children readChildren(final String path, final String nodeId,
-                                      final Revision rev, final int limit) {
-        try {
-            return nodeChildrenCache.get(nodeId, new Callable<Children>() {
-                @Override
-                public Children call() throws Exception {
-                    String from = PathUtils.concat(path, "a");
-                    from = Utils.getIdFromPath(from);
-                    from = from.substring(0, from.length() - 1);
-                    String to = PathUtils.concat(path, "z");
-                    to = Utils.getIdFromPath(to);
-                    to = to.substring(0, to.length() - 2) + "0";
-                    List<Map<String, Object>> list = store.query(DocumentStore.Collection.NODES, from, to, limit);
-                    Children c = new Children(path, nodeId, rev);
-                    for (Map<String, Object> e : list) {
-                        // filter out deleted children
-                        if (getLiveRevision(e, rev) == null) {
-                            continue;
-                        }
-                        // TODO put the whole node in the cache
-                        String id = e.get(UpdateOp.ID).toString();
-                        String p = Utils.getPathFromId(id);
-                        c.children.add(p);
-                    }
-                    return c;
-                }
-            });
-        } catch (ExecutionException e) {
-            throw new IllegalStateException("Error occurred while fetching node children for node "+nodeId,e);
+    public Children getChildren(String path, Revision rev, int limit) {
+        checkRevisionAge(rev, path);
+        String key = path + "@" + rev;
+        Children children = nodeChildrenCache.getIfPresent(key);
+        if (children == null) {
+            children = readChildren(path, rev, limit);
+            if (children != null) {
+                nodeChildrenCache.put(key, children);
+            }
         }
-
+        return children;        
+    }
+    
+    Node.Children readChildren(String path, Revision rev, int limit) {
+        String from = PathUtils.concat(path, "a");
+        from = Utils.getIdFromPath(from);
+        from = from.substring(0, from.length() - 1);
+        String to = PathUtils.concat(path, "z");
+        to = Utils.getIdFromPath(to);
+        to = to.substring(0, to.length() - 2) + "0";
+        List<Map<String, Object>> list = store.query(DocumentStore.Collection.NODES, from, to, limit);
+        Children c = new Children(path, rev);
+        for (Map<String, Object> e : list) {
+            // filter out deleted children
+            if (getLiveRevision(e, rev) == null) {
+                continue;
+            }
+            // TODO put the whole node in the cache
+            String id = e.get(UpdateOp.ID).toString();
+            String p = Utils.getPathFromId(id);
+            c.children.add(p);
+        }
+        return c;
     }
 
     private Node readNode(String path, Revision rev) {
@@ -429,17 +429,18 @@ public class MongoMK implements MicroKernel {
         Revision toRev = Revision.fromString(toRevisionId);
         // TODO this does not work well for large child node lists 
         // use a MongoDB index instead
-        Children fromChildren = readChildren(path, from.getId(), fromRev, Integer.MAX_VALUE);
-        Children toChildren = readChildren(path, to.getId(), toRev, Integer.MAX_VALUE);
+        Children fromChildren = getChildren(path, fromRev, Integer.MAX_VALUE);
+        Children toChildren = getChildren(path, toRev, Integer.MAX_VALUE);
         Set<String> childrenSet = new HashSet<String>(toChildren.children);
         for (String n : fromChildren.children) {
             if (!childrenSet.contains(n)) {
                 w.tag('-').key(n).object().endObject().newline();
             } else {
-                // TODO currently all children seem to diff, 
-                // which is not necessarily the case
-                // (compare write counters)
-                w.tag('^').key(n).object().endObject().newline();
+                Node n1 = getNode(n, fromRev);
+                Node n2 = getNode(n, toRev);
+                if (!n1.equals(n2)) {
+                    w.tag('^').key(n).object().endObject().newline();
+                }
             }
         }
         childrenSet = new HashSet<String>(fromChildren.children);
@@ -491,7 +492,7 @@ public class MongoMK implements MicroKernel {
         json.object();
         n.append(json, includeId);
         // FIXME: must not read all children!
-        Children c = readChildren(path, n.getId(), rev, Integer.MAX_VALUE);
+        Children c = getChildren(path, rev, Integer.MAX_VALUE);
         for (long i = offset; i < c.children.size(); i++) {
             if (maxChildNodes-- <= 0) {
                 break;
@@ -577,10 +578,11 @@ public class MongoMK implements MicroKernel {
         }
         if (revisionId.startsWith("b")) {
             // just commit to head currently
-            applyCommit(commit);
+            commit.apply();
             // remember branch commit
             branchCommits.put(rev.toString(), revisionId.substring(1));
 
+            headRevision = commit.getRevision();
             return "b" + rev.toString();
 
             // String jsonBranch = branchCommits.remove(revisionId);
@@ -589,7 +591,8 @@ public class MongoMK implements MicroKernel {
             // branchCommits.put(branchRev, jsonBranch);
             // return branchRev;
         }
-        applyCommit(commit);
+        commit.apply();
+        headRevision = commit.getRevision();
         return rev.toString();
     }
 
@@ -628,8 +631,7 @@ public class MongoMK implements MicroKernel {
         if (move) {
             markAsDeleted(sourcePath, commit, false);
         }
-        Node.Children c = readChildren(sourcePath, n.getId(),
-                baseRev, Integer.MAX_VALUE);
+        Node.Children c = getChildren(sourcePath, baseRev, Integer.MAX_VALUE);
         for (String srcChildPath : c.children) {
             String childName = PathUtils.getName(srcChildPath);
             String destChildPath = PathUtils.concat(targetPath, childName);
@@ -651,7 +653,7 @@ public class MongoMK implements MicroKernel {
             nodeCache.invalidate(path + "@" + rev);
             
             if (n != null) {
-                Node.Children c = readChildren(path, n.getId(), rev,
+                Node.Children c = getChildren(path, rev,
                         Integer.MAX_VALUE);
                 for (String childPath : c.children) {
                     markAsDeleted(childPath, commit, true);
@@ -702,15 +704,6 @@ public class MongoMK implements MicroKernel {
             return revisionId.substring(1);
         }
         return revisionId;
-    }
-
-    private void applyCommit(Commit commit) {
-        headRevision = commit.getRevision();
-        if (commit.isEmpty()) {
-            return;
-        }
-        commit.applyToDocumentStore();
-        commit.applyToCache();
     }
     
     public static void parseAddNode(Commit commit, JsopReader t, String path) {
@@ -849,8 +842,8 @@ public class MongoMK implements MicroKernel {
         long newWriteCount = oldWriteCount + writeCountInc;
         Children c = nodeChildrenCache.getIfPresent(path + "@" + (newWriteCount - 1));
         if (isNew || (!isDelete && c != null)) {
-            String id = path + "@" + newWriteCount;
-            Children c2 = new Children(path, id, rev);
+            String key = path + "@" + rev;
+            Children c2 = new Children(path, rev);
             TreeSet<String> set = new TreeSet<String>();
             if (c != null) {
                 set.addAll(c.children);
@@ -858,14 +851,7 @@ public class MongoMK implements MicroKernel {
             set.removeAll(removed);
             set.addAll(added);
             c2.children.addAll(set);
-            if (nodeChildrenCache.getIfPresent(id) != null) {
-                // TODO should not happend, 
-                // probably a problem with add/delete/add
-                MicroKernelException e = new MicroKernelException(
-                        "New child list already cached for id " + id);
-                LOG.error("Error updating the cache", e);
-            }
-            nodeChildrenCache.put(id, c2);
+            nodeChildrenCache.put(key, c2);
         }
     }
 

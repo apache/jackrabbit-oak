@@ -23,6 +23,7 @@ import static org.junit.Assert.assertTrue;
 
 import org.apache.jackrabbit.mongomk.prototype.DocumentStore.Collection;
 import org.apache.jackrabbit.mongomk.prototype.Node.Children;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.Lists;
@@ -89,21 +90,35 @@ public class SimpleTest {
     }
     
     @Test
+    @Ignore
     public void diff() {
         MongoMK mk = createMK();
+        
         String rev0 = mk.getHeadRevision();
-        // TODO
-//        String rev1 = mk.commit("/", "+\"test\":{\"name\": \"Hello\"}", null, null);
-//        String rev2 = mk.commit("/", "-\"test\"", null, null);
-//        String rev3 = mk.commit("/", "+\"test\":{\"name\": \"Hallo\"}", null, null);
-//        String test0 = mk.getNodes("/test", rev0, 0, 0, Integer.MAX_VALUE, null);
-//        assertNull(null, test0);
-//        String test1 = mk.getNodes("/test", rev1, 0, 0, Integer.MAX_VALUE, null);
-//        assertEquals("{\"name\":\"Hello\",\":childNodeCount\":0}", test1);
-//        String test2 = mk.getNodes("/test", rev2, 0, 0, Integer.MAX_VALUE, null);
-//        assertNull(null, test2);
-//        String test3 = mk.getNodes("/test", rev3, 0, 0, Integer.MAX_VALUE, null);
-//        assertEquals("{\"name\":\"Hallo\",\":childNodeCount\":0}", test3);
+        String rev1 = mk.commit("/", "+\"t1\":{}", null, null);
+        String rev2 = mk.commit("/", "+\"t2\":{}", null, null);
+        String rev3 = mk.commit("/", "+\"t3\":{}", null, null);
+        String rev4 = mk.commit("/", "^\"t2/x\":1", null, null);
+        
+        String r0 = mk.getNodes("/", rev0, 0, 0, Integer.MAX_VALUE, null);
+        assertEquals("{\":childNodeCount\":0}", r0);
+        String r1 = mk.getNodes("/", rev1, 0, 0, Integer.MAX_VALUE, null);
+        assertEquals("{\"t1\":{},\":childNodeCount\":1}", r1);
+        String r2 = mk.getNodes("/", rev2, 0, 0, Integer.MAX_VALUE, null);
+        assertEquals("{\"t1\":{},\"t2\":{},\":childNodeCount\":2}", r2);
+        String r3 = mk.getNodes("/", rev3, 0, 0, Integer.MAX_VALUE, null);
+        assertEquals("{\"t1\":{},\"t2\":{},\"t3\":{},\":childNodeCount\":3}", r3);
+        
+        String diff01 = mk.diff(rev0, rev1, "/", 0).trim();
+        assertEquals("+\"/t1\":{}", diff01);
+        String diff12 = mk.diff(rev1, rev2, "/", 0).trim();
+        assertEquals("+\"/t2\":{}", diff12);
+        String diff23 = mk.diff(rev2, rev3, "/", 0).trim();
+        assertEquals("+\"/t3\":{}", diff23);
+        String diff13 = mk.diff(rev1, rev3, "/", 0).trim();
+        assertEquals("+\"/t2\":{}\n+\"/t3\":{}", diff13);
+        String diff34 = mk.diff(rev3, rev4, "/", 0).trim();
+        assertEquals("^\"/t2\":{}", diff34);
         mk.dispose();
     }
 
@@ -178,15 +193,13 @@ public class SimpleTest {
         String test = mk.getNodes("/test", rev, 0, 0, Integer.MAX_VALUE, null);
         assertEquals("{\"name\":\"Hello\",\":childNodeCount\":0}", test);
         
-        rev = mk.commit("/test", "+\"a\":{\"name\": \"World\"}", null, null);
-        rev = mk.commit("/test", "+\"b\":{\"name\": \"!\"}", null, null);
-        test = mk.getNodes("/test", rev, 0, 0, Integer.MAX_VALUE, null);
+        String r0 = mk.commit("/test", "+\"a\":{\"name\": \"World\"}", null, null);
+        String r1 = mk.commit("/test", "+\"b\":{\"name\": \"!\"}", null, null);
+        test = mk.getNodes("/test", r0, 0, 0, Integer.MAX_VALUE, null);
         Children c;
-        c = mk.readChildren("/", "1",
-                Revision.fromString(rev), Integer.MAX_VALUE);
+        c = mk.getChildren("/", Revision.fromString(r0), Integer.MAX_VALUE);
         assertEquals("/: [/test]", c.toString());
-        c = mk.readChildren("/test", "2",
-                Revision.fromString(rev), Integer.MAX_VALUE);
+        c = mk.getChildren("/test", Revision.fromString(r1), Integer.MAX_VALUE);
         assertEquals("/test: [/test/a, /test/b]", c.toString());
 
         rev = mk.commit("", "^\"/test\":1", null, null);
@@ -252,23 +265,22 @@ public class SimpleTest {
     public void testDeletion() {
         MongoMK mk = createMK();
 
-        String rev = mk.commit("/", "+\"testDel\":{\"name\": \"Hello\"}", null,
-                null);
-        rev = mk.commit("/testDel", "+\"a\":{\"name\": \"World\"}", null, null);
-        rev = mk.commit("/testDel", "+\"b\":{\"name\": \"!\"}", null, null);
-        rev = mk.commit("/testDel", "+\"c\":{\"name\": \"!\"}", null, null);
+        mk.commit("/", "+\"testDel\":{\"name\": \"Hello\"}", null, null);
+        mk.commit("/testDel", "+\"a\":{\"name\": \"World\"}", null, null);
+        mk.commit("/testDel", "+\"b\":{\"name\": \"!\"}", null, null);
+        String r1 = mk.commit("/testDel", "+\"c\":{\"name\": \"!\"}", null, null);
 
-        Children c = mk.readChildren("/testDel", "1", Revision.fromString(rev),
+        Children c = mk.getChildren("/testDel", Revision.fromString(r1),
                 Integer.MAX_VALUE);
         assertEquals(3, c.children.size());
 
-        rev = mk.commit("/testDel", "-\"c\"", null, null);
-        c = mk.readChildren("/testDel", "2", Revision.fromString(rev),
+        String r2 = mk.commit("/testDel", "-\"c\"", null, null);
+        c = mk.getChildren("/testDel", Revision.fromString(r2),
                 Integer.MAX_VALUE);
         assertEquals(2, c.children.size());
 
-        rev = mk.commit("/", "-\"testDel\"", null, null);
-        Node n = mk.getNode("/testDel", Revision.fromString(rev));
+        String r3 = mk.commit("/", "-\"testDel\"", null, null);
+        Node n = mk.getNode("/testDel", Revision.fromString(r3));
         assertNull(n);
     }
 
