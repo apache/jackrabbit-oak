@@ -40,6 +40,10 @@
         <artifactId>maven-bundle-plugin</artifactId>
         <configuration>
           <instructions>
+            <Import-Package>
+           		org.apache.felix.jaas.boot,
+            		*
+            </Import-Package>
             <Export-Package>
               org.apache.jackrabbit.oak,
               org.apache.jackrabbit.oak.api,
@@ -68,7 +72,6 @@
               org.apache.jackrabbit.oak.spi.security.authentication.callback,
               org.apache.jackrabbit.oak.spi.security.authentication.external,
               org.apache.jackrabbit.oak.spi.security.authentication.token,
-              org.apache.jackrabbit.oak.spi.security.authentication.user,
               org.apache.jackrabbit.oak.spi.security.authorization,
               org.apache.jackrabbit.oak.spi.security.authorization.restriction,
               org.apache.jackrabbit.oak.spi.security.principal,
@@ -79,6 +82,12 @@
               org.apache.jackrabbit.oak.spi.xml,
               org.apache.jackrabbit.oak.security
             </Export-Package>
+            <Jaas-ModuleClass>
+              org.apache.jackrabbit.oak.spi.security.authentication.GuestLoginModule,
+           	  org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl,
+              org.apache.jackrabbit.oak.security.authentication.token.TokenLoginModule
+              org.apache.jackrabbit.oak.security.authentication.ldap.LdapLoginModule
+           	</Jaas-ModuleClass>
             <Bundle-Activator>
               org.apache.jackrabbit.oak.osgi.Activator
             </Bundle-Activator>
