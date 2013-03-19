@@ -166,7 +166,7 @@ class NodeTypeTemplateImpl extends NamedTemplate
         if (propertyDefinitionTemplates != null) {
             int pdn = 1;
             for (PropertyDefinitionTemplateImpl pdt : propertyDefinitionTemplates) {
-                Tree tree = type.addChild(JCR_PROPERTYDEFINITION + pdn++);
+                Tree tree = type.addChild(JCR_PROPERTYDEFINITION + "[" + pdn++ + "]");
                 tree.setProperty(
                         JCR_PRIMARYTYPE, NT_PROPERTYDEFINITION, Type.NAME);
                 pdt.writeTo(tree);
@@ -176,7 +176,7 @@ class NodeTypeTemplateImpl extends NamedTemplate
         if (nodeDefinitionTemplates != null) {
             int ndn = 1;
             for (NodeDefinitionTemplateImpl ndt : nodeDefinitionTemplates) {
-                Tree tree = type.addChild(JCR_CHILDNODEDEFINITION + ndn++);
+                Tree tree = type.addChild(JCR_CHILDNODEDEFINITION + "[" + ndn++ + "]");
                 tree.setProperty(
                         JCR_PRIMARYTYPE, NT_CHILDNODEDEFINITION, Type.NAME);
                 ndt.writeTo(tree);

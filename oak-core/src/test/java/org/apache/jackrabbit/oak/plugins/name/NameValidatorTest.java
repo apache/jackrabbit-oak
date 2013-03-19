@@ -59,9 +59,14 @@ public class NameValidatorTest {
         validator.childNodeAdded("invalid/name", EMPTY_NODE);
     }
 
-    @Test(expected = CommitFailedException.class)
-    public void testIndexInName() throws CommitFailedException {
+    @Test
+    public void testValidIndexInName() throws CommitFailedException {
         validator.childNodeAdded("name[1]", EMPTY_NODE);
+    }
+
+    @Test(expected = CommitFailedException.class)
+    public void testInvalidIndexInName() throws CommitFailedException {
+        validator.childNodeAdded("name[x]", EMPTY_NODE);
     }
 
     @Test

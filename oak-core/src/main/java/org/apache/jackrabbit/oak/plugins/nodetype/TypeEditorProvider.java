@@ -16,36 +16,32 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype;
 
-import java.util.Map;
+import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
 
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Service;
-import org.apache.jackrabbit.oak.core.ReadOnlyTree;
-import org.apache.jackrabbit.oak.namepath.GlobalNameMapper;
-import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
-import org.apache.jackrabbit.oak.plugins.name.Namespaces;
+import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
-import org.apache.jackrabbit.oak.spi.commit.Validator;
-import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
+import org.apache.jackrabbit.oak.spi.commit.VisibleEditor;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 @Component
 @Service(EditorProvider.class)
-public class TypeValidatorProvider extends ValidatorProvider {
+public class TypeEditorProvider implements EditorProvider {
 
     @Override
-    public Validator getRootValidator(NodeState before, final NodeState after) {
-        ReadOnlyNodeTypeManager ntm =
-                ReadOnlyNodeTypeManager.getInstance(after);
-        final ReadOnlyTree root = new ReadOnlyTree(after);
-        NamePathMapper mapper = new NamePathMapperImpl(new GlobalNameMapper() {
-            @Override
-            protected Map<String, String> getNamespaceMap() {
-                return Namespaces.getNamespaceMap(root);
+    public Editor getRootEditor(
+            NodeState before, NodeState after, NodeBuilder builder) {
+        NodeState system = after.getChildNode(JCR_SYSTEM);
+        if (system != null) {
+            NodeState types = system.getChildNode(JCR_NODE_TYPES);
+            if (types != null) {
+                return new VisibleEditor(new TypeEditor(types));
             }
-        });
-        return new TypeValidator(ntm, root, mapper);
+        }
+        return null;
     }
 
 }

@@ -49,6 +49,20 @@ class NameValidator extends DefaultValidator {
         }
 
         String local = name.substring(colon + 1);
+
+        int n = local.length();
+        if (n > 3 && local.charAt(n - 1) == ']') {
+            int i = n - 2;
+            while (i > 1 && Character.isDigit(local.charAt(i))) {
+                i--;
+            }
+            if (local.charAt(i) != '[') {
+                throw new CommitFailedException("Invalid name index " + name);
+            } else {
+                local = local.substring(0, i);
+            }
+        }
+
         if (!Namespaces.isValidLocalName(local)) {
             throw new CommitFailedException("Invalid name: " + name);
         }
