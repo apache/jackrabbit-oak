@@ -21,8 +21,8 @@ import java.util.Map;
 import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.login.Configuration;
 
-import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenLoginModule;
-import org.apache.jackrabbit.oak.spi.security.authentication.user.LoginModuleImpl;
+import org.apache.jackrabbit.oak.security.authentication.token.TokenLoginModule;
+import org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 
 /**
