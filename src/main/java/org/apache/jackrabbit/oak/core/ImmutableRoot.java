@@ -18,7 +18,9 @@
  */
 package org.apache.jackrabbit.oak.core;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.api.BlobFactory;
 import org.apache.jackrabbit.oak.api.QueryEngine;
@@ -37,18 +39,37 @@ import static com.google.common.base.Preconditions.checkArgument;
 public final class ImmutableRoot implements Root {
 
     private final ImmutableTree rootTree;
+    private final String workspaceName;
 
-    public ImmutableRoot(@Nonnull NodeState rootState) {
-        this(new ImmutableTree(rootState));
+    public ImmutableRoot(@Nonnull NodeState rootState, @Nullable String workspaceName) {
+        this(new ImmutableTree(rootState), workspaceName);
     }
 
     public ImmutableRoot(@Nonnull Root root, @Nonnull ImmutableTree.TypeProvider typeProvider) {
-        this(ImmutableTree.createFromRoot(root, typeProvider));
+        this(ImmutableTree.createFromRoot(root, typeProvider), getWorkspaceName(root));
     }
 
-    public ImmutableRoot(@Nonnull ImmutableTree rootTree) {
+    public ImmutableRoot(@Nonnull ImmutableTree rootTree, @Nullable String workspaceName) {
         checkArgument(rootTree.isRoot());
         this.rootTree = rootTree;
+        this.workspaceName = workspaceName;
+    }
+
+    @CheckForNull
+    public String getWorkspaceName() {
+        return workspaceName;
+    }
+
+    // TODO: review if getWorkspaceName() may be part of Root API
+    @CheckForNull
+    public static String getWorkspaceName(Root root) {
+        if (root instanceof ImmutableRoot) {
+            return ((ImmutableRoot) root).getWorkspaceName();
+        } else if (root instanceof RootImpl) {
+            return ((RootImpl) root).getWorkspaceName();
+        } else {
+            return null;
+        }
     }
 
     //---------------------------------------------------------------< Root >---

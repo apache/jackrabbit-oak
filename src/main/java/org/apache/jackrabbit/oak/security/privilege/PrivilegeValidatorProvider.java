@@ -18,6 +18,8 @@ package org.apache.jackrabbit.oak.security.privilege;
 
 import javax.annotation.Nonnull;
 
+import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.core.ImmutableRoot;
 import org.apache.jackrabbit.oak.spi.commit.SubtreeValidator;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
@@ -33,9 +35,20 @@ import static org.apache.jackrabbit.oak.security.privilege.PrivilegeConstants.RE
  */
 class PrivilegeValidatorProvider extends ValidatorProvider {
 
+    private final String workspaceName;
+
+    PrivilegeValidatorProvider(String workspaceName) {
+        this.workspaceName = workspaceName;
+    }
+
     @Nonnull
     @Override
     public Validator getRootValidator(NodeState before, NodeState after) {
-        return new SubtreeValidator(new PrivilegeValidator(before, after), JCR_SYSTEM, REP_PRIVILEGES);
+        return new SubtreeValidator(new PrivilegeValidator(createRoot(before), createRoot(after)),
+                JCR_SYSTEM, REP_PRIVILEGES);
+    }
+
+    private Root createRoot(NodeState nodeState) {
+        return new ImmutableRoot(nodeState, workspaceName);
     }
 }

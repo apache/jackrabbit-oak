@@ -79,7 +79,7 @@ public class AccessControlConfigurationImpl extends SecurityConfiguration.Defaul
         return ImmutableList.of(
                 new PermissionStoreValidatorProvider(),
                 new PermissionValidatorProvider(securityProvider, workspaceName),
-                new AccessControlValidatorProvider(securityProvider));
+                new AccessControlValidatorProvider(securityProvider, workspaceName));
     }
 
     @Nonnull

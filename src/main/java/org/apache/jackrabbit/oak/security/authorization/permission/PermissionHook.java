@@ -31,7 +31,6 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.ImmutableRoot;
 import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.core.TreeImpl;
-import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.security.authorization.AccessControlConstants;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeBits;
@@ -42,6 +41,7 @@ import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restrict
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
+import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
@@ -49,6 +49,7 @@ import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 /**
@@ -77,17 +78,17 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
     public NodeState processCommit(final NodeState before, NodeState after) throws CommitFailedException {
         NodeBuilder rootAfter = after.builder();
 
-        permissionRoot = getPermissionRoot(rootAfter, workspaceName);
+        permissionRoot = getPermissionRoot(rootAfter);
         ntMgr = ReadOnlyNodeTypeManager.getInstance(before);
-        bitsProvider = new PrivilegeBitsProvider(new ImmutableRoot(before));
+        bitsProvider = new PrivilegeBitsProvider(new ImmutableRoot(before, workspaceName));
 
         after.compareAgainstBaseState(before, new Diff(new BeforeNode(before), new Node(rootAfter)));
         return rootAfter.getNodeState();
     }
 
     @Nonnull
-    private NodeBuilder getPermissionRoot(NodeBuilder rootBuilder, String workspaceName) {
-        NodeBuilder permissionStore = rootBuilder.child(NodeTypeConstants.JCR_SYSTEM).child(REP_PERMISSION_STORE);
+    private NodeBuilder getPermissionRoot(NodeBuilder rootBuilder) {
+        NodeBuilder permissionStore = rootBuilder.child(JCR_SYSTEM).child(REP_PERMISSION_STORE);
         if (permissionStore.getProperty(JCR_PRIMARYTYPE) == null) {
             permissionStore.setProperty(JCR_PRIMARYTYPE, NT_REP_PERMISSION_STORE, Type.NAME);
         }
@@ -157,7 +158,9 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
 
         @Override
         public void childNodeAdded(String name, NodeState after) {
-            if (isACE(name, after)) {
+            if (NodeStateUtils.isHidden(name)) {
+                // ignore hidden nodes
+            } else if (isACE(name, after)) {
                 addEntry(name, after);
             } else {
                 BeforeNode before = new BeforeNode(parentBefore.getPath(), name, EMPTY_NODE);
@@ -168,7 +171,9 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
 
         @Override
         public void childNodeChanged(String name, final NodeState before, NodeState after) {
-            if (isACE(name, before) || isACE(name, after)) {
+            if (NodeStateUtils.isHidden(name)) {
+                // ignore hidden nodes
+            } else if (isACE(name, before) || isACE(name, after)) {
                 updateEntry(name, before, after);
             } else if (REP_RESTRICTIONS.equals(name)) {
                 updateEntry(parentAfter.getName(), parentBefore.getNodeState(), parentAfter.getNodeState());
@@ -181,7 +186,9 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
 
         @Override
         public void childNodeDeleted(String name, NodeState before) {
-            if (isACE(name, before)) {
+            if (NodeStateUtils.isHidden(name)) {
+                // ignore hidden nodes
+            } else if (isACE(name, before)) {
                 removeEntry(name, before);
             } else {
                 BeforeNode nodeBefore = new BeforeNode(parentBefore.getPath(), name, before);
@@ -201,12 +208,14 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
 
         private void addEntry(String name, NodeState ace) {
             PermissionEntry entry = createPermissionEntry(name, ace, parentAfter);
-            entry.writeTo(permissionRoot);
+            if (getExistingPermissionNodeName(entry) == null) {
+                entry.writeTo(permissionRoot);
+            }
         }
 
         private void removeEntry(String name, NodeState ace) {
             PermissionEntry entry = createPermissionEntry(name, ace, parentBefore);
-            String permissionName = getPermissionNodeName(entry);
+            String permissionName = getExistingPermissionNodeName(entry);
             if (permissionName != null) {
                 permissionRoot.child(entry.principalName).removeNode(permissionName);
             }
@@ -218,12 +227,13 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
         }
 
         @CheckForNull
-        private String getPermissionNodeName(PermissionEntry permissionEntry) {
+        private String getExistingPermissionNodeName(PermissionEntry permissionEntry) {
             if (permissionRoot.hasChildNode(permissionEntry.principalName)) {
                 NodeBuilder principalRoot = permissionRoot.child(permissionEntry.principalName);
                 for (String childName : principalRoot.getChildNodeNames()) {
                     NodeState state = principalRoot.child(childName).getNodeState();
                     if (permissionEntry.isSame(childName, state)) {
+                        log.debug("Found existing permission entry for " + permissionEntry);
                         return childName;
                     }
                 }
@@ -360,13 +370,10 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
         private boolean isSame(String name, NodeState node) {
             Tree entry = getTree(name, node);
 
-            if (isAllow == (name.charAt(0) == PREFIX_ALLOW)) {
+            if (isAllow != (name.charAt(0) == PREFIX_ALLOW)) {
                 return false;
             }
             if (!privilegeBits.equals(PrivilegeBits.getInstance(node.getProperty(REP_PRIVILEGES)))) {
-                return false;
-            }
-            if (!principalName.equals(TreeUtil.getString(entry, REP_PRINCIPAL_NAME))) {
                 return false;
             }
             if (index != entry.getProperty(REP_INDEX).getValue(Type.LONG)) {
@@ -375,7 +382,7 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
             if (!accessControlledPath.equals(TreeUtil.getString(entry, REP_ACCESS_CONTROLLED_PATH))) {
                 return false;
             }
-            return restrictions.equals(getRestrictions(accessControlledPath, getTree(name, node)));
+            return restrictions.equals(getRestrictions(accessControlledPath, entry));
         }
 
         public String toString() {

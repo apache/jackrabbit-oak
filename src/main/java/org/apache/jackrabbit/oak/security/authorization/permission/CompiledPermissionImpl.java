@@ -68,6 +68,7 @@ class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants
         checkArgument(!principals.isEmpty());
         this.principals = principals;
         this.restrictionProvider = restrictionProvider;
+        this.bitsProvider = bitsProvider;
         this.trees = new HashMap<String, ImmutableTree>(principals.size());
         buildEntries(permissionsTree);
     }
@@ -105,14 +106,22 @@ class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants
     //------------------------------------------------< CompiledPermissions >---
     @Override
     public boolean canRead(Tree tree) {
-        // TODO
-        return isGranted(tree, Permissions.READ_NODE);
+        for (PermissionEntry entry : filterEntries(tree, null)) {
+            if (entry.privilegeBits.includesRead(Permissions.READ_NODE)) {
+                return entry.isAllow;
+            }
+        }
+        return false;
     }
 
     @Override
     public boolean canRead(Tree tree, PropertyState property) {
-        // TODO
-        return isGranted(tree, property, Permissions.READ_PROPERTY);
+        for (PermissionEntry entry : filterEntries(tree, property)) {
+            if (entry.privilegeBits.includesRead(Permissions.READ_PROPERTY)) {
+                return entry.isAllow;
+            }
+        }
+        return false;
     }
 
     @Override

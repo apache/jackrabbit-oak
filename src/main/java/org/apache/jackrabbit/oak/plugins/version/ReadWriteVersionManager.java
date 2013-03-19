@@ -83,7 +83,7 @@ class ReadWriteVersionManager extends ReadOnlyVersionManager {
     @Nonnull
     @Override
     protected Root getWorkspaceRoot() {
-        return new ImmutableRoot(workspaceRoot.getNodeState());
+        return new ImmutableRoot(workspaceRoot.getNodeState(), null);
     }
 
     @Nonnull
