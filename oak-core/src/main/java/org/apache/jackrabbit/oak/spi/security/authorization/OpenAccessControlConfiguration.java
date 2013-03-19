@@ -34,7 +34,7 @@ public class OpenAccessControlConfiguration extends SecurityConfiguration.Defaul
         implements AccessControlConfiguration {
 
     @Override
-    public AccessControlManager getAccessControlManager(Root root, NamePathMapper namePathMapper) {
+    public AccessControlManager getAccessControlManager(Root root, NamePathMapper namePathMapper, PermissionProvider permissionProvider) {
         throw new UnsupportedOperationException();
     }
 

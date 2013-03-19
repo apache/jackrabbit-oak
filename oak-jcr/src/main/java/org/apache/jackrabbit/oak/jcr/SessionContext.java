@@ -16,9 +16,7 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import java.security.PrivilegedAction;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import javax.annotation.CheckForNull;
@@ -34,7 +32,6 @@ import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.observation.ObservationManager;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.version.VersionManager;
-import javax.security.auth.Subject;
 
 import com.google.common.collect.Maps;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
@@ -154,15 +151,8 @@ public abstract class SessionContext implements NamePathMapper {
     @Nonnull
     public AccessControlManager getAccessControlManager() throws RepositoryException {
         if (accessControlManager == null) {
-            // TODO
-            Subject subject = new Subject(true, delegate.getAuthInfo().getPrincipals(), Collections.singleton(getPermissionProvider()), Collections.<Object>emptySet());
-            accessControlManager = Subject.doAs(subject, new PrivilegedAction<AccessControlManager>() {
-                @Override
-                public AccessControlManager run() {
-                    SecurityProvider securityProvider = repository.getSecurityProvider();
-                    return securityProvider.getAccessControlConfiguration().getAccessControlManager(delegate.getRoot(), namePathMapper);
-                }
-            });
+            SecurityProvider securityProvider = repository.getSecurityProvider();
+            accessControlManager = securityProvider.getAccessControlConfiguration().getAccessControlManager(delegate.getRoot(), namePathMapper, getPermissionProvider());
         }
         return accessControlManager;
     }
@@ -172,8 +162,6 @@ public abstract class SessionContext implements NamePathMapper {
         if (permissionProvider == null) {
             SecurityProvider securityProvider = repository.getSecurityProvider();
             permissionProvider = securityProvider.getAccessControlConfiguration().getPermissionProvider(delegate.getRoot(), delegate.getAuthInfo().getPrincipals());
-        } else {
-            permissionProvider.refresh();
         }
         return permissionProvider;
     }
