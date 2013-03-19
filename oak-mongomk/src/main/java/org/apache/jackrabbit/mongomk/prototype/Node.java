@@ -95,20 +95,40 @@ public class Node {
         }
     }
     
+    public void setWriteCount(long writeCount) {
+        this.writeCount = writeCount;
+    }
+
+    public long getWriteCount() {
+        return writeCount;
+    }
+    
+    public int hashCode() {
+        return (int) writeCount ^ properties.size() ^ rev.hashCode();
+    }
+    
+    public boolean equals(Object obj) {
+        if (obj == this) {
+            return true;
+        } else if (!(obj instanceof Node)) {
+            return false;
+        }
+        Node other = (Node) obj;
+        return writeCount == other.writeCount;
+    }
+
     /**
      * A list of children for a node.
      */
     static class Children {
         
         final String path;
-        final String id;
         final Revision rev;
         
         final ArrayList<String> children = new ArrayList<String>();
         
-        Children(String path, String id, Revision rev) {
+        Children(String path, Revision rev) {
             this.path = path;
-            this.id = id;
             this.rev = rev;
         }
         
@@ -116,10 +136,6 @@ public class Node {
             return path + ": " + children.toString();
         }
         
-    }
-
-    public void setWriteCount(long writeCount) {
-        this.writeCount = writeCount;
     }
 
 }
