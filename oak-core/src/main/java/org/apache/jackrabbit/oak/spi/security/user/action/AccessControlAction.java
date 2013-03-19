@@ -163,7 +163,7 @@ public class AccessControlAction extends AbstractAuthorizableAction {
             return;
         }
         String path = authorizable.getPath();
-        AccessControlManager acMgr = securityProvider.getAccessControlConfiguration().getAccessControlManager(root, namePathMapper);
+        AccessControlManager acMgr = securityProvider.getAccessControlConfiguration().getAccessControlManager(root, namePathMapper, null);
         JackrabbitAccessControlList acl = null;
         for (AccessControlPolicyIterator it = acMgr.getApplicablePolicies(path); it.hasNext();) {
             AccessControlPolicy plc = it.nextAccessControlPolicy();
