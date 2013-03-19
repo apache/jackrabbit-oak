@@ -61,7 +61,7 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
 
     private final Root root;
 
-    private final String workspaceName = "default"; // FIXME: use proper workspace as associated with the root
+    private final String workspaceName;
 
     private final AccessControlConfiguration acConfig;
 
@@ -70,6 +70,7 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
     public PermissionProviderImpl(@Nonnull Root root, @Nonnull Set<Principal> principals,
                                   @Nonnull SecurityProvider securityProvider) {
         this.root = root;
+        this.workspaceName = checkNotNull(ImmutableRoot.getWorkspaceName(root));
         acConfig = securityProvider.getAccessControlConfiguration();
         if (principals.contains(SystemPrincipal.INSTANCE) || isAdmin(principals)) {
             compiledPermissions = AllPermissions.getInstance();
@@ -192,9 +193,8 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
 
     @CheckForNull
     private ImmutableTree getPermissionsRoot() {
-        String relativePath = PERMISSIONS_STORE_PATH + '/' + workspaceName;
-        ImmutableTree rootTree = checkNotNull(getImmutableRoot().getTree("/"));
-        Tree tree = rootTree.getLocation().getChild(relativePath).getTree();
+        String path = PERMISSIONS_STORE_PATH + '/' + workspaceName;
+        Tree tree = getImmutableRoot().getLocation(path).getTree();
         return (tree == null) ? null : (ImmutableTree) tree;
     }
 

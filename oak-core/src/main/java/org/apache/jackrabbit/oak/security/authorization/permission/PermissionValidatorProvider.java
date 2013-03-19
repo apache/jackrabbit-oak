@@ -82,7 +82,7 @@ public class PermissionValidatorProvider extends ValidatorProvider {
         if (subject == null || subject.getPublicCredentials(PermissionProvider.class).isEmpty()) {
             Set<Principal> principals = (subject != null) ? subject.getPrincipals() : Collections.<Principal>emptySet();
             AccessControlConfiguration acConfig = securityProvider.getAccessControlConfiguration();
-            return acConfig.getPermissionProvider(new ImmutableRoot(createTree(before)), principals);
+            return acConfig.getPermissionProvider(new ImmutableRoot(createTree(before), workspaceName), principals);
         } else {
             return subject.getPublicCredentials(PermissionProvider.class).iterator().next();
         }

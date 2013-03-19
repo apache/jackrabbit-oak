@@ -24,6 +24,8 @@ import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
+import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
+
 /**
  * Validator implementation that asserts that the permission store is read-only.
  */
@@ -32,9 +34,7 @@ public class PermissionStoreValidatorProvider extends ValidatorProvider implemen
     @Nonnull
     @Override
     public Validator getRootValidator(NodeState before, NodeState after) {
-        FailingValidator validator =
-                new FailingValidator("Attempt to modify permission store.");
-        return new SubtreeValidator(validator, PERMISSIONS_STORE_PATH);
+        FailingValidator validator = new FailingValidator("Attempt to modify permission store.");
+        return new SubtreeValidator(validator, JCR_SYSTEM, REP_PERMISSION_STORE);
     }
-
 }

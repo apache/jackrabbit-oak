@@ -423,6 +423,11 @@ public class RootImpl implements Root {
         return permissionProvider;
     }
 
+    @Nonnull
+    String getWorkspaceName() {
+        return workspaceName;
+    }
+
     //------------------------------------------------------------< private >---
 
     /**

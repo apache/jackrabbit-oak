@@ -230,7 +230,7 @@ public abstract class SessionContext implements NamePathMapper {
         return observationManager != null && observationManager.hasEvents();
     }
 
-    //------------------------------------------------------------< NamePathMapper >---
+    //-----------------------------------------------------< NamePathMapper >---
 
     @Override
     @Nonnull
@@ -330,6 +330,12 @@ public abstract class SessionContext implements NamePathMapper {
     void dispose() {
         if (observationManager != null) {
             observationManager.dispose();
+        }
+    }
+
+    void refresh() {
+        if (permissionProvider != null) {
+            permissionProvider.refresh();
         }
     }
 }

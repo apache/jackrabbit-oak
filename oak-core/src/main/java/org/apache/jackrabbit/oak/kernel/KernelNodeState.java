@@ -390,7 +390,7 @@ public final class KernelNodeState extends AbstractNodeState {
     }
 
     @Nonnull
-    String getPath() {
+    public String getPath() {
         return path;
     }
 

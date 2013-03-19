@@ -318,12 +318,14 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     public void save() throws RepositoryException {
         ensureIsAlive();
         dlg.save();
+        sessionContext.refresh();
     }
 
     @Override
     public void refresh(boolean keepChanges) throws RepositoryException {
         ensureIsAlive();
         dlg.refresh(keepChanges);
+        sessionContext.refresh();
     }
 
     @Override

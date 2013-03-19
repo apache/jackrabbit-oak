@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.kernel.KernelNodeState;
 import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
 import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -91,9 +92,14 @@ public final class ImmutableTree extends ReadOnlyTree {
             return "/";
         }
 
-        StringBuilder sb = new StringBuilder();
-        buildPath(sb);
-        return sb.toString();
+        NodeState nodeState = getNodeState();
+        if (nodeState instanceof KernelNodeState) {
+            return ((KernelNodeState) nodeState).getPath();
+        } else {
+            StringBuilder sb = new StringBuilder();
+            buildPath(sb);
+            return sb.toString();
+        }
     }
 
     private void buildPath(StringBuilder sb) {
