@@ -142,10 +142,14 @@ public class RootImpl implements Root {
         rootTree = new TreeImpl(this, lastMove);
     }
 
-    // TODO: review if this constructor really makes sense and cannot be replaced.
+    // TODO: review if these constructors really make sense and cannot be replaced.
     public RootImpl(NodeStore store) {
+        this(store, EmptyHook.INSTANCE);
+    }
+
+    public RootImpl(NodeStore store, CommitHook hook) {
         // FIXME: define proper default or pass workspace name with the constructor
-        this(store, EmptyHook.INSTANCE, Oak.DEFAULT_WORKSPACE_NAME, SystemSubject.INSTANCE,
+        this(store, hook, Oak.DEFAULT_WORKSPACE_NAME, SystemSubject.INSTANCE,
                 new OpenSecurityProvider(), new CompositeQueryIndexProvider());
     }
 

@@ -31,7 +31,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  *
  * @since Oak 0.7
  */
-public class VisibleEditor extends DefaultEditor {
+public class VisibleEditor implements Editor {
 
     @CheckForNull
     public static Editor wrap(@CheckForNull Editor editor) {
@@ -50,6 +50,18 @@ public class VisibleEditor extends DefaultEditor {
 
     private boolean isVisible(String name) {
         return name.charAt(0) != ':';
+    }
+
+    @Override
+    public void enter(NodeState before, NodeState after)
+            throws CommitFailedException {
+        editor.enter(before, after);
+    }
+
+    @Override
+    public void leave(NodeState before, NodeState after)
+            throws CommitFailedException {
+        editor.leave(before, after);
     }
 
     @Override
