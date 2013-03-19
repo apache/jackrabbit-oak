@@ -484,6 +484,11 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
 
     @Override
     public String[] getNamespacePrefixes() throws RepositoryException {
+        synchronized (namespaces) {
+            if (namespaces.isEmpty()) {
+                return getWorkspace().getNamespaceRegistry().getPrefixes();
+            }
+        }
         Set<String> uris = new HashSet<String>();
         uris.addAll(Arrays.asList(getWorkspace().getNamespaceRegistry().getURIs()));
         synchronized (namespaces) {
