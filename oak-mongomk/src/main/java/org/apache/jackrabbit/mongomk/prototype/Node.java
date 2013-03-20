@@ -19,6 +19,7 @@ package org.apache.jackrabbit.mongomk.prototype;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.Set;
+import java.util.Map.Entry;
 
 import org.apache.jackrabbit.mk.json.JsopWriter;
 
@@ -97,6 +98,14 @@ public class Node {
 
     public void setLastRevision(Revision lastRevision) {
         this.lastRevision = lastRevision;
+    }
+
+    public int getMemory() {
+        int size = 180 + path.length() * 2;
+        for (Entry<String, String> e : properties.entrySet()) {
+            size += 136 + e.getKey().length() * 2 + e.getValue().length() * 2;
+        }
+        return size;
     }
 
     /**
