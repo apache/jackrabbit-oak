@@ -30,7 +30,7 @@ public class Node {
     final String path;
     final Revision rev;
     final Map<String, String> properties = Utils.newMap();
-    private long writeCount;
+    Revision lastRevision;
     
     Node(String path, Revision rev) {
         this.path = path;
@@ -61,7 +61,6 @@ public class Node {
         StringBuilder buff = new StringBuilder();
         buff.append("path: ").append(path).append('\n');
         buff.append("rev: ").append(rev).append('\n');
-        buff.append("writeCount: ").append(writeCount).append('\n');
         buff.append(properties);
         buff.append('\n');
         return buff.toString();
@@ -75,6 +74,7 @@ public class Node {
         UpdateOp op = new UpdateOp(path, id, isNew);
         op.set(UpdateOp.ID, id);
         op.addMapEntry(UpdateOp.DELETED + "." + rev.toString(), "false");
+        op.setMapEntry(UpdateOp.LAST_REV + "." + rev.getClusterId(), rev.toString());
         for (String p : properties.keySet()) {
             String key = Utils.escapePropertyName(p);
             op.addMapEntry(key + "." + rev.toString(), properties.get(p));
@@ -83,7 +83,7 @@ public class Node {
     }
 
     public String getId() {
-        return path + "@" + writeCount;        
+        return path + "@" + lastRevision;        
     }
 
     public void append(JsopWriter json, boolean includeId) {
@@ -94,27 +94,9 @@ public class Node {
             json.key(p).encodedValue(properties.get(p));
         }
     }
-    
-    public void setWriteCount(long writeCount) {
-        this.writeCount = writeCount;
-    }
 
-    public long getWriteCount() {
-        return writeCount;
-    }
-    
-    public int hashCode() {
-        return (int) writeCount ^ properties.size() ^ rev.hashCode();
-    }
-    
-    public boolean equals(Object obj) {
-        if (obj == this) {
-            return true;
-        } else if (!(obj instanceof Node)) {
-            return false;
-        }
-        Node other = (Node) obj;
-        return writeCount == other.writeCount;
+    public void setLastRevision(Revision lastRevision) {
+        this.lastRevision = lastRevision;
     }
 
     /**

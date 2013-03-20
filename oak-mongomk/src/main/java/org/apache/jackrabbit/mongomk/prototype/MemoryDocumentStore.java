@@ -168,9 +168,16 @@ public class MemoryDocumentStore implements DocumentStore {
                 break;
             }
             case SET_MAP_ENTRY: {
-                Map<String, Object> m = Utils.newMap();
-                target.put(k, m);
+                Object old = target.get(kv[0]);
+                @SuppressWarnings("unchecked")
+                Map<String, Object> m = (Map<String, Object>) old;
+                if (m == null) {
+                    m = Utils.newMap();
+                    target.put(kv[0], m);
+                }
+                m.put(kv[1], op.value);
                 break;
+                
             }
             }
         }
