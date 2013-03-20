@@ -40,7 +40,13 @@ public class UpdateOp {
      * root of the commit.
      */
     static final String REVISIONS = "_revisions";
-    
+
+    /**
+     * The list of revision to root commit depth mappings to find out if a
+     * revision is actually committed.
+     */
+    static final String COMMIT_ROOT = "_commitRoot";
+
     /**
      * The number of previous documents (documents that contain old revisions of
      * this node). This property is only set if multiple documents per node
@@ -71,8 +77,6 @@ public class UpdateOp {
      * @param path the node path (for nodes)
      * @param key the primary key
      * @param isNew whether this is a new document
-     * @param isDelete whether the _deleted property is set 
-     * @param rev the revision
      */
     UpdateOp(String path, String key, boolean isNew) {
         this.path = path;
@@ -143,7 +147,7 @@ public class UpdateOp {
     /**
      * Increment the value.
      * 
-     * @param key the key
+     * @param property the key
      * @param value the increment
      */
     void increment(String property, long value) {

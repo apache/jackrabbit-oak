@@ -118,8 +118,6 @@ public class Commit {
 
     /**
      * Apply the changes to the document store (to update MongoDB).
-     * 
-     * @param store the store
      */
     void applyToDocumentStore() {
         DocumentStore store = mk.getDocumentStore();
@@ -139,6 +137,7 @@ public class Commit {
                 }
             }
         }
+        int commitRootDepth = PathUtils.getDepth(commitRoot);
         // create a "root of the commit" if there is none
         UpdateOp root = getUpdateOperationForNode(commitRoot);
         for (String p : operations.keySet()) {
@@ -152,12 +151,20 @@ public class Commit {
             }
         }
         if (changedNodes.size() == 0 && root.isNew) {
-            // no updates, so we just add the root like the others
+            // no updates and root of commit is also new. that is,
+            // it is the root of a subtree added in a commit.
+            // so we just add the root like the others
+            root.addMapEntry(UpdateOp.REVISIONS + "." + revision.toString(), "true");
             newNodes.add(root);
-            root = null;
         }
         try {
             if (newNodes.size() > 0) {
+                // set commit root on new nodes
+                for (UpdateOp op : newNodes) {
+                    if (op != root) {
+                        op.addMapEntry(UpdateOp.COMMIT_ROOT + "." + revision.toString(), commitRootDepth);
+                    }
+                }
                 if (!store.create(Collection.NODES, newNodes)) {
                     for (UpdateOp op : newNodes) {
                         op.unset(UpdateOp.ID);
@@ -168,9 +175,13 @@ public class Commit {
                 }
             }
             for (UpdateOp op : changedNodes) {
+                // set commit root on changed nodes
+                op.addMapEntry(UpdateOp.COMMIT_ROOT + "." + revision.toString(), commitRootDepth);
                 createOrUpdateNode(store, op);
             }
-            if (root != null) {
+            // finally write commit, unless it was already written
+            // with added nodes.
+            if (changedNodes.size() != 0 || !root.isNew) {
                 long increment = mk.getWriteCountIncrement(commitRoot);
                 root.increment(UpdateOp.WRITE_COUNT, 1 + increment);
                 root.addMapEntry(UpdateOp.REVISIONS + "." + revision.toString(), "true");
