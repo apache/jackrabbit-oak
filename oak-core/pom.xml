@@ -41,7 +41,6 @@
         <configuration>
           <instructions>
             <Import-Package>
-           		org.apache.felix.jaas.boot,
             		*
             </Import-Package>
             <Export-Package>
@@ -91,6 +90,9 @@
             <Bundle-Activator>
               org.apache.jackrabbit.oak.osgi.Activator
             </Bundle-Activator>
+            <DynamicImport-Package>
+              org.apache.felix.jaas.boot
+            </DynamicImport-Package>
           </instructions>
         </configuration>
       </plugin>
