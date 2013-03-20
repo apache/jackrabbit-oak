@@ -482,10 +482,6 @@ public class MongoMK implements MicroKernel {
         if (fromRevisionId.equals(toRevisionId)) {
             return "";
         }
-        // TODO implement if needed
-        if (true) {
-            return "{}";        
-        }
         if (depth != 0) {
             throw new MicroKernelException("Only depth 0 is supported, depth is " + depth);
         }
@@ -525,7 +521,11 @@ public class MongoMK implements MicroKernel {
             } else {
                 Node n1 = getNode(n, fromRev);
                 Node n2 = getNode(n, toRev);
-                if (!n1.equals(n2)) {
+                // this is not fully correct:
+                // a change is detected if the node changed recently,
+                // even if the revisions are well in the past
+                // if this is a problem it would need to be changed
+                if (!n1.getId().equals(n2.getId())) {
                     w.tag('^').key(n).object().endObject().newline();
                 }
             }
