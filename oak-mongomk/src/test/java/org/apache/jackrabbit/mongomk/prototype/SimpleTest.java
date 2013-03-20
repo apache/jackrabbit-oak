@@ -84,6 +84,8 @@ public class SimpleTest {
         Node n = new Node("/test", rev);
         n.setProperty("name", "Hello");
         UpdateOp op = n.asOperation(true);
+        // mark as commit root
+        op.addMapEntry(UpdateOp.REVISIONS + "." + rev, "true");
         DocumentStore s = mk.getDocumentStore();
         assertTrue(s.create(Collection.NODES, Lists.newArrayList(op)));
         Node n2 = mk.getNode("/test", rev);

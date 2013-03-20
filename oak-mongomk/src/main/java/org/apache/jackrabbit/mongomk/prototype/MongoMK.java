@@ -53,6 +53,8 @@ import com.mongodb.DB;
  */
 public class MongoMK implements MicroKernel {
 
+    private static final Logger log = LoggerFactory.getLogger(MongoMK.class);
+
     /**
      * The number of documents to cache.
      */
@@ -260,7 +262,56 @@ public class MongoMK implements MicroKernel {
         // TODO currently we only compare the timestamps
         return x.compareRevisionTime(previous) > 0;
     }
-    
+
+    /**
+     * Checks if the revision is valid for the given node map. A revision is
+     * considered valid if the given node map is the root of the commit, or the
+     * commit root has the revision set. This method may read further nodes to
+     * perform this check.
+     *
+     * @param rev     revision to check.
+     * @param nodeMap the node to check.
+     * @return <code>true</code> if the revision is valid; <code>false</code>
+     *         otherwise.
+     */
+    boolean isValidRevision(Revision rev, Map<String, Object> nodeMap) {
+        @SuppressWarnings("unchecked")
+        Map<String, String> revisions = (Map<String, String>) nodeMap.get(UpdateOp.REVISIONS);
+        if (revisions != null && revisions.containsKey(rev.toString())) {
+            return true;
+        }
+        // check commit root
+        @SuppressWarnings("unchecked")
+        Map<String, Integer> commitRoot = (Map<String, Integer>) nodeMap.get(UpdateOp.COMMIT_ROOT);
+        String commitRootId = null;
+        if (commitRoot != null) {
+            Integer depth = commitRoot.get(rev.toString());
+            if (depth != null) {
+                String p = Utils.getPathFromId((String) nodeMap.get(UpdateOp.ID));
+                StringBuilder sb = new StringBuilder();
+                sb.append(depth).append(":");
+                sb.append(PathUtils.getAncestorPath(p, PathUtils.getDepth(p) - depth));
+                commitRootId = sb.toString();
+            }
+        }
+        if (commitRootId == null) {
+            // shouldn't happen, either node is commit root for a revision
+            // or has a reference to the commit root
+            log.warn("Node {} does not have commit root reference for revision {}",
+                    nodeMap.get(UpdateOp.ID), rev);
+            log.warn(nodeMap.toString());
+            return false;
+        }
+        // get root of commit
+        nodeMap = store.find(DocumentStore.Collection.NODES, commitRootId);
+        if (nodeMap == null) {
+            return false;
+        }
+        //noinspection unchecked
+        revisions = (Map<String, String>) nodeMap.get(UpdateOp.REVISIONS);
+        return revisions != null && revisions.containsKey(rev.toString());
+    }
+
     public Children getChildren(String path, Revision rev, int limit) {
         checkRevisionAge(rev, path);
         String key = path + "@" + rev;
@@ -667,7 +718,7 @@ public class MongoMK implements MicroKernel {
     }
     
     /**
-     * Get the latest revision where the node was alive at or before the the
+     * Get the latest revision where the node was alive at or before the
      * provided revision.
      * 
      * @param nodeMap the node map
@@ -684,7 +735,8 @@ public class MongoMK implements MicroKernel {
         String value = null;
         for (String r : valueMap.keySet()) {
             Revision propRev = Revision.fromString(r);
-            if (isRevisionNewer(propRev, maxRev)) {
+            if (isRevisionNewer(propRev, maxRev)
+                    || !isValidRevision(propRev, nodeMap)) {
                 continue;
             }
             String v = valueMap.get(r);
