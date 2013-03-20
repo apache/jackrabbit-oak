@@ -267,7 +267,7 @@ public class MongoDocumentStore implements DocumentStore {
                     case SET_MAP_ENTRY:
                     case ADD_MAP_ENTRY: {
                         String[] kv = k.split("\\.");
-                        DBObject value = new BasicDBObject(kv[1], op.value.toString());
+                        DBObject value = new BasicDBObject(kv[1], op.value);
                         inserts[i].put(kv[0], value);
                         break;
                     }
