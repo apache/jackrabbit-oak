@@ -129,7 +129,6 @@ public class SimpleTest {
     }
     
     @Test
-    @Ignore
     public void diff() {
         MongoMK mk = createMK();
         
@@ -137,7 +136,7 @@ public class SimpleTest {
         String rev1 = mk.commit("/", "+\"t1\":{}", null, null);
         String rev2 = mk.commit("/", "+\"t2\":{}", null, null);
         String rev3 = mk.commit("/", "+\"t3\":{}", null, null);
-        String rev4 = mk.commit("/", "^\"t2/x\":1", null, null);
+        String rev4 = mk.commit("/", "^\"t3/x\":1", null, null);
         
         String r0 = mk.getNodes("/", rev0, 0, 0, Integer.MAX_VALUE, null);
         assertEquals("{\":childNodeCount\":0}", r0);
@@ -157,7 +156,7 @@ public class SimpleTest {
         String diff13 = mk.diff(rev1, rev3, "/", 0).trim();
         assertEquals("+\"/t2\":{}\n+\"/t3\":{}", diff13);
         String diff34 = mk.diff(rev3, rev4, "/", 0).trim();
-        assertEquals("^\"/t2\":{}", diff34);
+        assertEquals("^\"/t3\":{}", diff34);
         mk.dispose();
     }
 
@@ -248,57 +247,6 @@ public class SimpleTest {
         // System.out.println(test);
         mk.dispose();
     }
-    
-    @Test
-    public void cache() {
-        MongoMK mk = createMK();
-        
-        // BAD
-        String rev = mk.commit("/", "+\"testRoot\":{} +\"index\":{}", null, null);
-        
-        // GOOD
-//        String rev = mk.commit("/", "+\"testRoot\":{} ", null, null);
-        
-        String test = mk.getNodes("/", rev, 0, 0, Integer.MAX_VALUE, ":id");
-        // System.out.println("  " + test);
-//        test = mk.getNodes("/testRoot", rev, 0, 0, Integer.MAX_VALUE, ":id");
-//        System.out.println("  " + test);
-        rev = mk.commit("/testRoot", "+\"a\":{}", null, null);
-//        test = mk.getNodes("/testRoot", rev, 0, 0, Integer.MAX_VALUE, ":id");
-//        System.out.println("  " + test);
-//        rev = mk.commit("/testRoot/a", "+\"b\":{}", null, null);
-//        rev = mk.commit("/testRoot/a/b", "+\"c\":{} +\"d\":{}", null, null);
-//        test = mk.getNodes("/testRoot", rev, 0, 0, Integer.MAX_VALUE, ":id");
-//        System.out.println("  " + test);
-//        test = mk.getNodes("/", rev, 0, 0, Integer.MAX_VALUE, ":id");
-//        System.out.println("  " + test);
-//        rev = mk.commit("/index", "+\"a\":{}", null, null);
-        test = mk.getNodes("/", rev, 0, 0, Integer.MAX_VALUE, ":id");
-        // System.out.println("  " + test);
-//        test = mk.getNodes("/testRoot", rev, 0, 0, Integer.MAX_VALUE, ":id");
-//        System.out.println("  " + test);
-        
-//        assertEquals("{\"name\":\"Hello\",\":childNodeCount\":0}", test);
-//        
-//        rev = mk.commit("/test", "+\"a\":{\"name\": \"World\"}", null, null);
-//        rev = mk.commit("/test", "+\"b\":{\"name\": \"!\"}", null, null);
-//        test = mk.getNodes("/test", rev, 0, 0, Integer.MAX_VALUE, null);
-//        Children c;
-//        c = mk.readChildren("/", "1",
-//                Revision.fromString(rev), Integer.MAX_VALUE);
-//        assertEquals("/: [/test]", c.toString());
-//        c = mk.readChildren("/test", "2",
-//                Revision.fromString(rev), Integer.MAX_VALUE);
-//        assertEquals("/test: [/test/a, /test/b]", c.toString());
-//
-//        rev = mk.commit("", "^\"/test\":1", null, null);
-//        test = mk.getNodes("/", rev, 0, 0, Integer.MAX_VALUE, null);
-//        assertEquals("{\"test\":1,\"test\":{},\":childNodeCount\":1}", test);
-
-        // System.out.println(test);
-        mk.dispose();
-    }
-
 
     @Test
     public void testDeletion() {
@@ -352,31 +300,31 @@ public class SimpleTest {
 
             // root node must not have the revision
             Map<String, Object> rootNode = store.find(Collection.NODES, "0:/");
-            assertFalse(((Map) rootNode.get(UpdateOp.REVISIONS)).containsKey(head));
+            assertFalse(((Map<?, ?>) rootNode.get(UpdateOp.REVISIONS)).containsKey(head));
 
             // test node must have head in revisions
             Map<String, Object> node = store.find(Collection.NODES, "1:/test");
-            assertTrue(((Map) node.get(UpdateOp.REVISIONS)).containsKey(head));
+            assertTrue(((Map<?, ?>) node.get(UpdateOp.REVISIONS)).containsKey(head));
 
             // foo must not have head in revisions and must refer to test
             // as commit root (depth = 1)
             Map<String, Object> foo = store.find(Collection.NODES, "2:/test/foo");
             assertTrue(foo.get(UpdateOp.REVISIONS) == null);
-            assertEquals(1, ((Map) foo.get(UpdateOp.COMMIT_ROOT)).get(head));
+            assertEquals(1, ((Map<?, ?>) foo.get(UpdateOp.COMMIT_ROOT)).get(head));
 
             head = mk.commit("", "+\"/bar\":{}+\"/test/foo/bar\":{}", head, null);
 
             // root node is root of commit
             rootNode = store.find(Collection.NODES, "0:/");
-            assertTrue(((Map) rootNode.get(UpdateOp.REVISIONS)).containsKey(head));
+            assertTrue(((Map<?, ?>) rootNode.get(UpdateOp.REVISIONS)).containsKey(head));
 
             // /bar refers to root nodes a commit root
             Map<String, Object> bar = store.find(Collection.NODES, "1:/bar");
-            assertEquals(0, ((Map) bar.get(UpdateOp.COMMIT_ROOT)).get(head));
+            assertEquals(0, ((Map<?, ?>) bar.get(UpdateOp.COMMIT_ROOT)).get(head));
 
             // /test/foo/bar refers to root nodes a commit root
             bar = store.find(Collection.NODES, "3:/test/foo/bar");
-            assertEquals(0, ((Map) bar.get(UpdateOp.COMMIT_ROOT)).get(head));
+            assertEquals(0, ((Map<?, ?>) bar.get(UpdateOp.COMMIT_ROOT)).get(head));
 
         } finally {
             mk.dispose();
