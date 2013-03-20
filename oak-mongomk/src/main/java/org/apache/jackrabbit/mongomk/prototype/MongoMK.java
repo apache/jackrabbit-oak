@@ -771,8 +771,7 @@ public class MongoMK implements MicroKernel {
         String value = null;
         for (String r : valueMap.keySet()) {
             Revision propRev = Revision.fromString(r);
-            if (isRevisionNewer(propRev, maxRev)
-                    || !isValidRevision(propRev, nodeMap)) {
+            if (isRevisionNewer(propRev, maxRev)) {
                 continue;
             }
             String v = valueMap.get(r);
