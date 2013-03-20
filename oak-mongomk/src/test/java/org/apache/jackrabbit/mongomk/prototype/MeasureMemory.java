@@ -27,7 +27,7 @@ import static org.junit.Assert.fail;
  */
 public class MeasureMemory {
     
-    static final boolean TRACE = true;
+    static final boolean TRACE = false;
     
     static final int TEST_COUNT = 10000;
     static final int OVERHEAD = 24;
