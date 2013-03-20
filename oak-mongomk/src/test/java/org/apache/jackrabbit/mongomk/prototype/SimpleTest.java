@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.mongomk.prototype;
 
+import java.util.Map;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
@@ -301,6 +303,47 @@ public class SimpleTest {
 
         assertFalse(mk.nodeExists("/root/a", head));
         assertTrue(mk.nodeExists("/root/c/b", head));
+    }
+
+    @Test
+    public void commitRoot() {
+        MongoMK mk = createMK();
+        try {
+            DocumentStore store = mk.getDocumentStore();
+            String head = mk.getHeadRevision();
+            head = mk.commit("", "+\"/test\":{\"foo\":{}}", head, null);
+
+            // root node must not have the revision
+            Map<String, Object> rootNode = store.find(Collection.NODES, "0:/");
+            assertFalse(((Map) rootNode.get(UpdateOp.REVISIONS)).containsKey(head));
+
+            // test node must have head in revisions
+            Map<String, Object> node = store.find(Collection.NODES, "1:/test");
+            assertTrue(((Map) node.get(UpdateOp.REVISIONS)).containsKey(head));
+
+            // foo must not have head in revisions and must refer to test
+            // as commit root (depth = 1)
+            Map<String, Object> foo = store.find(Collection.NODES, "2:/test/foo");
+            assertTrue(foo.get(UpdateOp.REVISIONS) == null);
+            assertEquals(1, ((Map) foo.get(UpdateOp.COMMIT_ROOT)).get(head));
+
+            head = mk.commit("", "+\"/bar\":{}+\"/test/foo/bar\":{}", head, null);
+
+            // root node is root of commit
+            rootNode = store.find(Collection.NODES, "0:/");
+            assertTrue(((Map) rootNode.get(UpdateOp.REVISIONS)).containsKey(head));
+
+            // /bar refers to root nodes a commit root
+            Map<String, Object> bar = store.find(Collection.NODES, "1:/bar");
+            assertEquals(0, ((Map) bar.get(UpdateOp.COMMIT_ROOT)).get(head));
+
+            // /test/foo/bar refers to root nodes a commit root
+            bar = store.find(Collection.NODES, "3:/test/foo/bar");
+            assertEquals(0, ((Map) bar.get(UpdateOp.COMMIT_ROOT)).get(head));
+
+        } finally {
+            mk.dispose();
+        }
     }
 
     private static MongoMK createMK() {
