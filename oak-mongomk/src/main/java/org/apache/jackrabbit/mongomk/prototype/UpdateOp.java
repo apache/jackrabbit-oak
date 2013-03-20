@@ -31,13 +31,13 @@ public class UpdateOp {
     static final String ID = "_id";
     
     /**
-     * The number of write operations to this node.
+     * The last revision. Key: machine id, value: revision.
      */
-    static final String WRITE_COUNT = "_writeCount";
+    static final String LAST_REV = "_lastRev";
     
     /**
-     * The list of recent revisions against this node, where this node is the
-     * root of the commit.
+     * The list of recent revisions for this node, where this node is the
+     * root of the commit. Key: revision, value: true.
      */
     static final String REVISIONS = "_revisions";
 
@@ -56,9 +56,13 @@ public class UpdateOp {
     static final String PREVIOUS = "_prev";
     
     /**
-     * Whether this node is
+     * Whether this node is deleted. Key: revision, value: true/false.
      */
     static final String DELETED = "_deleted";
+    
+    /**
+     * The modified time (5 second resolution).
+     */
     static final String MODIFIED = "_modified";
     
     final String path;

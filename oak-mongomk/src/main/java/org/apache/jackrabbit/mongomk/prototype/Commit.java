@@ -59,8 +59,6 @@ public class Commit {
     private HashSet<String> addedNodes = new HashSet<String>();
     private HashSet<String> removedNodes = new HashSet<String>();
     
-    private HashMap<String, Long> writeCounts = new HashMap<String, Long>();
-    
     Commit(MongoMK mk, Revision revision) {
         this.revision = revision;
         this.mk = mk;
@@ -92,8 +90,7 @@ public class Commit {
         UpdateOp op = getUpdateOperationForNode(path);
         String key = Utils.escapePropertyName(propertyName);
         op.addMapEntry(key + "." + revision.toString(), value);
-        long increment = mk.getWriteCountIncrement(path);
-        op.increment(UpdateOp.WRITE_COUNT, 1 + increment);
+        op.setMapEntry(UpdateOp.LAST_REV + "." + revision.getClusterId(), revision.toString());        
     }
 
     void addNode(Node n) {
@@ -169,7 +166,7 @@ public class Commit {
                     for (UpdateOp op : newNodes) {
                         op.unset(UpdateOp.ID);
                         op.addMapEntry(UpdateOp.DELETED + "." + revision.toString(), "false");
-                        op.increment(UpdateOp.WRITE_COUNT, 1);
+                        op.setMapEntry(UpdateOp.LAST_REV + "." + revision.getClusterId(), revision.toString());
                         createOrUpdateNode(store, op);
                     }
                 }
@@ -182,8 +179,7 @@ public class Commit {
             // finally write commit, unless it was already written
             // with added nodes.
             if (changedNodes.size() != 0 || !root.isNew) {
-                long increment = mk.getWriteCountIncrement(commitRoot);
-                root.increment(UpdateOp.WRITE_COUNT, 1 + increment);
+                root.setMapEntry(UpdateOp.LAST_REV + "." + revision.getClusterId(), revision.toString());
                 root.addMapEntry(UpdateOp.REVISIONS + "." + revision.toString(), "true");
                 createOrUpdateNode(store, root);
                 operations.put(commitRoot, root);
@@ -217,12 +213,7 @@ public class Commit {
             }
         }
         // TODO detect conflicts here
-        Long count = (Long) map.get(UpdateOp.WRITE_COUNT);
-        if (count == null) {
-            count = 0L;
-        }
-        String path = op.getPath();
-        writeCounts.put(path, count);
+        op.setMapEntry(UpdateOp.LAST_REV + "." + revision.getClusterId(), revision.toString());
     }
     
     private UpdateOp[] splitDocument(Map<String, Object> map) {
@@ -243,9 +234,9 @@ public class Commit {
                 // ok
             } else if (key.equals(UpdateOp.PREVIOUS)) {
                 // ok
-            } else if (key.equals(UpdateOp.WRITE_COUNT)) {
-                // only maintain the write count on the main document
-                main.set(UpdateOp.WRITE_COUNT, e.getValue());
+            } else if (key.equals(UpdateOp.LAST_REV)) {
+                // only maintain the lastRev in the main document
+                main.setMapEntry(UpdateOp.LAST_REV + "." + revision.getClusterId(), revision.toString());        
             } else {
                 // UpdateOp.DELETED,
                 // UpdateOp.REVISIONS,
@@ -310,23 +301,8 @@ public class Commit {
             boolean isNew = op != null && op.isNew;
             boolean isWritten = op != null;
             boolean isDelete = op != null && op.isDelete;
-            long writeCountInc = mk.getWriteCountIncrement(path);
-            Long writeCount = writeCounts.get(path);
-            if (writeCount == null) {
-                if (isNew) {
-                    writeCount = 0L;
-                    writeCountInc = 0;
-                } else {
-                    writeCountInc++;
-                    String id = Utils.getIdFromPath(path);
-                    Map<String, Object> map = mk.getDocumentStore().find(Collection.NODES, id);
-                    Long oldWriteCount = (Long) map.get(UpdateOp.WRITE_COUNT);
-                    writeCount = oldWriteCount == null ? 0 : oldWriteCount;
-                }
-            }
             mk.applyChanges(revision, path, 
                     isNew, isDelete, isWritten, 
-                    writeCount, writeCountInc,
                     added, removed);
         }
     }
@@ -369,8 +345,7 @@ public class Commit {
         UpdateOp op = getUpdateOperationForNode(path);
         op.setDelete(true);
         op.addMapEntry(UpdateOp.DELETED + "." + revision.toString(), "true");
-        long increment = mk.getWriteCountIncrement(path);
-        op.increment(UpdateOp.WRITE_COUNT, 1 + increment);
+        op.setMapEntry(UpdateOp.LAST_REV + "." + revision.getClusterId(), revision.toString());
     }
 
 }

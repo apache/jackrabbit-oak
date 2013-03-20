@@ -94,6 +94,41 @@ public class SimpleTest {
     }
     
     @Test
+    public void nodeIdentifier() {
+        MongoMK mk = createMK();
+        mk.useSimpleRevisions();
+        
+        String rev0 = mk.getHeadRevision();
+        String rev1 = mk.commit("/", "+\"test\":{}", null, null);
+        String rev2 = mk.commit("/test", "+\"a\":{}", null, null);
+        String rev3 = mk.commit("/test", "+\"b\":{}", null, null);
+        String rev4 = mk.commit("/test", "^\"a/x\":1", null, null);
+        
+        String r0 = mk.getNodes("/", rev0, 0, 0, Integer.MAX_VALUE, ":id");
+        assertEquals("{\":id\":\"/@r0000001000-0\",\":childNodeCount\":0}", r0);
+        String r1 = mk.getNodes("/", rev1, 0, 0, Integer.MAX_VALUE, ":id");
+        assertEquals("{\":id\":\"/@r0000002000-0\",\"test\":{},\":childNodeCount\":1}", r1);
+        String r2 = mk.getNodes("/", rev2, 0, 0, Integer.MAX_VALUE, ":id");
+        assertEquals("{\":id\":\"/@r0000003000-0\",\"test\":{},\":childNodeCount\":1}", r2);
+        String r3;
+        r3 = mk.getNodes("/", rev3, 0, 0, Integer.MAX_VALUE, ":id");
+        assertEquals("{\":id\":\"/@r0000004000-0\",\"test\":{},\":childNodeCount\":1}", r3);
+        r3 = mk.getNodes("/test", rev3, 0, 0, Integer.MAX_VALUE, ":id");
+        assertEquals("{\":id\":\"/test@r0000004000-0\",\"a\":{},\"b\":{},\":childNodeCount\":2}", r3);
+        String r4;
+        r4 = mk.getNodes("/", rev4, 0, 0, Integer.MAX_VALUE, ":id");
+        assertEquals("{\":id\":\"/@r0000005000-0\",\"test\":{},\":childNodeCount\":1}", r4);
+        r4 = mk.getNodes("/test", rev4, 0, 0, Integer.MAX_VALUE, ":id");
+        assertEquals("{\":id\":\"/test@r0000005000-0\",\"a\":{},\"b\":{},\":childNodeCount\":2}", r4);
+        r4 = mk.getNodes("/test/a", rev4, 0, 0, Integer.MAX_VALUE, ":id");
+        assertEquals("{\":id\":\"/test/a@r0000005000-0\",\"x\":1,\":childNodeCount\":0}", r4);
+        r4 = mk.getNodes("/test/b", rev4, 0, 0, Integer.MAX_VALUE, ":id");
+        assertEquals("{\":id\":\"/test/b@r0000004000-0\",\":childNodeCount\":0}", r4);
+        
+        mk.dispose();        
+    }
+    
+    @Test
     @Ignore
     public void diff() {
         MongoMK mk = createMK();
@@ -289,7 +324,7 @@ public class SimpleTest {
     }
 
     @Test
-    public void testAddAndMove() {
+    public void addAndMove() {
         MongoMK mk = createMK();
 
         String head = mk.getHeadRevision();

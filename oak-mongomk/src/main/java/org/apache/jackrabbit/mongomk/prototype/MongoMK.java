@@ -121,9 +121,11 @@ public class MongoMK implements MicroKernel {
     private final Cache<String, Node.Children> nodeChildrenCache;
 
     /**
-     * The unsaved write count increments.
+     * The unsaved last revisions.
+     * Key: path, value: revision.
      */
-    private final Map<String, Long> writeCountIncrements = new HashMap<String, Long>();
+    private final Map<String, Revision> unsavedLastRevisions = 
+            new HashMap<String, Revision>();
     
     /**
      * The last known head revision. This is the last-known revision.
@@ -131,6 +133,8 @@ public class MongoMK implements MicroKernel {
     private Revision headRevision;
     
     private Thread backgroundThread;
+    
+    private int simpleRevisionCounter;
 
     /**
      * Maps branch commit revision to revision it is based on
@@ -179,11 +183,16 @@ public class MongoMK implements MicroKernel {
                         .build();
 
         backgroundThread = new Thread(
-            new BackgroundOperation(this, isDisposed),
-            "MongoMK background thread");
+                new BackgroundOperation(this, isDisposed),
+                "MongoMK background thread");
         backgroundThread.setDaemon(true);
         backgroundThread.start();
-        headRevision = Revision.newRevision(clusterId);
+            
+        init();
+    }
+    
+    void init() {
+        headRevision = newRevision();
         Node n = readNode("/", headRevision);
         if (n == null) {
             // root node is missing: repository is not initialized
@@ -194,7 +203,15 @@ public class MongoMK implements MicroKernel {
         }
     }
     
+    void useSimpleRevisions() {
+        this.simpleRevisionCounter = 1;
+        init();
+    }
+    
     Revision newRevision() {
+        if (simpleRevisionCounter > 0) {
+            return new Revision(simpleRevisionCounter++, 0, clusterId);
+        }
         return Revision.newRevision(clusterId);
     }
     
@@ -359,11 +376,30 @@ public class MongoMK implements MicroKernel {
             return null;
         }
         Node n = new Node(path, rev);
-        Long w = writeCountIncrements.get(path);
-        long writeCount = w == null ? 0 : w;
+        Revision lastRevision = null;
+        Revision revision =  unsavedLastRevisions.get(path);
+        if (revision != null) {
+            if (isRevisionNewer(revision, rev)) {
+                // at most the read revision
+                revision = rev;
+            }
+            lastRevision = revision;
+        }
         for (String key : map.keySet()) {
-            if (key.equals(UpdateOp.WRITE_COUNT)) {
-                writeCount += (Long) map.get(key);
+            if (key.equals(UpdateOp.LAST_REV)) {
+                Object v = map.get(key);
+                @SuppressWarnings("unchecked")
+                Map<String, String> valueMap = (Map<String, String>) v;
+                for (String r : valueMap.keySet()) {
+                    revision = Revision.fromString(valueMap.get(r));
+                    if (isRevisionNewer(revision, rev)) {
+                        // at most the read revision
+                        revision = rev;
+                    }
+                    if (lastRevision == null || isRevisionNewer(revision, lastRevision)) {
+                        lastRevision = revision;
+                    }
+                }
             }
             if (!Utils.isPropertyName(key)) {
                 continue;
@@ -377,7 +413,7 @@ public class MongoMK implements MicroKernel {
                 n.setProperty(propertyName, value);
             }
         }
-        n.setWriteCount(writeCount);
+        n.setLastRevision(lastRevision);
         return n;
     }
     
@@ -565,7 +601,7 @@ public class MongoMK implements MicroKernel {
             String message) throws MicroKernelException {
         revisionId = revisionId == null ? headRevision.toString() : revisionId;
         JsopReader t = new JsopTokenizer(json);
-        Revision rev = Revision.newRevision(clusterId);
+        Revision rev = newRevision();
         Commit commit = new Commit(this, rev);
         while (true) {
             int r = t.read();
@@ -880,19 +916,13 @@ public class MongoMK implements MicroKernel {
 
     public void applyChanges(Revision rev, String path, 
             boolean isNew, boolean isDelete, boolean isWritten, 
-            long oldWriteCount, long writeCountInc,
             ArrayList<String> added, ArrayList<String> removed) {
         if (!isWritten) {
-            if (writeCountInc == 0) {
-                writeCountIncrements.remove(path);
-            } else {
-                writeCountIncrements.put(path, writeCountInc);
-            }
+            unsavedLastRevisions.put(path, rev);
         } else {
-            writeCountIncrements.remove(path);
+            unsavedLastRevisions.remove(path);
         }
-        long newWriteCount = oldWriteCount + writeCountInc;
-        Children c = nodeChildrenCache.getIfPresent(path + "@" + (newWriteCount - 1));
+        Children c = nodeChildrenCache.getIfPresent(path + "@" + rev);
         if (isNew || (!isDelete && c != null)) {
             String key = path + "@" + rev;
             Children c2 = new Children(path, rev);
@@ -906,10 +936,5 @@ public class MongoMK implements MicroKernel {
             nodeChildrenCache.put(key, c2);
         }
     }
-
-    public long getWriteCountIncrement(String path) {
-        Long x = writeCountIncrements.get(path);
-        return x == null ? 0 : x;
-    }
-
+    
 }
