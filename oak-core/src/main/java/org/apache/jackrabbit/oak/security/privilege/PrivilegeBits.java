@@ -27,7 +27,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
-import org.apache.jackrabbit.oak.spi.security.authorization.Permissions;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -311,7 +311,7 @@ public final class PrivilegeBits implements PrivilegeConstants {
      *
      * @return {@code true} if this privilege bits includes no privileges
      *         at all; {@code false} otherwise.
-     * @see Permissions#NO_PERMISSION
+     * @see org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions#NO_PERMISSION
      */
     public boolean isEmpty() {
         return d.isEmpty();
