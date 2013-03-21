@@ -95,7 +95,7 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
         NodeBuilder permissionRoot;
         if (!permissionStore.hasChildNode(workspaceName)) {
             permissionRoot = permissionStore.child(workspaceName)
-                    .setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_PERMISSION_STORE);
+                    .setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_PERMISSION_STORE, Type.NAME);
         } else {
             permissionRoot = permissionStore.child(workspaceName);
         }
