@@ -123,10 +123,11 @@ class EffectiveType {
                     }
                     if (definition != null) {
                         return definition;
-                    } else {
-                        throw new ConstraintViolationException(
-                                "No matching definition found for property "
-                                        + propertyName);
+// TODO: Fall back to residual definitions until we have consensus on OAK-709
+//                    } else {
+//                        throw new ConstraintViolationException(
+//                                "No matching definition found for property "
+//                                        + propertyName);
                     }
                 }
             }
@@ -189,8 +190,9 @@ class EffectiveType {
                         }
                     }
 
-                    throw new ConstraintViolationException(
-                            "Incorrect node type of child node " + nodeName);
+// TODO: Fall back to residual definitions until we have consensus on OAK-709
+//                    throw new ConstraintViolationException(
+//                            "Incorrect node type of child node " + nodeName);
                 }
             }
         }
