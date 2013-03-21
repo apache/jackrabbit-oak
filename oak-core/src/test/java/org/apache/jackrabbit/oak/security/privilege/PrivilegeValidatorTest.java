@@ -49,7 +49,7 @@ public class PrivilegeValidatorTest extends AbstractSecurityTest implements Priv
 
     private Tree createPrivilegeTree() {
         Tree privTree = privilegesTree.addChild("test");
-        privTree.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_PRIVILEGE);
+        privTree.setProperty(JcrConstants.JCR_PRIMARYTYPE, NT_REP_PRIVILEGE, Type.NAME);
         return privTree;
     }
 
