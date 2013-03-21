@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.nodetype;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
@@ -55,7 +56,7 @@ public class DefaultTypeEditor implements CommitHook {
             if (!NodeStateUtils.isHidden(name)) {
                 NodeBuilder childBuilder = builder.child(name);
                 if (after.getProperty("jcr:primaryType") == null) {
-                    childBuilder.setProperty("jcr:primaryType", defaultType);
+                    childBuilder.setProperty("jcr:primaryType", defaultType, Type.NAME);
                 }
                 DefaultTypeDiff childDiff =
                         new DefaultTypeDiff(childBuilder, defaultType);
