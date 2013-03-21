@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.spi.security.authorization;
+package org.apache.jackrabbit.oak.spi.security.authorization.permission;
 
 import java.util.Set;
 import javax.annotation.Nonnull;
@@ -45,5 +45,5 @@ public interface PermissionProvider {
 
     boolean isGranted(@Nonnull Tree parent, @Nonnull PropertyState property, long permissions);
 
-    boolean hasPermission(@Nonnull String oakPath, @Nonnull String jcrActions);
+    boolean isGranted(@Nonnull String oakPath, @Nonnull String jcrActions);
 }

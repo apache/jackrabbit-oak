@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.spi.security.authorization;
+package org.apache.jackrabbit.oak.spi.security.authorization.permission;
 
 import java.util.Collections;
 import java.util.Set;
@@ -81,7 +81,7 @@ public final class OpenPermissionProvider implements PermissionProvider {
     }
 
     @Override
-    public boolean hasPermission(@Nonnull String oakPath, @Nonnull String jcrActions) {
+    public boolean isGranted(@Nonnull String oakPath, @Nonnull String jcrActions) {
         return true;
     }
 }

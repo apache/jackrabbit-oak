@@ -25,6 +25,7 @@ import javax.jcr.security.AccessControlManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 
 /**

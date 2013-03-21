@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.spi.security.authorization;
+package org.apache.jackrabbit.oak.spi.security.authorization.permission;
 
 import java.util.Arrays;
 import java.util.HashSet;

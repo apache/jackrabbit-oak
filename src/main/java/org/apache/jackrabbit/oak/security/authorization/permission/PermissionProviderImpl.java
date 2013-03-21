@@ -38,8 +38,8 @@ import org.apache.jackrabbit.oak.security.authorization.AccessControlConstants;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfiguration;
-import org.apache.jackrabbit.oak.spi.security.authorization.PermissionProvider;
-import org.apache.jackrabbit.oak.spi.security.authorization.Permissions;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.SystemPrincipal;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
@@ -154,7 +154,7 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
     }
 
     @Override
-    public boolean hasPermission(@Nonnull String oakPath, @Nonnull String jcrActions) {
+    public boolean isGranted(@Nonnull String oakPath, @Nonnull String jcrActions) {
         TreeLocation location = getImmutableRoot().getLocation(oakPath);
         long permissions = Permissions.getPermissions(jcrActions, location);
         if (!location.exists()) {

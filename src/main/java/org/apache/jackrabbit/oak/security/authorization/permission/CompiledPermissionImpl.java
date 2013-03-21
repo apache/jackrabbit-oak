@@ -38,7 +38,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeBitsProvider;
-import org.apache.jackrabbit.oak.spi.security.authorization.Permissions;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionPattern;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 import org.apache.jackrabbit.oak.util.TreeUtil;
