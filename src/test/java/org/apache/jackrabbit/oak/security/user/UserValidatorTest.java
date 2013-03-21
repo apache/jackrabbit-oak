@@ -28,6 +28,7 @@ import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.util.Text;
@@ -259,13 +260,13 @@ public class UserValidatorTest extends AbstractSecurityTest {
                         Tree next = parent.getChild(segment);
                         if (next == null) {
                             next = parent.addChild(segment);
-                            next.setProperty(JcrConstants.JCR_PRIMARYTYPE, UserConstants.NT_REP_AUTHORIZABLE_FOLDER);
+                            next.setProperty(JcrConstants.JCR_PRIMARYTYPE, UserConstants.NT_REP_AUTHORIZABLE_FOLDER, Type.NAME);
                             parent = next;
                         }
                     }
                 }
                 Tree userTree = parent.addChild("testUser");
-                userTree.setProperty(JcrConstants.JCR_PRIMARYTYPE, UserConstants.NT_REP_USER);
+                userTree.setProperty(JcrConstants.JCR_PRIMARYTYPE, UserConstants.NT_REP_USER, Type.NAME);
                 userTree.setProperty(JcrConstants.JCR_UUID, UserProvider.getContentID("testUser"));
                 userTree.setProperty(UserConstants.REP_PRINCIPAL_NAME, "testUser");
                 root.commit();
