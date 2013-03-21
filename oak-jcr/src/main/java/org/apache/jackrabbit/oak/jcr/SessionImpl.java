@@ -54,7 +54,7 @@ import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionOperation;
 import org.apache.jackrabbit.oak.jcr.xml.ImportHandler;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
-import org.apache.jackrabbit.oak.spi.security.authorization.PermissionProvider;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.util.TODO;
 import org.apache.jackrabbit.util.Text;
 import org.apache.jackrabbit.util.XMLChar;
@@ -409,7 +409,7 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
         }
 
         PermissionProvider permissionProvider = sessionContext.getPermissionProvider();
-        return permissionProvider.hasPermission(absPath, actions);
+        return permissionProvider.isGranted(absPath, actions);
     }
 
     @Override

@@ -27,8 +27,8 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
-import org.apache.jackrabbit.oak.spi.security.authorization.PermissionProvider;
-import org.apache.jackrabbit.oak.spi.security.authorization.Permissions;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.SystemPrincipal;
 
@@ -105,7 +105,7 @@ class TmpPermissionProvider implements PermissionProvider {
     }
 
     @Override
-    public boolean hasPermission(@Nonnull String oakPath, @Nonnull String jcrActions) {
+    public boolean isGranted(@Nonnull String oakPath, @Nonnull String jcrActions) {
         if (isAdmin) {
             return true;
         } else {
