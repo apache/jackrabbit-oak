@@ -490,7 +490,7 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
                 queue.addAll(Arrays.asList(type.getDeclaredSupertypes()));
             }
         }
-        return EffectiveNodeTypeImpl.create(types.values(), this);
+        return EffectiveNodeType.create(types.values(), this);
     }
 
     /**
