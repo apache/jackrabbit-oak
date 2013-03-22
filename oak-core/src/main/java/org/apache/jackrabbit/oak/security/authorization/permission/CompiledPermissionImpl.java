@@ -123,13 +123,8 @@ class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants
     }
 
     @Override
-    public boolean isGranted(Tree tree, long permissions) {
-        return hasPermissions(tree, permissions, filterEntries(tree, null));
-    }
-
-    @Override
-    public boolean isGranted(Tree parent, PropertyState property, long permissions) {
-        return hasPermissions(parent, permissions, filterEntries(parent, property));
+    public boolean isGranted(@Nonnull Tree tree, @Nullable PropertyState property, long permissions) {
+        return hasPermissions(tree, permissions, filterEntries(tree, property));
     }
 
     @Override
