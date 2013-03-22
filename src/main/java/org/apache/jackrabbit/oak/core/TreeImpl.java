@@ -39,6 +39,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.RootImpl.Move;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryPropertyBuilder;
 import org.apache.jackrabbit.oak.plugins.memory.MultiStringPropertyState;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.ReadStatus;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
@@ -86,6 +87,8 @@ public class TreeImpl implements Tree {
     /** Pointer into the list of pending moves */
     private Move pendingMoves;
 
+    private ReadStatus readStatus = null;
+
     TreeImpl(RootImpl root, Move pendingMoves) {
         this.root = checkNotNull(root);
         this.name = "";
@@ -106,6 +109,7 @@ public class TreeImpl implements Tree {
         } else {
             this.baseState = parent.baseState.getChildNode(name);
         }
+        readStatus = ReadStatus.getChildStatus(parent.readStatus);
     }
 
     @Override
@@ -277,7 +281,7 @@ public class TreeImpl implements Tree {
                 new Predicate<Tree>() {
                     @Override
                     public boolean apply(Tree tree) {
-                        return tree != null && canRead(tree);
+                        return tree != null && canRead((TreeImpl) tree);
                     }
                 });
     }
@@ -564,18 +568,31 @@ public class TreeImpl implements Tree {
         }
     }
 
-    private boolean canRead(Tree tree) {
+    private boolean canRead(TreeImpl tree) {
         // FIXME: access control eval must have full access to the tree
         // FIXME: special handling for access control item and version content
-        return root.getPermissionProvider().canRead(tree);
+        if (tree.readStatus == null) {
+            tree.readStatus = root.getPermissionProvider().getReadStatus(tree, null);
+        }
+        return tree.readStatus.includes(ReadStatus.ALLOW_THIS);
     }
 
     private boolean canRead(PropertyState property) {
         // FIXME: access control eval must have full access to the tree/property
         // FIXME: special handling for access control item and version content
-        return (property != null)
-                && root.getPermissionProvider().canRead(this, property)
-                && !NodeStateUtils.isHidden(property.getName());
+        if (property == null || NodeStateUtils.isHidden(property.getName())) {
+            return false;
+        }
+        if (readStatus == null || readStatus.appliesToThis()) {
+            ReadStatus rs = root.getPermissionProvider().getReadStatus(this, property);
+            if (rs.appliesToThis()) {
+                // status applies to this property only -> recalc for others
+                return rs.isAllow();
+            } else {
+                readStatus = rs;
+            }
+        }
+        return readStatus.includes(ReadStatus.ALLOW_PROPERTIES);
     }
 
     /**

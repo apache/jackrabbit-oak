@@ -22,15 +22,15 @@ import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.ReadStatus;
 
 /**
  * CompiledPermissions... TODO
  */
 public interface CompiledPermissions {
 
-    boolean canRead(@Nonnull Tree tree);
-
-    boolean canRead(@Nonnull Tree tree, @Nonnull PropertyState property);
+    @Nonnull
+    ReadStatus getReadStatus(@Nonnull Tree tree, @Nullable PropertyState property);
 
     boolean isGranted(long permissions);
 
@@ -40,6 +40,7 @@ public interface CompiledPermissions {
 
     boolean isGranted(@Nonnull String path, long permissions);
 
+    @Nonnull
     Set<String> getPrivileges(@Nullable Tree tree);
 
     boolean hasPrivileges(@Nullable Tree tree, String... privilegeNames);

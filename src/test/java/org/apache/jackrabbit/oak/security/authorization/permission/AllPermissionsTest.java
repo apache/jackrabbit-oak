@@ -23,6 +23,7 @@ import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.ReadStatus;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -49,17 +50,17 @@ public class AllPermissionsTest extends AbstractSecurityTest {
     }
 
     @Test
-    public void testCanRead() {
+    public void testGetReadStatus() {
         for (String path : paths) {
             Tree tree = root.getTree(path);
             assertNotNull(tree);
 
-            assertTrue(all.canRead(tree));
-            for (PropertyState prop : tree.getProperties()) {
-                assertTrue(all.canRead(tree, prop));
-            }
+            assertSame(ReadStatus.ALLOW_ALL, all.getReadStatus(tree, null));
             for (Tree child : tree.getChildren()) {
-                assertTrue(all.canRead(child));
+                assertSame(ReadStatus.ALLOW_ALL, all.getReadStatus(child, null));
+            }
+            for (PropertyState ps : tree.getProperties()) {
+                assertSame(ReadStatus.ALLOW_ALL, all.getReadStatus(tree, ps));
             }
         }
     }

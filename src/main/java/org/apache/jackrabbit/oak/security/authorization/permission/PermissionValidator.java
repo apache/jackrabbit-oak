@@ -143,7 +143,7 @@ class PermissionValidator extends DefaultValidator {
             }
             return null; // no need for further validation down the subtree
         } else {
-            if (!permissionProvider.isGranted(tree, toTest)) {
+            if (!permissionProvider.isGranted(tree, null, toTest)) {
                 throw new CommitFailedException(new AccessDeniedException());
             }
             if (noTraverse(toTest)) {

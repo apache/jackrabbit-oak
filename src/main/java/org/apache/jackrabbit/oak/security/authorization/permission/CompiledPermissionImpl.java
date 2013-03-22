@@ -39,6 +39,7 @@ import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.ReadStatus;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionPattern;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 import org.apache.jackrabbit.oak.util.TreeUtil;
@@ -105,23 +106,15 @@ class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants
 
     //------------------------------------------------< CompiledPermissions >---
     @Override
-    public boolean canRead(Tree tree) {
-        for (PermissionEntry entry : filterEntries(tree, null)) {
-            if (entry.privilegeBits.includesRead(Permissions.READ_NODE)) {
-                return entry.isAllow;
-            }
-        }
-        return false;
-    }
-
-    @Override
-    public boolean canRead(Tree tree, PropertyState property) {
+    public ReadStatus getReadStatus(@Nonnull Tree tree, @Nullable PropertyState property) {
+        // FIXME
+        long permission = (property == null) ? Permissions.READ_NODE : Permissions.READ_PROPERTY;
         for (PermissionEntry entry : filterEntries(tree, property)) {
-            if (entry.privilegeBits.includesRead(Permissions.READ_PROPERTY)) {
-                return entry.isAllow;
+            if (entry.privilegeBits.includesRead(permission)) {
+                return ReadStatus.ALLOW_THIS;
             }
         }
-        return false;
+        return ReadStatus.DENY_THIS;
     }
 
     @Override
@@ -181,7 +174,8 @@ class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants
         }
     }
 
-    private Iterable<PermissionEntry> filterEntries(final @Nonnull Tree tree, final @Nullable PropertyState property) {
+    private Iterable<PermissionEntry> filterEntries(final @Nonnull Tree tree,
+                                                    final @Nullable PropertyState property) {
         return Iterables.filter(
                 Iterables.concat(userEntries.values(), groupEntries.values()),
                 new Predicate<PermissionEntry>() {
