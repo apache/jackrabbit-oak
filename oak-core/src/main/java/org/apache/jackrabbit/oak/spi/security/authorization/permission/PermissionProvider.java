@@ -35,15 +35,11 @@ public interface PermissionProvider {
 
     boolean hasPrivileges(@Nullable Tree tree, String... privilegeNames);
 
-    boolean canRead(@Nonnull Tree tree);
+    ReadStatus getReadStatus(@Nonnull Tree tree, @Nullable PropertyState property);
 
-    boolean canRead(@Nonnull Tree tree, @Nonnull PropertyState property);
+    boolean isGranted(long repositoryPermissions);
 
-    boolean isGranted(long permissions);
-
-    boolean isGranted(@Nonnull Tree tree, long permissions);
-
-    boolean isGranted(@Nonnull Tree parent, @Nonnull PropertyState property, long permissions);
+    boolean isGranted(@Nonnull Tree parent, @Nullable PropertyState property, long permissions);
 
     boolean isGranted(@Nonnull String oakPath, @Nonnull String jcrActions);
 }

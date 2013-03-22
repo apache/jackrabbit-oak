@@ -362,7 +362,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
     }
 
     private void checkPermission(@Nonnull Tree tree, long permissions) throws AccessDeniedException {
-        if (permissionProvider != null && !permissionProvider.isGranted(tree, permissions)) {
+        if (permissionProvider != null && !permissionProvider.isGranted(tree, null, permissions)) {
             throw new AccessDeniedException("Access denied at " + tree);
         }
     }

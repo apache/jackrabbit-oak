@@ -29,6 +29,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.ReadStatus;
 import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.SystemPrincipal;
 
@@ -68,37 +69,25 @@ class TmpPermissionProvider implements PermissionProvider {
     }
 
     @Override
-    public boolean canRead(@Nonnull Tree tree) {
-        return true;
+    public ReadStatus getReadStatus(@Nonnull Tree tree, @Nullable PropertyState property) {
+        return ReadStatus.ALLOW_ALL;
     }
 
     @Override
-    public boolean canRead(@Nonnull Tree tree, @Nonnull PropertyState property) {
-        return true;
-    }
-
-    @Override
-    public boolean isGranted(long permissions) {
+    public boolean isGranted(long repositoryPermissions) {
         if (isAdmin) {
             return true;
         } else {
-            return permissions == Permissions.READ;
+            return false;
         }
     }
 
     @Override
-    public boolean isGranted(@Nonnull Tree tree, long permissions) {
+    public boolean isGranted(@Nonnull Tree parent, @Nullable PropertyState property, long permissions) {
         if (isAdmin) {
             return true;
-        } else {
+        } else if (property == null) {
             return permissions == Permissions.READ_NODE;
-        }
-    }
-
-    @Override
-    public boolean isGranted(@Nonnull Tree parent, @Nonnull PropertyState property, long permissions) {
-        if (isAdmin) {
-            return true;
         } else {
             return permissions == Permissions.READ_PROPERTY;
         }
