@@ -38,6 +38,8 @@ import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_
 import java.util.Queue;
 import java.util.Set;
 
+import com.google.common.collect.Queues;
+import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -47,13 +49,10 @@ import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
-import com.google.common.collect.Queues;
-import com.google.common.collect.Sets;
-
 /**
  * Editor that validates the consistency of the in-content node type registry
  * under {@code /jcr:system/jcr:nodeTypes} and maintains the access-optimized
- * version uncer {@code /jcr:system/oak:nodeTypes}.
+ * version under {@code /jcr:system/oak:nodeTypes}.
  *
  * <ul>
  *     <li>validate new definitions</li>
