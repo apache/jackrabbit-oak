@@ -16,13 +16,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static javax.jcr.PropertyType.UNDEFINED;
+import static org.apache.jackrabbit.JcrConstants.NT_BASE;
 
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -44,6 +44,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
 
 /**
  * EffectiveNodeType... TODO
@@ -52,28 +53,44 @@ public class EffectiveNodeType {
 
     private static final Logger log = LoggerFactory.getLogger(EffectiveNodeType.class);
 
-    private final Collection<NodeType> nodeTypes;
+    private static final NodeType[] NO_MIXINS = new NodeType[0];
+
+    private final Map<String, NodeType> nodeTypes = Maps.newLinkedHashMap();
+
     private final ReadOnlyNodeTypeManager ntMgr;
 
-    private EffectiveNodeType(Collection<NodeType> nodeTypes, ReadOnlyNodeTypeManager ntMgr) {
-        this.nodeTypes = nodeTypes;
+    EffectiveNodeType(
+            NodeType primary, NodeType[] mixins,
+            ReadOnlyNodeTypeManager ntMgr) {
         this.ntMgr = ntMgr;
-    }
 
-    static EffectiveNodeType create(Collection<NodeType> nodeTypes, ReadOnlyNodeTypeManager ntMgr) throws ConstraintViolationException {
-        if (!isValid(nodeTypes)) {
-            throw new ConstraintViolationException("Invalid effective node type");
+        addNodeType(checkNotNull(primary));
+        for (NodeType mixin : checkNotNull(mixins)) {
+            addNodeType(mixin);
         }
-        return new EffectiveNodeType(nodeTypes, ntMgr);
     }
 
-    private static boolean isValid(Collection<NodeType> nodeTypes) {
-        // FIXME: add validation
-        return true;
+    EffectiveNodeType(NodeType primary, ReadOnlyNodeTypeManager ntMgr) {
+        this(primary, NO_MIXINS, ntMgr);
     }
 
-    public Iterable<NodeType> getAllNodeTypes() {
-        return nodeTypes;
+    private void addNodeType(NodeType type) {
+        String name = type.getName();
+        if (!nodeTypes.containsKey(name)) {
+            nodeTypes.put(name, type);
+            NodeType[] supertypes = type.getDeclaredSupertypes();
+            if (supertypes.length > 1) {
+                for (NodeType supertype : supertypes) {
+                    addNodeType(supertype);
+                }
+            } else if (!type.isMixin() && !nodeTypes.containsKey(NT_BASE)) {
+                try {
+                    addNodeType(ntMgr.getNodeType(NT_BASE));
+                } catch (RepositoryException e) {
+                    // TODO: ignore/warning/error?
+                }
+            }
+        }
     }
 
     /**
@@ -84,7 +101,7 @@ public class EffectiveNodeType {
      * @return {@code true} if the given node type is included, otherwise {@code false}.
      */
     public boolean includesNodeType(String nodeTypeName) {
-        for (NodeType type : nodeTypes) {
+        for (NodeType type : nodeTypes.values()) {
             if (type.isNodeType(nodeTypeName)) {
                 return true;
             }
@@ -131,17 +148,12 @@ public class EffectiveNodeType {
             log.debug("Unknown mixin type " + mixin);
         }
 
-        if (mixinType != null) {
-            Set<NodeType> newTypes = new HashSet<NodeType>(nodeTypes);
-            newTypes.add(mixinType);
-            return isValid(newTypes);
-        }
-        return false;
+        return true;
     }
 
     public Iterable<NodeDefinition> getNodeDefinitions() {
         List<NodeDefinition> definitions = new ArrayList<NodeDefinition>();
-        for (NodeType nt : nodeTypes) {
+        for (NodeType nt : nodeTypes.values()) {
             definitions.addAll(((NodeTypeImpl) nt).internalGetChildDefinitions());
         }
         return definitions;
@@ -149,7 +161,7 @@ public class EffectiveNodeType {
 
     public Iterable<PropertyDefinition> getPropertyDefinitions() {
         List<PropertyDefinition> definitions = new ArrayList<PropertyDefinition>();
-        for (NodeType nt : nodeTypes) {
+        for (NodeType nt : nodeTypes.values()) {
             definitions.addAll(((NodeTypeImpl) nt).internalGetPropertyDefinitions());
         }
         return definitions;
@@ -305,7 +317,7 @@ public class EffectiveNodeType {
     }
 
     public void checkMandatoryItems(Tree tree) throws ConstraintViolationException {
-        for (NodeType nodeType : nodeTypes) {
+        for (NodeType nodeType : nodeTypes.values()) {
             for (PropertyDefinition pd : nodeType.getPropertyDefinitions()) {
                 String name = pd.getName();
                 if (pd.isMandatory() && !pd.isProtected() && tree.getProperty(name) == null) {
@@ -324,8 +336,7 @@ public class EffectiveNodeType {
     }
 
     public void checkOrderableChildNodes() throws UnsupportedRepositoryOperationException {
-        Iterable<NodeType> nts = getAllNodeTypes();
-        for (NodeType nt : nts) {
+        for (NodeType nt : nodeTypes.values()) {
             if (nt.hasOrderableChildNodes()) {
                 return;
             }
@@ -335,13 +346,18 @@ public class EffectiveNodeType {
     }
 
     /**
+     * Calculates the applicable definition for the property with the specified
+     * characteristics under a parent with this effective type.
      *
-     * @param propertyName The internal oak name of the property.
-     * @param isMultiple
-     * @param type
-     * @param exactTypeMatch
-     * @return
-     * @throws ConstraintViolationException
+     * @param propertyName The internal oak name of the property for which the
+     * definition should be retrieved.
+     * @param isMultiple {@code true} if the target property is multi-valued.
+     * @param type The target type of the property.
+     * @param exactTypeMatch {@code true} if the required type of the definition
+     * must exactly match the type of the target property.
+     * @return the applicable definition for the target property.
+     * @throws ConstraintViolationException If no matching definition can be found.
+     * @throws RepositoryException If another error occurs.
      */
     public PropertyDefinition getPropertyDefinition(
             String propertyName, boolean isMultiple,
@@ -413,16 +429,29 @@ public class EffectiveNodeType {
         return getPropertyDefinition(propertyName, isMultiple, propertyType, true);
     }
 
-    private NodeDefinition getDefinition(String nodeName, NodeType nodeType) throws ConstraintViolationException {
+    /**
+     * Calculates the applicable definition for the child node with the
+     * specified name and node type.
+     *
+     * @param nodeName The internal oak name of the child node.
+     * @param nodeType The target node type of the child.
+     * @return the applicable definition for the child node with the specified
+     * name and primary type.
+     * @throws ConstraintViolationException If no matching definition can be found.
+     * @throws RepositoryException If another error occurs.
+     */
+    private NodeDefinition getDefinition(String nodeName, NodeType nodeType)
+            throws ConstraintViolationException {
         // FIXME: ugly hack to workaround sns-hack that was used to map sns-item definitions with node types.
         String nameToCheck = nodeName;
-        if (nodeName.startsWith("jcr:childNodeDefinition") && !nodeName.equals("jcr:childNodeDefinition")) {
+        if (nodeName.startsWith("jcr:childNodeDefinition")) {
             nameToCheck = nodeName.substring(0, "jcr:childNodeDefinition".length());
         }
-        if (nodeName.startsWith("jcr:propertyDefinition") && !nodeName.equals("jcr:propertyDefinition")) {
+        if (nodeName.startsWith("jcr:propertyDefinition")) {
             nameToCheck = nodeName.substring(0, "jcr:propertyDefinition".length());
         }
-        return ntMgr.getDefinition(nodeTypes, nameToCheck, nodeType);
+        return getNodeDefinition(
+                nameToCheck, new EffectiveNodeType(nodeType, ntMgr));
     }
 
     private static class DefinitionNamePredicate implements Predicate<ItemDefinition> {

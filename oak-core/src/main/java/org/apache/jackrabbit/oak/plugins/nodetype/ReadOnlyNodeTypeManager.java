@@ -16,12 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype;
 
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
-import java.util.Queue;
 import java.util.Set;
 
 import javax.annotation.CheckForNull;
@@ -32,7 +28,6 @@ import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
-import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.NoSuchNodeTypeException;
 import javax.jcr.nodetype.NodeDefinition;
 import javax.jcr.nodetype.NodeDefinitionTemplate;
@@ -45,8 +40,6 @@ import javax.jcr.nodetype.PropertyDefinition;
 import javax.jcr.nodetype.PropertyDefinitionTemplate;
 
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
 
 import org.apache.jackrabbit.JcrConstants;
@@ -66,7 +59,6 @@ import static javax.jcr.PropertyType.UNDEFINED;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
-import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
 
@@ -347,22 +339,16 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
      * @param node node instance
      * @return all types of the given node
      * @throws RepositoryException if the type information can not be accessed
-     * @param node
-     * @return
-     * @throws RepositoryException
      */
     @Override
-    public EffectiveNodeType getEffectiveNodeType(Node node) throws RepositoryException {
-        Queue<NodeType> queue = Queues.newArrayDeque();
-        queue.add(node.getPrimaryNodeType());
-        queue.addAll(Arrays.asList(node.getMixinNodeTypes()));
-
-        return getEffectiveNodeType(queue);
+    public EffectiveNodeType getEffectiveNodeType(Node node)
+            throws RepositoryException {
+        return new EffectiveNodeType(
+                node.getPrimaryNodeType(), node.getMixinNodeTypes(), this);
     }
 
     @Override
     public EffectiveNodeType getEffectiveNodeType(Tree tree) throws RepositoryException {
-        Queue<NodeType> queue = Queues.newArrayDeque();
 
         NodeType primaryType;
         PropertyState jcrPrimaryType = tree.getProperty(JCR_PRIMARYTYPE);
@@ -372,18 +358,17 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
         } else {
             throw new RepositoryException("Node at "+tree.getPath()+" has no primary type.");
         }
-        queue.add(primaryType);
 
-        List<NodeType> mixinTypes = Lists.newArrayList();
         PropertyState jcrMixinType = tree.getProperty(JCR_MIXINTYPES);
-        if (jcrMixinType != null) {
-            for (String ntName : jcrMixinType.getValue(STRINGS)) {
-                mixinTypes.add(internalGetNodeType(ntName));
+        if (jcrMixinType == null) {
+            return new EffectiveNodeType(primaryType, this);
+        } else {
+            NodeType[] mixinTypes = new NodeType[jcrMixinType.count()];
+            for (int i = 0; i < mixinTypes.length; i++) {
+                mixinTypes[i] = getNodeType(jcrMixinType.getValue(Type.NAME, i));
             }
+            return new EffectiveNodeType(primaryType, mixinTypes, this);
         }
-        queue.addAll(mixinTypes);
-
-        return getEffectiveNodeType(queue);
     }
 
     //-------------------------------------------------< DefinitionProvider >---
@@ -412,14 +397,6 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
         String name = targetNode.getName();
         EffectiveNodeType eff = getEffectiveNodeType(parent);
         return eff.getNodeDefinition(name, getEffectiveNodeType(targetNode));
-    }
-
-    @Override
-    public NodeDefinition getDefinition(Iterable<NodeType> parentNodeTypes,
-                                        String nodeName, NodeType nodeType)
-            throws ConstraintViolationException {
-        EffectiveNodeType eff = getEffectiveNodeType(Queues.newArrayDeque(parentNodeTypes));
-        return eff.getNodeDefinition(nodeName, getEffectiveNodeType(Queues.newArrayDeque(Collections.singleton(nodeType))));
     }
 
     @Override
@@ -460,15 +437,6 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
         return effective.getPropertyDefinition(propertyName, isMultiple, type, exactTypeMatch);
     }
 
-    @Nonnull
-    @Override
-    public PropertyDefinition getDefinition(Iterable<NodeType> nodeTypes, String propertyName, boolean isMultiple,
-            int type, boolean exactTypeMatch) throws RepositoryException {
-        Queue<NodeType> queue = Queues.newArrayDeque(nodeTypes);
-        EffectiveNodeType effective = getEffectiveNodeType(queue);
-        return effective.getPropertyDefinition(propertyName, isMultiple, type, exactTypeMatch);
-    }
-
     //-----------------------------------------------------------< internal >---
 
     NodeTypeImpl internalGetNodeType(String oakName) throws NoSuchNodeTypeException {
@@ -480,21 +448,6 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
             }
         }
         throw new NoSuchNodeTypeException(getNamePathMapper().getJcrName(oakName));
-    }
-
-    //------------------------------------------------------------< private >---
-
-    private EffectiveNodeType getEffectiveNodeType(Queue<NodeType> queue) throws ConstraintViolationException {
-        Map<String, NodeType> types = Maps.newHashMap();
-        while (!queue.isEmpty()) {
-            NodeType type = queue.remove();
-            String name = type.getName();
-            if (!types.containsKey(name)) {
-                types.put(name, type);
-                queue.addAll(Arrays.asList(type.getDeclaredSupertypes()));
-            }
-        }
-        return EffectiveNodeType.create(types.values(), this);
     }
 
 }
