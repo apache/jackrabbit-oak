@@ -22,6 +22,7 @@ import java.util.Set;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeConstants;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.ReadStatus;
 
 /**
  * AllPermissions... TODO
@@ -38,13 +39,8 @@ public final class AllPermissions implements CompiledPermissions {
     }
 
     @Override
-    public boolean canRead(Tree tree) {
-        return true;
-    }
-
-    @Override
-    public boolean canRead(Tree tree, PropertyState property) {
-        return true;
+    public ReadStatus getReadStatus(Tree tree, PropertyState property) {
+        return ReadStatus.ALLOW_ALL;
     }
 
     @Override

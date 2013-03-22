@@ -23,6 +23,7 @@ import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.ReadStatus;
 
 /**
  * NoPermissions... TODO
@@ -39,13 +40,8 @@ public final class NoPermissions implements CompiledPermissions {
     }
 
     @Override
-    public boolean canRead(@Nonnull Tree tree) {
-        return false;
-    }
-
-    @Override
-    public boolean canRead(@Nonnull Tree tree, @Nonnull PropertyState property) {
-        return false;
+    public ReadStatus getReadStatus(@Nonnull Tree tree, @Nullable PropertyState property) {
+        return ReadStatus.DENY_ALL;
     }
 
     @Override

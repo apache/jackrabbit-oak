@@ -56,27 +56,17 @@ public final class OpenPermissionProvider implements PermissionProvider {
     }
 
     @Override
-    public boolean canRead(@Nonnull Tree tree) {
+    public ReadStatus getReadStatus(@Nonnull Tree tree, PropertyState property) {
+        return ReadStatus.ALLOW_ALL;
+    }
+
+    @Override
+    public boolean isGranted(long repositoryPermissions) {
         return true;
     }
 
     @Override
-    public boolean canRead(@Nonnull Tree tree, @Nonnull PropertyState property) {
-        return true;
-    }
-
-    @Override
-    public boolean isGranted(long permissions) {
-        return true;
-    }
-
-    @Override
-    public boolean isGranted(@Nonnull Tree tree, long permissions) {
-        return true;
-    }
-
-    @Override
-    public boolean isGranted(@Nonnull Tree parent, @Nonnull PropertyState property, long permissions) {
+    public boolean isGranted(@Nonnull Tree parent, @Nullable PropertyState property, long permissions) {
         return true;
     }
 

@@ -40,6 +40,7 @@ import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.ReadStatus;
 import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.SystemPrincipal;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
@@ -47,6 +48,7 @@ import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
@@ -103,53 +105,33 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
     }
 
     @Override
-    public boolean canRead(@Nonnull Tree tree) {
-        if (isHidden(tree, null)) {
-            return false;
-        } else if (isAccessControlContent(tree)) {
-            return canReadAccessControlContent(tree, null);
-        } else if (isVersionContent(tree)) {
-            return canReadVersionContent(tree, null);
-        } else {
-            return compiledPermissions.canRead(tree);
-        }
-    }
-
-    @Override
-    public boolean canRead(@Nonnull Tree tree, @Nonnull PropertyState property) {
+    public ReadStatus getReadStatus(@Nonnull Tree tree, @Nullable PropertyState property) {
         if (isHidden(tree, property)) {
-            return false;
-        } else if (isAccessControlContent(tree)) {
-            return canReadAccessControlContent(tree, property);
-        } else if (isVersionContent(tree)) {
-            return canReadVersionContent(tree, property);
+            return ReadStatus.DENY_ALL;
+        } else if (isAccessControlContent(tree) && canReadAccessControlContent(tree, property)) {
+            // TODO: review if read-ac permission is never fine-granular
+            return ReadStatus.ALLOW_ALL;
+        } else if (isVersionContent(tree) && canReadVersionContent(tree, property)) {
+            return ReadStatus.ALLOW_THIS;
         } else {
-            return compiledPermissions.canRead(tree, property);
+            return compiledPermissions.getReadStatus(tree, property);
         }
     }
 
     @Override
-    public boolean isGranted(long permissions) {
-        return compiledPermissions.isGranted(permissions);
+    public boolean isGranted(long repositoryPermissions) {
+        return compiledPermissions.isGranted(repositoryPermissions);
     }
 
     @Override
-    public boolean isGranted(@Nonnull Tree tree, long permissions) {
+    public boolean isGranted(@Nonnull Tree tree, @Nullable PropertyState property, long permissions) {
         if (isVersionContent(tree)) {
-            String path = getVersionablePath(tree, null);
+            String path = getVersionablePath(tree, property);
             return path != null && compiledPermissions.isGranted(path, permissions);
-        } else {
+        } else if (property == null) {
             return compiledPermissions.isGranted(tree, permissions);
-        }
-    }
-
-    @Override
-    public boolean isGranted(@Nonnull Tree parent, @Nonnull PropertyState property, long permissions) {
-        if (isVersionContent(parent)) {
-            String path = getVersionablePath(parent, property);
-            return path != null && compiledPermissions.isGranted(path, permissions);
         } else {
-            return compiledPermissions.isGranted(parent, property, permissions);
+            return compiledPermissions.isGranted(tree, property, permissions);
         }
     }
 
@@ -168,7 +150,7 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
             return parent != null && isGranted(parent, property, permissions);
         } else {
             Tree tree = location.getTree();
-            return tree != null && isGranted(tree, permissions);
+            return tree != null && isGranted(tree, null, permissions);
         }
     }
 
@@ -205,7 +187,7 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
 
     private static boolean isHidden(@Nonnull Tree tree, @Nullable PropertyState propertyState) {
         return ImmutableTree.TypeProvider.TYPE_HIDDEN == ImmutableTree.getType(tree)
-                || (propertyState != null && NodeStateUtils.isHidden(propertyState.getName()));
+                && (propertyState != null && NodeStateUtils.isHidden(propertyState.getName()));
     }
 
     private static boolean isAccessControlContent(@Nonnull Tree tree) {
