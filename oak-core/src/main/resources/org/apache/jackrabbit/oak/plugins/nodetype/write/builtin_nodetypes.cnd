@@ -637,10 +637,8 @@
  * @since oak 1.0
  */
 [rep:Permissions]
-  - rep:accessControlledPath (PATH) protected mandatory
-  - rep:privileges (LONG) protected multiple mandatory
-  - rep:index (LONG) protected mandatory
   - * (UNDEFINED) protected
+  - * (UNDEFINED) protected multiple
 
 // -----------------------------------------------------------------------------
 // Principal based AC
