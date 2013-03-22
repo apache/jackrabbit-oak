@@ -16,11 +16,12 @@
  */
 package org.apache.jackrabbit.oak.namepath;
 
-import java.util.Map;
-import javax.annotation.CheckForNull;
-
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+
+import java.util.Map;
+
+import javax.annotation.CheckForNull;
 
 /**
  * Name mapper with local namespace mappings.
@@ -49,25 +50,27 @@ public abstract class LocalNameMapper extends GlobalNameMapper {
                             "No namespace mapping found for " + oakName);
                 }
 
-                for (Map.Entry<String, String> entry : local.entrySet()) {
-                    if (uri.equals(entry.getValue())) {
-                        String jcrPrefix = entry.getKey();
-                        if (jcrPrefix.equals(oakPrefix)) {
-                            return oakName;
-                        } else {
-                            return jcrPrefix + oakName.substring(colon);
+                synchronized (local) {
+                    for (Map.Entry<String, String> entry : local.entrySet()) {
+                        if (uri.equals(entry.getValue())) {
+                            String jcrPrefix = entry.getKey();
+                            if (jcrPrefix.equals(oakPrefix)) {
+                                return oakName;
+                            } else {
+                                return jcrPrefix + oakName.substring(colon);
+                            }
                         }
                     }
-                }
 
-                // local mapping not found for this URI, make sure there
-                // is no conflicting local mapping for the prefix
-                if (local.containsKey(oakPrefix)) {
-                    for (int i = 2; true; i++) {
-                        String jcrPrefix = oakPrefix + i;
-                        if (!local.containsKey(jcrPrefix)) {
-                            local.put(jcrPrefix, uri);
-                            return jcrPrefix + oakName.substring(colon);
+                    // local mapping not found for this URI, make sure there
+                    // is no conflicting local mapping for the prefix
+                    if (local.containsKey(oakPrefix)) {
+                        for (int i = 2; true; i++) {
+                            String jcrPrefix = oakPrefix + i;
+                            if (!local.containsKey(jcrPrefix)) {
+                                local.put(jcrPrefix, uri);
+                                return jcrPrefix + oakName.substring(colon);
+                            }
                         }
                     }
                 }
@@ -88,23 +91,25 @@ public abstract class LocalNameMapper extends GlobalNameMapper {
         if (hasSessionLocalMappings()) {
             int colon = jcrName.indexOf(':');
             if (colon > 0) {
-                String jcrPrefix = jcrName.substring(0, colon);
-                String uri = local.get(jcrPrefix);
-                if (uri != null) {
-                    String oakPrefix = getOakPrefixOrNull(uri);
-                    if (jcrPrefix.equals(oakPrefix)) {
-                        return jcrName;
-                    } else if (oakPrefix != null) {
-                        return oakPrefix + jcrName.substring(colon);
-                    } else {
+                synchronized (local) {
+                    String jcrPrefix = jcrName.substring(0, colon);
+                    String uri = local.get(jcrPrefix);
+                    if (uri != null) {
+                        String oakPrefix = getOakPrefixOrNull(uri);
+                        if (jcrPrefix.equals(oakPrefix)) {
+                            return jcrName;
+                        } else if (oakPrefix != null) {
+                            return oakPrefix + jcrName.substring(colon);
+                        } else {
+                            return null;
+                        }
+                    }
+
+                    // Check that a global mapping is present and not remapped
+                    uri = getNamespaceMap().get(jcrPrefix);
+                    if (uri == null || local.values().contains(uri)) {
                         return null;
                     }
-                }
-
-                // Check that a global mapping is present and not remapped
-                uri = getNamespaceMap().get(jcrPrefix);
-                if (uri == null || local.values().contains(uri)) {
-                    return null;
                 }
             }
         }
@@ -114,7 +119,9 @@ public abstract class LocalNameMapper extends GlobalNameMapper {
 
     @Override
     public boolean hasSessionLocalMappings() {
-        return !local.isEmpty();
+        synchronized (local) {
+            return !local.isEmpty();
+        }
     }
 
 }
