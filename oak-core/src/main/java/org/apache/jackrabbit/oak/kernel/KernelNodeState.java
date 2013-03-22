@@ -18,6 +18,10 @@
  */
 package org.apache.jackrabbit.oak.kernel;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
+
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
@@ -58,10 +62,6 @@ import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 
 /**
  * Basic {@link NodeState} implementation based on the {@link MicroKernel}
@@ -389,6 +389,7 @@ public final class KernelNodeState extends AbstractNodeState {
         return revision;
     }
 
+    // FIXME: this is an internal method and should not be public
     @Nonnull
     public String getPath() {
         return path;
