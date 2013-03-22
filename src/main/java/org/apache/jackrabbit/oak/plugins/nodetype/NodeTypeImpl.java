@@ -21,7 +21,6 @@ import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -305,8 +304,10 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
         }
 
         try {
-            Iterable<NodeType> nts = Collections.singleton((NodeType) this);
-            PropertyDefinition def = getManager().getDefinition(nts, propertyName, false, value.getType(), false);
+            EffectiveNodeType effective =
+                    new EffectiveNodeType(this, getManager());
+            PropertyDefinition def = effective.getPropertyDefinition(
+                    propertyName, false, value.getType(), false);
             return !def.isProtected() &&
                     meetsTypeConstraints(value, def.getRequiredType()) &&
                     meetsValueConstraints(value, def.getValueConstraints());
@@ -323,9 +324,11 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
         }
 
         try {
-            Iterable<NodeType> nts = Collections.singleton((NodeType) this);
             int type = (values.length == 0) ? PropertyType.STRING : values[0].getType();
-            PropertyDefinition def = getManager().getDefinition(nts, propertyName, true, type, false);
+            EffectiveNodeType effective =
+                    new EffectiveNodeType(this, getManager());
+            PropertyDefinition def = effective.getPropertyDefinition(
+                    propertyName, true, type, false);
             return !def.isProtected() &&
                     meetsTypeConstraints(values, def.getRequiredType()) &&
                     meetsValueConstraints(values, def.getValueConstraints());

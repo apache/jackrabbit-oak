@@ -22,7 +22,6 @@ import javax.jcr.Property;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.NodeDefinition;
-import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.PropertyDefinition;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -66,22 +65,6 @@ public interface DefinitionProvider {
     @Nonnull
     NodeDefinition getDefinition(Node parent, Node targetNode)
             throws ConstraintViolationException, RepositoryException;
-
-    /**
-     * Calculates the applicable definition for the child node with the
-     * specified name and node type under the given parent node.
-     *
-     * @param parentNodeTypes The node types of the parent node.
-     * @param nodeName The internal oak name of the child node.
-     * @param nodeType The target node type of the child.
-     * @return the applicable definition for the child node with the specified
-     * name and primary type.
-     * @throws ConstraintViolationException If no matching definition can be found.
-     * @throws RepositoryException If another error occurs.
-     */
-    @Nonnull
-    NodeDefinition getDefinition(Iterable<NodeType> parentNodeTypes, String nodeName,
-                                 NodeType nodeType) throws ConstraintViolationException, RepositoryException;
 
     /**
      * Calculates the definition of the specified property.
@@ -151,21 +134,4 @@ public interface DefinitionProvider {
                                      int type, boolean exactTypeMatch)
             throws ConstraintViolationException, RepositoryException;
 
-    /**
-     * Calculates the applicable definition for the property with the specified
-     * characteristics under a parent with the specified node types.
-     *
-     * @param nodeTypes The node types of the parent tree.
-     * @param propertyName The internal oak name of the property for which the
-     * definition should be retrieved.
-     * @param isMultiple {@code true} if the target property is multi-valued.
-     * @param type The target type of the property.
-     * @param exactTypeMatch {@code true} if the required type of the definition
-     * must exactly match the type of the target property.
-     * @return the applicable definition for the target property.
-     * @throws ConstraintViolationException If no matching definition can be found.
-     * @throws RepositoryException If another error occurs.
-     */
-    @Nonnull
-    PropertyDefinition getDefinition(Iterable<NodeType> nodeTypes, String propertyName, boolean isMultiple, int type, boolean exactTypeMatch) throws ConstraintViolationException, RepositoryException;
 }
