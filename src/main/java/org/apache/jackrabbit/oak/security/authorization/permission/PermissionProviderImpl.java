@@ -48,7 +48,6 @@ import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
@@ -128,8 +127,6 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
         if (isVersionContent(tree)) {
             String path = getVersionablePath(tree, property);
             return path != null && compiledPermissions.isGranted(path, permissions);
-        } else if (property == null) {
-            return compiledPermissions.isGranted(tree, permissions);
         } else {
             return compiledPermissions.isGranted(tree, property, permissions);
         }
@@ -195,11 +192,7 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
     }
 
     private boolean canReadAccessControlContent(@Nonnull Tree acTree, @Nullable PropertyState acProperty) {
-        if (acProperty != null) {
-            return compiledPermissions.isGranted(acTree, acProperty, Permissions.READ_ACCESS_CONTROL);
-        } else {
-            return compiledPermissions.isGranted(acTree, Permissions.READ_ACCESS_CONTROL);
-        }
+        return compiledPermissions.isGranted(acTree, acProperty, Permissions.READ_ACCESS_CONTROL);
     }
 
     private static boolean isVersionContent(@Nonnull Tree tree) {
