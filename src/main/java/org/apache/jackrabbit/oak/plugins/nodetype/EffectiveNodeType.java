@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype;
 
+import static javax.jcr.PropertyType.UNDEFINED;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -332,6 +334,75 @@ public class EffectiveNodeType {
         throw new UnsupportedRepositoryOperationException("Child node ordering is not supported on this node");
     }
 
+    /**
+     *
+     * @param propertyName The internal oak name of the property.
+     * @param isMultiple
+     * @param type
+     * @param exactTypeMatch
+     * @return
+     * @throws ConstraintViolationException
+     */
+    public PropertyDefinition getPropertyDefinition(
+            String propertyName, boolean isMultiple,
+            int type, boolean exactTypeMatch)
+            throws ConstraintViolationException {
+       // TODO: This may need to be optimized
+       for (PropertyDefinition def : getNamedPropertyDefinitions(propertyName)) {
+           int defType = def.getRequiredType();
+           if (isMultiple == def.isMultiple()
+                   &&(!exactTypeMatch || (type == defType || UNDEFINED == type || UNDEFINED == defType))) {
+               return def;
+           }
+       }
+
+       // try if there is a residual definition
+       for (PropertyDefinition def : getResidualPropertyDefinitions()) {
+           int defType = def.getRequiredType();
+           if (isMultiple == def.isMultiple()
+                   && (!exactTypeMatch || (type == defType || UNDEFINED == type || UNDEFINED == defType))) {
+               return def;
+           }
+       }
+
+       throw new ConstraintViolationException(
+               "No matching property definition found for " + propertyName);
+   }
+
+    /**
+     *
+     * @param childName The internal oak name of the target node.
+     * @param childEffective
+     * @return
+     * @throws ConstraintViolationException
+     */
+    public NodeDefinition getNodeDefinition(
+            String childName, EffectiveNodeType childEffective)
+            throws ConstraintViolationException {
+       for (NodeDefinition def : getNamedNodeDefinitions(childName)) {
+           boolean match = true;
+           if (childEffective != null && !childEffective.includesNodeTypes(def.getRequiredPrimaryTypeNames())) {
+               match = false;
+           }
+           if (match) {
+               return def;
+           }
+       }
+
+       for (NodeDefinition def : getResidualNodeDefinitions()) {
+           boolean match = true;
+           if (childEffective != null && !childEffective.includesNodeTypes(def.getRequiredPrimaryTypeNames())) {
+               match = false;
+           }
+           if (match) {
+               return def;
+           }
+       }
+
+       throw new ConstraintViolationException(
+               "No matching node definition found for " + childName);
+   }
+
     //------------------------------------------------------------< private >---
 
     private PropertyDefinition getDefinition(PropertyState property) throws RepositoryException {
@@ -339,7 +410,7 @@ public class EffectiveNodeType {
         int propertyType = property.getType().tag();
         boolean isMultiple = property.isArray();
 
-        return ntMgr.getDefinition(nodeTypes, propertyName, isMultiple, propertyType, true);
+        return getPropertyDefinition(propertyName, isMultiple, propertyType, true);
     }
 
     private NodeDefinition getDefinition(String nodeName, NodeType nodeType) throws ConstraintViolationException {
