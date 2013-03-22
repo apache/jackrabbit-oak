@@ -16,9 +16,12 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.PathNotFoundException;
@@ -52,10 +55,11 @@ import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 /**
- * TODO doc
+ * Instances of this class are passed to all JCR implementation classes
+ * (e.g. {@code SessionImpl}, {@code NodeImpl}, etc.) and provide access to
+ * the session scoped instances generally needed (e.g. {@code NamePathMapper},
+ * {@code ValueFactory}, etc.).
  */
 public abstract class SessionContext implements NamePathMapper {
     private final RepositoryImpl repository;
@@ -102,8 +106,33 @@ public abstract class SessionContext implements NamePathMapper {
             }
 
             @Override
-            public WorkspaceImpl getWorkspaceInternal() {
+            public Workspace getWorkspace() {
                 return workspace;
+            }
+
+            @Override
+            public LockManager getLockManager() {
+                return workspace.getLockManager();
+            }
+
+            @Override
+            public NodeTypeManager getNodeTypeManager() {
+                return workspace.getNodeTypeManager();
+            }
+
+            @Override
+            public VersionManager getVersionManager() throws RepositoryException {
+                return workspace.getVersionManager();
+            }
+
+            @Override
+            public EffectiveNodeTypeProvider getEffectiveNodeTypeProvider() {
+                return workspace.getReadWriteNodeTypeManager();
+            }
+
+            @Override
+            public DefinitionProvider getDefinitionProvider() {
+                return workspace.getReadWriteNodeTypeManager();
             }
         };
     }
@@ -118,31 +147,17 @@ public abstract class SessionContext implements NamePathMapper {
 
     public abstract Session getSession();
 
-    protected abstract WorkspaceImpl getWorkspaceInternal();
+    public abstract Workspace getWorkspace();
 
-    public Workspace getWorkspace() {
-        return getWorkspaceInternal();
-    }
+    public abstract LockManager getLockManager();
 
-    public LockManager getLockManager() {
-        return getWorkspaceInternal().getLockManager();
-    }
+    public abstract NodeTypeManager getNodeTypeManager();
 
-    public NodeTypeManager getNodeTypeManager() {
-        return getWorkspaceInternal().getNodeTypeManager();
-    }
+    public abstract VersionManager getVersionManager() throws RepositoryException;
 
-    public VersionManager getVersionManager() throws RepositoryException {
-        return getWorkspaceInternal().getVersionManager();
-    }
+    public abstract EffectiveNodeTypeProvider getEffectiveNodeTypeProvider();
 
-    public EffectiveNodeTypeProvider getEffectiveNodeTypeProvider() {
-        return getWorkspaceInternal().getReadWriteNodeTypeManager();
-    }
-
-    public DefinitionProvider getDefinitionProvider() {
-        return getWorkspaceInternal().getReadWriteNodeTypeManager();
-    }
+    public abstract DefinitionProvider getDefinitionProvider();
 
     public ValueFactory getValueFactory() {
         return valueFactory;
