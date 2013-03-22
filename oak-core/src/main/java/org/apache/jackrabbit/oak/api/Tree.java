@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.api;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 /**
  * A tree instance represents a snapshot of the {@code ContentRepository}
@@ -272,7 +273,7 @@ public interface Tree {
      *         {@code name} and no reordering was performed;
      *         {@code true} otherwise.
      */
-    boolean orderBefore(String name);
+    boolean orderBefore(@Nullable String name);
 
     /**
      * Set a property state
