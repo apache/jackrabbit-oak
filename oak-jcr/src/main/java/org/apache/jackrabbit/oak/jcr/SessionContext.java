@@ -83,6 +83,7 @@ public abstract class SessionContext implements NamePathMapper {
     }
 
     public static SessionContext create(final SessionDelegate delegate, RepositoryImpl repository) {
+        // FIXME don't rely on a naked map. See OAK-715
         final Map<String, String> namespaces = Maps.newHashMap();
         final Root root = checkNotNull(delegate).getRoot();
 
