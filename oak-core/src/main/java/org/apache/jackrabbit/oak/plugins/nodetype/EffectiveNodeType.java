@@ -53,39 +53,39 @@ public class EffectiveNodeType {
 
     private static final Logger log = LoggerFactory.getLogger(EffectiveNodeType.class);
 
-    private static final NodeType[] NO_MIXINS = new NodeType[0];
+    private static final NodeTypeImpl[] NO_MIXINS = new NodeTypeImpl[0];
 
-    private final Map<String, NodeType> nodeTypes = Maps.newLinkedHashMap();
+    private final Map<String, NodeTypeImpl> nodeTypes = Maps.newLinkedHashMap();
 
     private final ReadOnlyNodeTypeManager ntMgr;
 
     EffectiveNodeType(
-            NodeType primary, NodeType[] mixins,
+            NodeTypeImpl primary, NodeTypeImpl[] mixins,
             ReadOnlyNodeTypeManager ntMgr) {
         this.ntMgr = ntMgr;
 
         addNodeType(checkNotNull(primary));
-        for (NodeType mixin : checkNotNull(mixins)) {
+        for (NodeTypeImpl mixin : checkNotNull(mixins)) {
             addNodeType(mixin);
         }
     }
 
-    EffectiveNodeType(NodeType primary, ReadOnlyNodeTypeManager ntMgr) {
+    EffectiveNodeType(NodeTypeImpl primary, ReadOnlyNodeTypeManager ntMgr) {
         this(primary, NO_MIXINS, ntMgr);
     }
 
-    private void addNodeType(NodeType type) {
+    private void addNodeType(NodeTypeImpl type) {
         String name = type.getName();
         if (!nodeTypes.containsKey(name)) {
             nodeTypes.put(name, type);
             NodeType[] supertypes = type.getDeclaredSupertypes();
             if (supertypes.length > 1) {
                 for (NodeType supertype : supertypes) {
-                    addNodeType(supertype);
+                    addNodeType((NodeTypeImpl) supertype); // FIXME
                 }
             } else if (!type.isMixin() && !nodeTypes.containsKey(NT_BASE)) {
                 try {
-                    addNodeType(ntMgr.getNodeType(NT_BASE));
+                    addNodeType((NodeTypeImpl) ntMgr.getNodeType(NT_BASE)); // FIXME
                 } catch (RepositoryException e) {
                     // TODO: ignore/warning/error?
                 }
@@ -286,36 +286,6 @@ public class EffectiveNodeType {
         }
     }
 
-    public void checkAddChildNode(String name, NodeType nodeType) throws RepositoryException {
-        NodeDefinition definition = getDefinition(name, nodeType);
-
-        if (definition.isProtected()) {
-            return;
-        }
-
-        if (nodeType == null) {
-            if (!definition.getDeclaringNodeType().canAddChildNode(name)) {
-                throw new ConstraintViolationException("Cannot add node '" + name + '\'');
-            }
-        } else {
-            if (!definition.getDeclaringNodeType().canAddChildNode(name, nodeType.getName())) {
-                throw new ConstraintViolationException("Cannot add node '" + name + "' of type '" + nodeType.getName() + '\'');
-            }
-        }
-    }
-
-    public void checkRemoveNode(String name, NodeType nodeType) throws RepositoryException {
-        NodeDefinition definition = getDefinition(name, nodeType);
-
-        if (definition.isProtected()) {
-            return;
-        }
-
-        if (!definition.getDeclaringNodeType().canRemoveNode(name)) {
-            throw new ConstraintViolationException("Cannot remove node '" + name + '\'');
-        }
-    }
-
     public void checkMandatoryItems(Tree tree) throws ConstraintViolationException {
         for (NodeType nodeType : nodeTypes.values()) {
             for (PropertyDefinition pd : nodeType.getPropertyDefinitions()) {
@@ -427,31 +397,6 @@ public class EffectiveNodeType {
         boolean isMultiple = property.isArray();
 
         return getPropertyDefinition(propertyName, isMultiple, propertyType, true);
-    }
-
-    /**
-     * Calculates the applicable definition for the child node with the
-     * specified name and node type.
-     *
-     * @param nodeName The internal oak name of the child node.
-     * @param nodeType The target node type of the child.
-     * @return the applicable definition for the child node with the specified
-     * name and primary type.
-     * @throws ConstraintViolationException If no matching definition can be found.
-     * @throws RepositoryException If another error occurs.
-     */
-    private NodeDefinition getDefinition(String nodeName, NodeType nodeType)
-            throws ConstraintViolationException {
-        // FIXME: ugly hack to workaround sns-hack that was used to map sns-item definitions with node types.
-        String nameToCheck = nodeName;
-        if (nodeName.startsWith("jcr:childNodeDefinition")) {
-            nameToCheck = nodeName.substring(0, "jcr:childNodeDefinition".length());
-        }
-        if (nodeName.startsWith("jcr:propertyDefinition")) {
-            nameToCheck = nodeName.substring(0, "jcr:propertyDefinition".length());
-        }
-        return getNodeDefinition(
-                nameToCheck, new EffectiveNodeType(nodeType, ntMgr));
     }
 
     private static class DefinitionNamePredicate implements Predicate<ItemDefinition> {
