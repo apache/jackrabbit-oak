@@ -343,14 +343,19 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
     @Override
     public EffectiveNodeType getEffectiveNodeType(Node node)
             throws RepositoryException {
-        return new EffectiveNodeType(
-                node.getPrimaryNodeType(), node.getMixinNodeTypes(), this);
+        NodeTypeImpl primary = (NodeTypeImpl) node.getPrimaryNodeType(); // FIXME
+        NodeType[] mixins = node.getMixinNodeTypes();
+        NodeTypeImpl[] mixinImpls = new NodeTypeImpl[mixins.length];
+        for (int i = 0; i < mixins.length; i++) {
+            mixinImpls[i] = (NodeTypeImpl) mixins[i]; // FIXME
+        }
+        return new EffectiveNodeType(primary, mixinImpls, this);
     }
 
     @Override
     public EffectiveNodeType getEffectiveNodeType(Tree tree) throws RepositoryException {
 
-        NodeType primaryType;
+        NodeTypeImpl primaryType;
         PropertyState jcrPrimaryType = tree.getProperty(JCR_PRIMARYTYPE);
         if (jcrPrimaryType != null) {
             String ntName = jcrPrimaryType.getValue(STRING);
@@ -363,9 +368,9 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
         if (jcrMixinType == null) {
             return new EffectiveNodeType(primaryType, this);
         } else {
-            NodeType[] mixinTypes = new NodeType[jcrMixinType.count()];
+            NodeTypeImpl[] mixinTypes = new NodeTypeImpl[jcrMixinType.count()];
             for (int i = 0; i < mixinTypes.length; i++) {
-                mixinTypes[i] = getNodeType(jcrMixinType.getValue(Type.NAME, i));
+                mixinTypes[i] = internalGetNodeType(jcrMixinType.getValue(Type.NAME, i));
             }
             return new EffectiveNodeType(primaryType, mixinTypes, this);
         }
