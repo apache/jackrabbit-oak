@@ -41,6 +41,10 @@
             <Export-Package>
               !
             </Export-Package>
+            <Import-Package>
+              org.apache.jackrabbit.test;resolution:=optional,
+              *
+            </Import-Package>
             <Embed-Dependency>
               oak-jcr
             </Embed-Dependency>
