@@ -51,6 +51,7 @@ public class Commit {
     private static final boolean PURGE_OLD_REVISIONS = true;
     
     private final MongoMK mk;
+    private final Revision baseRevision;
     private final Revision revision;
     private HashMap<String, UpdateOp> operations = new HashMap<String, UpdateOp>();
     private JsopWriter diff = new JsopStream();
@@ -59,7 +60,8 @@ public class Commit {
     private HashSet<String> addedNodes = new HashSet<String>();
     private HashSet<String> removedNodes = new HashSet<String>();
     
-    Commit(MongoMK mk, Revision revision) {
+    Commit(MongoMK mk, Revision baseRevision, Revision revision) {
+        this.baseRevision = baseRevision;
         this.revision = revision;
         this.mk = mk;
     }
@@ -118,57 +120,65 @@ public class Commit {
      */
     void applyToDocumentStore() {
         DocumentStore store = mk.getDocumentStore();
-        String commitRoot = null;
+        String commitRootPath = null;
         ArrayList<UpdateOp> newNodes = new ArrayList<UpdateOp>();
         ArrayList<UpdateOp> changedNodes = new ArrayList<UpdateOp>();
         for (String p : operations.keySet()) {
             markChanged(p);
-            if (commitRoot == null) {
-                commitRoot = p;
+            if (commitRootPath == null) {
+                commitRootPath = p;
             } else {
-                while (!PathUtils.isAncestor(commitRoot, p)) {
-                    commitRoot = PathUtils.getParentPath(commitRoot);
-                    if (PathUtils.denotesRoot(commitRoot)) {
+                while (!PathUtils.isAncestor(commitRootPath, p)) {
+                    commitRootPath = PathUtils.getParentPath(commitRootPath);
+                    if (PathUtils.denotesRoot(commitRootPath)) {
                         break;
                     }
                 }
             }
         }
-        int commitRootDepth = PathUtils.getDepth(commitRoot);
+        int commitRootDepth = PathUtils.getDepth(commitRootPath);
         // create a "root of the commit" if there is none
-        UpdateOp root = getUpdateOperationForNode(commitRoot);
+        UpdateOp commitRoot = getUpdateOperationForNode(commitRootPath);
         for (String p : operations.keySet()) {
             UpdateOp op = operations.get(p);
-            if (op == root) {
+            op.setMapEntry(UpdateOp.LAST_REV + "." + revision.getClusterId(), revision.toString());
+            if (op.isNew) {
+                op.addMapEntry(UpdateOp.DELETED + "." + revision.toString(), "false");
+            }
+            if (op == commitRoot) {
                 // apply at the end
-            } else if (op.isNew()) {
-                newNodes.add(op);
             } else {
-                changedNodes.add(op);
+                op.addMapEntry(UpdateOp.COMMIT_ROOT + "." + revision.toString(), commitRootDepth);
+                if (op.isNew()) {
+                    newNodes.add(op);
+                } else {
+                    changedNodes.add(op);
+                }
             }
         }
-        if (changedNodes.size() == 0 && root.isNew) {
+        if (changedNodes.size() == 0 && commitRoot.isNew) {
             // no updates and root of commit is also new. that is,
             // it is the root of a subtree added in a commit.
-            // so we just add the root like the others
-            root.addMapEntry(UpdateOp.REVISIONS + "." + revision.toString(), "true");
-            newNodes.add(root);
+            // so we try to add the root like all other nodes
+            commitRoot.addMapEntry(UpdateOp.REVISIONS + "." + revision.toString(), "true");
+            newNodes.add(commitRoot);
         }
         try {
             if (newNodes.size() > 0) {
                 // set commit root on new nodes
-                for (UpdateOp op : newNodes) {
-                    if (op != root) {
-                        op.addMapEntry(UpdateOp.COMMIT_ROOT + "." + revision.toString(), commitRootDepth);
-                    }
-                }
                 if (!store.create(Collection.NODES, newNodes)) {
+                    // some of the documents already exist:
+                    // try to apply all changes one by one
                     for (UpdateOp op : newNodes) {
                         op.unset(UpdateOp.ID);
-                        op.addMapEntry(UpdateOp.DELETED + "." + revision.toString(), "false");
-                        op.setMapEntry(UpdateOp.LAST_REV + "." + revision.getClusterId(), revision.toString());
-                        createOrUpdateNode(store, op);
+                        if (op == commitRoot) {
+                            // don't write the commit root just yet
+                            // (because there might be a conflict)
+                            commitRoot.unset(UpdateOp.REVISIONS + "." + revision.toString());
+                        }
+                        changedNodes.add(op);
                     }
+                    newNodes.clear();
                 }
             }
             for (UpdateOp op : changedNodes) {
@@ -176,13 +186,14 @@ public class Commit {
                 op.addMapEntry(UpdateOp.COMMIT_ROOT + "." + revision.toString(), commitRootDepth);
                 createOrUpdateNode(store, op);
             }
-            // finally write commit, unless it was already written
-            // with added nodes.
-            if (changedNodes.size() != 0 || !root.isNew) {
-                root.setMapEntry(UpdateOp.LAST_REV + "." + revision.getClusterId(), revision.toString());
-                root.addMapEntry(UpdateOp.REVISIONS + "." + revision.toString(), "true");
-                createOrUpdateNode(store, root);
-                operations.put(commitRoot, root);
+            // finally write the commit root, unless it was already written
+            // with added nodes (the commit root might be written twice,
+            // first to check if there was a conflict, and only then to commit
+            // the revision, with the revision property set)
+            if (changedNodes.size() > 0 || !commitRoot.isNew) {
+                commitRoot.addMapEntry(UpdateOp.REVISIONS + "." + revision.toString(), "true");
+                createOrUpdateNode(store, commitRoot);
+                operations.put(commitRootPath, commitRoot);
             }
         } catch (MicroKernelException e) {
             String msg = "Exception committing " + diff.toString();
@@ -193,6 +204,19 @@ public class Commit {
     
     private void createOrUpdateNode(DocumentStore store, UpdateOp op) {
         Map<String, Object> map = store.createOrUpdate(Collection.NODES, op);
+        if (baseRevision != null) {
+            // TODO detect conflicts here
+            Revision newestRev = mk.getNewestRevision(map, revision, true);
+            if (mk.isRevisionNewer(newestRev, baseRevision)) {
+                // TODO transaction rollback
+                throw new MicroKernelException("The node " + 
+                        op.path + " was changed in revision " + 
+                        newestRev + 
+                        ", which was applied after the base revision " + 
+                        baseRevision);
+            }
+        }
+
         int size = Utils.getMapSize(map);
         if (size > MAX_DOCUMENT_SIZE) {
             UpdateOp[] split = splitDocument(map);
@@ -212,8 +236,6 @@ public class Commit {
                 store.createOrUpdate(Collection.NODES, main);
             }
         }
-        // TODO detect conflicts here
-        op.setMapEntry(UpdateOp.LAST_REV + "." + revision.getClusterId(), revision.toString());
     }
     
     private UpdateOp[] splitDocument(Map<String, Object> map) {
