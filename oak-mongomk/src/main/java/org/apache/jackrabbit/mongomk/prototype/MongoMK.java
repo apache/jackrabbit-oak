@@ -196,7 +196,7 @@ public class MongoMK implements MicroKernel {
         Node n = readNode("/", headRevision);
         if (n == null) {
             // root node is missing: repository is not initialized
-            Commit commit = new Commit(this, headRevision);
+            Commit commit = new Commit(this, null, headRevision);
             n = new Node("/", headRevision);
             commit.addNode(n);
             commit.applyToDocumentStore();
@@ -597,12 +597,18 @@ public class MongoMK implements MicroKernel {
     }
 
     @Override
-    public synchronized String commit(String rootPath, String json, String revisionId,
+    public synchronized String commit(String rootPath, String json, String baseRevId,
             String message) throws MicroKernelException {
-        revisionId = revisionId == null ? headRevision.toString() : revisionId;
+        Revision baseRev;
+        if (baseRevId == null) {
+            baseRev = headRevision;
+            baseRevId = baseRev.toString();
+        } else {
+            baseRev = Revision.fromString(stripBranchRevMarker(baseRevId));
+        }
         JsopReader t = new JsopTokenizer(json);
         Revision rev = newRevision();
-        Commit commit = new Commit(this, rev);
+        Commit commit = new Commit(this, baseRev, rev);
         while (true) {
             int r = t.read();
             if (r == JsopReader.END) {
@@ -644,7 +650,7 @@ public class MongoMK implements MicroKernel {
                     targetPath = PathUtils.concat(path, targetPath);
                 }
                 commit.moveNode(sourcePath, targetPath);
-                moveNode(sourcePath, targetPath, Revision.fromString(stripBranchRevMarker(revisionId)), commit);
+                moveNode(sourcePath, targetPath, Revision.fromString(stripBranchRevMarker(baseRevId)), commit);
                 break;
             }
             case '*': {
@@ -656,18 +662,18 @@ public class MongoMK implements MicroKernel {
                     targetPath = PathUtils.concat(path, targetPath);
                 }
                 commit.copyNode(sourcePath, targetPath);
-                copyNode(sourcePath, targetPath, Revision.fromString(stripBranchRevMarker(revisionId)), commit);
+                copyNode(sourcePath, targetPath, Revision.fromString(stripBranchRevMarker(baseRevId)), commit);
                 break;
             }
             default:
                 throw new MicroKernelException("token: " + (char) t.getTokenType());
             }
         }
-        if (revisionId.startsWith("b")) {
+        if (baseRevId.startsWith("b")) {
             // just commit to head currently
             commit.apply();
             // remember branch commit
-            branchCommits.put(rev.toString(), revisionId.substring(1));
+            branchCommits.put(rev.toString(), baseRevId.substring(1));
 
             headRevision = commit.getRevision();
             return "b" + rev.toString();
@@ -774,16 +780,44 @@ public class MongoMK implements MicroKernel {
             if (isRevisionNewer(propRev, maxRev)) {
                 continue;
             }
-            String v = valueMap.get(r);
             if (firstRev == null || isRevisionNewer(propRev, firstRev)) {
                 firstRev = propRev;
-                value = v;
+                value = valueMap.get(r);
             }
         }
         if ("true".equals(value)) {
             return null;
         }
         return firstRev;
+    }
+    
+    /**
+     * Get the revision of the latest change made to this node.
+     * 
+     * @param nodeMap the document
+     * @param before the returned value is guaranteed to be older than this revision
+     * @param onlyCommitted whether only committed changes should be considered
+     * @return the revision, or null if deleted
+     */
+    Revision getNewestRevision(Map<String, Object> nodeMap, Revision before, boolean onlyCommitted) {
+        if (nodeMap == null) {
+            return null;
+        }
+        @SuppressWarnings("unchecked")
+        Map<String, String> valueMap = (Map<String, String>) nodeMap
+                .get(UpdateOp.DELETED);
+        Revision newestRev = null;
+        for (String r : valueMap.keySet()) {
+            Revision propRev = Revision.fromString(r);
+            if (newestRev == null || isRevisionNewer(propRev, newestRev)) {
+                // TODO check if propRev is really committed, if
+                // onlyCommitted is set
+                if (isRevisionNewer(before, propRev)) {
+                    newestRev = propRev;
+                }
+            }
+        }
+        return newestRev;
     }
     
     private static String stripBranchRevMarker(String revisionId) {

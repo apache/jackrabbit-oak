@@ -25,7 +25,6 @@ import static org.junit.Assert.assertTrue;
 
 import org.apache.jackrabbit.mongomk.prototype.DocumentStore.Collection;
 import org.apache.jackrabbit.mongomk.prototype.Node.Children;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.Lists;
