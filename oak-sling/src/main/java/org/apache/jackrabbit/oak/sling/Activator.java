@@ -25,6 +25,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import javax.jcr.Repository;
 
 import org.apache.jackrabbit.oak.api.ContentRepository;
+import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.sling.jcr.api.SlingRepository;
 import org.osgi.framework.BundleActivator;
@@ -56,7 +57,7 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer {
     public void start(BundleContext bundleContext) throws Exception {
         context = bundleContext;
         executor = Executors.newScheduledThreadPool(1);
-        securityProvider = null; // TODO
+        securityProvider = new SecurityProviderImpl(); // TODO
         tracker = new ServiceTracker(
                 context, ContentRepository.class.getName(), this);
         tracker.open();
