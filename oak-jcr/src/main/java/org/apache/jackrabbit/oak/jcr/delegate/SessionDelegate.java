@@ -58,6 +58,11 @@ public class SessionDelegate {
         this.idManager = new IdentifierManager(root);
     }
 
+    /**
+     * Called by {@link #perform(SessionOperation)} when the session needs to be
+     * refreshed before the actual {@link SessionOperation} is executed.
+     * This default implementation is empty.
+     */
     protected void refresh() {
     }
 
@@ -74,22 +79,17 @@ public class SessionDelegate {
      */
     public synchronized <T> T perform(SessionOperation<T> sessionOperation) throws RepositoryException {
         // Synchronize to avoid conflicting refreshes from concurrent JCR API calls
-        try {
-            if (sessionOpCount == 0) {
-                // Refresh only for non re-entrant session operations
-                refresh();
-            }
-            sessionOpCount++;
+        if (sessionOpCount == 0) {
+            // Refresh and checks only for non re-entrant session operations
+            refresh();
             sessionOperation.checkPreconditions();
+        }
+        try {
+            sessionOpCount++;
             return sessionOperation.perform();
         } finally {
             sessionOpCount--;
         }
-    }
-
-    @Nonnull  // FIXME this should be package private
-    public Root getRoot() {
-        return root;
     }
 
     @Nonnull
@@ -141,11 +141,6 @@ public class SessionDelegate {
     @Nonnull
     public IdentifierManager getIdManager() {
         return idManager;
-    }
-
-    @Nonnull
-    public TreeLocation getLocation(String path) {
-        return root.getLocation(path);
     }
 
     @CheckForNull
@@ -296,6 +291,16 @@ public class SessionDelegate {
     }
 
     //-----------------------------------------------------------< internal >---
+
+    @Nonnull  // FIXME this should be package private
+    public Root getRoot() {
+        return root;
+    }
+
+    @Nonnull
+    TreeLocation getLocation(String path) {
+        return root.getLocation(path);
+    }
 
     /**
      * Revision of this session. The revision is incremented each time a session is refreshed or saved.
