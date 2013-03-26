@@ -52,23 +52,6 @@ public class SessionDelegate {
     private int sessionOpCount;
     private int revision;
 
-    private abstract class SessionReadOperation<T> extends SessionOperation<T> {
-        @Override
-        protected void checkPreconditions() throws RepositoryException {
-            checkAlive();
-        }
-    }
-
-    private abstract class SessionWriteOperation<T> extends SessionReadOperation<T> {
-        @Override
-        protected void checkPreconditions() throws RepositoryException {
-            super.checkPreconditions();
-            if (isReadOnly()) {
-                throw new RepositoryException("This session is read only");
-            }
-        }
-    }
-
     public SessionDelegate(@Nonnull ContentSession contentSession) {
         this.contentSession = checkNotNull(contentSession);
         this.root = contentSession.getLatestRoot();
@@ -104,16 +87,6 @@ public class SessionDelegate {
         }
     }
 
-    public <T> T safePerform(SessionOperation<T> sessionOperation) {
-        try {
-            return perform(sessionOperation);
-        } catch (RepositoryException e) {
-            String msg = sessionOperation + "threw an unexpected exception";
-            log.error(msg, e);
-            throw new IllegalArgumentException(msg, e);
-        }
-    }
-
     @Nonnull  // FIXME this should be package private
     public Root getRoot() {
         return root;
@@ -124,18 +97,24 @@ public class SessionDelegate {
         return contentSession;
     }
 
+    /**
+     * Determine whether this session is alive and has not been logged
+     * out or become stale by other means.
+     * @return {@code true} if this session is alive, {@code false} otherwise.
+     */
     public boolean isAlive() {
         return isAlive;
     }
 
+    /**
+     * Check that this session is alive.
+     * @throws RepositoryException if this session is not alive
+     * @see #isAlive()
+     */
     public void checkAlive() throws RepositoryException {
         if (!isAlive()) {
             throw new RepositoryException("This session has been closed.");
         }
-    }
-
-    public boolean isReadOnly() {
-        return false;
     }
 
     @Nonnull

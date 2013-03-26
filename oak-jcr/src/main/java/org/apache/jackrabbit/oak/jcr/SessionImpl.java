@@ -105,10 +105,6 @@ public class SessionImpl implements JackrabbitSession {
         }
     }
 
-    public void checkProtectedNodes(String... absJcrPaths) throws RepositoryException {
-        checkProtectedNodes(this, absJcrPaths);
-    }
-
     //------------------------------------------------------------< Session >---
 
     @Override
@@ -141,7 +137,7 @@ public class SessionImpl implements JackrabbitSession {
     @Override
     @Nonnull
     public Session impersonate(Credentials credentials) throws RepositoryException {
-        ensureIsAlive();
+        dlg.checkAlive();
 
         ImpersonationCredentials impCreds = new ImpersonationCredentials(credentials, dlg.getAuthInfo());
         return getRepository().login(impCreds, dlg.getWorkspaceName());
@@ -150,7 +146,7 @@ public class SessionImpl implements JackrabbitSession {
     @Override
     @Nonnull
     public ValueFactory getValueFactory() throws RepositoryException {
-        ensureIsAlive();
+        dlg.checkAlive();
         return sessionContext.getValueFactory();
     }
 
@@ -160,7 +156,7 @@ public class SessionImpl implements JackrabbitSession {
         return dlg.perform(new SessionOperation<NodeImpl<?>>() {
             @Override
             protected void checkPreconditions() throws RepositoryException {
-                ensureIsAlive();
+                dlg.checkAlive();
             }
 
             @Override
@@ -187,7 +183,7 @@ public class SessionImpl implements JackrabbitSession {
         return dlg.perform(new SessionOperation<NodeImpl<?>>() {
             @Override
             protected void checkPreconditions() throws RepositoryException {
-                ensureIsAlive();
+                dlg.checkAlive();
             }
 
             @Override
@@ -224,7 +220,7 @@ public class SessionImpl implements JackrabbitSession {
         return dlg.perform(new SessionOperation<NodeImpl<?>>() {
             @Override
             protected void checkPreconditions() throws RepositoryException {
-                ensureIsAlive();
+                dlg.checkAlive();
             }
 
             @Override
@@ -244,7 +240,7 @@ public class SessionImpl implements JackrabbitSession {
         return dlg.perform(new SessionOperation<Boolean>() {
             @Override
             protected void checkPreconditions() throws RepositoryException {
-                ensureIsAlive();
+                dlg.checkAlive();
             }
 
             @Override
@@ -300,24 +296,20 @@ public class SessionImpl implements JackrabbitSession {
         dlg.perform(new SessionOperation<Void>() {
             @Override
             protected void checkPreconditions() throws RepositoryException {
-                ensureIsAlive();
-                checkProtectedNodes(Text.getRelativeParent(srcAbsPath, 1), Text.getRelativeParent(destAbsPath, 1));
+                dlg.checkAlive();
+                checkProtectedNodes(SessionImpl.this,
+                        Text.getRelativeParent(srcAbsPath, 1), Text.getRelativeParent(destAbsPath, 1));
             }
 
             @Override
             public Void perform() throws RepositoryException {
-                String oakPath = sessionContext.getOakPathKeepIndexOrThrowNotFound(destAbsPath);
-                String oakName = PathUtils.getName(oakPath);
+                String oakDestPath = sessionContext.getOakPathKeepIndexOrThrowNotFound(destAbsPath);
                 // handle index
-                if (oakName.contains("[")) {
+                if (PathUtils.getName(oakDestPath).contains("[")) {
                     throw new RepositoryException("Cannot create a new node using a name including an index");
                 }
 
-                dlg.move(
-                        getOakPathOrThrowNotFound(srcAbsPath),
-                        getOakPathOrThrowNotFound(oakPath),
-                        true);
-
+                dlg.move(getOakPathOrThrowNotFound(srcAbsPath), oakDestPath, true);
                 return null;
             }
         });
@@ -330,21 +322,21 @@ public class SessionImpl implements JackrabbitSession {
 
     @Override
     public void save() throws RepositoryException {
-        ensureIsAlive();
+        dlg.checkAlive();
         dlg.save();
         sessionContext.refresh();
     }
 
     @Override
     public void refresh(boolean keepChanges) throws RepositoryException {
-        ensureIsAlive();
+        dlg.checkAlive();
         dlg.refresh(keepChanges);
         sessionContext.refresh();
     }
 
     @Override
     public boolean hasPendingChanges() throws RepositoryException {
-        ensureIsAlive();
+        dlg.checkAlive();
         return dlg.hasPendingChanges();
     }
 
@@ -504,7 +496,7 @@ public class SessionImpl implements JackrabbitSession {
 
     @Override
     public boolean hasPermission(String absPath, String actions) throws RepositoryException {
-        ensureIsAlive();
+        dlg.checkAlive();
 
         String oakPath = sessionContext.getOakPathKeepIndex(absPath);
         if (oakPath == null) {
@@ -524,7 +516,7 @@ public class SessionImpl implements JackrabbitSession {
 
     @Override
     public boolean hasCapability(String methodName, Object target, Object[] arguments) throws RepositoryException {
-        ensureIsAlive();
+        dlg.checkAlive();
 
         // TODO
         return TODO.unimplemented().returnValue(false);
@@ -665,18 +657,4 @@ public class SessionImpl implements JackrabbitSession {
         return sessionContext.getUserManager();
     }
 
-    //------------------------------------------------------------< private >---
-
-    /**
-     * Ensure that this session is alive and throw an exception otherwise.
-     *
-     * @throws RepositoryException if this session has been rendered invalid
-     *                             for some reason (e.g. if this session has been closed explicitly by logout)
-     */
-    private void ensureIsAlive() throws RepositoryException {
-        // check session status
-        if (!dlg.isAlive()) {
-            throw new RepositoryException("This session has been closed.");
-        }
-    }
 }

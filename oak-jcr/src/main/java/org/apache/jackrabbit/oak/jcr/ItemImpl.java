@@ -245,7 +245,7 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
 
     protected abstract ItemDefinition getDefinition() throws RepositoryException;
 
-    public void checkProtected() throws RepositoryException {
+    void checkProtected() throws RepositoryException {
         ItemDefinition definition;
         try {
             definition = getDefinition();
