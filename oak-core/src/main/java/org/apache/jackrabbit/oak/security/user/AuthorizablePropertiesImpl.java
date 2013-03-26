@@ -22,7 +22,6 @@ import java.util.Iterator;
 import java.util.List;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
-import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.nodetype.ConstraintViolationException;
@@ -129,18 +128,13 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
             checkRelativePath(relPath);
 
             String name = Text.getName(relPath);
+            PropertyState propertyState =
+                    PropertyStates.createProperty(name, value);
+
             String intermediate = (relPath.equals(name)) ? null : Text.getRelativeParent(relPath, 1);
             Tree parent = getOrCreateTargetTree(intermediate);
-            checkProtectedProperty(parent, name, false, value.getType());
+            checkProtectedProperty(parent, propertyState);
 
-            // check if the property has already been created as multi valued
-            // property before -> in this case remove in order to avoid
-            // ValueFormatException.
-            PropertyState p = parent.getProperty(name);
-            if (p != null && p.isArray()) {
-                parent.removeProperty(name);
-            }
-            PropertyState propertyState = PropertyStates.createProperty(name, value);
             parent.setProperty(propertyState);
         }
     }
@@ -156,19 +150,13 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
             checkRelativePath(relPath);
 
             String name = Text.getName(relPath);
+            PropertyState propertyState =
+                    PropertyStates.createProperty(name, Arrays.asList(values));
+
             String intermediate = (relPath.equals(name)) ? null : Text.getRelativeParent(relPath, 1);
             Tree parent = getOrCreateTargetTree(intermediate);
-            int targetType = (values.length == 0) ? PropertyType.UNDEFINED : values[0].getType();
-            checkProtectedProperty(parent, name, true, targetType);
+            checkProtectedProperty(parent, propertyState);
 
-            // check if the property has already been created as single valued
-            // property before -> in this case remove in order to avoid
-            // ValueFormatException.
-            PropertyState p = parent.getProperty(name);
-            if (p != null && !p.isArray()) {
-                parent.removeProperty(name);
-            }
-            PropertyState propertyState = PropertyStates.createProperty(name, Arrays.asList(values));
             parent.setProperty(propertyState);
         }
     }
@@ -255,7 +243,7 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
             log.debug("Unable to determine definition of authorizable property at " + propertyLocation.getPath());
             return null;
         }
-        PropertyDefinition def = nodeTypeManager.getDefinition(parent, property);
+        PropertyDefinition def = nodeTypeManager.getDefinition(parent, property, true);
         if (def.isProtected() || (authorizablePath.equals(parent.getPath())
                 && !def.getDeclaringNodeType().isNodeType(UserConstants.NT_REP_AUTHORIZABLE))) {
             return null;
@@ -264,10 +252,12 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
         return property;
     }
 
-    private void checkProtectedProperty(Tree parent, String propertyName, boolean isArray, int type) throws RepositoryException {
-        PropertyDefinition def = nodeTypeManager.getDefinition(parent, propertyName, isArray, type, false);
+    private void checkProtectedProperty(Tree parent, PropertyState property) throws RepositoryException {
+        PropertyDefinition def =
+                nodeTypeManager.getDefinition(parent, property, false);
         if (def.isProtected()) {
-            throw new ConstraintViolationException("Attempt to set an protected property " + propertyName);
+            throw new ConstraintViolationException(
+                    "Attempt to set an protected property " + property.getName());
         }
     }
 

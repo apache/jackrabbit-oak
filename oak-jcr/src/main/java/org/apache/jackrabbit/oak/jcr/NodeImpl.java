@@ -60,7 +60,6 @@ import javax.jcr.version.VersionManager;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
@@ -362,7 +361,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     public Property setProperty(String name, Value value)
             throws RepositoryException {
         if (value != null) {
-            return internalSetProperty(name, value, value.getType(), false);
+            return internalSetProperty(name, value, false);
         } else {
             return internalRemoveProperty(name);
         }
@@ -374,7 +373,10 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         if (type == UNDEFINED) {
             return setProperty(name, value);
         } else if (value != null) {
-            return internalSetProperty(name, value, type, true);
+            if (value.getType() != type) {
+                value = ValueHelper.convert(value, type, getValueFactory());
+            }
+            return internalSetProperty(name, value, true);
         } else {
             return internalRemoveProperty(name);
         }
@@ -384,15 +386,19 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     public Property setProperty(String name, Value[] values)
             throws RepositoryException {
         if (values != null) {
+            int type = UNDEFINED;
             for (int i = 0; i < values.length; i++) {
                 if (values[i] != null) {
-                    // use the type of the first non-null value
-                    return internalSetProperty(
-                            name, values, values[i].getType(), false);
+                    if (type == UNDEFINED) {
+                        type = values[i].getType();
+                    } else if (values[i].getType() != type) {
+                        throw new ValueFormatException(
+                                "All values of a multi-valued property"
+                                + " must be of the same type");
+                    }
                 }
             }
-            // unknown value type
-            return internalSetProperty(name, values, UNDEFINED, false);
+            return internalSetProperty(name, values, type, false);
         } else {
             return internalRemoveProperty(name);
         }
@@ -404,6 +410,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         if (type == UNDEFINED) {
             return setProperty(jcrName, values);
         } else if (values != null) {
+            values = ValueHelper.convert(values, type, getValueFactory());
             return internalSetProperty(jcrName, values, type, true);
         } else {
             return internalRemoveProperty(jcrName);
@@ -440,7 +447,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
             throws RepositoryException {
         if (value != null) {
             Value v = getValueFactory().createValue(value);
-            return internalSetProperty(name, v, UNDEFINED, false);
+            return internalSetProperty(name, v, false);
         } else {
             return internalRemoveProperty(name);
         }
@@ -453,7 +460,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
             return setProperty(name, value);
         } else if (value != null) {
             Value v = getValueFactory().createValue(value, type);
-            return internalSetProperty(name, v, type, true);
+            return internalSetProperty(name, v, true);
         } else {
             return internalRemoveProperty(name);
         }
@@ -467,7 +474,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
             Binary binary = factory.createBinary(value);
             try {
                 Value v = factory.createValue(binary);
-                return internalSetProperty(name, v, PropertyType.BINARY, true);
+                return internalSetProperty(name, v, true);
             } finally {
                 binary.dispose();
             }
@@ -481,7 +488,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
             throws RepositoryException {
         if (value != null) {
             Value v = getValueFactory().createValue(value);
-            return internalSetProperty(name, v, PropertyType.BINARY, true);
+            return internalSetProperty(name, v, true);
         } else {
             return internalRemoveProperty(name);
         }
@@ -491,14 +498,14 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     public Property setProperty(String name, boolean value)
             throws RepositoryException {
         Value v = getValueFactory().createValue(value);
-        return internalSetProperty(name, v, PropertyType.BOOLEAN, true);
+        return internalSetProperty(name, v, true);
     }
 
     @Override @Nonnull
     public Property setProperty(String name, double value)
             throws RepositoryException {
         Value v = getValueFactory().createValue(value);
-        return internalSetProperty(name, v, PropertyType.DOUBLE, true);
+        return internalSetProperty(name, v, true);
     }
 
     @Override @Nonnull
@@ -506,7 +513,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
             throws RepositoryException {
         if (value != null) {
             Value v = getValueFactory().createValue(value);
-            return internalSetProperty(name, v, PropertyType.DECIMAL, true);
+            return internalSetProperty(name, v, true);
         } else {
             return internalRemoveProperty(name);
         }
@@ -516,7 +523,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     public Property setProperty(String name, long value)
             throws RepositoryException {
         Value v = getValueFactory().createValue(value);
-        return internalSetProperty(name, v, PropertyType.LONG, true);
+        return internalSetProperty(name, v, true);
     }
 
     @Override @Nonnull
@@ -524,7 +531,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
             throws RepositoryException {
         if (value != null) {
             Value v = getValueFactory().createValue(value);
-            return internalSetProperty(name, v, PropertyType.DATE, true);
+            return internalSetProperty(name, v, true);
         } else {
             return internalRemoveProperty(name);
         }
@@ -535,7 +542,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
             throws RepositoryException {
         if (value != null) {
             Value v = getValueFactory().createValue(value);
-            return internalSetProperty(name, v, PropertyType.REFERENCE, true);
+            return internalSetProperty(name, v, true);
         } else {
             return internalRemoveProperty(name);
         }
@@ -1591,11 +1598,10 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     }
 
     private Property internalSetProperty(
-            final String jcrName, final Value value,
-            final int type, final boolean exactTypeMatch)
+            String jcrName, final Value value, final boolean exactTypeMatch)
             throws RepositoryException {
-        checkNotNull(value);
         final String oakName = getOakPath(checkNotNull(jcrName));
+        checkNotNull(value);
         return perform(new SessionOperation<Property>() {
             @Override
             protected void checkPreconditions() throws RepositoryException {
@@ -1606,9 +1612,12 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
 
             @Override
             public Property perform() throws RepositoryException {
+                PropertyState state =
+                        PropertyStates.createProperty(oakName, value);
+
                 // TODO: Avoid extra JCR method calls (OAK-672)
                 PropertyDefinition definition = getDefinitionProvider().getDefinition(
-                        dlg.getTree(), oakName, false, type, exactTypeMatch);
+                        dlg.getTree(), state, exactTypeMatch);
                 checkProtected(definition);
                 if (definition.isMultiple()) {
                     throw new ValueFormatException(
@@ -1616,22 +1625,23 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                 }
 
                 int targetType = getTargetType(value, definition);
-                Value targetValue = ValueHelper.convert(
-                        value, targetType, getValueFactory());
+                if (targetType != value.getType()) {
+                    state = PropertyStates.createProperty(
+                            oakName, ValueHelper.convert(
+                                    value, targetType, getValueFactory()));
+                }
 
-                PropertyState state =
-                        PropertyStates.createProperty(oakName, targetValue);
                 return new PropertyImpl(dlg.setProperty(state), sessionContext);
             }
         });
     }
 
     private Property internalSetProperty(
-            final String jcrName, final Value[] values,
+            String jcrName, Value[] values,
             final int type, final boolean exactTypeMatch)
             throws RepositoryException {
-        checkNotNull(values);
         final String oakName = getOakPath(checkNotNull(jcrName));
+        final Value[] nonNullValues = compact(checkNotNull(values));
         return perform(new SessionOperation<Property>() {
             @Override
             protected void checkPreconditions() throws RepositoryException {
@@ -1642,23 +1652,25 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
 
             @Override
             public Property perform() throws RepositoryException {
+                PropertyState state = PropertyStates.createProperty(
+                        oakName, Arrays.asList(nonNullValues));
+
                 // TODO: Avoid extra JCR method calls (OAK-672)
                 PropertyDefinition definition = getDefinitionProvider().getDefinition(
-                        dlg.getTree(), oakName, true, type, exactTypeMatch);
+                        dlg.getTree(), state, exactTypeMatch);
                 checkProtected(definition);
                 if (!definition.isMultiple()) {
                     throw new ValueFormatException(
                             "Cannot set value array to single value property");
                 }
 
-                int targetType = getTargetType(values, definition);
-                Value[] targetValues = ValueHelper.convert(
-                        values, targetType, getValueFactory());
+                int targetType = getTargetType(nonNullValues, definition);
+                if (targetType != type) {
+                    state = PropertyStates.createProperty(
+                            oakName, Arrays.asList(ValueHelper.convert(
+                                    nonNullValues, targetType, getValueFactory())));
+                }
 
-                Iterable<Value> nonNullValues = Iterables.filter(
-                        Arrays.asList(targetValues), Predicates.notNull());
-                PropertyState state =
-                        PropertyStates.createProperty(oakName, nonNullValues);
                 return new PropertyImpl(dlg.setProperty(state), sessionContext);
             }
         });
@@ -1691,6 +1703,32 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                 }
             }
         });
+    }
+
+    /**
+     * Removes all {@code null} values from the given array.
+     *
+     * @param values value array
+     * @return value array without {@code null} entries
+     */
+    private static Value[] compact(Value[] values) {
+        int n = 0;
+        for (int i = 0; i < values.length; i++) {
+            if (values[i] != null) {
+                n++;
+            }
+        }
+        if (n == values.length) {
+            return values;
+        } else {
+            Value[] nonNullValues = new Value[n];
+            for (int i = 0, j = 0; i < values.length; i++) {
+                if (values[i] != null) {
+                    nonNullValues[j++] = values[i];
+                }
+            }
+            return nonNullValues;
+        }
     }
 
 }
