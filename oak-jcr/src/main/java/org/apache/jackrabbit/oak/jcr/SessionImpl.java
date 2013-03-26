@@ -25,6 +25,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.AccessDeniedException;
 import javax.jcr.Credentials;
@@ -54,7 +55,6 @@ import org.apache.jackrabbit.commons.xml.Exporter;
 import org.apache.jackrabbit.commons.xml.ParsingContentHandler;
 import org.apache.jackrabbit.commons.xml.SystemViewExporter;
 import org.apache.jackrabbit.commons.xml.ToXmlContentHandler;
-import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.PropertyDelegate;
@@ -62,7 +62,6 @@ import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionOperation;
 import org.apache.jackrabbit.oak.jcr.xml.ImportHandler;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
-import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.util.TODO;
 import org.apache.jackrabbit.util.Text;
 import org.apache.jackrabbit.util.XMLChar;
@@ -75,14 +74,10 @@ import org.xml.sax.SAXException;
  * TODO document
  */
 public class SessionImpl implements JackrabbitSession {
-
-    /**
-     * logger instance
-     */
     private static final Logger log = LoggerFactory.getLogger(SessionImpl.class);
 
     private final SessionContext sessionContext;
-    private final SessionDelegate dlg;
+    private final SessionDelegate sd;
 
     /**
      * Local namespace remappings. Prefixes as keys and namespace URIs as values.
@@ -94,7 +89,7 @@ public class SessionImpl implements JackrabbitSession {
 
     SessionImpl(SessionContext sessionContext, Map<String, String> namespaces) {
         this.sessionContext = sessionContext;
-        this.dlg = sessionContext.getSessionDelegate();
+        this.sd = sessionContext.getSessionDelegate();
         this.namespaces = namespaces;
     }
 
@@ -103,6 +98,108 @@ public class SessionImpl implements JackrabbitSession {
             NodeImpl<?> node = (NodeImpl<?>) session.getNode(absPath);
             node.checkProtected();
         }
+    }
+
+    private abstract class CheckedSessionOperation<T> extends SessionOperation<T> {
+        @Override
+        protected void checkPreconditions() throws RepositoryException {
+            sd.checkAlive();
+        }
+    }
+
+    @CheckForNull
+    private <T> T perform(@Nonnull CheckedSessionOperation<T> op) throws RepositoryException {
+        return sd.perform(op);
+    }
+
+    @Nonnull
+    private String getOakPathOrThrow(String absPath) throws RepositoryException {
+        return sessionContext.getOakPathOrThrow(absPath);
+    }
+
+    @Nonnull
+    private String getOakPathOrThrowNotFound(String absPath) throws PathNotFoundException {
+        return sessionContext.getOakPathOrThrowNotFound(absPath);
+    }
+
+    private NodeImpl<?> createNodeOrNull(NodeDelegate nd) {
+        return nd == null ? null : new NodeImpl<NodeDelegate>(nd, sessionContext);
+    }
+
+    private PropertyImpl createPropertyOrNull(PropertyDelegate pd) {
+        return pd == null ? null : new PropertyImpl(pd, sessionContext);
+    }
+
+    @CheckForNull
+    private ItemImpl<?> getItemInternal(@Nonnull String oakPath) {
+        NodeDelegate nd = sd.getNode(oakPath);
+        if (nd != null) {
+            return createNodeOrNull(nd);
+        }
+        PropertyDelegate pd = sd.getProperty(oakPath);
+        if (pd != null) {
+            return createPropertyOrNull(pd);
+        }
+        return null;
+    }
+
+    /**
+     * Returns the node at the specified absolute path in the workspace or
+     * {@code null} if no such node exists.
+     *
+     * @param absPath An absolute path.
+     * @return the specified {@code Node} or {@code null}.
+     * @throws RepositoryException   If another error occurs.
+     */
+    @CheckForNull
+    public Node getNodeOrNull(final String absPath) throws RepositoryException {
+        return perform(new CheckedSessionOperation<Node>() {
+            @Override
+            public Node perform() throws RepositoryException {
+                return createNodeOrNull(sd.getNode(getOakPathOrThrow(absPath)));
+            }
+        });
+    }
+
+    /**
+     * Returns the property at the specified absolute path in the workspace or
+     * {@code null} if no such node exists.
+     *
+     * @param absPath An absolute path.
+     * @return the specified {@code Property} or {@code null}.
+     * @throws RepositoryException   if another error occurs.
+     */
+    @CheckForNull
+    public Property getPropertyOrNull(final String absPath) throws RepositoryException {
+        if (absPath.equals("/")) {
+            return null;
+        } else {
+            return perform(new CheckedSessionOperation<Property>() {
+                @Override
+                public Property perform() throws RepositoryException {
+                    return createPropertyOrNull(sd.getProperty(getOakPathOrThrow(absPath)));
+                }
+            });
+        }
+    }
+
+    /**
+     * Returns the node at the specified absolute path in the workspace. If no
+     * such node exists, then it returns the property at the specified path.
+     * If no such property exists, then it return {@code null}.
+     *
+     * @param absPath An absolute path.
+     * @return the specified {@code Item} or {@code null}.
+     * @throws RepositoryException   if another error occurs.
+     */
+    @CheckForNull
+    public Item getItemOrNull(final String absPath) throws RepositoryException {
+        return perform(new CheckedSessionOperation<Item>() {
+            @Override
+            public Item perform() throws RepositoryException {
+                return getItemInternal(getOakPathOrThrow(absPath));
+            }
+        });
     }
 
     //------------------------------------------------------------< Session >---
@@ -115,17 +212,17 @@ public class SessionImpl implements JackrabbitSession {
 
     @Override
     public String getUserID() {
-        return dlg.getAuthInfo().getUserID();
+        return sd.getAuthInfo().getUserID();
     }
 
     @Override
     public String[] getAttributeNames() {
-        return dlg.getAuthInfo().getAttributeNames();
+        return sd.getAuthInfo().getAttributeNames();
     }
 
     @Override
     public Object getAttribute(String name) {
-        return dlg.getAuthInfo().getAttribute(name);
+        return sd.getAuthInfo().getAttribute(name);
     }
 
     @Override
@@ -137,36 +234,58 @@ public class SessionImpl implements JackrabbitSession {
     @Override
     @Nonnull
     public Session impersonate(Credentials credentials) throws RepositoryException {
-        dlg.checkAlive();
+        sd.checkAlive();
 
-        ImpersonationCredentials impCreds = new ImpersonationCredentials(credentials, dlg.getAuthInfo());
-        return getRepository().login(impCreds, dlg.getWorkspaceName());
+        ImpersonationCredentials impCreds = new ImpersonationCredentials(credentials, sd.getAuthInfo());
+        return getRepository().login(impCreds, sd.getWorkspaceName());
     }
 
     @Override
     @Nonnull
     public ValueFactory getValueFactory() throws RepositoryException {
-        dlg.checkAlive();
+        sd.checkAlive();
         return sessionContext.getValueFactory();
     }
 
     @Override
     @Nonnull
     public Node getRootNode() throws RepositoryException {
-        return dlg.perform(new SessionOperation<NodeImpl<?>>() {
+        return perform(new CheckedSessionOperation<Node>() {
             @Override
-            protected void checkPreconditions() throws RepositoryException {
-                dlg.checkAlive();
-            }
-
-            @Override
-            public NodeImpl<?> perform() throws AccessDeniedException {
-                NodeDelegate nd = dlg.getRootNode();
+            protected Node perform() throws AccessDeniedException {
+                NodeDelegate nd = sd.getRootNode();
                 if (nd == null) {
                     throw new AccessDeniedException("Root node is not accessible.");
-                } else {
-                    return new NodeImpl<NodeDelegate>(nd, sessionContext);
                 }
+                return createNodeOrNull(nd);
+            }
+        });
+    }
+
+    @Override
+    public Node getNode(String absPath) throws RepositoryException {
+        Node node = getNodeOrNull(absPath);
+        if (node == null) {
+            throw new PathNotFoundException("Node with path " + absPath + " does not exist.");
+        }
+        return node;
+    }
+
+    @Override
+    public boolean nodeExists(String absPath) throws RepositoryException {
+        return getNodeOrNull(absPath) != null;
+    }
+
+    @Nonnull
+    private Node getNodeById(final String id) throws RepositoryException {
+        return perform(new CheckedSessionOperation<Node>() {
+            @Override
+            public Node perform() throws ItemNotFoundException {
+                NodeDelegate nd = sd.getNodeByIdentifier(id);
+                if (nd == null) {
+                    throw new ItemNotFoundException("Node with id " + id + " does not exist.");
+                }
+                return createNodeOrNull(nd);
             }
         });
     }
@@ -174,129 +293,49 @@ public class SessionImpl implements JackrabbitSession {
     @Override
     @Nonnull
     public Node getNodeByUUID(String uuid) throws RepositoryException {
-        return getNodeByIdentifier(uuid);
+        return getNodeById(uuid);
     }
 
     @Override
     @Nonnull
-    public Node getNodeByIdentifier(final String id) throws RepositoryException {
-        return dlg.perform(new SessionOperation<NodeImpl<?>>() {
-            @Override
-            protected void checkPreconditions() throws RepositoryException {
-                dlg.checkAlive();
-            }
+    public Node getNodeByIdentifier(String id) throws RepositoryException {
+        return getNodeById(id);
+    }
 
-            @Override
-            public NodeImpl<?> perform() throws RepositoryException {
-                NodeDelegate d = dlg.getNodeByIdentifier(id);
-                if (d == null) {
-                    throw new ItemNotFoundException("Node with id " + id + " does not exist.");
-                }
-                return new NodeImpl<NodeDelegate>(d, sessionContext);
-            }
-        });
+    @Override
+    public Property getProperty(String absPath) throws RepositoryException {
+        Property property = getPropertyOrNull(absPath);
+        if (property == null) {
+            throw new PathNotFoundException(absPath);
+        }
+        return property;
+    }
+
+    @Override
+    public boolean propertyExists(String absPath) throws RepositoryException {
+        return getPropertyOrNull(absPath) != null;
     }
 
     @Override
     public Item getItem(String absPath) throws RepositoryException {
-        if (nodeExists(absPath)) {
-            return getNode(absPath);
-        } else {
-            return getProperty(absPath);
+        Item item = getItemOrNull(absPath);
+        if (item == null) {
+            throw new PathNotFoundException(absPath);
         }
+        return item;
     }
 
     @Override
     public boolean itemExists(String absPath) throws RepositoryException {
-        return nodeExists(absPath) || propertyExists(absPath);
-    }
-
-    private String getOakPath(String absPath) throws RepositoryException {
-        return sessionContext.getOakPathOrThrow(absPath);
-    }
-
-    @Override
-    public Node getNode(final String absPath) throws RepositoryException {
-        return dlg.perform(new SessionOperation<NodeImpl<?>>() {
-            @Override
-            protected void checkPreconditions() throws RepositoryException {
-                dlg.checkAlive();
-            }
-
-            @Override
-            public NodeImpl<?> perform() throws RepositoryException {
-                String oakPath = getOakPath(absPath);
-                NodeDelegate d = dlg.getNode(oakPath);
-                if (d == null) {
-                    throw new PathNotFoundException("Node with path " + absPath + " does not exist.");
-                }
-                return new NodeImpl<NodeDelegate>(d, sessionContext);
-            }
-        });
-    }
-
-    @Override
-    public boolean nodeExists(final String absPath) throws RepositoryException {
-        return dlg.perform(new SessionOperation<Boolean>() {
-            @Override
-            protected void checkPreconditions() throws RepositoryException {
-                dlg.checkAlive();
-            }
-
-            @Override
-            public Boolean perform() throws RepositoryException {
-                String oakPath = getOakPath(absPath);
-                return dlg.getNode(oakPath) != null;
-            }
-        });
-    }
-
-    @Override
-    public Property getProperty(final String absPath) throws RepositoryException {
-        if (absPath.equals("/")) {
-            throw new RepositoryException("The root node is not a property");
-        } else {
-            return dlg.perform(new SessionOperation<PropertyImpl>() {
-                @Override
-                public PropertyImpl perform() throws RepositoryException {
-                    String oakPath = getOakPathOrThrowNotFound(absPath);
-                    TreeLocation loc = dlg.getLocation(oakPath);
-                    if (loc.getProperty() == null) {
-                        throw new PathNotFoundException(absPath);
-                    } else {
-                        return new PropertyImpl(new PropertyDelegate(dlg, loc), sessionContext);
-                    }
-                }
-            });
-        }
-    }
-
-    private String getOakPathOrThrowNotFound(String absPath) throws PathNotFoundException {
-        return sessionContext.getOakPathOrThrowNotFound(absPath);
-    }
-
-    @Override
-    public boolean propertyExists(final String absPath) throws RepositoryException {
-        if (absPath.equals("/")) {
-            throw new RepositoryException("The root node is not a property");
-        } else {
-            return dlg.perform(new SessionOperation<Boolean>() {
-                @Override
-                public Boolean perform() throws RepositoryException {
-                    String oakPath = getOakPathOrThrowNotFound(absPath);
-                    TreeLocation loc = dlg.getLocation(oakPath);
-                    return loc.getProperty() != null;
-                }
-            });
-        }
+        return getItemOrNull(absPath) != null;
     }
 
     @Override
     public void move(final String srcAbsPath, final String destAbsPath) throws RepositoryException {
-        dlg.perform(new SessionOperation<Void>() {
+        sd.perform(new CheckedSessionOperation<Void>() {
             @Override
             protected void checkPreconditions() throws RepositoryException {
-                dlg.checkAlive();
+                super.checkPreconditions();
                 checkProtectedNodes(SessionImpl.this,
                         Text.getRelativeParent(srcAbsPath, 1), Text.getRelativeParent(destAbsPath, 1));
             }
@@ -309,49 +348,64 @@ public class SessionImpl implements JackrabbitSession {
                     throw new RepositoryException("Cannot create a new node using a name including an index");
                 }
 
-                dlg.move(getOakPathOrThrowNotFound(srcAbsPath), oakDestPath, true);
+                sd.move(getOakPathOrThrowNotFound(srcAbsPath), oakDestPath, true);
                 return null;
             }
         });
     }
 
     @Override
-    public void removeItem(String absPath) throws RepositoryException {
-        getItem(absPath).remove();
+    public void removeItem(final String absPath) throws RepositoryException {
+        perform(new CheckedSessionOperation<Void>() {
+            @Override
+            protected Void perform() throws RepositoryException {
+                String oakPath = getOakPathOrThrowNotFound(absPath);
+                ItemImpl<?> item = getItemInternal(oakPath);
+                if (item == null) {
+                    throw new PathNotFoundException(absPath);
+                }
+
+                item.checkProtected();
+                item.remove();
+                return null;
+            }
+        });
     }
 
     @Override
     public void save() throws RepositoryException {
-        dlg.checkAlive();
-        dlg.save();
+        sd.checkAlive();
+        sd.save();
         sessionContext.refresh();
     }
 
     @Override
     public void refresh(boolean keepChanges) throws RepositoryException {
-        dlg.checkAlive();
-        dlg.refresh(keepChanges);
+        sd.checkAlive();
+        sd.refresh(keepChanges);
         sessionContext.refresh();
     }
 
     @Override
     public boolean hasPendingChanges() throws RepositoryException {
-        dlg.checkAlive();
-        return dlg.hasPendingChanges();
+        sd.checkAlive();
+        return sd.hasPendingChanges();
     }
 
     @Override
     public boolean isLive() {
-        return dlg.isAlive();
+        return sd.isAlive();
     }
 
 
     @Override
     public void logout() {
-        sessionContext.dispose();
-        dlg.logout();
-        synchronized (namespaces) {
-            namespaces.clear();
+        if (sd.isAlive()) {
+            sessionContext.dispose();
+            sd.logout();
+            synchronized (namespaces) {
+                namespaces.clear();
+            }
         }
     }
 
@@ -414,7 +468,7 @@ public class SessionImpl implements JackrabbitSession {
             throws IOException, RepositoryException {
         try {
             ContentHandler handler = new ToXmlContentHandler(out);
-            exportSystemView(absPath, handler, skipBinary, noRecurse);
+            export(absPath, new SystemViewExporter(this, handler, !noRecurse, !skipBinary));
         } catch (SAXException e) {
             Exception exception = e.getException();
             if (exception instanceof RepositoryException) {
@@ -438,7 +492,7 @@ public class SessionImpl implements JackrabbitSession {
             throws IOException, RepositoryException {
         try {
             ContentHandler handler = new ToXmlContentHandler(out);
-            exportDocumentView(absPath, handler, skipBinary, noRecurse);
+            export(absPath, new DocumentViewExporter(this, handler, !noRecurse, !skipBinary));
         } catch (SAXException e) {
             Exception exception = e.getException();
             if (exception instanceof RepositoryException) {
@@ -495,16 +549,14 @@ public class SessionImpl implements JackrabbitSession {
     }
 
     @Override
-    public boolean hasPermission(String absPath, String actions) throws RepositoryException {
-        dlg.checkAlive();
-
-        String oakPath = sessionContext.getOakPathKeepIndex(absPath);
-        if (oakPath == null) {
-            throw new RepositoryException("Invalid JCR path: " + absPath);
-        }
-
-        PermissionProvider permissionProvider = sessionContext.getPermissionProvider();
-        return permissionProvider.isGranted(absPath, actions);
+    public boolean hasPermission(final String absPath, final String actions) throws RepositoryException {
+        return perform(new CheckedSessionOperation<Boolean>() {
+            @Override
+            protected Boolean perform() throws RepositoryException {
+                String oakPath = getOakPathOrThrow(absPath);
+                return sessionContext.getPermissionProvider().isGranted(oakPath, actions);
+            }
+        });
     }
 
     @Override
@@ -516,7 +568,7 @@ public class SessionImpl implements JackrabbitSession {
 
     @Override
     public boolean hasCapability(String methodName, Object target, Object[] arguments) throws RepositoryException {
-        dlg.checkAlive();
+        sd.checkAlive();
 
         // TODO
         return TODO.unimplemented().returnValue(false);
