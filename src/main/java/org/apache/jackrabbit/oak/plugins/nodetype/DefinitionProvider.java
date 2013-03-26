@@ -17,8 +17,6 @@
 package org.apache.jackrabbit.oak.plugins.nodetype;
 
 import javax.annotation.Nonnull;
-import javax.jcr.Node;
-import javax.jcr.Property;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.NodeDefinition;
@@ -41,7 +39,6 @@ public interface DefinitionProvider {
      * child node definitions of {@code parent} are checked matching the
      * given node name. Then the residual definitions are checked.
      *
-     *
      * @param parent   the parent node.
      * @param nodeName The internal oak name of the child node.
      * @return the applicable node definition.
@@ -49,7 +46,7 @@ public interface DefinitionProvider {
      * @throws RepositoryException If another error occurs.
      */
     @Nonnull
-    NodeDefinition getDefinition(@Nonnull Node parent, @Nonnull String nodeName)
+    NodeDefinition getDefinition(@Nonnull Tree parent, @Nonnull String nodeName)
             throws ConstraintViolationException, RepositoryException;
 
     /**
@@ -67,20 +64,6 @@ public interface DefinitionProvider {
             throws ConstraintViolationException, RepositoryException;
 
     /**
-     * Calculates the definition of the specified property.
-     *
-     * @param parent The parent node.
-     * @param targetProperty The target property.
-     * @return The definition of the specified property.
-     * @throws ConstraintViolationException If no matching definition can be
-     * found.
-     * @throws RepositoryException If another error occurs.
-     */
-    @Nonnull
-    PropertyDefinition getDefinition(Node parent, Property targetProperty)
-            throws ConstraintViolationException, RepositoryException;
-
-    /**
      * Calculates the applicable definition for the property state under the
      * given parent tree.
      *
@@ -93,6 +76,6 @@ public interface DefinitionProvider {
     @Nonnull
     PropertyDefinition getDefinition(
             Tree parent, PropertyState propertyState, boolean exactTypeMatch)
-            throws ConstraintViolationException,RepositoryException;
+            throws ConstraintViolationException, RepositoryException;
 
 }

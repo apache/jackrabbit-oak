@@ -16,6 +16,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
+
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -23,10 +30,8 @@ import java.util.Set;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.Node;
-import javax.jcr.Property;
 import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
-import javax.jcr.Value;
 import javax.jcr.ValueFactory;
 import javax.jcr.nodetype.NoSuchNodeTypeException;
 import javax.jcr.nodetype.NodeDefinition;
@@ -41,7 +46,6 @@ import javax.jcr.nodetype.PropertyDefinitionTemplate;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.iterator.NodeTypeIteratorAdapter;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -53,14 +57,6 @@ import org.apache.jackrabbit.oak.namepath.NameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-import static javax.jcr.PropertyType.UNDEFINED;
-import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
-import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
-import static org.apache.jackrabbit.oak.api.Type.STRING;
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
 
 /**
  * Base implementation of a {@link NodeTypeManager} with support for reading
@@ -354,7 +350,6 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
 
     @Override
     public EffectiveNodeType getEffectiveNodeType(Tree tree) throws RepositoryException {
-
         NodeTypeImpl primaryType;
         PropertyState jcrPrimaryType = tree.getProperty(JCR_PRIMARYTYPE);
         if (jcrPrimaryType != null) {
@@ -385,7 +380,7 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
 
     @Nonnull
     @Override
-    public NodeDefinition getDefinition(@Nonnull Node parent, @Nonnull String nodeName)
+    public NodeDefinition getDefinition(@Nonnull Tree parent, @Nonnull String nodeName)
             throws RepositoryException {
         checkNotNull(parent);
         checkNotNull(nodeName);
@@ -403,24 +398,6 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
         String name = targetNode.getName();
         EffectiveNodeType eff = getEffectiveNodeType(parent);
         return eff.getNodeDefinition(name, getEffectiveNodeType(targetNode));
-    }
-
-    @Override
-    public PropertyDefinition getDefinition(Node parent, Property targetProperty) throws RepositoryException {
-        String name = targetProperty.getName();
-        boolean isMultiple = targetProperty.isMultiple();
-        int type = UNDEFINED;
-        if (isMultiple) {
-            Value[] values = targetProperty.getValues();
-            if (values.length > 0) {
-                type = values[0].getType();
-            }
-        } else {
-            type = targetProperty.getValue().getType();
-        }
-
-        EffectiveNodeType effective = getEffectiveNodeType(parent);
-        return effective.getPropertyDefinition(name, isMultiple, type, true);
     }
 
     @Nonnull
