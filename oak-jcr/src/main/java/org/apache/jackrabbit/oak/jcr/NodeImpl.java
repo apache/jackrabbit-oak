@@ -25,7 +25,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.AccessDeniedException;
 import javax.jcr.Binary;
@@ -44,6 +43,7 @@ import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.Value;
+import javax.jcr.ValueFactory;
 import javax.jcr.ValueFormatException;
 import javax.jcr.Workspace;
 import javax.jcr.lock.Lock;
@@ -91,8 +91,10 @@ import org.apache.jackrabbit.value.ValueHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static javax.jcr.Property.JCR_LOCK_IS_DEEP;
 import static javax.jcr.Property.JCR_LOCK_OWNER;
+import static javax.jcr.PropertyType.UNDEFINED;
 
 /**
  * TODO document
@@ -337,170 +339,206 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         return sessionContext.getOakPathOrThrowNotFound(relPath);
     }
 
-    /**
-     * @see Node#setProperty(String, javax.jcr.Value)
-     */
-    @Override
-    @CheckForNull
-    public Property setProperty(String name, Value value) throws RepositoryException {
-        int type = PropertyType.UNDEFINED;
+    //-------------------------------------------------------< setProperty >--
+    //
+    // The setProperty() variants below follow the same pattern:
+    //
+    //     if (value != null) {
+    //         return internalSetProperty(name, ...);
+    //     } else {
+    //         return internalRemoveProperty(name);
+    //     }
+    //
+    // In addition the value and value type information is pre-processed
+    // according to the method signature before being passed to
+    // internalSetProperty(). The methods that take a non-nullable
+    // primitive value as an argument can skip the if clause.
+    //
+    // Note that due to backwards compatibility reasons (OAK-395) none
+    // of the methods will ever return null, even if asked to remove
+    // a non-existing property! See internalRemoveProperty() for details.
+
+    @Override @Nonnull
+    public Property setProperty(String name, Value value)
+            throws RepositoryException {
         if (value != null) {
-            type = value.getType();
+            return internalSetProperty(name, value, value.getType(), false);
+        } else {
+            return internalRemoveProperty(name);
         }
-        return internalSetProperty(name, value, type, false);
     }
 
-    /**
-     * @see Node#setProperty(String, javax.jcr.Value, int)
-     */
-    @Override
-    @Nonnull
+    @Override @Nonnull
     public Property setProperty(String name, Value value, int type)
             throws RepositoryException {
-        return internalSetProperty(name, value, type, type != PropertyType.UNDEFINED);
-    }
-
-    /**
-     * @see Node#setProperty(String, javax.jcr.Value[])
-     */
-    @Override
-    @Nonnull
-    public Property setProperty(String name, Value[] values) throws RepositoryException {
-        int type;
-        if (values == null || values.length == 0 || values[0] == null) {
-            type = PropertyType.UNDEFINED;
+        if (type == UNDEFINED) {
+            return setProperty(name, value);
+        } else if (value != null) {
+            return internalSetProperty(name, value, type, true);
         } else {
-            type = values[0].getType();
+            return internalRemoveProperty(name);
         }
-        return internalSetProperty(name, values, type, false);
     }
 
-    @Override
-    @Nonnull
-    public Property setProperty(String jcrName, Value[] values, int type) throws RepositoryException {
-        return internalSetProperty(jcrName, values, type, true);
+    @Override @Nonnull
+    public Property setProperty(String name, Value[] values)
+            throws RepositoryException {
+        if (values != null) {
+            for (int i = 0; i < values.length; i++) {
+                if (values[i] != null) {
+                    // use the type of the first non-null value
+                    return internalSetProperty(
+                            name, values, values[i].getType(), false);
+                }
+            }
+            // unknown value type
+            return internalSetProperty(name, values, UNDEFINED, false);
+        } else {
+            return internalRemoveProperty(name);
+        }
     }
 
-    /**
-     * @see Node#setProperty(String, String[])
-     */
-    @Override
-    @Nonnull
-    public Property setProperty(String name, String[] values) throws RepositoryException {
-        return setProperty(name, values, PropertyType.UNDEFINED);
+    @Override @Nonnull
+    public Property setProperty(String jcrName, Value[] values, int type)
+            throws RepositoryException {
+        if (type == UNDEFINED) {
+            return setProperty(jcrName, values);
+        } else if (values != null) {
+            return internalSetProperty(jcrName, values, type, true);
+        } else {
+            return internalRemoveProperty(jcrName);
+        }
     }
 
-    /**
-     * @see Node#setProperty(String, String[], int)
-     */
-    @Override
-    @Nonnull
-    public Property setProperty(String name, String[] values, int type) throws RepositoryException {
-        Value[] vs;
+    @Override @Nonnull
+    public Property setProperty(String name, String[] values)
+            throws RepositoryException {
+        if (values != null) {
+            Value[] vs = ValueHelper.convert(
+                    values, PropertyType.STRING, getValueFactory());
+            return internalSetProperty(name, vs, UNDEFINED, false);
+        } else {
+            return internalRemoveProperty(name);
+        }
+    }
+
+    @Override @Nonnull
+    public Property setProperty(String name, String[] values, int type)
+            throws RepositoryException {
+        if (type == UNDEFINED) {
+            return setProperty(name, values);
+        } else if (values != null) {
+            Value[] vs = ValueHelper.convert(values, type, getValueFactory());
+            return internalSetProperty(name, vs, type, true);
+        } else {
+            return internalRemoveProperty(name);
+        }
+    }
+
+    @Override @Nonnull
+    public Property setProperty(String name, String value)
+            throws RepositoryException {
+        if (value != null) {
+            Value v = getValueFactory().createValue(value);
+            return internalSetProperty(name, v, UNDEFINED, false);
+        } else {
+            return internalRemoveProperty(name);
+        }
+    }
+
+    @Override @Nonnull
+    public Property setProperty(String name, String value, int type)
+            throws RepositoryException {
         if (type == PropertyType.UNDEFINED) {
-            vs = ValueHelper.convert(values, PropertyType.STRING, getValueFactory());
+            return setProperty(name, value);
+        } else if (value != null) {
+            Value v = getValueFactory().createValue(value, type);
+            return internalSetProperty(name, v, type, true);
         } else {
-            vs = ValueHelper.convert(values, type, getValueFactory());
+            return internalRemoveProperty(name);
         }
-        return internalSetProperty(name, vs, type, (type != PropertyType.UNDEFINED));
     }
 
-    /**
-     * @see Node#setProperty(String, String)
-     */
-    @Override
-    @CheckForNull
-    public Property setProperty(String name, String value) throws RepositoryException {
-        Value v = (value == null) ? null : getValueFactory().createValue(value, PropertyType.STRING);
-        return internalSetProperty(name, v, PropertyType.UNDEFINED, false);
+    @Override @Nonnull
+    public Property setProperty(String name, InputStream value)
+            throws RepositoryException {
+        if (value != null) {
+            ValueFactory factory = getValueFactory();
+            Binary binary = factory.createBinary(value);
+            try {
+                Value v = factory.createValue(binary);
+                return internalSetProperty(name, v, PropertyType.BINARY, true);
+            } finally {
+                binary.dispose();
+            }
+        } else {
+            return internalRemoveProperty(name);
+        }
     }
 
-    /**
-     * @see Node#setProperty(String, String, int)
-     */
-    @Override
-    @CheckForNull
-    public Property setProperty(String name, String value, int type) throws RepositoryException {
-        Value v = (value == null) ? null : getValueFactory().createValue(value, type);
-        return internalSetProperty(name, v, type, true);
+    @Override @Nonnull
+    public Property setProperty(String name, Binary value)
+            throws RepositoryException {
+        if (value != null) {
+            Value v = getValueFactory().createValue(value);
+            return internalSetProperty(name, v, PropertyType.BINARY, true);
+        } else {
+            return internalRemoveProperty(name);
+        }
     }
 
-    /**
-     * @see Node#setProperty(String, InputStream)
-     */
-    @SuppressWarnings("deprecation")
-    @Override
-    @CheckForNull
-    public Property setProperty(String name, InputStream value) throws RepositoryException {
-        Value v = (value == null ? null : getValueFactory().createValue(value));
-        return setProperty(name, v, PropertyType.BINARY);
+    @Override @Nonnull
+    public Property setProperty(String name, boolean value)
+            throws RepositoryException {
+        Value v = getValueFactory().createValue(value);
+        return internalSetProperty(name, v, PropertyType.BOOLEAN, true);
     }
 
-    /**
-     * @see Node#setProperty(String, Binary)
-     */
-    @Override
-    @CheckForNull
-    public Property setProperty(String name, Binary value) throws RepositoryException {
-        Value v = (value == null ? null : getValueFactory().createValue(value));
-        return setProperty(name, v, PropertyType.BINARY);
+    @Override @Nonnull
+    public Property setProperty(String name, double value)
+            throws RepositoryException {
+        Value v = getValueFactory().createValue(value);
+        return internalSetProperty(name, v, PropertyType.DOUBLE, true);
     }
 
-    /**
-     * @see Node#setProperty(String, boolean)
-     */
-    @Override
-    @Nonnull
-    public Property setProperty(String name, boolean value) throws RepositoryException {
-        return setProperty(name, getValueFactory().createValue(value), PropertyType.BOOLEAN);
+    @Override @Nonnull
+    public Property setProperty(String name, BigDecimal value)
+            throws RepositoryException {
+        if (value != null) {
+            Value v = getValueFactory().createValue(value);
+            return internalSetProperty(name, v, PropertyType.DECIMAL, true);
+        } else {
+            return internalRemoveProperty(name);
+        }
     }
 
-    /**
-     * @see Node#setProperty(String, double)
-     */
-    @Override
-    @Nonnull
-    public Property setProperty(String name, double value) throws RepositoryException {
-        return setProperty(name, getValueFactory().createValue(value), PropertyType.DOUBLE);
+    @Override @Nonnull
+    public Property setProperty(String name, long value)
+            throws RepositoryException {
+        Value v = getValueFactory().createValue(value);
+        return internalSetProperty(name, v, PropertyType.LONG, true);
     }
 
-    /**
-     * @see Node#setProperty(String, BigDecimal)
-     */
-    @Override
-    @CheckForNull
-    public Property setProperty(String name, BigDecimal value) throws RepositoryException {
-        Value v = (value == null ? null : getValueFactory().createValue(value));
-        return setProperty(name, v, PropertyType.DECIMAL);
+    @Override @Nonnull
+    public Property setProperty(String name, Calendar value)
+            throws RepositoryException {
+        if (value != null) {
+            Value v = getValueFactory().createValue(value);
+            return internalSetProperty(name, v, PropertyType.DATE, true);
+        } else {
+            return internalRemoveProperty(name);
+        }
     }
 
-    /**
-     * @see Node#setProperty(String, long)
-     */
-    @Override
-    @Nonnull
-    public Property setProperty(String name, long value) throws RepositoryException {
-        return setProperty(name, getValueFactory().createValue(value), PropertyType.LONG);
-    }
-
-    /**
-     * @see Node#setProperty(String, Calendar)
-     */
-    @Override
-    @CheckForNull
-    public Property setProperty(String name, Calendar value) throws RepositoryException {
-        Value v = (value == null ? null : getValueFactory().createValue(value));
-        return setProperty(name, v, PropertyType.DATE);
-    }
-
-    /**
-     * @see Node#setProperty(String, Node)
-     */
-    @Override
-    @CheckForNull
-    public Property setProperty(String name, Node value) throws RepositoryException {
-        Value v = (value == null) ? null : getValueFactory().createValue(value);
-        return setProperty(name, v, PropertyType.REFERENCE);
+    @Override @Nonnull
+    public Property setProperty(String name, Node value)
+            throws RepositoryException {
+        if (value != null) {
+            Value v = getValueFactory().createValue(value);
+            return internalSetProperty(name, v, PropertyType.REFERENCE, true);
+        } else {
+            return internalRemoveProperty(name);
+        }
     }
 
     @Override
@@ -1552,101 +1590,129 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         });
     }
 
-    private Property internalSetProperty(final String jcrName, final Value value,
-                                         final int type, final boolean exactTypeMatch) throws RepositoryException {
+    private Property internalSetProperty(
+            final String jcrName, final Value value,
+            final int type, final boolean exactTypeMatch)
+            throws RepositoryException {
+        checkNotNull(value);
+        final String oakName = getOakPath(checkNotNull(jcrName));
         return perform(new SessionOperation<Property>() {
             @Override
             protected void checkPreconditions() throws RepositoryException {
+                // TODO: Reduce boilerplate (OAK-662)
                 checkStatus();
                 checkProtected();
             }
 
             @Override
             public Property perform() throws RepositoryException {
-                String oakName = getOakPath(jcrName);
-                if (value == null) {
-                    if (hasProperty(jcrName)) {
-                        Property property = getProperty(jcrName);
-                        property.remove();
-                        return property;
-                    } else {
-                        // Return a property instance which throws on access. See OAK-395
-                        return new PropertyImpl(new PropertyDelegate(
-                                sessionDelegate, dlg.getLocation().getChild(oakName)), sessionContext);
-                    }
+                Value targetValue;
+                if (DISABLE_TRANSIENT_DEFINITION_CHECKS) {
+                    targetValue = value;
                 } else {
-                    Value targetValue;
-                    if (DISABLE_TRANSIENT_DEFINITION_CHECKS) {
-                        targetValue = value;
+                    PropertyDefinition definition;
+                    // TODO: Avoid extra JCR method calls (OAK-672)
+                    if (hasProperty(jcrName)) {
+                        definition = getProperty(jcrName).getDefinition();
                     } else {
-                        PropertyDefinition definition;
-                        if (hasProperty(jcrName)) {
-                            definition = getProperty(jcrName).getDefinition();
-                        } else {
-                            definition = getDefinitionProvider().getDefinition(NodeImpl.this, oakName, false, type, exactTypeMatch);
-                        }
-                        checkProtected(definition);
-                        if (definition.isMultiple()) {
-                            throw new ValueFormatException("Cannot set single value to multivalued property");
-                        }
-
-                        int targetType = getTargetType(value, definition);
-                        targetValue = ValueHelper.convert(value, targetType, getValueFactory());
+                        definition = getDefinitionProvider().getDefinition(
+                                NodeImpl.this, oakName, false, type,
+                                exactTypeMatch);
+                    }
+                    checkProtected(definition);
+                    if (definition.isMultiple()) {
+                        throw new ValueFormatException(
+                                "Cannot set single value to multivalued property");
                     }
 
-                    return new PropertyImpl(dlg.setProperty(PropertyStates.createProperty(oakName, targetValue)), sessionContext);
+                    int targetType = getTargetType(value, definition);
+                    targetValue = ValueHelper.convert(
+                            value, targetType, getValueFactory());
                 }
+
+                PropertyState state =
+                        PropertyStates.createProperty(oakName, targetValue);
+                return new PropertyImpl(dlg.setProperty(state), sessionContext);
             }
         });
     }
 
-    private Property internalSetProperty(final String jcrName, final Value[] values,
-                                         final int type, final boolean exactTypeMatch) throws RepositoryException {
+    private Property internalSetProperty(
+            final String jcrName, final Value[] values,
+            final int type, final boolean exactTypeMatch)
+            throws RepositoryException {
+        checkNotNull(values);
+        final String oakName = getOakPath(checkNotNull(jcrName));
         return perform(new SessionOperation<Property>() {
             @Override
             protected void checkPreconditions() throws RepositoryException {
+                // TODO: Reduce boilerplate (OAK-662)
                 checkStatus();
                 checkProtected();
             }
 
             @Override
             public Property perform() throws RepositoryException {
-                String oakName = getOakPath(jcrName);
-                if (values == null) {
-                    if (hasProperty(jcrName)) {
-                        Property property = getProperty(jcrName);
-                        property.remove();
-                        return property;
-                    } else {
-                        return new PropertyImpl(new PropertyDelegate(
-                                sessionDelegate, dlg.getLocation().getChild(oakName)), sessionContext);
-                    }
+                Value[] targetValues;
+                if (DISABLE_TRANSIENT_DEFINITION_CHECKS) {
+                    targetValues = values;
                 } else {
-                    Value[] targetValues;
-                    if (DISABLE_TRANSIENT_DEFINITION_CHECKS) {
-                        targetValues = values;
+                    PropertyDefinition definition;
+                    // TODO: Avoid extra JCR method calls (OAK-672)
+                    if (hasProperty(jcrName)) {
+                        definition = getProperty(jcrName).getDefinition();
                     } else {
-                        PropertyDefinition definition;
-                        if (hasProperty(jcrName)) {
-                            definition = getProperty(jcrName).getDefinition();
-                        } else {
-                            definition = getDefinitionProvider().getDefinition(NodeImpl.this, oakName, true, type, exactTypeMatch);
-                        }
-                        checkProtected(definition);
-                        if (!definition.isMultiple()) {
-                            throw new ValueFormatException("Cannot set value array to single value property");
-                        }
-
-                        int targetType = getTargetType(values, definition);
-                        targetValues = ValueHelper.convert(values, targetType, getValueFactory());
+                        definition = getDefinitionProvider().getDefinition(
+                                NodeImpl.this, oakName, true, type,
+                                exactTypeMatch);
+                    }
+                    checkProtected(definition);
+                    if (!definition.isMultiple()) {
+                        throw new ValueFormatException(
+                                "Cannot set value array to single value property");
                     }
 
-                    Iterable<Value> nonNullValues = Iterables.filter(
-                            Arrays.asList(targetValues),
-                            Predicates.notNull());
-                    return new PropertyImpl(dlg.setProperty(PropertyStates.createProperty(oakName, nonNullValues)), sessionContext);
+                    int targetType = getTargetType(values, definition);
+                    targetValues = ValueHelper.convert(
+                            values, targetType, getValueFactory());
+                }
+
+                Iterable<Value> nonNullValues = Iterables.filter(
+                        Arrays.asList(targetValues), Predicates.notNull());
+                PropertyState state =
+                        PropertyStates.createProperty(oakName, nonNullValues);
+                return new PropertyImpl(dlg.setProperty(state), sessionContext);
+            }
+        });
+    }
+
+    private Property internalRemoveProperty(final String jcrName)
+            throws RepositoryException {
+        final String oakName = getOakPath(checkNotNull(jcrName));
+        return perform(new SessionOperation<Property>() {
+            @Override
+            protected void checkPreconditions() throws RepositoryException {
+                // TODO: Reduce boilerplate (OAK-662)
+                checkStatus();
+                checkProtected();
+            }
+
+            @Override
+            protected Property perform() throws RepositoryException {
+                // TODO: Avoid extra JCR method calls (OAK-672)
+                if (hasProperty(jcrName)) {
+                    Property property = getProperty(jcrName);
+                    property.remove();
+                    return property;
+                } else {
+                    // Return a property instance which throws on access. See
+                    // OAK-395
+                    return new PropertyImpl(new PropertyDelegate(
+                            sessionDelegate, dlg.getLocation()
+                                    .getChild(oakName)), sessionContext);
                 }
             }
         });
     }
+
 }
