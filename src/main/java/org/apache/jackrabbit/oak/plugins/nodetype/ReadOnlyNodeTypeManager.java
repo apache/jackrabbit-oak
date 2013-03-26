@@ -394,7 +394,8 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
     }
 
     @Override
-    public NodeDefinition getDefinition(@Nonnull Node parent, @Nonnull Node targetNode)
+    public NodeDefinition getDefinition(
+            @Nonnull Tree parent, @Nonnull Tree targetNode)
             throws RepositoryException {
         checkNotNull(parent);
         checkNotNull(targetNode);

@@ -63,7 +63,7 @@ public interface DefinitionProvider {
      * @throws RepositoryException If another error occurs.
      */
     @Nonnull
-    NodeDefinition getDefinition(Node parent, Node targetNode)
+    NodeDefinition getDefinition(Tree parent, Tree targetNode)
             throws ConstraintViolationException, RepositoryException;
 
     /**
