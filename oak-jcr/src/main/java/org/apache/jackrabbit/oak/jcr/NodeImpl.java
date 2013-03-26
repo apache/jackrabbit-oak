@@ -61,7 +61,6 @@ import javax.jcr.nodetype.PropertyDefinition;
 import javax.jcr.version.Version;
 import javax.jcr.version.VersionException;
 import javax.jcr.version.VersionHistory;
-import javax.jcr.version.VersionManager;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
@@ -86,7 +85,6 @@ import org.apache.jackrabbit.oak.jcr.delegate.PropertyDelegate;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.nodetype.DefinitionProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.EffectiveNodeType;
-import org.apache.jackrabbit.oak.plugins.nodetype.EffectiveNodeTypeProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.util.TODO;
@@ -206,10 +204,6 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         return addNode(relPath, null);
     }
 
-    private String getOakPath(String jcrPath) throws RepositoryException {
-        return sessionContext.getOakPathOrThrow(jcrPath);
-    }
-
     @Override
     @Nonnull
     public Node addNode(final String relPath, final String primaryNodeTypeName) throws RepositoryException {
@@ -218,7 +212,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
             public Node perform() throws RepositoryException {
                 String oakPath = sessionContext.getOakPathKeepIndexOrThrowNotFound(relPath);
                 String oakName = PathUtils.getName(oakPath);
-                String parentPath = getOakPath(PathUtils.getParentPath(oakPath));
+                String parentPath = getOakPathOrThrow(PathUtils.getParentPath(oakPath));
 
                 // handle index
                 if (oakName.contains("[")) {
@@ -280,32 +274,21 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         });
     }
 
-    @Nonnull
-    private String getOakName(String name) throws RepositoryException {
-        return sessionContext.getOakName(name);
-    }
-
     @Override
     public void orderBefore(final String srcChildRelPath, final String destChildRelPath) throws RepositoryException {
         perform(new ItemWriteOperation<Void>() {
             @Override
             public Void perform() throws RepositoryException {
                 getEffectiveNodeType().checkOrderableChildNodes();
-                String oakSrcChildRelPath =
-                        getOakPathOrThrowNotFound(srcChildRelPath);
+                String oakSrcChildRelPath = getOakPathOrThrowNotFound(srcChildRelPath);
                 String oakDestChildRelPath = null;
                 if (destChildRelPath != null) {
-                    oakDestChildRelPath =
-                            getOakPathOrThrowNotFound(destChildRelPath);
+                    oakDestChildRelPath = getOakPathOrThrowNotFound(destChildRelPath);
                 }
                 dlg.orderBefore(oakSrcChildRelPath, oakDestChildRelPath);
                 return null;
             }
         });
-    }
-
-    private String getOakPathOrThrowNotFound(String relPath) throws PathNotFoundException {
-        return sessionContext.getOakPathOrThrowNotFound(relPath);
     }
 
     //-------------------------------------------------------< setProperty >--
@@ -732,36 +715,6 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         return 1;
     }
 
-    /**
-     * @see javax.jcr.Node#getReferences()
-     */
-    @Override
-    @Nonnull
-    public PropertyIterator getReferences() throws RepositoryException {
-        return getReferences(null);
-    }
-
-    @Override
-    @Nonnull
-    public PropertyIterator getReferences(final String name) throws RepositoryException {
-        return internalGetReferences(name, false);
-    }
-
-    /**
-     * @see javax.jcr.Node#getWeakReferences()
-     */
-    @Override
-    @Nonnull
-    public PropertyIterator getWeakReferences() throws RepositoryException {
-        return getWeakReferences(null);
-    }
-
-    @Override
-    @Nonnull
-    public PropertyIterator getWeakReferences(String name) throws RepositoryException {
-        return internalGetReferences(name, true);
-    }
-
     private PropertyIterator internalGetReferences(final String name, final boolean weak) throws RepositoryException {
         return perform(new ItemReadOperation<PropertyIterator>() {
             @Override
@@ -785,12 +738,42 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         });
     }
 
+    /**
+     * @see javax.jcr.Node#getReferences()
+     */
+    @Override
+    @Nonnull
+    public PropertyIterator getReferences() throws RepositoryException {
+        return internalGetReferences(null, false);
+    }
+
+    @Override
+    @Nonnull
+    public PropertyIterator getReferences(final String name) throws RepositoryException {
+        return internalGetReferences(name, false);
+    }
+
+    /**
+     * @see javax.jcr.Node#getWeakReferences()
+     */
+    @Override
+    @Nonnull
+    public PropertyIterator getWeakReferences() throws RepositoryException {
+        return internalGetReferences(null, true);
+    }
+
+    @Override
+    @Nonnull
+    public PropertyIterator getWeakReferences(String name) throws RepositoryException {
+        return internalGetReferences(name, true);
+    }
+
     @Override
     public boolean hasNode(final String relPath) throws RepositoryException {
         return perform(new ItemReadOperation<Boolean>() {
             @Override
             public Boolean perform() throws RepositoryException {
-                String oakPath = getOakPath(relPath);
+                String oakPath = getOakPathOrThrow(relPath);
                 return dlg.getChild(oakPath) != null;
             }
         });
@@ -801,7 +784,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         return perform(new ItemReadOperation<Boolean>() {
             @Override
             public Boolean perform() throws RepositoryException {
-                String oakPath = getOakPath(relPath);
+                String oakPath = getOakPathOrThrow(relPath);
                 return dlg.getProperty(oakPath) != null;
             }
         });
@@ -872,17 +855,15 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         });
     }
 
-    @Nonnull
-    private EffectiveNodeTypeProvider getEffectiveNodeTypeProvider() {
-        return sessionContext.getEffectiveNodeTypeProvider();
-    }
-
     @Override
     public boolean isNodeType(final String nodeTypeName) throws RepositoryException {
-        checkStatus();
-
-        String oakName = getOakName(nodeTypeName);
-        return getEffectiveNodeTypeProvider().isNodeType(dlg.getTree(), oakName);
+        return perform(new ItemReadOperation<Boolean>() {
+            @Override
+            protected Boolean perform() throws RepositoryException {
+                String oakName = getOakName(nodeTypeName);
+                return getEffectiveNodeTypeProvider().isNodeType(dlg.getTree(), oakName);
+            }
+        });
     }
 
     @Override
@@ -971,20 +952,21 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         });
     }
 
-    private EffectiveNodeType getEffectiveNodeType() throws RepositoryException {
-        return getEffectiveNodeTypeProvider().getEffectiveNodeType(dlg.getTree());
-    }
-
     @Override
     @Nonnull
     public NodeDefinition getDefinition() throws RepositoryException {
-        NodeDelegate parent = dlg.getParent();
-        if (parent == null) {
-            return getDefinitionProvider().getRootDefinition();
-        } else {
-            return getDefinitionProvider().getDefinition(
-                    parent.getTree(), dlg.getTree());
-        }
+        return perform(new ItemReadOperation<NodeDefinition>() {
+            @Override
+            protected NodeDefinition perform() throws RepositoryException {
+                NodeDelegate parent = dlg.getParent();
+                if (parent == null) {
+                    return getDefinitionProvider().getRootDefinition();
+                } else {
+                    return getDefinitionProvider().getDefinition(
+                            parent.getTree(), dlg.getTree());
+                }
+            }
+        });
     }
 
     @Override
@@ -1000,14 +982,15 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     public void update(String srcWorkspace) throws RepositoryException {
         checkStatus();
         checkValidWorkspace(srcWorkspace);
-        ensureNoPendingSessionChanges();
+
+        // check for pending changes
+        if (sessionDelegate.hasPendingChanges()) {
+            String msg = "Unable to perform operation. Session has pending changes.";
+            log.debug(msg);
+            throw new InvalidItemStateException(msg);
+        }
 
         // TODO
-    }
-
-    @Nonnull
-    private VersionManager getVersionManager() throws RepositoryException {
-        return sessionContext.getVersionManager();
     }
 
     /**
@@ -1130,27 +1113,32 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
      */
     @Override
     public boolean isLocked() throws RepositoryException {
-        String lockOwner = getOakPath(JCR_LOCK_OWNER);
-        String lockIsDeep = getOakPath(JCR_LOCK_IS_DEEP);
+        return perform(new ItemReadOperation<Boolean>() {
+            @Override
+            protected Boolean perform() throws RepositoryException {
+                String lockOwner = getOakPathOrThrow(JCR_LOCK_OWNER);
+                String lockIsDeep = getOakPathOrThrow(JCR_LOCK_IS_DEEP);
 
-        if (dlg.getProperty(lockOwner) != null) {
-            return true;
-        }
-
-        NodeDelegate parent = dlg.getParent();
-        while (parent != null) {
-            if (parent.getProperty(lockOwner) != null) {
-                PropertyDelegate isDeep = parent.getProperty(lockIsDeep);
-                if (isDeep != null && !isDeep.isArray()) {
-                    if (isDeep.getBoolean()) {
-                        return true;
-                    }
+                if (dlg.getProperty(lockOwner) != null) {
+                    return true;
                 }
-            }
-            parent = parent.getParent();
-        }
 
-        return false;
+                NodeDelegate parent = dlg.getParent();
+                while (parent != null) {
+                    if (parent.getProperty(lockOwner) != null) {
+                        PropertyDelegate isDeep = parent.getProperty(lockIsDeep);
+                        if (isDeep != null && !isDeep.isArray()) {
+                            if (isDeep.getBoolean()) {
+                                return true;
+                            }
+                        }
+                    }
+                    parent = parent.getParent();
+                }
+
+                return false;
+            }
+        });
     }
 
     /**
@@ -1159,8 +1147,13 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
      */
     @Override
     public boolean holdsLock() throws RepositoryException {
-        String lockOwner = getOakPath(JCR_LOCK_OWNER);
-        return dlg.getProperty(lockOwner) != null;
+        return perform(new ItemReadOperation<Boolean>() {
+            @Override
+            protected Boolean perform() throws RepositoryException {
+                String lockOwner = getOakPathOrThrow(JCR_LOCK_OWNER);
+                return dlg.getProperty(lockOwner) != null;
+            }
+        });
     }
 
     /**
@@ -1179,12 +1172,12 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     @Nonnull
     public Lock lock(final boolean isDeep, boolean isSessionScoped)
             throws RepositoryException {
-        final String userID = getSession().getUserID();
+        ContentSession session = sessionDelegate.getContentSession();
+        final String userID = session.getAuthInfo().getUserID();
 
-        String lockOwner = getOakPath(JCR_LOCK_OWNER);
-        String lockIsDeep = getOakPath(JCR_LOCK_IS_DEEP);
+        String lockOwner = getOakPathOrThrow(JCR_LOCK_OWNER);
+        String lockIsDeep = getOakPathOrThrow(JCR_LOCK_IS_DEEP);
         try {
-            ContentSession session = sessionDelegate.getContentSession();
             Root root = session.getLatestRoot();
             Tree tree = root.getTree(dlg.getPath());
             if (tree == null) {
@@ -1255,8 +1248,8 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
      */
     @Override
     public void unlock() throws RepositoryException {
-        String lockOwner = getOakPath(JCR_LOCK_OWNER);
-        String lockIsDeep = getOakPath(JCR_LOCK_IS_DEEP);
+        String lockOwner = getOakPathOrThrow(JCR_LOCK_OWNER);
+        String lockIsDeep = getOakPathOrThrow(JCR_LOCK_IS_DEEP);
         try {
             Root root = sessionDelegate.getContentSession().getLatestRoot();
             Tree tree = root.getTree(dlg.getPath());
@@ -1276,17 +1269,26 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     @Override
     @Nonnull
     public NodeIterator getSharedSet() throws RepositoryException {
-        checkStatus();
-        checkProtected();
-        return new NodeIteratorAdapter(ImmutableSet.of(this));
+        return perform(new ItemReadOperation<NodeIterator>() {
+            @Override
+            protected NodeIterator perform() {
+                return new NodeIteratorAdapter(ImmutableSet.of(this));
+            }
+        });
     }
 
     @Override
     public void removeSharedSet() throws RepositoryException {
-        NodeIterator sharedSet = getSharedSet();
-        while (sharedSet.hasNext()) {
-            sharedSet.nextNode().removeShare();
-        }
+        perform(new ItemWriteOperation<Void>() {
+            @Override
+            protected Void perform() throws RepositoryException {
+                NodeIterator sharedSet = getSharedSet();
+                while (sharedSet.hasNext()) {
+                    sharedSet.nextNode().removeShare();
+                }
+                return null;
+            }
+        });
     }
 
     @Override
@@ -1313,6 +1315,10 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     }
 
     //------------------------------------------------------------< private >---
+
+    private EffectiveNodeType getEffectiveNodeType() throws RepositoryException {
+        return getEffectiveNodeTypeProvider().getEffectiveNodeType(dlg.getTree());
+    }
 
     private Iterator<Node> nodeIterator(Iterator<NodeDelegate> childNodes) {
         return Iterators.transform(
@@ -1360,7 +1366,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     }
 
     private void autoCreateItems() throws RepositoryException {
-        EffectiveNodeType effective = getEffectiveNodeTypeProvider().getEffectiveNodeType(dlg.getTree());
+        EffectiveNodeType effective = getEffectiveNodeType();
         for (PropertyDefinition pd : effective.getAutoCreatePropertyDefinitions()) {
             if (dlg.getProperty(pd.getName()) == null) {
                 if (pd.isMultiple()) {
@@ -1459,7 +1465,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         }
         // TODO: END
 
-        String jcrPrimaryType = getOakPath(Property.JCR_PRIMARY_TYPE);
+        String jcrPrimaryType = getOakPathOrThrow(Property.JCR_PRIMARY_TYPE);
         Value value = getValueFactory().createValue(nodeTypeName, PropertyType.NAME);
 
         dlg.setProperty(PropertyStates.createProperty(jcrPrimaryType, value));
@@ -1469,7 +1475,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     private Property internalSetProperty(
             String jcrName, final Value value, final boolean exactTypeMatch)
             throws RepositoryException {
-        final String oakName = getOakPath(checkNotNull(jcrName));
+        final String oakName = getOakPathOrThrow(checkNotNull(jcrName));
         checkNotNull(value);
         return perform(new ItemWriteOperation<Property>() {
             @Override
@@ -1502,7 +1508,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
             String jcrName, Value[] values,
             final int type, final boolean exactTypeMatch)
             throws RepositoryException {
-        final String oakName = getOakPath(checkNotNull(jcrName));
+        final String oakName = getOakPathOrThrow(checkNotNull(jcrName));
         final Value[] nonNullValues = compact(checkNotNull(values));
         return perform(new ItemWriteOperation<Property>() {
             @Override
@@ -1533,7 +1539,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
 
     private Property internalRemoveProperty(final String jcrName)
             throws RepositoryException {
-        final String oakName = getOakPath(checkNotNull(jcrName));
+        final String oakName = getOakPathOrThrow(checkNotNull(jcrName));
         return perform(new ItemWriteOperation<Property>() {
             @Override
             protected Property perform() throws RepositoryException {

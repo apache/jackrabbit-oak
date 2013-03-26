@@ -19,16 +19,17 @@ package org.apache.jackrabbit.oak.jcr;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.AccessDeniedException;
-import javax.jcr.InvalidItemStateException;
 import javax.jcr.Item;
 import javax.jcr.ItemNotFoundException;
 import javax.jcr.Node;
+import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.ValueFactory;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.ItemDefinition;
 import javax.jcr.nodetype.NodeTypeManager;
+import javax.jcr.version.VersionManager;
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.delegate.ItemDelegate;
@@ -36,6 +37,7 @@ import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionOperation;
 import org.apache.jackrabbit.oak.plugins.nodetype.DefinitionProvider;
+import org.apache.jackrabbit.oak.plugins.nodetype.EffectiveNodeTypeProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -78,7 +80,7 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
      * @throws RepositoryException as thrown by {@code op.perform()}.
      */
     @CheckForNull
-    protected <T> T perform(@Nonnull SessionOperation<T> op) throws RepositoryException {
+    protected final <T> T perform(@Nonnull SessionOperation<T> op) throws RepositoryException {
         return sessionDelegate.perform(op);
     }
 
@@ -91,7 +93,7 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
      * @return  the result of {@code op.perform()}
      */
     @CheckForNull
-    protected <T> T safePerform(@Nonnull SessionOperation<T> op) {
+    protected final <T> T safePerform(@Nonnull SessionOperation<T> op) {
         try {
             return sessionDelegate.perform(op);
         }
@@ -254,6 +256,7 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
      * Performs a sanity check on this item and the associated session.
      *
      * @throws RepositoryException if this item has been rendered invalid for some reason
+     * or the associated session has been logged out.
      */
     void checkStatus() throws RepositoryException {
         sessionDelegate.checkAlive();
@@ -274,26 +277,30 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
         checkProtected(definition);
     }
 
-    void checkProtected(ItemDefinition definition) throws RepositoryException {
+    void checkProtected(ItemDefinition definition) throws ConstraintViolationException {
         if (definition.isProtected()) {
             throw new ConstraintViolationException("Item is protected.");
         }
     }
 
-    /**
-     * Ensure that the associated session has no pending changes and throw an
-     * exception otherwise.
-     *
-     * @throws InvalidItemStateException if this nodes session has pending changes
-     * @throws RepositoryException
-     */
-    void ensureNoPendingSessionChanges() throws RepositoryException {
-        // check for pending changes
-        if (sessionDelegate.hasPendingChanges()) {
-            String msg = "Unable to perform operation. Session has pending changes.";
-            log.debug(msg);
-            throw new InvalidItemStateException(msg);
-        }
+    @Nonnull
+    String getOakName(String name) throws RepositoryException {
+        return sessionContext.getOakName(name);
+    }
+
+    @Nonnull
+    String getOakPathOrThrow(String jcrPath) throws RepositoryException {
+        return sessionContext.getOakPathOrThrow(jcrPath);
+    }
+
+    @Nonnull
+    String getOakPathOrThrowNotFound(String relPath) throws PathNotFoundException {
+        return sessionContext.getOakPathOrThrowNotFound(relPath);
+    }
+
+    @Nonnull
+    String toJcrPath(String oakPath) {
+        return sessionContext.getJcrPath(oakPath);
     }
 
     /**
@@ -317,7 +324,13 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
     }
 
     @Nonnull
-    String toJcrPath(String oakPath) {
-        return sessionContext.getJcrPath(oakPath);
+    EffectiveNodeTypeProvider getEffectiveNodeTypeProvider() {
+        return sessionContext.getEffectiveNodeTypeProvider();
     }
+
+    @Nonnull
+    VersionManager getVersionManager() throws RepositoryException {
+        return sessionContext.getVersionManager();
+    }
+
 }
