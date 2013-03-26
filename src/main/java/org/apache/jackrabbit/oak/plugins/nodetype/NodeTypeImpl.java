@@ -21,6 +21,7 @@ import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -48,6 +49,8 @@ import org.apache.jackrabbit.oak.plugins.nodetype.constraint.Constraints;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Function;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -56,10 +59,13 @@ import static com.google.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.JcrConstants.JCR_CHILDNODEDEFINITION;
 import static org.apache.jackrabbit.JcrConstants.JCR_HASORDERABLECHILDNODES;
 import static org.apache.jackrabbit.JcrConstants.JCR_ISMIXIN;
+import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_NODETYPENAME;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYITEMNAME;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_PROPERTYDEFINITION;
 import static org.apache.jackrabbit.JcrConstants.JCR_SUPERTYPES;
+import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_IS_ABSTRACT;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_IS_QUERYABLE;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.RESIDUAL_NAME;
@@ -164,7 +170,7 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
         List<PropertyDefinition> definitions = Lists.newArrayList();
         for (Tree child : definition.getChildren()) {
             if (child.getName().startsWith(JCR_PROPERTYDEFINITION)) {
-                definitions.add(new PropertyDefinitionImpl(child, mapper));
+                definitions.add(new PropertyDefinitionImpl(child, this, mapper));
             }
         }
         return definitions.toArray(NO_PROPERTY_DEFINITIONS);
@@ -175,7 +181,7 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
         List<NodeDefinition> definitions = Lists.newArrayList();
         for (Tree child : definition.getChildren()) {
             if (child.getName().startsWith(JCR_CHILDNODEDEFINITION)) {
-                definitions.add(new NodeDefinitionImpl(child, mapper));
+                definitions.add(new NodeDefinitionImpl(child, this, mapper));
             }
         }
         return definitions.toArray(NO_NODE_DEFINITIONS);
@@ -462,6 +468,86 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
             definitions.addAll(Arrays.asList(type.getDeclaredPropertyDefinitions()));
         }
         return definitions;
+    }
+
+    Iterable<PropertyDefinition> getDeclaredNamedPropertyDefinitions(String oakName) {
+        Tree named = definition.getChild("oak:namedPropertyDefinitions");
+        if (named != null) {
+            String escapedName;
+            if (JCR_PRIMARYTYPE.equals(oakName)) {
+                escapedName = "oak:primaryType";
+            } else if (JCR_MIXINTYPES.equals(oakName)) {
+                escapedName = "oak:mixinTypes";
+            } else if (JCR_UUID.equals(oakName)) {
+                escapedName = "oak:uuid";
+            } else {
+                escapedName = oakName;
+            }
+            Tree definitions = named.getChild(escapedName);
+            if (definitions != null) {
+                return Iterables.transform(
+                        definitions.getChildren(),
+                        new Function<Tree, PropertyDefinition>() {
+                            @Override
+                            public PropertyDefinition apply(Tree input) {
+                                return new PropertyDefinitionImpl(
+                                        input, NodeTypeImpl.this, mapper);
+                            }
+                        });
+            }
+        }
+        return Collections.emptyList();
+    }
+
+    Iterable<PropertyDefinition> getDeclaredResidualPropertyDefinitions() {
+        Tree definitions = definition.getChild("oak:residualPropertyDefinitions");
+        if (definitions != null) {
+            return Iterables.transform(
+                    definitions.getChildren(),
+                    new Function<Tree, PropertyDefinition>() {
+                        @Override
+                        public PropertyDefinition apply(Tree input) {
+                            return new PropertyDefinitionImpl(
+                                    input, NodeTypeImpl.this, mapper);
+                        }
+                    });
+        }
+        return Collections.emptyList();
+    }
+
+    Iterable<NodeDefinition> getDeclaredNamedNodeDefinitions(String oakName) {
+        Tree named = definition.getChild("oak:namedChildNodeDefinitions");
+        if (named != null) {
+            Tree definitions = named.getChild(oakName);
+            if (definitions != null) {
+                return Iterables.transform(
+                        definitions.getChildren(),
+                        new Function<Tree, NodeDefinition>() {
+                            @Override
+                            public NodeDefinition apply(Tree input) {
+                                return new NodeDefinitionImpl(
+                                        input, NodeTypeImpl.this, mapper);
+                            }
+                        });
+            }
+        }
+        return Collections.emptyList();
+    }
+
+    Iterable<NodeDefinition> getDeclaredResidualNodeDefinitions() {
+        Tree definitions = definition.getChild("oak:residualChildNodeDefinitions");
+        if (definitions != null) {
+            return Iterables.transform(
+                    definitions.getChildren(),
+                    new Function<Tree, NodeDefinition>() {
+                        @Override
+                        public NodeDefinition apply(Tree input) {
+                            return new NodeDefinitionImpl(
+                                    input, NodeTypeImpl.this, mapper);
+                        }
+                    });
+        }
+        return Collections.emptyList();
     }
 
     //--------------------------------------------------------------------------

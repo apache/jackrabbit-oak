@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import javax.jcr.nodetype.ItemDefinition;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.version.OnParentVersionAction;
@@ -39,8 +41,12 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 class ItemDefinitionImpl extends AbstractTypeDefinition
         implements ItemDefinition {
 
-    protected ItemDefinitionImpl(Tree definition, NamePathMapper mapper) {
+    private final NodeType type;
+
+    protected ItemDefinitionImpl(
+            Tree definition, NodeType type, NamePathMapper mapper) {
         super(definition, mapper);
+        this.type = checkNotNull(type);
     }
 
     String getOakName() {
@@ -55,7 +61,7 @@ class ItemDefinitionImpl extends AbstractTypeDefinition
 
     @Override
     public NodeType getDeclaringNodeType() {
-        return new NodeTypeImpl(definition.getParent(), mapper);
+        return type;
     }
 
     @Override

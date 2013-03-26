@@ -36,8 +36,8 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
  */
 class NodeDefinitionImpl extends ItemDefinitionImpl implements NodeDefinition {
 
-    NodeDefinitionImpl(Tree definition, NamePathMapper mapper) {
-        super(definition, mapper);
+    NodeDefinitionImpl(Tree definition, NodeType type, NamePathMapper mapper) {
+        super(definition, type, mapper);
     }
 
     //-----------------------------------------------------< NodeDefinition >---
