@@ -1606,29 +1606,18 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
 
             @Override
             public Property perform() throws RepositoryException {
-                Value targetValue;
-                if (DISABLE_TRANSIENT_DEFINITION_CHECKS) {
-                    targetValue = value;
-                } else {
-                    PropertyDefinition definition;
-                    // TODO: Avoid extra JCR method calls (OAK-672)
-                    if (hasProperty(jcrName)) {
-                        definition = getProperty(jcrName).getDefinition();
-                    } else {
-                        definition = getDefinitionProvider().getDefinition(
-                                NodeImpl.this, oakName, false, type,
-                                exactTypeMatch);
-                    }
-                    checkProtected(definition);
-                    if (definition.isMultiple()) {
-                        throw new ValueFormatException(
-                                "Cannot set single value to multivalued property");
-                    }
-
-                    int targetType = getTargetType(value, definition);
-                    targetValue = ValueHelper.convert(
-                            value, targetType, getValueFactory());
+                // TODO: Avoid extra JCR method calls (OAK-672)
+                PropertyDefinition definition = getDefinitionProvider().getDefinition(
+                        dlg.getTree(), oakName, false, type, exactTypeMatch);
+                checkProtected(definition);
+                if (definition.isMultiple()) {
+                    throw new ValueFormatException(
+                            "Cannot set single value to multivalued property");
                 }
+
+                int targetType = getTargetType(value, definition);
+                Value targetValue = ValueHelper.convert(
+                        value, targetType, getValueFactory());
 
                 PropertyState state =
                         PropertyStates.createProperty(oakName, targetValue);
@@ -1653,29 +1642,18 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
 
             @Override
             public Property perform() throws RepositoryException {
-                Value[] targetValues;
-                if (DISABLE_TRANSIENT_DEFINITION_CHECKS) {
-                    targetValues = values;
-                } else {
-                    PropertyDefinition definition;
-                    // TODO: Avoid extra JCR method calls (OAK-672)
-                    if (hasProperty(jcrName)) {
-                        definition = getProperty(jcrName).getDefinition();
-                    } else {
-                        definition = getDefinitionProvider().getDefinition(
-                                NodeImpl.this, oakName, true, type,
-                                exactTypeMatch);
-                    }
-                    checkProtected(definition);
-                    if (!definition.isMultiple()) {
-                        throw new ValueFormatException(
-                                "Cannot set value array to single value property");
-                    }
-
-                    int targetType = getTargetType(values, definition);
-                    targetValues = ValueHelper.convert(
-                            values, targetType, getValueFactory());
+                // TODO: Avoid extra JCR method calls (OAK-672)
+                PropertyDefinition definition = getDefinitionProvider().getDefinition(
+                        dlg.getTree(), oakName, true, type, exactTypeMatch);
+                checkProtected(definition);
+                if (!definition.isMultiple()) {
+                    throw new ValueFormatException(
+                            "Cannot set value array to single value property");
                 }
+
+                int targetType = getTargetType(values, definition);
+                Value[] targetValues = ValueHelper.convert(
+                        values, targetType, getValueFactory());
 
                 Iterable<Value> nonNullValues = Iterables.filter(
                         Arrays.asList(targetValues), Predicates.notNull());
