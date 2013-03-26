@@ -28,17 +28,26 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * For each of the supported properties a default is provided if either the
  * property doesn't exist in the node or if the value is <code>null</code> or
  * empty <code>String</code>.
+ * <p/>
+ * Subclasses of this should at least provide the {@link NodeState} which holds
+ * the configuration.
  */
-public class OakSolrNodeStateConfiguration implements OakSolrConfiguration {
+public abstract class OakSolrNodeStateConfiguration implements OakSolrConfiguration {
 
-    private NodeState solrConfigurationNodeState;
-
-    public OakSolrNodeStateConfiguration(NodeState solrConfigurationNodeState) {
-        this.solrConfigurationNodeState = solrConfigurationNodeState;
-    }
+    /**
+     * get the {@link NodeState} which contains the properties for the Oak -
+     * Solr configuration.
+     *
+     * @return a {@link NodeState} for the Solr configuration.
+     */
+    protected abstract NodeState getConfigurationNodeState();
 
     @Override
     public String getFieldNameFor(Type<?> propertyType) {
+        if (Type.BINARIES.equals(propertyType) || Type.BINARY.equals(propertyType)) {
+            // TODO : use Tika / SolrCell here
+            return propertyType.toString() + "_bin";
+        }
         return null;
     }
 
@@ -95,9 +104,9 @@ public class OakSolrNodeStateConfiguration implements OakSolrConfiguration {
         return getStringValueFor(Properties.CORE_NAME, "oak");
     }
 
-    private String getStringValueFor(String propertyName, String defaultValue) {
+    protected String getStringValueFor(String propertyName, String defaultValue) {
         String value = null;
-        PropertyState property = solrConfigurationNodeState.getProperty(propertyName);
+        PropertyState property = getConfigurationNodeState().getProperty(propertyName);
         if (property != null) {
             value = property.getValue(Type.STRING);
         }
