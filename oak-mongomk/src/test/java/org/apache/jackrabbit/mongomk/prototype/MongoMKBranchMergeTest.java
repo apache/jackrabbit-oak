@@ -230,7 +230,6 @@ public class MongoMKBranchMergeTest extends BaseMongoMKTest {
     }
 
     @Test
-    @Ignore
     public void twoBranchesAddedChildren1() {
         addNodes(null, "/trunk", "/trunk/child1");
         assertNodesExist(null, "/trunk", "/trunk/child1");

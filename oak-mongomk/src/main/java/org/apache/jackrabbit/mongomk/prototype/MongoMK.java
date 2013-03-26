@@ -383,8 +383,8 @@ public class MongoMK implements MicroKernel {
         if (value == null) {
             return false;
         }
-        if (!value.equals("true")) {
-            revision = Revision.fromString(value);
+        if (value.equals("true") && !branchCommits.containsKey(readRevision)) {
+            return true;
         }
         return includeRevision(revision, readRevision);
     }

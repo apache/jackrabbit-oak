@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.mongomk.prototype;
 
 import org.apache.jackrabbit.mongomk.BaseMongoMicroKernelTest;
-import org.apache.jackrabbit.mongomk.prototype.MongoMK;
 import org.junit.Before;
 
 import com.mongodb.DB;
