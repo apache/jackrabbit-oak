@@ -96,26 +96,6 @@ public interface DefinitionProvider {
 
     /**
      * Calculates the applicable definition for the property with the specified
-     * characteristics under the given parent node.
-     *
-     * @param parent The parent node.
-     * @param propertyName The internal oak name of the property for which the
-     * definition should be retrieved.
-     * @param isMultiple {@code true} if the target property is multi-valued.
-     * @param type The target type of the property.
-     * @param exactTypeMatch {@code true} if the required type of the definition
-     * must exactly match the type of the target property.
-     * @return the applicable definition for the target property.
-     * @throws ConstraintViolationException If no matching definition can be found.
-     * @throws RepositoryException If another error occurs.
-     */
-    @Nonnull
-    PropertyDefinition getDefinition(Node parent, String propertyName,
-                                     boolean isMultiple, int type, boolean exactTypeMatch)
-            throws ConstraintViolationException, RepositoryException;
-
-    /**
-     * Calculates the applicable definition for the property with the specified
      * characteristics under the given parent tree.
      *
      * @param parent The parent tree.

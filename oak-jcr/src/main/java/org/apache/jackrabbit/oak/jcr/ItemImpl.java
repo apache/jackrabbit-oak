@@ -40,13 +40,6 @@ import org.slf4j.LoggerFactory;
  */
 abstract class ItemImpl<T extends ItemDelegate> extends AbstractItem {
 
-    /**
-     * Flag to disable expensive transient item definition checks.
-     * FIXME: This flag should be removed once OAK-652 gets resolved.
-     */
-    protected static final boolean DISABLE_TRANSIENT_DEFINITION_CHECKS =
-            Boolean.getBoolean("OAK-652");
-
     protected final SessionContext sessionContext;
     protected final T dlg;
     protected final SessionDelegate sessionDelegate;
@@ -193,16 +186,12 @@ abstract class ItemImpl<T extends ItemDelegate> extends AbstractItem {
     protected abstract ItemDefinition getDefinition() throws RepositoryException;
 
     public void checkProtected() throws RepositoryException {
-        if (DISABLE_TRANSIENT_DEFINITION_CHECKS) {
-            return;
-        }
-
         ItemDefinition definition;
         try {
             definition = getDefinition();
-        }
-        catch (RepositoryException ignore) {
-            // No definition -> not protected but a different error which should be handled else where
+        } catch (RepositoryException ignore) {
+            // FIXME: No definition -> not protected but a different error
+            // which should be handled else where
             return;
         }
         checkProtected(definition);
