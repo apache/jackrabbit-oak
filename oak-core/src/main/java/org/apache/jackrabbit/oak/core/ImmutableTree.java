@@ -33,7 +33,6 @@ import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 
@@ -171,9 +170,13 @@ public final class ImmutableTree extends ReadOnlyTree {
         return typeProvider.getType(this);
     }
 
+    // TODO
     public static int getType(Tree tree) {
-        checkArgument(tree instanceof ImmutableTree);
-        return ((ImmutableTree) tree).getType();
+        if (tree instanceof ImmutableTree) {
+            return ((ImmutableTree) tree).getType();
+        } else {
+            return TypeProvider.TYPE_DEFAULT;
+        }
     }
 
     @Nonnull
