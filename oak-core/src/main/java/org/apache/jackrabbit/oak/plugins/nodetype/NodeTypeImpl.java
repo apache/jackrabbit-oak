@@ -29,6 +29,7 @@ import javax.annotation.CheckForNull;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
+import javax.jcr.nodetype.ItemDefinition;
 import javax.jcr.nodetype.NoSuchNodeTypeException;
 import javax.jcr.nodetype.NodeDefinition;
 import javax.jcr.nodetype.NodeType;
@@ -383,37 +384,20 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
 
     @Override
     public boolean canRemoveItem(String itemName) {
-        return canRemoveNode(itemName) || canRemoveProperty(itemName);
+        List<ItemDefinition> definitions = Lists.newArrayList();
+        definitions.addAll(Arrays.asList(getChildNodeDefinitions()));
+        definitions.addAll(Arrays.asList(getPropertyDefinitions()));
+        return internalCanRemoveItem(itemName, definitions);
     }
 
     @Override
     public boolean canRemoveNode(String nodeName) {
-        // FIXME: properly calculate matching definition taking residual definitions into account.
-        NodeDefinition[] childNodeDefinitions = getChildNodeDefinitions();
-        for (NodeDefinition definition : childNodeDefinitions) {
-            String name = definition.getName();
-            if (matches(nodeName, name)) {
-                if (definition.isMandatory() || definition.isProtected()) {
-                    return false;
-                }
-            }
-        }
-        return childNodeDefinitions.length > 0;
+        return internalCanRemoveItem(nodeName, Arrays.asList(getChildNodeDefinitions()));
     }
 
     @Override
     public boolean canRemoveProperty(String propertyName) {
-        // FIXME: should properly calculate matching definition taking residual definitions into account.
-        PropertyDefinition[] propertyDefinitions = getPropertyDefinitions();
-        for (PropertyDefinition definition : propertyDefinitions) {
-            String name = definition.getName();
-            if (propertyName.equals(name)) {
-                if (definition.isMandatory() || definition.isProtected()) {
-                    return false;
-                }
-            }
-        }
-        return propertyDefinitions.length > 0;
+        return internalCanRemoveItem(propertyName, Arrays.asList(getPropertyDefinitions()));
     }
 
     //-------------------------------------------------------------< Object >---
@@ -423,6 +407,20 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
     }
 
     //-----------------------------------------------------------< internal >---
+
+    private boolean internalCanRemoveItem(String itemName,
+                                          Iterable<? extends ItemDefinition> definitions) {
+        // FIXME: should properly calculate matching definition taking residual definitions into account.
+        for (ItemDefinition definition : definitions) {
+            String name = definition.getName();
+            if (matches(itemName, name)) {
+                if (definition.isMandatory() || definition.isProtected()) {
+                    return false;
+                }
+            }
+        }
+        return definitions.iterator().hasNext();
+    }
 
     private ReadOnlyNodeTypeManager getManager() {
         final Tree types = definition.getParent();
