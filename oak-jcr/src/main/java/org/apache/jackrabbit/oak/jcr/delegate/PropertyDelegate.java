@@ -37,7 +37,7 @@ public class PropertyDelegate extends ItemDelegate {
     }
 
     @Nonnull
-    private PropertyState getPropertyState() throws InvalidItemStateException {
+    public PropertyState getPropertyState() throws InvalidItemStateException {
         PropertyState p = getLocation().getProperty();
         if (p == null) {
             throw new InvalidItemStateException();
