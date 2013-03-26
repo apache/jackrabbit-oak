@@ -424,15 +424,13 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
 
     @Nonnull
     @Override
-    public PropertyDefinition getDefinition(Tree parent, PropertyState propertyState) throws RepositoryException {
-        return getDefinition(parent, propertyState.getName(), propertyState.isArray(), propertyState.getType().tag(), true);
-    }
-
-    @Nonnull
-    @Override
-    public PropertyDefinition getDefinition(Tree parent, String propertyName, boolean isMultiple, int type, boolean exactTypeMatch) throws RepositoryException {
+    public PropertyDefinition getDefinition(
+            Tree parent, PropertyState property, boolean exactTypeMatch)
+            throws RepositoryException {
+        Type<?> type = property.getType();
         EffectiveNodeType effective = getEffectiveNodeType(parent);
-        return effective.getPropertyDefinition(propertyName, isMultiple, type, exactTypeMatch);
+        return effective.getPropertyDefinition(
+                property.getName(), type.isArray(), type.tag(), exactTypeMatch);
     }
 
     //-----------------------------------------------------------< internal >---
