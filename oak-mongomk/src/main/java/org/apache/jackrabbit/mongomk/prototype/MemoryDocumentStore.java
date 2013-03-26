@@ -23,6 +23,8 @@ import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.mongomk.prototype.UpdateOp.Operation;
 
 /**
@@ -58,6 +60,7 @@ public class MemoryDocumentStore implements DocumentStore {
         return copy;
     }
     
+    @Nonnull
     public List<Map<String, Object>> query(Collection collection, String fromKey, String toKey, int limit) {
         ConcurrentSkipListMap<String, Map<String, Object>> map = getMap(collection);
         ConcurrentNavigableMap<String, Map<String, Object>> sub = map.subMap(fromKey, toKey);
@@ -94,6 +97,7 @@ public class MemoryDocumentStore implements DocumentStore {
         }
     }
 
+    @Nonnull
     public Map<String, Object> createOrUpdate(Collection collection, UpdateOp update) {
         ConcurrentSkipListMap<String, Map<String, Object>> map = getMap(collection);
         Map<String, Object> n;

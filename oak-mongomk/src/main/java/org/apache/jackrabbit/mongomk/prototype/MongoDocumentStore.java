@@ -25,6 +25,8 @@ import java.util.Map.Entry;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 
+import javax.annotation.Nonnull;
+
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
@@ -130,6 +132,7 @@ public class MongoDocumentStore implements DocumentStore {
         }
     }
     
+    @Nonnull
     @Override
     public List<Map<String, Object>> query(Collection collection,
             String fromKey, String toKey, int limit) {
@@ -172,6 +175,7 @@ public class MongoDocumentStore implements DocumentStore {
         }
     }
 
+    @Nonnull
     @Override
     public Map<String, Object> createOrUpdate(Collection collection, UpdateOp updateOp) {
         log("createOrUpdate", updateOp);        

@@ -19,6 +19,11 @@ package org.apache.jackrabbit.mongomk.prototype;
 import java.util.List;
 import java.util.Map;
 
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
+
+import org.apache.jackrabbit.mk.api.MicroKernelException;
+
 /**
  * The interface for the backend storage for documents.
  */
@@ -34,18 +39,20 @@ public interface DocumentStore {
      * can modify it without affecting the stored version).
      *
      * @param collection the collection
-     * @param path the path
+     * @param key the key
      * @return the map, or null if not found
      */
+    @CheckForNull
     Map<String, Object> find(Collection collection, String key);
 
+    @Nonnull
     List<Map<String, Object>> query(Collection collection, String fromKey, String toKey, int limit);
     
     /**
      * Remove a document.
      *
      * @param collection the collection
-     * @param path the path
+     * @param key the key
      */
     void remove(Collection collection, String key);
 
@@ -65,8 +72,11 @@ public interface DocumentStore {
      * @param collection the collection
      * @param update the update operation
      * @return the new document
+     * @throws MicroKernelException if the operation failed.
      */    
-    Map<String, Object> createOrUpdate(Collection collection, UpdateOp update); 
+    @Nonnull
+    Map<String, Object> createOrUpdate(Collection collection, UpdateOp update)
+            throws MicroKernelException;
     
     void dispose();
 

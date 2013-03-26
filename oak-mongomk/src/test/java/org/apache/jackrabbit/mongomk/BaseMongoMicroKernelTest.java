@@ -39,7 +39,7 @@ import com.mongodb.DB;
  */
 public class BaseMongoMicroKernelTest extends AbstractMongoConnectionTest {
 
-    public static MicroKernel mk;
+    public MicroKernel mk;
 
     @Before
     public void setUp() throws Exception {
@@ -95,13 +95,13 @@ public class BaseMongoMicroKernelTest extends AbstractMongoConnectionTest {
     }
 
     protected void assertPropExists(String rev, String path, String property) {
-        String nodes = mk.getNodes(path, rev, -1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        String nodes = mk.getNodes(path, rev, 0 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
         JSONObject obj = parseJSONObject(nodes);
         assertPropertyExists(obj, property);
     }
 
     protected void assertPropNotExists(String rev, String path, String property) {
-        String nodes = mk.getNodes(path, rev, -1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        String nodes = mk.getNodes(path, rev, 0 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
         if (nodes == null) {
             return;
         }
@@ -110,7 +110,7 @@ public class BaseMongoMicroKernelTest extends AbstractMongoConnectionTest {
     }
 
     protected void assertPropValue(String rev, String path, String property, String value) {
-        String nodes = mk.getNodes(path, rev, -1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        String nodes = mk.getNodes(path, rev, 0 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
         JSONObject obj = parseJSONObject(nodes);
         assertPropertyValue(obj, property, value);
     }
