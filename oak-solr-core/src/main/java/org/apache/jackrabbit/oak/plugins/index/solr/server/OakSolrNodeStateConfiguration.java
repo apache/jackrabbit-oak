@@ -107,6 +107,9 @@ public class OakSolrNodeStateConfiguration implements OakSolrConfiguration {
         return value;
     }
 
+    /**
+     * Properties that may be retrieved from the configuration {@link NodeState}.
+     */
     public final class Properties {
 
         public static final String SOLRHOME_PATH = "solrHomePath";
