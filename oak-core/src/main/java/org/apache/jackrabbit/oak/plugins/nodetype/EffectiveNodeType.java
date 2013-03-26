@@ -25,12 +25,10 @@ import java.util.List;
 import java.util.Map;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.Value;
 import javax.jcr.nodetype.ConstraintViolationException;
-import javax.jcr.nodetype.ItemDefinition;
 import javax.jcr.nodetype.NoSuchNodeTypeException;
 import javax.jcr.nodetype.NodeDefinition;
 import javax.jcr.nodetype.NodeType;
@@ -42,6 +40,7 @@ import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
@@ -68,6 +67,15 @@ public class EffectiveNodeType {
         for (NodeTypeImpl mixin : checkNotNull(mixins)) {
             addNodeType(mixin);
         }
+        if (!nodeTypes.containsKey(NT_BASE)) {
+            try {
+                nodeTypes.put(
+                        NT_BASE,
+                        (NodeTypeImpl) ntMgr.getNodeType(NT_BASE)); // FIXME
+            } catch (RepositoryException e) {
+                // TODO: ignore/warning/error?
+            }
+        }
     }
 
     EffectiveNodeType(NodeTypeImpl primary, ReadOnlyNodeTypeManager ntMgr) {
@@ -79,16 +87,8 @@ public class EffectiveNodeType {
         if (!nodeTypes.containsKey(name)) {
             nodeTypes.put(name, type);
             NodeType[] supertypes = type.getDeclaredSupertypes();
-            if (supertypes.length > 1) {
-                for (NodeType supertype : supertypes) {
-                    addNodeType((NodeTypeImpl) supertype); // FIXME
-                }
-            } else if (!type.isMixin() && !nodeTypes.containsKey(NT_BASE)) {
-                try {
-                    addNodeType((NodeTypeImpl) ntMgr.getNodeType(NT_BASE)); // FIXME
-                } catch (RepositoryException e) {
-                    // TODO: ignore/warning/error?
-                }
+            for (NodeType supertype : supertypes) {
+                addNodeType((NodeTypeImpl) supertype); // FIXME
             }
         }
     }
@@ -101,12 +101,7 @@ public class EffectiveNodeType {
      * @return {@code true} if the given node type is included, otherwise {@code false}.
      */
     public boolean includesNodeType(String nodeTypeName) {
-        for (NodeType type : nodeTypes.values()) {
-            if (type.isNodeType(nodeTypeName)) {
-                return true;
-            }
-        }
-        return false;
+        return nodeTypes.containsKey(nodeTypeName);
     }
 
 
@@ -210,8 +205,16 @@ public class EffectiveNodeType {
      * @return All node definitions that match the given internal oak name.
      */
     @Nonnull
-    public Iterable<NodeDefinition> getNamedNodeDefinitions(String oakName) {
-        return Iterables.filter(getNodeDefinitions(), new DefinitionNamePredicate(oakName));
+    public Iterable<NodeDefinition> getNamedNodeDefinitions(
+            final String oakName) {
+        return Iterables.concat(Iterables.transform(
+                nodeTypes.values(),
+                new Function<NodeTypeImpl, Iterable<NodeDefinition>>() {
+                    @Override
+                    public Iterable<NodeDefinition> apply(NodeTypeImpl input) {
+                        return input.getDeclaredNamedNodeDefinitions(oakName);
+                    }
+                }));
     }
 
     /**
@@ -221,8 +224,16 @@ public class EffectiveNodeType {
      * @return All property definitions that match the given internal oak name.
      */
     @Nonnull
-    public Iterable<PropertyDefinition> getNamedPropertyDefinitions(String oakName) {
-        return Iterables.filter(getPropertyDefinitions(), new DefinitionNamePredicate(oakName));
+    public Iterable<PropertyDefinition> getNamedPropertyDefinitions(
+            final String oakName) {
+        return Iterables.concat(Iterables.transform(
+                nodeTypes.values(),
+                new Function<NodeTypeImpl, Iterable<PropertyDefinition>>() {
+                    @Override
+                    public Iterable<PropertyDefinition> apply(NodeTypeImpl input) {
+                        return input.getDeclaredNamedPropertyDefinitions(oakName);
+                    }
+                }));
     }
 
     /**
@@ -232,12 +243,14 @@ public class EffectiveNodeType {
      */
     @Nonnull
     public Iterable<NodeDefinition> getResidualNodeDefinitions() {
-        return Iterables.filter(getNodeDefinitions(), new Predicate<NodeDefinition>() {
-            @Override
-            public boolean apply(NodeDefinition nodeDefinition) {
-                return NodeTypeConstants.RESIDUAL_NAME.equals(nodeDefinition.getName());
-            }
-        });
+        return Iterables.concat(Iterables.transform(
+                nodeTypes.values(),
+                new Function<NodeTypeImpl, Iterable<NodeDefinition>>() {
+                    @Override
+                    public Iterable<NodeDefinition> apply(NodeTypeImpl input) {
+                        return input.getDeclaredResidualNodeDefinitions();
+                    }
+                }));
     }
 
     /**
@@ -247,12 +260,14 @@ public class EffectiveNodeType {
      */
     @Nonnull
     public Iterable<PropertyDefinition> getResidualPropertyDefinitions() {
-        return Iterables.filter(getPropertyDefinitions(), new Predicate<PropertyDefinition>() {
-            @Override
-            public boolean apply(PropertyDefinition propertyDefinition) {
-                return NodeTypeConstants.RESIDUAL_NAME.equals(propertyDefinition.getName());
-            }
-        });
+        return Iterables.concat(Iterables.transform(
+                nodeTypes.values(),
+                new Function<NodeTypeImpl, Iterable<PropertyDefinition>>() {
+                    @Override
+                    public Iterable<PropertyDefinition> apply(NodeTypeImpl input) {
+                        return input.getDeclaredResidualPropertyDefinitions();
+                    }
+                }));
     }
 
     public void checkSetProperty(PropertyState property) throws RepositoryException {
@@ -397,19 +412,6 @@ public class EffectiveNodeType {
         boolean isMultiple = property.isArray();
 
         return getPropertyDefinition(propertyName, isMultiple, propertyType, true);
-    }
-
-    private static class DefinitionNamePredicate implements Predicate<ItemDefinition> {
-
-        private final String oakName;
-
-        DefinitionNamePredicate(String oakName) {
-            this.oakName = oakName;
-        }
-        @Override
-        public boolean apply(@Nullable ItemDefinition definition) {
-            return definition instanceof ItemDefinitionImpl && ((ItemDefinitionImpl) definition).getOakName().equals(oakName);
-        }
     }
 
 }
