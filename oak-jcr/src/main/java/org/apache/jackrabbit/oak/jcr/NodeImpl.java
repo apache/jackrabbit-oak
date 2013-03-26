@@ -1099,16 +1099,18 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     }
 
     private EffectiveNodeType getEffectiveNodeType() throws RepositoryException {
-        return getEffectiveNodeTypeProvider().getEffectiveNodeType(this);
+        return getEffectiveNodeTypeProvider().getEffectiveNodeType(dlg.getTree());
     }
 
     @Override
     @Nonnull
     public NodeDefinition getDefinition() throws RepositoryException {
-        if (getDepth() == 0) {
+        NodeDelegate parent = dlg.getParent();
+        if (parent == null) {
             return getDefinitionProvider().getRootDefinition();
         } else {
-            return getDefinitionProvider().getDefinition(getParent(), this);
+            return getDefinitionProvider().getDefinition(
+                    parent.getTree(), dlg.getTree());
         }
     }
 
@@ -1485,7 +1487,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     }
 
     private void autoCreateItems() throws RepositoryException {
-        EffectiveNodeType effective = getEffectiveNodeTypeProvider().getEffectiveNodeType(this);
+        EffectiveNodeType effective = getEffectiveNodeTypeProvider().getEffectiveNodeType(dlg.getTree());
         for (PropertyDefinition pd : effective.getAutoCreatePropertyDefinitions()) {
             if (dlg.getProperty(pd.getName()) == null) {
                 if (pd.isMultiple()) {
