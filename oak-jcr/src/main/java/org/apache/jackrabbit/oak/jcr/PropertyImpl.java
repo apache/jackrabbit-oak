@@ -163,7 +163,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
      */
     @Override
     public void setValue(final Value[] values) throws RepositoryException {
-        perform(new ItemReadOperation<Void>() {
+        perform(new ItemWriteOperation<Void>() {
             @Override
             public Void perform() throws RepositoryException {
                 // assert equal types for all values entries
@@ -529,7 +529,12 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
     @Override
     @Nonnull
     public PropertyDefinition getDefinition() throws RepositoryException {
-        return getDefinitionProvider().getDefinition(getParent(), this);
+        return perform(new ItemReadOperation<PropertyDefinition>() {
+            @Override
+            protected PropertyDefinition perform() throws RepositoryException {
+                return getDefinitionProvider().getDefinition(getParent(), PropertyImpl.this);
+            }
+        });
     }
 
     /**
