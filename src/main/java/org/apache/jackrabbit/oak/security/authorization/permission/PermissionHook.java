@@ -166,8 +166,6 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
                 // ignore hidden nodes
             } else if (isACE(name, after)) {
                 addEntry(name, after);
-            } else if (REP_RESTRICTIONS.equals(name)) {
-                updateEntry(parentAfter.getName(), parentBefore.getNodeState(), parentAfter.getNodeState());
             } else {
                 Node before = new BeforeNode(parentBefore.getPath(), name, EMPTY_NODE);
                 AfterNode node = new AfterNode(parentAfter, name);
@@ -181,8 +179,6 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
                 // ignore hidden nodes
             } else if (isACE(name, before) || isACE(name, after)) {
                 updateEntry(name, before, after);
-            } else if (REP_RESTRICTIONS.equals(name)) {
-                updateEntry(parentAfter.getName(), parentBefore.getNodeState(), parentAfter.getNodeState());
             } else {
                 BeforeNode nodeBefore = new BeforeNode(parentBefore.getPath(), name, before);
                 AfterNode nodeAfter = new AfterNode(parentAfter, name);
@@ -196,8 +192,6 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
                 // ignore hidden nodes
             } else if (isACE(name, before)) {
                 removeEntry(name, before);
-            } else if (REP_RESTRICTIONS.equals(name)) {
-                updateEntry(parentAfter.getName(), parentBefore.getNodeState(), parentAfter.getNodeState());
             } else {
                 BeforeNode nodeBefore = new BeforeNode(parentBefore.getPath(), name, before);
                 AfterNode after = new AfterNode(parentAfter.getPath(), name, EMPTY_NODE);
@@ -337,10 +331,10 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
             this.isAllow = isAllow;
             this.restrictions = restrictions;
 
-            // create node name from ace definition (excluding the index)
+            // create node name from ace definition
             StringBuilder name = new StringBuilder();
             name.append((isAllow) ? PREFIX_ALLOW : PREFIX_DENY).append('-');
-            name.append(Objects.hashCode(accessControlledPath, principalName, privilegeBits, isAllow, restrictions));
+            name.append(Objects.hashCode(accessControlledPath, principalName, index, privilegeBits, isAllow, restrictions));
             nodeName = name.toString();
         }
 

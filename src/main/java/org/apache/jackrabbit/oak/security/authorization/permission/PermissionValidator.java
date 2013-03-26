@@ -223,7 +223,8 @@ class PermissionValidator extends DefaultValidator {
     // TODO
     public static boolean noTraverse(long permission) {
         return permission == Permissions.MODIFY_ACCESS_CONTROL ||
-                permission == Permissions.VERSION_MANAGEMENT;
+                permission == Permissions.VERSION_MANAGEMENT ||
+                permission == Permissions.REMOVE_NODE;
     }
 
     // TODO
