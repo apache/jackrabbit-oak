@@ -201,6 +201,23 @@ public class MongoMK implements MicroKernel {
             n = new Node("/", headRevision);
             commit.addNode(n);
             commit.applyToDocumentStore();
+        } else {
+            // initialize branchCommits
+            Map<String, Object> nodeMap = store.find(
+                    DocumentStore.Collection.NODES, Utils.getIdFromPath("/"));
+            @SuppressWarnings("unchecked")
+            Map<String, String> valueMap = (Map<String, String>) nodeMap.get(UpdateOp.REVISIONS);
+            if (valueMap != null) {
+                for (Map.Entry<String, String> commit : valueMap.entrySet()) {
+                    if (!commit.getValue().equals("true")) {
+                        Revision r = Revision.fromString(commit.getKey());
+                        if (r.getClusterId() == clusterId) {
+                            Revision b = Revision.fromString(commit.getValue());
+                            branchCommits.put(r, b);
+                        }
+                    }
+                }
+            }
         }
     }
     
