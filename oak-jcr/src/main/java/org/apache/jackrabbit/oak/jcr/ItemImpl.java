@@ -17,8 +17,10 @@
 package org.apache.jackrabbit.oak.jcr;
 
 import javax.annotation.Nonnull;
+import javax.jcr.AccessDeniedException;
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.Item;
+import javax.jcr.ItemNotFoundException;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -27,8 +29,9 @@ import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.ItemDefinition;
 import javax.jcr.nodetype.NodeTypeManager;
 
-import org.apache.jackrabbit.commons.AbstractItem;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.delegate.ItemDelegate;
+import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionOperation;
 import org.apache.jackrabbit.oak.plugins.nodetype.DefinitionProvider;
@@ -38,7 +41,7 @@ import org.slf4j.LoggerFactory;
 /**
  * TODO document
  */
-abstract class ItemImpl<T extends ItemDelegate> extends AbstractItem {
+abstract class ItemImpl<T extends ItemDelegate> implements Item {
 
     protected final SessionContext sessionContext;
     protected final T dlg;
@@ -101,6 +104,63 @@ abstract class ItemImpl<T extends ItemDelegate> extends AbstractItem {
     @Nonnull
     public Session getSession() throws RepositoryException {
         return sessionContext.getSession();
+    }
+
+    @Override
+    public Item getAncestor(final int depth) throws RepositoryException {
+        return perform(new SessionOperation<Item>() {
+            @Override
+            protected void checkPreconditions() throws RepositoryException {
+                checkStatus();
+            }
+
+            @Override
+            protected Item perform() throws RepositoryException {
+                if (depth < 0) {
+                    throw new ItemNotFoundException(this + ": Invalid ancestor depth (" + depth + ')');
+                } else if (depth == 0) {
+                    NodeDelegate nd = sessionDelegate.getRootNode();
+                    if (nd == null) {
+                        throw new AccessDeniedException("Root node is not accessible.");
+                    }
+                    return new NodeImpl<NodeDelegate>(nd, sessionContext);
+                }
+
+                String path = dlg.getPath();
+                int slash = 0;
+                for (int i = 0; i < depth - 1; i++) {
+                    slash = PathUtils.getNextSlash(path, slash + 1);
+                    if (slash == -1) {
+                        throw new ItemNotFoundException(this + ": Invalid ancestor depth (" + depth + ')');
+                    }
+                }
+                slash = PathUtils.getNextSlash(path, slash + 1);
+                if (slash == -1) {
+                    return ItemImpl.this;
+                }
+
+                NodeDelegate nd = sessionDelegate.getNode(path.substring(0, slash));
+                if (nd == null) {
+                    throw new AccessDeniedException(this + ": Ancestor access denied (" + depth + ')');
+                }
+                return new NodeImpl<NodeDelegate>(nd, sessionContext);
+            }
+        });
+    }
+
+    @Override
+    public int getDepth() throws RepositoryException {
+        return perform(new SessionOperation<Integer>() {
+            @Override
+            protected void checkPreconditions() throws RepositoryException {
+                checkStatus();
+            }
+
+            @Override
+            public Integer perform() throws RepositoryException {
+                return PathUtils.getDepth(dlg.getPath());
+            }
+        });
     }
 
     /**

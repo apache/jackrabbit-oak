@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Locale;
@@ -25,6 +28,7 @@ import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.jcr.AccessDeniedException;
 import javax.jcr.Credentials;
+import javax.jcr.InvalidSerializedDataException;
 import javax.jcr.Item;
 import javax.jcr.ItemNotFoundException;
 import javax.jcr.NamespaceException;
@@ -45,7 +49,11 @@ import javax.jcr.security.AccessControlManager;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.UserManager;
-import org.apache.jackrabbit.commons.AbstractSession;
+import org.apache.jackrabbit.commons.xml.DocumentViewExporter;
+import org.apache.jackrabbit.commons.xml.Exporter;
+import org.apache.jackrabbit.commons.xml.ParsingContentHandler;
+import org.apache.jackrabbit.commons.xml.SystemViewExporter;
+import org.apache.jackrabbit.commons.xml.ToXmlContentHandler;
 import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
@@ -61,11 +69,12 @@ import org.apache.jackrabbit.util.XMLChar;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.ContentHandler;
+import org.xml.sax.SAXException;
 
 /**
  * TODO document
  */
-public class SessionImpl extends AbstractSession implements JackrabbitSession {
+public class SessionImpl implements JackrabbitSession {
 
     /**
      * logger instance
@@ -315,6 +324,11 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     }
 
     @Override
+    public void removeItem(String absPath) throws RepositoryException {
+        getItem(absPath).remove();
+    }
+
+    @Override
     public void save() throws RepositoryException {
         ensureIsAlive();
         dlg.save();
@@ -354,6 +368,95 @@ public class SessionImpl extends AbstractSession implements JackrabbitSession {
     public ContentHandler getImportContentHandler(String parentAbsPath, int uuidBehavior)
             throws RepositoryException {
         return new ImportHandler(getNode(parentAbsPath), sessionContext, uuidBehavior);
+    }
+
+    @Override
+    public void importXML(String parentAbsPath, InputStream in, int uuidBehavior)
+            throws IOException, RepositoryException {
+        try {
+            ContentHandler handler = getImportContentHandler(parentAbsPath, uuidBehavior);
+            new ParsingContentHandler(handler).parse(in);
+        } catch (SAXException e) {
+            Throwable exception = e.getException();
+            if (exception instanceof RepositoryException) {
+                throw (RepositoryException) exception;
+            } else if (exception instanceof IOException) {
+                throw (IOException) exception;
+            } else {
+                throw new InvalidSerializedDataException("XML parse error", e);
+            }
+        } finally {
+            // JCR-2903
+            if (in != null) {
+                try { in.close(); } catch (IOException ignore) {}
+            }
+        }
+    }
+
+    /**
+     * Exports content at the given path using the given exporter.
+     *
+     * @param path of the node to be exported
+     * @param exporter document or system view exporter
+     * @throws SAXException if the SAX event handler failed
+     * @throws RepositoryException if another error occurs
+     */
+    private synchronized void export(String path, Exporter exporter)
+            throws SAXException, RepositoryException {
+        Item item = getItem(path);
+        if (item.isNode()) {
+            exporter.export((Node) item);
+        } else {
+            throw new PathNotFoundException("XML export is not defined for properties: " + path);
+        }
+    }
+
+    @Override
+    public void exportSystemView(String absPath, ContentHandler contentHandler, boolean skipBinary, boolean noRecurse)
+            throws SAXException, RepositoryException {
+        export(absPath, new SystemViewExporter(this, contentHandler, !noRecurse, !skipBinary));
+    }
+
+    @Override
+    public void exportSystemView(String absPath, OutputStream out, boolean skipBinary, boolean noRecurse)
+            throws IOException, RepositoryException {
+        try {
+            ContentHandler handler = new ToXmlContentHandler(out);
+            exportSystemView(absPath, handler, skipBinary, noRecurse);
+        } catch (SAXException e) {
+            Exception exception = e.getException();
+            if (exception instanceof RepositoryException) {
+                throw (RepositoryException) exception;
+            } else if (exception instanceof IOException) {
+                throw (IOException) exception;
+            } else {
+                throw new RepositoryException("Error serializing system view XML", e);
+            }
+        }
+    }
+
+    @Override
+    public void exportDocumentView(String absPath, ContentHandler contentHandler, boolean skipBinary,
+            boolean noRecurse) throws SAXException, RepositoryException {
+        export(absPath, new DocumentViewExporter(this, contentHandler, !noRecurse, !skipBinary));
+    }
+
+    @Override
+    public void exportDocumentView(String absPath, OutputStream out, boolean skipBinary, boolean noRecurse)
+            throws IOException, RepositoryException {
+        try {
+            ContentHandler handler = new ToXmlContentHandler(out);
+            exportDocumentView(absPath, handler, skipBinary, noRecurse);
+        } catch (SAXException e) {
+            Exception exception = e.getException();
+            if (exception instanceof RepositoryException) {
+                throw (RepositoryException) exception;
+            } else if (exception instanceof IOException) {
+                throw (IOException) exception;
+            } else {
+                throw new RepositoryException("Error serializing document view XML", e);
+            }
+        }
     }
 
     @Nonnull
