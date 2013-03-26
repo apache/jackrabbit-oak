@@ -26,7 +26,7 @@ import org.apache.jackrabbit.oak.plugins.index.IndexHook;
 import org.apache.jackrabbit.oak.plugins.index.IndexHookProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.index.SolrIndexDiff;
 import org.apache.jackrabbit.oak.plugins.index.solr.query.SolrQueryIndex;
-import org.apache.jackrabbit.oak.plugins.index.solr.server.OakSolrNodeStateConfiguration;
+import org.apache.jackrabbit.oak.plugins.index.solr.server.FixedNodeStateConfiguration;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -93,6 +93,6 @@ public class TestUtils {
 
 
     public static OakSolrConfiguration getTestConfiguration(NodeState nodeState) {
-        return new OakSolrNodeStateConfiguration(nodeState);
+        return new FixedNodeStateConfiguration(nodeState);
     }
 }

@@ -27,6 +27,7 @@ import org.apache.jackrabbit.oak.plugins.index.solr.OakSolrConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.OakSolrConfigurationProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.SolrServerProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.embedded.EmbeddedSolrServer;
 import org.apache.solr.core.CoreContainer;
@@ -41,7 +42,11 @@ public class DefaultOakSolrProvider implements SolrServerProvider, OakSolrConfig
     private final OakSolrNodeStateConfiguration oakSolrConfiguration;
 
     public DefaultOakSolrProvider(NodeState configurationNodeState) {
-        this.oakSolrConfiguration = new OakSolrNodeStateConfiguration(configurationNodeState);
+        this.oakSolrConfiguration = new FixedNodeStateConfiguration(configurationNodeState);
+    }
+
+    public DefaultOakSolrProvider(NodeStore store, String path) {
+        this.oakSolrConfiguration = new UpToDateNodeStateConfiguration(store, path);
     }
 
     private SolrServer solrServer;
@@ -64,7 +69,7 @@ public class DefaultOakSolrProvider implements SolrServerProvider, OakSolrConfig
         // check if solrHomePath exists
         File solrHomePathFile = new File(solrHomePath);
         if (!solrHomePathFile.exists()) {
-            if (!solrHomePathFile.mkdir()) {
+            if (!solrHomePathFile.mkdirs()) {
                 throw new IOException("could not create solrHomePath directory");
             } else {
                 // copy all the needed files to the just created directory
@@ -115,14 +120,14 @@ public class DefaultOakSolrProvider implements SolrServerProvider, OakSolrConfig
                 if (inputStream != null) {
                     try {
                         inputStream.close();
-                    } catch (Exception e){
+                    } catch (Exception e) {
                         // do nothing
                     }
                 }
                 if (outputStream != null) {
                     try {
                         outputStream.close();
-                    } catch (Exception e){
+                    } catch (Exception e) {
                         // do nothing
                     }
                 }
