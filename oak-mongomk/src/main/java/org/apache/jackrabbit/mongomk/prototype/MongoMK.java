@@ -866,10 +866,10 @@ public class MongoMK implements MicroKernel {
         for (String r : valueMap.keySet()) {
             Revision propRev = Revision.fromString(r);
             if (newestRev == null || isRevisionNewer(propRev, newestRev)) {
-                // TODO check if propRev is really committed, if
-                // onlyCommitted is set
                 if (isRevisionNewer(before, propRev)) {
-                    newestRev = propRev;
+                    if (!onlyCommitted || isValidRevision(propRev, before, nodeMap)) {
+                        newestRev = propRev;
+                    }
                 }
             }
         }
