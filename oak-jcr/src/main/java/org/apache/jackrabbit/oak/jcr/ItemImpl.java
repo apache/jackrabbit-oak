@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.AccessDeniedException;
 import javax.jcr.InvalidItemStateException;
@@ -42,15 +43,11 @@ import org.slf4j.LoggerFactory;
  * TODO document
  */
 abstract class ItemImpl<T extends ItemDelegate> implements Item {
+    private static final Logger log = LoggerFactory.getLogger(ItemImpl.class);
 
     protected final SessionContext sessionContext;
     protected final T dlg;
     protected final SessionDelegate sessionDelegate;
-
-    /**
-     * logger instance
-     */
-    private static final Logger log = LoggerFactory.getLogger(ItemImpl.class);
 
     protected ItemImpl(T itemDelegate, SessionContext sessionContext) {
         this.sessionContext = sessionContext;
@@ -58,9 +55,51 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
         this.sessionDelegate = sessionContext.getSessionDelegate();
     }
 
-    protected <X> X perform(SessionOperation<X> operation)
-            throws RepositoryException {
-        return sessionDelegate.perform(operation);
+    protected abstract class ItemReadOperation<T> extends SessionOperation<T> {
+        @Override
+        protected void checkPreconditions() throws RepositoryException {
+            checkStatus();
+        }
+    }
+
+    protected abstract class ItemWriteOperation<T> extends SessionOperation<T> {
+        @Override
+        protected void checkPreconditions() throws RepositoryException {
+            checkStatus();
+            checkProtected();
+        }
+    }
+
+    /**
+     * Perform the passed {@link org.apache.jackrabbit.oak.jcr.ItemImpl.ItemReadOperation}.
+     * @param op  operation to perform
+     * @param <T>  return type of the operation
+     * @return  the result of {@code op.perform()}
+     * @throws RepositoryException as thrown by {@code op.perform()}.
+     */
+    @CheckForNull
+    protected <T> T perform(@Nonnull SessionOperation<T> op) throws RepositoryException {
+        return sessionDelegate.perform(op);
+    }
+
+    /**
+     * Perform the passed {@link org.apache.jackrabbit.oak.jcr.ItemImpl.ItemReadOperation} assuming it does not throw an
+     * {@code RepositoryException}. If it does, wrap it into and throw it as an
+     * {@code IllegalArgumentException}.
+     * @param op  operation to perform
+     * @param <T>  return type of the operation
+     * @return  the result of {@code op.perform()}
+     */
+    @CheckForNull
+    protected <T> T safePerform(@Nonnull SessionOperation<T> op) {
+        try {
+            return sessionDelegate.perform(op);
+        }
+        catch (RepositoryException e) {
+            String msg = "Unexpected exception thrown by operation " + op;
+            log.error(msg, e);
+            throw new IllegalArgumentException(msg, e);
+        }
     }
 
     //---------------------------------------------------------------< Item >---
@@ -71,7 +110,7 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
     @Override
     @Nonnull
     public String getName() throws RepositoryException {
-        return perform(new SessionOperation<String>() {
+        return perform(new ItemReadOperation<String>() {
             @Override
             public String perform() throws RepositoryException {
                 String oakName = dlg.getName();
@@ -87,12 +126,7 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
     @Override
     @Nonnull
     public String getPath() throws RepositoryException {
-        return perform(new SessionOperation<String>() {
-            @Override
-            protected void checkPreconditions() throws RepositoryException {
-                checkStatus();
-            }
-
+        return perform(new ItemReadOperation<String>() {
             @Override
             public String perform() throws RepositoryException {
                 return toJcrPath(dlg.getPath());
@@ -108,12 +142,7 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
 
     @Override
     public Item getAncestor(final int depth) throws RepositoryException {
-        return perform(new SessionOperation<Item>() {
-            @Override
-            protected void checkPreconditions() throws RepositoryException {
-                checkStatus();
-            }
-
+        return perform(new ItemReadOperation<Item>() {
             @Override
             protected Item perform() throws RepositoryException {
                 if (depth < 0) {
@@ -150,12 +179,7 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
 
     @Override
     public int getDepth() throws RepositoryException {
-        return perform(new SessionOperation<Integer>() {
-            @Override
-            protected void checkPreconditions() throws RepositoryException {
-                checkStatus();
-            }
-
+        return perform(new ItemReadOperation<Integer>() {
             @Override
             public Integer perform() throws RepositoryException {
                 return PathUtils.getDepth(dlg.getPath());
@@ -225,22 +249,15 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
     }
 
     //-----------------------------------------------------------< internal >---
+
     /**
      * Performs a sanity check on this item and the associated session.
      *
      * @throws RepositoryException if this item has been rendered invalid for some reason
      */
     void checkStatus() throws RepositoryException {
-        if (dlg.isStale()) {
-            throw new InvalidItemStateException("stale");
-        }
-
-        // check session status
-        if (!sessionDelegate.isAlive()) {
-            throw new RepositoryException("This session has been closed.");
-        }
-
-        // TODO: validate item state.
+        sessionDelegate.checkAlive();
+        dlg.checkNotStale();
     }
 
     protected abstract ItemDefinition getDefinition() throws RepositoryException;
