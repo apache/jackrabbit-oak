@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -42,14 +44,11 @@ import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.PropertyDelegate;
-import org.apache.jackrabbit.oak.jcr.delegate.SessionOperation;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 import org.apache.jackrabbit.value.ValueHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * TODO document
@@ -83,7 +82,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
     @Override
     @Nonnull
     public Node getParent() throws RepositoryException {
-        return perform(new SessionOperation<NodeImpl<?>>() {
+        return perform(new ItemReadOperation<NodeImpl<?>>() {
             @Override
             public NodeImpl<?> perform() throws RepositoryException {
                 NodeDelegate parent = dlg.getParent();
@@ -101,16 +100,12 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
      */
     @Override
     public boolean isNew() {
-        try {
-            return perform(new SessionOperation<Boolean>() {
-                @Override
-                public Boolean perform() throws RepositoryException {
-                    return dlg.getStatus() == Status.NEW;
-                }
-            });
-        } catch (RepositoryException e) {
-            return false;
-        }
+        return safePerform(new ItemReadOperation<Boolean>() {
+            @Override
+            public Boolean perform() {
+                return dlg.getStatus() == Status.NEW;
+            }
+        });
     }
 
     /**
@@ -118,16 +113,12 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
      */
     @Override
     public boolean isModified() {
-        try {
-            return perform(new SessionOperation<Boolean>() {
-                @Override
-                public Boolean perform() throws RepositoryException {
-                    return dlg.getStatus() == Status.MODIFIED;
-                }
-            });
-        } catch (RepositoryException e) {
-            return false;
-        }
+        return safePerform(new ItemReadOperation<Boolean>() {
+            @Override
+            public Boolean perform() {
+                return dlg.getStatus() == Status.MODIFIED;
+            }
+        });
     }
 
     /**
@@ -135,13 +126,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
      */
     @Override
     public void remove() throws RepositoryException {
-        perform(new SessionOperation<Void>() {
-            @Override
-            protected void checkPreconditions() throws RepositoryException {
-                checkStatus();
-                checkProtected();
-            }
-
+        perform(new ItemWriteOperation<Void>() {
             @Override
             public Void perform() throws RepositoryException {
                 dlg.remove();
@@ -178,12 +163,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
      */
     @Override
     public void setValue(final Value[] values) throws RepositoryException {
-        perform(new SessionOperation<Void>() {
-            @Override
-            protected void checkPreconditions() throws RepositoryException {
-                checkStatus();
-            }
-
+        perform(new ItemReadOperation<Void>() {
             @Override
             public Void perform() throws RepositoryException {
                 // assert equal types for all values entries
@@ -358,12 +338,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
     @Override
     @Nonnull
     public Value getValue() throws RepositoryException {
-        return perform(new SessionOperation<Value>() {
-            @Override
-            protected void checkPreconditions() throws RepositoryException {
-                checkStatus();
-            }
-
+        return perform(new ItemReadOperation<Value>() {
             @Override
             public Value perform() throws RepositoryException {
                 return ValueFactoryImpl.createValue(dlg.getSingleState(), sessionContext);
@@ -374,12 +349,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
     @Override
     @Nonnull
     public Value[] getValues() throws RepositoryException {
-        return perform(new SessionOperation<List<Value>>() {
-            @Override
-            protected void checkPreconditions() throws RepositoryException {
-                checkStatus();
-            }
-
+        return perform(new ItemReadOperation<List<Value>>() {
             @Override
             public List<Value> perform() throws RepositoryException {
                 return ValueFactoryImpl.createValues(dlg.getMultiState(), sessionContext);
@@ -463,7 +433,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
     @Override
     @Nonnull
     public Node getNode() throws RepositoryException {
-        return perform(new SessionOperation<Node>() {
+        return perform(new ItemReadOperation<Node>() {
             @Override
             public Node perform() throws RepositoryException {
                 Value value = getValue();
@@ -518,7 +488,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
     @Override
     @Nonnull
     public Property getProperty() throws RepositoryException {
-        return perform(new SessionOperation<Property>() {
+        return perform(new ItemReadOperation<Property>() {
             @Override
             public Property perform() throws RepositoryException {
                 Value value = getValue();
@@ -567,7 +537,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
      */
     @Override
     public int getType() throws RepositoryException {
-        return perform(new SessionOperation<Integer>() {
+        return perform(new ItemReadOperation<Integer>() {
             @Override
             public Integer perform() throws RepositoryException {
                 if (isMultiple()) {
@@ -587,12 +557,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
 
     @Override
     public boolean isMultiple() throws RepositoryException {
-        return perform(new SessionOperation<Boolean>() {
-            @Override
-            protected void checkPreconditions() throws RepositoryException {
-                checkStatus();
-            }
-
+        return perform(new ItemReadOperation<Boolean>() {
             @Override
             public Boolean perform() throws RepositoryException {
                 return dlg.isArray();

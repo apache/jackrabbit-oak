@@ -17,6 +17,9 @@
 
 package org.apache.jackrabbit.oak.jcr.delegate;
 
+import static com.google.common.base.Objects.toStringHelper;
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.InvalidItemStateException;
@@ -24,9 +27,6 @@ import javax.jcr.InvalidItemStateException;
 import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-
-import static com.google.common.base.Objects.toStringHelper;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Abstract base class for {@link NodeDelegate} and {@link PropertyDelegate}
@@ -79,6 +79,12 @@ public abstract class ItemDelegate {
         return NodeDelegate.create(sessionDelegate, getLocation().getParent());
     }
 
+    public void checkNotStale() throws InvalidItemStateException {
+        if (isStale()) {
+            throw new InvalidItemStateException("stale");
+        }
+    }
+
     /**
      * Determine whether this item is stale
      * @return  {@code true} iff stale
@@ -88,16 +94,12 @@ public abstract class ItemDelegate {
     }
 
     /**
-     * Get the status of this item
-     * @return  {@link Status} of this item
+     * Get the status of this item.
+     * @return  {@link Status} of this item or {@code null} if not available.
      */
-    @Nonnull
-    public Status getStatus() throws InvalidItemStateException {
-        Status status = getLocation().getStatus();
-        if (status == null) {
-            throw new InvalidItemStateException();
-        }
-        return status;
+    @CheckForNull
+    public Status getStatus() {
+        return loadLocation().getStatus();
     }
 
     /**
