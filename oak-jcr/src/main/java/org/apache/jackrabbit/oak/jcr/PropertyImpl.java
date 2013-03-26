@@ -532,7 +532,8 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
         return perform(new ItemReadOperation<PropertyDefinition>() {
             @Override
             protected PropertyDefinition perform() throws RepositoryException {
-                return getDefinitionProvider().getDefinition(getParent(), PropertyImpl.this);
+                return getDefinitionProvider().getDefinition(
+                        dlg.getParent().getTree(), dlg.getPropertyState(), true);
             }
         });
     }
