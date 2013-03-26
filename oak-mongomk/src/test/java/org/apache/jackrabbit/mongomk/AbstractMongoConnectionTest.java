@@ -41,18 +41,24 @@ public class AbstractMongoConnectionTest {
     protected static final String DB =
             System.getProperty("mongo.db", "MongoMKDB");
 
-    protected static MongoConnection mongoConnection;
+    protected static Boolean mongoAvailable;
+
+    protected MongoConnection mongoConnection;
 
     private static Exception mongoException = null;
 
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {
-        if (mongoConnection == null) {
-            mongoConnection = new MongoConnection(HOST, PORT, DB);
+        if (mongoAvailable == null) {
+            MongoConnection mongoConnection = new MongoConnection(HOST, PORT, DB);
             try {
                 mongoConnection.getDB().command(new BasicDBObject("ping", 1));
+                mongoAvailable = Boolean.TRUE;
             } catch (Exception e) {
+                mongoAvailable = Boolean.FALSE;
                 mongoException = e;
+            } finally {
+                mongoConnection.close();
             }
         }
         Assume.assumeNoException(mongoException);
@@ -60,12 +66,14 @@ public class AbstractMongoConnectionTest {
 
     @Before
     public void setUpConnection() throws Exception {
+        mongoConnection = new MongoConnection(HOST, PORT, DB);
         dropCollections(mongoConnection.getDB());
     }
 
     @After
     public void tearDownConnection() throws Exception {
         dropCollections(mongoConnection.getDB());
+        mongoConnection.close();
     }
 
     protected void dropCollections(DB db) throws Exception {

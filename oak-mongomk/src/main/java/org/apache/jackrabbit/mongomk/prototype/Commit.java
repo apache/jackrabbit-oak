@@ -41,8 +41,10 @@ public class Commit {
      * The maximum size of a document. If it is larger, it is split.
      */
     // TODO check which value is the best one
-    private static final int MAX_DOCUMENT_SIZE = 16 * 1024;
-    
+    //private static final int MAX_DOCUMENT_SIZE = 16 * 1024;
+    // TODO disabled until document split is fully implemented
+    private static final int MAX_DOCUMENT_SIZE = Integer.MAX_VALUE;
+
     /**
      * Whether to purge old revisions if a node gets too large. If false, old
      * revisions are stored in a separate document. If true, old revisions are
@@ -115,12 +117,38 @@ public class Commit {
         }
     }
 
+    void prepare(Revision baseRevision) {
+        if (!operations.isEmpty()) {
+            applyToDocumentStore(baseRevision);
+            applyToCache();
+        }
+    }
+
     /**
      * Apply the changes to the document store (to update MongoDB).
      */
     void applyToDocumentStore() {
+        applyToDocumentStore(null);
+    }
+
+    /**
+     * Apply the changes to the document store (to update MongoDB).
+     *
+     * @param baseRevision the base revision of this commit. Currently only
+     *                     used for branch commits.
+     */
+    void applyToDocumentStore(Revision baseRevision) {
+        // the value in _revisions.<revision> property of the commit root node
+        // regular commits use "true", which makes the commit visible to
+        // other readers. branch commits use the base revision to indicate
+        // the visibility of the commit
+        String commitValue = baseRevision != null ? baseRevision.toString() : "true";
         DocumentStore store = mk.getDocumentStore();
         String commitRootPath = null;
+        if (baseRevision != null) {
+            // branch commits always use root node as commit root
+            commitRootPath = "/";
+        }
         ArrayList<UpdateOp> newNodes = new ArrayList<UpdateOp>();
         ArrayList<UpdateOp> changedNodes = new ArrayList<UpdateOp>();
         for (String p : operations.keySet()) {
@@ -160,7 +188,7 @@ public class Commit {
             // no updates and root of commit is also new. that is,
             // it is the root of a subtree added in a commit.
             // so we try to add the root like all other nodes
-            commitRoot.addMapEntry(UpdateOp.REVISIONS + "." + revision.toString(), "true");
+            commitRoot.addMapEntry(UpdateOp.REVISIONS + "." + revision.toString(), commitValue);
             newNodes.add(commitRoot);
         }
         try {
@@ -191,7 +219,7 @@ public class Commit {
             // first to check if there was a conflict, and only then to commit
             // the revision, with the revision property set)
             if (changedNodes.size() > 0 || !commitRoot.isNew) {
-                commitRoot.addMapEntry(UpdateOp.REVISIONS + "." + revision.toString(), "true");
+                commitRoot.addMapEntry(UpdateOp.REVISIONS + "." + revision.toString(), commitValue);
                 createOrUpdateNode(store, commitRoot);
                 operations.put(commitRootPath, commitRoot);
             }
@@ -207,7 +235,7 @@ public class Commit {
         if (baseRevision != null) {
             // TODO detect conflicts here
             Revision newestRev = mk.getNewestRevision(map, revision, true);
-            if (mk.isRevisionNewer(newestRev, baseRevision)) {
+            if (newestRev != null && mk.isRevisionNewer(newestRev, baseRevision)) {
                 // TODO transaction rollback
                 throw new MicroKernelException("The node " + 
                         op.path + " was changed in revision " + 
