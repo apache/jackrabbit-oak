@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import java.lang.ref.WeakReference;
 import java.security.Principal;
 import java.util.Properties;
 import java.util.concurrent.Executors;
@@ -78,12 +79,25 @@ public class OakMongoMKRepositoryStub extends RepositoryStub {
                 session.logout();
             }
         }
-        Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
-            @Override
-            public void run() {
+        Runtime.getRuntime().addShutdownHook(
+                new Thread(new ShutdownHook(connection)));
+    }
+
+    private static class ShutdownHook implements Runnable {
+
+        private final WeakReference<MongoConnection> reference;
+
+        public ShutdownHook(MongoConnection connection) {
+            this.reference = new WeakReference<MongoConnection>(connection);
+        }
+
+        @Override
+        public void run() {
+            MongoConnection connection = reference.get();
+            if (connection != null) {
                 connection.close();
             }
-        }));
+        }
     }
 
     public static boolean isMongoDBAvailable() {
