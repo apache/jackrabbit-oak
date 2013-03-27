@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.jcr.tck;
 
 import java.util.Properties;
 
+import org.apache.jackrabbit.oak.jcr.OakMongoMKRepositoryStub;
 import org.apache.jackrabbit.oak.jcr.OakRepositoryStub;
 import org.apache.jackrabbit.oak.jcr.OakSegmentMKRepositoryStub;
 import org.apache.jackrabbit.test.RepositoryHelper;
@@ -47,19 +48,17 @@ public abstract class TCKBase extends TestSuite {
             addTest(new Setup(OakSegmentMKRepositoryStub.class.getName()));
             addTests();
         }
-        // OAK-588: CI builds take too long with MongoMK
-        // -> disabled for now
-//        if (OakMongoMKRepositoryStub.isMongoDBAvailable()) {
-//            addTest(new Setup(OakMongoMKRepositoryStub.class.getName()));
-//            addTests();
-//        }
+        if (OakMongoMKRepositoryStub.isMongoDBAvailable()) {
+            addTest(new Setup(OakMongoMKRepositoryStub.class.getName()));
+            addTests();
+        }
     }
 
     abstract protected void addTests();
 
     /**
      * Setup test class to replace the RepositoryHelper. This is quite a hack
-     * be cause the existing TCK tests do not take parameters.
+     * because the existing TCK tests do not take parameters.
      */
     public static class Setup extends TestCase {
 
