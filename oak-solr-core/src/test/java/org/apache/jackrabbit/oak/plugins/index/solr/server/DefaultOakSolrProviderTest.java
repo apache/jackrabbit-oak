@@ -36,7 +36,7 @@ public class DefaultOakSolrProviderTest {
         when(nodeState.getProperty(OakSolrNodeStateConfiguration.Properties.CORE_NAME)).
                 thenReturn(PropertyValues.create(PropertyValues.newString("oak")));
         when(nodeState.getProperty(OakSolrNodeStateConfiguration.Properties.SOLRHOME_PATH)).
-                thenReturn(PropertyValues.create(PropertyValues.newString("target/solr/")));
+                thenReturn(PropertyValues.create(PropertyValues.newString("target/solr")));
         when(nodeState.getProperty(OakSolrNodeStateConfiguration.Properties.SOLRCONFIG_PATH)).
                 thenReturn(PropertyValues.create(PropertyValues.newString("target/solr/solr.xml")));
         DefaultOakSolrProvider defaultOakSolrProvider = new DefaultOakSolrProvider(nodeState);

@@ -106,9 +106,12 @@ public abstract class OakSolrNodeStateConfiguration implements OakSolrConfigurat
 
     protected String getStringValueFor(String propertyName, String defaultValue) {
         String value = null;
-        PropertyState property = getConfigurationNodeState().getProperty(propertyName);
-        if (property != null) {
-            value = property.getValue(Type.STRING);
+        NodeState configurationNodeState = getConfigurationNodeState();
+        if (configurationNodeState != null) {
+            PropertyState property = configurationNodeState.getProperty(propertyName);
+            if (property != null) {
+                value = property.getValue(Type.STRING);
+            }
         }
         if (value == null || value.length() == 0) {
             value = defaultValue;
