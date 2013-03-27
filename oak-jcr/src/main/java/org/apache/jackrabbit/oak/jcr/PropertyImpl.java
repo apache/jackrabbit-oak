@@ -16,11 +16,11 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static javax.jcr.PropertyType.UNDEFINED;
 
 import java.io.InputStream;
 import java.math.BigDecimal;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
@@ -39,8 +39,7 @@ import javax.jcr.Value;
 import javax.jcr.ValueFormatException;
 import javax.jcr.nodetype.PropertyDefinition;
 
-import com.google.common.base.Predicates;
-import com.google.common.collect.Iterables;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.PropertyDelegate;
@@ -54,10 +53,6 @@ import org.slf4j.LoggerFactory;
  * TODO document
  */
 public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property {
-
-    /**
-     * logger instance
-     */
     private static final Logger log = LoggerFactory.getLogger(PropertyImpl.class);
 
     private static final Value[] NO_VALUES = new Value[0];
@@ -68,17 +63,11 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
 
     //---------------------------------------------------------------< Item >---
 
-    /**
-     * @see javax.jcr.Item#isNode()
-     */
     @Override
     public boolean isNode() {
         return false;
     }
 
-    /**
-     * @see javax.jcr.Item#getParent()
-     */
     @Override
     @Nonnull
     public Node getParent() throws RepositoryException {
@@ -95,9 +84,6 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
         });
     }
 
-    /**
-     * @see javax.jcr.Item#isNew()
-     */
     @Override
     public boolean isNew() {
         return safePerform(new ItemReadOperation<Boolean>() {
@@ -108,9 +94,6 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
         });
     }
 
-    /**
-     * @see javax.jcr.Item#isModified() ()
-     */
     @Override
     public boolean isModified() {
         return safePerform(new ItemReadOperation<Boolean>() {
@@ -121,9 +104,6 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
         });
     }
 
-    /**
-     * @see javax.jcr.Item#isNew()
-     */
     @Override
     public void remove() throws RepositoryException {
         perform(new ItemWriteOperation<Void>() {
@@ -135,9 +115,6 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
         });
     }
 
-    /**
-     * @see javax.jcr.Item#accept(javax.jcr.ItemVisitor)
-     */
     @Override
     public void accept(ItemVisitor visitor) throws RepositoryException {
         checkStatus();
@@ -146,192 +123,100 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
 
     //-----------------------------------------------------------< Property >---
 
-    /**
-     * @see Property#setValue(Value)
-     */
     @Override
     public void setValue(Value value) throws RepositoryException {
-        checkStatus();
-
-        int valueType = (value != null) ? value.getType() : PropertyType.UNDEFINED;
-        int reqType = getRequiredType(valueType);
-        setValue(value, reqType);
+        if (value == null) {
+            internalRemove();
+        } else {
+            internalSetValue(value);
+        }
     }
 
-    /**
-     * @see Property#setValue(Value[])
-     */
     @Override
     public void setValue(final Value[] values) throws RepositoryException {
-        perform(new ItemWriteOperation<Void>() {
-            @Override
-            public Void perform() throws RepositoryException {
-                // assert equal types for all values entries
-                int valueType = PropertyType.UNDEFINED;
-                if (values != null) {
-                    for (Value value : values) {
-                        if (value == null) {
-                            // skip null values as those will be purged later
-                            continue;
-                        }
-                        if (valueType == PropertyType.UNDEFINED) {
-                            valueType = value.getType();
-                        } else if (valueType != value.getType()) {
-                            String msg = "Inhomogeneous type of values (" + this + ')';
-                            log.debug(msg);
-                            throw new ValueFormatException(msg);
-                        }
-                    }
-                }
-
-                int reqType = getRequiredType(valueType);
-                setValues(values, reqType);
-                return null;
-            }
-        });
+        if (values == null) {
+            internalRemove();
+        } else {
+            internalSetValues(values, getType(values));
+        }
     }
 
-    /**
-     * @see Property#setValue(String)
-     */
     @Override
     public void setValue(String value) throws RepositoryException {
-        checkStatus();
-
-        int reqType = getRequiredType(PropertyType.STRING);
         if (value == null) {
-            setValue(null, reqType);
+            internalRemove();
         } else {
-            setValue(getValueFactory().createValue(value), reqType);
+            internalSetValue(getValueFactory().createValue(value));
         }
     }
 
-    /**
-     * @see Property#setValue(String[])
-     */
     @Override
     public void setValue(String[] values) throws RepositoryException {
-        checkStatus();
-
-        int reqType = getRequiredType(PropertyType.STRING);
         if (values == null) {
-            setValues(null, reqType);
+            internalRemove();
         } else {
-            List<Value> vs = new ArrayList<Value>(values.length);
-            for (String value : values) {
-                if (value != null) {
-                    vs.add(getValueFactory().createValue(value));
-                }
-            }
-            setValues(vs.toArray(new Value[vs.size()]), reqType);
+            Value[] vs = ValueHelper.convert(values, PropertyType.STRING, getValueFactory());
+            internalSetValues(vs, UNDEFINED);
         }
     }
 
-    /**
-     * @see Property#setValue(InputStream)
-     */
     @Override
     public void setValue(InputStream value) throws RepositoryException {
-        checkStatus();
-
-        int reqType = getRequiredType(PropertyType.BINARY);
         if (value == null) {
-            setValue(null, reqType);
+            internalRemove();
         } else {
-            setValue(getValueFactory().createValue(value), reqType);
+            internalSetValue(getValueFactory().createValue(value));
         }
     }
 
-    /**
-     * @see Property#setValue(Binary)
-     */
     @Override
     public void setValue(Binary value) throws RepositoryException {
-        checkStatus();
-
-        int reqType = getRequiredType(PropertyType.BINARY);
         if (value == null) {
-            setValue(null, reqType);
+            internalRemove();
         } else {
-            setValue(getValueFactory().createValue(value), reqType);
+            internalSetValue(getValueFactory().createValue(value));
         }
     }
 
-    /**
-     * @see Property#setValue(long)
-     */
     @Override
     public void setValue(long value) throws RepositoryException {
-        checkStatus();
-
-        int reqType = getRequiredType(PropertyType.LONG);
-        setValue(getValueFactory().createValue(value), reqType);
+        internalSetValue(getValueFactory().createValue(value));
     }
 
-    /**
-     * @see Property#setValue(double)
-     */
     @Override
     public void setValue(double value) throws RepositoryException {
-        checkStatus();
-
-        int reqType = getRequiredType(PropertyType.DOUBLE);
-        setValue(getValueFactory().createValue(value), reqType);
+        internalSetValue(getValueFactory().createValue(value));
     }
 
-    /**
-     * @see Property#setValue(BigDecimal)
-     */
     @Override
     public void setValue(BigDecimal value) throws RepositoryException {
-        checkStatus();
-
-        int reqType = getRequiredType(PropertyType.DECIMAL);
         if (value == null) {
-            setValue(null, reqType);
+            internalRemove();
         } else {
-            setValue(getValueFactory().createValue(value), reqType);
+            internalSetValue(getValueFactory().createValue(value));
         }
     }
 
-    /**
-     * @see Property#setValue(Calendar)
-     */
     @Override
     public void setValue(Calendar value) throws RepositoryException {
-        checkStatus();
-
-        int reqType = getRequiredType(PropertyType.DATE);
         if (value == null) {
-            setValue(null, reqType);
+            internalRemove();
         } else {
-            setValue(getValueFactory().createValue(value), reqType);
+            internalSetValue(getValueFactory().createValue(value));
         }
     }
 
-    /**
-     * @see Property#setValue(boolean)
-     */
     @Override
     public void setValue(boolean value) throws RepositoryException {
-        checkStatus();
-
-        int reqType = getRequiredType(PropertyType.BOOLEAN);
-        setValue(getValueFactory().createValue(value), reqType);
+        internalSetValue(getValueFactory().createValue(value));
     }
 
-    /**
-     * @see Property#setValue(javax.jcr.Node)
-     */
     @Override
     public void setValue(Node value) throws RepositoryException {
-        checkStatus();
-
-        int reqType = getRequiredType(PropertyType.REFERENCE);
         if (value == null) {
-            setValue(null, reqType);
+            internalRemove();
         } else {
-            setValue(getValueFactory().createValue(value), reqType);
+            internalSetValue(getValueFactory().createValue(value));
         }
     }
 
@@ -357,18 +242,12 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
         }).toArray(NO_VALUES);
     }
 
-    /**
-     * @see Property#getString()
-     */
     @Override
     @Nonnull
     public String getString() throws RepositoryException {
         return getValue().getString();
     }
 
-    /**
-     * @see Property#getStream()
-     */
     @SuppressWarnings("deprecation")
     @Override
     @Nonnull
@@ -376,60 +255,39 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
         return getValue().getStream();
     }
 
-    /**
-     * @see javax.jcr.Property#getBinary()
-     */
     @Override
     @Nonnull
     public Binary getBinary() throws RepositoryException {
         return getValue().getBinary();
     }
 
-    /**
-     * @see Property#getLong()
-     */
     @Override
     public long getLong() throws RepositoryException {
         return getValue().getLong();
     }
 
-    /**
-     * @see Property#getDouble()
-     */
     @Override
     public double getDouble() throws RepositoryException {
         return getValue().getDouble();
     }
 
-    /**
-     * @see Property#getDecimal()
-     */
     @Override
     @Nonnull
     public BigDecimal getDecimal() throws RepositoryException {
         return getValue().getDecimal();
     }
 
-    /**
-     * @see Property#getDate()
-     */
     @Override
     @Nonnull
     public Calendar getDate() throws RepositoryException {
         return getValue().getDate();
     }
 
-    /**
-     * @see Property#getBoolean()
-     */
     @Override
     public boolean getBoolean() throws RepositoryException {
         return getValue().getBoolean();
     }
 
-    /**
-     * @see javax.jcr.Property#getNode()
-     */
     @Override
     @Nonnull
     public Node getNode() throws RepositoryException {
@@ -482,9 +340,6 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
         });
     }
 
-    /**
-     * @see javax.jcr.Property#getProperty()
-     */
     @Override
     @Nonnull
     public Property getProperty() throws RepositoryException {
@@ -503,17 +358,11 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
         });
     }
 
-    /**
-     * @see javax.jcr.Property#getLength()
-     */
     @Override
     public long getLength() throws RepositoryException {
         return getLength(getValue());
     }
 
-    /**
-     * @see javax.jcr.Property#getLengths()
-     */
     @Override
     @Nonnull
     public long[] getLengths() throws RepositoryException {
@@ -538,9 +387,6 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
         });
     }
 
-    /**
-     * @see javax.jcr.Property#getType()
-     */
     @Override
     public int getType() throws RepositoryException {
         return perform(new ItemReadOperation<Integer>() {
@@ -550,7 +396,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
                     Value[] values = getValues();
                     if (values.length == 0) {
                         // retrieve the type from the property definition
-                        return getRequiredType(PropertyType.UNDEFINED);
+                        return getType(getDefinition(), PropertyType.UNDEFINED);
                     } else {
                         return values[0].getType();
                     }
@@ -571,7 +417,73 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
         });
     }
 
-    //------------------------------------------------------------< private >---
+    //------------------------------------------------------------< internal >---
+
+    /**
+     * Determine the {@link javax.jcr.PropertyType} of the passed values if all are of
+     * the same type.
+     *
+     * @param values array of values of the same type
+     * @return  {@link javax.jcr.PropertyType#UNDEFINED} if {@code values} is empty,
+     *          {@code values[0].getType()} otherwise.
+     * @throws javax.jcr.ValueFormatException  if not all {@code values} are of the same type
+     */
+    static int getType(Value[] values) throws ValueFormatException {
+        int type = UNDEFINED;
+        for (Value value : values) {
+            if (value != null) {
+                if (type == UNDEFINED) {
+                    type = value.getType();
+                } else if (value.getType() != type) {
+                    throw new ValueFormatException(
+                            "All values of a multi-valued property must be of the same type");
+                }
+            }
+        }
+        return type;
+    }
+
+    /**
+     * Determine property type from property definition and default to
+     * {@code defaultType} in the case of {@link PropertyType#UNDEFINED}.
+     *
+     * @param definition
+     * @param defaultType
+     * @return the type determined from the property definition
+     */
+    static int getType(PropertyDefinition definition, int defaultType) {
+        if (definition.getRequiredType() == PropertyType.UNDEFINED) {
+            return defaultType == PropertyType.UNDEFINED ? PropertyType.STRING : defaultType;
+        } else {
+            return definition.getRequiredType();
+        }
+    }
+
+    /**
+     * Removes all {@code null} values from the given array.
+     *
+     * @param values value array
+     * @return value array without {@code null} entries
+     */
+    static Value[] compact(Value[] values) {
+        int n = 0;
+        for (Value value : values) {
+            if (value != null) {
+                n++;
+            }
+        }
+        if (n == values.length) {
+            return values;
+        } else {
+            Value[] nonNullValues = new Value[n];
+            for (int i = 0, j = 0; i < values.length; i++) {
+                if (values[i] != null) {
+                    nonNullValues[j++] = values[i];
+                }
+            }
+            return nonNullValues;
+        }
+    }
 
     /**
      * Return the length of the specified JCR value object.
@@ -588,68 +500,73 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
         }
     }
 
-    /**
-     * @param defaultType
-     * @return the required type for this property.
-     * @throws javax.jcr.RepositoryException
-     */
-    private int getRequiredType(int defaultType) throws RepositoryException {
-        // check type according to definition of this property
-        int reqType = getDefinition().getRequiredType();
-        if (reqType == PropertyType.UNDEFINED) {
-            if (defaultType == PropertyType.UNDEFINED) {
-                reqType = PropertyType.STRING;
-            } else {
-                reqType = defaultType;
+    private void internalRemove() throws RepositoryException {
+        perform(new ItemWriteOperation<Void>() {
+            @Override
+            protected Void perform() throws RepositoryException {
+                dlg.remove();
+                return null;
             }
-        }
-        return reqType;
+        });
     }
 
-    /**
-     * @param value
-     * @param requiredType
-     * @throws RepositoryException
-     */
-    private void setValue(Value value, int requiredType) throws RepositoryException {
-        checkArgument(requiredType != PropertyType.UNDEFINED);
-        checkProtected();
+    private void internalSetValue(@Nonnull final Value value)
+            throws RepositoryException {
+        checkNotNull(value);
+        perform(new ItemWriteOperation<Void>() {
+            @Override
+            protected Void perform() throws RepositoryException {
+                // TODO: Avoid extra JCR method calls (OAK-672)
+                PropertyDefinition definition = getDefinitionProvider().getDefinition(
+                        dlg.getParent().getTree(), dlg.getPropertyState(), true);
 
-        // TODO check again if definition validation should be respected here.
-        if (isMultiple()) {
-            throw new ValueFormatException("Attempt to set a single value to multi-valued property.");
-        }
-        if (value == null) {
-            dlg.remove();
-        } else {
-            Value targetValue = ValueHelper.convert(value, requiredType, getValueFactory());
-            dlg.setState(PropertyStates.createProperty(dlg.getName(), targetValue));
-        }
+                if (definition.isMultiple()) {
+                    throw new ValueFormatException("Cannot set single value to multivalued property");
+                }
+
+                PropertyState state;
+                int targetType = getType(definition, value.getType());
+                if (targetType != value.getType()) {
+                    state = PropertyStates.createProperty(
+                            dlg.getName(), ValueHelper.convert(
+                            value, targetType, getValueFactory()));
+                } else {
+                    state = PropertyStates.createProperty(dlg.getName(), value);
+                }
+
+                dlg.setState(state);
+                return null;
+            }
+        });
     }
 
-    /**
-     * @param values
-     * @param requiredType
-     * @throws RepositoryException
-     */
-    private void setValues(Value[] values, int requiredType) throws RepositoryException {
-        checkArgument(requiredType != PropertyType.UNDEFINED);
-        checkProtected();
+    private void internalSetValues(@Nonnull final Value[] values, final int type) throws RepositoryException {
+        final Value[] nonNullValues = compact(checkNotNull(values));
+        perform(new ItemWriteOperation<Void>() {
+            @Override
+            protected Void perform() throws RepositoryException {
+                // TODO: Avoid extra JCR method calls (OAK-672)
+                PropertyDefinition definition = getDefinitionProvider().getDefinition(
+                        dlg.getParent().getTree(), dlg.getPropertyState(), true);
 
-        // TODO check again if definition validation should be respected here.
-        if (!isMultiple()) {
-            throw new ValueFormatException("Attempt to set multiple values to single valued property.");
-        }
-        if (values == null) {
-            dlg.remove();
-        } else {
-            Value[] targetValues = ValueHelper.convert(values, requiredType, getValueFactory());
-            Iterable<Value> nonNullValues = Iterables.filter(
-                    Arrays.asList(targetValues),
-                    Predicates.notNull());
+                if (!definition.isMultiple()) {
+                    throw new ValueFormatException("Cannot set value array to single value property");
+                }
 
-            dlg.setState(PropertyStates.createProperty(dlg.getName(), nonNullValues));
-        }
+                PropertyState state;
+                int targetType = getType(definition, type);
+                if (targetType != type) {
+                    state = PropertyStates.createProperty(
+                            dlg.getName(), Arrays.asList(ValueHelper.convert(
+                            nonNullValues, targetType, getValueFactory())));
+                } else {
+                    state = PropertyStates.createProperty(dlg.getName(), Arrays.asList(nonNullValues));
+                }
+
+                dlg.setState(state);
+                return null;
+            }
+        });
     }
 
 }
