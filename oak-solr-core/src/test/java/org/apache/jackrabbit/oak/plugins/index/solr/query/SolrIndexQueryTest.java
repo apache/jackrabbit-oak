@@ -78,15 +78,7 @@ public class SolrIndexQueryTest extends AbstractQueryTest {
 
     private NodeState createMockedConfigurationNodeState() {
         NodeState mockedNodeState = mock(NodeState.class);
-        when(mockedNodeState.getProperty(anyString())).thenReturn(null);
-//        when(mockedNodeState.getProperty(OakSolrNodeStateConfiguration.Properties.SOLRHOME_PATH)).
-//                thenReturn(PropertyStates.createProperty(OakSolrNodeStateConfiguration.Properties.SOLRHOME_PATH, TestUtils.SOLR_HOME_PATH));
-//        when(mockedNodeState.getProperty(OakSolrNodeStateConfiguration.Properties.SOLRCONFIG_PATH)).
-//                thenReturn(PropertyStates.createProperty(OakSolrNodeStateConfiguration.Properties.SOLRCONFIG_PATH, TestUtils.SOLRCONFIG_PATH));
-//        when(mockedNodeState.getProperty(OakSolrNodeStateConfiguration.Properties.PATH_FIELD)).
-//                thenReturn(PropertyStates.createProperty(OakSolrNodeStateConfiguration.Properties.PATH_FIELD, "path_exact"));
-//        when(mockedNodeState.getProperty(OakSolrNodeStateConfiguration.Properties.COMMIT_POLICY)).
-//                thenReturn(PropertyStates.createProperty(OakSolrNodeStateConfiguration.Properties.COMMIT_POLICY, "HARD"));
+        when(mockedNodeState.getProperty(anyString())).thenReturn(null); // this triggers defaults
         return mockedNodeState;
     }
 
