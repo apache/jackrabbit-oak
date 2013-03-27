@@ -292,7 +292,7 @@ public class SessionDelegate {
 
     //-----------------------------------------------------------< internal >---
 
-    @Nonnull  // FIXME this should be package private
+    @Nonnull  // FIXME this should be package private. OAK-672
     public Root getRoot() {
         return root;
     }
