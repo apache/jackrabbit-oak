@@ -207,15 +207,16 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     public Node addNode(final String relPath, final String primaryNodeTypeName) throws RepositoryException {
         return perform(new ItemWriteOperation<Node>() {
             @Override
-            public Node perform() throws RepositoryException {
-                String oakPath = sessionContext.getOakPathKeepIndexOrThrowNotFound(relPath);
-                String oakName = PathUtils.getName(oakPath);
-                String parentPath = getOakPathOrThrow(PathUtils.getParentPath(oakPath));
+            protected void checkPreconditions() throws RepositoryException {
+                super.checkPreconditions();
+                SessionImpl.checkIndexOnName(sessionContext, relPath);
+            }
 
-                // handle index
-                if (oakName.contains("[")) {
-                    throw new RepositoryException("Cannot create a new node using a name including an index");
-                }
+            @Override
+            public Node perform() throws RepositoryException {
+                String oakPath = sessionContext.getOakPathOrThrowNotFound(relPath);
+                String oakName = PathUtils.getName(oakPath);
+                String parentPath = PathUtils.getParentPath(oakPath);
 
                 NodeDelegate parent = dlg.getChild(parentPath);
                 if (parent == null) {

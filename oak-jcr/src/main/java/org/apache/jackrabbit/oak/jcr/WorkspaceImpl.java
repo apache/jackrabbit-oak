@@ -39,7 +39,6 @@ import org.apache.jackrabbit.api.JackrabbitWorkspace;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.jcr.lock.LockManagerImpl;
 import org.apache.jackrabbit.oak.jcr.query.QueryManagerImpl;
@@ -117,8 +116,8 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
         copy(getName(), srcAbsPath, destAbsPath);
     }
 
-    private String getOakPathKeepIndexOrThrowNotFound(String absPath) throws PathNotFoundException {
-        return sessionContext.getOakPathKeepIndexOrThrowNotFound(absPath);
+    private String getOakPathOrThrowNotFound(String srcAbsPath) throws PathNotFoundException {
+        return sessionContext.getOakPathOrThrowNotFound(srcAbsPath);
     }
 
     @Override
@@ -129,29 +128,22 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
             throw new UnsupportedRepositoryOperationException("Not implemented.");
         }
 
+        // FIXME getRelativeParent doesn't work for fully qualified names. See OAK-724
         SessionImpl.checkProtectedNodes(
                 getSession(), Text.getRelativeParent(srcAbsPath, 1), Text.getRelativeParent(destAbsPath, 1));
 
-        String oakPath = getOakPathKeepIndexOrThrowNotFound(destAbsPath);
-        String oakName = PathUtils.getName(oakPath);
-        // handle index
-        if (oakName.contains("[")) {
-            throw new RepositoryException("Cannot create a new node using a name including an index");
-        }
+        SessionImpl.checkIndexOnName(sessionContext, destAbsPath);
 
         sessionDelegate.copy(
                 getOakPathOrThrowNotFound(srcAbsPath),
-                getOakPathOrThrowNotFound(oakPath));
-    }
-
-    private String getOakPathOrThrowNotFound(String srcAbsPath) throws PathNotFoundException {
-        return sessionContext.getOakPathOrThrowNotFound(srcAbsPath);
+                getOakPathOrThrowNotFound(destAbsPath));
     }
 
     @Override
     public void clone(String srcWorkspace, String srcAbsPath, String destAbsPath, boolean removeExisting) throws RepositoryException {
         ensureIsAlive();
 
+        // FIXME getRelativeParent doesn't work for fully qualified names. See OAK-724
         SessionImpl.checkProtectedNodes(
                 getSession(), Text.getRelativeParent(srcAbsPath, 1), Text.getRelativeParent(destAbsPath, 1));
 
@@ -163,19 +155,15 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
     public void move(String srcAbsPath, String destAbsPath) throws RepositoryException {
         ensureIsAlive();
 
+        // FIXME getRelativeParent doesn't work for fully qualified names. See OAK-724
         SessionImpl.checkProtectedNodes(
                 getSession(), Text.getRelativeParent(srcAbsPath, 1), Text.getRelativeParent(destAbsPath, 1));
 
-        String oakPath = getOakPathKeepIndexOrThrowNotFound(destAbsPath);
-        String oakName = PathUtils.getName(oakPath);
-        // handle index
-        if (oakName.contains("[")) {
-            throw new RepositoryException("Cannot create a new node using a name including an index");
-        }
+        SessionImpl.checkIndexOnName(sessionContext, destAbsPath);
 
         sessionDelegate.move(
                 getOakPathOrThrowNotFound(srcAbsPath),
-                getOakPathOrThrowNotFound(oakPath),
+                getOakPathOrThrowNotFound(destAbsPath),
                 false);
     }
 
