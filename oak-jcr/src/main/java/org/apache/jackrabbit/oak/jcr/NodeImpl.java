@@ -23,7 +23,6 @@ import static javax.jcr.PropertyType.UNDEFINED;
 
 import java.io.InputStream;
 import java.math.BigDecimal;
-import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Iterator;
@@ -49,7 +48,6 @@ import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
-import javax.jcr.ValueFormatException;
 import javax.jcr.Workspace;
 import javax.jcr.lock.Lock;
 import javax.jcr.nodetype.ConstraintViolationException;
@@ -1445,59 +1443,32 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         return perform(new ItemWriteOperation<Property>() {
             @Override
             public Property perform() throws RepositoryException {
-                PropertyState state =
-                        PropertyStates.createProperty(oakName, value);
-
                 // TODO: Avoid extra JCR method calls (OAK-672)
-                PropertyDefinition definition = getDefinitionProvider().getDefinition(
-                        dlg.getTree(), state, exactTypeMatch);
+                PropertyDefinition definition = getEffectiveNodeType()
+                        .getPropertyDefinition(oakName, false, value.getType(), exactTypeMatch);
 
                 checkProtected(definition);
-                if (definition.isMultiple()) {
-                    throw new ValueFormatException(
-                            "Cannot set single value to multivalued property");
-                }
-
-                int targetType = PropertyImpl.getType(definition, value.getType());
-                if (targetType != value.getType()) {
-                    state = PropertyStates.createProperty(
-                            oakName, ValueHelper.convert(
-                            value, targetType, getValueFactory()));
-                }
-
+                PropertyState state = createSingleState(oakName, value, definition);
                 return new PropertyImpl(dlg.setProperty(state), sessionContext);
             }
         });
     }
 
     private Property internalSetProperty(
-            String jcrName, Value[] values,
+            String jcrName, final Value[] values,
             final int type, final boolean exactTypeMatch)
             throws RepositoryException {
         final String oakName = getOakPathOrThrow(checkNotNull(jcrName));
-        final Value[] nonNullValues = PropertyImpl.compact(checkNotNull(values));
+        checkNotNull(values);
         return perform(new ItemWriteOperation<Property>() {
             @Override
             public Property perform() throws RepositoryException {
-                PropertyState state = PropertyStates.createProperty(
-                        oakName, Arrays.asList(nonNullValues));
-
                 // TODO: Avoid extra JCR method calls (OAK-672)
-                PropertyDefinition definition = getDefinitionProvider().getDefinition(
-                        dlg.getTree(), state, exactTypeMatch);
+                PropertyDefinition definition = getEffectiveNodeType()
+                        .getPropertyDefinition(oakName, true, type, exactTypeMatch);
+
                 checkProtected(definition);
-                if (!definition.isMultiple()) {
-                    throw new ValueFormatException(
-                            "Cannot set value array to single value property");
-                }
-
-                int targetType = PropertyImpl.getType(definition, type);
-                if (targetType != type) {
-                    state = PropertyStates.createProperty(
-                            oakName, Arrays.asList(ValueHelper.convert(
-                                    nonNullValues, targetType, getValueFactory())));
-                }
-
+                PropertyState state = createMultiState(oakName, type, values, definition);
                 return new PropertyImpl(dlg.setProperty(state), sessionContext);
             }
         });

@@ -21,7 +21,6 @@ import static javax.jcr.PropertyType.UNDEFINED;
 
 import java.io.InputStream;
 import java.math.BigDecimal;
-import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
 
@@ -43,7 +42,6 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.PropertyDelegate;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 import org.apache.jackrabbit.value.ValueHelper;
 import org.slf4j.Logger;
@@ -381,8 +379,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
         return perform(new ItemReadOperation<PropertyDefinition>() {
             @Override
             protected PropertyDefinition perform() throws RepositoryException {
-                return getDefinitionProvider().getDefinition(
-                        dlg.getParent().getTree(), dlg.getPropertyState(), true);
+                return getPropertyDefinition();
             }
         });
     }
@@ -396,7 +393,12 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
                     Value[] values = getValues();
                     if (values.length == 0) {
                         // retrieve the type from the property definition
-                        return getType(getDefinition(), PropertyType.UNDEFINED);
+                        PropertyDefinition definition = getPropertyDefinition();
+                        if (definition.getRequiredType() == PropertyType.UNDEFINED) {
+                            return PropertyType.STRING;
+                        } else {
+                            return definition.getRequiredType();
+                        }
                     } else {
                         return values[0].getType();
                     }
@@ -444,48 +446,6 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
     }
 
     /**
-     * Determine property type from property definition and default to
-     * {@code defaultType} in the case of {@link PropertyType#UNDEFINED}.
-     *
-     * @param definition
-     * @param defaultType
-     * @return the type determined from the property definition
-     */
-    static int getType(PropertyDefinition definition, int defaultType) {
-        if (definition.getRequiredType() == PropertyType.UNDEFINED) {
-            return defaultType == PropertyType.UNDEFINED ? PropertyType.STRING : defaultType;
-        } else {
-            return definition.getRequiredType();
-        }
-    }
-
-    /**
-     * Removes all {@code null} values from the given array.
-     *
-     * @param values value array
-     * @return value array without {@code null} entries
-     */
-    static Value[] compact(Value[] values) {
-        int n = 0;
-        for (Value value : values) {
-            if (value != null) {
-                n++;
-            }
-        }
-        if (n == values.length) {
-            return values;
-        } else {
-            Value[] nonNullValues = new Value[n];
-            for (int i = 0, j = 0; i < values.length; i++) {
-                if (values[i] != null) {
-                    nonNullValues[j++] = values[i];
-                }
-            }
-            return nonNullValues;
-        }
-    }
-
-    /**
      * Return the length of the specified JCR value object.
      *
      * @param value The value.
@@ -510,6 +470,11 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
         });
     }
 
+    private PropertyDefinition getPropertyDefinition() throws RepositoryException {
+        return getDefinitionProvider().getDefinition(
+                dlg.getParent().getTree(), dlg.getPropertyState(), true);
+    }
+
     private void internalSetValue(@Nonnull final Value value)
             throws RepositoryException {
         checkNotNull(value);
@@ -517,23 +482,8 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
             @Override
             protected Void perform() throws RepositoryException {
                 // TODO: Avoid extra JCR method calls (OAK-672)
-                PropertyDefinition definition = getDefinitionProvider().getDefinition(
-                        dlg.getParent().getTree(), dlg.getPropertyState(), true);
-
-                if (definition.isMultiple()) {
-                    throw new ValueFormatException("Cannot set single value to multivalued property");
-                }
-
-                PropertyState state;
-                int targetType = getType(definition, value.getType());
-                if (targetType != value.getType()) {
-                    state = PropertyStates.createProperty(
-                            dlg.getName(), ValueHelper.convert(
-                            value, targetType, getValueFactory()));
-                } else {
-                    state = PropertyStates.createProperty(dlg.getName(), value);
-                }
-
+                PropertyDefinition definition = getPropertyDefinition();
+                PropertyState state = createSingleState(dlg.getName(), value, definition);
                 dlg.setState(state);
                 return null;
             }
@@ -541,28 +491,13 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
     }
 
     private void internalSetValues(@Nonnull final Value[] values, final int type) throws RepositoryException {
-        final Value[] nonNullValues = compact(checkNotNull(values));
+        checkNotNull(values);
         perform(new ItemWriteOperation<Void>() {
             @Override
             protected Void perform() throws RepositoryException {
                 // TODO: Avoid extra JCR method calls (OAK-672)
-                PropertyDefinition definition = getDefinitionProvider().getDefinition(
-                        dlg.getParent().getTree(), dlg.getPropertyState(), true);
-
-                if (!definition.isMultiple()) {
-                    throw new ValueFormatException("Cannot set value array to single value property");
-                }
-
-                PropertyState state;
-                int targetType = getType(definition, type);
-                if (targetType != type) {
-                    state = PropertyStates.createProperty(
-                            dlg.getName(), Arrays.asList(ValueHelper.convert(
-                            nonNullValues, targetType, getValueFactory())));
-                } else {
-                    state = PropertyStates.createProperty(dlg.getName(), Arrays.asList(nonNullValues));
-                }
-
+                PropertyDefinition definition = getPropertyDefinition();
+                PropertyState state = createMultiState(dlg.getName(), type, values, definition);
                 dlg.setState(state);
                 return null;
             }
