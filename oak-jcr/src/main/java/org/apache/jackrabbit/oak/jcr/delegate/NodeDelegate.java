@@ -230,7 +230,7 @@ public class NodeDelegate extends ItemDelegate {
 
     //------------------------------------------------------------< internal >---
 
-    @Nonnull // FIXME this should be package private
+    @Nonnull // FIXME this should be package private. OAK-672
     public Tree getTree() throws InvalidItemStateException {
         Tree tree = getLocation().getTree();
         if (tree == null) {

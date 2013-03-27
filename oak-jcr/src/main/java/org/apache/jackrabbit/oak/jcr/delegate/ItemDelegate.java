@@ -107,7 +107,7 @@ public abstract class ItemDelegate {
      * @return  tree location of the underlying item
      * @throws InvalidItemStateException if the location points to a stale item
      */
-    @Nonnull
+    @Nonnull // FIXME this should be package private. OAK-672
     public TreeLocation getLocation() throws InvalidItemStateException {
         TreeLocation location = loadLocation();
         if (!location.exists()) {
