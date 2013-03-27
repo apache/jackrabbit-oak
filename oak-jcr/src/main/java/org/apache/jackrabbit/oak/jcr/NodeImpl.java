@@ -413,7 +413,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
             Binary binary = factory.createBinary(value);
             try {
                 Value v = factory.createValue(binary);
-                return internalSetProperty(name, v, true);
+                return internalSetProperty(name, v, false);
             } finally {
                 binary.dispose();
             }
@@ -427,7 +427,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
             throws RepositoryException {
         if (value != null) {
             Value v = getValueFactory().createValue(value);
-            return internalSetProperty(name, v, true);
+            return internalSetProperty(name, v, false);
         } else {
             return internalRemoveProperty(name);
         }
@@ -437,14 +437,14 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     public Property setProperty(String name, boolean value)
             throws RepositoryException {
         Value v = getValueFactory().createValue(value);
-        return internalSetProperty(name, v, true);
+        return internalSetProperty(name, v, false);
     }
 
     @Override @Nonnull
     public Property setProperty(String name, double value)
             throws RepositoryException {
         Value v = getValueFactory().createValue(value);
-        return internalSetProperty(name, v, true);
+        return internalSetProperty(name, v, false);
     }
 
     @Override @Nonnull
@@ -452,7 +452,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
             throws RepositoryException {
         if (value != null) {
             Value v = getValueFactory().createValue(value);
-            return internalSetProperty(name, v, true);
+            return internalSetProperty(name, v, false);
         } else {
             return internalRemoveProperty(name);
         }
@@ -462,7 +462,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     public Property setProperty(String name, long value)
             throws RepositoryException {
         Value v = getValueFactory().createValue(value);
-        return internalSetProperty(name, v, true);
+        return internalSetProperty(name, v, false);
     }
 
     @Override @Nonnull
@@ -470,7 +470,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
             throws RepositoryException {
         if (value != null) {
             Value v = getValueFactory().createValue(value);
-            return internalSetProperty(name, v, true);
+            return internalSetProperty(name, v, false);
         } else {
             return internalRemoveProperty(name);
         }
@@ -481,7 +481,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
             throws RepositoryException {
         if (value != null) {
             Value v = getValueFactory().createValue(value);
-            return internalSetProperty(name, v, true);
+            return internalSetProperty(name, v, false);
         } else {
             return internalRemoveProperty(name);
         }
