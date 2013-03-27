@@ -49,14 +49,15 @@ public class BenchmarkRunner {
                 .withRequiredArg().ofType(File.class);
 
         OptionSet options = parser.parse(args);
+        int cacheSize = cache.value(options);
         RepositoryFixture[] allFixtures = new RepositoryFixture[] {
-                new JackrabbitRepositoryFixture(),
-                OakRepositoryFixture.getMemory(),
-                OakRepositoryFixture.getDefault(),
-                OakRepositoryFixture.getMongo(host.value(options), port.value(options)),
+                new JackrabbitRepositoryFixture(cacheSize),
+                OakRepositoryFixture.getMemory(cacheSize * MB),
+                OakRepositoryFixture.getDefault(cacheSize * MB),
+                OakRepositoryFixture.getMongo(
+                        host.value(options), port.value(options), cacheSize * MB),
                 OakRepositoryFixture.getSegment(
-                        host.value(options), port.value(options),
-                        cache.value(options) * MB)
+                        host.value(options), port.value(options), cacheSize * MB)
         };
         Benchmark[] allBenchmarks = new Benchmark[] {
             new LoginTest(),
