@@ -27,13 +27,13 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.ref.WeakReference;
-import java.security.DigestOutputStream;
 import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
 import java.util.WeakHashMap;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * An abstract data store that splits the binaries in relatively small blocks,
@@ -88,6 +88,12 @@ public abstract class AbstractBlobStore implements BlobStore, Cache.Backend<Abst
     private int blockSize = 2 * 1024 * 1024;
 
     private Cache<AbstractBlobStore.BlockId, Data> cache = Cache.newInstance(this, 8 * 1024 * 1024);
+    
+    /**
+     * The byte array is re-used if possible, to avoid having to create a new,
+     * large byte array each time a (potentially very small) binary is stored.
+     */
+    private AtomicReference<byte[]> blockBuffer = new AtomicReference<byte[]>();
 
     public void setBlockSizeMin(int x) {
         validateBlockSize(x);
@@ -168,12 +174,15 @@ public abstract class AbstractBlobStore implements BlobStore, Cache.Backend<Abst
     }
 
     private void convertBlobToId(InputStream in, ByteArrayOutputStream idStream, int level, long totalLength) throws Exception {
-        byte[] block = new byte[blockSize];
         int count = 0;
+        // try to re-use the block (but not concurrently)
+        byte[] block = blockBuffer.getAndSet(null);
+        if (block == null || block.length != blockSize) {
+            // not yet initialized yet, already in use, or wrong size:
+            // create a new one
+            block = new byte[blockSize];
+        }
         while (true) {
-            MessageDigest messageDigest = MessageDigest.getInstance(HASH_ALGORITHM);
-            ByteArrayOutputStream buff = new ByteArrayOutputStream();
-            DigestOutputStream dout = new DigestOutputStream(buff, messageDigest);
             int blockLen = IOUtils.readFully(in, block, 0, block.length);
             count++;
             if (blockLen == 0) {
@@ -184,7 +193,8 @@ public abstract class AbstractBlobStore implements BlobStore, Cache.Backend<Abst
                 idStream.write(block, 0, blockLen);
                 totalLength += blockLen;
             } else {
-                dout.write(block, 0, blockLen);
+                MessageDigest messageDigest = MessageDigest.getInstance(HASH_ALGORITHM);
+                messageDigest.update(block, 0, blockLen);
                 byte[] digest = messageDigest.digest();
                 idStream.write(TYPE_HASH);
                 IOUtils.writeVarInt(idStream, level);
@@ -195,8 +205,7 @@ public abstract class AbstractBlobStore implements BlobStore, Cache.Backend<Abst
                 totalLength += blockLen;
                 IOUtils.writeVarInt(idStream, digest.length);
                 idStream.write(digest);
-                byte[] data = buff.toByteArray();
-                storeBlock(digest, level, data);
+                storeBlock(digest, level, Arrays.copyOf(block, blockLen));
             }
             if (idStream.size() > blockSize / 2) {
                 // convert large ids to a block, but ensure it can be stored as
@@ -207,6 +216,8 @@ public abstract class AbstractBlobStore implements BlobStore, Cache.Backend<Abst
                 count = 1;
             }
         }
+        // re-use the block
+        blockBuffer.set(block);
         if (count > 0 && idStream.size() > blockSizeMin) {
             // at the very end, convert large ids to a block,
             // because large block ids are not handy
