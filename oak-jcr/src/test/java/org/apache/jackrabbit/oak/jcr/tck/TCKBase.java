@@ -48,10 +48,10 @@ public abstract class TCKBase extends TestSuite {
             addTest(new Setup(OakSegmentMKRepositoryStub.class.getName()));
             addTests();
         }
-//        if (OakMongoMKRepositoryStub.isMongoDBAvailable()) {
-//            addTest(new Setup(OakMongoMKRepositoryStub.class.getName()));
-//            addTests();
-//        }
+        if (OakMongoMKRepositoryStub.isMongoDBAvailable()) {
+            addTest(new Setup(OakMongoMKRepositoryStub.class.getName()));
+            addTests();
+        }
     }
 
     abstract protected void addTests();
