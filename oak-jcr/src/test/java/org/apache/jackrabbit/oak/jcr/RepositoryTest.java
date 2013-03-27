@@ -1132,6 +1132,18 @@ public class RepositoryTest extends AbstractRepositoryTest {
     }
 
     @Test
+    @Ignore
+    public void setPropertyWithConversion() throws RepositoryException {
+        Node n = getNode(TEST_PATH);
+        Node file = n.addNode("file", "nt:file");
+        Node content = file.addNode("jcr:content", "nt:resource");
+        content.setProperty("jcr:lastModified", System.currentTimeMillis());
+        content.setProperty("jcr:data", new ByteArrayInputStream("foo".getBytes()));
+        content.setProperty("jcr:mimeType", "text/plain");
+        n.getSession().save();
+    }
+
+    @Test
     public void removeProperty() throws RepositoryException {
         Node parentNode = getNode(TEST_PATH);
         parentNode.setProperty("newProperty", "some value");
