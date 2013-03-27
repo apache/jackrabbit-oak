@@ -66,14 +66,14 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
         this.sessionDelegate = sessionContext.getSessionDelegate();
     }
 
-    protected abstract class ItemReadOperation<T> extends SessionOperation<T> {
+    protected abstract class ItemReadOperation<U> extends SessionOperation<U> {
         @Override
         protected void checkPreconditions() throws RepositoryException {
             checkAlive();
         }
     }
 
-    protected abstract class ItemWriteOperation<T> extends SessionOperation<T> {
+    protected abstract class ItemWriteOperation<U> extends SessionOperation<U> {
         @Override
         protected void checkPreconditions() throws RepositoryException {
             checkAlive();
@@ -84,12 +84,12 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
     /**
      * Perform the passed {@link org.apache.jackrabbit.oak.jcr.ItemImpl.ItemReadOperation}.
      * @param op  operation to perform
-     * @param <T>  return type of the operation
+     * @param <U>  return type of the operation
      * @return  the result of {@code op.perform()}
      * @throws RepositoryException as thrown by {@code op.perform()}.
      */
     @CheckForNull
-    protected final <T> T perform(@Nonnull SessionOperation<T> op) throws RepositoryException {
+    protected final <U> U perform(@Nonnull SessionOperation<U> op) throws RepositoryException {
         return sessionDelegate.perform(op);
     }
 
@@ -98,11 +98,11 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
      * {@code RepositoryException}. If it does, wrap it into and throw it as an
      * {@code IllegalArgumentException}.
      * @param op  operation to perform
-     * @param <T>  return type of the operation
+     * @param <U>  return type of the operation
      * @return  the result of {@code op.perform()}
      */
     @CheckForNull
-    protected final <T> T safePerform(@Nonnull SessionOperation<T> op) {
+    protected final <U> U safePerform(@Nonnull SessionOperation<U> op) {
         try {
             return sessionDelegate.perform(op);
         }
