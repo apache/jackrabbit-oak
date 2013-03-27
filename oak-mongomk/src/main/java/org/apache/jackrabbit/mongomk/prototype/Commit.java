@@ -151,6 +151,7 @@ public class Commit {
         }
         ArrayList<UpdateOp> newNodes = new ArrayList<UpdateOp>();
         ArrayList<UpdateOp> changedNodes = new ArrayList<UpdateOp>();
+        ArrayList<UpdateOp> done = new ArrayList<UpdateOp>();
         for (String p : operations.keySet()) {
             markChanged(p);
             if (commitRootPath == null) {
@@ -212,6 +213,7 @@ public class Commit {
             for (UpdateOp op : changedNodes) {
                 // set commit root on changed nodes
                 op.addMapEntry(UpdateOp.COMMIT_ROOT + "." + revision.toString(), commitRootDepth);
+                done.add(op);
                 createOrUpdateNode(store, op);
             }
             // finally write the commit root, unless it was already written
@@ -220,32 +222,57 @@ public class Commit {
             // the revision, with the revision property set)
             if (changedNodes.size() > 0 || !commitRoot.isNew) {
                 commitRoot.addMapEntry(UpdateOp.REVISIONS + "." + revision.toString(), commitValue);
+                done.add(commitRoot);
                 createOrUpdateNode(store, commitRoot);
                 operations.put(commitRootPath, commitRoot);
             }
         } catch (MicroKernelException e) {
+            rollback(newNodes, done);
             String msg = "Exception committing " + diff.toString();
             LOG.error(msg, e);
             throw new MicroKernelException(msg, e);
         }
     }
     
+    private void rollback(ArrayList<UpdateOp> newDocuments, ArrayList<UpdateOp> changed) {
+        DocumentStore store = mk.getDocumentStore();
+        for (UpdateOp op : changed) {
+            UpdateOp reverse = op.getReverseOperation();
+            store.createOrUpdate(Collection.NODES, reverse);
+        }
+        for (UpdateOp op : newDocuments) {
+            store.remove(Collection.NODES, op.key);
+        }
+    }
+
+    /**
+     * Try to create or update the node. If there was a conflict, this method
+     * throws an exception, even thought the change is still applied.
+     * 
+     * @param store the store
+     * @param op the operation
+     */
     private void createOrUpdateNode(DocumentStore store, UpdateOp op) {
         Map<String, Object> map = store.createOrUpdate(Collection.NODES, op);
         if (baseRevision != null) {
-            // TODO detect conflicts here
             Revision newestRev = mk.getNewestRevision(map, revision, true);
-            if (newestRev != null && mk.isRevisionNewer(newestRev, baseRevision)) {
-                // TODO transaction rollback
-                throw new MicroKernelException("The node " + 
-                        op.path + " was changed in revision " + 
-                        newestRev + 
-                        ", which was applied after the base revision " + 
-                        baseRevision);
+            if (newestRev != null) {
+                if (op.isNew) {
+                    throw new MicroKernelException("The node " + 
+                            op.path + " was already added in revision " + 
+                            newestRev);
+                }
+                if (mk.isRevisionNewer(newestRev, baseRevision)) {
+                    throw new MicroKernelException("The node " + 
+                            op.path + " was changed in revision " + 
+                            newestRev + 
+                            ", which was applied after the base revision " + 
+                            baseRevision);
+                }
             }
         }
 
-        int size = Utils.getMapSize(map);
+        int size = Utils.estimateMemoryUsage(map);
         if (size > MAX_DOCUMENT_SIZE) {
             UpdateOp[] split = splitDocument(map);
             

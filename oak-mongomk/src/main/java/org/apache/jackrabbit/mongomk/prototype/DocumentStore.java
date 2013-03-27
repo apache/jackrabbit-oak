@@ -71,7 +71,7 @@ public interface DocumentStore {
      *
      * @param collection the collection
      * @param update the update operation
-     * @return the new document
+     * @return the old document
      * @throws MicroKernelException if the operation failed.
      */    
     @Nonnull

@@ -115,21 +115,20 @@ public class MemoryDocumentStore implements DocumentStore {
                 n = oldNode;
             }
         }
-        if (oldNode != null) {
-            // clone the old node
-            // (document level operations are synchronized)
-            Map<String, Object> old = Utils.newMap();
-            synchronized (oldNode) {
-                old.putAll(oldNode);
-            }
-            oldNode = old;
-        }
-        // update the document
-        // (document level operations are synchronized)
         synchronized (n) {
+            if (oldNode != null) {
+                // clone the old node
+                // (document level operations are synchronized)
+                Map<String, Object> oldNode2 = Utils.newMap();
+                Utils.deepCopyMap(oldNode, oldNode2);
+                oldNode = oldNode2;
+            }
+            // to return the new document:
+            // update the document
+            // (document level operations are synchronized)
             applyChanges(n, update);
         }
-        return n;
+        return oldNode;
     }
     
     public static void applyChanges(Map<String, Object> target, UpdateOp update) {

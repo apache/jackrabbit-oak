@@ -149,8 +149,8 @@ public class MongoDocumentStore implements DocumentStore {
             for (int i = 0; i < limit && cursor.hasNext(); i++) {
                 DBObject o = cursor.next();
                 Map<String, Object> map = convertFromDBObject(o);
-                String path = (String) map.get(UpdateOp.ID);
-                cache.put(path, map);
+                String key = (String) map.get(UpdateOp.ID);
+                cache.put(key, map);
                 list.add(map);
             }
             return list;
@@ -183,6 +183,7 @@ public class MongoDocumentStore implements DocumentStore {
 
         BasicDBObject setUpdates = new BasicDBObject();
         BasicDBObject incUpdates = new BasicDBObject();
+        BasicDBObject unsetUpdates = new BasicDBObject();
 
         for (Entry<String, Operation> entry : updateOp.changes.entrySet()) {
             String k = entry.getKey();
@@ -201,7 +202,7 @@ public class MongoDocumentStore implements DocumentStore {
                     break;
                 }
                 case REMOVE_MAP_ENTRY: {
-                    // TODO
+                    unsetUpdates.append(k, "1");
                     break;
                 }
                 case SET_MAP_ENTRY: {
@@ -222,19 +223,28 @@ public class MongoDocumentStore implements DocumentStore {
         if (!incUpdates.isEmpty()) {
             update.append("$inc", incUpdates);
         }
+        if (!unsetUpdates.isEmpty()) {
+            update.append("$unset", unsetUpdates);
+        }
 
-//        dbCollection.update(query, update, true /*upsert*/, false /*multi*/,
-//                WriteConcern.SAFE);
-//        return null;
+        // dbCollection.update(query, update, true /*upsert*/, false /*multi*/,
+        //         WriteConcern.SAFE);
+        // return null;
 
         long start = start();
         try {
             DBObject oldNode = dbCollection.findAndModify(query, null /*fields*/,
-                    null /*sort*/, false /*remove*/, update, true /*returnNew*/,
+                    null /*sort*/, false /*remove*/, update, false /*returnNew*/,
                     true /*upsert*/);
             Map<String, Object> map = convertFromDBObject(oldNode);
-            String path = (String) map.get(UpdateOp.ID);
-            cache.put(path, map);
+            
+            // cache the new document
+            Map<String, Object> newMap = Utils.newMap();
+            Utils.deepCopyMap(map, newMap);
+            String key = updateOp.getKey();
+            MemoryDocumentStore.applyChanges(newMap, updateOp);
+            cache.put(key, newMap);
+            
             log("createOrUpdate returns ", map);
             return map;
         } catch (Exception e) {
@@ -291,8 +301,8 @@ public class MongoDocumentStore implements DocumentStore {
                     return false;
                 }
                 for (Map<String, Object> map : maps) {
-                    String path = (String) map.get(UpdateOp.ID);
-                    cache.put(path, map);
+                    String id = (String) map.get(UpdateOp.ID);
+                    cache.put(id, map);
                 }
                 return true;
             } catch (MongoException e) {
