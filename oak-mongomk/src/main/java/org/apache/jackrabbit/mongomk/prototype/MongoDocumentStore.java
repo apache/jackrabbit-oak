@@ -187,6 +187,10 @@ public class MongoDocumentStore implements DocumentStore {
 
         for (Entry<String, Operation> entry : updateOp.changes.entrySet()) {
             String k = entry.getKey();
+            if (k.equals(UpdateOp.ID)) {
+                // avoid exception "Mod on _id not allowed"
+                continue;
+            }
             Operation op = entry.getValue();
             switch (op.type) {
                 case SET: {

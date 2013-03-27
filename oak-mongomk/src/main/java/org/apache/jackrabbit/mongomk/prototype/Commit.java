@@ -199,7 +199,6 @@ public class Commit {
                     // some of the documents already exist:
                     // try to apply all changes one by one
                     for (UpdateOp op : newNodes) {
-                        op.unset(UpdateOp.ID);
                         if (op == commitRoot) {
                             // don't write the commit root just yet
                             // (because there might be a conflict)
@@ -260,14 +259,14 @@ public class Commit {
                 if (op.isNew) {
                     throw new MicroKernelException("The node " + 
                             op.path + " was already added in revision " + 
-                            newestRev);
+                            newestRev + "; before " + revision + "; document " + map);
                 }
                 if (mk.isRevisionNewer(newestRev, baseRevision)) {
                     throw new MicroKernelException("The node " + 
                             op.path + " was changed in revision " + 
                             newestRev + 
                             ", which was applied after the base revision " + 
-                            baseRevision);
+                            baseRevision + "; before " + revision + "; document " + map);
                 }
             }
         }

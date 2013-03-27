@@ -895,8 +895,8 @@ public class MongoMK implements MicroKernel {
                 if (isRevisionNewer(before, propRev)) {
                     if (!onlyCommitted || isValidRevision(propRev, before, nodeMap)) {
                         newestRev = propRev;
+                        newestValue = valueMap.get(r);
                     }
-                    newestValue = valueMap.get(r);
                 }
             }
         }
