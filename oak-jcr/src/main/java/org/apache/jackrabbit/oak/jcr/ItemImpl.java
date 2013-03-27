@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import java.util.Arrays;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.AccessDeniedException;
@@ -23,21 +25,28 @@ import javax.jcr.Item;
 import javax.jcr.ItemNotFoundException;
 import javax.jcr.Node;
 import javax.jcr.PathNotFoundException;
+import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
+import javax.jcr.Value;
 import javax.jcr.ValueFactory;
+import javax.jcr.ValueFormatException;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.ItemDefinition;
 import javax.jcr.nodetype.NodeTypeManager;
+import javax.jcr.nodetype.PropertyDefinition;
 import javax.jcr.version.VersionManager;
 
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.jcr.delegate.ItemDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionOperation;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.nodetype.DefinitionProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.EffectiveNodeTypeProvider;
+import org.apache.jackrabbit.value.ValueHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -331,6 +340,106 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
     @Nonnull
     VersionManager getVersionManager() throws RepositoryException {
         return sessionContext.getVersionManager();
+    }
+
+    /**
+     * Determine property type from property definition and default to
+     * {@code defaultType} in the case of {@link javax.jcr.PropertyType#UNDEFINED}.
+     *
+     * @param definition
+     * @param defaultType
+     * @return the type determined from the property definition
+     */
+    private static int getType(PropertyDefinition definition, int defaultType) {
+        if (definition.getRequiredType() == PropertyType.UNDEFINED) {
+            return defaultType == PropertyType.UNDEFINED ? PropertyType.STRING : defaultType;
+        } else {
+            return definition.getRequiredType();
+        }
+    }
+
+    /**
+     * Removes all {@code null} values from the given array.
+     *
+     * @param values value array
+     * @return value array without {@code null} entries
+     */
+    private static Value[] compact(Value[] values) {
+        int n = 0;
+        for (Value value : values) {
+            if (value != null) {
+                n++;
+            }
+        }
+        if (n == values.length) {
+            return values;
+        } else {
+            Value[] nonNullValues = new Value[n];
+            for (int i = 0, j = 0; i < values.length; i++) {
+                if (values[i] != null) {
+                    nonNullValues[j++] = values[i];
+                }
+            }
+            return nonNullValues;
+        }
+    }
+
+    /**
+     * Create a single value property state given a {@code name}, a {@code value} and a
+     * property {@code definition}. If the value does not match the property definition
+     * it is converted accordingly
+     *
+     * @param name
+     * @param value
+     * @param definition
+     * @return  single valued property state
+     * @throws ValueFormatException  if {@code definition} defines a multi valued property
+     * @throws RepositoryException  if value conversion fails
+     */
+    PropertyState createSingleState(String name, Value value, PropertyDefinition definition)
+            throws RepositoryException {
+        if (definition.isMultiple()) {
+            throw new ValueFormatException("Cannot set single value to multivalued property");
+        }
+
+        int targetType = getType(definition, value.getType());
+        if (targetType == value.getType()) {
+            return PropertyStates.createProperty(name, value);
+        }
+        else {
+            return PropertyStates.createProperty(name, ValueHelper.convert(
+                    value, targetType, getValueFactory()));
+        }
+    }
+
+    /**
+     * Create a single value property state given a {@code name}, a {@code type}, a
+     * {@code value} and a property {@code definition}. If the type does not match the
+     * property definition it is converted accordingly
+     *
+     * @param name
+     * @param type
+     * @param values
+     * @param definition
+     * @return  array valued property state
+     * @throws ValueFormatException  if {@code definition} does not define a multi valued property
+     * @throws RepositoryException  if value conversion fails
+     */
+    PropertyState createMultiState(String name, int type, Value[] values, PropertyDefinition definition)
+            throws RepositoryException {
+        if (!definition.isMultiple()) {
+            throw new ValueFormatException("Cannot set value array to single value property");
+        }
+
+        Value[] nonNullValues = compact(values);
+        int targetType = getType(definition, type);
+        if (targetType == type) {
+            return PropertyStates.createProperty(name, Arrays.asList(nonNullValues));
+        }
+        else {
+            return PropertyStates.createProperty(name, Arrays.asList(ValueHelper.convert(
+                    values, targetType, getValueFactory())));
+        }
     }
 
 }
