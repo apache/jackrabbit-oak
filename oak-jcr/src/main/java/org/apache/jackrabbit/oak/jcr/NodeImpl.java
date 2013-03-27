@@ -187,7 +187,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
      */
     @Override
     public void accept(ItemVisitor visitor) throws RepositoryException {
-        checkStatus();
+        checkAlive();
         visitor.visit(this);
     }
 
@@ -944,13 +944,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         return perform(new ItemReadOperation<NodeDefinition>() {
             @Override
             protected NodeDefinition perform() throws RepositoryException {
-                NodeDelegate parent = dlg.getParent();
-                if (parent == null) {
-                    return getDefinitionProvider().getRootDefinition();
-                } else {
-                    return getDefinitionProvider().getDefinition(
-                            parent.getTree(), dlg.getTree());
-                }
+                return internalGetDefinition();
             }
         });
     }
@@ -958,7 +952,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     @Override
     @Nonnull
     public String getCorrespondingNodePath(String workspaceName) throws RepositoryException {
-        checkStatus();
+        checkAlive();
         checkValidWorkspace(workspaceName);
         throw new UnsupportedRepositoryOperationException("TODO: Node.getCorrespondingNodePath");
     }
@@ -966,7 +960,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
 
     @Override
     public void update(String srcWorkspace) throws RepositoryException {
-        checkStatus();
+        checkAlive();
         checkValidWorkspace(srcWorkspace);
 
         // check for pending changes
@@ -1300,7 +1294,18 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
 
     }
 
-    //------------------------------------------------------------< private >---
+    //------------------------------------------------------------< internal >---
+
+    @Override
+    protected final NodeDefinition internalGetDefinition() throws RepositoryException {
+        NodeDelegate parent = dlg.getParent();
+        if (parent == null) {
+            return getDefinitionProvider().getRootDefinition();
+        } else {
+            return getDefinitionProvider().getDefinition(
+                    parent.getTree(), dlg.getTree());
+        }
+    }
 
     private EffectiveNodeType getEffectiveNodeType() throws RepositoryException {
         return getEffectiveNodeTypeProvider().getEffectiveNodeType(dlg.getTree());
