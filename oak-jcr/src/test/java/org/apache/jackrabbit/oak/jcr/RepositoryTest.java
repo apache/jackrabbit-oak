@@ -1132,7 +1132,6 @@ public class RepositoryTest extends AbstractRepositoryTest {
     }
 
     @Test
-    @Ignore
     public void setPropertyWithConversion() throws RepositoryException {
         Node n = getNode(TEST_PATH);
         Node file = n.addNode("file", "nt:file");
