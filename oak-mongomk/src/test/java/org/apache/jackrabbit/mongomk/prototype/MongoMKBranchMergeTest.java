@@ -80,7 +80,7 @@ public class MongoMKBranchMergeTest extends BaseMongoMKTest {
         assertNodesExist(null, "/root", "/root/child1");
 
         String branchRev = mk.branch(null);
-        System.out.println("branchRev: " + branchRev);
+        // System.out.println("branchRev: " + branchRev);
 
         addNodes(null, "/root/child2");
         assertNodesExist(null, "/root", "/root/child1", "/root/child2");

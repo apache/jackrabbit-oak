@@ -341,8 +341,9 @@ public class MongoMK implements MicroKernel {
     boolean isValidRevision(@Nonnull Revision rev,
                             @Nonnull Revision readRevision,
                             @Nonnull Map<String, Object> nodeMap) {
-        //noinspection unchecked
-        if (isCommitted(rev, readRevision, (Map<String, String>) nodeMap.get(UpdateOp.REVISIONS))) {
+        @SuppressWarnings("unchecked")
+        Map<String, String> revisions = (Map<String, String>) nodeMap.get(UpdateOp.REVISIONS);
+        if (isCommitted(rev, readRevision, revisions)) {
             return true;
         }
         // check commit root
@@ -372,8 +373,9 @@ public class MongoMK implements MicroKernel {
         if (nodeMap == null) {
             return false;
         }
-        //noinspection unchecked
-        return isCommitted(rev, readRevision, (Map<String, String>) nodeMap.get(UpdateOp.REVISIONS));
+        @SuppressWarnings("unchecked")
+        Map<String, String> rootRevisions = (Map<String, String>) nodeMap.get(UpdateOp.REVISIONS);
+        return isCommitted(rev, readRevision, rootRevisions);
     }
 
     /**
@@ -847,6 +849,9 @@ public class MongoMK implements MicroKernel {
                 .get(UpdateOp.DELETED);
         Revision firstRev = null;
         String value = null;
+        if (valueMap == null) {
+            return null;
+        }
         for (String r : valueMap.keySet()) {
             Revision propRev = Revision.fromString(r);
             if (isRevisionNewer(propRev, maxRev)
@@ -879,7 +884,11 @@ public class MongoMK implements MicroKernel {
         @SuppressWarnings("unchecked")
         Map<String, String> valueMap = (Map<String, String>) nodeMap
                 .get(UpdateOp.DELETED);
+        if (valueMap == null) {
+            return null;
+        }
         Revision newestRev = null;
+        String newestValue = null;
         for (String r : valueMap.keySet()) {
             Revision propRev = Revision.fromString(r);
             if (newestRev == null || isRevisionNewer(propRev, newestRev)) {
@@ -887,8 +896,13 @@ public class MongoMK implements MicroKernel {
                     if (!onlyCommitted || isValidRevision(propRev, before, nodeMap)) {
                         newestRev = propRev;
                     }
+                    newestValue = valueMap.get(r);
                 }
             }
+        }
+        if ("true".equals(newestValue)) {
+            // deleted in the newest revision
+            return null;
         }
         return newestRev;
     }

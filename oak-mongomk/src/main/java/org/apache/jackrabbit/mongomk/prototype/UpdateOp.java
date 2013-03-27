@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.mongomk.prototype;
 
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.TreeMap;
 
 /**
@@ -90,6 +91,10 @@ public class UpdateOp {
     
     String getPath() {
         return path;
+    }
+    
+    String getKey() {
+        return key;
     }
     
     boolean isNew() {
@@ -172,6 +177,17 @@ public class UpdateOp {
         return (Long) op.value;
     }
     
+    public UpdateOp getReverseOperation() {
+        UpdateOp reverse = new UpdateOp(path, key, isNew);
+        for (Entry<String, Operation> e : changes.entrySet()) {
+            Operation r = e.getValue().getReverse();
+            if (r != null) {
+                reverse.changes.put(e.getKey(), r);
+            }
+        }        
+        return reverse;
+    }
+
     public String toString() {
         return "key: " + key + " " + (isNew ? "new" : "update") + " " + changes;
     }
@@ -231,6 +247,27 @@ public class UpdateOp {
         
         public String toString() {
             return type + " " + value;
+        }
+
+        public Operation getReverse() {
+            Operation reverse = null;
+            switch (type) {
+            case INCREMENT:
+                reverse = new Operation();
+                reverse.type = Type.INCREMENT;
+                reverse.value = -(Long) value;
+                break;
+            case SET:
+            case REMOVE_MAP_ENTRY:
+            case SET_MAP_ENTRY:
+                // nothing to do
+                break;
+            case ADD_MAP_ENTRY:
+                reverse = new Operation();
+                reverse.type = Type.REMOVE_MAP_ENTRY;
+                break;
+            }
+            return reverse;
         }
         
     }

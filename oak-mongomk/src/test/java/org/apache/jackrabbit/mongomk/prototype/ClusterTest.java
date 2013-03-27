@@ -30,7 +30,7 @@ import com.mongodb.DB;
 public class ClusterTest {
     
     private static final boolean MONGO_DB = false;
-//    private static final boolean MONGO_DB = true;
+    // private static final boolean MONGO_DB = true;
     
     private MemoryDocumentStore ds;
     private MemoryBlobStore bs;
@@ -43,12 +43,9 @@ public class ClusterTest {
         String m1r0 = mk1.getHeadRevision();
         String m2r0 = mk2.getHeadRevision();
         
-//        String m1r1 = mk1.commit("/", "+\"testa\":{}", m1r0, null);
-//        String m2r1 = mk2.commit("/", "+\"testb\":{}", m2r0, null);
-
-        String m1r2 = mk1.commit("/", "+\"test\":{}", m1r0, null);
+        mk1.commit("/", "+\"test\":{}", m1r0, null);
         try {
-            String m2r2 = mk2.commit("/", "+\"test\":{}", m2r0, null);
+            mk2.commit("/", "+\"test\":{}", m2r0, null);
             fail();
         } catch (MicroKernelException e) {
             // expected
@@ -57,6 +54,28 @@ public class ClusterTest {
         mk1.dispose();
         mk2.dispose();
     }
+    
+    @Test
+    public void rollbackAfterConflict() {
+        MongoMK mk1 = createMK(1);
+        MongoMK mk2 = createMK(2);
+        
+        String m1r0 = mk1.getHeadRevision();
+        String m2r0 = mk2.getHeadRevision();
+        
+        mk1.commit("/", "+\"test\":{}", m1r0, null);
+        try {
+            mk2.commit("/", "+\"a\": {} +\"test\":{}", m2r0, null);
+            fail();
+        } catch (MicroKernelException e) {
+            // expected
+        }
+        mk2.commit("/", "+\"a\": {}", null, null);
+        
+        mk1.dispose();
+        mk2.dispose();
+    }
+
 
     private MongoMK createMK(int clusterId) {
         if (MONGO_DB) {

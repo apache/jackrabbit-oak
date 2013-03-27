@@ -45,7 +45,10 @@ public class Utils {
     }
 
     @SuppressWarnings("unchecked")
-    public static int getMapSize(Map<String, Object> map) {
+    public static int estimateMemoryUsage(Map<String, Object> map) {
+        if (map == null) {
+            return 0;
+        }
         int size = 0;
         for (Entry<String, Object> e : map.entrySet()) {
             size += e.getKey().length();
@@ -55,7 +58,7 @@ public class Utils {
             } else if (o instanceof Long) {
                 size += 8;
             } else if (o instanceof Map) {
-                size += 8 + getMapSize((Map<String, Object>) o);
+                size += 8 + estimateMemoryUsage((Map<String, Object>) o);
             }
         }
         return size;
@@ -102,6 +105,26 @@ public class Utils {
     public static String getPathFromId(String id) {
         int index = id.indexOf(':');
         return id.substring(index + 1);
+    }
+
+    /**
+     * Deep copy of a map that may contain map values.
+     * 
+     * @param source the source map
+     * @param target the target map
+     */
+    public static <K> void deepCopyMap(Map<K, Object> source, Map<K, Object> target) {
+        for (Entry<K, Object> e : source.entrySet()) {
+            Object value = e.getValue();
+            if (value instanceof Map<?, ?>) {
+                @SuppressWarnings("unchecked")
+                Map<Object, Object> old = (Map<Object, Object>) value;
+                Map<Object, Object> c = newMap();
+                deepCopyMap(old, c);
+                value = c;
+            }
+            target.put(e.getKey(), value);
+        }
     }
     
 }

@@ -22,7 +22,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
+import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mongomk.prototype.DocumentStore.Collection;
 import org.apache.jackrabbit.mongomk.prototype.Node.Children;
 import org.junit.Test;
@@ -36,7 +38,7 @@ import com.mongodb.DB;
 public class SimpleTest {
     
     private static final boolean MONGO_DB = false;
-//    private static final boolean MONGO_DB = true;
+    // private static final boolean MONGO_DB = true;
 
     @Test
     public void test() {
@@ -125,6 +127,22 @@ public class SimpleTest {
         assertEquals("{\":id\":\"/test/b@r0000004000-0\",\":childNodeCount\":0}", r4);
         
         mk.dispose();        
+    }
+    
+    @Test
+    public void conflict() {
+        MongoMK mk = createMK();
+        mk.commit("/", "+\"a\": {}", null, null);
+        try {
+            mk.commit("/", "+\"b\": {}  +\"a\": {}", null, null);
+            fail();
+        } catch (MicroKernelException e) {
+            // expected
+        }
+        // the previous commit should be rolled back now,
+        // so this should work
+        mk.commit("/", "+\"b\": {}", null, null);
+        mk.dispose();
     }
     
     @Test
