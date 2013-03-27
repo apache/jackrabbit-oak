@@ -339,19 +339,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     public Property setProperty(String name, Value[] values)
             throws RepositoryException {
         if (values != null) {
-            int type = UNDEFINED;
-            for (Value value : values) {
-                if (value != null) {
-                    if (type == UNDEFINED) {
-                        type = value.getType();
-                    } else if (value.getType() != type) {
-                        throw new ValueFormatException(
-                                "All values of a multi-valued property"
-                                        + " must be of the same type");
-                    }
-                }
-            }
-            return internalSetProperty(name, values, type, false);
+            return internalSetProperty(name, values, PropertyImpl.getType(values), false);
         } else {
             return internalRemoveProperty(name);
         }
@@ -1342,29 +1330,6 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                 });
     }
 
-    private static int getTargetType(Value value, PropertyDefinition definition) {
-        if (definition.getRequiredType() == PropertyType.UNDEFINED) {
-            return value.getType();
-        } else {
-            return definition.getRequiredType();
-        }
-    }
-
-    private static int getTargetType(Value[] values, PropertyDefinition definition) {
-        if (definition.getRequiredType() == PropertyType.UNDEFINED) {
-            if (values.length != 0) {
-                for (Value v : values) {
-                    if (v != null) {
-                        return v.getType();
-                    }
-                }
-            }
-            return PropertyType.STRING;
-        } else {
-            return definition.getRequiredType();
-        }
-    }
-
     private void autoCreateItems() throws RepositoryException {
         EffectiveNodeType effective = getEffectiveNodeType();
         for (PropertyDefinition pd : effective.getAutoCreatePropertyDefinitions()) {
@@ -1486,17 +1451,18 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                 // TODO: Avoid extra JCR method calls (OAK-672)
                 PropertyDefinition definition = getDefinitionProvider().getDefinition(
                         dlg.getTree(), state, exactTypeMatch);
+
                 checkProtected(definition);
                 if (definition.isMultiple()) {
                     throw new ValueFormatException(
                             "Cannot set single value to multivalued property");
                 }
 
-                int targetType = getTargetType(value, definition);
+                int targetType = PropertyImpl.getType(definition, value.getType());
                 if (targetType != value.getType()) {
                     state = PropertyStates.createProperty(
                             oakName, ValueHelper.convert(
-                                    value, targetType, getValueFactory()));
+                            value, targetType, getValueFactory()));
                 }
 
                 return new PropertyImpl(dlg.setProperty(state), sessionContext);
@@ -1509,7 +1475,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
             final int type, final boolean exactTypeMatch)
             throws RepositoryException {
         final String oakName = getOakPathOrThrow(checkNotNull(jcrName));
-        final Value[] nonNullValues = compact(checkNotNull(values));
+        final Value[] nonNullValues = PropertyImpl.compact(checkNotNull(values));
         return perform(new ItemWriteOperation<Property>() {
             @Override
             public Property perform() throws RepositoryException {
@@ -1525,7 +1491,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                             "Cannot set value array to single value property");
                 }
 
-                int targetType = getTargetType(nonNullValues, definition);
+                int targetType = PropertyImpl.getType(definition, type);
                 if (targetType != type) {
                     state = PropertyStates.createProperty(
                             oakName, Arrays.asList(ValueHelper.convert(
@@ -1557,32 +1523,6 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                 }
             }
         });
-    }
-
-    /**
-     * Removes all {@code null} values from the given array.
-     *
-     * @param values value array
-     * @return value array without {@code null} entries
-     */
-    private static Value[] compact(Value[] values) {
-        int n = 0;
-        for (Value value : values) {
-            if (value != null) {
-                n++;
-            }
-        }
-        if (n == values.length) {
-            return values;
-        } else {
-            Value[] nonNullValues = new Value[n];
-            for (int i = 0, j = 0; i < values.length; i++) {
-                if (values[i] != null) {
-                    nonNullValues[j++] = values[i];
-                }
-            }
-            return nonNullValues;
-        }
     }
 
 }
