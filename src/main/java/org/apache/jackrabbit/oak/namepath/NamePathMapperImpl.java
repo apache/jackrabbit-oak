@@ -106,11 +106,12 @@ public class NamePathMapperImpl implements NamePathMapper {
 
             @Override
             public boolean name(String name, int index) {
-                if (index > 1) {
-                    error("index > 1; = " + index + " for path " + oakPath + " and name " + name);
-                }
                 String p = nameMapper.getJcrName(name);
-                elements.add(p);
+                if (index == 0) {
+                    elements.add(p);
+                } else {
+                    elements.add(p + "[" + index + "]");
+                }
                 return true;
             }
         };
