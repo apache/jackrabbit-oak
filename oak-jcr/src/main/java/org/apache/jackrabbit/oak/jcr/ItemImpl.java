@@ -69,14 +69,14 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
     protected abstract class ItemReadOperation<T> extends SessionOperation<T> {
         @Override
         protected void checkPreconditions() throws RepositoryException {
-            checkStatus();
+            checkAlive();
         }
     }
 
     protected abstract class ItemWriteOperation<T> extends SessionOperation<T> {
         @Override
         protected void checkPreconditions() throws RepositoryException {
-            checkStatus();
+            checkAlive();
             checkProtected();
         }
     }
@@ -267,17 +267,17 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
      * @throws RepositoryException if this item has been rendered invalid for some reason
      * or the associated session has been logged out.
      */
-    void checkStatus() throws RepositoryException {
+    void checkAlive() throws RepositoryException {
         sessionDelegate.checkAlive();
         dlg.checkNotStale();
     }
 
-    protected abstract ItemDefinition getDefinition() throws RepositoryException;
+    protected abstract ItemDefinition internalGetDefinition() throws RepositoryException;
 
     void checkProtected() throws RepositoryException {
         ItemDefinition definition;
         try {
-            definition = getDefinition();
+            definition = internalGetDefinition();
         } catch (RepositoryException ignore) {
             // FIXME: No definition -> not protected but a different error
             // which should be handled else where

@@ -115,7 +115,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
 
     @Override
     public void accept(ItemVisitor visitor) throws RepositoryException {
-        checkStatus();
+        checkAlive();
         visitor.visit(this);
     }
 
@@ -379,7 +379,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
         return perform(new ItemReadOperation<PropertyDefinition>() {
             @Override
             protected PropertyDefinition perform() throws RepositoryException {
-                return getPropertyDefinition();
+                return internalGetDefinition();
             }
         });
     }
@@ -393,7 +393,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
                     Value[] values = getValues();
                     if (values.length == 0) {
                         // retrieve the type from the property definition
-                        PropertyDefinition definition = getPropertyDefinition();
+                        PropertyDefinition definition = internalGetDefinition();
                         if (definition.getRequiredType() == PropertyType.UNDEFINED) {
                             return PropertyType.STRING;
                         } else {
@@ -420,6 +420,12 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
     }
 
     //------------------------------------------------------------< internal >---
+
+    @Override
+    protected final PropertyDefinition internalGetDefinition() throws RepositoryException {
+        return getDefinitionProvider().getDefinition(
+                dlg.getParent().getTree(), dlg.getPropertyState(), true);
+    }
 
     /**
      * Determine the {@link javax.jcr.PropertyType} of the passed values if all are of
@@ -470,11 +476,6 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
         });
     }
 
-    private PropertyDefinition getPropertyDefinition() throws RepositoryException {
-        return getDefinitionProvider().getDefinition(
-                dlg.getParent().getTree(), dlg.getPropertyState(), true);
-    }
-
     private void internalSetValue(@Nonnull final Value value)
             throws RepositoryException {
         checkNotNull(value);
@@ -482,7 +483,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
             @Override
             protected Void perform() throws RepositoryException {
                 // TODO: Avoid extra JCR method calls (OAK-672)
-                PropertyDefinition definition = getPropertyDefinition();
+                PropertyDefinition definition = internalGetDefinition();
                 PropertyState state = createSingleState(dlg.getName(), value, definition);
                 dlg.setState(state);
                 return null;
@@ -496,7 +497,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
             @Override
             protected Void perform() throws RepositoryException {
                 // TODO: Avoid extra JCR method calls (OAK-672)
-                PropertyDefinition definition = getPropertyDefinition();
+                PropertyDefinition definition = internalGetDefinition();
                 PropertyState state = createMultiState(dlg.getName(), type, values, definition);
                 dlg.setState(state);
                 return null;
