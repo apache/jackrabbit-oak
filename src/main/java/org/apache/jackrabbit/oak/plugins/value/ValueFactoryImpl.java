@@ -36,6 +36,8 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.BlobFactory;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
+import org.apache.jackrabbit.oak.namepath.JcrNameParser;
+import org.apache.jackrabbit.oak.namepath.JcrPathParser;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.core.IdentifierManager;
 import org.apache.jackrabbit.oak.plugins.memory.BinaryPropertyState;
@@ -214,7 +216,7 @@ public class ValueFactoryImpl implements ValueFactory {
                     return createValue(Conversions.convert(value).toBoolean());
                 case PropertyType.NAME:
                     String oakName = namePathMapper.getOakNameOrNull(value);
-                    if (oakName == null) {
+                    if (oakName == null || !JcrNameParser.validate(oakName)) {
                         throw new ValueFormatException("Invalid name: " + value);
                     }
                     return new ValueImpl(GenericPropertyState.nameProperty("", oakName), namePathMapper);
@@ -224,9 +226,9 @@ public class ValueFactoryImpl implements ValueFactory {
                         // identifier path; do no change
                     } else {
                         oakValue = namePathMapper.getOakPath(value);
-                    }
-                    if (oakValue == null) {
-                        throw new ValueFormatException("Invalid path: " + value);
+                        if (oakValue == null || !JcrPathParser.validate(oakValue)) {
+                            throw new ValueFormatException("Invalid path: " + value);
+                        }
                     }
                     return new ValueImpl(GenericPropertyState.pathProperty("", oakValue), namePathMapper);
                 case PropertyType.REFERENCE:

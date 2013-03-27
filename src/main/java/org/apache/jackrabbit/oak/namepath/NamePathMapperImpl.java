@@ -190,15 +190,10 @@ public class NamePathMapperImpl implements NamePathMapper {
         // try a shortcut
         if (!hasNameStartingWithDot && !hasClarkBrackets && !hasIndexBrackets) {
             if (!hasColon || !hasSessionLocalMappings()) {
-                if (JcrPathParser.validate(jcrPath)) {
-                    if(hasTrailingSlash){
-                        return jcrPath.substring(0, length - 1);
-                    }
+                if (hasTrailingSlash){
+                    return jcrPath.substring(0, length - 1);
+                } else {
                     return jcrPath;
-                }
-                else {
-                    log.debug("Invalid path: {}", jcrPath);
-                    return null;
                 }
             }
         }

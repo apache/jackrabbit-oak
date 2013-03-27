@@ -23,6 +23,7 @@ import javax.jcr.PropertyType;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.namepath.JcrNameParser;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.util.ISO9075;
@@ -71,17 +72,9 @@ public class NodeNameImpl extends DynamicOperandImpl {
         if (v == null) {
             return;
         }
-        if (!isName(v)) {
+        String name = getName(v);
+        if (name == null) {
             throw new IllegalArgumentException("Invalid name value: " + v.toString());
-        }
-        String path = v.getValue(Type.STRING);
-        // Name escaping (convert _x0020_ to space)
-        path = decodeName(path);
-        if (PathUtils.isAbsolute(path)) {
-            throw new IllegalArgumentException("NAME() comparison with absolute path are not allowed: " + path);
-        }
-        if (PathUtils.getDepth(path) > 1) {
-            throw new IllegalArgumentException("NAME() comparison with relative path are not allowed: " + path);
         }
         // TODO support NAME(..) index conditions
     }
@@ -91,21 +84,14 @@ public class NodeNameImpl extends DynamicOperandImpl {
         return s == selector;
     }
 
-    private String decodeName(String path) {
-        // Name escaping (convert _x0020_ to space)
-        path = ISO9075.decode(path);
-        // normalize paths (./name > name)
-        path = PropertyValues.getOakPath(path, query.getNamePathMapper());
-        return path;
-    }
-
     /**
-     * Validate that the given value can be converted to a JCR name.
+     * Validate that the given value can be converted to a JCR name, and
+     * return the name.
      *
      * @param v the value
-     * @return true if it can be converted
+     * @return name value, or {@code null} if the value can not be converted
      */
-    private static boolean isName(PropertyValue v) {
+    private String getName(PropertyValue v) {
         // TODO correctly validate JCR names - see JCR 2.0 spec 3.2.4 Naming Restrictions
         switch (v.getType().tag()) {
         case PropertyType.DATE:
@@ -113,13 +99,20 @@ public class NodeNameImpl extends DynamicOperandImpl {
         case PropertyType.DOUBLE:
         case PropertyType.LONG:
         case PropertyType.BOOLEAN:
-            return false;
+            return null;
         }
-        String n = v.getValue(Type.STRING);
-        if (n.startsWith("[") && !n.endsWith("]")) {
-            return false;
+        String name = v.getValue(Type.NAME);
+        // Name escaping (convert _x0020_ to space)
+        name = ISO9075.decode(name);
+        // normalize paths (./name > name)
+        name = PropertyValues.getOakPath(name, query.getNamePathMapper());
+
+        if (name.startsWith("[") && !name.endsWith("]")) {
+            return null;
+        } else if (!JcrNameParser.validate(name)) {
+            return null;
         }
-        return true;
+        return name;
     }
     
     @Override
