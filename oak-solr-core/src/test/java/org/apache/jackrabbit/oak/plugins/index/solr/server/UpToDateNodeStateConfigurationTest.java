@@ -9,6 +9,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 /**
  * Testcase for {@link UpToDateNodeStateConfiguration}
@@ -31,5 +32,13 @@ public class UpToDateNodeStateConfigurationTest {
         String path = "oak:index/solrIdx";
         UpToDateNodeStateConfiguration upToDateNodeStateConfiguration = new UpToDateNodeStateConfiguration(store, path);
         assertEquals("cn", upToDateNodeStateConfiguration.getCoreName());
+    }
+
+    @Test
+    public void testNonExistingPath() throws Exception {
+        String path = "some/path/to/oak:index/solrIdx";
+        UpToDateNodeStateConfiguration upToDateNodeStateConfiguration = new UpToDateNodeStateConfiguration(store, path);
+        assertNotNull(upToDateNodeStateConfiguration.getSolrConfigPath());
+        assertEquals("./solr.xml", upToDateNodeStateConfiguration.getSolrConfigPath());
     }
 }
