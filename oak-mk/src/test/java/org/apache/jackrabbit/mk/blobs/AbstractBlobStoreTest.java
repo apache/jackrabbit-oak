@@ -39,7 +39,7 @@ import org.apache.jackrabbit.mk.util.IOUtilsTest;
  */
 public abstract class AbstractBlobStoreTest extends TestCase {
 
-    protected AbstractBlobStore store;
+    public AbstractBlobStore store;
 
     /**
      * Should be overridden by subclasses to set the {@link #store} variable.
@@ -334,29 +334,5 @@ public abstract class AbstractBlobStoreTest extends TestCase {
         }
         list.add(file.getAbsolutePath());
     }
-
-    // FIXME: OAK-430: Incorrect read logic in AbstractBlobStore
-//    public void testRead() throws Exception {
-//        int blobLength = 81;
-//        store.setBlockSize(80);
-//        store.setBlockSizeMin(48);
-//
-//        byte[] blob = createBlob(blobLength);
-//        String blobId = store.writeBlob(new ByteArrayInputStream(blob));
-//        assertNotNull(blobId);
-//
-//        byte[] readBlob = new byte[blobLength];
-//        store.readBlob(blobId, 0, readBlob, 0, readBlob.length);
-//        assertTrue(Arrays.equals(blob, readBlob));
-//    }
-
-    private static byte[] createBlob(int blobLength) {
-        byte[] blob = new byte[blobLength];
-        for (int i = 0; i < blob.length; i++) {
-            blob[i] = (byte)i;
-        }
-        return blob;
-    }
-
 
 }
