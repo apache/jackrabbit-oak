@@ -312,23 +312,6 @@ public abstract class SessionContext implements NamePathMapper {
         }
     }
 
-    /**
-     * Shortcut for {@code SessionDelegate.getOakPathKeepIndex(jcrPath)}.
-     *
-     * @param jcrPath JCR path
-     * @return Oak path, or {@code null}, with indexes left intact
-     * @throws javax.jcr.PathNotFoundException
-     */
-    @Nonnull
-    public String getOakPathKeepIndexOrThrowNotFound(String jcrPath) throws PathNotFoundException {
-        String oakPath = namePathMapper.getOakPathKeepIndex(jcrPath);
-        if (oakPath != null) {
-            return oakPath;
-        } else {
-            throw new PathNotFoundException(jcrPath);
-        }
-    }
-
     //------------------------------------------------------------< internal >---
 
     void dispose() {

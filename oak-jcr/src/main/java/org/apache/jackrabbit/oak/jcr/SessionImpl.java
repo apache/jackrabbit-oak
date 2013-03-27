@@ -93,10 +93,19 @@ public class SessionImpl implements JackrabbitSession {
         this.namespaces = namespaces;
     }
 
-    public static void checkProtectedNodes(Session session, String... absJcrPaths) throws RepositoryException {
+    static void checkProtectedNodes(Session session, String... absJcrPaths) throws RepositoryException {
         for (String absPath : absJcrPaths) {
             NodeImpl<?> node = (NodeImpl<?>) session.getNode(absPath);
             node.checkProtected();
+        }
+    }
+
+    static void checkIndexOnName(SessionContext sessionContext, String path) throws RepositoryException {
+        String oakPath = sessionContext.getOakPathKeepIndex(path);
+        if (oakPath != null) {
+            if (PathUtils.getName(oakPath).contains("[")) {
+                throw new RepositoryException("Cannot create a new node using a name including an index");
+            }
         }
     }
 
@@ -336,19 +345,17 @@ public class SessionImpl implements JackrabbitSession {
             @Override
             protected void checkPreconditions() throws RepositoryException {
                 super.checkPreconditions();
+                // FIXME getRelativeParent doesn't work for fully qualified names. See OAK-724
                 checkProtectedNodes(SessionImpl.this,
                         Text.getRelativeParent(srcAbsPath, 1), Text.getRelativeParent(destAbsPath, 1));
+                checkIndexOnName(sessionContext, destAbsPath);
             }
 
             @Override
             public Void perform() throws RepositoryException {
-                String oakDestPath = sessionContext.getOakPathKeepIndexOrThrowNotFound(destAbsPath);
-                // handle index
-                if (PathUtils.getName(oakDestPath).contains("[")) {
-                    throw new RepositoryException("Cannot create a new node using a name including an index");
-                }
-
-                sd.move(getOakPathOrThrowNotFound(srcAbsPath), oakDestPath, true);
+                sd.move(
+                        getOakPathOrThrowNotFound(srcAbsPath),
+                        getOakPathOrThrowNotFound(destAbsPath), true);
                 return null;
             }
         });
