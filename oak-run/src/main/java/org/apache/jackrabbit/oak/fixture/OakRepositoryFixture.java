@@ -27,6 +27,7 @@ import org.apache.jackrabbit.mongomk.impl.MongoConnection;
 import org.apache.jackrabbit.mongomk.prototype.MongoMK;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.jcr.Jcr;
+import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.MongoStore;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
@@ -35,14 +36,14 @@ import com.mongodb.Mongo;
 
 public abstract class OakRepositoryFixture implements RepositoryFixture {
 
-    public static RepositoryFixture getMemory() {
+    public static RepositoryFixture getMemory(final long cacheSize) {
         return new OakRepositoryFixture("Oak-Memory") {
             @Override
             public Repository[] setUpCluster(int n) throws Exception {
                 Repository[] cluster = new Repository[n];
                 MicroKernel kernel = new MicroKernelImpl();
                 for (int i = 0; i < cluster.length; i++) {
-                    Oak oak = new Oak(kernel);
+                    Oak oak = new Oak(new KernelNodeStore(kernel, cacheSize));
                     cluster[i] = new Jcr(oak).createRepository();
                 }
                 return cluster;
@@ -50,7 +51,7 @@ public abstract class OakRepositoryFixture implements RepositoryFixture {
         };
     }
 
-    public static RepositoryFixture getDefault() {
+    public static RepositoryFixture getDefault(final long cacheSize) {
         return new OakRepositoryFixture("Oak-Default") {
             private MicroKernelImpl[] kernels;
             @Override
@@ -59,7 +60,8 @@ public abstract class OakRepositoryFixture implements RepositoryFixture {
                 kernels = new MicroKernelImpl[cluster.length];
                 for (int i = 0; i < cluster.length; i++) {
                     kernels[i] = new MicroKernelImpl(unique);
-                    cluster[i] = new Jcr(kernels[i]).createRepository();
+                    Oak oak = new Oak(new KernelNodeStore(kernels[i], cacheSize));
+                    cluster[i] = new Jcr(oak).createRepository();
                 }
                 return cluster;
             }
@@ -73,7 +75,8 @@ public abstract class OakRepositoryFixture implements RepositoryFixture {
         };
     }
 
-    public static RepositoryFixture getMongo(final String host, final int port) {
+    public static RepositoryFixture getMongo(
+            final String host, final int port, final long cacheSize) {
         return new OakRepositoryFixture("Oak-Mongo") {
             private MongoMK[] kernels;
             @Override
@@ -84,7 +87,8 @@ public abstract class OakRepositoryFixture implements RepositoryFixture {
                     MongoConnection mongo =
                             new MongoConnection(host, port, unique);
                     kernels[i] = new MongoMK(mongo.getDB(), i);
-                    cluster[i] = new Jcr(kernels[i]).createRepository();
+                    Oak oak = new Oak(new KernelNodeStore(kernels[i], cacheSize));
+                    cluster[i] = new Jcr(oak).createRepository();
                 }
                 return cluster;
             }

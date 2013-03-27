@@ -44,6 +44,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
  */
 public class KernelNodeStore implements NodeStore {
 
+    private static final long DEFAULT_CACHE_SIZE = 16 * 1024 * 1024;
+
     /**
      * The {@link MicroKernel} instance used to store the content tree.
      */
@@ -55,47 +57,52 @@ public class KernelNodeStore implements NodeStore {
     @Nonnull
     private volatile Observer observer = EmptyObserver.INSTANCE;
 
-    private final LoadingCache<String, KernelNodeState> cache =
-            CacheBuilder.newBuilder().maximumWeight(16 * 1024 * 1024).weigher(
-                    new Weigher<String, KernelNodeState>() {
-                @Override
-                public int weigh(String key, KernelNodeState state) {
-                    return state.getMemory();
-                }
-            }).build(new CacheLoader<String, KernelNodeState>() {
-                @Override
-                public KernelNodeState load(String key) {
-                    int slash = key.indexOf('/');
-                    String revision = key.substring(0, slash);
-                    String path = key.substring(slash);
-                    return new KernelNodeState(kernel, path, revision, cache);
-                }
-
-                @Override
-                public ListenableFuture<KernelNodeState> reload(String key,
-                                                                KernelNodeState oldValue)
-                        throws Exception {
-                    // LoadingCache.reload() is only used to re-calculate the
-                    // memory usage on KernelNodeState.init(). Therefore
-                    // we simply return the old value as is (OAK-643)
-                    SettableFuture<KernelNodeState> future = SettableFuture.create();
-                    future.set(oldValue);
-                    return future;
-                }
-            });
+    private final LoadingCache<String, KernelNodeState> cache;
 
     /**
      * State of the current root node.
      */
     private KernelNodeState root;
 
-    public KernelNodeStore(MicroKernel kernel) {
+
+    public KernelNodeStore(final MicroKernel kernel, long cacheSize) {
         this.kernel = checkNotNull(kernel);
+        this.cache = CacheBuilder.newBuilder()
+                .maximumWeight(cacheSize)
+                .weigher(new Weigher<String, KernelNodeState>() {
+                    @Override
+                    public int weigh(String key, KernelNodeState state) {
+                        return state.getMemory();
+                    }
+                }).build(new CacheLoader<String, KernelNodeState>() {
+                    @Override
+                    public KernelNodeState load(String key) {
+                        int slash = key.indexOf('/');
+                        String revision = key.substring(0, slash);
+                        String path = key.substring(slash);
+                        return new KernelNodeState(kernel, path, revision, cache);
+                    }
+                    @Override
+                    public ListenableFuture<KernelNodeState> reload(
+                            String key, KernelNodeState oldValue) {
+                        // LoadingCache.reload() is only used to re-calculate the
+                        // memory usage on KernelNodeState.init(). Therefore
+                        // we simply return the old value as is (OAK-643)
+                        SettableFuture<KernelNodeState> future = SettableFuture.create();
+                        future.set(oldValue);
+                        return future;
+                    }
+                });
+
         try {
             this.root = cache.get(kernel.getHeadRevision() + '/');
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public KernelNodeStore(MicroKernel kernel) {
+        this(kernel, DEFAULT_CACHE_SIZE);
     }
 
     @Nonnull

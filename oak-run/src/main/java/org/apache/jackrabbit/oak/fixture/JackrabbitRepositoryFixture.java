@@ -16,17 +16,30 @@
  */
 package org.apache.jackrabbit.oak.fixture;
 
+import static org.apache.jackrabbit.core.config.RepositoryConfigurationParser.REPOSITORY_HOME_VARIABLE;
+
 import java.io.File;
+import java.io.InputStream;
+import java.util.Properties;
 
 import javax.jcr.Repository;
+import javax.xml.transform.stream.StreamSource;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.core.RepositoryImpl;
 import org.apache.jackrabbit.core.config.RepositoryConfig;
+import org.apache.jackrabbit.core.config.RepositoryConfigurationParser;
+import org.xml.sax.InputSource;
 
 public class JackrabbitRepositoryFixture implements RepositoryFixture {
 
+    private final int bundleCacheSize;
+
     private RepositoryImpl[] cluster;
+
+    public JackrabbitRepositoryFixture(int bundleCacheSize) {
+        this.bundleCacheSize = bundleCacheSize;
+    }
 
     @Override
     public boolean isAvailable(int n) {
@@ -38,7 +51,16 @@ public class JackrabbitRepositoryFixture implements RepositoryFixture {
         if (n == 1) {
             String name = "Jackrabbit-" + System.currentTimeMillis();
             File directory = new File(name);
-            RepositoryConfig config = RepositoryConfig.install(directory);
+
+            Properties variables = new Properties(System.getProperties());
+            variables.setProperty(
+                    REPOSITORY_HOME_VARIABLE, directory.getPath());
+            variables.setProperty(
+                    "bundleCacheSize", Integer.toString(bundleCacheSize));
+            InputStream xml = getClass().getResourceAsStream("repository.xml");
+            RepositoryConfig config = RepositoryConfig.create(
+                    new InputSource(xml), variables);
+
             RepositoryImpl repository = RepositoryImpl.create(config);
             this.cluster = new RepositoryImpl[] { repository };
             return new Repository[] { repository };
