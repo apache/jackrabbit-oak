@@ -18,14 +18,14 @@
  */
 package org.apache.jackrabbit.oak.api;
 
+import static org.apache.jackrabbit.oak.OakAssert.assertSequence;
+
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictValidator;
 import org.apache.jackrabbit.oak.plugins.commit.JcrConflictHandler;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import static org.apache.jackrabbit.oak.OakAssert.assertSequence;
 
 /**
  * Contains tests related to {@link Root}
@@ -60,10 +60,8 @@ public class RootTest {
             r.commit();
 
             r.copy("/node3", "/c/node3");
-            c = r.getTree("/").getChild("c");
             assertSequence(c.getChildren(), "node1", "node2", "node3");
             r.commit();
-            c = r.getTree("/").getChild("c");
             assertSequence(c.getChildren(), "node1", "node2", "node3");
         } finally {
             s.close();
@@ -83,10 +81,8 @@ public class RootTest {
             r.commit();
 
             r.move("/node3", "/c/node3");
-            c = r.getTree("/").getChild("c");
             assertSequence(c.getChildren(), "node1", "node2", "node3");
             r.commit();
-            c = r.getTree("/").getChild("c");
             assertSequence(c.getChildren(), "node1", "node2", "node3");
         } finally {
             s.close();

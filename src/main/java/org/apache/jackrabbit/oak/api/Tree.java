@@ -57,11 +57,11 @@ import javax.annotation.Nullable;
  * after the content session is closed. Any method called on an invalid tree instance
  * will throw an {@code InvalidStateException}.
  * <p/>
- * All {@link Tree} instances acquired through a root become invalid upon call of
- * {@link Root#refresh()}, {@link Root#rebase()} or {@link Root#commit()}. Any
- * access to invalid tree instances - except for hierarchy related methods - will cause
- * an {@code InvalidStateException}. The hierarchy related methods are {@link #getName()},
- * {@link #isRoot()}, {@link #getPath()}, {@link #getParent()} and {@link #getStatus()}.
+ * {@link Tree} instances may become disconnected after a call to {@link Root#refresh()},
+ * {@link Root#rebase()} or {@link Root#commit()}. Any access to disconnected tree instances
+ * - except for  {@link Tree#getName()}, {@link Tree#isRoot()}, {@link Tree#getPath()},
+ * {@link Tree#getParent()} and {@link Tree#getStatus()} - will cause an
+ * {@code InvalidStateException}.
  */
 public interface Tree {
 

@@ -18,6 +18,14 @@
  */
 package org.apache.jackrabbit.oak.core;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -32,14 +40,6 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 public class RootImplTest {
 
@@ -109,7 +109,6 @@ public class RootImplTest {
         assertEquals("/y/xx", x.getPath());
 
         root.commit();
-        tree = root.getTree("/");
 
         assertFalse(tree.hasChild("x"));
         assertTrue(tree.hasChild("y"));
@@ -151,6 +150,24 @@ public class RootImplTest {
         assertNull(tree.getChild("new"));
     }
 
+    @Test
+    public void moveExistingParent() throws CommitFailedException {
+        Root root = session.getLatestRoot();
+        root.getTree("/").addChild("parent").addChild("new");
+        root.commit();
+
+        Tree parent = root.getTree("/parent");
+        Tree n = root.getTree("/parent/new");
+
+        root.move("/parent", "/moved");
+
+        assertEquals(Status.EXISTING, parent.getStatus());
+        assertEquals(Status.EXISTING, n.getStatus());
+
+        assertEquals("/moved", parent.getPath());
+        assertEquals("/moved/new", n.getPath());
+    }
+
     /**
      * Regression test for OAK-208
      */
@@ -170,7 +187,6 @@ public class RootImplTest {
         assertFalse(r.hasChild("b"));
 
         root.commit();
-        r = root.getTree("/");
         assertFalse(r.hasChild("a"));
         assertFalse(r.hasChild("b"));
     }
@@ -188,7 +204,6 @@ public class RootImplTest {
         assertEquals("/xx", x.getPath());
         
         root.commit();
-        tree = root.getTree("/");
 
         assertFalse(tree.hasChild("x"));
         assertTrue(tree.hasChild("xx"));
@@ -209,7 +224,6 @@ public class RootImplTest {
         assertTrue(y.hasChild("xx"));
         
         root.commit();
-        tree = root.getTree("/");
 
         assertTrue(tree.hasChild("x"));
         assertTrue(tree.hasChild("y"));
@@ -229,7 +243,6 @@ public class RootImplTest {
         assertTrue(y.getChild("xx").hasChild("x1"));
 
         root.commit();
-        tree = root.getTree("/");
 
         assertTrue(tree.hasChild("x"));
         assertTrue(tree.hasChild("y"));
