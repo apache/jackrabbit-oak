@@ -38,7 +38,8 @@ public abstract class OakSolrNodeStateConfiguration implements OakSolrConfigurat
      * get the {@link NodeState} which contains the properties for the Oak -
      * Solr configuration.
      *
-     * @return a {@link NodeState} for the Solr configuration.
+     * @return a {@link NodeState} for the Solr configuration or <code>null</code>
+     *         if such a {@link NodeState} doesn't exist.
      */
     protected abstract NodeState getConfigurationNodeState();
 
@@ -112,9 +113,9 @@ public abstract class OakSolrNodeStateConfiguration implements OakSolrConfigurat
             if (property != null) {
                 value = property.getValue(Type.STRING);
             }
-        }
-        if (value == null || value.length() == 0) {
-            value = defaultValue;
+            if (value == null || value.length() == 0) {
+                value = defaultValue;
+            }
         }
         return value;
     }
