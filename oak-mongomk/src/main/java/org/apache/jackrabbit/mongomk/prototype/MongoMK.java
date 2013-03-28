@@ -54,13 +54,13 @@ import com.mongodb.DB;
  */
 public class MongoMK implements MicroKernel {
 
-    private static final Logger log = LoggerFactory.getLogger(MongoMK.class);
-
     /**
      * The number of documents to cache.
      */
     static final int CACHE_DOCUMENTS = Integer.getInteger("oak.mongoMK.cacheDocs", 20 * 1024);
-    
+
+    private static final Logger LOG = LoggerFactory.getLogger(MongoMK.class);
+
     /**
      * The number of child node list entries to cache.
      */
@@ -71,9 +71,10 @@ public class MongoMK implements MicroKernel {
      */
     private static final int CACHE_NODES = Integer.getInteger("oak.mongoMK.cacheNodes", 1024);
     
+    /**
+     * When trying to access revisions that are older than this many milliseconds, a warning is logged.
+     */
     private static final int WARN_REVISION_AGE = Integer.getInteger("oak.mongoMK.revisionAge", 10000);
-    
-    private static final Logger LOG = LoggerFactory.getLogger(MongoMK.class);
     
     /**
      * The delay for asynchronous operations (delayed commit propagation and
@@ -83,15 +84,9 @@ public class MongoMK implements MicroKernel {
     protected static final long ASYNC_DELAY = 1000;
 
     /**
-     * For revisions that are older than this many seconds, the MongoMK will
-     * assume the revision is valid. For more recent changes, the MongoMK needs
-     * to verify it first (by reading the revision root). The default is
-     * Integer.MAX_VALUE, meaning no revisions are trusted. Once the garbage
-     * collector removes old revisions, this value is changed.
+     * Whether this instance is disposed.
      */
-    private static final int trustedRevisionAge = Integer.MAX_VALUE;
-
-    AtomicBoolean isDisposed = new AtomicBoolean();
+    private final AtomicBoolean isDisposed = new AtomicBoolean();
 
     /**
      * The MongoDB store (might be used by multiple MongoMKs).
@@ -221,11 +216,20 @@ public class MongoMK implements MicroKernel {
         }
     }
     
+    /**
+     * Enable using simple revisions (just a counter). This feature is useful
+     * for testing.
+     */
     void useSimpleRevisions() {
         this.simpleRevisionCounter = 1;
         init();
     }
     
+    /**
+     * Create a new revision.
+     * 
+     * @return the revision
+     */
     Revision newRevision() {
         if (simpleRevisionCounter > 0) {
             return new Revision(simpleRevisionCounter++, 0, clusterId);
@@ -360,9 +364,9 @@ public class MongoMK implements MicroKernel {
         if (commitRootPath == null) {
             // shouldn't happen, either node is commit root for a revision
             // or has a reference to the commit root
-            log.warn("Node {} does not have commit root reference for revision {}",
+            LOG.warn("Node {} does not have commit root reference for revision {}",
                     nodeMap.get(UpdateOp.ID), rev);
-            log.warn(nodeMap.toString());
+            LOG.warn(nodeMap.toString());
             return false;
         }
         // get root of commit
