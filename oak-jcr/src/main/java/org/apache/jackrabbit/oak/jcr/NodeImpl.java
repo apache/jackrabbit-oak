@@ -338,7 +338,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     public Property setProperty(String name, Value[] values)
             throws RepositoryException {
         if (values != null) {
-            return internalSetProperty(name, values, PropertyImpl.getType(values), false);
+            return internalSetProperty(name, values, ValueHelper.getType(values), false);
         } else {
             return internalRemoveProperty(name);
         }

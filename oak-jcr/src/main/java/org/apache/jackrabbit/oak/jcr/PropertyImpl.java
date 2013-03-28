@@ -135,7 +135,7 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
         if (values == null) {
             internalRemove();
         } else {
-            internalSetValues(values, getType(values));
+            internalSetValues(values, ValueHelper.getType(values));
         }
     }
 
@@ -425,30 +425,6 @@ public class PropertyImpl extends ItemImpl<PropertyDelegate> implements Property
     protected final PropertyDefinition internalGetDefinition() throws RepositoryException {
         return getDefinitionProvider().getDefinition(
                 dlg.getParent().getTree(), dlg.getPropertyState(), true);
-    }
-
-    /**
-     * Determine the {@link javax.jcr.PropertyType} of the passed values if all are of
-     * the same type.
-     *
-     * @param values array of values of the same type
-     * @return  {@link javax.jcr.PropertyType#UNDEFINED} if {@code values} is empty,
-     *          {@code values[0].getType()} otherwise.
-     * @throws javax.jcr.ValueFormatException  if not all {@code values} are of the same type
-     */
-    static int getType(Value[] values) throws ValueFormatException {
-        int type = UNDEFINED;
-        for (Value value : values) {
-            if (value != null) {
-                if (type == UNDEFINED) {
-                    type = value.getType();
-                } else if (value.getType() != type) {
-                    throw new ValueFormatException(
-                            "All values of a multi-valued property must be of the same type");
-                }
-            }
-        }
-        return type;
     }
 
     /**
