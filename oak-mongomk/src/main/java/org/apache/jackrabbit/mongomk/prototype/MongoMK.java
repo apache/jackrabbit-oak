@@ -19,13 +19,13 @@ package org.apache.jackrabbit.mongomk.prototype;
 import java.io.InputStream;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.annotation.Nonnull;
@@ -140,8 +140,8 @@ public class MongoMK implements MicroKernel {
     /**
      * Maps branch commit revision to revision it is based on
      */
-    private final Map<Revision, Revision> branchCommits =
-            Collections.synchronizedMap(new HashMap<Revision, Revision>());
+    private final Map<Revision, Revision> branchCommits
+            = new ConcurrentHashMap<Revision, Revision>();
 
     /**
      * Create a new in-memory MongoMK used for testing.
@@ -745,10 +745,18 @@ public class MongoMK implements MicroKernel {
             }
         }
         if (baseRevId.startsWith("b")) {
-            // prepare commit
-            commit.prepare(baseRev);
             // remember branch commit
             branchCommits.put(rev, baseRev);
+            boolean success = false;
+            try {
+                // prepare commit
+                commit.prepare(baseRev);
+                success = true;
+            } finally {
+                if (!success) {
+                    branchCommits.remove(rev);
+                }
+            }
 
             return "b" + rev.toString();
 
