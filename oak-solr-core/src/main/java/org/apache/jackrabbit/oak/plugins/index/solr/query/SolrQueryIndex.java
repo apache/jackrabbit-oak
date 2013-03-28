@@ -95,9 +95,9 @@ public class SolrQueryIndex implements QueryIndex {
                 if (path.equals("\\/") && pathRestriction.equals(Filter.PathRestriction.ALL_CHILDREN)) {
                     queryBuilder.append("*");
                 } else {
-//                    queryBuilder.append("\"");
+                    queryBuilder.append("\"");
                     queryBuilder.append(path);
-//                    queryBuilder.append("\"");
+                    queryBuilder.append("\"");
                 }
                 queryBuilder.append(" ");
             }
@@ -105,7 +105,10 @@ public class SolrQueryIndex implements QueryIndex {
         Collection<Filter.PropertyRestriction> propertyRestrictions = filter.getPropertyRestrictions();
         if (propertyRestrictions != null && !propertyRestrictions.isEmpty()) {
             for (Filter.PropertyRestriction pr : propertyRestrictions) {
-
+            	if (pr.propertyName.contains("/")) {
+                    // lucene cannot handle child-level property restrictions
+                    continue;
+                }
                 String first = null;
                 if (pr.first != null) {
                     first = partialEscape(String.valueOf(pr.first.getValue(pr.first.getType()))).toString();
@@ -146,7 +149,9 @@ public class SolrQueryIndex implements QueryIndex {
         for (String fulltextCondition : fulltextConditions) {
             queryBuilder.append(fulltextCondition).append(" ");
         }
-
+        if(queryBuilder.length() == 0) {
+            queryBuilder.append("*:*");
+        }
         String escapedQuery = queryBuilder.toString();
         solrQuery.setQuery(escapedQuery);
 
