@@ -18,6 +18,13 @@
  */
 package org.apache.jackrabbit.oak.core;
 
+import static com.google.common.base.Objects.toStringHelper;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
+import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
+
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Set;
@@ -45,13 +52,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.PropertyBuilder;
 
-import static com.google.common.base.Objects.toStringHelper;
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
-import static org.apache.jackrabbit.oak.api.Type.STRING;
-import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
-
 public class TreeImpl implements Tree {
 
     /**
@@ -67,7 +67,7 @@ public class TreeImpl implements Tree {
     /**
      * The node state this tree is based on. {@code null} if this is a newly added tree.
      */
-    private final NodeState baseState;
+    private NodeState baseState;
 
     /**
      * The {@code NodeBuilder} for the underlying node state
@@ -154,32 +154,32 @@ public class TreeImpl implements Tree {
     @Override
     public Status getPropertyStatus(String name) {
         // TODO: see OAK-212
-        enter();
         Status nodeStatus = getStatus();
+        if (nodeStatus == Status.DISCONNECTED) {
+            return Status.DISCONNECTED;
+        }
         if (nodeStatus == Status.NEW) {
             return (hasProperty(name)) ? Status.NEW : null;
-        } else if (nodeStatus == Status.DISCONNECTED) {
-            return Status.DISCONNECTED;
-        } else {
-            PropertyState head = internalGetProperty(name);
-            if (head != null && !canRead(head)) {
-                // no permission to read status information for existing property
-                return null;
-            }
+        }
+        PropertyState head = internalGetProperty(name);
+        if (head != null && !canRead(head)) {
+            // no permission to read status information for existing property
+            return null;
+        }
 
-            NodeState parentBase = getBaseState();
-            PropertyState base = parentBase == null ? null : parentBase.getProperty(name);
-            if (head == null) {
-                return (base == null) ? null : Status.DISCONNECTED;
-            } else {
-                if (base == null) {
-                    return Status.NEW;
-                } else if (head.equals(base)) {
-                    return Status.EXISTING;
-                } else {
-                    return Status.MODIFIED;
-                }
-            }
+        NodeState parentBase = nodeBuilder.getBaseState();
+        PropertyState base = parentBase == null ? null : parentBase.getProperty(name);
+
+        if (head == null) {
+            return (base == null) ? null : Status.DISCONNECTED;
+        }
+
+        if (base == null) {
+            return Status.NEW;
+        } else if (head.equals(base)) {
+            return Status.EXISTING;
+        } else {
+            return Status.MODIFIED;
         }
     }
 
@@ -220,16 +220,25 @@ public class TreeImpl implements Tree {
     }
 
     private boolean isDisconnected() {
-        if (isRoot()) {
+        if (parent == null || nodeBuilder.isConnected()) {
             return false;
         }
-        if (parent.nodeBuilder == null) {
-            return false;
+
+        return !reconnect();
+    }
+
+    private boolean reconnect() {
+        if (parent != null && parent.reconnect()) {
+            if (parent.nodeBuilder.hasChildNode(name)) {
+                nodeBuilder = parent.nodeBuilder.child(name);
+            }
+            else {
+                // make this builder disconnected from its new parent
+                nodeBuilder = parent.nodeBuilder.child(name);
+                parent.nodeBuilder.removeNode(name);
+            }
         }
-        if (!parent.nodeBuilder.isConnected()) {
-            return true;
-        }
-        return !nodeBuilder.isConnected();
+        return nodeBuilder.isConnected();
     }
 
     @Override
@@ -451,15 +460,17 @@ public class TreeImpl implements Tree {
     void moveTo(TreeImpl destParent, String destName) {
         name = destName;
         parent = destParent;
-        if (!parent.isDisconnected()) {
-            if (parent.nodeBuilder.hasChildNode(name)) {
-                nodeBuilder = parent.nodeBuilder.child(name);
-            } else {
-                // make this builder disconnected from its new parent
-                nodeBuilder = parent.nodeBuilder.child(name);
-                parent.nodeBuilder.removeNode(name);
-            }
-        }
+    }
+
+    /**
+     * Reset this (root) tree instance's underlying node state to the passed {@code state}.
+     * @param state
+     * @throws IllegalStateException  if {@code isRoot()} is {@code false}.
+     */
+    void reset(NodeState state) {
+        checkState(parent == null);
+        nodeBuilder.reset(state);
+        baseState = state;
     }
 
     /**
@@ -532,9 +543,7 @@ public class TreeImpl implements Tree {
 
     private void enter() {
         root.checkLive();
-        if (RootImpl.OAK_690) {
-            checkState(parent != null || this == root.getTree("/"), "Tree access after commit, refresh or rebase");
-        }
+        checkState(!isDisconnected());
         applyPendingMoves();
     }
 

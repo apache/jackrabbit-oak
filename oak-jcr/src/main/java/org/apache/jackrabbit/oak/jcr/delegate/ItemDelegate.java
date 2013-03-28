@@ -36,19 +36,11 @@ public abstract class ItemDelegate {
     protected final SessionDelegate sessionDelegate;
 
     /** The underlying {@link org.apache.jackrabbit.oak.api.TreeLocation} of this item. */
-    private TreeLocation location;
-
-    /**
-     * Revision on which this item is based. The underlying state of the item
-     * is re-resolved whenever the revision of the session does not match this
-     * revision.
-     */
-    private int revision;
+    private final TreeLocation location;
 
     ItemDelegate(SessionDelegate sessionDelegate, TreeLocation location) {
         this.sessionDelegate = checkNotNull(sessionDelegate);
         this.location = checkNotNull(location);
-        this.revision = sessionDelegate.getRevision();
     }
 
     /**
@@ -90,7 +82,7 @@ public abstract class ItemDelegate {
      * @return  {@code true} iff stale
      */
     public boolean isStale() {
-        return !loadLocation().exists();
+        return !location.exists();
     }
 
     /**
@@ -99,7 +91,7 @@ public abstract class ItemDelegate {
      */
     @CheckForNull
     public Status getStatus() {
-        return loadLocation().getStatus();
+        return location.getStatus();
     }
 
     /**
@@ -109,7 +101,6 @@ public abstract class ItemDelegate {
      */
     @Nonnull // FIXME this should be package private. OAK-672
     public TreeLocation getLocation() throws InvalidItemStateException {
-        TreeLocation location = loadLocation();
         if (!location.exists()) {
             throw new InvalidItemStateException("Item is stale");
         }
@@ -119,23 +110,6 @@ public abstract class ItemDelegate {
     @Override
     public String toString() {
         return toStringHelper(this).add("location", location).toString();
-    }
-
-    //------------------------------------------------------------< private >---
-
-    /**
-     * The underlying {@link org.apache.jackrabbit.oak.api.TreeLocation} of this item.
-     * The location is only loaded when the revision of this item does not match
-     * the revision of the session or when the location does not exist (anymore).
-     * @return tree location of the underlying item.
-     */
-    @Nonnull
-    private synchronized TreeLocation loadLocation() {
-        if (sessionDelegate.getRevision() != revision || !location.exists()) {
-            location = sessionDelegate.getLocation(location.getPath());
-            revision = sessionDelegate.getRevision();
-        }
-        return location;
     }
 
 }

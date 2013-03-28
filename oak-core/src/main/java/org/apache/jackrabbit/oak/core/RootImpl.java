@@ -18,6 +18,11 @@
  */
 package org.apache.jackrabbit.oak.core;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.PrivilegedAction;
@@ -60,19 +65,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-
 public class RootImpl implements Root {
-
-    /**
-     * Disable checks for invalid trees.
-     * FIXME: remove once OAK-690 and dependencies are fixed
-     */
-    static final boolean OAK_690 = Boolean.getBoolean("OAK-690");
 
     /**
      * Number of {@link #updated} calls for which changes are kept in memory.
@@ -244,7 +237,7 @@ public class RootImpl implements Root {
         if (!store.getRoot().equals(rootTree.getBaseState())) {
             purgePendingChanges();
             branch.rebase();
-            rootTree = new TreeImpl(this, lastMove);
+            rootTree.reset(branch.getHead());
             permissionProvider = null;
         }
     }
@@ -253,12 +246,7 @@ public class RootImpl implements Root {
     public final void refresh() {
         checkLive();
         branch = store.branch();
-
-        // Disconnect all children -> access to now invalid trees fails fast
-        if (OAK_690) {
-            rootTree.getNodeBuilder().reset(EMPTY_NODE);
-        }
-        rootTree = new TreeImpl(this, lastMove);
+        rootTree.reset(branch.getHead());
         modCount = 0;
         if (permissionProvider != null) {
             permissionProvider.refresh();
@@ -500,5 +488,9 @@ public class RootImpl implements Root {
             return move;
         }
 
+        @Override
+        public String toString() {
+            return '>' + source + ':' + PathUtils.concat(destParent.getPathInternal(), destName);
+        }
     }
 }
