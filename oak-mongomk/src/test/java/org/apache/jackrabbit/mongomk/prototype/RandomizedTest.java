@@ -44,40 +44,67 @@ public class RandomizedTest {
     private MicroKernelImpl mkGold;
     
     @Test
-    public void addRemoveSet() throws Exception {
+    public void addRemoveSetMoveCopy() throws Exception {
         mk = createMK();
         mkGold = new MicroKernelImpl();
         Random r = new Random(1);
-        int opCount = 1000, nodeCount = 10;
+        int operations = 1000, nodeCount = 10;
         int propertyCount = 5, valueCount = 10;
         StringBuilder log = new StringBuilder();
         try {
-            for (int i = 0; i < opCount; i++) {
+            int maskOk = 0, maskFail = 0;
+            int opCount = 5;
+            for (int i = 0; i < operations; i++) {
                 String node = "t" + r.nextInt(nodeCount);
+                String node2 = "t" + r.nextInt(nodeCount);
                 String property = "p" + r.nextInt(propertyCount);
                 String value = "" + r.nextInt(valueCount);
                 String diff;
-                int op = r.nextInt(3);
+                int op = r.nextInt(opCount);
+                boolean result;
                 switch(op) {
                 case 0:
                     diff = "+ \"" + node + "\": { \"" + property + "\": " + value + "}";
                     log.append(diff).append('\n');
-                    commit(diff);
+                    result = commit(diff);
                     break;
                 case 1:
                     diff = "- \"" + node + "\"";
                     log.append(diff).append('\n');
-                    commit(diff);
+                    result = commit(diff);
                     break;
                 case 2:
                     diff = "^ \"" + node + "/" + property + "\": " + value;
                     log.append(diff).append('\n');
-                    commit(diff);
+                    result = commit(diff);
                     break;
                 case 3:
+                    diff = "> \"" + node + "\": \"" + node2 + "\"";
+                    log.append(diff).append('\n');
+                    result = commit(diff);
+                    break;
+                case 4:
+                    diff = "* \"" + node + "\": \"" + node2 + "\"";
+                    log.append(diff).append('\n');
+                    result = commit(diff);
+                    break;
+                default:
                     fail();
+                    result = false;
+                }
+                if (result) {
+                    maskOk |= 1 << op;
+                } else {
+                    maskFail |= 1 << op;
                 }
                 get(node);
+                get(node2);
+            }
+            if (Integer.bitCount(maskOk) != opCount) {
+                fail("Not all operations were at least once successful: " + Integer.toBinaryString(maskOk));
+            }
+            if (Integer.bitCount(maskFail) != opCount) {
+                fail("Not all operations failed at least once: " + Integer.toBinaryString(maskFail));
             }
         } catch (AssertionError e) {
             throw new Exception("log: " + log, e);
@@ -113,7 +140,7 @@ public class RandomizedTest {
         return w.toString();
     }
 
-    private void commit(String diff) {
+    private boolean commit(String diff) {
         boolean ok = false;
         try {
             mkGold.commit("/", diff, null, null);
@@ -129,6 +156,7 @@ public class RandomizedTest {
         if (ok) {
             mk.commit("/", diff, null, null);
         }
+        return ok;
     }
     
     private static MongoMK createMK() {

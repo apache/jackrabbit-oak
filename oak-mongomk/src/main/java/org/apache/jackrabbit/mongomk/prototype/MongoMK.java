@@ -721,6 +721,12 @@ public class MongoMK implements MicroKernel {
                 if (!PathUtils.isAbsolute(targetPath)) {
                     targetPath = PathUtils.concat(rootPath, targetPath);
                 }
+                if (!nodeExists(sourcePath, baseRevId)) {
+                    throw new MicroKernelException("Node not found: " + sourcePath + " in revision " + baseRevId);
+                }
+                if (nodeExists(targetPath, baseRevId)) {
+                    throw new MicroKernelException("Node already exists: " + targetPath + " in revision " + baseRevId);
+                }
                 commit.moveNode(sourcePath, targetPath);
                 moveNode(sourcePath, targetPath, baseRev, commit);
                 break;
@@ -732,6 +738,9 @@ public class MongoMK implements MicroKernel {
                 String targetPath = t.readString();
                 if (!PathUtils.isAbsolute(targetPath)) {
                     targetPath = PathUtils.concat(rootPath, targetPath);
+                }
+                if (!nodeExists(sourcePath, baseRevId)) {
+                    throw new MicroKernelException("Node not found: " + sourcePath + " in revision " + baseRevId);
                 }
                 commit.copyNode(sourcePath, targetPath);
                 copyNode(sourcePath, targetPath, baseRev, commit);
