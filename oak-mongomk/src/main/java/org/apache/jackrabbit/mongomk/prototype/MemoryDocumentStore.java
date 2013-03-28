@@ -25,6 +25,7 @@ import java.util.concurrent.ConcurrentSkipListMap;
 
 import javax.annotation.Nonnull;
 
+import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mongomk.prototype.UpdateOp.Operation;
 
 /**
@@ -107,6 +108,9 @@ public class MemoryDocumentStore implements DocumentStore {
         oldNode = n = map.get(update.key);
 
         if (n == null) {
+            if (!update.isNew) {
+                throw new MicroKernelException("Document does not exist: " + update.key);
+            }
             // for a new node, add it (without synchronization)
             n = Utils.newMap();
             oldNode = map.putIfAbsent(update.key, n);

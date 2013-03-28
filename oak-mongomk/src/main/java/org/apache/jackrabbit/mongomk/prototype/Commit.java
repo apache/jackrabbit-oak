@@ -255,7 +255,13 @@ public class Commit {
         Map<String, Object> map = store.createOrUpdate(Collection.NODES, op);
         if (baseRevision != null) {
             Revision newestRev = mk.getNewestRevision(map, revision, true);
-            if (newestRev != null) {
+            if (newestRev == null) {
+                if (op.isDelete || !op.isNew) {
+                    throw new MicroKernelException("The node " + 
+                            op.path + " does not exist or is already deleted " + 
+                            "before " + revision + "; document " + map);
+                }
+            } else {
                 if (op.isNew) {
                     throw new MicroKernelException("The node " + 
                             op.path + " was already added in revision " + 
