@@ -16,14 +16,14 @@
  */
 package org.apache.jackrabbit.oak.core;
 
+import static com.google.common.base.Objects.toStringHelper;
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-
-import static com.google.common.base.Objects.toStringHelper;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * AbstractPropertyLocation... TODO
@@ -48,8 +48,7 @@ abstract class AbstractPropertyLocation<T extends Tree> extends AbstractTreeLoca
 
     @Override
     public boolean exists() {
-        Status status = parentLocation.tree.getPropertyStatus(name);
-        return status != null && status != Status.DISCONNECTED && getProperty() != null;
+        return parentLocation.tree.isConnected() && getProperty() != null;
     }
 
     @Override

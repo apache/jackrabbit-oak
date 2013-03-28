@@ -155,24 +155,17 @@ public class TreeImpl implements Tree {
     public Status getPropertyStatus(String name) {
         // TODO: see OAK-212
         Status nodeStatus = getStatus();
-        if (nodeStatus == Status.DISCONNECTED) {
-            return Status.DISCONNECTED;
-        }
         if (nodeStatus == Status.NEW) {
             return (hasProperty(name)) ? Status.NEW : null;
         }
         PropertyState head = internalGetProperty(name);
-        if (head != null && !canRead(head)) {
+        if (head == null || !canRead(head)) {
             // no permission to read status information for existing property
             return null;
         }
 
         NodeState parentBase = nodeBuilder.getBaseState();
         PropertyState base = parentBase == null ? null : parentBase.getProperty(name);
-
-        if (head == null) {
-            return (base == null) ? null : Status.DISCONNECTED;
-        }
 
         if (base == null) {
             return Status.NEW;
@@ -219,12 +212,14 @@ public class TreeImpl implements Tree {
         }
     }
 
-    private boolean isDisconnected() {
+    @Override
+    public boolean isConnected() {
+        enterNoStateCheck();
         if (parent == null || nodeBuilder.isConnected()) {
-            return false;
+            return true;
         }
 
-        return !reconnect();
+        return reconnect();
     }
 
     private boolean reconnect() {
@@ -243,11 +238,7 @@ public class TreeImpl implements Tree {
 
     @Override
     public Status getStatus() {
-        enterNoStateCheck();
-
-        if (isDisconnected()) {
-            return Status.DISCONNECTED;
-        }
+        enter();
 
         if (nodeBuilder.isNew()) {
             return Status.NEW;
@@ -329,9 +320,6 @@ public class TreeImpl implements Tree {
     @Override
     public boolean remove() {
         enter();
-        if (isDisconnected()) {
-            throw new IllegalStateException("Cannot remove a disconnected tree");
-        }
 
         if (!isRoot() && parent.hasChild(name)) {
             NodeBuilder parentBuilder = parent.nodeBuilder;
@@ -543,7 +531,7 @@ public class TreeImpl implements Tree {
 
     private void enter() {
         root.checkLive();
-        checkState(!isDisconnected());
+        checkState(isConnected());
         applyPendingMoves();
     }
 
