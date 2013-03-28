@@ -243,6 +243,14 @@ public final class KernelNodeState extends AbstractNodeState {
     }
 
     @Override
+    public boolean hasChildNode(String name) {
+        checkNotNull(name);
+        init();
+        return childNames.contains(name)
+                || childNodeCount > MAX_CHILD_NODE_NAMES && getChildNode(name) != null;
+    }
+
+    @Override
     public NodeState getChildNode(String name) {
         checkNotNull(name);
         init();
