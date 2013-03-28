@@ -18,6 +18,11 @@
  */
 package org.apache.jackrabbit.oak.core;
 
+import static com.google.common.base.Objects.toStringHelper;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
+
 import java.util.Iterator;
 
 import javax.annotation.Nonnull;
@@ -31,11 +36,6 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-
-import static com.google.common.base.Objects.toStringHelper;
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.api.Type.STRING;
 
 public class ReadOnlyTree implements Tree {
 
@@ -141,6 +141,11 @@ public class ReadOnlyTree implements Tree {
     @Override
     public Status getStatus() {
         return Status.EXISTING;
+    }
+
+    @Override
+    public boolean isConnected() {
+        return true;
     }
 
     @Override
