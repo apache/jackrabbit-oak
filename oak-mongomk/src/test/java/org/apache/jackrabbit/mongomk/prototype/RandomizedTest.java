@@ -21,6 +21,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.util.HashMap;
 import java.util.Random;
 
 import org.apache.jackrabbit.mk.api.MicroKernelException;
@@ -43,17 +44,37 @@ public class RandomizedTest {
     private MongoMK mk;
     private MicroKernelImpl mkGold;
     
+    private String commitRev;
+    private String commitRevGold;
+    
+    private StringBuilder log;
+
     @Test
     public void addRemoveSetMoveCopy() throws Exception {
+        addRemoveSetMoveCopy(false);
+    }
+    
+    @Test
+    public void addRemoveSetMoveCopyBranchMerge() throws Exception {
+        addRemoveSetMoveCopy(true);
+    }
+    
+    private void addRemoveSetMoveCopy(boolean branchMerge) throws Exception {
         mk = createMK();
         mkGold = new MicroKernelImpl();
+        HashMap<Integer, String> revsGold = new HashMap<Integer, String>();
+        HashMap<Integer, String> revs = new HashMap<Integer, String>();
         Random r = new Random(1);
         int operations = 1000, nodeCount = 10;
         int propertyCount = 5, valueCount = 10;
-        StringBuilder log = new StringBuilder();
+        int maxBackRev = 20;
+        log = new StringBuilder();
         try {
             int maskOk = 0, maskFail = 0;
             int opCount = 5;
+            if (branchMerge) {
+                opCount = 7;
+            }
             for (int i = 0; i < operations; i++) {
                 String node = "t" + r.nextInt(nodeCount);
                 String node2 = "t" + r.nextInt(nodeCount);
@@ -65,28 +86,56 @@ public class RandomizedTest {
                 switch(op) {
                 case 0:
                     diff = "+ \"" + node + "\": { \"" + property + "\": " + value + "}";
-                    log.append(diff).append('\n');
+                    log(diff);
                     result = commit(diff);
                     break;
                 case 1:
                     diff = "- \"" + node + "\"";
-                    log.append(diff).append('\n');
+                    log(diff);
                     result = commit(diff);
                     break;
                 case 2:
                     diff = "^ \"" + node + "/" + property + "\": " + value;
-                    log.append(diff).append('\n');
+                    log(diff);
                     result = commit(diff);
                     break;
                 case 3:
                     diff = "> \"" + node + "\": \"" + node2 + "\"";
-                    log.append(diff).append('\n');
+                    log(diff);
                     result = commit(diff);
                     break;
                 case 4:
                     diff = "* \"" + node + "\": \"" + node2 + "\"";
-                    log.append(diff).append('\n');
+                    log(diff);
                     result = commit(diff);
+                    break;
+                case 5:
+                    if (!branchMerge) {
+                        fail();
+                    }
+                    if (commitRevGold == null) {
+                        log("branch");
+                        commitRevGold = mkGold.branch(commitRevGold);
+                        commitRev = mk.branch(commitRev);
+                        result = true;
+                    } else {
+                        result = false;
+                    }
+                    break;
+                case 6:
+                    if (!branchMerge) {
+                        fail();
+                    }
+                    if (commitRevGold != null) {
+                        log("merge");
+                        mkGold.merge(commitRevGold, null);
+                        mk.merge(commitRev, null);
+                        commitRevGold = null;
+                        commitRev = null;
+                        result = true;
+                    } else {
+                        result = false;
+                    }
                     break;
                 default:
                     fail();
@@ -99,6 +148,18 @@ public class RandomizedTest {
                 }
                 get(node);
                 get(node2);
+                String revGold = mkGold.getHeadRevision();
+                String rev = mk.getHeadRevision();
+                revsGold.put(i, revGold);
+                revs.put(i, rev);
+                revsGold.remove(i - maxBackRev);
+                revs.remove(i - maxBackRev);
+                int revId = i - r.nextInt(maxBackRev);
+                revGold = revsGold.get(revId);
+                if (revGold != null) {
+                    rev = revs.get(revId);
+                    get(node, revGold, rev);
+                }
             }
             if (Integer.bitCount(maskOk) != opCount) {
                 fail("Not all operations were at least once successful: " + Integer.toBinaryString(maskOk));
@@ -113,11 +174,21 @@ public class RandomizedTest {
         }
         mk.dispose();
         mkGold.dispose();
+        // System.out.println(log);
+        // System.out.println();
+    }
+    
+    private void log(String msg) {
+        log.append(msg).append('\n');
     }
     
     private void get(String node) {
         String headGold = mkGold.getHeadRevision();
         String head = mk.getHeadRevision();
+        get(node, headGold, head);
+    }
+        
+    private void get(String node, String headGold, String head) {
         String p = "/" + node;
         if (!mkGold.nodeExists(p, headGold)) {
             assertFalse(mk.nodeExists(p, head));
@@ -143,18 +214,24 @@ public class RandomizedTest {
     private boolean commit(String diff) {
         boolean ok = false;
         try {
-            mkGold.commit("/", diff, null, null);
+            String r = mkGold.commit("/", diff, commitRevGold, null);
+            if (commitRevGold != null) {
+                commitRevGold = r;
+            }
             ok = true;
         } catch (MicroKernelException e) {
             try {
-                mk.commit("/", diff, null, null);
+                mk.commit("/", diff, commitRev, null);
                 fail("Should fail: " + diff + " with exception " + e);
             } catch (MicroKernelException e2) {
                 // expected
             }
         }
         if (ok) {
-            mk.commit("/", diff, null, null);
+            String r = mk.commit("/", diff, commitRev, null);
+            if (commitRev != null) {
+                commitRev = r;
+            }
         }
         return ok;
     }
