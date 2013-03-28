@@ -16,15 +16,15 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
+
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
 
 public class MoveRemoveTest extends AbstractRepositoryTest {
 
@@ -229,9 +229,11 @@ public class MoveRemoveTest extends AbstractRepositoryTest {
         session.getRootNode().addNode("parent").addNode("new");
         session.save();
 
+        Node p = session.getNode("/parent");
         Node n = session.getNode("/parent/new");
         session.move("/parent", "/moved");
 
+        assertEquals("/moved", p.getPath());
         assertEquals("/moved/new", n.getPath());
     }
 

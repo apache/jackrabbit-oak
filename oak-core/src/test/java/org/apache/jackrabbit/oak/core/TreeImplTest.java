@@ -16,6 +16,14 @@
  */
 package org.apache.jackrabbit.oak.core;
 
+import static org.apache.jackrabbit.oak.api.Type.LONG;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
@@ -31,17 +39,7 @@ import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.plugins.memory.LongPropertyState;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
-
-import static org.apache.jackrabbit.oak.api.Type.LONG;
-import static org.apache.jackrabbit.oak.api.Type.STRING;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 /**
  * TreeImplTest...
@@ -145,7 +143,6 @@ public class TreeImplTest {
         assertTrue(tree.hasChild("new"));
 
         root.commit();
-        tree = root.getTree("/");
 
         assertTrue(tree.hasChild("new"));
 
@@ -161,7 +158,6 @@ public class TreeImplTest {
         tree.addChild("new");
 
         root.commit();
-        tree = root.getTree("/");
 
         assertTrue(tree.hasChild("new"));
         Tree added = tree.addChild("new");
@@ -178,7 +174,6 @@ public class TreeImplTest {
         assertFalse(tree.hasChild("x"));
 
         root.commit();
-        tree = root.getTree("/");
 
         assertFalse(tree.hasChild("x"));
     }
@@ -207,7 +202,6 @@ public class TreeImplTest {
         assertEquals("value", property.getValue(STRING));
 
         root.commit();
-        tree = root.getTree("/");
 
         property = tree.getProperty("new");
         assertNotNull(property);
@@ -224,7 +218,6 @@ public class TreeImplTest {
         assertFalse(tree.hasProperty("a"));
 
         root.commit();
-        tree = root.getTree("/");
 
         assertFalse(tree.hasProperty("a"));
     }
@@ -270,12 +263,12 @@ public class TreeImplTest {
 
         tree.setProperty("P0", "V1");
         root.commit();
-        tree = root.getTree("/");
+
         assertTrue(tree.hasProperty("P0"));
 
         tree.removeProperty("P0");
         root.commit();
-        tree = root.getTree("/");
+
         assertFalse(tree.hasProperty("P0"));
     }
 
@@ -287,26 +280,24 @@ public class TreeImplTest {
         assertEquals(Tree.Status.NEW, tree.getChild("new").getStatus());
         root.commit();
 
-        tree = root.getTree("/");
         assertEquals(Tree.Status.EXISTING, tree.getChild("new").getStatus());
         Tree added = tree.getChild("new");
         added.addChild("another");
         assertEquals(Tree.Status.MODIFIED, tree.getChild("new").getStatus());
         root.commit();
 
-        tree = root.getTree("/");
         assertEquals(Tree.Status.EXISTING, tree.getChild("new").getStatus());
         tree.getChild("new").getChild("another").remove();
         assertEquals(Tree.Status.MODIFIED, tree.getChild("new").getStatus());
         root.commit();
 
-        tree = root.getTree("/");
         assertEquals(Tree.Status.EXISTING, tree.getChild("new").getStatus());
         assertNull(tree.getChild("new").getChild("another"));
 
         Tree x = root.getTree("/x");
         Tree y = x.addChild("y");
         x.remove();
+
         assertEquals(Status.DISCONNECTED, x.getStatus());
         assertEquals(Status.DISCONNECTED, y.getStatus());
     }
@@ -319,24 +310,22 @@ public class TreeImplTest {
         assertEquals(Tree.Status.NEW, tree.getPropertyStatus("new"));
         root.commit();
 
-        tree = root.getTree("/");
         assertEquals(Tree.Status.EXISTING, tree.getPropertyStatus("new"));
         tree.setProperty("new", "value2");
         assertEquals(Tree.Status.MODIFIED, tree.getPropertyStatus("new"));
         root.commit();
 
-        tree = root.getTree("/");
         assertEquals(Tree.Status.EXISTING, tree.getPropertyStatus("new"));
         tree.removeProperty("new");
         assertEquals(Tree.Status.DISCONNECTED, tree.getPropertyStatus("new"));
         root.commit();
 
-        tree = root.getTree("/");
         assertNull(tree.getPropertyStatus("new"));
 
         Tree x = root.getTree("/x");
         x.setProperty("y", "value1");
         x.remove();
+
         assertEquals(Status.DISCONNECTED, x.getPropertyStatus("y"));
     }
 
@@ -346,7 +335,6 @@ public class TreeImplTest {
         tree.addChild("one").addChild("two");
         root.commit();
 
-        tree = root.getTree("/");
         tree.getChild("one").getChild("two").addChild("three");
         assertEquals(Tree.Status.EXISTING, tree.getChild("one").getStatus());
         assertEquals(Tree.Status.MODIFIED, tree.getChild("one").getChild("two").getStatus());
@@ -355,22 +343,18 @@ public class TreeImplTest {
     @Test
     public void largeChildList() throws CommitFailedException {
         Tree tree = root.getTree("/");
-
         Set<String> added = new HashSet<String>();
 
-        tree.addChild("large");
-        tree = tree.getChild("large");
+        Tree large = tree.addChild("large");
         for (int c = 0; c < 10000; c++) {
             String name = "n" + c;
             added.add(name);
-            tree.addChild(name);
+            large.addChild(name);
         }
 
         root.commit();
-        tree = root.getTree("/");
-        tree = tree.getChild("large");
 
-        for (Tree child : tree.getChildren()) {
+        for (Tree child : large.getChildren()) {
             assertTrue(added.remove(child.getName()));
         }
 
@@ -388,12 +372,12 @@ public class TreeImplTest {
 
         tree.setOrderableChildren(true);
         root.commit();
-        tree = root.getTree("/").addChild("test");
+
         assertNotNull(((TreeImpl) tree).getNodeState().getProperty(TreeImpl.OAK_CHILD_ORDER));
 
         tree.setOrderableChildren(false);
         root.commit();
-        tree = root.getTree("/").addChild("test");
+
         assertNull(((TreeImpl) tree).getNodeState().getProperty(TreeImpl.OAK_CHILD_ORDER));
     }
 
@@ -414,31 +398,43 @@ public class TreeImplTest {
     }
 
     @Test
-    @Ignore("OAK-690")  // FIXME enable once OAK-690 is fixed
-    public void testInvalidTreeAccess() throws CommitFailedException {
-        Tree r = root.getTree("/");
+    public void testDisconnectAfterRefresh() {
         Tree x = root.getTree("/x");
+        x.setProperty("p", "any");
+        Tree xx = x.addChild("xx");
+        xx.setProperty("q", "any");
+
+        assertEquals(Status.MODIFIED, x.getStatus());
+        assertEquals(Status.NEW, x.getPropertyStatus("p"));
+        assertEquals(Status.NEW, xx.getStatus());
+        assertEquals(Status.NEW, xx.getPropertyStatus("q"));
 
         root.refresh();
 
-        try {
-            r.getChild("any");
-            fail("Expected IllegalStateException");
-        } catch (IllegalStateException expected) {}
-
-        try {
-            x.getChild("any");
-            fail("Expected IllegalStateException");
-        } catch (IllegalStateException expected) {}
-
-        try {
-            r.addChild("any");
-            fail("Expected IllegalStateException");
-        } catch (IllegalStateException expected) {}
-
-        try {
-            x.addChild("any");
-            fail("Expected IllegalStateException");
-        } catch (IllegalStateException expected) {}
+        assertEquals(Status.EXISTING, x.getStatus());
+        assertNull(x.getPropertyStatus("p"));
+        assertEquals(Status.DISCONNECTED, xx.getStatus());
+        assertEquals(Status.DISCONNECTED, xx.getPropertyStatus("q"));
     }
+
+    @Test
+    public void testDisconnectAfterRemove() {
+        Tree x = root.getTree("/x");
+        x.setProperty("p", "any");
+        Tree xx = x.addChild("xx");
+        xx.setProperty("q", "any");
+
+        assertEquals(Status.MODIFIED, x.getStatus());
+        assertEquals(Status.NEW, x.getPropertyStatus("p"));
+        assertEquals(Status.NEW, xx.getStatus());
+        assertEquals(Status.NEW, xx.getPropertyStatus("q"));
+
+        root.getTree("/x").remove();
+
+        assertEquals(Status.DISCONNECTED, x.getStatus());
+        assertEquals(Status.DISCONNECTED, x.getPropertyStatus("p"));
+        assertEquals(Status.DISCONNECTED, xx.getStatus());
+        assertEquals(Status.DISCONNECTED, xx.getPropertyStatus("q"));
+    }
+
 }

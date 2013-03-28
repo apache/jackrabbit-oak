@@ -31,9 +31,10 @@ import javax.annotation.Nonnull;
  * content session is closed. Any method called on an invalid root instance
  * will throw an {@code InvalidStateException}.
  * <p/>
- * All {@link Tree} instances acquired through a root become invalid upon call of
- * {@link #refresh()}, {@link #rebase()} or {@link #commit()}. Any access to invalid
- * tree instances - except for hierarchy related methods - will cause an
+ * {@link Tree} instances may become disconnected after a call to {@link #refresh()},
+ * {@link #rebase()} or {@link #commit()}. Any access to disconnected tree instances
+ * - except for  {@link Tree#getName()}, {@link Tree#isRoot()}, {@link Tree#getPath()},
+ * {@link Tree#getParent()} and {@link Tree#getStatus()} - will cause an
  * {@code InvalidStateException}.
  */
 public interface Root {
@@ -101,15 +102,14 @@ public interface Root {
 
     /**
      * Rebase this root instance to the latest revision. After a call to this method,
-     * all trees obtained through {@link #getTree(String)} become invalid and fresh
-     * instances must be obtained.
+     * trees obtained through {@link #getTree(String)} may become disconnected.
      */
     void rebase();
 
     /**
      * Reverts all changes made to this root and refreshed to the latest trunk.
-     * After a call to this method, all trees obtained through {@link #getTree(String)}
-     * become invalid and fresh instances must be obtained.
+     * After a call to this method, trees obtained through {@link #getTree(String)}
+     * may become disconnected.
      */
     void refresh();
 

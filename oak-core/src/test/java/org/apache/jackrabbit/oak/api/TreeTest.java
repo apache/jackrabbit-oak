@@ -18,6 +18,11 @@
  */
 package org.apache.jackrabbit.oak.api;
 
+import static org.apache.jackrabbit.oak.OakAssert.assertSequence;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import java.util.Set;
 
 import com.google.common.collect.Sets;
@@ -30,11 +35,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import static org.apache.jackrabbit.oak.OakAssert.assertSequence;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 /**
  * Contains tests related to {@link Tree}
@@ -78,25 +78,22 @@ public class TreeTest {
             t.addChild("node2");
             t.addChild("node3");
             r.commit();
-            t = r.getTree("/");
+
             t.getChild("node1").orderBefore("node2");
             t.getChild("node3").orderBefore(null);
             assertSequence(t.getChildren(), "node1", "node2", "node3");
             r.commit();
             // check again after commit
-            t = r.getTree("/");
             assertSequence(t.getChildren(), "node1", "node2", "node3");
 
             t.getChild("node3").orderBefore("node2");
             assertSequence(t.getChildren(), "node1", "node3", "node2");
             r.commit();
-            t = r.getTree("/");
             assertSequence(t.getChildren(), "node1", "node3", "node2");
 
             t.getChild("node1").orderBefore(null);
             assertSequence(t.getChildren(), "node3", "node2", "node1");
             r.commit();
-            t = r.getTree("/");
             assertSequence(t.getChildren(), "node3", "node2", "node1");
 
             // :childOrder property invisible?
@@ -117,7 +114,6 @@ public class TreeTest {
             t1.addChild("node2");
             t1.addChild("node3");
             r1.commit();
-            t1 = r1.getTree("/");
 
             ContentSession s2 = repository.login(null, null);
             try {
@@ -127,13 +123,11 @@ public class TreeTest {
                 t1.getChild("node2").orderBefore("node1");
                 t1.getChild("node3").orderBefore(null);
                 r1.commit();
-                t1 = r1.getTree("/");
                 assertSequence(t1.getChildren(), "node2", "node1", "node3");
 
                 t2.getChild("node3").orderBefore("node1");
                 t2.getChild("node2").orderBefore(null);
                 r2.commit();
-                t2 = r2.getTree("/");
                 // other session wins
                 assertSequence(t2.getChildren(), "node2", "node1", "node3");
 
@@ -141,7 +135,6 @@ public class TreeTest {
                 t2.getChild("node3").orderBefore("node1");
                 t2.getChild("node2").orderBefore(null);
                 r2.commit();
-                t2 = r2.getTree("/");
                 assertSequence(t2.getChildren(), "node3", "node1", "node2");
 
             } finally {
@@ -162,7 +155,6 @@ public class TreeTest {
             t1.addChild("node2");
             t1.addChild("node3");
             r1.commit();
-            t1 = r1.getTree("/");
 
             ContentSession s2 = repository.login(null, null);
             try {
@@ -173,19 +165,16 @@ public class TreeTest {
                 t1.getChild("node3").orderBefore(null);
                 t1.addChild("node4");
                 r1.commit();
-                t1 = r1.getTree("/");
                 assertSequence(t1.getChildren(), "node2", "node1", "node3", "node4");
 
                 t2.getChild("node3").orderBefore("node1");
                 r2.commit();
-                t2 = r2.getTree("/");
                 // other session wins
                 assertSequence(t2.getChildren(), "node2", "node1", "node3", "node4");
 
                 // try again on current root
                 t2.getChild("node3").orderBefore("node1");
                 r2.commit();
-                t2 = r2.getTree("/");
                 assertSequence(t2.getChildren(), "node2", "node3", "node1", "node4");
 
             } finally {
@@ -207,7 +196,6 @@ public class TreeTest {
             t1.addChild("node3");
             t1.addChild("node4");
             r1.commit();
-            t1 = r1.getTree("/");
 
             ContentSession s2 = repository.login(null, null);
             try {
@@ -218,19 +206,16 @@ public class TreeTest {
                 t1.getChild("node3").orderBefore(null);
                 t1.getChild("node4").remove();
                 r1.commit();
-                t1 = r1.getTree("/");
                 assertSequence(t1.getChildren(), "node2", "node1", "node3");
 
                 t2.getChild("node3").orderBefore("node1");
                 r2.commit();
-                t2 = r2.getTree("/");
                 // other session wins
                 assertSequence(t2.getChildren(), "node2", "node1", "node3");
 
                 // try again on current root
                 t2.getChild("node3").orderBefore("node1");
                 r2.commit();
-                t2 = r2.getTree("/");
                 assertSequence(t2.getChildren(), "node2", "node3", "node1");
 
             } finally {
@@ -252,7 +237,6 @@ public class TreeTest {
             t1.addChild("node3");
             t1.addChild("node4");
             r1.commit();
-            t1 = r1.getTree("/");
 
             ContentSession s2 = repository.login(null, null);
             try {
@@ -262,20 +246,17 @@ public class TreeTest {
                 t1.getChild("node2").orderBefore("node1");
                 t1.getChild("node3").orderBefore(null);
                 r1.commit();
-                t1 = r1.getTree("/");
                 assertSequence(t1.getChildren(), "node2", "node1", "node4", "node3");
 
                 t2.getChild("node3").orderBefore("node1");
                 t2.getChild("node4").remove();
                 r2.commit();
-                t2 = r2.getTree("/");
                 // other session wins wrt ordering, but node4 is gone
                 assertSequence(t2.getChildren(), "node2", "node1", "node3");
 
                 // try reorder again on current root
                 t2.getChild("node3").orderBefore("node1");
                 r2.commit();
-                t2 = r2.getTree("/");
                 assertSequence(t2.getChildren(), "node2", "node3", "node1");
 
             } finally {
@@ -296,7 +277,6 @@ public class TreeTest {
             t1.addChild("node2");
             t1.addChild("node3");
             r1.commit();
-            t1 = r1.getTree("/");
 
             ContentSession s2 = repository.login(null, null);
             try {
@@ -306,12 +286,10 @@ public class TreeTest {
                 t1.getChild("node2").orderBefore("node1");
                 t1.getChild("node3").remove();
                 r1.commit();
-                t1 = r1.getTree("/");
                 assertSequence(t1.getChildren(), "node2", "node1");
 
                 t2.getChild("node3").orderBefore("node1");
                 r2.commit();
-                t2 = r2.getTree("/");
                 assertSequence(t2.getChildren(), "node2", "node1");
 
             } finally {
@@ -332,7 +310,6 @@ public class TreeTest {
             t1.addChild("node2");
             t1.addChild("node3");
             r1.commit();
-            t1 = r1.getTree("/c");
 
             ContentSession s2 = repository.login(null, null);
             try {
@@ -343,12 +320,10 @@ public class TreeTest {
                 // now 'c' does not have ordered children anymore
                 r1.getTree("/").addChild("c");
                 r1.commit();
-                t1 = r1.getTree("/c");
                 assertSequence(t1.getChildren());
 
                 t2.getChild("node3").orderBefore("node1");
                 r2.commit();
-                t2 = r2.getTree("/c");
                 assertSequence(t2.getChildren());
 
             } finally {
@@ -370,7 +345,6 @@ public class TreeTest {
             t1.addChild("node3");
             t1.addChild("node4");
             r1.commit();
-            t1 = r1.getTree("/");
 
             ContentSession s2 = repository.login(null, null);
             try {
@@ -380,12 +354,10 @@ public class TreeTest {
                 t1.getChild("node2").orderBefore("node1");
                 t1.getChild("node3").remove();
                 r1.commit();
-                t1 = r1.getTree("/");
                 assertSequence(t1.getChildren(), "node2", "node1", "node4");
 
                 t2.getChild("node4").orderBefore("node3");
                 r2.commit();
-                t2 = r2.getTree("/");
                 assertSequence(t2.getChildren(), "node2", "node1", "node4");
 
             } finally {
@@ -487,7 +459,6 @@ public class TreeTest {
                 t1 = r1.getTree("/c");
                 t1.getChild("node2").orderBefore("node1");
                 r1.commit();
-                t1 = r1.getTree("/c");
                 assertSequence(t1.getChildren(), "node2", "node1");
 
                 t2.remove();

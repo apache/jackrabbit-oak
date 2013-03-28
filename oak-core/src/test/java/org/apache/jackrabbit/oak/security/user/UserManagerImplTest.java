@@ -16,10 +16,18 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
+import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertFalse;
+import static junit.framework.Assert.assertNotNull;
+import static junit.framework.Assert.assertTrue;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.fail;
+
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+
 import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
 
@@ -37,13 +45,6 @@ import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertFalse;
-import static junit.framework.Assert.assertNotNull;
-import static junit.framework.Assert.assertTrue;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.fail;
 
 /**
  * UserManagerImplTest...
@@ -158,28 +159,22 @@ public class UserManagerImplTest extends AbstractSecurityTest {
 
         NodeUtil folder = userNode.addChild("folder", UserConstants.NT_REP_AUTHORIZABLE_FOLDER);
         String path = folder.getTree().getPath();
-        try {
-            // authNode - authFolder -> create User
-            try {
-                Principal p = new PrincipalImpl("test2");
-                Authorizable a = userMgr.createUser(p.getName(), p.getName(), p, path);
-                root.commit();
 
-                fail("Users may not be nested.");
-            } catch (CommitFailedException e) {
-                // success
-            } finally {
-                root.refresh();
-                Authorizable a = userMgr.getAuthorizable("test2");
-                if (a != null) {
-                    a.remove();
-                    root.commit();
-                }
-            }
-        } finally {
-            root.refresh();
-            folder.getTree().remove();
+        // authNode - authFolder -> create User
+        try {
+            Principal p = new PrincipalImpl("test2");
+            Authorizable a = userMgr.createUser(p.getName(), p.getName(), p, path);
             root.commit();
+
+            fail("Users may not be nested.");
+        } catch (CommitFailedException e) {
+            // success
+        } finally {
+            Authorizable a = userMgr.getAuthorizable("test2");
+            if (a != null) {
+                a.remove();
+                root.commit();
+            }
         }
 
         NodeUtil someContent = userNode.addChild("mystuff", JcrConstants.NT_UNSTRUCTURED);
@@ -195,7 +190,6 @@ public class UserManagerImplTest extends AbstractSecurityTest {
             } catch (CommitFailedException e) {
                 // success
             } finally {
-                root.refresh();
                 Authorizable a = userMgr.getAuthorizable("test3");
                 if (a != null) {
                     a.remove();
