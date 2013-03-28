@@ -76,6 +76,7 @@ public class BenchmarkRunner {
             new UpdateManyChildNodesTest(),
             new TransientManyChildNodesTest(),
             new WikipediaImport(wikipedia.value(options)),
+            new CreateNodesBenchmark(),
             new ManyNodes(),
             ReadManyTest.linear("LinearReadEmpty", 1, ReadManyTest.EMPTY),
             ReadManyTest.linear("LinearReadFiles", 1, ReadManyTest.FILES),
