@@ -100,11 +100,6 @@ public class EmbeddedSolrServerProvider implements SolrServerProvider {
     @Override
     public SolrServer getSolrServer() throws Exception {
         // hack needed to let lucene SPIs work in an OSGi deploy
-//        Thread thread = Thread.currentThread();
-//        ClassLoader loader = thread.getContextClassLoader();
-//        thread.setContextClassLoader(Lucene40Codec.class.getClassLoader());
-//        thread.setContextClassLoader(loader);
-
         Codec.reloadCodecs(Thread.currentThread().getContextClassLoader());
 
         if (solrServer == null) {
@@ -130,8 +125,16 @@ public class EmbeddedSolrServerProvider implements SolrServerProvider {
         // try spawning a new Solr server using Jetty and connect to it via HTTP
 
         enableSolrCloud(solrHome, DEFAULT_CORE_NAME);
-        JettySolrRunner jettySolrRunner = new JettySolrRunner(solrHome, CONTEXT, solrHttpPort, "solrconfig.xml", "schema.xml", true);
-        jettySolrRunner.start(true);
+
+        ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+        Thread.currentThread().setContextClassLoader(JettySolrRunner.class.getClassLoader());
+
+        try {
+            JettySolrRunner jettySolrRunner = new JettySolrRunner(solrHome, CONTEXT, solrHttpPort, "solrconfig.xml", "schema.xml", true);
+            jettySolrRunner.start(true);
+        } finally {
+            Thread.currentThread().setContextClassLoader(classLoader);
+        }
         HttpSolrServer httpSolrServer = new HttpSolrServer(new StringBuilder(LOCAL_BASE_URL)
                 .append(':').append(solrHttpPort).append(CONTEXT).toString());
         if (OakSolrUtils.checkServerAlive(httpSolrServer)) {
@@ -147,6 +150,7 @@ public class EmbeddedSolrServerProvider implements SolrServerProvider {
         System.setProperty(SOLR_HOME_PROPERTY_NAME, solrHome);
         enableSolrCloud(solrHome, DEFAULT_CORE_NAME);
         CoreContainer.Initializer initializer = new CoreContainer.Initializer();
+
         EmbeddedSolrServer embeddedSolrServer = new EmbeddedSolrServer(initializer.initialize(), DEFAULT_CORE_NAME);
         if (OakSolrUtils.checkServerAlive(embeddedSolrServer)) {
             return embeddedSolrServer;
