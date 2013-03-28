@@ -22,7 +22,6 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import com.google.common.base.Strings;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
@@ -110,8 +109,8 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
         } else if (isAccessControlContent(tree) && canReadAccessControlContent(tree, property)) {
             // TODO: review if read-ac permission is never fine-granular
             return ReadStatus.ALLOW_ALL;
-        } else if (isVersionContent(tree) && canReadVersionContent(tree, property)) {
-            return ReadStatus.ALLOW_THIS;
+        } else if (isVersionContent(tree)) {
+            return getVersionContentReadStatus(tree, property);
         } else {
             return compiledPermissions.getReadStatus(tree, property);
         }
@@ -125,8 +124,16 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
     @Override
     public boolean isGranted(@Nonnull Tree tree, @Nullable PropertyState property, long permissions) {
         if (isVersionContent(tree)) {
-            String path = getVersionablePath(tree, property);
-            return path != null && compiledPermissions.isGranted(path, permissions);
+            TreeLocation location = getVersionableLocation(tree, property);
+            if (location == null) {
+                return false;
+            }
+            Tree versionableTree = (property == null) ? location.getTree() : location.getParent().getTree();
+            if (versionableTree != null) {
+                return compiledPermissions.isGranted(versionableTree, property, permissions);
+            } else {
+                return compiledPermissions.isGranted(location.getPath(), permissions);
+            }
         } else {
             return compiledPermissions.isGranted(tree, property, permissions);
         }
@@ -199,18 +206,29 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
         return ImmutableTree.TypeProvider.TYPE_VERSION == ImmutableTree.getType(tree);
     }
 
-    private boolean canReadVersionContent(@Nonnull Tree versionStoreTree, @Nullable PropertyState property) {
-        String versionablePath = getVersionablePath(versionStoreTree, property);
-        if (versionablePath != null) {
-            long permission = (property == null) ? Permissions.READ_NODE : Permissions.READ_PROPERTY;
-            return compiledPermissions.isGranted(versionablePath, permission);
+    private ReadStatus getVersionContentReadStatus(@Nonnull Tree versionStoreTree, @Nullable PropertyState property) {
+        TreeLocation location = getVersionableLocation(versionStoreTree, property);
+        ReadStatus status;
+        if (location != null) {
+            Tree tree = (property == null) ? location.getTree() : location.getParent().getTree();
+            if (tree == null) {
+                long permission = (property == null) ? Permissions.READ_NODE : Permissions.READ_PROPERTY;
+                if (compiledPermissions.isGranted(location.getPath(), permission)) {
+                    status = ReadStatus.ALLOW_THIS;
+                } else {
+                    status = ReadStatus.DENY_THIS;
+                }
+            } else {
+                status = compiledPermissions.getReadStatus(tree, property);
+            }
         } else {
-            return false;
+            status = ReadStatus.DENY_THIS;
         }
+        return status;
     }
 
     @CheckForNull
-    private String getVersionablePath(@Nonnull Tree versionStoreTree, @Nullable PropertyState property) {
+    private TreeLocation getVersionableLocation(@Nonnull Tree versionStoreTree, @Nullable PropertyState property) {
         String relPath = "";
         String propName = (property == null) ? "" : property.getName();
         String versionablePath = null;
@@ -232,7 +250,9 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
 
         if (versionablePath == null || versionablePath.length() == 0) {
             log.warn("Unable to determine path of the version controlled node.");
+            return null;
+        } else {
+            return getImmutableRoot().getLocation(versionablePath);
         }
-        return Strings.emptyToNull(versionablePath);
     }
 }
