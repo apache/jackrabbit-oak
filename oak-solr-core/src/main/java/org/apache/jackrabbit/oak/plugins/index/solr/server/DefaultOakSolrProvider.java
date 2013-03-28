@@ -57,20 +57,25 @@ public class DefaultOakSolrProvider implements SolrServerProvider, OakSolrConfig
         String coreName = oakSolrConfiguration.getCoreName();
         String solrConfigPath = oakSolrConfiguration.getSolrConfigPath();
 
-        checkSolrConfiguration(solrHomePath, solrConfigPath, coreName);
+        if (solrConfigPath != null && solrHomePath != null && coreName != null) {
 
-        ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-        Thread.currentThread().setContextClassLoader(CoreContainer.class.getClassLoader());
+            checkSolrConfiguration(solrHomePath, solrConfigPath, coreName);
 
-        CoreContainer coreContainer = new CoreContainer(solrHomePath);
-        try {
-            coreContainer.load(solrHomePath, new File(solrConfigPath));
-        } finally {
-            Thread.currentThread().setContextClassLoader(classLoader);
+            ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+            Thread.currentThread().setContextClassLoader(CoreContainer.class.getClassLoader());
+
+            CoreContainer coreContainer = new CoreContainer(solrHomePath);
+            try {
+                coreContainer.load(solrHomePath, new File(solrConfigPath));
+            } finally {
+                Thread.currentThread().setContextClassLoader(classLoader);
+            }
+
+            return new EmbeddedSolrServer(coreContainer, coreName);
         }
-
-
-        return new EmbeddedSolrServer(coreContainer, coreName);
+        else {
+            throw new Exception("SolrServer configuration proprties not set");
+        }
     }
 
     private void checkSolrConfiguration(String solrHomePath, String solrConfigPath, String coreName) throws IOException {
@@ -84,7 +89,7 @@ public class DefaultOakSolrProvider implements SolrServerProvider, OakSolrConfig
                 // copy all the needed files to the just created directory
                 copy("/solr/solr.xml", solrHomePath);
                 copy("/solr/zoo.cfg", solrHomePath);
-                if (!new File(solrHomePath + "/" + "oak").mkdir() || !new File(solrHomePath + "/" + "oak/conf/").mkdir()) {
+                if (!new File(solrHomePath + "/oak/conf").mkdirs()) {
                     throw new IOException("could not create nested core directory in solrHomePath");
                 }
                 String coreDir = solrHomePath + "/oak/conf/";

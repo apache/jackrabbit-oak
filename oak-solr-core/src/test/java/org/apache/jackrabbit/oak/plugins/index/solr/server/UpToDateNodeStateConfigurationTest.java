@@ -10,6 +10,7 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 
 /**
  * Testcase for {@link UpToDateNodeStateConfiguration}
@@ -28,17 +29,24 @@ public class UpToDateNodeStateConfigurationTest {
     }
 
     @Test
-    public void testPath() throws Exception {
+    public void testExistingPath() throws Exception {
         String path = "oak:index/solrIdx";
         UpToDateNodeStateConfiguration upToDateNodeStateConfiguration = new UpToDateNodeStateConfiguration(store, path);
-        assertEquals("cn", upToDateNodeStateConfiguration.getCoreName());
+        assertEquals("cn", upToDateNodeStateConfiguration.getCoreName()); // property defined in the node state
+        assertEquals("path_exact", upToDateNodeStateConfiguration.getPathField()); // using default as this property not defined in the node state
     }
 
     @Test
     public void testNonExistingPath() throws Exception {
         String path = "some/path/to/oak:index/solrIdx";
         UpToDateNodeStateConfiguration upToDateNodeStateConfiguration = new UpToDateNodeStateConfiguration(store, path);
-        assertNotNull(upToDateNodeStateConfiguration.getSolrConfigPath());
-        assertEquals("./solr.xml", upToDateNodeStateConfiguration.getSolrConfigPath());
+        assertNull(upToDateNodeStateConfiguration.getSolrConfigPath());
+    }
+
+    @Test
+    public void testNodeStateNotFound() throws Exception {
+        String path = "some/path/to/somewhere/unknown";
+        UpToDateNodeStateConfiguration upToDateNodeStateConfiguration = new UpToDateNodeStateConfiguration(store, path);
+        assertNull(upToDateNodeStateConfiguration.getConfigurationNodeState());
     }
 }
