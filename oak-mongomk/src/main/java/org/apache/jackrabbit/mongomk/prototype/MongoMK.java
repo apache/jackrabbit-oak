@@ -349,18 +349,15 @@ public class MongoMK implements MicroKernel {
         // check commit root
         @SuppressWarnings("unchecked")
         Map<String, Integer> commitRoot = (Map<String, Integer>) nodeMap.get(UpdateOp.COMMIT_ROOT);
-        String commitRootId = null;
+        String commitRootPath = null;
         if (commitRoot != null) {
             Integer depth = commitRoot.get(rev.toString());
             if (depth != null) {
                 String p = Utils.getPathFromId((String) nodeMap.get(UpdateOp.ID));
-                StringBuilder sb = new StringBuilder();
-                sb.append(depth).append(":");
-                sb.append(PathUtils.getAncestorPath(p, PathUtils.getDepth(p) - depth));
-                commitRootId = sb.toString();
+                commitRootPath = PathUtils.getAncestorPath(p, PathUtils.getDepth(p) - depth);
             }
         }
-        if (commitRootId == null) {
+        if (commitRootPath == null) {
             // shouldn't happen, either node is commit root for a revision
             // or has a reference to the commit root
             log.warn("Node {} does not have commit root reference for revision {}",
@@ -369,7 +366,7 @@ public class MongoMK implements MicroKernel {
             return false;
         }
         // get root of commit
-        nodeMap = store.find(DocumentStore.Collection.NODES, commitRootId);
+        nodeMap = store.find(DocumentStore.Collection.NODES, Utils.getIdFromPath(commitRootPath));
         if (nodeMap == null) {
             return false;
         }
