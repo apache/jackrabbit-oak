@@ -1253,7 +1253,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         return perform(new ItemReadOperation<NodeIterator>() {
             @Override
             protected NodeIterator perform() {
-                return new NodeIteratorAdapter(ImmutableSet.of(this));
+                return new NodeIteratorAdapter(ImmutableSet.of(NodeImpl.this));
             }
         });
     }
