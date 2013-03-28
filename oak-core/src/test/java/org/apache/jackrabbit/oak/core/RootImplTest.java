@@ -126,7 +126,7 @@ public class RootImplTest {
         root.move("/z", "/x/z");
         root.getTree("/x/z").remove();
 
-        assertEquals(Status.DISCONNECTED, z.getStatus());
+        assertFalse(z.isConnected());
 
         x.addChild("z");
         assertEquals(Status.EXISTING, z.getStatus());

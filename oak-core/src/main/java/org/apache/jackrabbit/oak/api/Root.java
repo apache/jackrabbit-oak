@@ -34,7 +34,7 @@ import javax.annotation.Nonnull;
  * {@link Tree} instances may become disconnected after a call to {@link #refresh()},
  * {@link #rebase()} or {@link #commit()}. Any access to disconnected tree instances
  * - except for  {@link Tree#getName()}, {@link Tree#isRoot()}, {@link Tree#getPath()},
- * {@link Tree#getParent()} and {@link Tree#getStatus()} - will cause an
+ * {@link Tree#getParent()} and {@link Tree#isConnected()} - will cause an
  * {@code InvalidStateException}.
  */
 public interface Root {

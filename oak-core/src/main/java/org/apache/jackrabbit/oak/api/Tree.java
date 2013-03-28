@@ -59,8 +59,8 @@ import javax.annotation.Nullable;
  * <p/>
  * {@link Tree} instances may become disconnected after a call to {@link Root#refresh()},
  * {@link Root#rebase()} or {@link Root#commit()}. Any access to disconnected tree instances
- * - except for  {@link Tree#getName()}, {@link Tree#isRoot()}, {@link Tree#getPath()},
- * {@link Tree#getParent()} and {@link Tree#getStatus()} - will cause an
+ * - except for {@link Tree#getName()}, {@link Tree#isRoot()}, {@link Tree#getPath()},
+ * {@link Tree#getParent()} and {@link Tree#isConnected()} - will cause an
  * {@code InvalidStateException}.
  */
 public interface Tree {
@@ -83,12 +83,7 @@ public interface Tree {
          * Item is modified: has added or removed children or added, removed or modified
          * properties.
          */
-        MODIFIED,
-
-        /**
-         * Item is removed or has become disconnected otherwise (e.g. caused by a refresh).
-         */
-        DISCONNECTED
+        MODIFIED
     }
 
     /**
@@ -115,6 +110,13 @@ public interface Tree {
      */
     @Nonnull
     Status getStatus();
+
+    /**
+     * Determine whether this tree has been removed or has become disconnected otherwise
+     * (e.g. caused by a refresh, rebase or commit).
+     * @return {@code false} if this tree has been disconnected and {@code true} otherwise.
+     */
+    boolean isConnected();
 
     /**
      * @return the current location
