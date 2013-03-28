@@ -59,8 +59,17 @@ public class DefaultOakSolrProvider implements SolrServerProvider, OakSolrConfig
 
         checkSolrConfiguration(solrHomePath, solrConfigPath, coreName);
 
+        ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+        Thread.currentThread().setContextClassLoader(CoreContainer.class.getClassLoader());
+
         CoreContainer coreContainer = new CoreContainer(solrHomePath);
-        coreContainer.load(solrHomePath, new File(solrConfigPath));
+        try {
+            coreContainer.load(solrHomePath, new File(solrConfigPath));
+        } finally {
+            Thread.currentThread().setContextClassLoader(classLoader);
+        }
+
+
         return new EmbeddedSolrServer(coreContainer, coreName);
     }
 

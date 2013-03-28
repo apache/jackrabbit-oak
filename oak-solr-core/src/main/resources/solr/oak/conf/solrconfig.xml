@@ -27,7 +27,7 @@
   <dataDir>${solr.data.dir:}</dataDir>
 
   <directoryFactory name="DirectoryFactory"
-                    class="${solr.directoryFactory:solr.NRTCachingDirectoryFactory}"/>
+                    class="${solr.directoryFactory:solr.MMapDirectoryFactory}"/>
 
 
   <indexConfig>
@@ -78,7 +78,7 @@
 
     <useColdSearcher>true</useColdSearcher>
 
-    <maxWarmingSearchers>10</maxWarmingSearchers>
+    <maxWarmingSearchers>2</maxWarmingSearchers>
 
   </query>
 
