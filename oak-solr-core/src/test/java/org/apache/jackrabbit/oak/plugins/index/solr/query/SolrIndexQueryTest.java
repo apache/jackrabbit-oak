@@ -23,8 +23,6 @@ import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.index.solr.OakSolrConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.TestUtils;
-import org.apache.jackrabbit.oak.plugins.index.solr.server.OakSolrNodeStateConfiguration;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.query.JsopUtil;
@@ -42,7 +40,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
- * General query extensive testcase for {@link org.apache.jackrabbit.oak.plugins.index.solr.query.SolrQueryIndex} and {@link org.apache.jackrabbit.oak.plugins.index.solr.index.SolrIndexDiff}
+ * General query extensive testcase for {@link SolrQueryIndex} and {@link
+ * org.apache.jackrabbit.oak.plugins.index.solr.index.SolrIndexDiff}
  */
 public class SolrIndexQueryTest extends AbstractQueryTest {
 
@@ -83,7 +82,6 @@ public class SolrIndexQueryTest extends AbstractQueryTest {
     }
 
     @Test
-    @Ignore("failing")
     public void sql2() throws Exception {
         test("sql2.txt");
     }

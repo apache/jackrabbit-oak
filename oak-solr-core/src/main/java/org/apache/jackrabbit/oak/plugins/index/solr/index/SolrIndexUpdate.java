@@ -63,8 +63,8 @@ public class SolrIndexUpdate implements Closeable {
 
     public void insert(String path, NodeBuilder value) {
         Preconditions.checkArgument(path.startsWith(this.path));
-        if (!insert.containsKey(path)) {
-            String key = path.substring(this.path.length());
+        String key = path.substring(this.path.length());
+        if (!insert.containsKey(key)) {
             if ("".equals(key)) {
                 key = "/";
             }
