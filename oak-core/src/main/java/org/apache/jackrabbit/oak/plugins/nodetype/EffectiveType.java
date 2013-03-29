@@ -28,6 +28,7 @@ import java.util.List;
 import javax.annotation.Nonnull;
 import javax.jcr.nodetype.ConstraintViolationException;
 
+import com.google.common.base.Joiner;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -212,9 +213,8 @@ class EffectiveType {
         }
 
         throw new ConstraintViolationException(
-                "Incorrect node type of child node " + nodeName);
+                "Incorrect node type of child node " + nodeName + " (" + Joiner.on(",").join(nodeType) + ')');
     }
-
 
     //-----------------------------------------------------------< private >--
     
