@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.namepath;
 /**
  * TODO document
  */
-public class JcrPathParser {
+public final class JcrPathParser {
 
     // constants for parser
     private static final int STATE_PREFIX_START = 0;

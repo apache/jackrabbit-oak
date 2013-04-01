@@ -27,7 +27,7 @@ import org.apache.jackrabbit.util.XMLChar;
  * In case of failure {@link Listener#error(String)} is called indicating
  * the reason.
  */
-public class JcrNameParser {
+public final class JcrNameParser {
 
     // constants for parser
     private static final int STATE_PREFIX_START = 0;

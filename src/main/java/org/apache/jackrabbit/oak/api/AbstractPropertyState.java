@@ -18,15 +18,13 @@
  */
 package org.apache.jackrabbit.oak.api;
 
-import javax.jcr.PropertyType;
-
-import com.google.common.collect.Iterables;
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Type;
-
 import static org.apache.jackrabbit.oak.api.Type.BINARIES;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+
+import javax.jcr.PropertyType;
+
+import com.google.common.collect.Iterables;
 
 /**
  * Abstract base class for {@link PropertyState} implementations. This
