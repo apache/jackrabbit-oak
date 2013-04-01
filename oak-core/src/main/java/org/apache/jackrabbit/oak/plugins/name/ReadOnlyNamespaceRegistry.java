@@ -40,7 +40,7 @@ public abstract class ReadOnlyNamespaceRegistry
     /**
      * Called by the {@link NamespaceRegistry} implementation methods
      * to acquire a root {@link Tree} instance from which to read the
-     * namespace mappings (under <code>jcr:system/rep:namespaces</code>).
+     * namespace mappings (under {@code jcr:system/rep:namespaces}).
      *
      * @return root {@link Tree} for reading the namespace mappings
      */

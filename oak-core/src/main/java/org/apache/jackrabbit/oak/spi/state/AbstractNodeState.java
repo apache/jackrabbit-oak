@@ -18,15 +18,14 @@ package org.apache.jackrabbit.oak.spi.state;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import org.apache.jackrabbit.oak.api.PropertyState;
-
-import com.google.common.base.Function;
-import com.google.common.collect.Iterables;
-
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import com.google.common.base.Function;
+import com.google.common.collect.Iterables;
+import org.apache.jackrabbit.oak.api.PropertyState;
 
 /**
  * Abstract base class for {@link NodeState} implementations.
@@ -202,7 +201,7 @@ public abstract class AbstractNodeState implements NodeState {
     }
 
     /**
-     * Compares the properties of <code>base</code> state with <code>this</code>
+     * Compares the properties of {@code base} state with {@code this}
      * state.
      *
      * @param base the base node state.

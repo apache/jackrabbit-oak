@@ -20,7 +20,7 @@ import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.api.PropertyState;
 
 /**
- * <code>RebaseDiff</code> implements a {@link NodeStateDiff}, which performs
+ * {@code RebaseDiff} implements a {@link NodeStateDiff}, which performs
  * the conflict handling as defined in {@link MicroKernel#rebase(String, String)}
  * on the Oak SPI state level.
  * <p/>
@@ -34,10 +34,10 @@ import org.apache.jackrabbit.oak.api.PropertyState;
  *     + base
  *     |
  * </pre>
- * The current state on the master branch is <code>head</code> and a branch
- * was created at <code>base</code>. The current state on the branch is
- * <code>branch</code>. Re-basing <code>branch</code> to the current
- * <code>head</code> works as follows:
+ * The current state on the master branch is {@code head} and a branch
+ * was created at {@code base}. The current state on the branch is
+ * {@code branch}. Re-basing {@code branch} to the current
+ * {@code head} works as follows:
  * <pre>
  *     NodeState head = ...
  *     NodeState branch = ...

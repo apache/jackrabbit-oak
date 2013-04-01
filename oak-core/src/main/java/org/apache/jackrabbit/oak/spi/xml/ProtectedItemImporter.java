@@ -26,7 +26,7 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 /**
  * Base interface for {@link ProtectedNodeImporter} and {@link ProtectedPropertyImporter}.
  */
-public abstract interface ProtectedItemImporter {
+public interface ProtectedItemImporter {
 
     /**
      * Initializes the importer.

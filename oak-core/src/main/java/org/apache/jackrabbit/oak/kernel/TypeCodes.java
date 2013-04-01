@@ -16,19 +16,19 @@
  */
 package org.apache.jackrabbit.oak.kernel;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 
 import javax.jcr.PropertyType;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 /**
  * TypeCodes maps between {@code Type} and the code used to prefix
  * its json serialisation.
  */
-public class TypeCodes {
+public final class TypeCodes {
     private static final Map<Integer, String> TYPE2CODE = new HashMap<Integer, String>();
     private static final Map<String, Integer> CODE2TYPE = new HashMap<String, Integer>();
 

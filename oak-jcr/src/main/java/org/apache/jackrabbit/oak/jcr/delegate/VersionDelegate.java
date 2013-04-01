@@ -16,14 +16,14 @@
  */
 package org.apache.jackrabbit.oak.jcr.delegate;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.Tree;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 /**
- * <code>VersionDelegate</code>...
+ * {@code VersionDelegate}...
  */
 public class VersionDelegate extends NodeDelegate {
 
