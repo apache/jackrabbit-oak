@@ -77,9 +77,9 @@ public class RootImpl implements Root {
      */
     private final NodeStore store;
 
-    private final String workspaceName;
-
     private final CommitHook hook;
+
+    private final String workspaceName;
 
     private final Subject subject;
 
@@ -88,17 +88,17 @@ public class RootImpl implements Root {
     private final QueryIndexProvider indexProvider;
 
     /**
+     * Current root {@code Tree}
+     */
+    private final TreeImpl rootTree;
+
+    /**
      * Current branch this root operates on
      */
     private NodeStoreBranch branch;
 
     /** Sentinel for the next move operation to take place on the this root */
     private Move lastMove = new Move();
-
-    /**
-     * Current root {@code Tree}
-     */
-    private TreeImpl rootTree;
 
     /**
      * Number of {@link #updated} occurred so since the last
