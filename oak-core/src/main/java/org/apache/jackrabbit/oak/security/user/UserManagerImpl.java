@@ -71,6 +71,7 @@ public class UserManagerImpl implements UserManager {
     private final List<AuthorizableAction> authorizableActions;
 
     private UserQueryManager queryManager;
+    private ReadOnlyNodeTypeManager ntMgr;
 
     public UserManagerImpl(Root root, NamePathMapper namePathMapper, SecurityProvider securityProvider) {
         this.root = root;
@@ -278,15 +279,6 @@ public class UserManagerImpl implements UserManager {
     }
 
     //--------------------------------------------------------------------------
-    @Nonnull
-    Tree getAuthorizableTree(String id) {
-        Tree tree = userProvider.getAuthorizable(id);
-        if (tree == null) {
-            throw new IllegalStateException("Authorizable not associated with an existing tree (WAITING FOR OAK-343 TO BE FIXED)");
-        }
-        return tree;
-    }
-
     @CheckForNull
     Authorizable getAuthorizable(Tree tree) throws RepositoryException {
         if (tree == null) {
@@ -296,13 +288,16 @@ public class UserManagerImpl implements UserManager {
     }
 
     @Nonnull
-    AuthorizableProperties getAuthorizableProperties(String id) throws RepositoryException {
-        return new AuthorizablePropertiesImpl(id, this, ReadOnlyNodeTypeManager.getInstance(root, NamePathMapper.DEFAULT));
+    NamePathMapper getNamePathMapper() {
+        return namePathMapper;
     }
 
     @Nonnull
-    NamePathMapper getNamePathMapper() {
-        return namePathMapper;
+    ReadOnlyNodeTypeManager getNodeTypeManager() {
+        if (ntMgr == null) {
+            ntMgr = ReadOnlyNodeTypeManager.getInstance(root, NamePathMapper.DEFAULT);
+        }
+        return ntMgr;
     }
 
     @Nonnull
