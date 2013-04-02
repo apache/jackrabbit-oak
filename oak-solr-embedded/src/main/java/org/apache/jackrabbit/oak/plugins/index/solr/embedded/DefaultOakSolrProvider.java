@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.index.solr.server;
+package org.apache.jackrabbit.oak.plugins.index.solr.embedded;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -72,8 +72,7 @@ public class DefaultOakSolrProvider implements SolrServerProvider, OakSolrConfig
             }
 
             return new EmbeddedSolrServer(coreContainer, coreName);
-        }
-        else {
+        } else {
             throw new Exception("SolrServer configuration proprties not set");
         }
     }

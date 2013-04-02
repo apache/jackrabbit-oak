@@ -145,12 +145,6 @@
       <artifactId>lucene-core</artifactId>
       <version>${solr.version}</version>
     </dependency>
-    <dependency>
-      <groupId>org.apache.lucene</groupId>
-      <artifactId>lucene-codecs</artifactId>
-      <version>${solr.version}</version>
-    </dependency>
-
 
     <dependency>
       <groupId>org.apache.felix</groupId>
@@ -307,6 +301,12 @@
       <artifactId>commons-codec</artifactId>
       <version>1.7</version>
       <scope>runtime</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <scope>test</scope>
     </dependency>
 
   </dependencies>

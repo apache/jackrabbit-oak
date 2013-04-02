@@ -42,7 +42,7 @@ import org.xml.sax.SAXException;
 /**
  * {@link SolrServerProvider} which (spawns if needed and) exposes an embedded Solr server
  */
-@Component(metatype = true, immediate = true)
+@Component
 @Service(SolrServerProvider.class)
 public class EmbeddedSolrServerProvider implements SolrServerProvider {
 
