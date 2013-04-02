@@ -47,6 +47,7 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
     private static final Logger log = LoggerFactory.getLogger(AuthorizableImpl.class);
 
     private final String id;
+    private final Tree tree;
     private final String principalName;
     private final UserManagerImpl userManager;
 
@@ -58,6 +59,7 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
         checkValidTree(tree);
 
         this.id = id;
+        this.tree = tree;
         this.userManager = userManager;
 
         PropertyState pNameProp = tree.getProperty(REP_PRINCIPAL_NAME);
@@ -179,7 +181,11 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
     //--------------------------------------------------------------------------
     @Nonnull
     Tree getTree() {
-        return userManager.getAuthorizableTree(id);
+        if (tree.isConnected()) {
+            return tree;
+        } else {
+            throw new IllegalStateException("Authorizable " + id + ": underlying tree has been disconnected.");
+        }
     }
 
     @Nonnull
@@ -218,11 +224,10 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants {
      * Retrieve authorizable properties for property related operations.
      *
      * @return The authorizable properties for this user/group.
-     * @throws RepositoryException If an error occurs.
      */
-    private AuthorizableProperties getAuthorizableProperties() throws RepositoryException {
+    private AuthorizableProperties getAuthorizableProperties() {
         if (properties == null) {
-            properties = userManager.getAuthorizableProperties(id);
+            properties = new AuthorizablePropertiesImpl(this);
         }
         return properties;
     }
