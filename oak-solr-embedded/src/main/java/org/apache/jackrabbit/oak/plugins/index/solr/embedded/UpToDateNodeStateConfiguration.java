@@ -14,24 +14,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.index.solr.server;
+package org.apache.jackrabbit.oak.plugins.index.solr.embedded;
 
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 /**
- * A {@link OakSolrNodeStateConfiguration} whose {@link NodeState} is given once
- * and never updated so that the configuration is fixed.
+ * A {@link OakSolrNodeStateConfiguration} whose {@link org.apache.jackrabbit.oak.spi.state.NodeState} is retrieved
+ * via the {@link org.apache.jackrabbit.oak.spi.state.NodeStore} and a given <code>String</code> path.
  */
-public class FixedNodeStateConfiguration extends OakSolrNodeStateConfiguration {
+public class UpToDateNodeStateConfiguration extends OakSolrNodeStateConfiguration {
 
-    private final NodeState configurationNodeState;
+    private final NodeStore store;
+    private final String path;
 
-    public FixedNodeStateConfiguration(NodeState configurationNodeState) {
-        this.configurationNodeState = configurationNodeState;
+    public UpToDateNodeStateConfiguration(NodeStore store, String path) {
+        this.store = store;
+        this.path = path;
     }
 
     @Override
     protected NodeState getConfigurationNodeState() {
-        return configurationNodeState;
+        NodeState currentState = store.getRoot();
+        for (String child : path.split("/")) {
+            currentState = currentState.getChildNode(child);
+            if (currentState == null) {
+                break;
+            }
+        }
+        return currentState;
     }
 }

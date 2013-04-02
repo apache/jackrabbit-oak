@@ -1,5 +1,5 @@
 
-package org.apache.jackrabbit.oak.plugins.index.solr.server;
+package org.apache.jackrabbit.oak.plugins.index.solr.embedded;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
@@ -9,11 +9,10 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
 /**
- * Testcase for {@link UpToDateNodeStateConfiguration}
+ * Testcase for {@link org.apache.jackrabbit.oak.plugins.index.solr.server.UpToDateNodeStateConfiguration}
  */
 public class UpToDateNodeStateConfigurationTest {
 
