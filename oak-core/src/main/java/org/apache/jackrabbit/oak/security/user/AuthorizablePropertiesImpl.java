@@ -52,15 +52,10 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
 
     private static final Logger log = LoggerFactory.getLogger(AuthorizablePropertiesImpl.class);
 
-    private final UserManagerImpl userManager;
-    private final String id;
-    private final ReadOnlyNodeTypeManager nodeTypeManager;
+    private final AuthorizableImpl authorizable;
 
-    AuthorizablePropertiesImpl(String id, UserManagerImpl userManager,
-                               ReadOnlyNodeTypeManager nodeTypeManager) {
-        this.userManager = userManager;
-        this.id = id;
-        this.nodeTypeManager = nodeTypeManager;
+    AuthorizablePropertiesImpl(AuthorizableImpl authorizable) {
+        this.authorizable = authorizable;
     }
 
     //---------------------------------------------< AuthorizableProperties >---
@@ -106,7 +101,7 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
         Value[] values = null;
         PropertyState property = getAuthorizableProperty(tree, getLocation(tree, relPath), true);
         if (property != null) {
-            NamePathMapper npMapper = userManager.getNamePathMapper();
+            NamePathMapper npMapper = authorizable.getUserManager().getNamePathMapper();
             if (property.isArray()) {
                 List<Value> vs = ValueFactoryImpl.createValues(property, npMapper);
                 values = vs.toArray(new Value[vs.size()]);
@@ -184,7 +179,7 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
     //------------------------------------------------------------< private >---
     @Nonnull
     private Tree getTree() {
-        return userManager.getAuthorizableTree(id);
+        return authorizable.getTree();
     }
 
     /**
@@ -243,6 +238,7 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
             log.debug("Unable to determine definition of authorizable property at " + propertyLocation.getPath());
             return null;
         }
+        ReadOnlyNodeTypeManager nodeTypeManager = authorizable.getUserManager().getNodeTypeManager();
         PropertyDefinition def = nodeTypeManager.getDefinition(parent, property, true);
         if (def.isProtected() || (authorizablePath.equals(parent.getPath())
                 && !def.getDeclaringNodeType().isNodeType(UserConstants.NT_REP_AUTHORIZABLE))) {
@@ -253,8 +249,8 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
     }
 
     private void checkProtectedProperty(Tree parent, PropertyState property) throws RepositoryException {
-        PropertyDefinition def =
-                nodeTypeManager.getDefinition(parent, property, false);
+        ReadOnlyNodeTypeManager nodeTypeManager = authorizable.getUserManager().getNodeTypeManager();
+        PropertyDefinition def = nodeTypeManager.getDefinition(parent, property, false);
         if (def.isProtected()) {
             throw new ConstraintViolationException(
                     "Attempt to set an protected property " + property.getName());
