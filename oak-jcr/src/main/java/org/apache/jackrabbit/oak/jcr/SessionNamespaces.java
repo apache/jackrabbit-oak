@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Locale;
@@ -29,6 +30,8 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
 import org.apache.jackrabbit.util.XMLChar;
+
+import com.google.common.collect.Maps;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -56,9 +59,8 @@ class SessionNamespaces {
 
     private final SessionContext sessionContext;
 
-    SessionNamespaces(@Nonnull Map<String, String> namespaces,
-                      @Nonnull SessionContext sessionContext) {
-        this.namespaces = checkNotNull(namespaces);
+    SessionNamespaces(@Nonnull SessionContext sessionContext) {
+        this.namespaces = Maps.newHashMap();
         this.sessionContext = checkNotNull(sessionContext);
     }
 
@@ -192,10 +194,25 @@ class SessionNamespaces {
     }
 
     /**
+     * @return the session local namespaces that were remapped.
+     */
+    public Map<String, String> getSessionLocalMappings() {
+        synchronized (namespaces) {
+            if (namespaces.isEmpty()) {
+                return Collections.emptyMap();
+            } else {
+                return new HashMap<String, String>(namespaces);
+            }
+        }
+    }
+
+    /**
      * Clears the re-mapped namespaces map.
      */
     void clear() {
-        namespaces.clear();
+        synchronized (namespaces) {
+            namespaces.clear();
+        }
     }
 
     private NamespaceRegistry getNamespaceRegistry()

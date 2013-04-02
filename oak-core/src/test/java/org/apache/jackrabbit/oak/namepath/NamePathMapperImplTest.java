@@ -47,10 +47,15 @@ public class NamePathMapperImplTest {
             "foo", "http://www.example.com/foo",
             "quu", "http://www.example.com/quu");
 
-    private NameMapper mapper = new LocalNameMapper(LOCAL) {
+    private NameMapper mapper = new LocalNameMapper() {
         @Override
         protected Map<String, String> getNamespaceMap() {
             return GLOBAL;
+        }
+
+        @Override
+        protected Map<String, String> getSessionLocalMappings() {
+            return LOCAL;
         }
     };
 

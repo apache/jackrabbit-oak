@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.jcr;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.Map;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -73,12 +72,9 @@ public class SessionImpl implements JackrabbitSession {
     private final SessionContext sessionContext;
     private final SessionDelegate sd;
 
-    private final SessionNamespaces namespaces;
-
-    SessionImpl(SessionContext sessionContext, Map<String, String> namespaces) {
+    SessionImpl(SessionContext sessionContext) {
         this.sessionContext = sessionContext;
         this.sd = sessionContext.getSessionDelegate();
-        this.namespaces = new SessionNamespaces(namespaces, sessionContext);
     }
 
     static void checkProtectedNodes(Session session, String... absJcrPaths) throws RepositoryException {
@@ -398,7 +394,6 @@ public class SessionImpl implements JackrabbitSession {
         if (sd.isAlive()) {
             sessionContext.dispose();
             sd.logout();
-            namespaces.clear();
         }
     }
 
@@ -586,22 +581,22 @@ public class SessionImpl implements JackrabbitSession {
 
     @Override
     public void setNamespacePrefix(String prefix, String uri) throws RepositoryException {
-        namespaces.setNamespacePrefix(prefix, uri);
+        sessionContext.getNamespaces().setNamespacePrefix(prefix, uri);
     }
 
     @Override
     public String[] getNamespacePrefixes() throws RepositoryException {
-        return namespaces.getNamespacePrefixes();
+        return sessionContext.getNamespaces().getNamespacePrefixes();
     }
 
     @Override
     public String getNamespaceURI(String prefix) throws RepositoryException {
-        return namespaces.getNamespaceURI(prefix);
+        return sessionContext.getNamespaces().getNamespaceURI(prefix);
     }
 
     @Override
     public String getNamespacePrefix(String uri) throws RepositoryException {
-        return namespaces.getNamespacePrefix(uri);
+        return sessionContext.getNamespaces().getNamespacePrefix(uri);
     }
 
     //--------------------------------------------------< JackrabbitSession >---
