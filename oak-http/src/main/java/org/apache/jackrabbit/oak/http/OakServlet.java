@@ -80,8 +80,11 @@ public class OakServlet extends HttpServlet {
                 while (tree == null) {
                     int slash = head.lastIndexOf('/');
                     tail = head.substring(slash) + tail;
-                    head = head.substring(0, slash - 1);
-                    tree = root.getTree(tail);
+                    head = head.substring(0, slash);
+                    if (head.isEmpty()){
+                    	head="/";
+                    }
+                    tree = root.getTree(head);
                 }
                 request.setAttribute("tree", tree);
                 request.setAttribute("path", tail);
