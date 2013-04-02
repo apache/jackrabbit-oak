@@ -106,7 +106,7 @@ public abstract class TargetImportHandler extends DefaultHandler {
     //--------------------------------------------------------
 
     public NamePathMapper currentNamePathMapper() {
-        return new NamePathMapperImpl(new LocalNameMapper(documentPrefixMap) {
+        return new NamePathMapperImpl(new LocalNameMapper() {
             @Override
             protected Map<String, String> getNamespaceMap() {
                 try {
@@ -114,6 +114,11 @@ public abstract class TargetImportHandler extends DefaultHandler {
                 } catch (RepositoryException e) {
                     return Collections.emptyMap();
                 }
+            }
+
+            @Override
+            protected Map<String, String> getSessionLocalMappings() {
+                return documentPrefixMap;
             }
         });
     }

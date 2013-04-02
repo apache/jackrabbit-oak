@@ -35,29 +35,35 @@ public final class TestNameMapper extends LocalNameMapper {
     public static final Map<String, String> LOCAL_MAPPING = Collections.singletonMap(TEST_LOCAL_PREFIX, TEST_URI);
 
     private final Map<String, String> global;
+    private final Map<String, String> local;
 
     public TestNameMapper() {
-        super(LOCAL_MAPPING);
         this.global = Collections.singletonMap(TEST_PREFIX, TEST_URI);
+        this.local = LOCAL_MAPPING;
     }
 
     public TestNameMapper(Map<String, String> global, Map<String, String> local) {
-        super(local);
         this.global = global;
+        this.local = local;
     }
 
     public TestNameMapper(Map<String, String> global) {
-        super(global);
         this.global = global;
+        this.local = global;
     }
 
     public TestNameMapper(TestNameMapper base, Map<String, String> local) {
-        super(local);
         this.global = base.global;
+        this.local = local;
     }
 
     @Override
     protected Map<String, String> getNamespaceMap() {
         return global;
+    }
+
+    @Override
+    protected Map<String, String> getSessionLocalMappings() {
+        return local;
     }
 }

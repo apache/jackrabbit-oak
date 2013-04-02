@@ -36,11 +36,9 @@ import javax.jcr.observation.ObservationManager;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.version.VersionManager;
 
-import com.google.common.collect.Maps;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.UserManager;
-import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.namepath.LocalNameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -64,6 +62,7 @@ import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 public abstract class SessionContext implements NamePathMapper {
     private final RepositoryImpl repository;
     private final SessionDelegate delegate;
+    private final SessionNamespaces namespaces;
     private final NamePathMapper namePathMapper;
     private final ValueFactory valueFactory;
 
@@ -74,31 +73,31 @@ public abstract class SessionContext implements NamePathMapper {
     private PrivilegeManager privilegeManager;
     private ObservationManagerImpl observationManager;
 
-    private SessionContext(RepositoryImpl repository, SessionDelegate delegate,
-            NamePathMapper namePathMapper, ValueFactory valueFactory) {
+    private SessionContext(RepositoryImpl repository,
+                           final SessionDelegate delegate) {
         this.delegate = delegate;
         this.repository = repository;
-        this.namePathMapper = namePathMapper;
-        this.valueFactory = valueFactory;
+        this.namespaces = new SessionNamespaces(this);
+        LocalNameMapper nameMapper = new LocalNameMapper() {
+            @Override
+            protected Map<String, String> getNamespaceMap() {
+                return Namespaces.getNamespaceMap(delegate.getRoot().getTree("/"));
+            }
+
+            @Override
+            protected Map<String, String> getSessionLocalMappings() {
+                return namespaces.getSessionLocalMappings();
+            }
+        };
+        this.namePathMapper = new NamePathMapperImpl(
+                nameMapper, delegate.getIdManager());
+        this.valueFactory = new ValueFactoryImpl(
+                delegate.getRoot().getBlobFactory(), namePathMapper);
     }
 
     public static SessionContext create(final SessionDelegate delegate, RepositoryImpl repository) {
-        // FIXME don't rely on a naked map. See OAK-715
-        final Map<String, String> namespaces = Maps.newHashMap();
-        final Root root = checkNotNull(delegate).getRoot();
-
-        LocalNameMapper nameMapper = new LocalNameMapper(namespaces) {
-            @Override
-            protected Map<String, String> getNamespaceMap() {
-                return Namespaces.getNamespaceMap(root.getTree("/"));
-            }
-        };
-
-        NamePathMapperImpl namePathMapper = new NamePathMapperImpl(nameMapper, delegate.getIdManager());
-        ValueFactoryImpl valueFactory = new ValueFactoryImpl(root.getBlobFactory(), namePathMapper);
-
-        return new SessionContext(checkNotNull(repository), delegate, namePathMapper, valueFactory){
-            private final SessionImpl session = new SessionImpl(this, namespaces);
+        return new SessionContext(checkNotNull(repository), checkNotNull(delegate)) {
+            private final SessionImpl session = new SessionImpl(this);
             private final WorkspaceImpl workspace = new WorkspaceImpl(this);
 
             @Override
@@ -144,6 +143,10 @@ public abstract class SessionContext implements NamePathMapper {
 
     public SessionDelegate getSessionDelegate() {
         return delegate;
+    }
+
+    SessionNamespaces getNamespaces() {
+        return namespaces;
     }
 
     public abstract Session getSession();
@@ -250,7 +253,7 @@ public abstract class SessionContext implements NamePathMapper {
 
     @Override
     public boolean hasSessionLocalMappings() {
-        return namePathMapper.hasSessionLocalMappings();
+        return !namespaces.getSessionLocalMappings().isEmpty();
     }
 
     @Override
@@ -318,6 +321,7 @@ public abstract class SessionContext implements NamePathMapper {
         if (observationManager != null) {
             observationManager.dispose();
         }
+        namespaces.clear();
     }
 
     void refresh() {
