@@ -41,7 +41,7 @@ public abstract class SolrBaseTest {
         store = new KernelNodeStore(microKernel);
         state = createInitialState(microKernel);
         server = TestUtils.createSolrServer();
-        configuration = TestUtils.getTestConfiguration(store.getRoot().getChildNode("solrIdx"));
+        configuration = TestUtils.getTestConfiguration();
     }
 
     @After

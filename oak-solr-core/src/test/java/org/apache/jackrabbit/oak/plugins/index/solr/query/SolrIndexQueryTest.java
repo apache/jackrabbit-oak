@@ -62,8 +62,7 @@ public class SolrIndexQueryTest extends AbstractQueryTest {
 
     @Override
     protected ContentRepository createRepository() {
-        NodeState mockedNodeState = createMockedConfigurationNodeState();
-        OakSolrConfiguration testConfiguration = TestUtils.getTestConfiguration(mockedNodeState);
+        OakSolrConfiguration testConfiguration = TestUtils.getTestConfiguration();
         try {
             solrServer = TestUtils.createSolrServer();
             return new Oak().with(new InitialContent())
@@ -73,12 +72,6 @@ public class SolrIndexQueryTest extends AbstractQueryTest {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-    }
-
-    private NodeState createMockedConfigurationNodeState() {
-        NodeState mockedNodeState = mock(NodeState.class);
-        when(mockedNodeState.getProperty(anyString())).thenReturn(null); // this triggers defaults
-        return mockedNodeState;
     }
 
     @Test
