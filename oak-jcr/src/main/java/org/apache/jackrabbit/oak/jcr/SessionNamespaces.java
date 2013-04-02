@@ -106,6 +106,12 @@ class SessionNamespaces {
             // Add the new mapping
             namespaces.put(prefix, uri);
         }
+
+        if (snapshot.containsKey(prefix)) {
+            // make sure we have a prefix in case an existing
+            // namespace uri is re-mapped
+            getNamespacePrefix(snapshot.get(prefix));
+        }
     }
 
     /**
@@ -172,7 +178,8 @@ class SessionNamespaces {
 
             // try snapshot
             for (Map.Entry<String, String> entry : snapshot.entrySet()) {
-                if (entry.getValue().equals(uri)) {
+                if (entry.getValue().equals(uri)
+                        && !namespaces.containsKey(entry.getKey())) {
                     return entry.getKey();
                 }
             }
