@@ -339,15 +339,22 @@ public class MongoMK implements MicroKernel {
      * @param rev     revision to check.
      * @param readRevision the read revision of the client.
      * @param nodeMap the node to check.
+     * @param validRevisions set of revisions already checked against
+     *                       <code>readRevision</code> and considered valid.
      * @return <code>true</code> if the revision is valid; <code>false</code>
      *         otherwise.
      */
     boolean isValidRevision(@Nonnull Revision rev,
                             @Nonnull Revision readRevision,
-                            @Nonnull Map<String, Object> nodeMap) {
+                            @Nonnull Map<String, Object> nodeMap,
+                            @Nonnull Set<Revision> validRevisions) {
+        if (validRevisions.contains(rev)) {
+            return true;
+        }
         @SuppressWarnings("unchecked")
         Map<String, String> revisions = (Map<String, String>) nodeMap.get(UpdateOp.REVISIONS);
         if (isCommitted(rev, readRevision, revisions)) {
+            validRevisions.add(rev);
             return true;
         }
         // check commit root
@@ -376,7 +383,11 @@ public class MongoMK implements MicroKernel {
         }
         @SuppressWarnings("unchecked")
         Map<String, String> rootRevisions = (Map<String, String>) nodeMap.get(UpdateOp.REVISIONS);
-        return isCommitted(rev, readRevision, rootRevisions);
+        if (isCommitted(rev, readRevision, rootRevisions)) {
+            validRevisions.add(rev);
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -431,9 +442,10 @@ public class MongoMK implements MicroKernel {
         to = to.substring(0, to.length() - 2) + "0";
         List<Map<String, Object>> list = store.query(DocumentStore.Collection.NODES, from, to, limit);
         Children c = new Children(path, rev);
+        Set<Revision> validRevisions = new HashSet<Revision>();
         for (Map<String, Object> e : list) {
             // filter out deleted children
-            if (getLiveRevision(e, rev) == null) {
+            if (getLiveRevision(e, rev, validRevisions) == null) {
                 continue;
             }
             // TODO put the whole node in the cache
@@ -850,18 +862,34 @@ public class MongoMK implements MicroKernel {
         // Remove the node from the cache
         nodeCache.invalidate(path + "@" + rev);
     }
-    
+
     /**
      * Get the latest revision where the node was alive at or before the
      * provided revision.
-     * 
+     *
      * @param nodeMap the node map
      * @param maxRev the maximum revision to return
      * @return the earliest revision, or null if the node is deleted at the
      *         given revision
      */
     private Revision getLiveRevision(Map<String, Object> nodeMap,
-            Revision maxRev) {
+                                     Revision maxRev) {
+        return getLiveRevision(nodeMap, maxRev, new HashSet<Revision>());
+    }
+
+    /**
+    * Get the latest revision where the node was alive at or before the
+    * provided revision.
+    *
+    * @param nodeMap the node map
+    * @param maxRev the maximum revision to return
+    * @param validRevisions the set of revisions already checked against
+     *                      maxRev and considered valid.
+    * @return the earliest revision, or null if the node is deleted at the
+    *         given revision
+    */
+    private Revision getLiveRevision(Map<String, Object> nodeMap,
+            Revision maxRev, Set<Revision> validRevisions) {
         @SuppressWarnings("unchecked")
         Map<String, String> valueMap = (Map<String, String>) nodeMap
                 .get(UpdateOp.DELETED);
@@ -873,7 +901,7 @@ public class MongoMK implements MicroKernel {
         for (String r : valueMap.keySet()) {
             Revision propRev = Revision.fromString(r);
             if (isRevisionNewer(propRev, maxRev)
-                    || !isValidRevision(propRev, maxRev, nodeMap)) {
+                    || !isValidRevision(propRev, maxRev, nodeMap, validRevisions)) {
                 continue;
             }
             if (firstRev == null || isRevisionNewer(propRev, firstRev)) {
@@ -895,7 +923,8 @@ public class MongoMK implements MicroKernel {
      * @param onlyCommitted whether only committed changes should be considered
      * @return the revision, or null if deleted
      */
-    @Nullable Revision getNewestRevision(Map<String, Object> nodeMap, Revision before, boolean onlyCommitted) {
+    @Nullable Revision getNewestRevision(Map<String, Object> nodeMap,
+                                         Revision before, boolean onlyCommitted) {
         if (nodeMap == null) {
             return null;
         }
@@ -911,7 +940,9 @@ public class MongoMK implements MicroKernel {
             Revision propRev = Revision.fromString(r);
             if (newestRev == null || isRevisionNewer(propRev, newestRev)) {
                 if (isRevisionNewer(before, propRev)) {
-                    if (!onlyCommitted || isValidRevision(propRev, before, nodeMap)) {
+                    if (!onlyCommitted
+                            || isValidRevision(propRev, before,
+                                nodeMap, new HashSet<Revision>())) {
                         newestRev = propRev;
                         newestValue = valueMap.get(r);
                     }
