@@ -52,8 +52,7 @@ public class Jcr {
 
     private final Oak oak;
 
-    private ScheduledExecutorService executor =
-            Executors.newScheduledThreadPool(0);
+    private ScheduledExecutorService executor = Executors.newScheduledThreadPool(0);
 
     private SecurityProvider securityProvider;
 

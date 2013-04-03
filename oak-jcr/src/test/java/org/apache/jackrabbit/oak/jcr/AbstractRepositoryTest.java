@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.jcr;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
