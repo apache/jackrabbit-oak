@@ -16,22 +16,22 @@
  */
 package org.apache.jackrabbit.oak.util;
 
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertFalse;
-import static junit.framework.Assert.assertTrue;
-import static org.apache.jackrabbit.oak.api.Type.STRING;
-
-import org.apache.jackrabbit.oak.Oak;
+import org.apache.jackrabbit.oak.OakBaseTest;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.query.JsopUtil;
 import org.junit.Test;
 
-public class JsopUtilTest {
+import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertFalse;
+import static junit.framework.Assert.assertTrue;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
+
+public class JsopUtilTest extends OakBaseTest {
 
     @Test
     public void test() throws Exception {
-        Root root = new Oak().createRoot();
+        Root root = createContentSession().getLatestRoot();
 
         Tree t = root.getTree("/");
         assertFalse(t.hasChild("test"));

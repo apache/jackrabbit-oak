@@ -18,14 +18,15 @@
  */
 package org.apache.jackrabbit.oak.api;
 
-import static org.apache.jackrabbit.oak.OakAssert.assertSequence;
-
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictValidator;
 import org.apache.jackrabbit.oak.plugins.commit.JcrConflictHandler;
+import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+
+import static org.apache.jackrabbit.oak.OakAssert.assertSequence;
 
 /**
  * Contains tests related to {@link Root}
@@ -37,6 +38,7 @@ public class RootTest {
     @Before
     public void setUp() {
         repository = new Oak()
+            .with(new OpenSecurityProvider())
             .with(JcrConflictHandler.JCR_CONFLICT_HANDLER)
             .with(new ConflictValidator())
             .createContentRepository();

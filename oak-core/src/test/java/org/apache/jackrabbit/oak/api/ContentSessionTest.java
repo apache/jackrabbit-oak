@@ -23,18 +23,18 @@ import java.io.IOException;
 import javax.jcr.NoSuchWorkspaceException;
 import javax.security.auth.login.LoginException;
 
-import org.apache.jackrabbit.oak.Oak;
+import org.apache.jackrabbit.oak.OakBaseTest;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-public class ContentSessionTest {
+public class ContentSessionTest extends OakBaseTest {
 
     private ContentRepository repository;
 
     @Before
     public void setUp() {
-        repository = new Oak().createContentRepository();
+        repository = createContentRepository();
     }
 
     @After

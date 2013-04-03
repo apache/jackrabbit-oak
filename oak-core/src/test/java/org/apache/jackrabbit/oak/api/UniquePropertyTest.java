@@ -22,6 +22,7 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.plugins.index.p2.Property2IndexHookProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
+import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.junit.Test;
 
@@ -36,6 +37,7 @@ public class UniquePropertyTest {
     public void testUniqueness() throws CommitFailedException {
 
         Root root = new Oak()
+                .with(new OpenSecurityProvider())
                 .with(new Property2IndexHookProvider())
                 .with(new InitialContent()).createRoot();
 

@@ -28,6 +28,7 @@ import javax.jcr.query.Query;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
+import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -35,7 +36,7 @@ import org.junit.Test;
 import static junit.framework.Assert.assertEquals;
 
 /**
- * <code>QueryTest</code> contains query related tests.
+ * {@code QueryTest} contains query related tests.
  */
 public class QueryTest {
 
@@ -43,7 +44,7 @@ public class QueryTest {
 
     @Before
     public void setUp() {
-        repository = new Oak().with(new InitialContent()).createContentRepository();
+        repository = new Oak().with(new OpenSecurityProvider()).with(new InitialContent()).createContentRepository();
     }
 
     @After

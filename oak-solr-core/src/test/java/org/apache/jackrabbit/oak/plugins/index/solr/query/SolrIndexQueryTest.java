@@ -26,7 +26,7 @@ import org.apache.jackrabbit.oak.plugins.index.solr.TestUtils;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.query.JsopUtil;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.solr.client.solrj.SolrServer;
 import org.junit.After;
 import org.junit.Ignore;
@@ -35,9 +35,6 @@ import org.junit.Test;
 import static junit.framework.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 /**
  * General query extensive testcase for {@link SolrQueryIndex} and {@link
@@ -66,6 +63,7 @@ public class SolrIndexQueryTest extends AbstractQueryTest {
         try {
             solrServer = TestUtils.createSolrServer();
             return new Oak().with(new InitialContent())
+                    .with(new OpenSecurityProvider())
                     .with(TestUtils.getTestQueryIndexProvider(solrServer, testConfiguration))
                     .with(TestUtils.getTestIndexHookProvider(solrServer, testConfiguration))
                     .createContentRepository();
