@@ -29,7 +29,7 @@ import org.osgi.util.tracker.ServiceTracker;
 import org.osgi.util.tracker.ServiceTrackerCustomizer;
 
 /**
- * <code>AbstractServiceTracker</code> is a base class for the various OSGi based
+ * {@code AbstractServiceTracker} is a base class for the various OSGi based
  * providers.
  */
 public abstract class AbstractServiceTracker<T> implements ServiceTrackerCustomizer {
@@ -38,8 +38,7 @@ public abstract class AbstractServiceTracker<T> implements ServiceTrackerCustomi
 
     private ServiceTracker tracker;
 
-    private final Map<ServiceReference, T> services =
-            new HashMap<ServiceReference, T>();
+    private final Map<ServiceReference, T> services = new HashMap<ServiceReference, T>();
 
     private final Class<T> serviceClass;
 
@@ -49,8 +48,7 @@ public abstract class AbstractServiceTracker<T> implements ServiceTrackerCustomi
 
     public void start(BundleContext bundleContext) throws Exception {
         context = bundleContext;
-        tracker = new ServiceTracker(
-                bundleContext, serviceClass.getName(), this);
+        tracker = new ServiceTracker(bundleContext, serviceClass.getName(), this);
         tracker.open();
     }
 
@@ -59,7 +57,7 @@ public abstract class AbstractServiceTracker<T> implements ServiceTrackerCustomi
     }
 
     /**
-     * Returns all services of type <code>T</code> currently available.
+     * Returns all services of type {@code T} currently available.
      *
      * @return services currently available.
      */

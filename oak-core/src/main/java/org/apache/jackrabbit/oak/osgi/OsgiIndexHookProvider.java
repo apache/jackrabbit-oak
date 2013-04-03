@@ -38,11 +38,10 @@ public class OsgiIndexHookProvider extends
         super(IndexHookProvider.class);
     }
 
-    @Override @Nonnull
-    public List<? extends IndexHook> getIndexHooks(String type,
-            NodeBuilder builder) {
-        IndexHookProvider composite = CompositeIndexHookProvider
-                .compose(getServices());
+    @Override
+    @Nonnull
+    public List<? extends IndexHook> getIndexHooks(String type, NodeBuilder builder) {
+        IndexHookProvider composite = CompositeIndexHookProvider.compose(getServices());
         return composite.getIndexHooks(type, builder);
     }
 

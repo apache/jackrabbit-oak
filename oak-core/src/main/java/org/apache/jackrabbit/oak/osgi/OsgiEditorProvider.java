@@ -40,7 +40,8 @@ public class OsgiEditorProvider
 
     //----------------------------------------------------< EditorProvider >--
 
-    @Override @CheckForNull
+    @Override
+    @CheckForNull
     public Editor getRootEditor(
             NodeState before, NodeState after, NodeBuilder builder) {
         EditorProvider provider =
