@@ -40,8 +40,8 @@ public abstract class LocalNameMapper extends GlobalNameMapper {
     @Override @CheckForNull
     public String getJcrName(String oakName) {
         checkNotNull(oakName);
-        checkArgument(!oakName.startsWith(":")); // hidden name
-        checkArgument(isExpandedName(oakName));  // expanded name
+        checkArgument(!oakName.startsWith(":"), oakName); // hidden name
+        checkArgument(!isExpandedName(oakName), oakName); // expanded name
 
         if (hasSessionLocalMappings()) {
             int colon = oakName.indexOf(':');
