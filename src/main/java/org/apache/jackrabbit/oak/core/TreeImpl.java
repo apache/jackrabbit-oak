@@ -470,7 +470,7 @@ public class TreeImpl implements Tree {
      */
     @CheckForNull
     TreeImpl getTree(String path) {
-        checkArgument(path.startsWith("/"));
+        checkArgument(PathUtils.isAbsolute(path));
         TreeImpl child = this;
         for (String name : elements(path)) {
             child = child.internalGetChild(name);

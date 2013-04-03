@@ -39,19 +39,18 @@ public interface TreeLocation {
 
     /**
      * Navigate to the parent or an invalid location for the root of the hierarchy.
-     * @return  a {@code TreeLocation} for the parent of this location.
+     * @return a {@code TreeLocation} for the parent of this location.
      */
     @Nonnull
     TreeLocation getParent();
 
     /**
-     * Navigate to a child through a relative path. A relative path consists of a
-     * possibly empty lists of names separated by forward slashes.
-     * @param relPath  relative path to the child
+     * Navigate to a child of the given {@code name}.
+     * @param name  name of the child
      * @return  a {@code TreeLocation} for a child with the given {@code name}.
      */
     @Nonnull
-    TreeLocation getChild(String relPath);
+    TreeLocation getChild(String name);
 
     /**
      * Determine whether the underlying {@link org.apache.jackrabbit.oak.api.Tree} or

@@ -36,8 +36,8 @@ import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
-import org.apache.jackrabbit.oak.util.LocationUtil;
 import org.apache.jackrabbit.oak.util.NodeUtil;
+import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -164,7 +164,7 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
         checkRelativePath(relPath);
 
         Tree node = getTree();
-        TreeLocation propertyLocation = node.getLocation().getChild(relPath);
+        TreeLocation propertyLocation = TreeUtil.getTreeLocation(node, relPath);
         if (propertyLocation.getProperty() != null) {
             if (isAuthorizableProperty(node, propertyLocation, true)) {
                 return propertyLocation.remove();
@@ -292,7 +292,7 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
 
     @Nonnull
     private static TreeLocation getLocation(Tree tree, String relativePath) {
-        return LocationUtil.getTreeLocation(tree.getLocation(), relativePath);
+        return TreeUtil.getTreeLocation(tree, relativePath);
     }
 
     private static void checkRelativePath(String relativePath) throws RepositoryException {

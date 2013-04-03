@@ -52,6 +52,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.ReadOnlyTree;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -145,17 +146,19 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
      */
     @Nonnull
     public static ReadOnlyNodeTypeManager getInstance(NodeState root) {
-        Tree tree = new ReadOnlyTree(root).getLocation()
-                .getChild(NODE_TYPES_PATH.substring(1)).getTree();
+        NodeState typesNode = root;
+        for (String name : PathUtils.elements(NODE_TYPES_PATH)) {
+            typesNode = typesNode.getChildNode(name);
+            if (typesNode == null) {
+                typesNode = EMPTY_NODE;
+            }
+        }
 
-        final Tree types = tree == null
-            ? new ReadOnlyTree(EMPTY_NODE)  // No node types in content, use an empty node
-            : tree;
-
+        final Tree typesTree = new ReadOnlyTree(typesNode);
         return new ReadOnlyNodeTypeManager() {
             @Override
             protected Tree getTypes() {
-                return types;
+                return typesTree;
             }
         };
     }

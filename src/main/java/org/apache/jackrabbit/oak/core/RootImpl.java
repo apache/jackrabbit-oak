@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.core;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 
@@ -226,9 +227,13 @@ public class RootImpl implements Root {
 
     @Override
     public TreeLocation getLocation(String path) {
+        checkArgument(PathUtils.isAbsolute(path));
         checkLive();
-        checkArgument(PathUtils.isAbsolute(path), "Not an absolute path: " + path);
-        return rootTree.getLocation().getChild(path.substring(1));
+        TreeLocation child = rootTree.getLocation();
+        for (String name : elements(path)) {
+            child = child.getChild(name);
+        }
+        return child;
     }
 
     @Override
