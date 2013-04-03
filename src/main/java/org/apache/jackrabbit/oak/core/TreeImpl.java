@@ -18,17 +18,9 @@
  */
 package org.apache.jackrabbit.oak.core;
 
-import static com.google.common.base.Objects.toStringHelper;
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
-import static org.apache.jackrabbit.oak.api.Type.STRING;
-import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
-
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Set;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -51,6 +43,13 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.PropertyBuilder;
+
+import static com.google.common.base.Objects.toStringHelper;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
+import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 
 public class TreeImpl implements Tree {
 
@@ -109,7 +108,8 @@ public class TreeImpl implements Tree {
         } else {
             this.baseState = parent.baseState.getChildNode(name);
         }
-        readStatus = ReadStatus.getChildStatus(parent.readStatus);
+        // readstatus is ALLOW_ALL for new items
+        readStatus = (baseState == null) ? ReadStatus.ALLOW_ALL : ReadStatus.getChildStatus(parent.readStatus);
     }
 
     @Override
