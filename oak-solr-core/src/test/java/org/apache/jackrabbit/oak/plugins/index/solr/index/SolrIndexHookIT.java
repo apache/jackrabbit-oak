@@ -18,12 +18,13 @@ package org.apache.jackrabbit.oak.plugins.index.solr.index;
 
 import org.apache.jackrabbit.oak.plugins.index.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.IndexDefinitionImpl;
-import org.apache.jackrabbit.oak.plugins.index.IndexHook;
-import org.apache.jackrabbit.oak.plugins.index.solr.index.SolrIndexHook;
 import org.apache.jackrabbit.oak.query.ast.Operator;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.plugins.index.solr.SolrBaseTest;
 import org.apache.jackrabbit.oak.plugins.index.solr.query.SolrQueryIndex;
+import org.apache.jackrabbit.oak.spi.commit.Editor;
+import org.apache.jackrabbit.oak.spi.commit.EditorHook;
+import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.IndexRow;
@@ -55,10 +56,15 @@ public class SolrIndexHookIT extends SolrBaseTest {
         builder.child("newnode").setProperty("prop", "val");
         NodeState after = builder.getNodeState();
 
-        IndexHook l = new SolrIndexHook("/", builder, server);
-        after.compareAgainstBaseState(before, l);
-        l.apply();
-        l.close();
+        EditorProvider provider = new EditorProvider() {
+            @Override
+            public Editor getRootEditor(NodeState before, NodeState after,
+                    NodeBuilder builder) {
+                return new SolrIndexHook("/", builder, server);
+            }
+        };
+        EditorHook hook = new EditorHook(provider);
+        NodeState indexed = hook.processCommit(before, after);
 
         IndexDefinition testDef = new IndexDefinitionImpl("solr",
                 "solr", "/oak:index/solr");
@@ -67,7 +73,7 @@ public class SolrIndexHookIT extends SolrBaseTest {
         filter.restrictPath("newnode", Filter.PathRestriction.EXACT);
         filter.restrictProperty("prop", Operator.EQUAL,
                 PropertyValues.newString("val"));
-        Cursor cursor = queryIndex.query(filter, builder.getNodeState());
+        Cursor cursor = queryIndex.query(filter, indexed);
         assertNotNull(cursor);
         assertTrue("no results found", cursor.hasNext());
         IndexRow next = cursor.next();
@@ -89,10 +95,15 @@ public class SolrIndexHookIT extends SolrBaseTest {
         builder.setProperty("foo", "bar");
         NodeState after = builder.getNodeState();
 
-        IndexHook l = new SolrIndexHook("/", builder, server);
-        after.compareAgainstBaseState(before, l);
-        l.apply();
-        l.close();
+        EditorProvider provider = new EditorProvider() {
+            @Override
+            public Editor getRootEditor(NodeState before, NodeState after,
+                    NodeBuilder builder) {
+                return new SolrIndexHook("/", builder, server);
+            }
+        };
+        EditorHook hook = new EditorHook(provider);
+        NodeState indexed = hook.processCommit(before, after);
 
         IndexDefinition testDef = new IndexDefinitionImpl("solr",
                 "solr", "/oak:index/solr");
@@ -100,7 +111,7 @@ public class SolrIndexHookIT extends SolrBaseTest {
         FilterImpl filter = new FilterImpl(null, null);
         filter.restrictProperty("foo", Operator.EQUAL,
                 PropertyValues.newString("bar"));
-        Cursor cursor = queryIndex.query(filter, builder.getNodeState());
+        Cursor cursor = queryIndex.query(filter, indexed);
         assertNotNull(cursor);
         assertTrue("no results found", cursor.hasNext());
         IndexRow next = cursor.next();
@@ -128,10 +139,15 @@ public class SolrIndexHookIT extends SolrBaseTest {
 
         NodeState after = builder.getNodeState();
 
-        IndexHook l = new SolrIndexHook("/", builder, server);
-        after.compareAgainstBaseState(before, l);
-        l.apply();
-        l.close();
+        EditorProvider provider = new EditorProvider() {
+            @Override
+            public Editor getRootEditor(NodeState before, NodeState after,
+                    NodeBuilder builder) {
+                return new SolrIndexHook("/", builder, server);
+            }
+        };
+        EditorHook hook = new EditorHook(provider);
+        NodeState indexed = hook.processCommit(before, after);
 
         IndexDefinition testDef = new IndexDefinitionImpl("solr",
                 "solr", "/oak:index/solr");
@@ -140,7 +156,7 @@ public class SolrIndexHookIT extends SolrBaseTest {
         filter.restrictProperty("foo", Operator.EQUAL,
                 PropertyValues.newString("bar"));
         filter.restrictFulltextCondition("bar");
-        Cursor cursor = queryIndex.query(filter, builder.getNodeState());
+        Cursor cursor = queryIndex.query(filter, indexed);
 
         assertTrue(cursor.hasNext());
         assertEquals("/", cursor.next().getPath());

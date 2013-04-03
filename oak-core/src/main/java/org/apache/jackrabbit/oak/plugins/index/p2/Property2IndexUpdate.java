@@ -102,8 +102,10 @@ class Property2IndexUpdate {
     /**
      * A property value was added at the given path.
      * 
-     * @param path the path
-     * @param value the value
+     * @param path
+     *            the path
+     * @param value
+     *            the value
      */
     public void insert(String path, PropertyState value) {
         Preconditions.checkArgument(path.startsWith(this.path));
@@ -113,8 +115,10 @@ class Property2IndexUpdate {
     /**
      * A property value was removed at the given path.
      * 
-     * @param path the path
-     * @param value the value
+     * @param path
+     *            the path
+     * @param value
+     *            the value
      */
     public void remove(String path, PropertyState value) {
         Preconditions.checkArgument(path.startsWith(this.path));
@@ -141,9 +145,9 @@ class Property2IndexUpdate {
     }
 
     boolean getAndResetReindexFlag() {
-        boolean reindex = node.getProperty(REINDEX_PROPERTY_NAME) != null
-                && node.getProperty(REINDEX_PROPERTY_NAME).getValue(
-                        Type.BOOLEAN);
+        PropertyState reindexPS = node.getProperty(REINDEX_PROPERTY_NAME);
+        boolean reindex = reindexPS == null || reindexPS != null
+                && reindexPS.getValue(Type.BOOLEAN);
         node.setProperty(REINDEX_PROPERTY_NAME, false);
         return reindex;
     }
@@ -151,7 +155,8 @@ class Property2IndexUpdate {
     /**
      * Try to apply the changes to the index content (to the ":index" node.
      * 
-     * @throws CommitFailedException if a unique index was violated
+     * @throws CommitFailedException
+     *             if a unique index was violated
      */
     public void apply() throws CommitFailedException {
         boolean unique = node.getProperty("unique") != null

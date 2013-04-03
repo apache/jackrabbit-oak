@@ -24,9 +24,11 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE
 
 import org.apache.jackrabbit.oak.plugins.index.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.IndexDefinitionImpl;
-import org.apache.jackrabbit.oak.plugins.index.IndexHook;
 import org.apache.jackrabbit.oak.query.ast.Operator;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
+import org.apache.jackrabbit.oak.spi.commit.Editor;
+import org.apache.jackrabbit.oak.spi.commit.EditorHook;
+import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
@@ -50,10 +52,15 @@ public class LuceneIndexTest implements LuceneIndexConstants {
         builder.setProperty("foo", "bar");
         NodeState after = builder.getNodeState();
 
-        IndexHook l = new LuceneIndexDiff(builder);
-        after.compareAgainstBaseState(before, l);
-        l.apply();
-        l.close();
+        EditorProvider provider = new EditorProvider() {
+            @Override
+            public Editor getRootEditor(NodeState before, NodeState after,
+                    NodeBuilder builder) {
+                return new LuceneIndexDiff(builder);
+            }
+        };
+        EditorHook hook = new EditorHook(provider);
+        NodeState indexed = hook.processCommit(before, after);
 
         IndexDefinition testDef = new IndexDefinitionImpl("lucene",
                 TYPE_LUCENE, "/oak:index/lucene");
@@ -62,7 +69,7 @@ public class LuceneIndexTest implements LuceneIndexConstants {
         filter.restrictPath("/", Filter.PathRestriction.EXACT);
         filter.restrictProperty("foo", Operator.EQUAL,
                 PropertyValues.newString("bar"));
-        Cursor cursor = queryIndex.query(filter, builder.getNodeState());
+        Cursor cursor = queryIndex.query(filter, indexed);
         assertTrue(cursor.hasNext());
         assertEquals("/", cursor.next().getPath());
         assertFalse(cursor.hasNext());
@@ -85,10 +92,15 @@ public class LuceneIndexTest implements LuceneIndexConstants {
 
         NodeState after = builder.getNodeState();
 
-        IndexHook l = new LuceneIndexDiff(builder);
-        after.compareAgainstBaseState(before, l);
-        l.apply();
-        l.close();
+        EditorProvider provider = new EditorProvider() {
+            @Override
+            public Editor getRootEditor(NodeState before, NodeState after,
+                    NodeBuilder builder) {
+                return new LuceneIndexDiff(builder);
+            }
+        };
+        EditorHook hook = new EditorHook(provider);
+        NodeState indexed = hook.processCommit(before, after);
 
         IndexDefinition testDef = new IndexDefinitionImpl("lucene",
                 TYPE_LUCENE, "/oak:index/lucene");
@@ -97,7 +109,7 @@ public class LuceneIndexTest implements LuceneIndexConstants {
         // filter.restrictPath("/", Filter.PathRestriction.EXACT);
         filter.restrictProperty("foo", Operator.EQUAL,
                 PropertyValues.newString("bar"));
-        Cursor cursor = queryIndex.query(filter, builder.getNodeState());
+        Cursor cursor = queryIndex.query(filter, indexed);
 
         assertTrue(cursor.hasNext());
         assertEquals("/", cursor.next().getPath());

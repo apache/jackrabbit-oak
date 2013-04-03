@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.index;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
@@ -26,6 +27,9 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexHook;
 import org.apache.jackrabbit.oak.plugins.index.solr.OakSolrConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.query.SolrQueryIndex;
+import org.apache.jackrabbit.oak.spi.commit.Editor;
+import org.apache.jackrabbit.oak.spi.commit.EditorHook;
+import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
@@ -46,7 +50,7 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE
  * @see org.apache.jackrabbit.oak.plugins.index.solr.query.SolrQueryIndex
  * @see SolrIndexHook
  */
-public class SolrIndexDiff implements IndexHook {
+public class SolrIndexDiff implements IndexHook, Closeable {
 
     private final SolrIndexDiff parent;
 
@@ -62,8 +66,13 @@ public class SolrIndexDiff implements IndexHook {
 
     private OakSolrConfiguration configuration;
 
+    /**
+     * the root editor in charge of applying the updates
+     */
+    private final boolean isRoot;
+
     private SolrIndexDiff(SolrIndexDiff parent, NodeBuilder node, SolrServer solrServer,
-                          String name, String path, Map<String, SolrIndexUpdate> updates, OakSolrConfiguration configuration) {
+                          String name, String path, Map<String, SolrIndexUpdate> updates, OakSolrConfiguration configuration, boolean isRoot) {
         this.parent = parent;
         this.node = node;
         this.name = name;
@@ -71,9 +80,22 @@ public class SolrIndexDiff implements IndexHook {
         this.updates = updates;
         this.solrServer = solrServer;
         this.configuration = configuration;
+        this.isRoot = isRoot;
+    }
 
+    private SolrIndexDiff(SolrIndexDiff parent, SolrServer solrServer, String name) {
+        this(parent, getChildNode(parent.node, name), solrServer, name, null,
+                parent.updates, parent.configuration, false);
+    }
+
+    public SolrIndexDiff(NodeBuilder root, SolrServer solrServer, OakSolrConfiguration configuration) {
+        this(null, root, solrServer, null, "/", new HashMap<String, SolrIndexUpdate>(), configuration, true);
+    }
+
+    @Override
+    public void enter(NodeState before, NodeState after)
+            throws CommitFailedException {
         // TODO : test properly on PDFs
-
         if (node != null && node.hasChildNode("oak:index")) {
             NodeBuilder index = node.child("oak:index");
             for (String indexName : index.getChildNodeNames()) {
@@ -89,15 +111,6 @@ public class SolrIndexDiff implements IndexHook {
                 update.insert(getPath(), node);
             }
         }
-    }
-
-    private SolrIndexDiff(SolrIndexDiff parent, SolrServer solrServer, String name) {
-        this(parent, getChildNode(parent.node, name), solrServer, name, null,
-                parent.updates, parent.configuration);
-    }
-
-    public SolrIndexDiff(NodeBuilder root, SolrServer solrServer, OakSolrConfiguration configuration) {
-        this(null, root, solrServer, null, "/", new HashMap<String, SolrIndexUpdate>(), configuration);
     }
 
     private static NodeBuilder getChildNode(NodeBuilder node, String name) {
@@ -128,8 +141,6 @@ public class SolrIndexDiff implements IndexHook {
         return isIndexType;
     }
 
-    // -----------------------------------------------------< NodeStateDiff >--
-
     @Override
     public void propertyAdded(PropertyState after) {
         for (SolrIndexUpdate update : updates.values()) {
@@ -152,38 +163,41 @@ public class SolrIndexDiff implements IndexHook {
     }
 
     @Override
-    public void childNodeAdded(String name, NodeState after) {
+    public Editor childNodeAdded(String name, NodeState after) {
         if (NodeStateUtils.isHidden(name)) {
-            return;
+            return null;
         }
         for (SolrIndexUpdate update : updates.values()) {
             update.insert(concat(getPath(), name), new ReadOnlyBuilder(after));
         }
-        after.compareAgainstBaseState(EMPTY_NODE, child(name));
+        return childNodeChanged(name, EMPTY_NODE, after);
     }
 
     @Override
-    public void childNodeChanged(String name, NodeState before, NodeState after) {
+    public Editor childNodeChanged(String name, NodeState before, NodeState after) {
         if (NodeStateUtils.isHidden(name)) {
-            return;
+            return null;
         }
-        after.compareAgainstBaseState(before, child(name));
+        return new SolrIndexDiff(this, solrServer, name);
     }
 
     @Override
-    public void childNodeDeleted(String name, NodeState before) {
+    public Editor childNodeDeleted(String name, NodeState before) {
         if (NodeStateUtils.isHidden(name)) {
-            return;
+            return null;
         }
         for (SolrIndexUpdate update : updates.values()) {
             update.remove(concat(getPath(), name));
         }
+        return null;
     }
 
-    // -----------------------------------------------------< IndexHook >--
-
     @Override
-    public void apply() throws CommitFailedException {
+    public void leave(NodeState before, NodeState after)
+            throws CommitFailedException {
+        if(!isRoot){
+            return;
+        }
         for (SolrIndexUpdate update : updates.values()) {
             update.apply(solrServer);
         }
@@ -198,15 +212,16 @@ public class SolrIndexDiff implements IndexHook {
             }
         }
         if (reindex) {
-            state.getNodeState().compareAgainstBaseState(
-                    EMPTY_NODE,
-                    new SolrIndexDiff(null, state, solrServer, null, "/", updates, configuration));
+            EditorProvider provider = new EditorProvider() {
+                @Override
+                public Editor getRootEditor(NodeState before, NodeState after,
+                        NodeBuilder builder) {
+                    return new SolrIndexDiff(node, solrServer, configuration);
+                }
+            };
+            EditorHook eh = new EditorHook(provider);
+            eh.processCommit(EMPTY_NODE, state.getNodeState());
         }
-    }
-
-    @Override
-    public IndexHook child(String name) {
-        return new SolrIndexDiff(this, solrServer, name);
     }
 
     @Override

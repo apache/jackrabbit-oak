@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.index;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.LinkedList;
@@ -26,6 +27,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexHook;
+import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -49,7 +51,7 @@ import org.slf4j.LoggerFactory;
  * @see org.apache.jackrabbit.oak.plugins.index.solr.query.SolrQueryIndex
  * @see SolrIndexDiff
  */
-public class SolrIndexHook implements IndexHook {
+public class SolrIndexHook implements IndexHook, Closeable {
 
     private static final Logger log = LoggerFactory.getLogger(SolrNodeStateDiff.class);
 
@@ -72,6 +74,10 @@ public class SolrIndexHook implements IndexHook {
         this.deleteByIdQueryBuilder = initializeDeleteQueryBuilder();
     }
 
+    @Override
+    public void enter(NodeState before, NodeState after)
+            throws CommitFailedException {
+    }
 
     private Collection<SolrInputDocument> docsFromState(String path, @Nonnull NodeState state) {
         List<SolrInputDocument> solrInputDocuments = new LinkedList<SolrInputDocument>();
@@ -118,9 +124,9 @@ public class SolrIndexHook implements IndexHook {
     }
 
     @Override
-    public void childNodeAdded(String name, NodeState after) {
+    public Editor childNodeAdded(String name, NodeState after) {
         if (NodeStateUtils.isHidden(name)) {
-            return;
+            return null;
         }
         if (exception == null) {
             try {
@@ -129,6 +135,7 @@ public class SolrIndexHook implements IndexHook {
                 exception = e;
             }
         }
+        return null;
     }
 
     private void addSubtree(String name, NodeState nodeState) throws IOException {
@@ -136,26 +143,18 @@ public class SolrIndexHook implements IndexHook {
     }
 
     @Override
-    public void childNodeChanged(String name, NodeState before, NodeState after) {
+    public Editor childNodeChanged(String name, NodeState before,
+            NodeState after) {
         if (NodeStateUtils.isHidden(name)) {
-            return;
+            return null;
         }
-        if (exception == null) {
-            try {
-                SolrIndexHook diff = new SolrIndexHook(name, nodebuilder, solrServer);
-                after.compareAgainstBaseState(before, diff);
-                diff.apply();
-            } catch (CommitFailedException e) {
-                exception = new IOException(e);
-            }
-
-        }
+        return new SolrIndexHook(name, nodebuilder, solrServer);
     }
 
     @Override
-    public void childNodeDeleted(String name, NodeState before) {
+    public Editor childNodeDeleted(String name, NodeState before) {
         if (NodeStateUtils.isHidden(name)) {
-            return;
+            return null;
         }
         if (exception == null) {
             try {
@@ -164,6 +163,7 @@ public class SolrIndexHook implements IndexHook {
                 exception = e;
             }
         }
+        return null;
     }
 
     private void deleteSubtree(String name, NodeState before) throws IOException {
@@ -178,6 +178,18 @@ public class SolrIndexHook implements IndexHook {
     }
 
     @Override
+    public void leave(NodeState before, NodeState after)
+            throws CommitFailedException {
+        if (exception == null) {
+            try {
+                apply();
+            } catch (CommitFailedException e) {
+                exception = new IOException(e);
+            }
+        }
+
+    }
+
     public void apply() throws CommitFailedException {
         try {
             if (exception != null) {
@@ -241,12 +253,6 @@ public class SolrIndexHook implements IndexHook {
         deleteByIdQueryBuilder.delete(4, deleteByIdQueryBuilder.length());
     }
 
-    @Override
-    public IndexHook child(String name) {
-        return new SolrIndexHook(name, nodebuilder, solrServer);
-    }
-
-    @Override
     public String getPath() {
         return path;
     }
