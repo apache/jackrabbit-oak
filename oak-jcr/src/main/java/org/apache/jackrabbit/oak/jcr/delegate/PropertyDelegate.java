@@ -32,7 +32,7 @@ import org.apache.jackrabbit.oak.api.Type;
  */
 public class PropertyDelegate extends ItemDelegate {
 
-    public PropertyDelegate(SessionDelegate sessionDelegate, TreeLocation location) {
+    PropertyDelegate(SessionDelegate sessionDelegate, TreeLocation location) {
         super(sessionDelegate, location);
     }
 

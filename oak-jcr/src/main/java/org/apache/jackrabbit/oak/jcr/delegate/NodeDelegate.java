@@ -96,12 +96,25 @@ public class NodeDelegate extends ItemDelegate {
      *         no such property exists
      */
     @CheckForNull
-    public PropertyDelegate getProperty(String relPath) throws RepositoryException {
+    public PropertyDelegate getPropertyOrNull(String relPath) throws RepositoryException {
         TreeLocation propertyLocation = getChildLocation(relPath);
-        PropertyState propertyState = propertyLocation.getProperty();
-        return propertyState == null
+        return propertyLocation.getProperty() == null
                 ? null
                 : new PropertyDelegate(sessionDelegate, propertyLocation);
+    }
+
+    /**
+     * Get a property. In contrast to {@link #getPropertyOrNull(String)} this
+     * method never returns {@code null}. In the case where no property exists
+     * at the given path, the returned property delegate throws an
+     * {@code InvalidItemStateException} on access. See See OAK-395.
+     *
+     * @param relPath oak path
+     * @return property at the path given by {@code relPath}.
+     */
+    @Nonnull
+    public PropertyDelegate getProperty(String relPath) throws RepositoryException {
+        return new PropertyDelegate(sessionDelegate, getChildLocation(relPath));
     }
 
     /**

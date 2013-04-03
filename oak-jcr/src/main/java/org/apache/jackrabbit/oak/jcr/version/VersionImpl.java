@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.jcr.version;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
@@ -39,8 +41,6 @@ import org.apache.jackrabbit.oak.jcr.delegate.VersionManagerDelegate;
 import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
 import org.apache.jackrabbit.oak.util.TODO;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 class VersionImpl extends NodeImpl<VersionDelegate> implements Version {
 
@@ -114,7 +114,7 @@ class VersionImpl extends NodeImpl<VersionDelegate> implements Version {
     @Nonnull
     private PropertyDelegate getPropertyOrThrow(@Nonnull String name)
             throws RepositoryException {
-        PropertyDelegate p = dlg.getProperty(checkNotNull(name));
+        PropertyDelegate p = dlg.getPropertyOrNull(checkNotNull(name));
         if (p == null) {
             throw new RepositoryException("Inconsistent version storage. " +
                     "Version does not have a " + name + " property.");
