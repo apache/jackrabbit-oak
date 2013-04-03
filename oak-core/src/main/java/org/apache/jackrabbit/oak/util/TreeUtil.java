@@ -16,16 +16,20 @@
  */
 package org.apache.jackrabbit.oak.util;
 
+import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
+import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+
 import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 
 import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.api.Type;
-
-import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
-import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.util.Text;
 
 /**
  * Utility providing common operations for the {@code Tree} that are not provided
@@ -76,5 +80,71 @@ public final class TreeUtil {
     public static boolean getBoolean(Tree tree, String propertyName) {
         PropertyState property = tree.getProperty(propertyName);
         return property != null && !property.isArray() && property.getValue(BOOLEAN);
+    }
+
+    /**
+     * Return the tree location located at the passed {@code path} from the
+     * {@code start} location.
+     * Parent (<em>..</em>) and current (<em>.</em>) elements in the path are
+     * interpreted as the parent of the current location and the current
+     * location, respectively. Empty elements are ignored.
+     *
+     * @param start  start location
+     * @param path  path from the start location
+     * @return  tree location located at {@code path} from {@code start}
+     */
+    @Nonnull
+    public static TreeLocation getTreeLocation(TreeLocation start, String path) {
+        TreeLocation loc = start;
+        for (String element : Text.explode(path, '/', false)) {
+            if (PathUtils.denotesParent(element)) {
+                loc = loc.getParent();
+            } else if (!PathUtils.denotesCurrent(element)) {
+                loc = loc.getChild(element);
+            }  // else . -> skip to next element
+        }
+        return loc;
+    }
+
+    /**
+     * Return the tree location located at the passed {@code path} from the
+     * location of the {@code start} tree.
+     * Equivalent to {@code getTreeLocation(start.getLocation(), path)}.
+     *
+     * @param start  start tree
+     * @param path  path from the start tree
+     * @return  tree location located at {@code path} from {@code start}
+     */
+    @Nonnull
+    public static TreeLocation getTreeLocation(Tree start, String path) {
+        return getTreeLocation(start.getLocation(), path);
+    }
+
+    /**
+     * Return the tree located at the passed {@code path} from the {@code start}
+     * location or {@code null} if no such tree exists or is accessible.
+     * Equivalent to {@code getTreeLocation(start, path).getTree()}.
+     *
+     * @param start  start location
+     * @param path  path from the start location
+     * @return  tree located at {@code path} from {@code start} or {@code null}
+     */
+    @CheckForNull
+    public static Tree getTree(TreeLocation start, String path) {
+        return getTreeLocation(start, path).getTree();
+    }
+
+    /**
+     * Return the tree located at the passed {@code path} from the location of
+     * the {@code start} tree or {@code null} if no such tree exists or is accessible.
+     * Equivalent to {@code getTreeLocation(start.getLocation(), path).getTree()}.
+     *
+     * @param start  start tree
+     * @param path  path from the start tree
+     * @return  tree located at {@code path} from {@code start} or {@code null}
+     */
+    @CheckForNull
+    public static Tree getTree(Tree start, String path) {
+        return getTreeLocation(start.getLocation(), path).getTree();
     }
 }

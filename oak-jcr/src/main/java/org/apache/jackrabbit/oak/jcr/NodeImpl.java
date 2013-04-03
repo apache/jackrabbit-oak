@@ -1481,7 +1481,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
 
     private Property internalRemoveProperty(final String jcrName)
             throws RepositoryException {
-        final String oakName = getOakPathOrThrow(checkNotNull(jcrName));
+        final String oakName = getOakName(checkNotNull(jcrName));
         return perform(new ItemWriteOperation<Property>() {
             @Override
             protected Property perform() throws RepositoryException {

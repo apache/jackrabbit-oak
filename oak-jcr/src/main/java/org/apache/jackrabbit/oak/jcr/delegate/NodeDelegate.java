@@ -33,6 +33,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.util.TreeUtil;
 
 /**
  * {@code NodeDelegate} serve as internal representations of {@code Node}s.
@@ -259,15 +260,7 @@ public class NodeDelegate extends ItemDelegate {
             throw new RepositoryException("Not a relative path: " + relPath);
         }
 
-        TreeLocation loc = getLocation();
-        for (String element : PathUtils.elements(relPath)) {
-            if (PathUtils.denotesParent(element)) {
-                loc = loc.getParent();
-            } else if (!PathUtils.denotesCurrent(element)) {
-                loc = loc.getChild(element);
-            }  // else . -> skip to next element
-        }
-        return loc;
+        return TreeUtil.getTreeLocation(getLocation(), relPath);
     }
 
     private Iterator<NodeDelegate> nodeDelegateIterator(

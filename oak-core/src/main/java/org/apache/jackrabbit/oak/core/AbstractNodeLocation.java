@@ -17,13 +17,11 @@
 package org.apache.jackrabbit.oak.core;
 
 import static com.google.common.base.Objects.toStringHelper;
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.TreeLocation;
-import org.apache.jackrabbit.oak.commons.PathUtils;
 
 /**
  * AbstractNodeLocation... TODO
@@ -58,28 +56,17 @@ abstract class AbstractNodeLocation<T extends Tree> extends AbstractTreeLocation
     }
 
     @Override
-    public TreeLocation getChild(String relPath) {
-        checkArgument(!PathUtils.isAbsolute(relPath), "Not a relative path: " + relPath);
-        if (relPath.isEmpty()) {
-            return this;
+    public TreeLocation getChild(String name) {
+        T child = getChildTree(name);
+        if (child != null) {
+            return createNodeLocation(child);
         }
 
-        String parent = PathUtils.getParentPath(relPath);
-        if (parent.isEmpty()) {
-            T child = getChildTree(relPath);
-            if (child != null) {
-                return createNodeLocation(child);
-            }
-
-            PropertyState prop = getPropertyState(relPath);
-            if (prop != null) {
-                return createPropertyLocation(this, relPath);
-            }
-            return new NullLocation(this, relPath);
+        PropertyState prop = getPropertyState(name);
+        if (prop != null) {
+            return createPropertyLocation(this, name);
         }
-        else {
-            return getChild(parent).getChild(PathUtils.getName(relPath));
-        }
+        return new NullLocation(this, name);
     }
 
     @Override
