@@ -52,9 +52,6 @@ public class TreeLocationTest extends OakBaseTest {
         tree.addChild("y");
         tree.addChild("z").addChild("1").addChild("2").setProperty("p", "v");
         root.commit();
-
-        // Acquire a fresh new root to avoid problems from lingering state
-        root = session.getLatestRoot();
     }
 
     @After
