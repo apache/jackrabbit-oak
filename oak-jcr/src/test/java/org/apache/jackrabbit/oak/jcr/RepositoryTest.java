@@ -1820,7 +1820,8 @@ public class RepositoryTest extends AbstractRepositoryTest {
         final Set<String> addNodes = Sets.newHashSet(
                 TEST_PATH + "/1",
                 TEST_PATH + "/2",
-                TEST_PATH + "/3");
+                TEST_PATH + "/3",
+                TEST_PATH + "/{4}");
 
         final Set<String> removeNodes = Sets.newHashSet(
                 TEST_PATH + "/2");
@@ -1833,6 +1834,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
                 TEST_PATH + "/1/jcr:primaryType",
                 TEST_PATH + "/2/jcr:primaryType",
                 TEST_PATH + "/3/jcr:primaryType",
+                TEST_PATH + "/{4}/jcr:primaryType",
                 TEST_PATH + "/3/prop3");
 
         final Set<String> setProperties = Sets.newHashSet(
@@ -1906,8 +1908,8 @@ public class RepositoryTest extends AbstractRepositoryTest {
                     }
                 }
             },
-                    Event.NODE_ADDED | Event.NODE_REMOVED | Event.NODE_MOVED | Event.PROPERTY_ADDED |
-                            Event.PROPERTY_REMOVED | Event.PROPERTY_CHANGED | Event.PERSIST, "/", true, null, null, false);
+            Event.NODE_ADDED | Event.NODE_REMOVED | Event.NODE_MOVED | Event.PROPERTY_ADDED |
+                    Event.PROPERTY_REMOVED | Event.PROPERTY_CHANGED | Event.PERSIST, "/", true, null, null, false);
 
             eventCount.set(new CountDownLatch(7));
             Node n = getNode(TEST_PATH);
@@ -1919,12 +1921,13 @@ public class RepositoryTest extends AbstractRepositoryTest {
             getAdminSession().save();
             assertTrue(eventCount.get().await(2, TimeUnit.SECONDS));
 
-            eventCount.set(new CountDownLatch(8));
+            eventCount.set(new CountDownLatch(10));
             n.setProperty("property", 42);
             n.addNode("3").setProperty("prop3", "val3");
             n1.setProperty("prop1", "val1 new");
             n1.getProperty("prop2").remove();
             n.getNode("2").remove();
+            n.addNode("{4}");
             getAdminSession().save();
             assertTrue(eventCount.get().await(2, TimeUnit.SECONDS));
 
