@@ -28,11 +28,20 @@ import javax.annotation.CheckForNull;
  */
 public abstract class LocalNameMapper extends GlobalNameMapper {
 
+    private static boolean isExpandedName(String name) {
+        if (name.startsWith("{")) {
+            int brace = name.indexOf('}', 1);
+            return brace != -1 && name.substring(1, brace).indexOf(':') != -1;
+        } else {
+            return false;
+        }
+    }
+
     @Override @CheckForNull
     public String getJcrName(String oakName) {
         checkNotNull(oakName);
         checkArgument(!oakName.startsWith(":")); // hidden name
-        checkArgument(!oakName.startsWith("{")); // expanded name
+        checkArgument(isExpandedName(oakName));  // expanded name
 
         if (hasSessionLocalMappings()) {
             int colon = oakName.indexOf(':');
