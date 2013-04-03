@@ -26,8 +26,10 @@ import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.index.IndexHook;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
+import org.apache.jackrabbit.oak.spi.commit.Editor;
+import org.apache.jackrabbit.oak.spi.commit.EditorHook;
+import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -50,30 +52,36 @@ public class Property2IndexTest {
 
         // Add index definition
         NodeBuilder builder = root.builder();
-        builder.child("oak:index").child("foo")
-                .setProperty("jcr:primaryType", "oak:queryIndexDefinition", Type.NAME)
-                .setProperty("type", "p2")
+        builder.child("oak:index")
+                .child("foo")
+                .setProperty("jcr:primaryType", "oak:queryIndexDefinition",
+                        Type.NAME).setProperty("type", "p2")
                 .setProperty("propertyNames", "foo");
         NodeState before = builder.getNodeState();
 
         // Add some content and process it through the property index hook
         builder = before.builder();
         builder.child("a").setProperty("foo", "abc");
-        builder.child("b").setProperty("foo", Arrays.asList("abc", "def"), Type.STRINGS);
+        builder.child("b").setProperty("foo", Arrays.asList("abc", "def"),
+                Type.STRINGS);
         // plus lots of dummy content to highlight the benefit of indexing
         for (int i = 0; i < MANY; i++) {
             builder.child("n" + i).setProperty("foo", "xyz");
         }
         NodeState after = builder.getNodeState();
 
-        // Add an index
-        IndexHook p = new Property2IndexDiff(builder);
-        after.compareAgainstBaseState(before, p);
-        p.apply();
-        p.close();
+        EditorProvider provider = new EditorProvider() {
+            @Override
+            public Editor getRootEditor(NodeState before, NodeState after,
+                    NodeBuilder builder) {
+                return new Property2IndexDiff(builder);
+            }
+        };
+        EditorHook hook = new EditorHook(provider);
+        NodeState indexed = hook.processCommit(before, after);
 
         // Query the index
-        Property2IndexLookup lookup = new Property2IndexLookup(builder.getNodeState());
+        Property2IndexLookup lookup = new Property2IndexLookup(indexed);
         assertEquals(ImmutableSet.of("a", "b"), find(lookup, "foo", "abc"));
         assertEquals(ImmutableSet.of("b"), find(lookup, "foo", "def"));
         assertEquals(ImmutableSet.of(), find(lookup, "foo", "ghi"));
@@ -87,11 +95,14 @@ public class Property2IndexTest {
         assertTrue("cost: " + cost, cost >= MANY);
     }
 
-    private static Set<String> find(Property2IndexLookup lookup, String name, String value, Filter filter) {
-        return Sets.newHashSet(lookup.query(filter, name, value == null ? null : PropertyValues.newString(value)));
+    private static Set<String> find(Property2IndexLookup lookup, String name,
+            String value, Filter filter) {
+        return Sets.newHashSet(lookup.query(filter, name, value == null ? null
+                : PropertyValues.newString(value)));
     }
 
-    private static Set<String> find(Property2IndexLookup lookup, String name, String value) {
+    private static Set<String> find(Property2IndexLookup lookup, String name,
+            String value) {
         return find(lookup, name, value, null);
     }
 
@@ -101,16 +112,21 @@ public class Property2IndexTest {
 
         // Add index definition
         NodeBuilder builder = root.builder();
-        builder.child("oak:index").child("fooIndex")
-                .setProperty("jcr:primaryType", "oak:queryIndexDefinition", Type.NAME)
+        builder.child("oak:index")
+                .child("fooIndex")
+                .setProperty("jcr:primaryType", "oak:queryIndexDefinition",
+                        Type.NAME)
                 .setProperty("type", "p2")
-                .setProperty("propertyNames", Arrays.asList("foo", "extrafoo"), Type.STRINGS);
+                .setProperty("propertyNames", Arrays.asList("foo", "extrafoo"),
+                        Type.STRINGS);
         NodeState before = builder.getNodeState();
 
         // Add some content and process it through the property index hook
         builder = before.builder();
-        builder.child("a").setProperty("foo", "abc").setProperty("extrafoo", "pqr");
-        builder.child("b").setProperty("foo", Arrays.asList("abc", "def"), Type.STRINGS);
+        builder.child("a").setProperty("foo", "abc")
+                .setProperty("extrafoo", "pqr");
+        builder.child("b").setProperty("foo", Arrays.asList("abc", "def"),
+                Type.STRINGS);
         // plus lots of dummy content to highlight the benefit of indexing
         for (int i = 0; i < MANY; i++) {
             builder.child("n" + i).setProperty("foo", "xyz");
@@ -118,19 +134,24 @@ public class Property2IndexTest {
         NodeState after = builder.getNodeState();
 
         // Add an index
-        IndexHook p = new Property2IndexDiff(builder);
-        after.compareAgainstBaseState(before, p);
-        p.apply();
-        p.close();
+        EditorProvider provider = new EditorProvider() {
+            @Override
+            public Editor getRootEditor(NodeState before, NodeState after,
+                    NodeBuilder builder) {
+                return new Property2IndexDiff(builder);
+            }
+        };
+        EditorHook hook = new EditorHook(provider);
+        NodeState indexed = hook.processCommit(before, after);
 
         // Query the index
-        Property2IndexLookup lookup = new Property2IndexLookup(builder.getNodeState());
+        Property2IndexLookup lookup = new Property2IndexLookup(indexed);
         assertEquals(ImmutableSet.of("a", "b"), find(lookup, "foo", "abc"));
         assertEquals(ImmutableSet.of("b"), find(lookup, "foo", "def"));
         assertEquals(ImmutableSet.of(), find(lookup, "foo", "ghi"));
         assertEquals(MANY, find(lookup, "foo", "xyz").size());
         assertEquals(ImmutableSet.of("a"), find(lookup, "extrafoo", "pqr"));
-        
+
         try {
             assertEquals(ImmutableSet.of(), find(lookup, "pqr", "foo"));
             fail();
@@ -178,18 +199,21 @@ public class Property2IndexTest {
         NodeState after = builder.getNodeState();
 
         // Add an index
-        IndexHook p = new Property2IndexDiff(builder);
-        after.compareAgainstBaseState(before, p);
-        p.apply();
-        p.close();
-
-        NodeState indexedState = builder.getNodeState();
+        EditorProvider provider = new EditorProvider() {
+            @Override
+            public Editor getRootEditor(NodeState before, NodeState after,
+                    NodeBuilder builder) {
+                return new Property2IndexDiff(builder);
+            }
+        };
+        EditorHook hook = new EditorHook(provider);
+        NodeState indexed = hook.processCommit(before, after);
 
         FilterImpl f = new FilterImpl(null, null);
         f.setNodeType("nt:unstructured");
 
         // Query the index
-        Property2IndexLookup lookup = new Property2IndexLookup(indexedState);
+        Property2IndexLookup lookup = new Property2IndexLookup(indexed);
         assertEquals(ImmutableSet.of("a", "b"), find(lookup, "foo", "abc", f));
         assertEquals(ImmutableSet.of("b"), find(lookup, "foo", "def", f));
         assertEquals(ImmutableSet.of(), find(lookup, "foo", "ghi", f));
@@ -239,18 +263,21 @@ public class Property2IndexTest {
         NodeState after = builder.getNodeState();
 
         // Add an index
-        IndexHook p = new Property2IndexDiff(builder);
-        after.compareAgainstBaseState(before, p);
-        p.apply();
-        p.close();
-
-        NodeState indexedState = builder.getNodeState();
+        EditorProvider provider = new EditorProvider() {
+            @Override
+            public Editor getRootEditor(NodeState before, NodeState after,
+                    NodeBuilder builder) {
+                return new Property2IndexDiff(builder);
+            }
+        };
+        EditorHook hook = new EditorHook(provider);
+        NodeState indexed = hook.processCommit(before, after);
 
         FilterImpl f = new FilterImpl(null, null);
         f.setNodeType("nt:unstructured");
 
         // Query the index
-        Property2IndexLookup lookup = new Property2IndexLookup(indexedState);
+        Property2IndexLookup lookup = new Property2IndexLookup(indexed);
         assertEquals(ImmutableSet.of("a", "b"), find(lookup, "foo", "abc", f));
         assertEquals(ImmutableSet.of("b"), find(lookup, "foo", "def", f));
         assertEquals(ImmutableSet.of(), find(lookup, "foo", "ghi", f));
@@ -285,15 +312,19 @@ public class Property2IndexTest {
                 Type.STRINGS);
         NodeState after = builder.getNodeState();
 
-        IndexHook p = new Property2IndexDiff(builder);
-        after.compareAgainstBaseState(before, p);
+        EditorProvider provider = new EditorProvider() {
+            @Override
+            public Editor getRootEditor(NodeState before, NodeState after,
+                    NodeBuilder builder) {
+                return new Property2IndexDiff(builder);
+            }
+        };
+        EditorHook hook = new EditorHook(provider);
         try {
-            p.apply();
+            hook.processCommit(before, after);
             fail("Unique constraint should be respected");
         } catch (CommitFailedException e) {
             // expected
-        } finally {
-            p.close();
         }
     }
 
@@ -303,26 +334,33 @@ public class Property2IndexTest {
 
         // Add index definition
         NodeBuilder builder = root.builder();
-        builder.child("oak:index").child("fooIndex")
-                .setProperty("jcr:primaryType", "oak:queryIndexDefinition", Type.NAME)
+        builder.child("oak:index")
+                .child("fooIndex")
+                .setProperty("jcr:primaryType", "oak:queryIndexDefinition",
+                        Type.NAME)
                 .setProperty("type", "p2")
                 .setProperty("unique", "true")
-                .setProperty("propertyNames", Arrays.asList("foo"), Type.STRINGS)
-                .setProperty(Property2IndexDiff.declaringNodeTypes, Arrays.asList("typeFoo"), Type.STRINGS);
+                .setProperty("propertyNames", Arrays.asList("foo"),
+                        Type.STRINGS)
+                .setProperty(Property2IndexDiff.declaringNodeTypes,
+                        Arrays.asList("typeFoo"), Type.STRINGS);
         NodeState before = builder.getNodeState();
         builder = before.builder();
-        builder.child("a")
-                .setProperty("jcr:primaryType", "typeFoo", Type.NAME)
+        builder.child("a").setProperty("jcr:primaryType", "typeFoo", Type.NAME)
                 .setProperty("foo", "abc");
-        builder.child("b")
-                .setProperty("jcr:primaryType", "typeBar", Type.NAME)
+        builder.child("b").setProperty("jcr:primaryType", "typeBar", Type.NAME)
                 .setProperty("foo", "abc");
         NodeState after = builder.getNodeState();
 
-        IndexHook p = new Property2IndexDiff(builder);
-        after.compareAgainstBaseState(before, p);
-        p.apply();
-        p.close();
+        EditorProvider provider = new EditorProvider() {
+            @Override
+            public Editor getRootEditor(NodeState before, NodeState after,
+                    NodeBuilder builder) {
+                return new Property2IndexDiff(builder);
+            }
+        };
+        EditorHook hook = new EditorHook(provider);
+        hook.processCommit(before, after);
     }
 
     @Test
@@ -331,31 +369,37 @@ public class Property2IndexTest {
 
         // Add index definition
         NodeBuilder builder = root.builder();
-        builder.child("oak:index").child("fooIndex")
-                .setProperty("jcr:primaryType", "oak:queryIndexDefinition", Type.NAME)
+        builder.child("oak:index")
+                .child("fooIndex")
+                .setProperty("jcr:primaryType", "oak:queryIndexDefinition",
+                        Type.NAME)
                 .setProperty("type", "p2")
                 .setProperty("unique", "true")
-                .setProperty("propertyNames", Arrays.asList("foo"), Type.STRINGS)
-                .setProperty(Property2IndexDiff.declaringNodeTypes, Arrays.asList("typeFoo"), Type.STRINGS);
+                .setProperty("propertyNames", Arrays.asList("foo"),
+                        Type.STRINGS)
+                .setProperty(Property2IndexDiff.declaringNodeTypes,
+                        Arrays.asList("typeFoo"), Type.STRINGS);
         NodeState before = builder.getNodeState();
         builder = before.builder();
-        builder.child("a")
-                .setProperty("jcr:primaryType", "typeFoo", Type.NAME)
+        builder.child("a").setProperty("jcr:primaryType", "typeFoo", Type.NAME)
                 .setProperty("foo", "abc");
-        builder.child("b")
-                .setProperty("jcr:primaryType", "typeFoo", Type.NAME)
+        builder.child("b").setProperty("jcr:primaryType", "typeFoo", Type.NAME)
                 .setProperty("foo", "abc");
         NodeState after = builder.getNodeState();
 
-        IndexHook p = new Property2IndexDiff(builder);
-        after.compareAgainstBaseState(before, p);
+        EditorProvider provider = new EditorProvider() {
+            @Override
+            public Editor getRootEditor(NodeState before, NodeState after,
+                    NodeBuilder builder) {
+                return new Property2IndexDiff(builder);
+            }
+        };
+        EditorHook hook = new EditorHook(provider);
         try {
-            p.apply();
+            hook.processCommit(before, after);
             fail("Unique constraint should be respected");
         } catch (CommitFailedException e) {
             // expected
-        } finally {
-            p.close();
         }
     }
 
@@ -365,27 +409,34 @@ public class Property2IndexTest {
 
         // Add index definition
         NodeBuilder builder = root.builder();
-        builder.child("oak:index").child("fooIndex")
-                .setProperty("jcr:primaryType", "oak:queryIndexDefinition", Type.NAME)
+        builder.child("oak:index")
+                .child("fooIndex")
+                .setProperty("jcr:primaryType", "oak:queryIndexDefinition",
+                        Type.NAME)
                 .setProperty("type", "p2")
                 .setProperty("unique", "true")
-                .setProperty("propertyNames", Arrays.asList("foo"), Type.STRINGS)
-                .setProperty(Property2IndexDiff.declaringNodeTypes, Arrays.asList("typeFoo"), Type.STRINGS);
-        builder.child("a")
-                .setProperty("jcr:primaryType", "typeFoo", Type.NAME)
+                .setProperty("propertyNames", Arrays.asList("foo"),
+                        Type.STRINGS)
+                .setProperty(Property2IndexDiff.declaringNodeTypes,
+                        Arrays.asList("typeFoo"), Type.STRINGS);
+        builder.child("a").setProperty("jcr:primaryType", "typeFoo", Type.NAME)
                 .setProperty("foo", "abc");
-        builder.child("b")
-                .setProperty("jcr:primaryType", "typeBar", Type.NAME)
+        builder.child("b").setProperty("jcr:primaryType", "typeBar", Type.NAME)
                 .setProperty("foo", "abc");
         NodeState before = builder.getNodeState();
         builder = before.builder();
         builder.removeNode("b");
         NodeState after = builder.getNodeState();
 
-        IndexHook p = new Property2IndexDiff(builder);
-        after.compareAgainstBaseState(before, p);
-        p.apply();
-        p.close();
+        EditorProvider provider = new EditorProvider() {
+            @Override
+            public Editor getRootEditor(NodeState before, NodeState after,
+                    NodeBuilder builder) {
+                return new Property2IndexDiff(builder);
+            }
+        };
+        EditorHook hook = new EditorHook(provider);
+        hook.processCommit(before, after);
     }
 
 }

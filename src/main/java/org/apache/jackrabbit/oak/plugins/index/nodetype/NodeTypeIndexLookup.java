@@ -26,7 +26,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import com.google.common.collect.Iterables;
 
 /**
- * <code>NodeTypeIndexLookup</code> uses {@link PropertyIndexLookup} internally
+ * <code>NodeTypeIndexLookup</code> uses {@link Property2IndexLookup} internally
  * for cost calculation and queries.
  */
 class NodeTypeIndexLookup implements JcrConstants {
