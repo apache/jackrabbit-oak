@@ -18,6 +18,13 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import static java.util.Arrays.asList;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -72,13 +79,6 @@ import org.apache.jackrabbit.commons.cnd.ParseException;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
-
-import static java.util.Arrays.asList;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 public class RepositoryTest extends AbstractRepositoryTest {
     private static final String TEST_NODE = "test_node";
@@ -488,6 +488,22 @@ public class RepositoryTest extends AbstractRepositoryTest {
         } finally {
             session2.logout();
         }
+    }
+
+    @Test
+    @Ignore
+    public void testAddNodeWithExpandedName() throws RepositoryException {
+        Session session = getAdminSession();
+
+        session.getWorkspace().getNamespaceRegistry().registerNamespace("foo", "http://foo");
+
+        Node node = getNode(TEST_PATH);
+        Node added = node.addNode("{http://foo}new");
+        assertEquals("foo:new", added.getName());
+        session.save();
+
+        added = session.getNode(TEST_PATH + "/{http://foo}new");
+        assertEquals("foo:new", added.getName());
     }
 
     @Test
