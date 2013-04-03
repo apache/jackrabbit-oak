@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.jcr.delegate;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Iterator;
@@ -36,8 +38,6 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.value.Conversions;
 import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * {@code VersionHistoryDelegate}...
@@ -126,7 +126,7 @@ public class VersionHistoryDelegate extends NodeDelegate {
             NodeDelegate n = it.next();
             String primaryType = n.getProperty(JcrConstants.JCR_PRIMARYTYPE).getString();
             if (primaryType.equals(VersionConstants.NT_VERSION)) {
-                PropertyDelegate created = n.getProperty(JcrConstants.JCR_CREATED);
+                PropertyDelegate created = n.getPropertyOrNull(JcrConstants.JCR_CREATED);
                 if (created != null) {
                     Calendar cal = Conversions.convert(created.getDate()).toCalendar();
                     versions.put(cal, n.getName());

@@ -225,7 +225,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                     NodeDelegate grandParent = dlg.getChild(grandParentPath);
                     if (grandParent != null) {
                         String propName = PathUtils.getName(parentPath);
-                        if (grandParent.getProperty(propName) != null) {
+                        if (grandParent.getPropertyOrNull(propName) != null) {
                             throw new ConstraintViolationException("Can't add new node to property.");
                         }
                     }
@@ -574,7 +574,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
             @Override
             public PropertyImpl perform() throws RepositoryException {
                 String oakPath = getOakPathOrThrowNotFound(relPath);
-                PropertyDelegate pd = dlg.getProperty(oakPath);
+                PropertyDelegate pd = dlg.getPropertyOrNull(oakPath);
                 if (pd == null) {
                     throw new PathNotFoundException(relPath + " not found on " + getPath());
                 } else {
@@ -772,7 +772,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
             @Override
             public Boolean perform() throws RepositoryException {
                 String oakPath = getOakPathOrThrow(relPath);
-                return dlg.getProperty(oakPath) != null;
+                return dlg.getPropertyOrNull(oakPath) != null;
             }
         });
     }
@@ -885,7 +885,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                     return null;
                 }
 
-                PropertyDelegate mixins = dlg.getProperty(JcrConstants.JCR_MIXINTYPES);
+                PropertyDelegate mixins = dlg.getPropertyOrNull(JcrConstants.JCR_MIXINTYPES);
                 Value value = getValueFactory().createValue(mixinName, PropertyType.NAME);
 
                 boolean nodeModified = false;
@@ -1100,14 +1100,14 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                 String lockOwner = getOakPathOrThrow(JCR_LOCK_OWNER);
                 String lockIsDeep = getOakPathOrThrow(JCR_LOCK_IS_DEEP);
 
-                if (dlg.getProperty(lockOwner) != null) {
+                if (dlg.getPropertyOrNull(lockOwner) != null) {
                     return true;
                 }
 
                 NodeDelegate parent = dlg.getParent();
                 while (parent != null) {
-                    if (parent.getProperty(lockOwner) != null) {
-                        PropertyDelegate isDeep = parent.getProperty(lockIsDeep);
+                    if (parent.getPropertyOrNull(lockOwner) != null) {
+                        PropertyDelegate isDeep = parent.getPropertyOrNull(lockIsDeep);
                         if (isDeep != null && !isDeep.isArray()) {
                             if (isDeep.getBoolean()) {
                                 return true;
@@ -1132,7 +1132,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
             @Override
             protected Boolean perform() throws RepositoryException {
                 String lockOwner = getOakPathOrThrow(JCR_LOCK_OWNER);
-                return dlg.getProperty(lockOwner) != null;
+                return dlg.getPropertyOrNull(lockOwner) != null;
             }
         });
     }
@@ -1337,7 +1337,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     private void autoCreateItems() throws RepositoryException {
         EffectiveNodeType effective = getEffectiveNodeType();
         for (PropertyDefinition pd : effective.getAutoCreatePropertyDefinitions()) {
-            if (dlg.getProperty(pd.getName()) == null) {
+            if (dlg.getPropertyOrNull(pd.getName()) == null) {
                 if (pd.isMultiple()) {
                     dlg.setProperty(PropertyStates.createProperty(pd.getName(), getAutoCreatedValues(pd)));
                 } else {
@@ -1492,11 +1492,8 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                     property.remove();
                     return property;
                 } else {
-                    // Return a property instance which throws on access. See
-                    // OAK-395
-                    return new PropertyImpl(new PropertyDelegate(
-                            sessionDelegate, dlg.getLocation()
-                                    .getChild(oakName)), sessionContext);
+                    // Return a property instance which throws on access. See OAK-395
+                    return new PropertyImpl(dlg.getProperty(oakName), sessionContext);
                 }
             }
         });

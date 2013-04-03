@@ -94,22 +94,24 @@ public abstract class ItemDelegate {
         return location.getStatus();
     }
 
+    @Override
+    public String toString() {
+        return toStringHelper(this).add("location", location).toString();
+    }
+
+    //------------------------------------------------------------< internal >---
+
     /**
      * The underlying {@link org.apache.jackrabbit.oak.api.TreeLocation} of this item.
      * @return  tree location of the underlying item
      * @throws InvalidItemStateException if the location points to a stale item
      */
-    @Nonnull // FIXME this should be package private. OAK-672
-    public TreeLocation getLocation() throws InvalidItemStateException {
+    @Nonnull
+    TreeLocation getLocation() throws InvalidItemStateException {
         if (!location.exists()) {
             throw new InvalidItemStateException("Item is stale");
         }
         return location;
-    }
-
-    @Override
-    public String toString() {
-        return toStringHelper(this).add("location", location).toString();
     }
 
 }
