@@ -24,15 +24,17 @@ import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
 import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
 
 import java.util.List;
+import java.util.Set;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
-import javax.jcr.nodetype.ConstraintViolationException;
 
-import com.google.common.base.Joiner;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+
+import com.google.common.collect.ImmutableSet;
 
 class EffectiveType {
 
@@ -42,8 +44,10 @@ class EffectiveType {
         this.types = checkNotNull(types);
     }
 
-    void checkMandatoryItems(NodeState node)
-            throws ConstraintViolationException {
+    @Nonnull
+    Set<String> findMissingMandatoryItems(NodeState node) {
+        ImmutableSet.Builder<String> builder = ImmutableSet.builder();
+
         for (NodeState type : types) {
             NodeState properties =
                     type.getChildNode("oak:namedPropertyDefinitions");
@@ -59,8 +63,7 @@ class EffectiveType {
                     }
                     if (node.getProperty(name) == null
                             && isMandatory(name, entry.getNodeState())) {
-                        throw new ConstraintViolationException(
-                                "Missing mandatory property " + name);
+                        builder.add(name);
                     }
                 }
             }
@@ -72,24 +75,23 @@ class EffectiveType {
                     String name = entry.getName();
                     if (!node.hasChildNode(name)
                             && isMandatory(name, entry.getNodeState())) {
-                        throw new ConstraintViolationException(
-                                "Missing mandatory child node " + name);
+                        builder.add(name);
                     }
                 }
             }
         }
+
+        return builder.build();
     }
 
     /**
      * Finds a matching definition for a property with the given name and type.
      *
      * @param property modified property
-     * @return matching property definition
-     * @throws ConstraintViolationException if a matching definition was not found
+     * @return matching property definition, or {@code null}
      */
-    @Nonnull
-    NodeState getDefinition(PropertyState property)
-            throws ConstraintViolationException {
+    @CheckForNull
+    NodeState getDefinition(PropertyState property) {
         String propertyName = property.getName();
         Type<?> propertyType = property.getType();
 
@@ -149,8 +151,7 @@ class EffectiveType {
             }
         }
 
-        throw new ConstraintViolationException(
-                "No matching definition found for property " + propertyName);
+        return null;
     }
 
     /**
@@ -159,12 +160,10 @@ class EffectiveType {
      *
      * @param nodeName child node name
      * @param nodeType effective types of the child node
-     * @return matching child node definition
-     * @throws ConstraintViolationException if a matching definition was not found
+     * @return matching child node definition, or {@code null} if not found
      */
-    @Nonnull
-    NodeState getDefinition(String nodeName, Iterable<String> nodeType)
-            throws ConstraintViolationException {
+    @CheckForNull
+    NodeState getDefinition(String nodeName, Iterable<String> nodeType) {
         boolean sns = false;
         int n = nodeName.length();
         if (n > 3 && nodeName.charAt(n - 1) == ']') {
@@ -212,8 +211,7 @@ class EffectiveType {
             }
         }
 
-        throw new ConstraintViolationException(
-                "Incorrect node type of child node " + nodeName + " (" + Joiner.on(",").join(nodeType) + ')');
+        return null;
     }
 
     //-----------------------------------------------------------< private >--
