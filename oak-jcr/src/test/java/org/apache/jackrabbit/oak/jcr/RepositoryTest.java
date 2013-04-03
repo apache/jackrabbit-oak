@@ -2163,6 +2163,15 @@ public class RepositoryTest extends AbstractRepositoryTest {
         assertTrue(c2.hasProperty("pc2"));
     }
 
+    @Test
+    public void expandedName() throws RepositoryException {
+        Session session = getAdminSession();
+        session.setNamespacePrefix("foo", "http://example.com/");
+        session.getRootNode().addNode("{0} test");
+        session.save();
+        assertTrue(session.nodeExists("/{0} test"));
+    }
+
     //------------------------------------------------------------< private >---
 
     private Node getNode(String path) throws RepositoryException {
