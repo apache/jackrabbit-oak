@@ -107,25 +107,6 @@ public class SessionImporter implements Importer {
         }
     }
 
-    /**
-     * make sure the editing session is allowed create nodes with a
-     * specified node type (and ev. mixins),<br>
-     * NOTE: this check is not executed in a single place as the parent
-     * may change in case of
-     * {@link javax.jcr.ImportUUIDBehavior#IMPORT_UUID_COLLISION_REPLACE_EXISTING IMPORT_UUID_COLLISION_REPLACE_EXISTING}.
-     *
-     * @param parent   parent node
-     * @param nodeName the name
-     * @throws javax.jcr.RepositoryException if an error occurs
-     */
-    protected void checkPermission(Node parent, String nodeName)
-            throws RepositoryException {
-        //TODO clarify how to check permissions
-//        if (!session.getAccessControlManager().isGranted(session.getQPath(parent.getPath()), nodeName, Permissions.NODE_TYPE_MANAGEMENT)) {
-//            throw new AccessDeniedException("Insufficient permission.");
-//        }
-    }
-
     protected Node createNode(Node parent,
                               String nodeName,
                               String nodeTypeName,
@@ -198,7 +179,6 @@ public class SessionImporter implements Importer {
 
         if (uuidBehavior == ImportUUIDBehavior.IMPORT_UUID_CREATE_NEW) {
             // create new with new uuid
-            checkPermission(parent, nodeInfo.getName());
             node = createNode(parent, nodeInfo.getName(),
                     nodeInfo.getPrimaryTypeName(), nodeInfo.getMixinTypeNames(), null);
             // remember uuid mapping
@@ -228,7 +208,6 @@ public class SessionImporter implements Importer {
             // remove conflicting
             conflicting.remove();
             // create new with given uuid
-            checkPermission(parent, nodeInfo.getName());
             node = createNode(parent, nodeInfo.getName(),
                     nodeInfo.getPrimaryTypeName(), nodeInfo.getMixinTypeNames(), nodeInfo.getUUID());
         } else if (uuidBehavior == ImportUUIDBehavior.IMPORT_UUID_COLLISION_REPLACE_EXISTING) {
@@ -249,7 +228,6 @@ public class SessionImporter implements Importer {
             parent = conflicting.getParent();
 
             // replace child node
-            checkPermission(parent, nodeInfo.getName());
             //TODO ordering! (what happened to replace?)
             conflicting.remove();
             node = createNode(parent, nodeInfo.getName(),
@@ -369,7 +347,6 @@ public class SessionImporter implements Importer {
             // create node
             if (id == null) {
                 // no potential uuid conflict, always add new node
-                checkPermission(parent, nodeName);
                 node = createNode(parent, nodeName, ntName, mixins, id);
             } else {
                 // potential uuid conflict
@@ -397,7 +374,6 @@ public class SessionImporter implements Importer {
                     }
                 } else {
                     // create new with given uuid
-                    checkPermission(parent, nodeName);
                     node = createNode(parent, nodeName, ntName, mixins, id);
                 }
             }
