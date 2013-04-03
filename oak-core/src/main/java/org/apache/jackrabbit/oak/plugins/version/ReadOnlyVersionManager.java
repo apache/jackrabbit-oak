@@ -18,6 +18,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.version;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
@@ -31,9 +34,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.IdentifierManager;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
+import org.apache.jackrabbit.oak.util.TreeUtil;
 
 /**
  * {@code ReadOnlyVersionManager} provides implementations for read-only
@@ -101,7 +102,7 @@ public abstract class ReadOnlyVersionManager {
             RepositoryException {
         checkVersionable(versionable);
         String uuid = versionable.getProperty(VersionConstants.JCR_UUID).getValue(Type.STRING);
-        return getVersionStorageLocation().getChild(getVersionHistoryPath(uuid)).getTree();
+        return TreeUtil.getTree(getVersionStorageLocation(), getVersionHistoryPath(uuid));
     }
 
     /**

@@ -54,6 +54,7 @@ import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -620,10 +621,7 @@ public class Query {
     }
 
     public Tree getTree(String path) {
-        return rootTree
-                .getLocation()
-                .getChild(PathUtils.isAbsolute(path) ? path.substring(1) : path)
-                .getTree();
+        return TreeUtil.getTree(rootTree, PathUtils.isAbsolute(path) ? path.substring(1) : path);
     }
 
     /**

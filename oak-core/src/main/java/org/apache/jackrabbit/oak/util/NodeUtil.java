@@ -16,10 +16,19 @@
  */
 package org.apache.jackrabbit.oak.util;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.api.Type.DATE;
+import static org.apache.jackrabbit.oak.api.Type.LONG;
+import static org.apache.jackrabbit.oak.api.Type.NAME;
+import static org.apache.jackrabbit.oak.api.Type.NAMES;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
+import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.List;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -41,14 +50,6 @@ import org.apache.jackrabbit.oak.plugins.value.Conversions;
 import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.api.Type.DATE;
-import static org.apache.jackrabbit.oak.api.Type.LONG;
-import static org.apache.jackrabbit.oak.api.Type.NAME;
-import static org.apache.jackrabbit.oak.api.Type.NAMES;
-import static org.apache.jackrabbit.oak.api.Type.STRING;
-import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 
 /**
  * Utility class for accessing and writing typed content of a tree.
@@ -139,7 +140,7 @@ public class NodeUtil {
         if (relativePath.indexOf('/') == -1) {
             return getOrAddChild(relativePath, primaryTypeName);
         } else {
-            TreeLocation location = LocationUtil.getTreeLocation(tree.getLocation(), relativePath);
+            TreeLocation location = TreeUtil.getTreeLocation(tree, relativePath);
             if (location.getTree() == null) {
                 NodeUtil target = this;
                 for (String segment : Text.explode(relativePath, '/')) {

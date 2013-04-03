@@ -21,22 +21,12 @@ package org.apache.jackrabbit.oak.core;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.TreeLocation;
-import org.apache.jackrabbit.oak.commons.PathUtils;
-
-import static com.google.common.base.Preconditions.checkArgument;
 
 abstract class AbstractTreeLocation implements TreeLocation {
 
     @Override
-    public TreeLocation getChild(String relPath) {
-        checkArgument(!PathUtils.isAbsolute(relPath), "Not a relative path: " + relPath);
-
-        TreeLocation child = this;
-        for (String e : PathUtils.elements(relPath)) {
-            child = new NullLocation(child, e);
-        }
-
-        return child;
+    public TreeLocation getChild(String name) {
+        return new NullLocation(this, name);
     }
 
     /**

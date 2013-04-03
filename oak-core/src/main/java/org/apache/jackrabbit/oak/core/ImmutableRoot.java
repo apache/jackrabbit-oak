@@ -18,6 +18,9 @@
  */
 package org.apache.jackrabbit.oak.core;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -28,8 +31,6 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-
-import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * Simple implementation of the Root interface that only supports simple read
@@ -82,7 +83,11 @@ public final class ImmutableRoot implements Root {
     @Override
     public TreeLocation getLocation(String path) {
         checkArgument(PathUtils.isAbsolute(path));
-        return rootTree.getLocation().getChild(path.substring(1));
+        TreeLocation child = rootTree.getLocation();
+        for (String name : elements(path)) {
+            child = child.getChild(name);
+        }
+        return child;
     }
 
     @Override

@@ -18,6 +18,11 @@
  */
 package org.apache.jackrabbit.oak.core;
 
+import static org.apache.jackrabbit.oak.core.NullLocation.NULL;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+
 import org.apache.jackrabbit.oak.OakBaseTest;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -28,11 +33,6 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-
-import static org.apache.jackrabbit.oak.core.NullLocation.NULL;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 
 public class TreeLocationTest extends OakBaseTest {
 
@@ -64,7 +64,7 @@ public class TreeLocationTest extends OakBaseTest {
 
     @Test
     public void testNullLocation() {
-        TreeLocation xyz = NULL.getChild("x/y/z");
+        TreeLocation xyz = NULL.getChild("x").getChild("y").getChild("z");
         Assert.assertEquals("x/y/z", xyz.getPath());
         assertEquals("x/y", xyz.getParent().getPath());
         assertEquals("x", xyz.getParent().getParent().getPath());
@@ -82,7 +82,7 @@ public class TreeLocationTest extends OakBaseTest {
         TreeLocation x = root.getLocation("/x");
         assertNotNull(x.getTree());
 
-        TreeLocation xyz = x.getChild("y/z");
+        TreeLocation xyz = x.getChild("y").getChild("z");
         assertEquals("/x/y/z", xyz.getPath());
         assertNull(xyz.getTree());
 
@@ -98,7 +98,7 @@ public class TreeLocationTest extends OakBaseTest {
         TreeLocation a = root.getLocation("/a");
         assertNotNull(a.getProperty());
 
-        TreeLocation abc = a.getChild("b/c");
+        TreeLocation abc = a.getChild("b").getChild("c");
         assertEquals("/a/b/c", abc.getPath());
         assertNull(abc.getProperty());
 
