@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.Map.Entry;
 
+import javax.jcr.GuestCredentials;
 import javax.jcr.NoSuchWorkspaceException;
 import javax.security.auth.login.LoginException;
 import javax.servlet.ServletException;
@@ -64,7 +65,7 @@ public class OakServlet extends HttpServlet {
             HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         try {
-            ContentSession session = repository.login(null, null);
+            ContentSession session = repository.login(new GuestCredentials(), null);
             try {
                 Root root = session.getLatestRoot();
                 request.setAttribute("root", root);

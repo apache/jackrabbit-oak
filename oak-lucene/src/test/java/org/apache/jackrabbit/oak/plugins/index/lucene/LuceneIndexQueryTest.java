@@ -16,10 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import static junit.framework.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-
 import java.util.Iterator;
 
 import org.apache.jackrabbit.oak.Oak;
@@ -28,8 +24,13 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.query.JsopUtil;
+import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.junit.Ignore;
 import org.junit.Test;
+
+import static junit.framework.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Tests the query engine using the default index implementation: the
@@ -47,6 +48,7 @@ public class LuceneIndexQueryTest extends AbstractQueryTest {
     @Override
     protected ContentRepository createRepository() {
         return new Oak().with(new InitialContent())
+            .with(new OpenSecurityProvider())
             .with(new LowCostLuceneIndexProvider())
             .with(new LuceneIndexHookProvider())
             .createContentRepository();

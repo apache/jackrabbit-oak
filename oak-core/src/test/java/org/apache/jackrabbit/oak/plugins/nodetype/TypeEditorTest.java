@@ -21,6 +21,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
+import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.junit.Test;
 
 /**
@@ -31,6 +32,7 @@ public class TypeEditorTest {
     @Test
     public void ignoreHidden() throws CommitFailedException {
         Oak oak = new Oak()
+                .with(new OpenSecurityProvider())
                 .with(new InitialContent())
                 .with(new TypeEditorProvider());
         ContentSession session = oak.createContentSession();

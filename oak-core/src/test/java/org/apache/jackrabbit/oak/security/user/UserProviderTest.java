@@ -27,6 +27,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.index.p2.Property2IndexHookProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.util.Text;
 import org.junit.After;
@@ -56,6 +57,7 @@ public class UserProviderTest {
     @Before
     public void setUp() throws Exception {
         root = new Oak()
+                .with(new OpenSecurityProvider())
                 .with(new InitialContent())
                 .with(new Property2IndexHookProvider())
                 .createRoot();

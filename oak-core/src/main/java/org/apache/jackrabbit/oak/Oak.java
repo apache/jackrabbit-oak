@@ -48,7 +48,6 @@ import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.lifecycle.WorkspaceInitializer;
 import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
-import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -85,8 +84,7 @@ public class Oak {
 
     private List<EditorProvider> editorProviders = newArrayList();
 
-    // TODO: review if we really want to have the OpenSecurityProvider as default.
-    private SecurityProvider securityProvider = new OpenSecurityProvider();
+    private SecurityProvider securityProvider;
 
     private String defaultWorkspaceName = DEFAULT_WORKSPACE_NAME;
 
@@ -209,7 +207,7 @@ public class Oak {
 
     @Nonnull
     public Oak with(@Nonnull SecurityProvider securityProvider) {
-        this.securityProvider = securityProvider;
+        this.securityProvider = checkNotNull(securityProvider);
         initializers.add(securityProvider.getPrivilegeConfiguration().getPrivilegeInitializer());
         return this;
     }

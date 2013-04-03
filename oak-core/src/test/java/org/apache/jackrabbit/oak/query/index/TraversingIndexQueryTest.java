@@ -17,6 +17,7 @@ import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
+import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 
 /**
  * Tests the query engine using the default index implementation: the
@@ -27,6 +28,7 @@ public class TraversingIndexQueryTest extends AbstractQueryTest {
     @Override
     protected ContentRepository createRepository() {
         return new Oak()
+            .with(new OpenSecurityProvider())
             .with(new InitialContent())
             .createContentRepository();
     }

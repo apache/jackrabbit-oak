@@ -30,6 +30,7 @@ import java.util.Set;
 
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.Oak;
+import org.apache.jackrabbit.oak.OakBaseTest;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -44,13 +45,13 @@ import org.junit.Test;
 /**
  * TreeImplTest...
  */
-public class TreeImplTest {
+public class TreeImplTest extends OakBaseTest {
 
     private Root root;
 
     @Before
     public void setUp() throws CommitFailedException {
-        ContentSession session = new Oak().createContentSession();
+        ContentSession session = createContentSession();
 
         // Add test content
         root = session.getLatestRoot();

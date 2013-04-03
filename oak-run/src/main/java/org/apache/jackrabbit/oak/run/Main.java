@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.run;
 import java.io.InputStream;
 import java.util.Properties;
 import java.util.concurrent.Executors;
-
 import javax.jcr.Repository;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
@@ -37,7 +36,8 @@ import org.apache.jackrabbit.oak.plugins.name.NamespaceValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.DefaultTypeEditor;
 import org.apache.jackrabbit.oak.plugins.nodetype.RegistrationEditorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
-import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
+import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
+import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.webdav.jcr.JCRWebdavServerServlet;
 import org.apache.jackrabbit.webdav.simple.SimpleWebdavServlet;
@@ -160,8 +160,7 @@ public class Main {
         }
 
         private void addServlets(MicroKernel kernel, String path) {
-            // TODO: review usage of opensecurity provider (using default will cause BasicServerTest to fail. usage of a:a credentials)
-            SecurityProvider securityProvider = new OpenSecurityProvider();
+            SecurityProvider securityProvider = new SecurityProviderImpl();
             ContentRepository repository = new Oak(kernel)
                 .with(JcrConflictHandler.JCR_CONFLICT_HANDLER)
                 .with(new ConflictValidatorProvider())
@@ -172,10 +171,10 @@ public class Main {
                 .with(new DefaultTypeEditor())
                 .with(new Property2IndexHookProvider())
                 .with(securityProvider)
+                .with(new InitialContent())
                 .createContentRepository();
 
-            ServletHolder oak =
-                    new ServletHolder(new OakServlet(repository));
+            ServletHolder oak = new ServletHolder(new OakServlet(repository));
             context.addServlet(oak, path + "/*");
 
             final Repository jcrRepository = new RepositoryImpl(

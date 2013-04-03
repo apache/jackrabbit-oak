@@ -29,6 +29,7 @@ import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.osgi.OsgiRepositoryInitializer.RepositoryInitializerObserver;
 import org.apache.jackrabbit.oak.plugins.nodetype.DefaultTypeEditor;
+import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.spi.lifecycle.OakInitializer;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -55,8 +56,7 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer, Rep
 
     private final OsgiRepositoryInitializer repositoryInitializerTracker = new OsgiRepositoryInitializer();
 
-    private final Map<ServiceReference, ServiceRegistration> services =
-            new HashMap<ServiceReference, ServiceRegistration>();
+    private final Map<ServiceReference, ServiceRegistration> services = new HashMap<ServiceReference, ServiceRegistration>();
 
     //----------------------------------------------------< BundleActivator >---
 
@@ -100,9 +100,10 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer, Rep
                     new Properties()));
         } else if (service instanceof NodeStore) {
             NodeStore store = (NodeStore) service;
-            OakInitializer.initialize(
-                    store, repositoryInitializerTracker, indexHookProvider);
+            OakInitializer.initialize(store, repositoryInitializerTracker, indexHookProvider);
             Oak oak = new Oak(store)
+                // FIXME: proper osgi setup for security provider (see OAK-17 and sub-tasks)
+                .with(new SecurityProviderImpl())
                 // TODO: DefaultTypeEditor is JCR specific and does not belong here
                 .with(new DefaultTypeEditor())
                 .with(validatorProvider)
@@ -131,8 +132,7 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer, Rep
 
     @Override
     public void newRepositoryInitializer(RepositoryInitializer ri) {
-        List<ServiceReference> mkRefs = new ArrayList<ServiceReference>(
-                services.keySet());
+        List<ServiceReference> mkRefs = new ArrayList<ServiceReference>(services.keySet());
         for (ServiceReference ref : mkRefs) {
             Object service = context.getService(ref);
             if (service instanceof ContentRepositoryImpl) {

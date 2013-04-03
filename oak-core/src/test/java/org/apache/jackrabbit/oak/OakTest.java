@@ -20,6 +20,7 @@ import javax.jcr.NoSuchWorkspaceException;
 
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -32,7 +33,7 @@ public class OakTest {
 
     @Test
     public void testWithDefaultWorkspaceName() throws Exception {
-        ContentRepository repo = new Oak().with("test").createContentRepository();
+        ContentRepository repo = new Oak().with("test").with(new OpenSecurityProvider()).createContentRepository();
 
         String[] valid = new String[] {null, "test"};
         for (String wspName : valid) {
