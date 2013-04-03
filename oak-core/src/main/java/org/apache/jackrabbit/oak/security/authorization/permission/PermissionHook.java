@@ -45,8 +45,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.apache.jackrabbit.util.Text;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
@@ -59,8 +57,6 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE
  * with access control related data stored in the repository.
  */
 public class PermissionHook implements PostValidationHook, AccessControlConstants, PermissionConstants {
-
-    private static final Logger log = LoggerFactory.getLogger(PermissionHook.class);
 
     private final RestrictionProvider restrictionProvider;
     private final String workspaceName;
