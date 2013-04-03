@@ -21,7 +21,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
@@ -127,18 +126,16 @@ public abstract class AbstractNodeState implements NodeState {
      */
     public String toString() {
         StringBuilder builder = new StringBuilder("{");
-        AtomicBoolean first = new AtomicBoolean(true);
+        String separator = " ";
         for (PropertyState property : getProperties()) {
-            if (!first.getAndSet(false)) {
-                builder.append(',');
-            }
-            builder.append(' ').append(property);
+            builder.append(separator);
+            separator = ", ";
+            builder.append(property);
         }
         for (ChildNodeEntry entry : getChildNodeEntries()) {
-            if (!first.getAndSet(false)) {
-                builder.append(',');
-            }
-            builder.append(' ').append(entry);
+            builder.append(separator);
+            separator = ", ";
+            builder.append(entry);
         }
         builder.append(" }");
         return builder.toString();
@@ -184,7 +181,6 @@ public abstract class AbstractNodeState implements NodeState {
         }
 
         return true;
-
     }
 
     /**
