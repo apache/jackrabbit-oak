@@ -491,7 +491,6 @@ public class RepositoryTest extends AbstractRepositoryTest {
     }
 
     @Test
-    @Ignore
     public void testAddNodeWithExpandedName() throws RepositoryException {
         Session session = getAdminSession();
 
