@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.core;
 
-import org.apache.jackrabbit.oak.Oak;
+import org.apache.jackrabbit.oak.OakBaseTest;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
@@ -34,13 +34,13 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
-public class TreeLocationTest {
+public class TreeLocationTest extends OakBaseTest {
 
     private Root root;
 
     @Before
     public void setUp() throws CommitFailedException {
-        ContentSession session = new Oak().createContentSession();
+        ContentSession session = createContentSession();
 
         // Add test content
         root = session.getLatestRoot();

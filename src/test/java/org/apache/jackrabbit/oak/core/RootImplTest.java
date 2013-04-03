@@ -18,18 +18,10 @@
  */
 package org.apache.jackrabbit.oak.core;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.jackrabbit.oak.Oak;
+import org.apache.jackrabbit.oak.OakBaseTest;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -41,13 +33,21 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-public class RootImplTest {
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
+public class RootImplTest extends OakBaseTest {
 
     private ContentSession session;
 
     @Before
     public void setUp() throws CommitFailedException {
-        session = new Oak().createContentSession();
+        session = createContentSession();
 
         // Add test content
         Root root = session.getLatestRoot();

@@ -20,6 +20,7 @@ import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
+import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -32,6 +33,7 @@ public class Property2IndexQueryTest extends AbstractQueryTest {
     @Override
     protected ContentRepository createRepository() {
         return new Oak().with(new InitialContent())
+                .with(new OpenSecurityProvider())
                 .with(new Property2IndexProvider())
                 .with(new Property2IndexHookProvider())
                 .createContentRepository();

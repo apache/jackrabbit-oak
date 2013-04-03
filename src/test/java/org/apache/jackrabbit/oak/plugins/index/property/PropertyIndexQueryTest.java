@@ -16,11 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.property;
 
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
@@ -28,8 +23,14 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
+import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.junit.Ignore;
 import org.junit.Test;
+
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 
 /**
  * Tests the query engine using the default index implementation: the
@@ -42,6 +43,7 @@ public class PropertyIndexQueryTest extends AbstractQueryTest {
     protected ContentRepository createRepository() {
         return new Oak()
             .with(new InitialContent())
+            .with(new OpenSecurityProvider())
             .with(new PropertyIndexProvider())
             .with(new PropertyIndexHookProvider())
             .createContentRepository();

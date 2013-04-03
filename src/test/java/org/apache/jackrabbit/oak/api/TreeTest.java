@@ -18,11 +18,6 @@
  */
 package org.apache.jackrabbit.oak.api;
 
-import static org.apache.jackrabbit.oak.OakAssert.assertSequence;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-
 import java.util.Set;
 
 import com.google.common.collect.Sets;
@@ -30,11 +25,17 @@ import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.plugins.commit.AnnotatingConflictHandler;
 import org.apache.jackrabbit.oak.plugins.commit.ChildOrderConflictHandler;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictValidator;
+import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+
+import static org.apache.jackrabbit.oak.OakAssert.assertSequence;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Contains tests related to {@link Tree}
@@ -46,6 +47,7 @@ public class TreeTest {
     @Before
     public void setUp() {
         repository = new Oak()
+            .with(new OpenSecurityProvider())
             .with(new ChildOrderConflictHandler(new AnnotatingConflictHandler()) {
 
                 /**
@@ -54,8 +56,8 @@ public class TreeTest {
                  */
                 @Override
                 public Resolution deleteChangedNode(NodeBuilder parent,
-                        String name,
-                        NodeState theirs) {
+                                                    String name,
+                                                    NodeState theirs) {
                     return Resolution.OURS;
                 }
             })

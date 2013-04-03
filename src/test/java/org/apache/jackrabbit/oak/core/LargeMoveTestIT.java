@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.core;
 
-import org.apache.jackrabbit.oak.Oak;
+import org.apache.jackrabbit.oak.OakBaseTest;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
@@ -32,14 +32,14 @@ import org.junit.Test;
  * Test case for asserting large moves don't run out of memory.
  * See OAK-463, OAK-464
  */
-public class LargeMoveTestIT {
+public class LargeMoveTestIT extends OakBaseTest {
     private ContentSession session;
     private String treeAPath;
     private String treeBPath;
 
     @Before
     public void setUp() throws CommitFailedException {
-        session = new Oak().createContentSession();
+        session = createContentSession();
 
         // Add test content
         Root root = session.getLatestRoot();

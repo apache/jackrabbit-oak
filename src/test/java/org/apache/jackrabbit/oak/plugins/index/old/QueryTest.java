@@ -21,6 +21,7 @@ import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
+import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -40,6 +41,7 @@ public class QueryTest extends AbstractQueryTest {
         PropertyIndexer indexer = new PropertyIndexer(mk.getIndexer());
 
         return new Oak(mk)
+            .with(new OpenSecurityProvider())
             .with(new InitialContent())
             .with((QueryIndexProvider) indexer)
             .with((CommitHook) indexer)
