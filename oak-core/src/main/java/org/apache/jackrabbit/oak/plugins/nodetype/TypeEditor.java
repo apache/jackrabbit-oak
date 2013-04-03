@@ -47,6 +47,7 @@ import org.apache.jackrabbit.oak.spi.commit.DefaultEditor;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Queues;
@@ -83,6 +84,16 @@ class TypeEditor extends DefaultEditor {
         this.types = parent.types;
     }
 
+    private String getPath() {
+        if (parent == null) {
+            return "/";
+        } else if (parent.parent == null) {
+            return "/" + nodeName;
+        } else {
+            return parent.getPath() + "/" + nodeName;
+        }
+    }
+
     /**
      * Computes the effective type of the modified type.
      */
@@ -92,12 +103,12 @@ class TypeEditor extends DefaultEditor {
         Iterable<String> names = computeEffectiveType(after);
 
         // find matching entry in the parent node's effective type
-        if (parent != null) {
-            try {
-                parent.effective.getDefinition(nodeName, names);
-            } catch (ConstraintViolationException e) {
-                throw new CommitFailedException(e);
-            }
+        // TODO: this should be in childNodeAdded()
+        if (parent != null
+                && parent.effective.getDefinition(nodeName, names) == null) {
+            throw constraintViolation(
+                    "Incorrect node type of child node " + nodeName
+                    + " with types " + Joiner.on(", ").join(names));
         }
     }
 
@@ -107,37 +118,37 @@ class TypeEditor extends DefaultEditor {
         // TODO: add any auto-created items that are still missing
 
         // verify the presence of all mandatory items
-        try {
-            effective.checkMandatoryItems(after);
-        } catch (ConstraintViolationException e) {
-            throw new CommitFailedException(e);
+        Set<String> missing = effective.findMissingMandatoryItems(after);
+        if (!missing.isEmpty()) {
+            throw constraintViolation(
+                    "Missing mandatory items " + Joiner.on(", ").join(missing));
         }
     }
 
     private CommitFailedException constraintViolation(String message) {
         return new CommitFailedException(
-                new ConstraintViolationException(message));
+                new ConstraintViolationException(getPath() + ": " + message));
     }
 
     @Override
     public void propertyAdded(PropertyState after) throws CommitFailedException {
-        try {
-            NodeState definition = effective.getDefinition(after);
-            checkValueConstraints(definition, after);
-        } catch (ConstraintViolationException e) {
-            throw new CommitFailedException(e);
+        NodeState definition = effective.getDefinition(after);
+        if (definition == null) {
+            throw constraintViolation(
+                    "No matching property definition found for " + after);
         }
+        checkValueConstraints(definition, after);
     }
 
     @Override
     public void propertyChanged(PropertyState before, PropertyState after)
             throws CommitFailedException {
-        try {
-            NodeState definition = effective.getDefinition(after);
-            checkValueConstraints(definition, after);
-        } catch (ConstraintViolationException e) {
-            throw new CommitFailedException(e);
+        NodeState definition = effective.getDefinition(after);
+        if (definition == null) {
+            throw constraintViolation(
+                    "No matching property definition found for " + after);
         }
+        checkValueConstraints(definition, after);
     }
 
     @Override
@@ -151,13 +162,6 @@ class TypeEditor extends DefaultEditor {
             String name, NodeState before, NodeState after)
             throws CommitFailedException {
         return new TypeEditor(this, name);
-    }
-
-    private boolean getBoolean(NodeState node, String name) {
-        PropertyState property = node.getProperty(name);
-        return property != null
-                && property.getType() == BOOLEAN
-                && property.getValue(BOOLEAN);
     }
 
     //-----------------------------------------------------------< private >--
@@ -218,7 +222,7 @@ class TypeEditor extends DefaultEditor {
                 }
             }
         }
-        throw constraintViolation("Value constraint violation");
+        throw constraintViolation("Value constraint violation in " + property);
     }
 
     /**
@@ -311,6 +315,13 @@ class TypeEditor extends DefaultEditor {
 
         effective = new EffectiveType(list);
         return names;
+    }
+
+    private boolean getBoolean(NodeState node, String name) {
+        PropertyState property = node.getProperty(name);
+        return property != null
+                && property.getType() == BOOLEAN
+                && property.getValue(BOOLEAN);
     }
 
 }
