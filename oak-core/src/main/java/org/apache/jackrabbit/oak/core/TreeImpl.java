@@ -18,9 +18,17 @@
  */
 package org.apache.jackrabbit.oak.core;
 
+import static com.google.common.base.Objects.toStringHelper;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
+import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
+
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Set;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -44,13 +52,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.PropertyBuilder;
 
-import static com.google.common.base.Objects.toStringHelper;
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
-import static org.apache.jackrabbit.oak.api.Type.STRING;
-import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
-
 public class TreeImpl implements Tree {
 
     /**
@@ -62,11 +63,6 @@ public class TreeImpl implements Tree {
      * Underlying {@code Root} of this {@code Tree} instance
      */
     private final RootImpl root;
-
-    /**
-     * The node state this tree is based on. {@code null} if this is a newly added tree.
-     */
-    private NodeState baseState;
 
     /**
      * The {@code NodeBuilder} for the underlying node state
@@ -92,7 +88,6 @@ public class TreeImpl implements Tree {
         this.root = checkNotNull(root);
         this.name = "";
         this.nodeBuilder = root.createRootBuilder();
-        this.baseState = root.getBaseState();
         this.pendingMoves = checkNotNull(pendingMoves);
     }
 
@@ -102,14 +97,8 @@ public class TreeImpl implements Tree {
         this.name = checkNotNull(name);
         this.nodeBuilder = parent.getNodeBuilder().child(name);
         this.pendingMoves = checkNotNull(pendingMoves);
-
-        if (parent.baseState == null) {
-            this.baseState = null;
-        } else {
-            this.baseState = parent.baseState.getChildNode(name);
-        }
         // readstatus is ALLOW_ALL for new items
-        readStatus = (baseState == null) ? ReadStatus.ALLOW_ALL : ReadStatus.getChildStatus(parent.readStatus);
+        readStatus = (getBaseState() == null) ? ReadStatus.ALLOW_ALL : ReadStatus.getChildStatus(parent.readStatus);
     }
 
     @Override
@@ -164,7 +153,7 @@ public class TreeImpl implements Tree {
             return null;
         }
 
-        NodeState parentBase = nodeBuilder.getBaseState();
+        NodeState parentBase = getBaseState();
         PropertyState base = parentBase == null ? null : parentBase.getProperty(name);
 
         if (base == null) {
@@ -429,9 +418,22 @@ public class TreeImpl implements Tree {
         return nodeBuilder;
     }
 
+    /**
+     * The node state this tree is based on. {@code null} if this is a newly added tree.
+     * @return the base node state of this tree
+     */
     @CheckForNull
-    NodeState getBaseState() {
-        return baseState;
+    final NodeState getBaseState() {
+        if (parent == null) {
+            return root.getBaseState();
+        }
+
+        NodeState parentBase = parent.getBaseState();
+        if (parentBase != null) {
+            return parentBase.getChildNode(name);
+        }
+
+        return null;
     }
 
     @Nonnull
@@ -458,7 +460,6 @@ public class TreeImpl implements Tree {
     void reset(NodeState state) {
         checkState(parent == null);
         nodeBuilder.reset(state);
-        baseState = state;
     }
 
     /**
