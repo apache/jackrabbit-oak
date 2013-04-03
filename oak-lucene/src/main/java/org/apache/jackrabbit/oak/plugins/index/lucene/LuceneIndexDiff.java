@@ -18,8 +18,13 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
@@ -28,6 +33,9 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexHook;
+import org.apache.jackrabbit.oak.spi.commit.Editor;
+import org.apache.jackrabbit.oak.spi.commit.EditorHook;
+import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
@@ -43,7 +51,7 @@ import org.apache.tika.parser.Parser;
  * @see LuceneIndex
  * 
  */
-public class LuceneIndexDiff implements IndexHook, LuceneIndexConstants {
+public class LuceneIndexDiff implements IndexHook, Closeable {
 
     private final LuceneIndexDiff parent;
 
@@ -55,41 +63,33 @@ public class LuceneIndexDiff implements IndexHook, LuceneIndexConstants {
 
     private final Map<String, LuceneIndexUpdate> updates;
 
+    /**
+     * the root editor in charge of applying the updates
+     */
+    private final boolean isRoot;
+
     private final Parser parser = new AutoDetectParser(
             TikaConfig.getDefaultConfig());
 
     private LuceneIndexDiff(LuceneIndexDiff parent, NodeBuilder node,
-            String name, String path, Map<String, LuceneIndexUpdate> updates) {
+            String name, String path, Map<String, LuceneIndexUpdate> updates,
+            boolean isRoot) {
         this.parent = parent;
         this.node = node;
         this.name = name;
         this.path = path;
         this.updates = updates;
-
-        if (node != null && node.hasChildNode(INDEX_DEFINITIONS_NAME)) {
-            NodeBuilder index = node.child(INDEX_DEFINITIONS_NAME);
-            for (String indexName : index.getChildNodeNames()) {
-                NodeBuilder child = index.child(indexName);
-                if (isIndexNode(child) && !this.updates.containsKey(getPath())) {
-                    this.updates.put(getPath(), new LuceneIndexUpdate(
-                            getPath(), child, parser));
-                }
-            }
-        }
-        if (node != null && name != null && !NodeStateUtils.isHidden(name)) {
-            for (LuceneIndexUpdate update : updates.values()) {
-                update.insert(getPath(), node);
-            }
-        }
+        this.isRoot = isRoot;
     }
 
     private LuceneIndexDiff(LuceneIndexDiff parent, String name) {
         this(parent, getChildNode(parent.node, name), name, null,
-                parent.updates);
+                parent.updates, false);
     }
 
     public LuceneIndexDiff(NodeBuilder root) {
-        this(null, root, null, "/", new HashMap<String, LuceneIndexUpdate>());
+        this(null, root, null, "/", new HashMap<String, LuceneIndexUpdate>(),
+                true);
     }
 
     private static NodeBuilder getChildNode(NodeBuilder node, String name) {
@@ -120,7 +120,36 @@ public class LuceneIndexDiff implements IndexHook, LuceneIndexConstants {
         return isIndexType;
     }
 
-    // -----------------------------------------------------< NodeStateDiff >--
+    @Override
+    public void enter(NodeState before, NodeState after)
+            throws CommitFailedException {
+        if (node != null && node.hasChildNode(INDEX_DEFINITIONS_NAME)) {
+            NodeBuilder index = node.child(INDEX_DEFINITIONS_NAME);
+            for (String indexName : index.getChildNodeNames()) {
+                NodeBuilder child = index.child(indexName);
+                if (isIndexNode(child) && !this.updates.containsKey(getPath())) {
+                    this.updates.put(getPath(), new LuceneIndexUpdate(
+                            getPath(), child, parser));
+                }
+            }
+        }
+        if (node != null && name != null && !NodeStateUtils.isHidden(name)) {
+            for (LuceneIndexUpdate update : updates.values()) {
+                update.insert(getPath(), node);
+            }
+        }
+    }
+
+    @Override
+    public void leave(NodeState before, NodeState after)
+            throws CommitFailedException {
+        if (!isRoot) {
+            return;
+        }
+        for (LuceneIndexUpdate update : updates.values()) {
+            update.apply();
+        }
+    }
 
     @Override
     public void propertyAdded(PropertyState after) {
@@ -144,41 +173,36 @@ public class LuceneIndexDiff implements IndexHook, LuceneIndexConstants {
     }
 
     @Override
-    public void childNodeAdded(String name, NodeState after) {
+    public Editor childNodeAdded(String name, NodeState after)
+            throws CommitFailedException {
         if (NodeStateUtils.isHidden(name)) {
-            return;
+            return null;
         }
         for (LuceneIndexUpdate update : updates.values()) {
             update.insert(concat(getPath(), name), new ReadOnlyBuilder(after));
         }
-        after.compareAgainstBaseState(EMPTY_NODE, child(name));
+        return childNodeChanged(name, EMPTY_NODE, after);
     }
 
     @Override
-    public void childNodeChanged(String name, NodeState before, NodeState after) {
+    public Editor childNodeChanged(String name, NodeState before,
+            NodeState after) throws CommitFailedException {
         if (NodeStateUtils.isHidden(name)) {
-            return;
+            return null;
         }
-        after.compareAgainstBaseState(before, child(name));
+        return new LuceneIndexDiff(this, name);
     }
 
     @Override
-    public void childNodeDeleted(String name, NodeState before) {
+    public Editor childNodeDeleted(String name, NodeState before)
+            throws CommitFailedException {
         if (NodeStateUtils.isHidden(name)) {
-            return;
+            return null;
         }
         for (LuceneIndexUpdate update : updates.values()) {
             update.remove(concat(getPath(), name));
         }
-    }
-
-    // -----------------------------------------------------< IndexHook >--
-
-    @Override
-    public void apply() throws CommitFailedException {
-        for (LuceneIndexUpdate update : updates.values()) {
-            update.apply();
-        }
+        return null;
     }
 
     @Override
@@ -190,16 +214,19 @@ public class LuceneIndexDiff implements IndexHook, LuceneIndexConstants {
             }
         }
         if (reindex) {
-            state.getNodeState().compareAgainstBaseState(
-                    EMPTY_NODE,
-                    new LuceneIndexDiff(null, state, null, "/", updates));
+            EditorProvider provider = new EditorProvider() {
+                @Override
+                public Editor getRootEditor(NodeState before, NodeState after,
+                        NodeBuilder builder) {
+                    return new LuceneIndexDiff(node);
+                }
+            };
+            EditorHook eh = new EditorHook(provider);
+            eh.processCommit(EMPTY_NODE, state.getNodeState());
         }
     }
 
-    @Override
-    public IndexHook child(String name) {
-        return new LuceneIndexDiff(this, name);
-    }
+    // -----------------------------------------------------< Closeable >--
 
     @Override
     public void close() throws IOException {

@@ -16,35 +16,28 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
-
-import com.google.common.collect.Lists;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
-import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
-import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_UNKNOWN;
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.spi.commit.CompositeEditor;
+import org.apache.jackrabbit.oak.spi.commit.DefaultEditor;
+import org.apache.jackrabbit.oak.spi.commit.Editor;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
+
+import com.google.common.collect.Lists;
 
 /**
  * Acts as a composite NodeStateDiff, it delegates all the diff's events to the
@@ -53,79 +46,22 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE
  * This allows for a simultaneous update of all the indexes via a single
  * traversal of the changes.
  */
-class IndexHookManagerDiff implements NodeStateDiff {
-
-    private static final Logger LOG = LoggerFactory
-            .getLogger(IndexHookManagerDiff.class);
+class IndexHookManagerDiff implements Editor {
 
     private final IndexHookProvider provider;
 
-    private final IndexHookManagerDiff parent;
-
     private final NodeBuilder node;
 
-    private final String nodeName;
+    private Editor inner = new DefaultEditor();
 
-    private String path;
-
-    /**
-     * The map of known indexes.
-     * 
-     * Key: index type name ("p2"). Value: a map from path to index hook.
-     */
-    private final Map<String, Map<String, List<IndexHook>>> indexMap;
-
-    public IndexHookManagerDiff(IndexHookProvider provider, NodeBuilder root,
-            Map<String, Map<String, List<IndexHook>>> updates)
-            throws CommitFailedException {
-        this(provider, null, root, null, "/", updates);
-    }
-
-    private IndexHookManagerDiff(IndexHookProvider provider,
-            IndexHookManagerDiff parent, String nodeName)
-            throws CommitFailedException {
-        this(provider, parent, getChildNode(parent.node, nodeName), nodeName, null,
-                parent.indexMap);
-    }
-
-    private IndexHookManagerDiff(IndexHookProvider provider,
-            IndexHookManagerDiff parent, NodeBuilder node, String name,
-            String path, Map<String, Map<String, List<IndexHook>>> indexMap)
-            throws CommitFailedException {
+    public IndexHookManagerDiff(IndexHookProvider provider, NodeBuilder node) {
         this.provider = provider;
-        this.parent = parent;
         this.node = node;
-        this.nodeName = name;
-        this.path = path;
-        this.indexMap = indexMap;
+    }
 
-        if (node != null && isIndexNodeType(node.getProperty(JCR_PRIMARYTYPE))) {
-            // to prevent double-reindex we only call reindex if:
-            // - the flag exists and is set to true
-            // OR
-            // - the flag does not exist
-            boolean reindex = node.getProperty(REINDEX_PROPERTY_NAME) == null
-                    || node.getProperty(REINDEX_PROPERTY_NAME).getValue(
-                            Type.BOOLEAN);
-            if (reindex) {
-                node.setProperty(REINDEX_PROPERTY_NAME, true);
-                String type = TYPE_UNKNOWN;
-                PropertyState typePS = node.getProperty(TYPE_PROPERTY_NAME);
-                if (typePS != null && !typePS.isArray()) {
-                    type = typePS.getValue(Type.STRING);
-                }
-                // TODO this is kinda fragile
-                NodeBuilder rebuildBuilder = parent.parent.node;
-                String relativePath = PathUtils.getAncestorPath(getPath(), 2);
-                // find parent index by type and trigger a full reindex
-                List<IndexHook> indexes = getIndexesWithRelativePaths(
-                        relativePath, getIndexes(type));
-                for (IndexHook ih : indexes) {
-                    ih.reindex(rebuildBuilder);
-                }
-            }
-        }
-
+    @Override
+    public void enter(NodeState before, NodeState after)
+            throws CommitFailedException {
         if (node != null && node.hasChildNode(INDEX_DEFINITIONS_NAME)) {
             Set<String> existingTypes = new HashSet<String>();
             Set<String> reindexTypes = new HashSet<String>();
@@ -134,12 +70,12 @@ class IndexHookManagerDiff implements NodeStateDiff {
             for (String indexName : index.getChildNodeNames()) {
                 NodeBuilder indexChild = index.child(indexName);
                 if (isIndexNodeType(indexChild.getProperty(JCR_PRIMARYTYPE))) {
-                    // this reindex should only happen when the flag is set
-                    // before the index impl is online
-                    boolean reindex = indexChild
-                            .getProperty(REINDEX_PROPERTY_NAME) != null
-                            && indexChild.getProperty(REINDEX_PROPERTY_NAME)
-                                    .getValue(Type.BOOLEAN);
+                    PropertyState reindexPS = indexChild
+                            .getProperty(REINDEX_PROPERTY_NAME);
+                    boolean reindex = reindexPS == null
+                            || (reindexPS != null && indexChild.getProperty(
+                                    REINDEX_PROPERTY_NAME).getValue(
+                                    Type.BOOLEAN));
                     String type = TYPE_UNKNOWN;
                     PropertyState typePS = indexChild
                             .getProperty(TYPE_PROPERTY_NAME);
@@ -154,114 +90,31 @@ class IndexHookManagerDiff implements NodeStateDiff {
             }
             existingTypes.remove(TYPE_UNKNOWN);
             reindexTypes.remove(TYPE_UNKNOWN);
+
+            List<IndexHook> hooks = Lists.newArrayList();
+            List<IndexHook> reindex = Lists.newArrayList();
             for (String type : existingTypes) {
-                Map<String, List<IndexHook>> byType = this.indexMap.get(type);
-                if (byType == null) {
-                    byType = new TreeMap<String, List<IndexHook>>();
-                    this.indexMap.put(type, byType);
-                }
-                List<IndexHook> hooks = byType.get(getPath());
-                if (hooks == null) {
-                    hooks = Lists.newArrayList();
-                    byType.put(getPath(), hooks);
-                }
+                List<? extends IndexHook> hooksTmp = provider.getIndexHooks(
+                        type, node);
+                hooks.addAll(hooksTmp);
                 if (reindexTypes.contains(type)) {
-                    for (IndexHook ih : provider.getIndexHooks(type, node)) {
-                        ih.reindex(node);
-                        // TODO proper cleanup of resources in the case of an
-                        // exception?
-                        hooks.add(ih);
-                    }
-                } else {
-                    hooks.addAll(provider.getIndexHooks(type, node));
+                    reindex.addAll(hooksTmp);
+                }
+            }
+            if (!hooks.isEmpty()) {
+                this.inner = new CompositeEditor(hooks);
+                this.inner.enter(before, after);
+                for (IndexHook ih : reindex) {
+                    ih.reindex(node);
                 }
             }
         }
     }
 
-    private static NodeBuilder getChildNode(NodeBuilder node, String nodeName) {
-        if (node != null && node.hasChildNode(nodeName)) {
-            return node.child(nodeName);
-        } else {
-            return null;
-        }
-    }
-
-    private String getPath() {
-        if (path == null) { 
-            // => parent != null
-            path = concat(parent.getPath(), nodeName);
-        }
-        return path;
-    }
-
-    /**
-     * Returns IndexHooks of all types that have the best match (are situated
-     * the closest on the hierarchy) for the given path.
-     */
-    private Map<String, List<IndexHook>> getIndexes() {
-        Map<String, List<IndexHook>> hooks = new HashMap<String, List<IndexHook>>();
-        for (String type : this.indexMap.keySet()) {
-            Map<String, List<IndexHook>> newIndexes = getIndexes(type);
-            for (String key : newIndexes.keySet()) {
-                if (hooks.containsKey(key)) {
-                    hooks.get(key).addAll(newIndexes.get(key));
-                } else {
-                    hooks.put(key, newIndexes.get(key));
-                }
-            }
-        }
-        return hooks;
-    }
-
-    /**
-     * Returns IndexHooks of the given type that have the best match (are
-     * situated the closest on the hierarchy) for the current path.
-     * 
-     * @param type the index type ("p2")
-     */
-    private Map<String, List<IndexHook>> getIndexes(String type) {
-        Map<String, List<IndexHook>> hooks = new HashMap<String, List<IndexHook>>();
-        Map<String, List<IndexHook>> indexes = this.indexMap.get(type);
-        if (indexes != null && !indexes.isEmpty()) {
-            Iterator<String> iterator = indexes.keySet().iterator();
-            String bestMatch = iterator.next();
-            while (iterator.hasNext()) {
-                String key = iterator.next();
-                if (PathUtils.isAncestor(key, getPath())) {
-                    bestMatch = key;
-                } else {
-                    break;
-                }
-            }
-            List<IndexHook> existing = hooks.get(bestMatch);
-            if (existing == null) {
-                existing = new ArrayList<IndexHook>();
-                hooks.put(bestMatch, existing);
-            }
-            existing.addAll(indexes.get(bestMatch));
-        }
-        return hooks;
-    }
-
-    /**
-     * Fixes the relative paths on the best matching indexes so updates apply
-     * properly
-     */
-    private static List<IndexHook> getIndexesWithRelativePaths(String path,
-            Map<String, List<IndexHook>> bestMatches) {
-        List<IndexHook> hooks = new ArrayList<IndexHook>();
-        for (String relativePath : bestMatches.keySet()) {
-            for (IndexHook update : bestMatches.get(relativePath)) {
-                IndexHook u = update;
-                String downPath = path.substring(relativePath.length());
-                for (String p : PathUtils.elements(downPath)) {
-                    u = u.child(p);
-                }
-                hooks.add(u);
-            }
-        }
-        return hooks;
+    @Override
+    public void leave(NodeState before, NodeState after)
+            throws CommitFailedException {
+        this.inner.leave(before, after);
     }
 
     private static boolean isIndexNodeType(PropertyState ps) {
@@ -269,55 +122,48 @@ class IndexHookManagerDiff implements NodeStateDiff {
                 && ps.getValue(Type.STRING).equals(INDEX_DEFINITIONS_NODE_TYPE);
     }
 
-    // -----------------------------------------------------< NodeStateDiff >---
+    @Override
+    public void propertyAdded(PropertyState after) throws CommitFailedException {
+        inner.propertyAdded(after);
+    }
 
     @Override
-    public void propertyAdded(PropertyState after) {
-        for (IndexHook update : getIndexesWithRelativePaths(getPath(),
-                getIndexes())) {
-            update.propertyAdded(after);
+    public void propertyChanged(PropertyState before, PropertyState after)
+            throws CommitFailedException {
+        inner.propertyChanged(before, after);
+    }
+
+    @Override
+    public void propertyDeleted(PropertyState before)
+            throws CommitFailedException {
+        inner.propertyDeleted(before);
+    }
+
+    @Override
+    public Editor childNodeAdded(String name, NodeState after)
+            throws CommitFailedException {
+        if (NodeStateUtils.isHidden(name)) {
+            return null;
         }
+        return inner.childNodeAdded(name, after);
     }
 
     @Override
-    public void propertyChanged(PropertyState before, PropertyState after) {
-        for (IndexHook update : getIndexesWithRelativePaths(getPath(),
-                getIndexes())) {
-            update.propertyChanged(before, after);
+    public Editor childNodeChanged(String name, NodeState before,
+            NodeState after) throws CommitFailedException {
+        if (NodeStateUtils.isHidden(name)) {
+            return null;
         }
+        return inner.childNodeChanged(name, before, after);
     }
 
     @Override
-    public void propertyDeleted(PropertyState before) {
-        for (IndexHook update : getIndexesWithRelativePaths(getPath(),
-                getIndexes())) {
-            update.propertyDeleted(before);
+    public Editor childNodeDeleted(String name, NodeState before)
+            throws CommitFailedException {
+        if (NodeStateUtils.isHidden(name)) {
+            return null;
         }
+        return inner.childNodeDeleted(name, before);
     }
 
-    @Override
-    public void childNodeAdded(String nodeName, NodeState after) {
-        childNodeChanged(nodeName, EMPTY_NODE, after);
-    }
-
-    @Override
-    public void childNodeChanged(String nodeName, NodeState before, NodeState after) {
-        if (NodeStateUtils.isHidden(nodeName)) {
-            return;
-        }
-        getIndexesWithRelativePaths(concat(getPath(), nodeName), getIndexes());
-
-        try {
-            after.compareAgainstBaseState(before, new IndexHookManagerDiff(
-                    provider, this, nodeName));
-        } catch (CommitFailedException e) {
-            // TODO ignore exception - is this a hack?
-            LOG.error(e.getMessage(), e);
-        }
-    }
-
-    @Override
-    public void childNodeDeleted(String nodeName, NodeState before) {
-        childNodeChanged(nodeName, before, EMPTY_NODE);
-    }
 }

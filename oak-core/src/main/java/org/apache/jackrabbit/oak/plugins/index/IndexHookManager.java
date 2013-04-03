@@ -16,13 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.spi.commit.CommitHook;
+import org.apache.jackrabbit.oak.spi.commit.Editor;
+import org.apache.jackrabbit.oak.spi.commit.EditorHook;
+import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -37,56 +33,29 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * @see IndexHookProvider
  * 
  */
-public class IndexHookManager implements CommitHook {
-
-    private final IndexHookProvider provider;
+public class IndexHookManager extends EditorHook {
 
     public static final IndexHookManager of(IndexHookProvider provider) {
-        return new IndexHookManager(provider);
+        return new IndexHookManager(new EditorProviderWrapper(provider));
     }
 
-    protected IndexHookManager(IndexHookProvider provider) {
-        this.provider = provider;
-    }
+    private static class EditorProviderWrapper implements EditorProvider {
 
-    @Override
-    public NodeState processCommit(NodeState before, NodeState after)
-            throws CommitFailedException {
-        NodeBuilder builder = after.builder();
+        private final IndexHookProvider provider;
 
-        // key: index type
-        // value: map of path to indexhook 
-        Map<String, Map<String, List<IndexHook>>> indexMap = new HashMap<String, Map<String, List<IndexHook>>>();
-        after.compareAgainstBaseState(before, new IndexHookManagerDiff(
-                provider, builder, indexMap));
-        apply(indexMap);
-        return builder.getNodeState();
-    }
-
-    private void apply(Map<String, Map<String, List<IndexHook>>> indexMap)
-            throws CommitFailedException {
-        try {
-            for (String type : indexMap.keySet()) {
-                for (List<IndexHook> hooks : indexMap.get(type).values()) {
-                    for (IndexHook hook : hooks) {
-                        hook.apply();
-                    }
-                }
-            }
-        } finally {
-            for (String type : indexMap.keySet()) {
-                for (List<IndexHook> hooks : indexMap.get(type).values()) {
-                    for (IndexHook hook : hooks) {
-                        try {
-                            hook.close();
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                            throw new CommitFailedException(
-                                    "Failed to close the index hook", e);
-                        }
-                    }
-                }
-            }
+        EditorProviderWrapper(IndexHookProvider provider) {
+            this.provider = provider;
         }
+
+        @Override
+        public Editor getRootEditor(NodeState before, NodeState after,
+                NodeBuilder builder) {
+            return new IndexHookManagerDiff(provider, builder);
+        }
+
+    }
+
+    protected IndexHookManager(EditorProvider provider) {
+        super(provider);
     }
 }
