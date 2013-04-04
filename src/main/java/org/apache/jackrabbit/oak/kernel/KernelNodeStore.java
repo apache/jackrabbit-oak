@@ -33,8 +33,8 @@ import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.oak.spi.commit.EmptyObserver;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
+import org.apache.jackrabbit.oak.spi.state.AbstractNodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -42,7 +42,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 /**
  * {@code NodeStore} implementations against {@link MicroKernel}.
  */
-public class KernelNodeStore implements NodeStore {
+public class KernelNodeStore extends AbstractNodeStore {
 
     private static final long DEFAULT_CACHE_SIZE = 16 * 1024 * 1024;
 

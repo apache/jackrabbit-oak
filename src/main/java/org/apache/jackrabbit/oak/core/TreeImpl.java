@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.core;
 
-import static com.google.common.base.Objects.toStringHelper;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
@@ -408,7 +407,7 @@ public class TreeImpl implements Tree {
 
     @Override
     public String toString() {
-        return toStringHelper(this).add("path", getPathInternal()).toString();
+        return getPathInternal() + ": " + getNodeState();
     }
 
     //-----------------------------------------------------------< internal >---

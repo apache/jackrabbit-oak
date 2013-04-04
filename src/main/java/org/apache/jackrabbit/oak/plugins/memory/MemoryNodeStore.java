@@ -23,8 +23,9 @@ import java.util.concurrent.atomic.AtomicReference;
 import com.google.common.io.ByteStreams;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
+import org.apache.jackrabbit.oak.spi.state.AbstractNodeStore;
+import org.apache.jackrabbit.oak.spi.state.AbstractNodeStoreBranch;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -35,7 +36,7 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE
  * Basic in-memory node store implementation. Useful as a base class for
  * more complex functionality.
  */
-public class MemoryNodeStore implements NodeStore {
+public class MemoryNodeStore extends AbstractNodeStore {
 
     private final AtomicReference<NodeState> root =
             new AtomicReference<NodeState>(EMPTY_NODE);
@@ -63,7 +64,7 @@ public class MemoryNodeStore implements NodeStore {
         }
     }
 
-    private static class MemoryNodeStoreBranch implements NodeStoreBranch {
+    private static class MemoryNodeStoreBranch extends AbstractNodeStoreBranch {
 
         /** The underlying store to which this branch belongs */
         private final MemoryNodeStore store;
