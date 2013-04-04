@@ -397,12 +397,6 @@ public final class KernelNodeState extends AbstractNodeState {
         return revision;
     }
 
-    // FIXME: this is an internal method and should not be public
-    @Nonnull
-    public String getPath() {
-        return path;
-    }
-
     /**
      * @return the approximate memory usage of this node state.
      */
