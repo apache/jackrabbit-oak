@@ -42,7 +42,26 @@ import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
 
 /**
- * TODO document
+ * An IndexStoreStrategy implementation that saves the nodes under a hierarchy
+ * that mirrors the repository tree. <br>
+ * This should minimize the chance that concurrent updates overlap on the same
+ * content node.<br>
+ * <br>
+ * For example for a node that is under <code>/test/node</code>, the index
+ * structure will be <code>/oak:index/index/test/node</code>:
+ * 
+ * <pre>
+ * <code>
+ * /
+ *   test
+ *     node
+ *   oak:index
+ *     index
+ *       test
+ *         node
+ * </code>
+ * </pre>
+ * 
  */
 public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
 
@@ -118,6 +137,12 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
     public void insert(NodeBuilder index, String key, boolean unique,
             Iterable<String> values) throws CommitFailedException {
         NodeBuilder child = index.child(key);
+        if (unique
+                && (child.getProperty("match") != null || child
+                        .getChildNodeCount() > 0)) {
+            throw new CommitFailedException(
+                    "Uniqueness constraint violated for key " + key);
+        }
 
         for (String add : values) {
             NodeBuilder indexEntry = child;
@@ -126,16 +151,8 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
             }
             indexEntry.setProperty("match", true);
         }
-        CountingNodeVisitor v = new CountingNodeVisitor(2);
-        v.visit(child.getNodeState());
-        int matchCount = v.getCount();
-        if (matchCount == 0) {
-            index.removeNode(key);
-        } else if (unique && matchCount > 1) {
-            throw new CommitFailedException("Uniqueness constraint violated for key " + key);
-        }
     }
-    
+
     @Override
     public Iterable<String> query(final Filter filter, final String indexName, 
             final NodeState index, final Iterable<String> values) {
