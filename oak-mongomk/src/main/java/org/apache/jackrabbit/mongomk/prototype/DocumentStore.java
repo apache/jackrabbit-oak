@@ -35,15 +35,32 @@ public interface DocumentStore {
     enum Collection { NODES }
 
     /**
-     * Get a document. The returned map is a clone (the caller
-     * can modify it without affecting the stored version).
-     *
+     * Get a document.
+     * <p>
+     * The returned map is a clone (the caller can modify it without affecting
+     * the stored version).
+     * 
      * @param collection the collection
      * @param key the key
      * @return the map, or null if not found
      */
     @CheckForNull
     Map<String, Object> find(Collection collection, String key);
+    
+    /**
+     * Get a document, ignoring the cache if the cached entry is older than the
+     * specified time.
+     * <p>
+     * The returned map is a clone (the caller can modify it without affecting
+     * the stored version).
+     * 
+     * @param collection the collection
+     * @param key the key
+     * @param maxCacheAge the maximum age of the cached document
+     * @return the map, or null if not found
+     */
+    @CheckForNull
+    Map<String, Object> find(Collection collection, String key, int maxCacheAge);
 
     @Nonnull
     List<Map<String, Object>> query(Collection collection, String fromKey, String toKey, int limit);
@@ -77,7 +94,9 @@ public interface DocumentStore {
     @Nonnull
     Map<String, Object> createOrUpdate(Collection collection, UpdateOp update)
             throws MicroKernelException;
-    
+
+    void invalidateCache();
+
     void dispose();
 
 }

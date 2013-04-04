@@ -19,14 +19,17 @@ package org.apache.jackrabbit.mongomk.prototype;
 import java.io.InputStream;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -81,7 +84,7 @@ public class MongoMK implements MicroKernel {
      * cache update).
      */
     // TODO test observation with multiple Oak instances
-    protected static final long ASYNC_DELAY = 1000;
+    protected int asyncDelay = 1000;
 
     /**
      * Whether this instance is disposed.
@@ -106,22 +109,32 @@ public class MongoMK implements MicroKernel {
     /**
      * The node cache.
      *
-     * Key: path@rev
-     * Value: node
+     * Key: path@rev, value: node
      */
     private final Cache<String, Node> nodeCache;
 
     /**
      * Child node cache.
+     * 
+     * Key: path@rev, value: children
      */
     private final Cache<String, Node.Children> nodeChildrenCache;
 
     /**
      * The unsaved last revisions.
+     * 
      * Key: path, value: revision.
      */
     private final Map<String, Revision> unsavedLastRevisions = 
-            new HashMap<String, Revision>();
+            new ConcurrentHashMap<String, Revision>();
+    
+    /**
+     * The last known revision for each cluster node.
+     * 
+     * Key: the machine id, value: revision.
+     */
+    private final Map<Integer, Revision> lastKnownRevision =
+            new ConcurrentHashMap<Integer, Revision>();
     
     /**
      * The last known head revision. This is the last-known revision.
@@ -130,7 +143,7 @@ public class MongoMK implements MicroKernel {
     
     private Thread backgroundThread;
     
-    private int simpleRevisionCounter;
+    private AtomicInteger simpleRevisionCounter;
 
     /**
      * Maps branch commit revision to revision it is based on
@@ -142,7 +155,7 @@ public class MongoMK implements MicroKernel {
      * Create a new in-memory MongoMK used for testing.
      */
     public MongoMK() {
-        this(new MemoryDocumentStore(), new MemoryBlobStore(), 0);
+        this(new Builder());
     }
     
     /**
@@ -152,9 +165,7 @@ public class MongoMK implements MicroKernel {
      * @param clusterId the cluster id (must be unique)
      */
     public MongoMK(DB db, int clusterId) {
-        this(db == null ? new MemoryDocumentStore() : new MongoDocumentStore(db),
-                db == null ? new MemoryBlobStore() : new MongoBlobStore(db), 
-                clusterId);
+        this(new Builder().setMongoDB(db).setClusterId(clusterId));
     }
 
     /**
@@ -165,9 +176,14 @@ public class MongoMK implements MicroKernel {
      * @param clusterId the cluster id (must be unique)
      */
     public MongoMK(DocumentStore store, BlobStore blobStore, int clusterId) {
-        this.store = store;
-        this.blobStore = blobStore;
-        this.clusterId = clusterId;
+        this(new Builder().setDocumentStore(store).setBlobStore(blobStore).setClusterId(clusterId));
+    }
+    
+    MongoMK(Builder builder) {
+        this.store = builder.getDocumentStore();
+        this.blobStore = builder.getBlobStore();
+        this.clusterId = builder.getClusterId();
+        this.asyncDelay = builder.getAsyncDelay();
 
         //TODO Use size based weigher
         nodeCache = CacheBuilder.newBuilder()
@@ -177,17 +193,17 @@ public class MongoMK implements MicroKernel {
         nodeChildrenCache =  CacheBuilder.newBuilder()
                         .maximumSize(CACHE_CHILDREN)
                         .build();
-
+        
+        init();
+    }
+    
+    void init() {
         backgroundThread = new Thread(
                 new BackgroundOperation(this, isDisposed),
                 "MongoMK background thread");
         backgroundThread.setDaemon(true);
         backgroundThread.start();
-            
-        init();
-    }
-    
-    void init() {
+
         headRevision = newRevision();
         Node n = readNode("/", headRevision);
         if (n == null) {
@@ -221,7 +237,7 @@ public class MongoMK implements MicroKernel {
      * for testing.
      */
     void useSimpleRevisions() {
-        this.simpleRevisionCounter = 1;
+        this.simpleRevisionCounter = new AtomicInteger(1);
         init();
     }
     
@@ -231,14 +247,90 @@ public class MongoMK implements MicroKernel {
      * @return the revision
      */
     Revision newRevision() {
-        if (simpleRevisionCounter > 0) {
-            return new Revision(simpleRevisionCounter++, 0, clusterId);
+        if (simpleRevisionCounter != null) {
+            return new Revision(simpleRevisionCounter.getAndIncrement(), 0, clusterId);
         }
         return Revision.newRevision(clusterId);
     }
     
     void runBackgroundOperations() {
-        // to be implemented
+        if (isDisposed.get()) {
+            return;
+        }
+        if (simpleRevisionCounter != null) {
+            // only when using timestamp
+            return;
+        }
+        try {
+            // backgroundWrite();
+            // backgroundRead();
+        } catch (RuntimeException e) {
+            if (isDisposed.get()) {
+                return;
+            }
+            LOG.warn("Background operation failed: " + e.toString(), e);
+        }
+    }
+    
+    private void backgroundRead() {
+        String id = Utils.getIdFromPath("/");
+        Map<String, Object> map = store.find(DocumentStore.Collection.NODES, id, asyncDelay);
+        @SuppressWarnings("unchecked")
+        Map<String, String> lastRevMap = (Map<String, String>) map.get(UpdateOp.LAST_REV);
+        
+        for (Entry<String, String> e : lastRevMap.entrySet()) {
+            int machineId = Integer.parseInt(e.getKey());
+            if (machineId == clusterId) {
+                continue;
+            }
+            Revision r = Revision.fromString(e.getValue());
+            Revision last = lastKnownRevision.get(machineId);
+            
+            if (last == null || last.compareRevisionTime(r) != 0) {
+                // TODO invalidating the whole cache is not really needed,
+                // instead only those children that are cached could be checked
+                
+                store.invalidateCache();
+                lastKnownRevision.put(machineId, r);
+                // add a new revision, so that changes are visible
+                headRevision = Revision.newRevision(clusterId);
+            }
+        }
+    }
+    
+    private void backgroundWrite() {
+        if (unsavedLastRevisions.size() == 0) {
+            return;
+        }
+        ArrayList<String> paths = new ArrayList<String>(unsavedLastRevisions.keySet());
+        // sort by depth (high depth first), then path
+        Collections.sort(paths, new Comparator<String>() {
+
+            @Override
+            public int compare(String o1, String o2) {
+                int d1 = Utils.pathDepth(o1);
+                int d2 = Utils.pathDepth(o1);
+                if (d1 != d2) {
+                    return Integer.signum(d1 - d2);
+                }
+                return o1.compareTo(o2);
+            }
+            
+        });
+        long now = Revision.getCurrentTimestamp();
+        for (String p : paths) {
+            Revision r = unsavedLastRevisions.get(p);
+            if (r == null) {
+                continue;
+            }
+            if (Revision.getTimestampDifference(now, r.getTimestamp()) < asyncDelay) {
+                continue;
+            }
+            
+            Commit commit = new Commit(this, null, r);
+            commit.touchNode(p);
+            commit.apply();
+        }
     }
     
     public void dispose() {
@@ -377,7 +469,8 @@ public class MongoMK implements MicroKernel {
             return false;
         }
         // get root of commit
-        nodeMap = store.find(DocumentStore.Collection.NODES, Utils.getIdFromPath(commitRootPath));
+        nodeMap = store.find(DocumentStore.Collection.NODES, 
+                Utils.getIdFromPath(commitRootPath));
         if (nodeMap == null) {
             return false;
         }
@@ -1075,39 +1168,33 @@ public class MongoMK implements MicroKernel {
         return store;
     }
     
-    /**
-     * A background thread.
-     */
-    static class BackgroundOperation implements Runnable {
-        final WeakReference<MongoMK> ref;
-        private final AtomicBoolean isDisposed;
-        BackgroundOperation(MongoMK mk, AtomicBoolean isDisposed) {
-            ref = new WeakReference<MongoMK>(mk);
-            this.isDisposed = isDisposed;
-        }
-        public void run() {
-            while (!isDisposed.get()) {
-                synchronized (isDisposed) {
-                    try {
-                        isDisposed.wait(ASYNC_DELAY);
-                    } catch (InterruptedException e) {
-                        // ignore
-                    }
-                }
-                MongoMK mk = ref.get();
-                if (mk != null) {
-                    mk.runBackgroundOperations();
-                }
-            }
-        }
+    public void setAsyncDelay(int delay) {
+        this.asyncDelay = delay;
+    }
+    
+    public int getAsyncDelay() {
+        return asyncDelay;
     }
 
+    /**
+     * Apply the changes of a node to the cache.
+     * 
+     * @param rev the revision
+     * @param path the path
+     * @param isNew whether this is a new node
+     * @param isDelete whether the node is deleted
+     * @param isWritten whether the MongoDB documented was added / updated
+     * @param added the list of added child nodes
+     * @param removed the list of removed child nodes
+     */
     public void applyChanges(Revision rev, String path, 
             boolean isNew, boolean isDelete, boolean isWritten, 
             ArrayList<String> added, ArrayList<String> removed) {
         if (!isWritten) {
             unsavedLastRevisions.put(path, rev);
         } else {
+            // the document was updated:
+            // we no longer need to update it in a background process
             unsavedLastRevisions.remove(path);
         }
         Children c = nodeChildrenCache.getIfPresent(path + "@" + rev);
@@ -1125,4 +1212,136 @@ public class MongoMK implements MicroKernel {
         }
     }
     
+    /**
+     * A background thread.
+     */
+    static class BackgroundOperation implements Runnable {
+        final WeakReference<MongoMK> ref;
+        private final AtomicBoolean isDisposed;
+        private int delay;
+        
+        BackgroundOperation(MongoMK mk, AtomicBoolean isDisposed) {
+            ref = new WeakReference<MongoMK>(mk);
+            delay = mk.getAsyncDelay();
+            this.isDisposed = isDisposed;
+        }
+        public void run() {
+            while (!isDisposed.get()) {
+                synchronized (isDisposed) {
+                    try {
+                        isDisposed.wait(delay);
+                    } catch (InterruptedException e) {
+                        // ignore
+                    }
+                }
+                MongoMK mk = ref.get();
+                if (mk != null) {
+                    mk.runBackgroundOperations();
+                    delay = mk.getAsyncDelay();
+                }
+            }
+        }
+    }
+
+    /**
+     * A builder for a MongoMK instance.
+     */
+    public static class Builder {
+        
+        private DocumentStore documentStore;
+        private BlobStore blobStore;
+        private int clusterId;
+        private int asyncDelay = 1000;
+
+        /**
+         * Set the MongoDB connection to use. By default an in-memory store is used.
+         * 
+         * @param db the MongoDB connection
+         * @return this
+         */
+        public Builder setMongoDB(DB db) {
+            if (db != null) {
+                this.documentStore = new MongoDocumentStore(db);
+                this.blobStore = new MongoBlobStore(db);
+            }
+            return this;
+        }
+        
+        /**
+         * Set the document store to use. By default an in-memory store is used.
+         * 
+         * @param documentStore the document store
+         * @return this
+         */
+        public Builder setDocumentStore(DocumentStore documentStore) {
+            this.documentStore = documentStore;
+            return this;
+        }
+        
+        public DocumentStore getDocumentStore() {
+            if (documentStore == null) {
+                documentStore = new MemoryDocumentStore();
+            }
+            return documentStore;
+        }
+
+        /**
+         * Set the blob store to use. By default an in-memory store is used.
+         * 
+         * @param blobStore the blob store
+         * @return this
+         */
+        public Builder setBlobStore(BlobStore blobStore) {
+            this.blobStore = blobStore;
+            return this;
+        }
+
+        public BlobStore getBlobStore() {
+            if (blobStore == null) {
+                blobStore = new MemoryBlobStore();
+            }
+            return blobStore;
+        }
+
+        /**
+         * Set the cluster id to use. By default, 0 is used.
+         * 
+         * @param clusterId the cluster id
+         * @return this
+         */
+        public Builder setClusterId(int clusterId) {
+            this.clusterId = clusterId;
+            return this;
+        }
+        
+        public int getClusterId() {
+            return clusterId;
+        }
+        
+        /**
+         * Set the maximum delay to write the last revision to the root node. By
+         * default 1000 (meaning 1 second) is used.
+         * 
+         * @param asyncDelay in milliseconds
+         * @return this
+         */
+        public Builder setAsyncDelay(int asyncDelay) {
+            this.asyncDelay = asyncDelay;
+            return this;
+        }
+        
+        public int getAsyncDelay() {
+            return asyncDelay;
+        }
+        
+        /**
+         * Open the MongoMK instance using the configured options.
+         * 
+         * @return the MongoMK instance
+         */
+        public MongoMK open() {
+            return new MongoMK(this);
+        }
+    }
+
 }

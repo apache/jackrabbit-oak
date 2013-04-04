@@ -50,7 +50,8 @@ public class BlobTest {
 
     @Test
     public void addBlobs() throws Exception {
-        MongoMK mk = new MongoMK(openMongoConnection(), 0);
+        MongoMK mk = new MongoMK.Builder().
+                setMongoDB(openMongoConnection()).open();
         long blobSize = TOTAL_SIZE / DOCUMENT_COUNT;
         ArrayList<String> blobIds = new ArrayList<String>();
         // use a new seed each time, to allow running the test multiple times 

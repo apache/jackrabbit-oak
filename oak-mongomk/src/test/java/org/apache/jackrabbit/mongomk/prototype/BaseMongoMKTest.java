@@ -30,7 +30,7 @@ public class BaseMongoMKTest extends BaseMongoMicroKernelTest {
     @Override
     public void setUp() throws Exception {
         DB db = mongoConnection.getDB();
-        mk = new MongoMK(db, 0);
+        mk = new MongoMK.Builder().setMongoDB(db).open();
     }
 
     @Override

@@ -68,7 +68,7 @@ public class Revision {
      * @return the unique revision id
      */
     static Revision newRevision(int clusterId) {
-        long timestamp = System.currentTimeMillis() / 100 - timestampOffset;
+        long timestamp = getCurrentTimestamp();
         int c;
         synchronized (Revision.class) {
             if (timestamp > lastTimestamp) {
@@ -87,6 +87,26 @@ public class Revision {
             }
         }
         return new Revision(timestamp, c, clusterId);
+    }
+    
+    /**
+     * Get the timestamp value of the current date and time.
+     * 
+     * @return the timestamp
+     */
+    public static long getCurrentTimestamp() {
+        return System.currentTimeMillis() / 100 - timestampOffset;
+    }
+    
+    /**
+     * Get the difference between two timestamps (a - b) in milliseconds.
+     * 
+     * @param a the first timestamp
+     * @param b the second timestamp
+     * @return the difference in milliseconds
+     */
+    public static long getTimestampDifference(long a, long b) {
+        return (a - b) * 100;
     }
     
     public static Revision fromString(String rev) {

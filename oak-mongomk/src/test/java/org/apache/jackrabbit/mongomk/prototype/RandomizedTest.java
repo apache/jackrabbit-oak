@@ -237,12 +237,13 @@ public class RandomizedTest {
     }
     
     private static MongoMK createMK() {
+        MongoMK.Builder builder = new MongoMK.Builder();
         if (MONGO_DB) {
             DB db = MongoUtils.getConnection().getDB();
             MongoUtils.dropCollections(db);
-            return new MongoMK(db, 0);
+            builder.setMongoDB(db);
         }
-        return new MongoMK();
+        return builder.open();
     }
 
 }

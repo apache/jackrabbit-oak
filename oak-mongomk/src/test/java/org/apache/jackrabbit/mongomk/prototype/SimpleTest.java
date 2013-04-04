@@ -42,7 +42,7 @@ public class SimpleTest {
 
     @Test
     public void test() {
-        MongoMK mk = new MongoMK();
+        MongoMK mk = new MongoMK.Builder().open();
         mk.dispose();
     }
 
@@ -80,7 +80,7 @@ public class SimpleTest {
     
     @Test
     public void addNodeGetNode() {
-        MongoMK mk = new MongoMK();
+        MongoMK mk = new MongoMK.Builder().open();
         Revision rev = mk.newRevision();
         Node n = new Node("/test", rev);
         n.setProperty("name", "Hello");
@@ -351,12 +351,13 @@ public class SimpleTest {
     }
 
     private static MongoMK createMK() {
+        MongoMK.Builder builder = new MongoMK.Builder();
         if (MONGO_DB) {
             DB db = MongoUtils.getConnection().getDB();
             MongoUtils.dropCollections(db);
-            return new MongoMK(db, 0);
+            builder.setMongoDB(db);
         }
-        return new MongoMK();
+        return builder.open();
     }
 
 }
