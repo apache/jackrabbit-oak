@@ -64,8 +64,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
 /**
  * Basic {@link NodeState} implementation based on the {@link MicroKernel}
  * interface. This class makes an attempt to load data lazily.
@@ -671,11 +669,11 @@ public final class KernelNodeState extends AbstractNodeState {
                     String value = TypeCodes.decodeName(split, jsonString);
                     if (type == PropertyType.BINARY) {
                         values.add(new KernelBlob(new String(value), kernel));
-                    } else if(type == PropertyType.DOUBLE) {
+                    } else if (type == PropertyType.DOUBLE) {
                         values.add(Conversions.convert(value).toDouble());
-                    } else if(type == PropertyType.DECIMAL) {
+                    } else if (type == PropertyType.DECIMAL) {
                         values.add(Conversions.convert(value).toDecimal());
-                    } else if(type == PropertyType.DATE) {
+                    } else if (type == PropertyType.DATE) {
                         values.add(Conversions.convert(value).toCalendar().getTimeInMillis());
                     } else {
                         values.add(StringCache.get(value));
@@ -690,6 +688,45 @@ public final class KernelNodeState extends AbstractNodeState {
             reader.matches(',');
         }
         return createProperty(name, values, Type.fromTag(type, true));
+    }
+    
+    @Override
+    public String toString() {
+        StringBuilder builder = new StringBuilder();
+        builder.append(path).append('@').append(revision);
+        if (childNodeCount >= 0) {
+            builder.append(" children: ").append(childNodeCount);
+        }
+        if (hash != null) {
+            builder.append(" hash: ").append(hash);
+        }
+        if (id != null) {
+            builder.append(" id: ").append(id);
+        }
+        builder.append(" {");
+        int count = 0;
+        if (properties == null) {
+            builder.append(" /* props not initialized */");
+        } else {
+            for (PropertyState property : getProperties()) {
+                if (count++ > 0) {
+                    builder.append(',');
+                }
+                builder.append(' ').append(property);
+            }
+        }
+        if (childNames == null) {
+            builder.append(" /* child node names not initialized */");
+        } else {
+            for (String s : childNames) {
+                if (count++ > 0) {
+                    builder.append(',');
+                }
+                builder.append(' ').append(s);
+            }
+        }
+        builder.append(" }");
+        return builder.toString();
     }
 
 }
