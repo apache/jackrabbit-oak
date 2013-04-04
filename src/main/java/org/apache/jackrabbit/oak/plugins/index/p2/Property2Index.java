@@ -37,7 +37,7 @@ import com.google.common.base.Charsets;
  * 
  * <p>
  * To define a property index on a subtree you have to add an <code>oak:index</code> node.
- * 
+ * <br>
  * Next (as a child node) follows the index definition node that:
  * <ul>
  * <li>must be of type <code>oak:queryIndexDefinition</code></li>
@@ -53,11 +53,11 @@ import com.google.common.base.Charsets;
  * </ul>
  * </p>
  * <p>
- * Note: <code>propertyNames</code> can be a list of properties, and it is optional.in case it is missing, the node name will be used as a property name reference value
- * </p>
- * 
- * <p>
- * Note: <code>reindex</code> is a property that when set to <code>true</code>, triggers a full content reindex.
+ * Notes:
+ * <ul>
+ * <li> <code>propertyNames</code> can be a list of properties, and it is optional.in case it is missing, the node name will be used as a property name reference value</li>
+ * <li> <code>reindex</code> is a property that when set to <code>true</code>, triggers a full content reindex.</li>
+ * </ul>
  * </p>
  * 
  * <pre>

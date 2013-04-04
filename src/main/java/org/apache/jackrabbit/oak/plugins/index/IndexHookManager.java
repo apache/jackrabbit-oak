@@ -24,10 +24,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
  * Keeps existing IndexHooks updated.
- * 
- * <p>
+ * <br>
  * The existing index list is obtained via the IndexHookProvider.
- * </p>
  * 
  * @see IndexHook
  * @see IndexHookProvider

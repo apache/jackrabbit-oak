@@ -18,25 +18,25 @@ package org.apache.jackrabbit.oak.plugins.index;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
  * Represents the content of a QueryIndex as well as a mechanism for keeping
  * this content up to date.
- * <p>
+ * <br>
  * An IndexHook listens for changes to the content and updates the index data
  * accordingly.
  */
 public interface IndexHook extends Editor {
 
     /**
-     * Re-create this index.
+     * Re-create this index using the given state
      * 
      * @param state
      *            the parent of the node "oak:index" (the node that contains the
      *            index definition)
      * @throws CommitFailedException
      */
-    void reindex(NodeBuilder state) throws CommitFailedException;
+    void reindex(NodeState state) throws CommitFailedException;
 
 }
