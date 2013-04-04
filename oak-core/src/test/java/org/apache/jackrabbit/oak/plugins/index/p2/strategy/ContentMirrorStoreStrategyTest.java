@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.index.p2.strategy;
 
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -109,6 +110,20 @@ public class ContentMirrorStoreStrategyTest {
             check = check.child(p);
         }
         Assert.assertFalse(check.hasChildNode(name));
+    }
+
+    @Test
+    public void testUnique() {
+        IndexStoreStrategy store = new ContentMirrorStoreStrategy();
+        NodeState root = EMPTY_NODE;
+        NodeBuilder index = root.builder();
+        try {
+            store.insert(index, "key", true, Sets.newHashSet("a"));
+            store.insert(index, "key", true, Sets.newHashSet("a"));
+            Assert.fail("ContentMirrorStoreStrategy should guarantee uniqueness on insert");
+        } catch (CommitFailedException e) {
+            // expected
+        }
     }
 
 }
