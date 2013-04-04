@@ -152,6 +152,7 @@ public class SolrIndexUpdate implements Closeable {
         if (!path.startsWith("/")) {
             path = "/" + path;
         }
+        path = path.replace("/", "\\/");
         solrServer.deleteByQuery(new StringBuilder(configuration.getPathField())
                 .append(':').append(path).append("*").toString());
     }
