@@ -177,7 +177,7 @@ public final class PropertyStates {
             case PropertyType.DOUBLE:
                 return DoublePropertyState.doubleProperty(name, Conversions.convert(value).toDouble());
             case PropertyType.DATE:
-                return LongPropertyState.createDateProperty(name, value);
+                return LongPropertyState.createDateProperty(name, Conversions.convert(value).toDate());
             case PropertyType.BOOLEAN:
                 return BooleanPropertyState.booleanProperty(name, Conversions.convert(value).toBoolean());
             case PropertyType.DECIMAL:
@@ -216,8 +216,8 @@ public final class PropertyStates {
                 : DoublePropertyState.doubleProperty(name, (Double) value);
             case PropertyType.DATE:
                 return type.isArray()
-                ? MultiLongPropertyState.createDateProperty(name, (Iterable<String>) value)
-                : LongPropertyState.createDateProperty(name, (String) value);
+                ? MultiLongPropertyState.createDatePropertyFromLong(name, (Iterable<Long>) value)
+                : LongPropertyState.createDateProperty(name, (Long) value);
             case PropertyType.BOOLEAN:
                 return type.isArray()
                 ? MultiBooleanPropertyState.booleanProperty(name, (Iterable<Boolean>) value)

@@ -21,6 +21,7 @@ import java.util.Arrays;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.state.PropertyBuilder;
+import org.apache.jackrabbit.util.ISO8601;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -74,13 +75,13 @@ public class MemoryPropertyBuilderTest {
 
     @Test
     public void testDateProperty() {
-        PropertyBuilder<String> builder = MemoryPropertyBuilder.array(Type.DATE);
-        String date1 = "1970-01-01T00:00:00.000Z";
-        String date2 = "1971-01-01T00:00:00.000Z";
+        PropertyBuilder<Long> builder = MemoryPropertyBuilder.array(Type.DATE);
+        Long date1 = ISO8601.parse("1970-01-01T00:00:00.000Z").getTimeInMillis();
+        Long date2 = ISO8601.parse("1971-01-01T00:00:00.000Z").getTimeInMillis();
         builder.setName("foo")
                 .addValue(date1)
                 .addValue(date2);
-        assertEquals(MultiLongPropertyState.createDateProperty("foo", Arrays.asList(date1, date2)),
+        assertEquals(MultiLongPropertyState.createDatePropertyFromLong("foo", Arrays.asList(date1, date2)),
                 builder.getPropertyState());
 
         builder.setScalar();
@@ -117,7 +118,7 @@ public class MemoryPropertyBuilderTest {
     public void testAssignFromDate() {
         String date = "1970-01-01T00:00:00.000Z";
         PropertyState source = LongPropertyState.createDateProperty("foo", date);
-        PropertyBuilder<String> builder = MemoryPropertyBuilder.scalar(Type.DATE);
+        PropertyBuilder<Long> builder = MemoryPropertyBuilder.scalar(Type.DATE);
         builder.assignFrom(source);
         assertEquals(source, builder.getPropertyState());
     }
@@ -152,7 +153,7 @@ public class MemoryPropertyBuilderTest {
         String date1 = "1970-01-01T00:00:00.000Z";
         String date2 = "1971-01-01T00:00:00.000Z";
         PropertyState source = MultiLongPropertyState.createDateProperty("foo", Arrays.asList(date1, date2));
-        PropertyBuilder<String> builder = MemoryPropertyBuilder.scalar(Type.DATE);
+        PropertyBuilder<Long> builder = MemoryPropertyBuilder.scalar(Type.DATE);
         builder.assignFrom(source);
         assertEquals(source, builder.getPropertyState());
     }

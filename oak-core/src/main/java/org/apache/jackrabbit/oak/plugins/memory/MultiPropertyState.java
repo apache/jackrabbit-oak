@@ -89,9 +89,9 @@ abstract class MultiPropertyState<T> extends EmptyPropertyState {
                     }
                 });
             case PropertyType.DATE:
-                return (S) Iterables.transform(values, new Function<T, String>() {
+                return (S) Iterables.transform(values, new Function<T, Long>() {
                     @Override
-                    public String apply(T value) {
+                    public Long apply(T value) {
                         return getConverter(value).toDate();
                     }
                 });
