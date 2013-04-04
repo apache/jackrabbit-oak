@@ -71,7 +71,7 @@ public class RootImpl implements Root {
     /**
      * Number of {@link #updated} calls for which changes are kept in memory.
      */
-    private static final int PURGE_LIMIT = Integer.getInteger("oak.root.purgeLimit", 100);
+    private static final int PURGE_LIMIT = Integer.getInteger("oak.root.purgeLimit", 1000);
 
     /**
      * The underlying store to which this root belongs
