@@ -252,9 +252,7 @@ public class NodeUtil {
     }
 
     public void setDate(String name, long time) {
-        Calendar cal = GregorianCalendar.getInstance();
-        cal.setTimeInMillis(time);
-        tree.setProperty(name, Conversions.convert(cal).toDate(), DATE);
+        tree.setProperty(name, time, DATE);
     }
 
     public long getLong(String name, long defaultValue) {

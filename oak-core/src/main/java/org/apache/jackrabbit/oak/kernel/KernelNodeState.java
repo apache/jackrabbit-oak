@@ -675,6 +675,8 @@ public final class KernelNodeState extends AbstractNodeState {
                         values.add(Conversions.convert(value).toDouble());
                     } else if(type == PropertyType.DECIMAL) {
                         values.add(Conversions.convert(value).toDecimal());
+                    } else if(type == PropertyType.DATE) {
+                        values.add(Conversions.convert(value).toCalendar().getTimeInMillis());
                     } else {
                         values.add(StringCache.get(value));
                     }

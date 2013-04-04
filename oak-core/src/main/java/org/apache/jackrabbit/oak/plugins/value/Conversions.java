@@ -101,12 +101,13 @@ public final class Conversions {
         }
 
         /**
-         * Convert to date. This default implementation is based on {@code ISO8601.parse(String)}.
+         * Convert to date. This default implementation delegates to {@link #toCalendar()}
+         * and returns the <code>getTimeInMillis</code> value of the calendar.
          * @return  date representation of the converted value
          * @throws IllegalArgumentException  if the string cannot be parsed into a date
          */
-        public String toDate() {
-            return convert(toCalendar()).toString();
+        public Long toDate() {
+            return toCalendar().getTimeInMillis();
         }
 
         /**

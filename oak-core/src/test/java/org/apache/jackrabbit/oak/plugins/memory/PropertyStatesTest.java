@@ -60,12 +60,11 @@ public class PropertyStatesTest {
     }
 
     @Test
-    @Ignore("OAK-749")
     public void dateValueFromDateProperty() throws RepositoryException {
-        String expected = ISO8601.format(Calendar.getInstance());
+        long expected = Calendar.getInstance().getTimeInMillis();
         PropertyState dateProperty = PropertyStates.createProperty(
                 "date", expected, Type.DATE);
-        String actual = dateProperty.getValue(Type.DATE);
+        long actual = dateProperty.getValue(Type.DATE);
         assertEquals(expected, actual);
     }
 }

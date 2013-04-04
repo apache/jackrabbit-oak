@@ -143,7 +143,7 @@ class ReadWriteVersionManager extends ReadOnlyVersionManager {
             rootVersion.setProperty(JCR_UUID,
                     IdentifierManager.generateUUID(), Type.STRING);
             rootVersion.setProperty(JCR_PRIMARYTYPE, NT_VERSION, Type.NAME);
-            String now = Conversions.convert(GregorianCalendar.getInstance()).toDate();
+            long now = System.currentTimeMillis();
             rootVersion.setProperty(JCR_CREATED, now, Type.DATE);
             rootVersion.setProperty(JCR_PREDECESSORS,
                     Collections.<String>emptyList(), Type.REFERENCES);

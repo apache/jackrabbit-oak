@@ -610,7 +610,7 @@ public class SQL2Parser {
                     }
                     LiteralImpl literal = (LiteralImpl) op;
                     PropertyValue value = literal.getLiteralValue();
-                    value = PropertyValues.newDate(value.getValue(Type.STRING));
+                    value = PropertyValues.newDate(value.getValue(Type.DATE));
                     literal = factory.literal(value);
                     return literal;
                 }

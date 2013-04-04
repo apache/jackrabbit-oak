@@ -117,7 +117,7 @@ public class ValueImpl implements Value {
             switch (getType()) {
                 case PropertyType.STRING:
                 case PropertyType.BINARY:
-                    String value = propertyState.getValue(Type.DATE, index);
+                    long value = propertyState.getValue(Type.DATE, index);
                     return Conversions.convert(value).toCalendar();
                 case PropertyType.LONG:
                 case PropertyType.DOUBLE:
