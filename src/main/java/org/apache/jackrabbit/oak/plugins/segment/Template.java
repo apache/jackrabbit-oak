@@ -380,12 +380,12 @@ class Template {
             NodeState afterNode = getChildNode(childName, store, afterId);
             NodeState beforeNode = beforeTemplate.getChildNode(
                     childName, store, beforeId);
-            if (beforeNode == null) {
+            if (!beforeNode.exists()) {
                 diff.childNodeAdded(childName, afterNode);
             } else if (!beforeNode.equals(afterNode)) {
                 diff.childNodeChanged(childName, beforeNode, afterNode);
             }
-            if ((beforeTemplate.hasOneChildNode() && beforeNode == null)
+            if ((beforeTemplate.hasOneChildNode() && !beforeNode.exists())
                     || beforeTemplate.hasManyChildNodes()) {
                 for (ChildNodeEntry entry :
                     beforeTemplate.getChildNodeEntries(store, beforeId)) {
@@ -403,7 +403,7 @@ class Template {
                 String name = beforeCNE.getName();
                 NodeState beforeChild = beforeCNE.getNodeState();
                 NodeState afterChild = getChildNode(name, store, afterId);
-                if (afterChild == null) {
+                if (!afterChild.exists()) {
                     diff.childNodeDeleted(name, beforeChild);
                 } else {
                     baseChildNodes.add(name);
