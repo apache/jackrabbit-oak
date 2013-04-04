@@ -85,7 +85,7 @@ public class SegmentSizeTest {
 
     @Test
     public void testDuplicateDates() {
-        String now = ISO8601.format(Calendar.getInstance());
+        long now = Calendar.getInstance().getTimeInMillis();
 
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.setProperty(PropertyStates.createProperty(

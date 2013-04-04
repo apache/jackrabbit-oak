@@ -182,7 +182,7 @@ public class MemoryPropertyBuilder<T> implements PropertyBuilder<T> {
                 case PropertyType.DOUBLE:
                     return MultiDoublePropertyState.doubleProperty(name, (Iterable<Double>) values);
                 case PropertyType.DATE:
-                    return MultiLongPropertyState.createDateProperty(name, (Iterable<String>) values);
+                    return MultiLongPropertyState.createDatePropertyFromLong(name, (Iterable<Long>) values);
                 case PropertyType.BOOLEAN:
                     return MultiBooleanPropertyState.booleanProperty(name, (Iterable<Boolean>) values);
                 case PropertyType.DECIMAL:
@@ -202,7 +202,7 @@ public class MemoryPropertyBuilder<T> implements PropertyBuilder<T> {
                 case PropertyType.DOUBLE:
                     return DoublePropertyState.doubleProperty(name, (Double) value);
                 case PropertyType.DATE:
-                    return LongPropertyState.createDateProperty(name, (String) value);
+                    return LongPropertyState.createDateProperty(name, (Long) value);
                 case PropertyType.BOOLEAN:
                     return BooleanPropertyState.booleanProperty(name, (Boolean) value);
                 case PropertyType.DECIMAL:
@@ -221,18 +221,10 @@ public class MemoryPropertyBuilder<T> implements PropertyBuilder<T> {
             setName(property.getName());
             if (property.isArray()) {
                 isArray = true;
-                if (type == Type.DATE) {
-                    setValues((Iterable<T>) property.getValue(Type.STRINGS));
-                } else {
-                    setValues((Iterable<T>) property.getValue(type.getArrayType()));
-                }
+                setValues((Iterable<T>) property.getValue(type.getArrayType()));
             } else {
                 isArray = false;
-                if (type == Type.DATE) {
-                    setValue((T) property.getValue(Type.STRING));
-                } else {
-                    setValue(property.getValue(type));
-                }
+                setValue(property.getValue(type));
             }
         }
         return this;
