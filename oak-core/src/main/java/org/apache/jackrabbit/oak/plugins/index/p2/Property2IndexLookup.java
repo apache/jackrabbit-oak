@@ -38,11 +38,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
  * Is responsible for querying the property index content.
- * 
- * <p>
+ * <br>
  * This class can be used directly on a subtree where there is an index defined
  * by supplying a {@link NodeState} root.
- * </p>
  * 
  * <pre>
  * <code>

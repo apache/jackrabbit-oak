@@ -40,9 +40,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import com.google.common.collect.Lists;
 
 /**
- * Acts as a composite NodeStateDiff, it delegates all the diff's events to the
- * existing IndexHooks.
- * 
+ * Acts as a composite Editor, it delegates all the diff's events to the
+ * existing IndexHooks. <br>
  * This allows for a simultaneous update of all the indexes via a single
  * traversal of the changes.
  */
@@ -62,13 +61,12 @@ class IndexHookManagerDiff implements Editor {
     @Override
     public void enter(NodeState before, NodeState after)
             throws CommitFailedException {
-        if (node != null && node.hasChildNode(INDEX_DEFINITIONS_NAME)) {
+        if (after != null && after.hasChildNode(INDEX_DEFINITIONS_NAME)) {
             Set<String> existingTypes = new HashSet<String>();
             Set<String> reindexTypes = new HashSet<String>();
-
-            NodeBuilder index = node.child(INDEX_DEFINITIONS_NAME);
+            NodeState index = after.getChildNode(INDEX_DEFINITIONS_NAME);
             for (String indexName : index.getChildNodeNames()) {
-                NodeBuilder indexChild = index.child(indexName);
+                NodeState indexChild = index.getChildNode(indexName);
                 if (isIndexNodeType(indexChild.getProperty(JCR_PRIMARYTYPE))) {
                     PropertyState reindexPS = indexChild
                             .getProperty(REINDEX_PROPERTY_NAME);
@@ -105,7 +103,7 @@ class IndexHookManagerDiff implements Editor {
                 this.inner = new CompositeEditor(hooks);
                 this.inner.enter(before, after);
                 for (IndexHook ih : reindex) {
-                    ih.reindex(node);
+                    ih.reindex(after);
                 }
             }
         }

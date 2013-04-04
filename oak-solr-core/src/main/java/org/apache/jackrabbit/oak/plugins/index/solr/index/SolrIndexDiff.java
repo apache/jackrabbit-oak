@@ -204,7 +204,7 @@ public class SolrIndexDiff implements IndexHook, Closeable {
     }
 
     @Override
-    public void reindex(NodeBuilder state) throws CommitFailedException {
+    public void reindex(NodeState state) throws CommitFailedException {
         boolean reindex = false;
         for (SolrIndexUpdate update : updates.values()) {
             if (update.getAndResetReindexFlag()) {
@@ -220,7 +220,7 @@ public class SolrIndexDiff implements IndexHook, Closeable {
                 }
             };
             EditorHook eh = new EditorHook(provider);
-            eh.processCommit(EMPTY_NODE, state.getNodeState());
+            eh.processCommit(EMPTY_NODE, state);
         }
     }
 
