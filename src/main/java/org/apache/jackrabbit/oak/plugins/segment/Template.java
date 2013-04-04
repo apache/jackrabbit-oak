@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.segment;
 import static com.google.common.base.Preconditions.checkElementIndex;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 import static org.apache.jackrabbit.oak.plugins.segment.Segment.RECORD_ID_BYTES;
 
 import java.util.Arrays;
@@ -274,14 +275,14 @@ class Template {
     public NodeState getChildNode(
             String name, SegmentStore store, RecordId recordId) {
         if (hasNoChildNodes()) {
-            return null;
+            return MISSING_NODE;
         } else if (hasManyChildNodes()) {
             MapRecord map = getChildNodeMap(store, recordId);
             RecordId childNodeId = map.getEntry(name);
             if (childNodeId != null) {
                 return new SegmentNodeState(store, childNodeId);
             } else {
-                return null;
+                return MISSING_NODE;
             }
         } else if (name.equals(childName)) {
             int offset = recordId.getOffset() + RECORD_ID_BYTES;
@@ -289,7 +290,7 @@ class Template {
             RecordId childNodeId = segment.readRecordId(offset);
             return new SegmentNodeState(store, childNodeId);
         } else {
-            return null;
+            return MISSING_NODE;
         }
     }
 

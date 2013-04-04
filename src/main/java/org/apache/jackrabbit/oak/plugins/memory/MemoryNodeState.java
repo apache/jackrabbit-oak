@@ -16,7 +16,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
@@ -56,6 +59,11 @@ class MemoryNodeState extends AbstractNodeState {
     }
 
     @Override
+    public boolean exists() {
+        return true;
+    }
+
+    @Override
     public PropertyState getProperty(String name) {
         return properties.get(name);
     }
@@ -72,14 +80,19 @@ class MemoryNodeState extends AbstractNodeState {
 
     @Override
     public boolean hasChildNode(String name) {
-        checkNotNull(name);
+        checkArgument(!checkNotNull(name).isEmpty());
         return nodes.containsKey(name);
     }
 
     @Override
     public NodeState getChildNode(String name) {
-        checkNotNull(name);
-        return nodes.get(name);
+        checkArgument(!checkNotNull(name).isEmpty());
+        NodeState state = nodes.get(name);
+        if (state != null) {
+            return state;
+        } else {
+            return MISSING_NODE;
+        }
     }
 
     @Override
@@ -104,6 +117,11 @@ class MemoryNodeState extends AbstractNodeState {
      */
     @Override
     public void compareAgainstBaseState(NodeState base, NodeStateDiff diff) {
+        if (base == EMPTY_NODE || !base.exists()) {
+            EmptyNodeState.compareAgainstEmptyState(this, diff);
+            return;
+        }
+
         Map<String, PropertyState> newProperties =
                 new HashMap<String, PropertyState>(properties);
         for (PropertyState before : base.getProperties()) {

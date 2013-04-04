@@ -64,11 +64,36 @@ import org.apache.jackrabbit.oak.api.PropertyState;
  * as {@link RuntimeException unchecked exceptions} that higher level code
  * is not expected to be able to recover from.
  * <p>
- * Since this interface exposes no higher level constructs like access
- * controls, locking, node types or even path parsing, there's no way
- * for content access to fail because of such concerns. Such functionality
- * and related checked exceptions or other control flow constructs should
- * be implemented on a higher level above this interface.
+ * Since this interface exposes no higher level constructs like locking,
+ * node types or even path parsing, there's no way for content access to
+ * fail because of such concerns. Such functionality and related checked
+ * exceptions or other control flow constructs should be implemented on
+ * a higher level above this interface. On the other hand read access
+ * controls <em>can</em> be implemented below this interface, in which
+ * case some content that would otherwise be accessible might not show
+ * up through such an implementation.
+ *
+ * <h2>Existence and iterability of node states</h2>
+ * <p>
+ * The {@link #getChildNode(String)} method is special in that it
+ * <em>never</em> returns a {@code null} value, even if the named child
+ * node does not exist. Instead a client should use the {@link #exists()}
+ * method on the returned child state to check whether that node exists.
+ * The purpose of this separation of concerns is to allow an implementation
+ * to lazily load content only when it's actually read instead of just
+ * traversed. It also simplifies client code by avoiding the need for many
+ * {@code null} checks when traversing paths.
+ * <p>
+ * The <em>iterability</em> of a node is a related concept to the
+ * above-mentioned existence. A node state is <em>iterable</em> if it
+ * is included in the return values of the {@link #getChildNodeCount()},
+ * {@link #getChildNodeNames()} and {@link #getChildNodeEntries()} methods.
+ * An iterable node is guaranteed to exist, though not all existing nodes
+ * are necessarily iterable.
+ * <p>
+ * Furthermore, a non-existing node is guaranteed to contain no properties
+ * or iterable child nodes. It can, however contain non-iterable children.
+ * Such scenarios are typically the result of access control restrictions.
  *
  * <h2>Decoration and virtual content</h2>
  * <p>
@@ -77,7 +102,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
  * like for example the aggregate size of the entire subtree as an
  * extra virtual property. A virtualization, sharding or caching layer
  * could provide a composite view over multiple underlying trees.
- * Or a basic access control layer could decide to hide certain content
+ * Or a an access control layer could decide to hide certain content
  * based on specific rules. All such features need to be implemented
  * according to the API contract of this interface. A separate higher level
  * interface needs to be used if an implementation can't for example
@@ -85,8 +110,8 @@ import org.apache.jackrabbit.oak.api.PropertyState;
  *
  * <h2>Equality and hash codes</h2>
  * <p>
- * Two node states are considered equal if and only if their properties and
- * child nodes match, regardless of ordering. The
+ * Two node states are considered equal if and only if their existence,
+ * properties and iterable child nodes match, regardless of ordering. The
  * {@link Object#equals(Object)} method needs to be implemented so that it
  * complies with this definition. And while node states are not meant for
  * use as hash keys, the {@link Object#hashCode()} method should still be
@@ -95,13 +120,21 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 public interface NodeState {
 
     /**
+     * Checks whether this node exists. See the above discussion about
+     * the existence of node states.
+     *
+     * @return {@code true} if this node exists, {@code false} if not
+     */
+    boolean exists();
+
+    /**
      * Returns the named property. The name is an opaque string and
      * is not parsed or otherwise interpreted by this method.
      * <p>
      * The namespace of properties and child nodes is shared, so if
      * this method returns a non-{@code null} value for a given
      * name, then {@link #getChildNode(String)} is guaranteed to return
-     * {@code null} for the same name.
+     * a <em>non-existing</em> {@link NodeState} for the same name.
      *
      * @param name name of the property to return
      * @return named property, or {@code null} if not found
@@ -128,7 +161,8 @@ public interface NodeState {
     Iterable<? extends PropertyState> getProperties();
 
     /**
-     * Checks whether the named child node exists.
+     * Checks whether the named child node exists. The implementation
+     * is equivalent to {@code getChildNode(name).exists()}.
      *
      * @param name name of the child node
      * @return {@code true} if the named child node exists,
@@ -137,40 +171,42 @@ public interface NodeState {
     boolean hasChildNode(@Nonnull String name);
 
     /**
-     * Returns the named child node. The name is an opaque string and
-     * is not parsed or otherwise interpreted by this method.
+     * Returns the named, possibly non-existent, child node. The name is an
+     * opaque string and is not parsed or otherwise interpreted by this method.
+     * Use the {@link #exists()} method on the returned child node to
+     * determine whether the node exists or not.
      * <p>
      * The namespace of properties and child nodes is shared, so if
-     * this method returns a non-{@code null} value for a given
-     * name, then {@link #getProperty(String)} is guaranteed to return
-     * {@code null} for the same name.
+     * this method returns an <em>existing</em> {@link NodeState} for
+     * a given name, then {@link #getProperty(String)} is guaranteed
+     * to return {@code null} for the same name.
      *
      * @param name name of the child node to return
-     * @return named child node, or {@code null} if not found
+     * @return named child node
      */
-    @CheckForNull
+    @Nonnull
     NodeState getChildNode(@Nonnull String name);
 
     /**
-     * Returns the number of child nodes of this node.
+     * Returns the number of <em>iterable</em> child nodes of this node.
      *
-     * @return number of child nodes
+     * @return number of iterable child nodes
      */
     long getChildNodeCount();
 
     /**
-     * Returns the names of all child nodes.
+     * Returns the names of all <em>iterable</em> child nodes.
      *
      * @return child node names in some stable order
      */
     Iterable<String> getChildNodeNames();
 
     /**
-     * Returns an iterable of the child node entries of this instance. Multiple
-     * iterations are guaranteed to return the child nodes in the same order,
-     * but the specific order used is implementation dependent and may change
-     * across different states of the same node.
-     * <p/>
+     * Returns the <em>iterable</em> child node entries of this instance.
+     * Multiple iterations are guaranteed to return the child nodes in
+     * the same order, but the specific order used is implementation
+     * dependent and may change across different states of the same node.
+     * <p>
      * <i>Note on cost and performance:</i> while it is possible to iterate over
      * all child {@code NodeState}s with the two methods {@link
      * #getChildNodeNames()} and {@link #getChildNode(String)}, this method is
@@ -199,6 +235,9 @@ public interface NodeState {
      * Compares this node state against the given base state. Any differences
      * are reported by calling the relevant added/changed/deleted methods of
      * the given handler.
+     * <p>
+     * TODO: Define the behavior of this method with regards to
+     * iterability/existence of child nodes.
      *
      * @param base base state
      * @param diff handler of node state differences

@@ -37,6 +37,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 import org.junit.Before;
 import org.junit.Test;
 
+import static junit.framework.Assert.assertFalse;
 import static org.apache.jackrabbit.oak.api.Type.LONG;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -88,34 +89,34 @@ public class KernelNodeStoreTest {
 
         // Assert changes are present in the builder
         NodeState testState = rootBuilder.getNodeState().getChildNode("test");
-        assertNotNull(testState.getChildNode("newNode"));
-        assertNull(testState.getChildNode("x"));
+        assertTrue(testState.getChildNode("newNode").exists());
+        assertFalse(testState.getChildNode("x").exists());
         assertEquals(42, (long) testState.getChildNode("newNode").getProperty("n").getValue(LONG));
 
         // Assert changes are not yet present in the branch
         testState = branch.getHead().getChildNode("test");
-        assertNull(testState.getChildNode("newNode"));
-        assertNotNull(testState.getChildNode("x"));
+        assertFalse(testState.getChildNode("newNode").exists());
+        assertTrue(testState.getChildNode("x").exists());
 
         branch.setRoot(rootBuilder.getNodeState());
 
         // Assert changes are present in the branch
         testState = branch.getHead().getChildNode("test");
-        assertNotNull(testState.getChildNode("newNode"));
-        assertNull(testState.getChildNode("x"));
+        assertTrue(testState.getChildNode("newNode").exists());
+        assertFalse(testState.getChildNode("x").exists());
         assertEquals(42, (long) testState.getChildNode("newNode").getProperty("n").getValue(LONG));
 
         // Assert changes are not yet present in the trunk
         testState = store.getRoot().getChildNode("test");
-        assertNull(testState.getChildNode("newNode"));
-        assertNotNull(testState.getChildNode("x"));
+        assertFalse(testState.getChildNode("newNode").exists());
+        assertTrue(testState.getChildNode("x").exists());
 
         branch.merge(EmptyHook.INSTANCE);
 
         // Assert changes are present in the trunk
         testState = store.getRoot().getChildNode("test");
-        assertNotNull(testState.getChildNode("newNode"));
-        assertNull(testState.getChildNode("x"));
+        assertTrue(testState.getChildNode("newNode").exists());
+        assertFalse(testState.getChildNode("x").exists());
         assertEquals(42, (long) testState.getChildNode("newNode").getProperty("n").getValue(LONG));
     }
 
@@ -151,9 +152,9 @@ public class KernelNodeStoreTest {
         assertNotNull(before);
         assertNotNull(after);
 
-        assertNull(before.getChildNode("test").getChildNode("newNode"));
-        assertNotNull(after.getChildNode("test").getChildNode("newNode"));
-        assertNull(after.getChildNode("test").getChildNode("a"));
+        assertFalse(before.getChildNode("test").getChildNode("newNode").exists());
+        assertTrue(after.getChildNode("test").getChildNode("newNode").exists());
+        assertFalse(after.getChildNode("test").getChildNode("a").exists());
         assertEquals(42, (long) after.getChildNode("test").getChildNode("newNode").getProperty("n").getValue(LONG));
         assertEquals(newRoot, after);
     }
@@ -184,9 +185,9 @@ public class KernelNodeStoreTest {
         });
 
         NodeState test = store.getRoot().getChildNode("test");
-        assertNotNull(test.getChildNode("newNode"));
-        assertNotNull(test.getChildNode("fromHook"));
-        assertNull(test.getChildNode("a"));
+        assertTrue(test.getChildNode("newNode").exists());
+        assertTrue(test.getChildNode("fromHook").exists());
+        assertFalse(test.getChildNode("a").exists());
         assertEquals(42, (long) test.getChildNode("newNode").getProperty("n").getValue(LONG));
         assertEquals(test, store.getRoot().getChildNode("test"));
     }
