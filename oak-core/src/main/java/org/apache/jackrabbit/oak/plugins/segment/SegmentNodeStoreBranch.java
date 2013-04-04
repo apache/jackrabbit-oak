@@ -23,12 +23,12 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
+import org.apache.jackrabbit.oak.spi.state.AbstractNodeStoreBranch;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 import org.apache.jackrabbit.oak.spi.state.RebaseDiff;
 
-class SegmentNodeStoreBranch implements NodeStoreBranch {
+class SegmentNodeStoreBranch extends AbstractNodeStoreBranch {
 
     private static final Random RANDOM = new Random();
 

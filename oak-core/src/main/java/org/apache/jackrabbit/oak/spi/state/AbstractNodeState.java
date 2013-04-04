@@ -120,7 +120,7 @@ public abstract class AbstractNodeState implements NodeState {
     }
 
     /**
-     * Returns a string representation of this child node entry.
+     * Returns a string representation of this node state.
      *
      * @return string representation
      */
