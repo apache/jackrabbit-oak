@@ -103,7 +103,7 @@ class SegmentNodeState extends AbstractNodeState {
 
     @Override @CheckForNull
     public NodeState getChildNode(String name) {
-        checkArgument(!checkNotNull(name).isEmpty());
+        // checkArgument(!checkNotNull(name).isEmpty()); // TODO
         return getTemplate().getChildNode(name, store, recordId);
     }
 
