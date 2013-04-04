@@ -22,11 +22,15 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.json.JsopBuilder;
 import org.apache.jackrabbit.oak.plugins.index.old.mk.ExceptionFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A logging microkernel implementation.
  */
 public class LogWrapper implements MicroKernel {
+    
+    private static final Logger LOG = LoggerFactory.getLogger(LogWrapper.class);
 
     private static final boolean DEBUG = Boolean.parseBoolean(System.getProperty("mk.debug", "true"));
     private static final AtomicInteger NEXT_ID = new AtomicInteger();
@@ -282,6 +286,7 @@ public class LogWrapper implements MicroKernel {
         if (DEBUG) {
             System.out.println(message);
         }
+        LOG.info(message);
     }
 
 }
