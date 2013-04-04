@@ -51,14 +51,14 @@ import com.google.common.collect.ImmutableList;
 /**
  * {@link IndexHook} implementation that is responsible for keeping the
  * {@link Property2Index} up to date.
- * <p/>
+ * <br>
  * There is a tree of PropertyIndexDiff objects, each object represents the
  * changes at a given node.
  * 
  * @see Property2Index
  * @see Property2IndexLookup
  */
-class Property2IndexDiff implements IndexHook, Closeable {
+class Property2IndexHook implements IndexHook, Closeable {
 
     protected static String propertyNames = "propertyNames";
 
@@ -69,7 +69,7 @@ class Property2IndexDiff implements IndexHook, Closeable {
     /**
      * The parent (null if this is the root node).
      */
-    private final Property2IndexDiff parent;
+    private final Property2IndexHook parent;
 
     /**
      * The node (never null).
@@ -91,32 +91,26 @@ class Property2IndexDiff implements IndexHook, Closeable {
      * indexes (it is possible to have multiple indexes for the same property
      * name).
      */
-    private final Map<String, List<Property2IndexUpdate>> indexMap;
+    private final Map<String, List<Property2IndexHookUpdate>> indexMap;
 
-    /**
-     * the root editor in charge of applying the updates
-     */
-    private final boolean isRoot;
-
-    public Property2IndexDiff(NodeBuilder root) {
+    public Property2IndexHook(NodeBuilder root) {
         this(null, root, null, "/",
-                new HashMap<String, List<Property2IndexUpdate>>(), true);
+                new HashMap<String, List<Property2IndexHookUpdate>>());
     }
 
-    private Property2IndexDiff(Property2IndexDiff parent, String nodeName) {
+    private Property2IndexHook(Property2IndexHook parent, String nodeName) {
         this(parent, getChildNode(parent.node, nodeName), nodeName, null,
-                parent.indexMap, false);
+                parent.indexMap);
     }
 
-    private Property2IndexDiff(Property2IndexDiff parent, NodeBuilder node,
+    private Property2IndexHook(Property2IndexHook parent, NodeBuilder node,
             String nodeName, String path,
-            Map<String, List<Property2IndexUpdate>> indexMap, boolean isRoot) {
+            Map<String, List<Property2IndexHookUpdate>> indexMap) {
         this.parent = parent;
         this.node = node;
         this.nodeName = nodeName;
         this.path = path;
         this.indexMap = indexMap;
-        this.isRoot = isRoot;
     }
 
     private static NodeBuilder getChildNode(NodeBuilder node, String name) {
@@ -142,13 +136,13 @@ class Property2IndexDiff implements IndexHook, Closeable {
      *            the property name
      * @return the indexes
      */
-    private Iterable<Property2IndexUpdate> getIndexes(String propertyName) {
-        List<Property2IndexUpdate> indexes = indexMap.get(propertyName);
+    private Iterable<Property2IndexHookUpdate> getIndexes(String propertyName) {
+        List<Property2IndexHookUpdate> indexes = indexMap.get(propertyName);
         if (indexes == null) {
             return ImmutableList.of();
         }
-        List<Property2IndexUpdate> filtered = new ArrayList<Property2IndexUpdate>();
-        for (Property2IndexUpdate pi : indexes) {
+        List<Property2IndexHookUpdate> filtered = new ArrayList<Property2IndexHookUpdate>();
+        for (Property2IndexHookUpdate pi : indexes) {
             if (node == null || pi.getNodeTypeNames() == null
                     || pi.getNodeTypeNames().isEmpty()) {
                 filtered.add(pi);
@@ -173,31 +167,31 @@ class Property2IndexDiff implements IndexHook, Closeable {
      * Add the index definitions to the in-memory set of known index
      * definitions.
      * 
-     * @param builder
-     *            the node builder that contains the index definition
+     * @param state
+     *            the node state that contains the index definition
      * @param indexName
      *            the name of the index
      */
-    private void addIndexes(NodeBuilder builder, String indexName) {
+    private void addIndexes(NodeState state, String indexName) {
         List<String> typeNames = ImmutableList.of();
-        PropertyState appliesTo = builder.getProperty(declaringNodeTypes);
+        PropertyState appliesTo = state.getProperty(declaringNodeTypes);
         if (appliesTo != null) {
             typeNames = newArrayList(appliesTo.getValue(Type.STRINGS));
             Collections.sort(typeNames);
         }
-        PropertyState ps = builder.getProperty(propertyNames);
+        PropertyState ps = state.getProperty(propertyNames);
 
         Iterable<String> propertyNames = ps != null ? ps.getValue(Type.STRINGS)
                 : ImmutableList.of(indexName);
         for (String pname : propertyNames) {
-            List<Property2IndexUpdate> list = this.indexMap.get(pname);
+            List<Property2IndexHookUpdate> list = this.indexMap.get(pname);
             if (list == null) {
                 list = newArrayList();
                 this.indexMap.put(pname, list);
             }
             boolean exists = false;
             String localPath = getPath();
-            for (Property2IndexUpdate piu : list) {
+            for (Property2IndexHookUpdate piu : list) {
                 if (localPath.equals(piu.getPath())
                         && typeNames.equals(piu.getNodeTypeNames())) {
                     exists = true;
@@ -205,13 +199,14 @@ class Property2IndexDiff implements IndexHook, Closeable {
                 }
             }
             if (!exists) {
-                list.add(new Property2IndexUpdate(getPath(), builder, store,
+                list.add(new Property2IndexHookUpdate(getPath(), node.child(
+                        INDEX_DEFINITIONS_NAME).child(indexName), store,
                         typeNames));
             }
         }
     }
 
-    private static boolean isIndexNode(NodeBuilder node) {
+    private static boolean isIndexNode(NodeState node) {
         PropertyState ps = node.getProperty(JCR_PRIMARYTYPE);
         boolean isNodeType = ps != null && !ps.isArray()
                 && ps.getValue(Type.STRING).equals(INDEX_DEFINITIONS_NODE_TYPE);
@@ -227,10 +222,10 @@ class Property2IndexDiff implements IndexHook, Closeable {
     @Override
     public void enter(NodeState before, NodeState after)
             throws CommitFailedException {
-        if (node != null && node.hasChildNode(INDEX_DEFINITIONS_NAME)) {
-            NodeBuilder index = node.child(INDEX_DEFINITIONS_NAME);
+        if (after != null && after.hasChildNode(INDEX_DEFINITIONS_NAME)) {
+            NodeState index = after.getChildNode(INDEX_DEFINITIONS_NAME);
             for (String indexName : index.getChildNodeNames()) {
-                NodeBuilder child = index.child(indexName);
+                NodeState child = index.getChildNode(indexName);
                 if (isIndexNode(child)) {
                     addIndexes(child, indexName);
                 }
@@ -241,34 +236,28 @@ class Property2IndexDiff implements IndexHook, Closeable {
     @Override
     public void leave(NodeState before, NodeState after)
             throws CommitFailedException {
-        if (!isRoot) {
-            return;
-        }
-        for (List<Property2IndexUpdate> updateList : indexMap.values()) {
-            for (Property2IndexUpdate update : updateList) {
-                update.apply();
-            }
-        }
     }
 
     @Override
-    public void propertyAdded(PropertyState after) {
-        for (Property2IndexUpdate update : getIndexes(after.getName())) {
+    public void propertyAdded(PropertyState after) throws CommitFailedException {
+        for (Property2IndexHookUpdate update : getIndexes(after.getName())) {
             update.insert(getPath(), after);
         }
     }
 
     @Override
-    public void propertyChanged(PropertyState before, PropertyState after) {
-        for (Property2IndexUpdate update : getIndexes(after.getName())) {
+    public void propertyChanged(PropertyState before, PropertyState after)
+            throws CommitFailedException {
+        for (Property2IndexHookUpdate update : getIndexes(after.getName())) {
             update.remove(getPath(), before);
             update.insert(getPath(), after);
         }
     }
 
     @Override
-    public void propertyDeleted(PropertyState before) {
-        for (Property2IndexUpdate update : getIndexes(before.getName())) {
+    public void propertyDeleted(PropertyState before)
+            throws CommitFailedException {
+        for (Property2IndexHookUpdate update : getIndexes(before.getName())) {
             update.remove(getPath(), before);
         }
     }
@@ -285,7 +274,7 @@ class Property2IndexDiff implements IndexHook, Closeable {
         if (NodeStateUtils.isHidden(name)) {
             return null;
         }
-        return new Property2IndexDiff(this, name);
+        return new Property2IndexHook(this, name);
     }
 
     @Override
@@ -295,10 +284,10 @@ class Property2IndexDiff implements IndexHook, Closeable {
     }
 
     @Override
-    public void reindex(NodeBuilder state) throws CommitFailedException {
+    public void reindex(NodeState state) throws CommitFailedException {
         boolean reindex = false;
-        for (List<Property2IndexUpdate> updateList : indexMap.values()) {
-            for (Property2IndexUpdate update : updateList) {
+        for (List<Property2IndexHookUpdate> updateList : indexMap.values()) {
+            for (Property2IndexHookUpdate update : updateList) {
                 if (update.getAndResetReindexFlag()) {
                     reindex = true;
                 }
@@ -309,11 +298,11 @@ class Property2IndexDiff implements IndexHook, Closeable {
                 @Override
                 public Editor getRootEditor(NodeState before, NodeState after,
                         NodeBuilder builder) {
-                    return new Property2IndexDiff(node);
+                    return new Property2IndexHook(node);
                 }
             };
             EditorHook eh = new EditorHook(provider);
-            eh.processCommit(EMPTY_NODE, state.getNodeState());
+            eh.processCommit(EMPTY_NODE, state);
         }
     }
 

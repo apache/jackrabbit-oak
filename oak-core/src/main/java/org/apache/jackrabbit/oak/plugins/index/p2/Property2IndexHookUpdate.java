@@ -17,10 +17,9 @@
 package org.apache.jackrabbit.oak.plugins.index.p2;
 
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.p2.Property2Index.encode;
 
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 import javax.jcr.PropertyType;
 
@@ -32,16 +31,12 @@ import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
+import com.google.common.collect.ImmutableSet;
 
 /**
  * Takes care of applying the updates to the index content.
- * <p>
- * The changes are temporarily added to an in-memory structure, and then applied
- * to the node.
  */
-class Property2IndexUpdate {
+class Property2IndexHookUpdate {
 
     private final IndexStoreStrategy store;
 
@@ -63,39 +58,29 @@ class Property2IndexUpdate {
     private final NodeBuilder node;
 
     /**
-     * The set of added values / paths. The key of the map is the property value
-     * (encoded as a string), the value of the map is a set of paths that where
-     * added.
+     * The node where the index content is stored.
      */
-    private final Map<String, Set<String>> insert;
+    private final NodeBuilder index;
 
-    /**
-     * The set of removed values / paths. The key of the map is the property
-     * value (encoded as a string), the value of the map is a set of paths that
-     * were removed.
-     */
-    private final Map<String, Set<String>> remove;
+    private final boolean unique;
 
-    public Property2IndexUpdate(String path, NodeBuilder node,
-            IndexStoreStrategy store) {
-        this(path, node, store, null);
-    }
-
-    public Property2IndexUpdate(String path, NodeBuilder node,
+    public Property2IndexHookUpdate(String path, NodeBuilder node,
             IndexStoreStrategy store, List<String> nodeTypeNames) {
         this.path = path;
         this.node = node;
         this.store = store;
-        this.insert = Maps.newHashMap();
-        this.remove = Maps.newHashMap();
         this.nodeTypeNames = nodeTypeNames;
+        index = this.node.child(":index");
+        PropertyState uniquePS = node.getProperty("unique");
+        unique = uniquePS != null && !uniquePS.isArray()
+                && uniquePS.getValue(Type.BOOLEAN);
     }
 
     String getPath() {
         return path;
     }
 
-    public List<String> getNodeTypeNames() {
+    List<String> getNodeTypeNames() {
         return nodeTypeNames;
     }
 
@@ -107,9 +92,14 @@ class Property2IndexUpdate {
      * @param value
      *            the value
      */
-    public void insert(String path, PropertyState value) {
+    void insert(String path, PropertyState value) throws CommitFailedException {
         Preconditions.checkArgument(path.startsWith(this.path));
-        putValues(insert, path.substring(this.path.length()), value);
+        if (value.getType().tag() == PropertyType.BINARY) {
+            return;
+        }
+        for (String key : encode(PropertyValues.create(value))) {
+            store.insert(index, key, unique, ImmutableSet.of(trimm(path)));
+        }
     }
 
     /**
@@ -120,54 +110,31 @@ class Property2IndexUpdate {
      * @param value
      *            the value
      */
-    public void remove(String path, PropertyState value) {
+    public void remove(String path, PropertyState value)
+            throws CommitFailedException {
         Preconditions.checkArgument(path.startsWith(this.path));
-        putValues(remove, path.substring(this.path.length()), value);
+        if (value.getType().tag() == PropertyType.BINARY) {
+            return;
+        }
+        for (String key : encode(PropertyValues.create(value))) {
+            store.remove(index, key, ImmutableSet.of(trimm(path)));
+        }
     }
 
-    private static void putValues(Map<String, Set<String>> map, String path,
-            PropertyState value) {
-        if (value.getType().tag() != PropertyType.BINARY) {
-            List<String> keys = Property2Index.encode(PropertyValues
-                    .create(value));
-            for (String key : keys) {
-                Set<String> paths = map.get(key);
-                if (paths == null) {
-                    paths = Sets.newHashSet();
-                    map.put(key, paths);
-                }
-                if ("".equals(path)) {
-                    path = "/";
-                }
-                paths.add(path);
-            }
+    private String trimm(String path) {
+        path = path.substring(this.path.length());
+        if ("".equals(path)) {
+            return "/";
         }
+        return path;
     }
 
     boolean getAndResetReindexFlag() {
         PropertyState reindexPS = node.getProperty(REINDEX_PROPERTY_NAME);
-        boolean reindex = reindexPS == null || reindexPS != null
-                && reindexPS.getValue(Type.BOOLEAN);
+        boolean reindex = reindexPS == null
+                || (reindexPS != null && reindexPS.getValue(Type.BOOLEAN));
         node.setProperty(REINDEX_PROPERTY_NAME, false);
         return reindex;
-    }
-
-    /**
-     * Try to apply the changes to the index content (to the ":index" node.
-     * 
-     * @throws CommitFailedException
-     *             if a unique index was violated
-     */
-    public void apply() throws CommitFailedException {
-        boolean unique = node.getProperty("unique") != null
-                && node.getProperty("unique").getValue(Type.BOOLEAN);
-        NodeBuilder index = node.child(":index");
-        for (Map.Entry<String, Set<String>> entry : remove.entrySet()) {
-            store.remove(index, entry.getKey(), entry.getValue());
-        }
-        for (Map.Entry<String, Set<String>> entry : insert.entrySet()) {
-            store.insert(index, entry.getKey(), unique, entry.getValue());
-        }
     }
 
 }

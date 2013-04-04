@@ -74,7 +74,7 @@ public class Property2IndexTest {
             @Override
             public Editor getRootEditor(NodeState before, NodeState after,
                     NodeBuilder builder) {
-                return new Property2IndexDiff(builder);
+                return new Property2IndexHook(builder);
             }
         };
         EditorHook hook = new EditorHook(provider);
@@ -138,7 +138,7 @@ public class Property2IndexTest {
             @Override
             public Editor getRootEditor(NodeState before, NodeState after,
                     NodeBuilder builder) {
-                return new Property2IndexDiff(builder);
+                return new Property2IndexHook(builder);
             }
         };
         EditorHook hook = new EditorHook(provider);
@@ -203,7 +203,7 @@ public class Property2IndexTest {
             @Override
             public Editor getRootEditor(NodeState before, NodeState after,
                     NodeBuilder builder) {
-                return new Property2IndexDiff(builder);
+                return new Property2IndexHook(builder);
             }
         };
         EditorHook hook = new EditorHook(provider);
@@ -267,7 +267,7 @@ public class Property2IndexTest {
             @Override
             public Editor getRootEditor(NodeState before, NodeState after,
                     NodeBuilder builder) {
-                return new Property2IndexDiff(builder);
+                return new Property2IndexHook(builder);
             }
         };
         EditorHook hook = new EditorHook(provider);
@@ -316,7 +316,7 @@ public class Property2IndexTest {
             @Override
             public Editor getRootEditor(NodeState before, NodeState after,
                     NodeBuilder builder) {
-                return new Property2IndexDiff(builder);
+                return new Property2IndexHook(builder);
             }
         };
         EditorHook hook = new EditorHook(provider);
@@ -342,7 +342,7 @@ public class Property2IndexTest {
                 .setProperty("unique", "true")
                 .setProperty("propertyNames", Arrays.asList("foo"),
                         Type.STRINGS)
-                .setProperty(Property2IndexDiff.declaringNodeTypes,
+                .setProperty(Property2IndexHook.declaringNodeTypes,
                         Arrays.asList("typeFoo"), Type.STRINGS);
         NodeState before = builder.getNodeState();
         builder = before.builder();
@@ -356,7 +356,7 @@ public class Property2IndexTest {
             @Override
             public Editor getRootEditor(NodeState before, NodeState after,
                     NodeBuilder builder) {
-                return new Property2IndexDiff(builder);
+                return new Property2IndexHook(builder);
             }
         };
         EditorHook hook = new EditorHook(provider);
@@ -377,7 +377,7 @@ public class Property2IndexTest {
                 .setProperty("unique", "true")
                 .setProperty("propertyNames", Arrays.asList("foo"),
                         Type.STRINGS)
-                .setProperty(Property2IndexDiff.declaringNodeTypes,
+                .setProperty(Property2IndexHook.declaringNodeTypes,
                         Arrays.asList("typeFoo"), Type.STRINGS);
         NodeState before = builder.getNodeState();
         builder = before.builder();
@@ -391,7 +391,7 @@ public class Property2IndexTest {
             @Override
             public Editor getRootEditor(NodeState before, NodeState after,
                     NodeBuilder builder) {
-                return new Property2IndexDiff(builder);
+                return new Property2IndexHook(builder);
             }
         };
         EditorHook hook = new EditorHook(provider);
@@ -417,7 +417,7 @@ public class Property2IndexTest {
                 .setProperty("unique", "true")
                 .setProperty("propertyNames", Arrays.asList("foo"),
                         Type.STRINGS)
-                .setProperty(Property2IndexDiff.declaringNodeTypes,
+                .setProperty(Property2IndexHook.declaringNodeTypes,
                         Arrays.asList("typeFoo"), Type.STRINGS);
         builder.child("a").setProperty("jcr:primaryType", "typeFoo", Type.NAME)
                 .setProperty("foo", "abc");
@@ -432,7 +432,7 @@ public class Property2IndexTest {
             @Override
             public Editor getRootEditor(NodeState before, NodeState after,
                     NodeBuilder builder) {
-                return new Property2IndexDiff(builder);
+                return new Property2IndexHook(builder);
             }
         };
         EditorHook hook = new EditorHook(provider);

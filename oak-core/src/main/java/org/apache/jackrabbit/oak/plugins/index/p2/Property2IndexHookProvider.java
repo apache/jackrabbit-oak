@@ -31,7 +31,7 @@ import com.google.common.collect.ImmutableList;
 /**
  * Service that provides PropertyIndex based IndexHooks.
  * 
- * @see Property2IndexDiff
+ * @see Property2IndexHook
  * @see IndexHookProvider
  * 
  */
@@ -43,7 +43,7 @@ public class Property2IndexHookProvider implements IndexHookProvider {
     public List<? extends IndexHook> getIndexHooks(String type,
             NodeBuilder builder) {
         if (TYPE.equals(type)) {
-            return ImmutableList.of(new Property2IndexDiff(builder));
+            return ImmutableList.of(new Property2IndexHook(builder));
         }
         return ImmutableList.of();
     }

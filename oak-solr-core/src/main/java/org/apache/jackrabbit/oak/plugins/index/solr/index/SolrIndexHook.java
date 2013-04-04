@@ -235,11 +235,11 @@ public class SolrIndexHook implements IndexHook, Closeable {
     }
 
     @Override
-    public void reindex(NodeBuilder state) throws CommitFailedException {
+    public void reindex(NodeState state) throws CommitFailedException {
         try {
             close();
             deleteByIdQueryBuilder.append(getPath()).append("*");
-            solrInputDocuments.addAll(docsFromState(getPath(), state.getNodeState()));
+            solrInputDocuments.addAll(docsFromState(getPath(), state));
             apply();
         } catch (IOException e) {
             throw new CommitFailedException(e);
