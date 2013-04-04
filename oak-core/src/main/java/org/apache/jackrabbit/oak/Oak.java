@@ -230,8 +230,6 @@ public class Oak {
         OakInitializer.initialize(store, new CompositeInitializer(initializers), indexHooks);
 
         withEditorHook();
-        commitHooks.add(IndexHookManager.of(indexHooks));
-        CommitHook commitHook = CompositeHook.compose(commitHooks);
         QueryIndexProvider indexProvider = CompositeQueryIndexProvider.compose(queryIndexProviders);
 
         // FIXME: move to proper workspace initialization
@@ -244,8 +242,13 @@ public class Oak {
                                 return sc.getWorkspaceInitializer();
                             }
                         });
-        OakInitializer.initialize(workspaceInitializers, store, defaultWorkspaceName, indexHooks, indexProvider, commitHook);
+        OakInitializer.initialize(workspaceInitializers, store,
+                defaultWorkspaceName, indexHooks, indexProvider,
+                CompositeHook.compose(commitHooks));
 
+        // add index hooks later to prevent the OakInitializer to do excessive indexing
+        commitHooks.add(IndexHookManager.of(indexHooks));
+        CommitHook commitHook = CompositeHook.compose(commitHooks);
         return new ContentRepositoryImpl(
                 store,
                 commitHook,
