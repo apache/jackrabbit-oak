@@ -19,6 +19,8 @@ package org.apache.jackrabbit.oak.spi.security.authorization.permission;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nullable;
 
+import org.apache.jackrabbit.oak.security.privilege.PrivilegeBits;
+
 /**
  * ReadStatus... TODO
  */
@@ -49,16 +51,30 @@ public class ReadStatus {
     }
 
     @CheckForNull
+    public static ReadStatus getInstance(PrivilegeBits pb, boolean isAllow) {
+        if (pb.includesRead(Permissions.READ)) {
+            return (isAllow) ? ReadStatus.ALLOW_ALL : ReadStatus.DENY_ALL;
+        } else if (pb.includesRead(Permissions.READ_NODE)) {
+            return (isAllow) ? ReadStatus.ALLOW_NODES : ReadStatus.DENY_NODES;
+        } else if (pb.includesRead(Permissions.READ_PROPERTY)) {
+            return (isAllow) ? ReadStatus.ALLOW_PROPERTIES : ReadStatus.DENY_PROPERTIES;
+        } else {
+            return null;
+        }
+    }
+
+    @CheckForNull
     public static ReadStatus getChildStatus(@Nullable ReadStatus parentStatus) {
         if (parentStatus == null) {
             return null;
         }
+        // TODO
         switch (parentStatus.status) {
-            case 1: return null; // recalculate for child item
+            case 1: return null; // recalculate for child items
             case 2:
-            case 3: return (parentStatus.isAllow) ? ALLOW_NODES : null;  // TODO
+            case 3: return (parentStatus.isAllow) ? ALLOW_THIS : DENY_THIS;
             case 4:
-            case 5: return (parentStatus.isAllow) ? ALLOW_PROPERTIES : null;   // TODO
+            case 5: return null; // recalculate for properties of child node
             case 6:
             case 7: return (parentStatus.isAllow) ? ALLOW_ALL : DENY_ALL;
             default: throw new IllegalArgumentException("invalid status");
@@ -77,7 +93,21 @@ public class ReadStatus {
         return isAllow;
     }
 
+    public boolean isAll() {
+        return status == 7;
+    }
+
     public boolean appliesToThis() {
         return status == 1;
+    }
+
+    public int getStatus() {
+        return status;
+    }
+
+    //-------------------------------------------------------------< Object >---
+    @Override
+    public String toString() {
+        return "ReadStatus : " + (isAllow ? "allow " : "deny ") + status;
     }
 }
