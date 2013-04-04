@@ -605,7 +605,7 @@ public class MongoMK implements MicroKernel {
         Set<String> childrenSet = new HashSet<String>(toChildren.children);
         for (String n : fromChildren.children) {
             if (!childrenSet.contains(n)) {
-                w.tag('-').key(n).object().endObject().newline();
+                w.tag('-').key(n).newline();
             } else {
                 Node n1 = getNode(n, fromRev);
                 Node n2 = getNode(n, toRev);
