@@ -573,6 +573,9 @@ public class MongoMK implements MicroKernel {
         if (depth != 0) {
             throw new MicroKernelException("Only depth 0 is supported, depth is " + depth);
         }
+        if (path == null || path.equals("")) {
+            path = "/";
+        }
         fromRevisionId = stripBranchRevMarker(fromRevisionId);
         toRevisionId = stripBranchRevMarker(toRevisionId);
         Node from = getNode(path, Revision.fromString(fromRevisionId));
@@ -587,13 +590,18 @@ public class MongoMK implements MicroKernel {
             String fromValue = from.getProperty(p);
             String toValue = to.getProperty(p);
             if (!fromValue.equals(toValue)) {
-                w.tag('^').key(p).value(toValue).newline();
+                w.tag('^').key(p);
+                if (toValue == null) {
+                    w.value(toValue);
+                } else {
+                    w.encodedValue(toValue).newline();
+                }
             }
         }
         for (String p : to.getPropertyNames()) {
             // added properties
             if (from.getProperty(p) == null) {
-                w.tag('^').key(p).value(to.getProperty(p)).newline();
+                w.tag('^').key(p).encodedValue(to.getProperty(p)).newline();
             }
         }
         Revision fromRev = Revision.fromString(fromRevisionId);
@@ -605,7 +613,7 @@ public class MongoMK implements MicroKernel {
         Set<String> childrenSet = new HashSet<String>(toChildren.children);
         for (String n : fromChildren.children) {
             if (!childrenSet.contains(n)) {
-                w.tag('-').key(n).newline();
+                w.tag('-').value(n).newline();
             } else {
                 Node n1 = getNode(n, fromRev);
                 Node n2 = getNode(n, toRev);
