@@ -16,11 +16,7 @@
  */
 package org.apache.jackrabbit.oak.core;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.api.Type.STRING;
-
 import java.util.Iterator;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -30,12 +26,14 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.kernel.KernelNodeState;
 import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
 import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
 
 /**
  * ImmutableTree...
@@ -45,6 +43,8 @@ public final class ImmutableTree extends ReadOnlyTree {
 
     private final ParentProvider parentProvider;
     private final TypeProvider typeProvider;
+
+    private String path;
 
     public ImmutableTree(@Nonnull NodeState rootState) {
         this(ParentProvider.ROOTPROVIDER, "", rootState, TypeProvider.EMPTY);
@@ -87,26 +87,22 @@ public final class ImmutableTree extends ReadOnlyTree {
 
     @Override
     public String getPath() {
-        if (isRoot()) {
-            // shortcut
-            return "/";
+        if (path == null) {
+            if (isRoot()) {
+                // shortcut
+                path = "/";
+            } else {
+                StringBuilder sb = new StringBuilder();
+                ImmutableTree parent = getParent();
+                sb.append(parent.getPath());
+                if (!parent.isRoot()) {
+                    sb.append('/');
+                }
+                sb.append(getName());
+                path = sb.toString();
+            }
         }
-
-        NodeState nodeState = getNodeState();
-        if (nodeState instanceof KernelNodeState) {
-            return ((KernelNodeState) nodeState).getPath();
-        } else {
-            StringBuilder sb = new StringBuilder();
-            buildPath(sb);
-            return sb.toString();
-        }
-    }
-
-    private void buildPath(StringBuilder sb) {
-        if (!isRoot()) {
-            getParent().buildPath(sb);
-            sb.append('/').append(getName());
-        }
+        return path;
     }
 
     @Override
