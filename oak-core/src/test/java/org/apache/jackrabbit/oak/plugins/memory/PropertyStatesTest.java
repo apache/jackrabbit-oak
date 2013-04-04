@@ -19,14 +19,19 @@
 
 package org.apache.jackrabbit.oak.plugins.memory;
 
+import java.util.Calendar;
+
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 
 import org.apache.jackrabbit.oak.TestNameMapper;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
 import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
+import org.apache.jackrabbit.util.ISO8601;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static java.util.Collections.singletonMap;
@@ -52,5 +57,15 @@ public class PropertyStatesTest {
         Value nameValue = ValueFactoryImpl.createValue(pathProperty, namePathMapper);
         PropertyState namePropertyFromValue = PropertyStates.createProperty("path", nameValue);
         assertEquals(pathProperty, namePropertyFromValue);
+    }
+
+    @Test
+    @Ignore("OAK-749")
+    public void dateValueFromDateProperty() throws RepositoryException {
+        String expected = ISO8601.format(Calendar.getInstance());
+        PropertyState dateProperty = PropertyStates.createProperty(
+                "date", expected, Type.DATE);
+        String actual = dateProperty.getValue(Type.DATE);
+        assertEquals(expected, actual);
     }
 }
