@@ -61,10 +61,11 @@ class IndexHookManagerDiff implements Editor {
     @Override
     public void enter(NodeState before, NodeState after)
             throws CommitFailedException {
-        if (after != null && after.hasChildNode(INDEX_DEFINITIONS_NAME)) {
+        NodeState ref = node.getNodeState();
+        if (ref.hasChildNode(INDEX_DEFINITIONS_NAME)) {
             Set<String> existingTypes = new HashSet<String>();
             Set<String> reindexTypes = new HashSet<String>();
-            NodeState index = after.getChildNode(INDEX_DEFINITIONS_NAME);
+            NodeState index = ref.getChildNode(INDEX_DEFINITIONS_NAME);
             for (String indexName : index.getChildNodeNames()) {
                 NodeState indexChild = index.getChildNode(indexName);
                 if (isIndexNodeType(indexChild.getProperty(JCR_PRIMARYTYPE))) {
@@ -94,17 +95,19 @@ class IndexHookManagerDiff implements Editor {
             for (String type : existingTypes) {
                 List<? extends IndexHook> hooksTmp = provider.getIndexHooks(
                         type, node);
-                hooks.addAll(hooksTmp);
                 if (reindexTypes.contains(type)) {
                     reindex.addAll(hooksTmp);
+                } else {
+                    hooks.addAll(hooksTmp);
                 }
+            }
+            for (IndexHook ih : reindex) {
+                ih.enter(before, after);
+                ih.reindex(ref);
             }
             if (!hooks.isEmpty()) {
                 this.inner = new CompositeEditor(hooks);
                 this.inner.enter(before, after);
-                for (IndexHook ih : reindex) {
-                    ih.reindex(after);
-                }
             }
         }
     }
