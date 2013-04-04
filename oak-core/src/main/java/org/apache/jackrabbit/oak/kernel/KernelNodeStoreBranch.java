@@ -99,16 +99,16 @@ class KernelNodeStoreBranch extends AbstractNodeStoreBranch {
     @Override
     public boolean move(String source, String target) {
         checkNotMerged();
-        if (getNode(source) == null) {
+        if (!getNode(source).exists()) {
             // source does not exist
             return false;
         }
         NodeState destParent = getNode(getParentPath(target));
-        if (destParent == null) {
+        if (!destParent.exists()) {
             // parent of destination does not exist
             return false;
         }
-        if (destParent.getChildNode(getName(target)) != null) {
+        if (destParent.getChildNode(getName(target)).exists()) {
             // destination exists already
             return false;
         }
@@ -120,16 +120,16 @@ class KernelNodeStoreBranch extends AbstractNodeStoreBranch {
     @Override
     public boolean copy(String source, String target) {
         checkNotMerged();
-        if (getNode(source) == null) {
+        if (!getNode(source).exists()) {
             // source does not exist
             return false;
         }
         NodeState destParent = getNode(getParentPath(target));
-        if (destParent == null) {
+        if (!destParent.exists()) {
             // parent of destination does not exist
             return false;
         }
-        if (destParent.getChildNode(getName(target)) != null) {
+        if (destParent.getChildNode(getName(target)).exists()) {
             // destination exists already
             return false;
         }
@@ -213,11 +213,7 @@ class KernelNodeStoreBranch extends AbstractNodeStoreBranch {
         NodeState node = getHead();
         for (String name : elements(path)) {
             node = node.getChildNode(name);
-            if (node == null) {
-                break;
-            }
         }
-
         return node;
     }
 

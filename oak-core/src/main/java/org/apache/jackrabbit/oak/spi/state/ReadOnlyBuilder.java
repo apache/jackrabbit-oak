@@ -130,7 +130,7 @@ public class ReadOnlyBuilder implements NodeBuilder {
     @Override
     public ReadOnlyBuilder child(String name) {
         NodeState child = state.getChildNode(name);
-        if (child != null) {
+        if (child.exists()) {
             return new ReadOnlyBuilder(child);
         } else {
             throw unsupported();

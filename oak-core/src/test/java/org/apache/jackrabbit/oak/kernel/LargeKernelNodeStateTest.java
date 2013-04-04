@@ -31,8 +31,10 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertNotNull;
 import static junit.framework.Assert.assertNull;
+import static junit.framework.Assert.assertTrue;
 
 public class LargeKernelNodeStateTest {
 
@@ -67,10 +69,10 @@ public class LargeKernelNodeStateTest {
 
     @Test
     public void testGetChildNode() {
-        assertNotNull(state.getChildNode("x0"));
-        assertNotNull(state.getChildNode("x1"));
-        assertNotNull(state.getChildNode("x" + N));
-        assertNull(state.getChildNode("x" + (N + 1)));
+        assertTrue(state.getChildNode("x0").exists());
+        assertTrue(state.getChildNode("x1").exists());
+        assertTrue(state.getChildNode("x" + N).exists());
+        assertFalse(state.getChildNode("x" + (N + 1)).exists());
     }
 
     @Test

@@ -51,32 +51,28 @@ class EffectiveType {
         for (NodeState type : types) {
             NodeState properties =
                     type.getChildNode("oak:namedPropertyDefinitions");
-            if (properties != null) {
-                for (ChildNodeEntry entry : properties.getChildNodeEntries()) {
-                    String name = entry.getName();
-                    if ("oak:primaryType".equals(name)) {
-                        name = JCR_PRIMARYTYPE;
-                    } else if ("oak:mixinTypes".equals(name)) {
-                        name = JCR_MIXINTYPES;
-                    } else if ("oak:uuid".equals(name)) {
-                        name = JCR_UUID;
-                    }
-                    if (node.getProperty(name) == null
-                            && isMandatory(name, entry.getNodeState())) {
-                        builder.add(name);
-                    }
+            for (ChildNodeEntry entry : properties.getChildNodeEntries()) {
+                String name = entry.getName();
+                if ("oak:primaryType".equals(name)) {
+                    name = JCR_PRIMARYTYPE;
+                } else if ("oak:mixinTypes".equals(name)) {
+                    name = JCR_MIXINTYPES;
+                } else if ("oak:uuid".equals(name)) {
+                    name = JCR_UUID;
+                }
+                if (node.getProperty(name) == null
+                        && isMandatory(name, entry.getNodeState())) {
+                    builder.add(name);
                 }
             }
 
             NodeState childNodes =
                     type.getChildNode("oak:namedChildNodeDefinitions");
-            if (childNodes != null) {
-                for (ChildNodeEntry entry : childNodes.getChildNodeEntries()) {
-                    String name = entry.getName();
-                    if (!node.hasChildNode(name)
-                            && isMandatory(name, entry.getNodeState())) {
-                        builder.add(name);
-                    }
+            for (ChildNodeEntry entry : childNodes.getChildNodeEntries()) {
+                String name = entry.getName();
+                if (!node.hasChildNode(name)
+                        && isMandatory(name, entry.getNodeState())) {
+                    builder.add(name);
                 }
             }
         }
@@ -117,22 +113,17 @@ class EffectiveType {
         // Find matching named property definition
         for (NodeState type : types) {
             NodeState named = type.getChildNode("oak:namedPropertyDefinitions");
-            if (named != null) {
-                NodeState definitions = named.getChildNode(escapedName);
-                if (definitions != null) {
-                    NodeState definition = definitions.getChildNode(definedType);
-                    if (definition == null) {
-                        definition = definitions.getChildNode(undefinedType);
-                    }
-                    if (definition != null) {
-                        return definition;
+            NodeState definitions = named.getChildNode(escapedName);
+            NodeState definition = definitions.getChildNode(definedType);
+            if (!definition.exists()) {
+                definition = definitions.getChildNode(undefinedType);
+            }
+            if (definition.exists()) {
+                return definition;
 // TODO: Fall back to residual definitions until we have consensus on OAK-709
-//                    } else {
-//                        throw new ConstraintViolationException(
-//                                "No matching definition found for property "
-//                                        + propertyName);
-                    }
-                }
+//          } else {
+//              throw new ConstraintViolationException(
+//                    "No matching definition found for property " + propertyName);
             }
         }
 
@@ -140,14 +131,12 @@ class EffectiveType {
         for (NodeState type : types) {
             NodeState residual =
                     type.getChildNode("oak:residualPropertyDefinitions");
-            if (residual != null) {
-                NodeState definition = residual.getChildNode(definedType);
-                if (definition == null) {
-                    definition = residual.getChildNode(undefinedType);
-                }
-                if (definition != null) {
-                    return definition;
-                }
+            NodeState definition = residual.getChildNode(definedType);
+            if (!definition.exists()) {
+                definition = residual.getChildNode(undefinedType);
+            }
+            if (definition.exists()) {
+                return definition;
             }
         }
 
@@ -180,20 +169,17 @@ class EffectiveType {
         // Find matching named child node definition
         for (NodeState type : types) {
             NodeState named = type.getChildNode("oak:namedChildNodeDefinitions");
-            if (named != null) {
-                NodeState definitions = named.getChildNode(nodeName);
-                if (definitions != null) {
-                    for (String typeName : nodeType) {
-                        NodeState definition = definitions.getChildNode(typeName);
-                        if (definition != null) {
-                            return definition;
-                        }
+            NodeState definitions = named.getChildNode(nodeName);
+            if (definitions.exists()) {
+                for (String typeName : nodeType) {
+                    NodeState definition = definitions.getChildNode(typeName);
+                    if (definition.exists()) {
+                        return definition;
                     }
-
-// TODO: Fall back to residual definitions until we have consensus on OAK-709
-//                    throw new ConstraintViolationException(
-//                            "Incorrect node type of child node " + nodeName);
                 }
+// TODO: Fall back to residual definitions until we have consensus on OAK-709
+//              throw new ConstraintViolationException(
+//                      "Incorrect node type of child node " + nodeName);
             }
         }
 
@@ -201,10 +187,10 @@ class EffectiveType {
         for (NodeState type : types) {
             NodeState residual =
                     type.getChildNode("oak:residualChildNodeDefinitions");
-            if (residual != null) {
+            if (residual.exists()) {
                 for (String typeName : nodeType) {
                     NodeState definition = residual.getChildNode(typeName);
-                    if (definition != null) {
+                    if (definition.exists()) {
                         return definition;
                     }
                 }

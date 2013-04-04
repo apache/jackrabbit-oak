@@ -33,6 +33,7 @@ public class DefaultOakSolrProviderTest {
     @Test
     public void testSolrServerInitializationWithoutConfigurationFiles() throws Exception {
         NodeState nodeState = mock(NodeState.class);
+        when(nodeState.exists()).thenReturn(true);
         when(nodeState.getProperty(OakSolrNodeStateConfiguration.Properties.CORE_NAME)).
                 thenReturn(PropertyValues.create(PropertyValues.newString("oak")));
         when(nodeState.getProperty(OakSolrNodeStateConfiguration.Properties.SOLRHOME_PATH)).

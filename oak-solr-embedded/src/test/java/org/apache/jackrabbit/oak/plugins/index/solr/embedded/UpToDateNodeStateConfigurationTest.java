@@ -9,6 +9,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 
 /**
@@ -46,6 +47,6 @@ public class UpToDateNodeStateConfigurationTest {
     public void testNodeStateNotFound() throws Exception {
         String path = "some/path/to/somewhere/unknown";
         UpToDateNodeStateConfiguration upToDateNodeStateConfiguration = new UpToDateNodeStateConfiguration(store, path);
-        assertNull(upToDateNodeStateConfiguration.getConfigurationNodeState());
+        assertFalse(upToDateNodeStateConfiguration.getConfigurationNodeState().exists());
     }
 }

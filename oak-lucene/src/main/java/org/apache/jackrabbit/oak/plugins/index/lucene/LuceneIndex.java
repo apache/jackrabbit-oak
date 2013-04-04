@@ -322,12 +322,9 @@ public class LuceneIndex implements QueryIndex, LuceneIndexConstants {
             return; // shortcut
         }
         NodeState system = root.getChildNode(NodeTypeConstants.JCR_SYSTEM);
-        if (system == null) {
-            return;
-        }
         final NodeState types =
                 system.getChildNode(NodeTypeConstants.JCR_NODE_TYPES);
-        if (types == null) {
+        if (!types.exists()) {
             return;
         }
 

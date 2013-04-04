@@ -20,7 +20,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
 
 import java.util.LinkedList;
@@ -149,9 +148,6 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
         NodeState typesNode = root;
         for (String name : PathUtils.elements(NODE_TYPES_PATH)) {
             typesNode = typesNode.getChildNode(name);
-            if (typesNode == null) {
-                typesNode = EMPTY_NODE;
-            }
         }
 
         final Tree typesTree = new ReadOnlyTree(typesNode);

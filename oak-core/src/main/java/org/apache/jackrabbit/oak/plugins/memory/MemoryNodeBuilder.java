@@ -31,9 +31,11 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState.with;
 import static org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState.withNodes;
 import static org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState.withProperties;
@@ -96,7 +98,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
     private long revision;
 
     /**
-     * The base state of this builder, or {@code null} if this builder
+     * The base state of this builder, possibly non-existent if this builder
      * represents a new node that didn't yet exist in the base content tree.
      */
     private NodeState baseState;
@@ -120,7 +122,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
         this.root = parent.root;
         this.revision = -1;
 
-        this.baseState = null;
+        this.baseState = parent.baseState.getChildNode(name);
         this.writeState = null;
     }
 
@@ -143,7 +145,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
     private boolean classInvariants() {
         boolean rootHasNoParent = isRoot() == (parent == null);
         boolean rootHasWriteState = root.writeState != null;
-        boolean baseStateOrWriteStateNotNull = baseState != null || writeState != null;
+        boolean baseStateOrWriteStateNotNull = baseState.exists() || writeState != null;
 
         return rootHasNoParent && rootHasWriteState && baseStateOrWriteStateNotNull;
     }
@@ -158,11 +160,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
      * @return  base state of the child
      */
     private NodeState getBaseState(String name) {
-        if (baseState != null) {
-            return baseState.getChildNode(name);
-        } else {
-            return null;
-        }
+        return baseState.getChildNode(name);
     }
 
     /**
@@ -172,7 +170,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
      * @return  {@code true} iff the base state has a child of the given name.
      */
     private boolean hasBaseState(String name) {
-        return baseState != null && baseState.hasChildNode(name);
+        return baseState.hasChildNode(name);
     }
 
     /**
@@ -196,11 +194,9 @@ public class MemoryNodeBuilder implements NodeBuilder {
     private boolean exists() {
         if (isRoot()) {
             return true;
-        }
-        else if (parent.writeState == null) {
-            return parent.baseState != null && parent.baseState.hasChildNode(name);
-        }
-        else {
+        } else if (parent.writeState == null) {
+            return parent.baseState.hasChildNode(name);
+        } else {
             return parent.writeState.hasChildNode(name);
         }
     }
@@ -226,7 +222,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
 
             return false;
         }
-        return writeState != null || baseState != null;
+        return writeState != null || baseState.exists();
     }
 
     @Nonnull
@@ -258,7 +254,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
             writeState = parent.getWriteState(name);
             if (writeState == null) {
                 if (exists()) {
-                    assert baseState != null;
+                    assert baseState.exists();
                     writeState = new MutableNodeState(baseState);
                 }
                 else {
@@ -340,7 +336,8 @@ public class MemoryNodeBuilder implements NodeBuilder {
                 if (pState == null) {
                     return true;
                 }
-                if (baseState == null || !pState.equals(baseState.getProperty(p.getKey()))) {
+                if (!baseState.exists()
+                        || !pState.equals(baseState.getProperty(p.getKey()))) {
                     return true;
                 }
             }
@@ -354,7 +351,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
         if (writeState != null) {
             return writeState.snapshot();
         } else {
-            assert baseState != null;
+            assert baseState.exists();
             return baseState;
         }
     }
@@ -407,7 +404,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
     public NodeBuilder removeNode(String name) {
         write();
 
-        if (writeState.base.getChildNode(name) != null) {
+        if (writeState.base.getChildNode(name).exists()) {
             writeState.nodes.put(name, null);
         } else {
             writeState.nodes.remove(name);
@@ -505,15 +502,6 @@ public class MemoryNodeBuilder implements NodeBuilder {
         private final Map<String, MutableNodeState> nodes =
                 Maps.newHashMap();
 
-        /**
-         * Determine whether the a node with the given name was removed
-         * @param name  name of the node
-         * @return  {@code true}  iff a node with the given name was removed
-         */
-        private boolean isRemoved(String name) {
-            return nodes.containsKey(name) && nodes.get(name) == null;
-        }
-
         public MutableNodeState(NodeState base) {
             if (base != null) {
                 this.base = base;
@@ -552,7 +540,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
                 Map.Entry<String, MutableNodeState> entry = iterator.next();
                 MutableNodeState cstate = entry.getValue();
                 NodeState cbase = newBase.getChildNode(entry.getKey());
-                if (cbase == null || cstate == null) {
+                if (!cbase.exists() || cstate == null) {
                     iterator.remove();
                 } else {
                     cstate.reset(cbase);
@@ -561,6 +549,11 @@ public class MemoryNodeBuilder implements NodeBuilder {
         }
 
         //-----------------------------------------------------< NodeState >--
+
+        @Override
+        public boolean exists() {
+            return true;
+        }
 
         @Override
         public long getPropertyCount() {
@@ -586,12 +579,14 @@ public class MemoryNodeBuilder implements NodeBuilder {
         @Override
         public boolean hasChildNode(String name) {
             checkNotNull(name);
+            // checkArgument(!name.isEmpty()); TODO: should be caught earlier
             return withNodes(base, nodes).hasChildNode(name);
         }
 
         @Override
         public NodeState getChildNode(String name) {
             checkNotNull(name);
+            checkArgument(!name.isEmpty());
             return withNodes(base, nodes).getChildNode(name); // mutable
         }
 

@@ -38,8 +38,7 @@ public abstract class OakSolrNodeStateConfiguration implements OakSolrConfigurat
      * get the {@link org.apache.jackrabbit.oak.spi.state.NodeState} which contains the properties for the Oak -
      * Solr configuration.
      *
-     * @return a {@link org.apache.jackrabbit.oak.spi.state.NodeState} for the Solr configuration or <code>null</code>
-     *         if such a {@link org.apache.jackrabbit.oak.spi.state.NodeState} doesn't exist.
+     * @return a (possibly non-existent) node state for the Solr configuration
      */
     protected abstract NodeState getConfigurationNodeState();
 
@@ -108,7 +107,7 @@ public abstract class OakSolrNodeStateConfiguration implements OakSolrConfigurat
     protected String getStringValueFor(String propertyName, String defaultValue) {
         String value = null;
         NodeState configurationNodeState = getConfigurationNodeState();
-        if (configurationNodeState != null) {
+        if (configurationNodeState.exists()) {
             PropertyState property = configurationNodeState.getProperty(propertyName);
             if (property != null) {
                 value = property.getValue(Type.STRING);

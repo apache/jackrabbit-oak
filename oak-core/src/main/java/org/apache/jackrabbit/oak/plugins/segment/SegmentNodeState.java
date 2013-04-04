@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
@@ -69,6 +70,11 @@ class SegmentNodeState extends AbstractNodeState {
     }
 
     @Override
+    public boolean exists() {
+        return true;
+    }
+
+    @Override
     public long getPropertyCount() {
         return getTemplate().getPropertyCount();
     }
@@ -91,12 +97,14 @@ class SegmentNodeState extends AbstractNodeState {
 
     @Override
     public boolean hasChildNode(String name) {
-        return getTemplate().hasChildNode(checkNotNull(name), store, recordId);
+        checkArgument(!checkNotNull(name).isEmpty());
+        return getTemplate().hasChildNode(name, store, recordId);
     }
 
     @Override @CheckForNull
     public NodeState getChildNode(String name) {
-        return getTemplate().getChildNode(checkNotNull(name), store, recordId);
+        checkArgument(!checkNotNull(name).isEmpty());
+        return getTemplate().getChildNode(name, store, recordId);
     }
 
     @Override

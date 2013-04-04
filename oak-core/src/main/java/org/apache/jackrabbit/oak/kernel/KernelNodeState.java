@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.kernel;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 
 import java.lang.reflect.InvocationHandler;
@@ -62,6 +63,8 @@ import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * Basic {@link NodeState} implementation based on the {@link MicroKernel}
@@ -219,6 +222,11 @@ public final class KernelNodeState extends AbstractNodeState {
     }
 
     @Override
+    public boolean exists() {
+        return true;
+    }
+
+    @Override
     public long getPropertyCount() {
         init();
         return properties.size();
@@ -247,12 +255,13 @@ public final class KernelNodeState extends AbstractNodeState {
         checkNotNull(name);
         init();
         return childNames.contains(name)
-                || childNodeCount > MAX_CHILD_NODE_NAMES && getChildNode(name) != null;
+                || (childNodeCount > MAX_CHILD_NODE_NAMES
+                        && getChildNode(name).exists());
     }
 
     @Override
     public NodeState getChildNode(String name) {
-        checkNotNull(name);
+        // checkArgument(!checkNotNull(name).isEmpty()); // TODO: check in higher level
         init();
         String childPath = null;
         if (childNames.contains(name)) {
@@ -266,7 +275,7 @@ public final class KernelNodeState extends AbstractNodeState {
                 if (state != NULL) {
                     return state;
                 } else {
-                    return null;
+                    return MISSING_NODE;
                 }
             }
             // not able to tell from cache if node exists
@@ -278,7 +287,7 @@ public final class KernelNodeState extends AbstractNodeState {
             }
         }
         if (childPath == null) {
-            return null;
+            return MISSING_NODE;
         }
         try {
             return cache.get(revision + childPath);
