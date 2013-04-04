@@ -22,11 +22,11 @@ import java.io.InputStream;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.spi.state.AbstractNodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 
-public class SegmentNodeStore implements NodeStore {
+public class SegmentNodeStore extends AbstractNodeStore {
 
     private final SegmentStore store;
 

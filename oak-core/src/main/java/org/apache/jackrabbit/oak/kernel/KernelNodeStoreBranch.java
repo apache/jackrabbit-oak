@@ -20,9 +20,9 @@ import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
+import org.apache.jackrabbit.oak.spi.state.AbstractNodeStoreBranch;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 import org.apache.jackrabbit.oak.spi.state.RebaseDiff;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -37,7 +37,7 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
  * This implementation keeps changes in memory up to a certain limit and writes
  * them back when the to the Microkernel branch when the limit is exceeded.
  */
-class KernelNodeStoreBranch implements NodeStoreBranch {
+class KernelNodeStoreBranch extends AbstractNodeStoreBranch {
 
     /** The underlying store to which this branch belongs */
     private final KernelNodeStore store;

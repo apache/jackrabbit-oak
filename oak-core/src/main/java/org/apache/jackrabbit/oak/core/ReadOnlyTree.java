@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.core;
 
-import static com.google.common.base.Objects.toStringHelper;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
@@ -243,7 +242,7 @@ public class ReadOnlyTree implements Tree {
 
     @Override
     public String toString() {
-        return toStringHelper(this).add("path", getPath()).toString();
+        return getPath() + ": " + state;
     }
 
     //-----------------------------------------------------------< internal >---
