@@ -113,7 +113,7 @@ public final class ImmutableTree extends ReadOnlyTree {
     @Override
     public ImmutableTree getChild(@Nonnull String name) {
         NodeState child = getNodeState().getChildNode(name);
-        if (child != null) {
+        if (child.exists()) {
             return new ImmutableTree(this, name, child);
         } else {
             return null;

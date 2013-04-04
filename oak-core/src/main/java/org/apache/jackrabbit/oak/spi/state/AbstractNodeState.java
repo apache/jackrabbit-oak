@@ -58,7 +58,7 @@ public abstract class AbstractNodeState implements NodeState {
 
     @Override
     public boolean hasChildNode(String name) {
-        return getChildNode(name) != null;
+        return getChildNode(name).exists();
     }
 
     @Override
@@ -102,7 +102,7 @@ public abstract class AbstractNodeState implements NodeState {
             String name = beforeCNE.getName();
             NodeState beforeChild = beforeCNE.getNodeState();
             NodeState afterChild = getChildNode(name);
-            if (afterChild == null) {
+            if (!afterChild.exists()) {
                 diff.childNodeDeleted(name, beforeChild);
             } else {
                 baseChildNodes.add(name);
@@ -125,6 +125,9 @@ public abstract class AbstractNodeState implements NodeState {
      * @return string representation
      */
     public String toString() {
+        if (!exists()) {
+            return "{N/A}";
+        }
         StringBuilder builder = new StringBuilder("{");
         String separator = " ";
         for (PropertyState property : getProperties()) {
@@ -160,6 +163,10 @@ public abstract class AbstractNodeState implements NodeState {
         }
 
         NodeState other = (NodeState) that;
+
+        if (exists() != other.exists()) {
+            return false;
+        }
 
         if (getPropertyCount() != other.getPropertyCount()
                 || getChildNodeCount() != other.getChildNodeCount()) {

@@ -281,8 +281,8 @@ public class IndexHookManagerTest {
     private static NodeState checkPathExists(NodeState state, String... verify) {
         NodeState c = state;
         for (String p : verify) {
-            assertTrue(c.hasChildNode(p));
             c = c.getChildNode(p);
+            assertTrue(c.exists());
         }
         return c;
     }

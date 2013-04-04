@@ -38,9 +38,6 @@ public class UpToDateNodeStateConfiguration extends OakSolrNodeStateConfiguratio
         NodeState currentState = store.getRoot();
         for (String child : path.split("/")) {
             currentState = currentState.getChildNode(child);
-            if (currentState == null) {
-                break;
-            }
         }
         return currentState;
     }

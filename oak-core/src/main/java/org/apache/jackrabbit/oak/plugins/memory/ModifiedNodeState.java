@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Predicates.in;
 import static com.google.common.base.Predicates.not;
@@ -24,6 +25,7 @@ import static com.google.common.collect.Collections2.filter;
 import static com.google.common.collect.Iterables.concat;
 import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Maps.filterValues;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry.iterable;
 
 import java.util.Map;
@@ -142,6 +144,11 @@ public class ModifiedNodeState extends AbstractNodeState {
     }
 
     @Override
+    public boolean exists() {
+        return true;
+    }
+
+    @Override
     public long getPropertyCount() {
         long count = base.getPropertyCount();
 
@@ -191,7 +198,7 @@ public class ModifiedNodeState extends AbstractNodeState {
         long count = base.getChildNodeCount();
 
         for (Map.Entry<String, ? extends NodeState> entry : nodes.entrySet()) {
-            if (base.getChildNode(entry.getKey()) != null) {
+            if (base.getChildNode(entry.getKey()).exists()) {
                 count--;
             }
             if (entry.getValue() != null) {
@@ -204,12 +211,12 @@ public class ModifiedNodeState extends AbstractNodeState {
 
     @Override
     public boolean hasChildNode(String name) {
-        checkNotNull(name);
+        // checkArgument(!checkNotNull(name).isEmpty()); // TODO: should be caught earlier
         NodeState child = nodes.get(name);
         if (child != null) {
             return true;
         } else if (nodes.containsKey(name)) {
-            return false; // removed
+            return false;
         } else {
             return base.hasChildNode(name);
         }
@@ -217,12 +224,12 @@ public class ModifiedNodeState extends AbstractNodeState {
 
     @Override
     public NodeState getChildNode(String name) {
-        checkNotNull(name);
+        checkArgument(!checkNotNull(name).isEmpty());
         NodeState child = nodes.get(name);
         if (child != null) {
             return child;
         } else if (nodes.containsKey(name)) {
-            return null; // removed
+            return MISSING_NODE;
         } else {
             return base.getChildNode(name);
         }
@@ -327,11 +334,11 @@ public class ModifiedNodeState extends AbstractNodeState {
             String name = entry.getKey();
             NodeState before = base.getChildNode(name);
             NodeState after = entry.getValue();
-            if (before == null && after == null) {
-                // do nothing
-            } else if (after == null) {
-                diff.childNodeDeleted(name, before);
-            } else if (before == null) {
+            if (after == null) {
+                if (before.exists()) {
+                    diff.childNodeDeleted(name, before);
+                }
+            } else if (!before.exists()) {
                 diff.childNodeAdded(name, after);
             } else if (!before.equals(after)) {
                 diff.childNodeChanged(name, before, after);

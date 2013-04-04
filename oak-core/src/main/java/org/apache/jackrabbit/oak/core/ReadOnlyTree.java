@@ -130,7 +130,7 @@ public class ReadOnlyTree implements Tree {
     @Override
     public ReadOnlyTree getChild(@Nonnull String name) {
         NodeState child = state.getChildNode(name);
-        if (child != null) {
+        if (child.exists()) {
             return new ReadOnlyTree(this, name, child);
         } else {
             return null;

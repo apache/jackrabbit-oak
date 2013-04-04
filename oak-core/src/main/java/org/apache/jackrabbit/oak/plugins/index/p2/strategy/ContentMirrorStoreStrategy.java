@@ -149,7 +149,7 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
                 } else {
                     for (String p : values) {
                         NodeState property = index.getChildNode(p);
-                        if (property != null) {
+                        if (property.exists()) {
                             // we have an entry for this value, so use it
                             it.enqueue(Iterators.singletonIterator(
                                     new MemoryChildNodeEntry("", property)));
@@ -181,7 +181,7 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
                     break;
                 }
                 NodeState s = index.getChildNode(p);
-                if (s != null) {
+                if (s.exists()) {
                     CountingNodeVisitor v = new CountingNodeVisitor(max);
                     v.visit(s);
                     count += v.getEstimatedCount();

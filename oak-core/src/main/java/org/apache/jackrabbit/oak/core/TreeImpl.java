@@ -96,8 +96,12 @@ public class TreeImpl implements Tree {
         this.name = checkNotNull(name);
         this.nodeBuilder = parent.getNodeBuilder().child(name);
         this.pendingMoves = checkNotNull(pendingMoves);
-        // readstatus is ALLOW_ALL for new items
-        readStatus = (getBaseState() == null) ? ReadStatus.ALLOW_ALL : ReadStatus.getChildStatus(parent.readStatus);
+
+        if (getBaseState().exists()) {
+            readStatus = ReadStatus.getChildStatus(parent.readStatus);
+        } else {
+            readStatus = ReadStatus.ALLOW_ALL; // new items are always readable
+        }
     }
 
     @Override
@@ -153,7 +157,7 @@ public class TreeImpl implements Tree {
         }
 
         NodeState parentBase = getBaseState();
-        PropertyState base = parentBase == null ? null : parentBase.getProperty(name);
+        PropertyState base = parentBase.getProperty(name);
 
         if (base == null) {
             return Status.NEW;
@@ -418,21 +422,16 @@ public class TreeImpl implements Tree {
     }
 
     /**
-     * The node state this tree is based on. {@code null} if this is a newly added tree.
+     * The (possibly non-existent) node state this tree is based on.
      * @return the base node state of this tree
      */
-    @CheckForNull
+    @Nonnull
     final NodeState getBaseState() {
         if (parent == null) {
             return root.getBaseState();
+        } else {
+            return parent.getBaseState().getChildNode(name);
         }
-
-        NodeState parentBase = parent.getBaseState();
-        if (parentBase != null) {
-            return parentBase.getChildNode(name);
-        }
-
-        return null;
     }
 
     @Nonnull

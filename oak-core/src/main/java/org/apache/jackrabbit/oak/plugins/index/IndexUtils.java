@@ -118,7 +118,7 @@ public class IndexUtils implements IndexConstants {
     public static List<IndexDefinition> buildIndexDefinitions(NodeState state,
                                                               String indexConfigPath, String typeFilter) {
         NodeState definitions = state.getChildNode(INDEX_DEFINITIONS_NAME);
-        if (definitions == null) {
+        if (!definitions.exists()) {
             return Collections.emptyList();
         }
         indexConfigPath = concat(indexConfigPath, INDEX_DEFINITIONS_NAME);

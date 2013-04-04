@@ -246,7 +246,7 @@ class TypeEditor extends DefaultEditor {
             names.add(name);
 
             NodeState type = types.getChildNode(name);
-            if (type == null) {
+            if (!type.exists()) {
                 throw constraintViolation(
                         "Primary node type " + name + " does not exist");
             } else if (getBoolean(type, JCR_ISMIXIN)) {
@@ -266,7 +266,7 @@ class TypeEditor extends DefaultEditor {
             for (String name : mixins.getValue(NAMES)) {
                 if (names.add(name)) {
                     NodeState type = types.getChildNode(name);
-                    if (type == null) {
+                    if (!type.exists()) {
                         throw constraintViolation(
                                 "Mixin node type " + name + " does not exist");
                     } else if (!getBoolean(type, JCR_ISMIXIN)) {
@@ -292,7 +292,7 @@ class TypeEditor extends DefaultEditor {
                 for (String name : supertypes.getValue(NAMES)) {
                     if (names.add(name)) {
                         NodeState supertype = types.getChildNode(name);
-                        if (supertype != null) {
+                        if (supertype.exists()) {
                             list.add(supertype);
                             queue.add(supertype);
                         } else {
@@ -306,7 +306,7 @@ class TypeEditor extends DefaultEditor {
         // always include nt:base
         if (names.add(NT_BASE)) {
             NodeState base = types.getChildNode(NT_BASE);
-            if (base != null) {
+            if (base.exists()) {
                 list.add(base);
             } else {
                 // TODO: ignore/warning/error?

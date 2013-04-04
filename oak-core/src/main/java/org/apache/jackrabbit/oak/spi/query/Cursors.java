@@ -178,11 +178,10 @@ public class Cursors {
 
                     parent = node;
                     node = parent.getChildNode(name);
-
-                    if (node == null) {
-                        // nothing can match this filter, leave nodes empty
-                        return;
-                    }
+                }
+                if (!node.exists()) {
+                    // nothing can match this filter, leave nodes empty
+                    return;
                 }
             }
             Filter.PathRestriction restriction = filter.getPathRestriction();

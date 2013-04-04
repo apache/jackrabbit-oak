@@ -119,7 +119,7 @@ public class Property2IndexLookup {
     @Nullable
     private static NodeState getIndexDataNode(NodeState node, String propertyName, Filter filter) {
         NodeState state = node.getChildNode(INDEX_DEFINITIONS_NAME);
-        if (state == null) {
+        if (!state.exists()) {
             return null;
         }
         String filterNodeType = null;

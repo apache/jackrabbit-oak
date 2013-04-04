@@ -37,8 +37,10 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertNotNull;
 import static junit.framework.Assert.assertNull;
+import static junit.framework.Assert.assertTrue;
 import static org.apache.jackrabbit.oak.api.Type.LONG;
 
 public class KernelNodeStateTest {
@@ -104,10 +106,10 @@ public class KernelNodeStateTest {
 
     @Test
     public void testGetChildNode() {
-        assertNotNull(state.getChildNode("x"));
-        assertNotNull(state.getChildNode("y"));
-        assertNotNull(state.getChildNode("z"));
-        assertNull(state.getChildNode("a"));
+        assertTrue(state.getChildNode("x").exists());
+        assertTrue(state.getChildNode("y").exists());
+        assertTrue(state.getChildNode("z").exists());
+        assertFalse(state.getChildNode("a").exists());
     }
 
     @Test
