@@ -90,6 +90,11 @@ public class Commit {
         diff.newline();
     }
     
+    public void touchNode(String path) {
+        UpdateOp op = getUpdateOperationForNode(path);
+        op.setMapEntry(UpdateOp.LAST_REV + "." + revision.getClusterId(), revision.toString());        
+    }
+    
     void updateProperty(String path, String propertyName, String value) {
         UpdateOp op = getUpdateOperationForNode(path);
         String key = Utils.escapePropertyName(propertyName);

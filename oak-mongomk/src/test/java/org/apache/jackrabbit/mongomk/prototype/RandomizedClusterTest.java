@@ -236,18 +236,21 @@ System.out.print(msg);
     }
     
     private MongoMK createMK(int clusterId) {
+        MongoMK.Builder builder = new MongoMK.Builder();
         if (MONGO_DB) {
             DB db = MongoUtils.getConnection().getDB();
             MongoUtils.dropCollections(db);
-            return new MongoMK(db, clusterId);
+            builder.setMongoDB(db);
+        } else {
+            if (ds == null) {
+                ds = new MemoryDocumentStore();
+            }
+            if (bs == null) {
+                bs = new MemoryBlobStore();
+            }
+            builder.setDocumentStore(ds).setBlobStore(bs);
         }
-        if (ds == null) {
-            ds = new MemoryDocumentStore();
-        }
-        if (bs == null) {
-            bs = new MemoryBlobStore();
-        }
-        return new MongoMK(ds, bs, clusterId);
+        return builder.setClusterId(clusterId).open();
     }
     
     /**

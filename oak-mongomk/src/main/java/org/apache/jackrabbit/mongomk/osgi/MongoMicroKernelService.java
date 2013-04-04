@@ -65,7 +65,8 @@ public class MongoMicroKernelService {
     private MongoMK mk;
 
     @Activate
-    private void activate(BundleContext context,Map<String,?> config) throws Exception {
+    private void activate(BundleContext context, Map<String, ?> config)
+            throws Exception {
         String host = PropertiesUtil.toString(config.get(PROP_HOST), DEFAULT_HOST);
         int port = PropertiesUtil.toInteger(config.get(PROP_PORT), DEFAULT_PORT);
         String db = PropertiesUtil.toString(config.get(PROP_DB), DEFAULT_DB);
@@ -78,11 +79,11 @@ public class MongoMicroKernelService {
 
         logger.info("Connected to database {}", mongoDB);
 
-        mk = new MongoMK(mongoDB, 0);
+        mk = new MongoMK.Builder().setMongoDB(mongoDB).open();
 
         Properties props = new Properties();
-        props.setProperty("oak.mk.type","mongo");
-        reg = context.registerService(MicroKernel.class.getName(),mk,props);
+        props.setProperty("oak.mk.type", "mongo");
+        reg = context.registerService(MicroKernel.class.getName(), mk, props);
     }
 
     @Deactivate

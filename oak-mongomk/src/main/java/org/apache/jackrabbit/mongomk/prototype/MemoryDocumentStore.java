@@ -48,9 +48,13 @@ public class MemoryDocumentStore implements DocumentStore {
     private ConcurrentSkipListMap<String, Map<String, Object>> nodes =
             new ConcurrentSkipListMap<String, Map<String, Object>>();
 
-    public Map<String, Object> find(Collection collection, String path) {
+    public Map<String, Object> find(Collection collection, String key, int maxCacheAge) {
+        return find(collection, key);
+    }
+    
+    public Map<String, Object> find(Collection collection, String key) {
         ConcurrentSkipListMap<String, Map<String, Object>> map = getMap(collection);
-        Map<String, Object> n = map.get(path);
+        Map<String, Object> n = map.get(key);
         if (n == null) {
             return null;
         }
@@ -216,6 +220,11 @@ public class MemoryDocumentStore implements DocumentStore {
             buff.append("\n");
         }
         return buff.toString();
+    }
+
+    @Override
+    public void invalidateCache() {
+        // there is no cache, so nothing to invalidate
     }
 
     @Override

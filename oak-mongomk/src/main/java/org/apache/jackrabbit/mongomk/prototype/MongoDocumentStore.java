@@ -18,7 +18,6 @@ package org.apache.jackrabbit.mongomk.prototype;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -27,13 +26,13 @@ import java.util.concurrent.ExecutionException;
 
 import javax.annotation.Nonnull;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mongomk.prototype.UpdateOp.Operation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
@@ -49,12 +48,6 @@ import com.mongodb.WriteResult;
  */
 public class MongoDocumentStore implements DocumentStore {
 
-    /**
-     * Marker instance to be used as a value in cache to indicate that no value exist for given key as Guava
-     * cache does not allow null values
-     */
-    static final Map<String, Object> NULL_VAL = Collections.emptyMap();
-
     private static final Logger LOG = LoggerFactory.getLogger(MongoDocumentStore.class);
 
     private static final boolean LOG_TIME = false;
@@ -63,7 +56,7 @@ public class MongoDocumentStore implements DocumentStore {
     
     private long time;
     
-    private final Cache<String, Map<String, Object>> cache;
+    private final Cache<String, CachedDocument> cache;
 
     public MongoDocumentStore(DB db) {
         nodesCollection = db.getCollection(Collection.NODES.toString());
@@ -99,26 +92,44 @@ public class MongoDocumentStore implements DocumentStore {
         // oak-jcr doesn't call dispose()
         dispose();
     }
-
+    
     @Override
-    public Map<String, Object> find(final Collection collection, final String path) {
+    public void invalidateCache() {
+        cache.invalidateAll();
+    }
+
+    public Map<String, Object> find(Collection collection, String path) {
+        return find(collection, path, Integer.MAX_VALUE);
+    }
+    
+    @Override
+    public Map<String, Object> find(final Collection collection, final String path, int maxCacheAge) {
         try {
-            Map<String, Object> returnVal = cache.get(path, new Callable<Map<String, Object>>() {
-                @Override
-                public Map<String, Object> call() throws Exception {
-                    Map<String, Object> result;
-                    result = loadDocument(collection, path);
-                    // support caching of null entries
-                    return result == null ? NULL_VAL : result;
+            CachedDocument doc;
+            while (true) {
+                doc = cache.get(path, new Callable<CachedDocument>() {
+                    @Override
+                    public CachedDocument call() throws Exception {
+                        Map<String, Object> map = findUncached(collection, path);
+                        return new CachedDocument(map);
+                    }
+                });
+                if (maxCacheAge == Integer.MAX_VALUE) {
+                    break;
                 }
-            });
-            return returnVal == NULL_VAL ?  null : returnVal;
+                if (System.currentTimeMillis() - doc.time < maxCacheAge) {
+                    break;
+                }
+                // too old: invalidate, try again
+                cache.invalidate(path);
+            }
+            return doc.value;
         } catch (ExecutionException e) {
             throw new IllegalStateException("Failed to load node " + path, e);
         }
     }
     
-    protected Map<String, Object> loadDocument(Collection collection, String path) {
+    public Map<String, Object> findUncached(Collection collection, String path) {
         DBCollection dbCollection = getDBCollection(collection);
         long start = start();
         try {
@@ -150,7 +161,7 @@ public class MongoDocumentStore implements DocumentStore {
                 DBObject o = cursor.next();
                 Map<String, Object> map = convertFromDBObject(o);
                 String key = (String) map.get(UpdateOp.ID);
-                cache.put(key, map);
+                cache.put(key, new CachedDocument(map));
                 list.add(map);
             }
             return list;
@@ -247,7 +258,7 @@ public class MongoDocumentStore implements DocumentStore {
             Utils.deepCopyMap(map, newMap);
             String key = updateOp.getKey();
             MemoryDocumentStore.applyChanges(newMap, updateOp);
-            cache.put(key, newMap);
+            cache.put(key, new CachedDocument(newMap));
             
             log("createOrUpdate returns ", map);
             return map;
@@ -306,7 +317,7 @@ public class MongoDocumentStore implements DocumentStore {
                 }
                 for (Map<String, Object> map : maps) {
                     String id = (String) map.get(UpdateOp.ID);
-                    cache.put(id, map);
+                    cache.put(id, new CachedDocument(map));
                 }
                 return true;
             } catch (MongoException e) {
@@ -362,6 +373,17 @@ public class MongoDocumentStore implements DocumentStore {
                 argList = argList.length() + ": " + argList;
             }
             LOG.debug(message + argList);
+        }
+    }
+    
+    /**
+     * A cache entry.
+     */
+    static class CachedDocument {
+        final long time = System.currentTimeMillis();
+        final Map<String, Object> value;
+        CachedDocument(Map<String, Object> value) {
+            this.value = value;
         }
     }
 
