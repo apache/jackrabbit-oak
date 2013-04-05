@@ -18,19 +18,12 @@
  */
 package org.apache.jackrabbit.oak.core;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-
 import javax.annotation.Nonnull;
 import javax.security.auth.Subject;
 
@@ -65,6 +58,13 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
+import org.apache.jackrabbit.oak.spi.state.SecureNodeState;
+
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 
 public class RootImpl implements Root {
 
@@ -242,7 +242,7 @@ public class RootImpl implements Root {
         if (!store.getRoot().equals(rootTree.getBaseState())) {
             purgePendingChanges();
             branch.rebase();
-            rootTree.reset(branch.getHead());
+            rootTree.reset(getSecureHead());
             permissionProvider = null;
         }
     }
@@ -251,7 +251,7 @@ public class RootImpl implements Root {
     public final void refresh() {
         checkLive();
         branch = store.branch();
-        rootTree.reset(branch.getHead());
+        rootTree.reset(getSecureHead());
         modCount = 0;
         if (permissionProvider != null) {
             permissionProvider.refresh();
@@ -324,7 +324,7 @@ public class RootImpl implements Root {
     @Override
     public boolean hasPendingChanges() {
         checkLive();
-        return !getBaseState().equals(rootTree.getNodeState());
+        return !getBaseState().equals(getRootState());
     }
 
     @Nonnull
@@ -349,7 +349,7 @@ public class RootImpl implements Root {
 
             @Override
             protected NodeState getRootState() {
-                return rootTree.getNodeState();
+                return RootImpl.this.getRootState();
             }
 
             @Override
@@ -378,7 +378,7 @@ public class RootImpl implements Root {
     private QueryIndexProvider getIndexProvider() {
         if (hasPendingChanges()) {
             return new UUIDDiffIndexProviderWrapper(indexProvider,
-                    getBaseState(), rootTree.getNodeState());
+                    getBaseState(), getRootState());
         }
         return indexProvider;
     }
@@ -397,7 +397,7 @@ public class RootImpl implements Root {
 
     @Nonnull
     NodeBuilder createRootBuilder() {
-        return branch.getHead().builder();
+        return getSecureHead().builder();
     }
 
     // TODO better way to determine purge limit. See OAK-175
@@ -427,7 +427,7 @@ public class RootImpl implements Root {
      * Purge all pending changes to the underlying {@link NodeStoreBranch}.
      */
     private void purgePendingChanges() {
-        branch.setRoot(rootTree.getNodeState());
+        branch.setRoot(getRootState());
         reset();
     }
 
@@ -435,11 +435,28 @@ public class RootImpl implements Root {
      * Reset the root builder to the branch's current root state
      */
     private void reset() {
-        rootTree.getNodeBuilder().reset(branch.getHead());
+        rootTree.getNodeBuilder().reset(getSecureHead());
     }
 
+    @Nonnull
     private PermissionProvider createPermissionProvider() {
         return  securityProvider.getAccessControlConfiguration().getPermissionProvider(this, subject.getPrincipals());
+    }
+
+    @Nonnull
+    private ImmutableTree.TypeProvider getTypeProvider() {
+        return new ImmutableTree.DefaultTypeProvider(securityProvider.getAccessControlConfiguration().getContext());
+    }
+
+    @Nonnull
+    private NodeState getSecureHead() {
+        return new SecureNodeState(branch.getHead(), getPermissionProvider(), getTypeProvider());
+    }
+
+    @Nonnull
+    private NodeState getRootState() {
+        // FIXME: should not return a state being (based on) SecureNodeState (see OAK-709)
+        return rootTree.getNodeState();
     }
 
     //---------------------------------------------------------< MoveRecord >---

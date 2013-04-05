@@ -18,16 +18,9 @@
  */
 package org.apache.jackrabbit.oak.core;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
-import static org.apache.jackrabbit.oak.api.Type.STRING;
-import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
-
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Set;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -45,11 +38,16 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.RootImpl.Move;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryPropertyBuilder;
 import org.apache.jackrabbit.oak.plugins.memory.MultiStringPropertyState;
-import org.apache.jackrabbit.oak.spi.security.authorization.permission.ReadStatus;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.PropertyBuilder;
+
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
+import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 
 public class TreeImpl implements Tree {
 
@@ -81,8 +79,6 @@ public class TreeImpl implements Tree {
     /** Pointer into the list of pending moves */
     private Move pendingMoves;
 
-    private ReadStatus readStatus = null;
-
     TreeImpl(RootImpl root, Move pendingMoves) {
         this.root = checkNotNull(root);
         this.name = "";
@@ -96,12 +92,6 @@ public class TreeImpl implements Tree {
         this.name = checkNotNull(name);
         this.nodeBuilder = parent.getNodeBuilder().child(name);
         this.pendingMoves = checkNotNull(pendingMoves);
-
-        if (getBaseState().exists()) {
-            readStatus = ReadStatus.getChildStatus(parent.readStatus);
-        } else {
-            readStatus = ReadStatus.ALLOW_ALL; // new items are always readable
-        }
     }
 
     @Override
@@ -565,30 +555,13 @@ public class TreeImpl implements Tree {
     }
 
     private boolean canRead(TreeImpl tree) {
-        // FIXME: access control eval must have full access to the tree
-        // FIXME: special handling for access control item and version content
-        if (tree.readStatus == null) {
-            tree.readStatus = root.getPermissionProvider().getReadStatus(tree, null);
-        }
-        return tree.readStatus.includes(ReadStatus.ALLOW_THIS);
+        // TODO: OAK-753 TreeImpl exposes hidden child trees
+        // return tree.getNodeState().exists() && !NodeStateUtils.isHidden(tree.getName());
+        return tree.getNodeState().exists();
     }
 
     private boolean canRead(PropertyState property) {
-        // FIXME: access control eval must have full access to the tree/property
-        // FIXME: special handling for access control item and version content
-        if (property == null || NodeStateUtils.isHidden(property.getName())) {
-            return false;
-        }
-        if (readStatus == null || readStatus.appliesToThis()) {
-            ReadStatus rs = root.getPermissionProvider().getReadStatus(this, property);
-            if (rs.appliesToThis()) {
-                // status applies to this property only -> recalc for others
-                return rs.isAllow();
-            } else {
-                readStatus = rs;
-            }
-        }
-        return readStatus.includes(ReadStatus.ALLOW_PROPERTIES);
+        return property != null && !NodeStateUtils.isHidden(property.getName());
     }
 
     /**

@@ -18,11 +18,6 @@
  */
 package org.apache.jackrabbit.oak.kernel;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
-import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
-
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
@@ -34,7 +29,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
-
 import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
 
@@ -63,6 +57,12 @@ import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
+import org.apache.jackrabbit.oak.spi.state.SecureNodeState;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
+import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 
 /**
  * Basic {@link NodeState} implementation based on the {@link MicroKernel}
@@ -369,6 +369,11 @@ public final class KernelNodeState extends AbstractNodeState {
      */
     @Override
     public boolean equals(Object object) {
+        // FIXME: temporary solution (see discussion in OAK-709)
+        if (object instanceof SecureNodeState) {
+            return object.equals(this);
+        }
+
         if (this == object) {
             return true;
         } else if (object instanceof KernelNodeState) {
