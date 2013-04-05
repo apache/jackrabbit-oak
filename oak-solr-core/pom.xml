@@ -44,12 +44,9 @@
             <Export-Package>
               org.apache.jackrabbit.oak.plugins.index.solr,
               org.apache.jackrabbit.oak.plugins.index.solr.index,
-              org.apache.jackrabbit.oak.plugins.index.solr.query,
-              org.apache.jackrabbit.oak.plugins.index.solr.server
+              org.apache.jackrabbit.oak.plugins.index.solr.query
             </Export-Package>
-            <Private-Package>
-              org.apache.jackrabbit.oak.plugins.index.solr.*
-            </Private-Package>
+            <Embed-Dependency>solr-solrj</Embed-Dependency>
           </instructions>
         </configuration>
       </plugin>

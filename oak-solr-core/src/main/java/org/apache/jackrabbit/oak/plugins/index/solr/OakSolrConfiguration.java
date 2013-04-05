@@ -48,7 +48,6 @@ public interface OakSolrConfiguration {
      */
     public String getFieldForPathRestriction(Filter.PathRestriction pathRestriction);
 
-
     /**
      * Provide a field name to search over for the given {@link Filter.PropertyRestriction}
      *

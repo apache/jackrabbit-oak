@@ -25,8 +25,8 @@ import org.apache.felix.scr.annotations.Services;
 import org.apache.jackrabbit.oak.plugins.index.solr.OakSolrConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.OakSolrConfigurationProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.SolrServerProvider;
-import org.apache.jackrabbit.oak.plugins.index.solr.embedded.EmbeddedSolrServerProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.embedded.EmbeddedSolrConfigurationProvider;
+import org.apache.jackrabbit.oak.plugins.index.solr.embedded.EmbeddedSolrServerProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.embedded.SolrServerConfigurationProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.embedded.UpToDateNodeStateConfiguration;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -36,7 +36,8 @@ import org.osgi.service.component.ComponentContext;
 /**
  * OSGi service for the embedded Solr server module.
  */
-@Component
+@Component(metatype = true,
+        label = "Embedded SolrServer provider")
 @Services({
         @Service(value = SolrServerProvider.class),
         @Service(value = OakSolrConfigurationProvider.class)

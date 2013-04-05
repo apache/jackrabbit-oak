@@ -33,7 +33,9 @@ public class SolrServerConfiguration {
     }
 
     public SolrServerConfiguration withHttpConfiguration(String context, Integer httpPort) {
-        this.httpConfiguration = new HttpConfiguration(context, httpPort);
+        if (context != null && context.length() > 0 && httpPort != null && httpPort > 0) {
+            this.httpConfiguration = new HttpConfiguration(context, httpPort);
+        }
         return this;
     }
 
