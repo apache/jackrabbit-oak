@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.index.solr.embedded;
+package org.apache.jackrabbit.oak.plugins.index.solr.embedded.osgi;
 
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
@@ -25,6 +25,10 @@ import org.apache.felix.scr.annotations.Services;
 import org.apache.jackrabbit.oak.plugins.index.solr.OakSolrConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.OakSolrConfigurationProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.SolrServerProvider;
+import org.apache.jackrabbit.oak.plugins.index.solr.embedded.DefaultOakSolrProvider;
+import org.apache.jackrabbit.oak.plugins.index.solr.embedded.EmbeddedSolrConfigurationProvider;
+import org.apache.jackrabbit.oak.plugins.index.solr.embedded.SolrServerConfigurationProvider;
+import org.apache.jackrabbit.oak.plugins.index.solr.embedded.UpToDateNodeStateConfiguration;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.solr.client.solrj.SolrServer;
 import org.osgi.service.component.ComponentContext;
