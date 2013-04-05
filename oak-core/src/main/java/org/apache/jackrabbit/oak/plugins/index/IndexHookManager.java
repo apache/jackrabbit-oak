@@ -17,43 +17,33 @@
 package org.apache.jackrabbit.oak.plugins.index;
 
 import org.apache.jackrabbit.oak.spi.commit.Editor;
-import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
- * Keeps existing IndexHooks updated.
- * <br>
+ * Keeps existing IndexHooks updated. <br>
  * The existing index list is obtained via the IndexHookProvider.
  * 
  * @see IndexHook
  * @see IndexHookProvider
  * 
  */
-public class IndexHookManager extends EditorHook {
+public class IndexHookManager implements EditorProvider {
 
     public static final IndexHookManager of(IndexHookProvider provider) {
-        return new IndexHookManager(new EditorProviderWrapper(provider));
+        return new IndexHookManager(provider);
     }
 
-    private static class EditorProviderWrapper implements EditorProvider {
+    private final IndexHookProvider provider;
 
-        private final IndexHookProvider provider;
-
-        EditorProviderWrapper(IndexHookProvider provider) {
-            this.provider = provider;
-        }
-
-        @Override
-        public Editor getRootEditor(NodeState before, NodeState after,
-                NodeBuilder builder) {
-            return new IndexHookManagerDiff(provider, builder);
-        }
-
+    protected IndexHookManager(IndexHookProvider provider) {
+        this.provider = provider;
     }
 
-    protected IndexHookManager(EditorProvider provider) {
-        super(provider);
+    @Override
+    public Editor getRootEditor(NodeState before, NodeState after,
+            NodeBuilder builder) {
+        return new IndexHookManagerDiff(provider, builder);
     }
 }

@@ -84,7 +84,8 @@ public class IndexHookManagerTest {
 
         IndexHookManager im = IndexHookManager
                 .of(new Property2IndexHookProvider());
-        NodeState indexed = im.processCommit(before, after);
+        EditorHook hook = new EditorHook(im);
+        NodeState indexed = hook.processCommit(before, after);
 
         // first check that the index content nodes exist
         checkPathExists(indexed, "oak:index", "rootIndex", ":index");
@@ -136,7 +137,8 @@ public class IndexHookManagerTest {
 
         IndexHookManager im = IndexHookManager
                 .of(new Property2IndexHookProvider());
-        NodeState indexed = im.processCommit(before, after);
+        EditorHook hook = new EditorHook(im);
+        NodeState indexed = hook.processCommit(before, after);
 
         // first check that the index content nodes exist
         NodeState ns = checkPathExists(indexed, "oak:index", "rootIndex");
@@ -177,7 +179,8 @@ public class IndexHookManagerTest {
 
         IndexHookManager im = IndexHookManager
                 .of(new Property2IndexHookProvider());
-        NodeState indexed = im.processCommit(before, after);
+        EditorHook hook = new EditorHook(im);
+        NodeState indexed = hook.processCommit(before, after);
 
         // first check that the index content nodes exist
         NodeState ns = checkPathExists(indexed, "oak:index", "rootIndex");
@@ -219,7 +222,8 @@ public class IndexHookManagerTest {
 
         IndexHookManager im = IndexHookManager
                 .of(new Property2IndexHookProvider());
-        NodeState indexed = im.processCommit(before, after);
+        EditorHook hook = new EditorHook(im);
+        NodeState indexed = hook.processCommit(before, after);
 
         // first check that the index content nodes exist
         NodeState ns = checkPathExists(indexed, "oak:index", "rootIndex");

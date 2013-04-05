@@ -34,6 +34,7 @@ import org.apache.jackrabbit.oak.plugins.index.IndexHookProvider;
 import org.apache.jackrabbit.oak.plugins.index.p2.Property2IndexHookProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
+import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.lifecycle.OakInitializer;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Cursors;
@@ -75,7 +76,8 @@ public class NodeTypeIndexTest {
         addFile(root, "file-1");
 
         branch.setRoot(root.getNodeState());
-        branch.merge(IndexHookManager.of(new Property2IndexHookProvider()));
+        branch.merge(new EditorHook(IndexHookManager
+                .of(new Property2IndexHookProvider())));
 
         NodeState rootState = store.getRoot();
         NodeTypeIndex index = new NodeTypeIndex();
