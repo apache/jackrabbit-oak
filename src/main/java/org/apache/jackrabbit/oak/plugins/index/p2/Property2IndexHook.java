@@ -40,11 +40,8 @@ import org.apache.jackrabbit.oak.plugins.index.IndexHook;
 import org.apache.jackrabbit.oak.plugins.index.p2.strategy.ContentMirrorStoreStrategy;
 import org.apache.jackrabbit.oak.plugins.index.p2.strategy.IndexStoreStrategy;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
-import org.apache.jackrabbit.oak.spi.commit.EditorHook;
-import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -279,9 +276,6 @@ class Property2IndexHook implements IndexHook, Closeable {
     @Override
     public Editor childNodeChanged(String name, NodeState before,
             NodeState after) throws CommitFailedException {
-        if (NodeStateUtils.isHidden(name)) {
-            return null;
-        }
         return new Property2IndexHook(this, name);
     }
 
@@ -292,7 +286,7 @@ class Property2IndexHook implements IndexHook, Closeable {
     }
 
     @Override
-    public void reindex(NodeState state) throws CommitFailedException {
+    public Editor reindex(NodeState state) {
         boolean reindex = false;
         for (List<Property2IndexHookUpdate> updateList : indexMap.values()) {
             for (Property2IndexHookUpdate update : updateList) {
@@ -302,16 +296,9 @@ class Property2IndexHook implements IndexHook, Closeable {
             }
         }
         if (reindex) {
-            EditorProvider provider = new EditorProvider() {
-                @Override
-                public Editor getRootEditor(NodeState before, NodeState after,
-                        NodeBuilder builder) {
-                    return new Property2IndexHook(node);
-                }
-            };
-            EditorHook eh = new EditorHook(provider);
-            eh.processCommit(EMPTY_NODE, state);
+            return new Property2IndexHook(node);
         }
+        return null;
     }
 
     // -----------------------------------------------------< Closeable >--
