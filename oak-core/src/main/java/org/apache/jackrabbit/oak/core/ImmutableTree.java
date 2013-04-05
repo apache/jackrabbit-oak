@@ -21,6 +21,7 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import com.google.common.base.Objects;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
@@ -36,7 +37,65 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 
 /**
- * ImmutableTree...
+ * Immutable implementation of the {@code Tree} interface in order to provide
+ * the much feature rich API functionality for a given {@code NodeState}.
+ *
+ * <h3>Tree hierarchy</h3>
+ * Due to the nature of this {@code Tree} implementation creating a proper
+ * hierarchical view of the tree structure is the responsibility of the caller.
+ * It is recommended to start with the state of the
+ * {@link #ImmutableTree(org.apache.jackrabbit.oak.spi.state.NodeState) root node}
+ * and build up the hierarchy by calling
+ * {@link #ImmutableTree(ImmutableTree, String, org.apache.jackrabbit.oak.spi.state.NodeState)}
+ * for every subsequent child state. Note, that this implementation will not
+ * perform any kind of validation of the passed state and methods like {@link #isRoot()},
+ * {@link #getName()}, {@link #getPath()} or {@link #getLocation()} will just
+ * make use of the hierarchy that has been create by that sequence.
+ * In order to create a disconnected individual tree in cases where the hierarchy
+ * information is not (yet) need or known it is suggested to use
+ * {@link #ImmutableTree(org.apache.jackrabbit.oak.core.ImmutableTree.ParentProvider, String, org.apache.jackrabbit.oak.spi.state.NodeState)}
+ * an specify an appropriate {@code ParentProvider} implementation.
+ *
+ * <h3>ParentProvider</h3>
+ * Apart from create the tree hierarchy in traversal mode this tree implementation
+ * allows to instantiate disconnected trees that depending on the use may
+ * never or on demand retrieve hierarchy information. The following default
+ * implementations of this internal interface are present:
+ *
+ * <ul>
+ *     <li>{@link DefaultParentProvider}: used with the default usage where the
+ *     parent tree is passed to the constructor</li>
+ *     <li>{@link ParentProvider#ROOTPROVIDER}: the default parent provider for
+ *     the root tree. All children will get {@link DefaultParentProvider}</li>
+ *     <li>{@link ParentProvider#UNSUPPORTED}: throws {@code UnsupportedOperationException}
+ *     upon hierarchy related methods like {@link #getParent()}, {@link #getPath()} and
+ *     {@link #getIdentifier()}</li>
+ * </ul>
+ *
+ * <h3>TypeProvider</h3>
+ * For optimization purpose an Immutable tree will be associated with a
+ * {@code TypeProvider} that allows for fast detection of the following types
+ * of Trees:
+ *
+ * <ul>
+ *     <li>{@link TypeProvider#TYPE_HIDDEN}: a hidden tree whose name starts with ":".
+ *     Please note that the whole subtree of a hidden node is considered hidden.</li>
+ *     <li>{@link TypeProvider#TYPE_AC}: A tree that stores access control content
+ *     and requires special access {@link org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions#READ_ACCESS_CONTROL permissions}.</li>
+ *     <li>{@link TypeProvider#TYPE_VERSION}: if a given tree is located within
+ *     any of the version related stores defined by JSR 283. Depending on the
+ *     permission evaluation implementation those items require special treatment.</li>
+ *     <li>{@link TypeProvider#TYPE_DEFAULT}: the default type for trees that don't
+ *     match any of the uper types.</li>
+ * </ul>
+ *
+ * <h3>Equality and hash code</h3>
+ * In contrast to {@link TreeImpl} the {@code ImmutableTree} implements
+ * {@link Object#equals(Object)} and {@link Object#hashCode()}: Two {@code ImmutableTree}s
+ * are consider equal if their name and the underlying {@code NodeState}s are equal. Note
+ * however, that according to the contract defined in {@code NodeState} these
+ * objects are not expected to be used as hash keys.
+ *
  * FIXME: merge with ReadOnlyTree
  */
 public final class ImmutableTree extends ReadOnlyTree {
@@ -112,7 +171,7 @@ public final class ImmutableTree extends ReadOnlyTree {
 
     @Override
     public ImmutableTree getChild(@Nonnull String name) {
-        NodeState child = getNodeState().getChildNode(name);
+        NodeState child = state.getChildNode(name);
         if (child.exists()) {
             return new ImmutableTree(this, name, child);
         } else {
@@ -133,8 +192,7 @@ public final class ImmutableTree extends ReadOnlyTree {
         return new Iterable<Tree>() {
             @Override
             public Iterator<Tree> iterator() {
-                final Iterator<? extends ChildNodeEntry> iterator =
-                        getNodeState().getChildNodeEntries().iterator();
+                final Iterator<? extends ChildNodeEntry> iterator = state.getChildNodeEntries().iterator();
                 return new Iterator<Tree>() {
                     @Override
                     public boolean hasNext() {
@@ -157,6 +215,30 @@ public final class ImmutableTree extends ReadOnlyTree {
             }
         };
     }
+
+    //-------------------------------------------------------------< Object >---
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(getName(), state);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == this) {
+            return true;
+        }
+        if (o instanceof ImmutableTree) {
+            ImmutableTree other = (ImmutableTree) o;
+            return getName().equals(other.getName()) && state.equals(other.state);
+        }
+        return false;
+    }
+
+    @Override
+    public String toString() {
+        return new StringBuilder().append("ImmutableTree '").append(getName()).append("':").append(state.toString()).toString();
+    }
+
 
     //--------------------------------------------------------------------------
     public NodeState getNodeState() {
@@ -239,7 +321,7 @@ public final class ImmutableTree extends ReadOnlyTree {
                     if (NodeStateUtils.isHidden(name)) {
                         type = TYPE_HIDDEN;
                     } else if (VersionConstants.VERSION_NODE_NAMES.contains(name) ||
-                            VersionConstants.VERSION_NODE_TYPE_NAMES.contains(NodeStateUtils.getPrimaryTypeName(tree.getNodeState()))) {
+                            VersionConstants.VERSION_NODE_TYPE_NAMES.contains(NodeStateUtils.getPrimaryTypeName(tree.state))) {
                         type = TYPE_VERSION;
                     } else if (contextInfo.definesTree(tree)) {
                         type = TYPE_AC;

@@ -96,7 +96,7 @@ class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants
             for (Map.Entry<String, ImmutableTree> entry : trees.entrySet()) {
                 ImmutableTree t = entry.getValue();
                 ImmutableTree t2 = permissionsTree.getChild(t.getName());
-                if (t2 != null && !t.getNodeState().equals(t2.getNodeState())) {
+                if (t2 != null && !t.equals(t2)) {
                     refresh = true;
                     break;
                 }
