@@ -16,14 +16,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.embedded;
 
-import org.apache.jackrabbit.oak.spi.query.PropertyValues;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.solr.client.solrj.SolrServer;
 import org.junit.Test;
 
 import static org.junit.Assert.assertNotNull;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 /**
  * Testcase for {@link DefaultOakSolrProvider}
@@ -31,16 +27,10 @@ import static org.mockito.Mockito.when;
 public class DefaultOakSolrProviderTest {
 
     @Test
-    public void testSolrServerInitializationWithoutConfigurationFiles() throws Exception {
-        NodeState nodeState = mock(NodeState.class);
-        when(nodeState.exists()).thenReturn(true);
-        when(nodeState.getProperty(OakSolrNodeStateConfiguration.Properties.CORE_NAME)).
-                thenReturn(PropertyValues.create(PropertyValues.newString("oak")));
-        when(nodeState.getProperty(OakSolrNodeStateConfiguration.Properties.SOLRHOME_PATH)).
-                thenReturn(PropertyValues.create(PropertyValues.newString("target/solr")));
-        when(nodeState.getProperty(OakSolrNodeStateConfiguration.Properties.SOLRCONFIG_PATH)).
-                thenReturn(PropertyValues.create(PropertyValues.newString("target/solr/solr.xml")));
-        DefaultOakSolrProvider defaultOakSolrProvider = new DefaultOakSolrProvider(nodeState);
+    public void testSolrServerInitialization() throws Exception {
+        SolrServerConfiguration solrServerConfiguration = new SolrServerConfiguration("target/solr",
+                "target/solr/solr.xml", "oak");
+        DefaultOakSolrProvider defaultOakSolrProvider = new DefaultOakSolrProvider(solrServerConfiguration);
         SolrServer solrServer = defaultOakSolrProvider.getSolrServer();
         assertNotNull(solrServer);
     }

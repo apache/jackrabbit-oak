@@ -23,55 +23,77 @@ import java.io.InputStream;
 import java.util.Arrays;
 
 import org.apache.jackrabbit.mk.util.IOUtils;
-import org.apache.jackrabbit.oak.plugins.index.solr.OakSolrConfiguration;
-import org.apache.jackrabbit.oak.plugins.index.solr.OakSolrConfigurationProvider;
+import org.apache.jackrabbit.oak.plugins.index.solr.OakSolrUtils;
 import org.apache.jackrabbit.oak.plugins.index.solr.SolrServerProvider;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.embedded.EmbeddedSolrServer;
+import org.apache.solr.client.solrj.embedded.JettySolrRunner;
+import org.apache.solr.client.solrj.impl.HttpSolrServer;
 import org.apache.solr.core.CoreContainer;
 
 /**
- * Default implementation of {@link SolrServerProvider} and {@link OakSolrConfigurationProvider}
- * which hides an {@link EmbeddedSolrServer} configured as per passed {@link NodeState}
- * properties.
+ * Default implementation of {@link SolrServerProvider} which uses an
+ * {@link EmbeddedSolrServer} configured as per passed {@link SolrServerConfiguration}.
  */
-public class DefaultOakSolrProvider implements SolrServerProvider, OakSolrConfigurationProvider {
+public class DefaultOakSolrProvider implements SolrServerProvider {
 
-    private final OakSolrNodeStateConfiguration oakSolrConfiguration;
+    private final SolrServerConfiguration solrServerConfiguration;
 
-    public DefaultOakSolrProvider(NodeState configurationNodeState) {
-        this.oakSolrConfiguration = new FixedNodeStateConfiguration(configurationNodeState);
-    }
-
-    public DefaultOakSolrProvider(NodeStore store, String path) {
-        this.oakSolrConfiguration = new UpToDateNodeStateConfiguration(store, path);
+    public DefaultOakSolrProvider(SolrServerConfiguration solrServerConfiguration) {
+        this.solrServerConfiguration = solrServerConfiguration;
     }
 
     private SolrServer solrServer;
 
     private SolrServer createSolrServer() throws Exception {
 
-        String solrHomePath = oakSolrConfiguration.getSolrHomePath();
-        String coreName = oakSolrConfiguration.getCoreName();
-        String solrConfigPath = oakSolrConfiguration.getSolrConfigPath();
+        String solrHomePath = solrServerConfiguration.getSolrHomePath();
+        String coreName = solrServerConfiguration.getCoreName();
+        String solrConfigPath = solrServerConfiguration.getSolrConfigPath();
+        SolrServerConfiguration.HttpConfiguration httpConfiguration = solrServerConfiguration.getHttpConfiguration();
+
 
         if (solrConfigPath != null && solrHomePath != null && coreName != null) {
-
             checkSolrConfiguration(solrHomePath, solrConfigPath, coreName);
+            if (httpConfiguration != null) {
+                ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+                Thread.currentThread().setContextClassLoader(JettySolrRunner.class.getClassLoader());
 
-            ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-            Thread.currentThread().setContextClassLoader(CoreContainer.class.getClassLoader());
+                Integer httpPort = httpConfiguration.getHttpPort();
+                String context = httpConfiguration.getContext();
+                try {
+                    JettySolrRunner jettySolrRunner = new JettySolrRunner(solrHomePath, context, httpPort, "solrconfig.xml", "schema.xml", true);
+                    jettySolrRunner.start(true);
+                } finally {
+                    Thread.currentThread().setContextClassLoader(classLoader);
+                }
+                HttpSolrServer httpSolrServer = new HttpSolrServer(new StringBuilder(SolrServerConfigurationDefaults.LOCAL_BASE_URL)
+                        .append(':').append(httpPort).append(coreName).toString());
+                if (OakSolrUtils.checkServerAlive(httpSolrServer)) {
+                    return httpSolrServer;
+                } else {
+                    throw new IOException("the spawn HTTP Solr server is not alive");
+                }
 
-            CoreContainer coreContainer = new CoreContainer(solrHomePath);
-            try {
-                coreContainer.load(solrHomePath, new File(solrConfigPath));
-            } finally {
-                Thread.currentThread().setContextClassLoader(classLoader);
+
+            } else {
+                ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+                Thread.currentThread().setContextClassLoader(CoreContainer.class.getClassLoader());
+
+                CoreContainer coreContainer = new CoreContainer(solrHomePath);
+                try {
+                    coreContainer.load(solrHomePath, new File(solrConfigPath));
+                } finally {
+                    Thread.currentThread().setContextClassLoader(classLoader);
+                }
+
+                EmbeddedSolrServer server = new EmbeddedSolrServer(coreContainer, coreName);
+                if (OakSolrUtils.checkServerAlive(server)) {
+                    return server;
+                } else {
+                    throw new IOException("the embedded Solr server is not alive");
+                }
             }
-
-            return new EmbeddedSolrServer(coreContainer, coreName);
         } else {
             throw new Exception("SolrServer configuration proprties not set");
         }
@@ -157,8 +179,4 @@ public class DefaultOakSolrProvider implements SolrServerProvider, OakSolrConfig
         return solrServer;
     }
 
-    @Override
-    public OakSolrConfiguration getConfiguration() {
-        return oakSolrConfiguration;
-    }
 }

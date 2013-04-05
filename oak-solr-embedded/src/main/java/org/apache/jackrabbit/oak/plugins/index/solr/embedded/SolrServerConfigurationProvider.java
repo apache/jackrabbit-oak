@@ -16,26 +16,16 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.embedded;
 
-import org.apache.jackrabbit.oak.plugins.index.solr.OakSolrConfiguration;
-import org.apache.jackrabbit.oak.plugins.index.solr.OakSolrConfigurationProvider;
-
 /**
- * An {@link OakSolrConfigurationProvider} for the embedded Solr server
+ * {@link org.apache.solr.client.solrj.SolrServer} configuration provider.
  */
-public class EmbeddedSolrConfigurationProvider implements OakSolrConfigurationProvider {
+public interface SolrServerConfigurationProvider {
 
-    private final OakSolrConfiguration embeddedConfiguration;
-
-    public EmbeddedSolrConfigurationProvider() {
-        embeddedConfiguration = new EmbeddedSolrConfiguration();
-    }
-
-    public EmbeddedSolrConfigurationProvider(OakSolrConfiguration embeddedConfiguration) {
-        this.embeddedConfiguration = embeddedConfiguration;
-    }
-
-    @Override
-    public OakSolrConfiguration getConfiguration() {
-        return embeddedConfiguration;
-    }
+    /**
+     * Provide a {@lin SolrServerConfiguration} to be used to initialize a specific
+     * {@link org.apache.solr.client.solrj.SolrServer} implementation.
+     *
+     * @return the {@link SolrServerConfiguration} holding the configuration parameters
+     */
+    public SolrServerConfiguration getSolrServerConfiguration();
 }
