@@ -27,6 +27,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
 import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -275,10 +276,16 @@ public final class ImmutableTree extends ReadOnlyTree {
     // TODO
     public interface TypeProvider {
 
+        // regular trees
         int TYPE_DEFAULT = 1;
+        // version store(s) content
         int TYPE_VERSION = 2;
+        // access control content
         int TYPE_AC = 4;
-        int TYPE_HIDDEN = 8;
+        // node type definition content
+        int TYPE_NODE_TYPE = 8;
+        // hidden trees
+        int TYPE_HIDDEN = 16;
 
         TypeProvider EMPTY = new TypeProvider() {
             @Override
@@ -310,6 +317,9 @@ public final class ImmutableTree extends ReadOnlyTree {
                 case TYPE_HIDDEN:
                     type = TYPE_HIDDEN;
                     break;
+                case TYPE_NODE_TYPE:
+                    type = TYPE_NODE_TYPE;
+                    break;
                 case TYPE_VERSION:
                     type = TYPE_VERSION;
                     break;
@@ -320,6 +330,8 @@ public final class ImmutableTree extends ReadOnlyTree {
                     String name = tree.getName();
                     if (NodeStateUtils.isHidden(name)) {
                         type = TYPE_HIDDEN;
+                    } else if (NodeTypeConstants.JCR_NODE_TYPES.equals(name)) {
+                        type = TYPE_NODE_TYPE;
                     } else if (VersionConstants.VERSION_NODE_NAMES.contains(name) ||
                             VersionConstants.VERSION_NODE_TYPE_NAMES.contains(NodeStateUtils.getPrimaryTypeName(tree.state))) {
                         type = TYPE_VERSION;
