@@ -35,11 +35,11 @@ import org.apache.solr.core.CoreContainer;
  * Default implementation of {@link SolrServerProvider} which uses an
  * {@link EmbeddedSolrServer} configured as per passed {@link SolrServerConfiguration}.
  */
-public class DefaultOakSolrProvider implements SolrServerProvider {
+public class EmbeddedSolrServerProvider implements SolrServerProvider {
 
     private final SolrServerConfiguration solrServerConfiguration;
 
-    public DefaultOakSolrProvider(SolrServerConfiguration solrServerConfiguration) {
+    public EmbeddedSolrServerProvider(SolrServerConfiguration solrServerConfiguration) {
         this.solrServerConfiguration = solrServerConfiguration;
     }
 

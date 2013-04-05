@@ -25,7 +25,7 @@ import org.apache.felix.scr.annotations.Services;
 import org.apache.jackrabbit.oak.plugins.index.solr.OakSolrConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.OakSolrConfigurationProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.SolrServerProvider;
-import org.apache.jackrabbit.oak.plugins.index.solr.embedded.DefaultOakSolrProvider;
+import org.apache.jackrabbit.oak.plugins.index.solr.embedded.EmbeddedSolrServerProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.embedded.EmbeddedSolrConfigurationProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.embedded.SolrServerConfigurationProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.embedded.UpToDateNodeStateConfiguration;
@@ -64,11 +64,11 @@ public class EmbeddedSolrProviderService implements SolrServerProvider, OakSolrC
             // try reading configuration from the configured repository path
             UpToDateNodeStateConfiguration nodeStateConfiguration = new UpToDateNodeStateConfiguration(nodeStore, String.valueOf(
                     context.getProperties().get(CONFIGURATION_PATH)));
-            solrServerProvider = new DefaultOakSolrProvider(nodeStateConfiguration.getSolrServerConfiguration());
+            solrServerProvider = new EmbeddedSolrServerProvider(nodeStateConfiguration.getSolrServerConfiguration());
             oakSolrConfigurationProvider = new EmbeddedSolrConfigurationProvider(nodeStateConfiguration);
         } catch (Exception e) {
             // use the default config and the OSGi based server configuration
-            solrServerProvider = new DefaultOakSolrProvider(solrServerConfigurationProvider.getSolrServerConfiguration());
+            solrServerProvider = new EmbeddedSolrServerProvider(solrServerConfigurationProvider.getSolrServerConfiguration());
             oakSolrConfigurationProvider = new EmbeddedSolrConfigurationProvider();
         }
     }
