@@ -53,8 +53,7 @@ public class ModifiedNodeState extends AbstractNodeState {
         if (properties.isEmpty()) {
             return base;
         } else {
-            return new ModifiedNodeState(
-                    base, properties, ImmutableMap.<String, NodeState>of());
+            return new ModifiedNodeState(base, properties, ImmutableMap.<String, NodeState>of());
         }
     }
 
@@ -63,8 +62,7 @@ public class ModifiedNodeState extends AbstractNodeState {
         if (nodes.isEmpty()) {
             return base;
         } else {
-            return new ModifiedNodeState(
-                    base, ImmutableMap.<String, PropertyState>of(), nodes);
+            return new ModifiedNodeState(base, ImmutableMap.<String, PropertyState>of(), nodes);
         }
     }
 
@@ -84,16 +82,13 @@ public class ModifiedNodeState extends AbstractNodeState {
         if (base instanceof ModifiedNodeState) {
             ModifiedNodeState mbase = collapse((ModifiedNodeState) base);
 
-            Map<String, PropertyState> properties =
-                    Maps.newHashMap(mbase.properties);
+            Map<String, PropertyState> properties = Maps.newHashMap(mbase.properties);
             properties.putAll(state.properties);
 
-            Map<String, NodeState> nodes =
-                    Maps.newHashMap(mbase.nodes);
+            Map<String, NodeState> nodes = Maps.newHashMap(mbase.nodes);
             nodes.putAll(state.nodes);
 
-            return new ModifiedNodeState(
-                    mbase.getBaseState(), properties, nodes);
+            return new ModifiedNodeState(mbase.getBaseState(), properties, nodes);
         } else {
             return state;
         }
@@ -123,12 +118,6 @@ public class ModifiedNodeState extends AbstractNodeState {
         this.base = checkNotNull(base);
         this.properties = checkNotNull(properties);
         this.nodes = checkNotNull(nodes);
-    }
-
-    public ModifiedNodeState(
-            @Nonnull NodeState base,
-            @Nonnull Map<String, ? extends PropertyState> properties) {
-        this(base, properties, ImmutableMap.<String, NodeState>of());
     }
 
     @Nonnull
