@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.annotation.Nonnull;
@@ -229,8 +230,11 @@ public class Oak {
         IndexHookProvider indexHooks = CompositeIndexHookProvider.compose(indexHookProviders);
         OakInitializer.initialize(store, new CompositeInitializer(initializers), indexHooks);
 
-        withEditorHook();
         QueryIndexProvider indexProvider = CompositeQueryIndexProvider.compose(queryIndexProviders);
+
+        List<CommitHook> initHooks = new ArrayList<CommitHook>(commitHooks);
+        initHooks.add(new EditorHook(CompositeEditorProvider
+                .compose(editorProviders)));
 
         // FIXME: move to proper workspace initialization
         // initialize default workspace
@@ -244,10 +248,11 @@ public class Oak {
                         });
         OakInitializer.initialize(workspaceInitializers, store,
                 defaultWorkspaceName, indexHooks, indexProvider,
-                CompositeHook.compose(commitHooks));
+                CompositeHook.compose(initHooks));
 
         // add index hooks later to prevent the OakInitializer to do excessive indexing
-        commitHooks.add(IndexHookManager.of(indexHooks));
+        with(IndexHookManager.of(indexHooks));
+        withEditorHook();
         CommitHook commitHook = CompositeHook.compose(commitHooks);
         return new ContentRepositoryImpl(
                 store,
