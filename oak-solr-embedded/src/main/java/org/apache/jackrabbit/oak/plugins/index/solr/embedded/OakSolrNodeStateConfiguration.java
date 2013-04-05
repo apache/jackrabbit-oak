@@ -99,8 +99,14 @@ public abstract class OakSolrNodeStateConfiguration extends EmbeddedSolrConfigur
 
     @Override
     public SolrServerConfiguration getSolrServerConfiguration() {
-        return new SolrServerConfiguration(getStringValueFor(Properties.SOLRHOME_PATH, SolrServerConfigurationDefaults.SOLR_HOME_PATH),
-                getStringValueFor(Properties.SOLRCONFIG_PATH, SolrServerConfigurationDefaults.SOLR_CONFIG_PATH), getCoreName());
+        String solrHomePath = getStringValueFor(Properties.SOLRHOME_PATH, SolrServerConfigurationDefaults.SOLR_HOME_PATH);
+        String solrConfigPath = getStringValueFor(Properties.SOLRCONFIG_PATH, SolrServerConfigurationDefaults.SOLR_CONFIG_PATH);
+
+        String context = getStringValueFor(Properties.CONTEXT, SolrServerConfigurationDefaults.CONTEXT);
+        Integer httpPort = Integer.valueOf(getStringValueFor(Properties.HTTP_PORT, SolrServerConfigurationDefaults.HTTP_PORT));
+
+        return new SolrServerConfiguration(solrHomePath,
+                solrConfigPath, getCoreName()).withHttpConfiguration(context, httpPort);
     }
 
     /**
@@ -110,6 +116,8 @@ public abstract class OakSolrNodeStateConfiguration extends EmbeddedSolrConfigur
 
         public static final String SOLRHOME_PATH = "solrHomePath";
         public static final String SOLRCONFIG_PATH = "solrConfigPath";
+        public static final String CONTEXT = "solrContext";
+        public static final String HTTP_PORT = "solrContext";
         public static final String CORE_NAME = "coreName";
         public static final String PATH_FIELD = "pathField";
         public static final String PARENT_FIELD = "parentField";

@@ -32,7 +32,8 @@ import org.osgi.service.component.ComponentContext;
 /**
  * An OSGi service {@link SolrServerConfigurationProvider}
  */
-@Component
+@Component(metatype = true,
+        label = "OSGi Solr server configuration provider")
 @Service(value = SolrServerConfigurationProvider.class)
 public class OsgiSolrServerConfigurationProvider implements SolrServerConfigurationProvider {
 
@@ -48,6 +49,9 @@ public class OsgiSolrServerConfigurationProvider implements SolrServerConfigurat
     @Property(value = SolrServerConfigurationDefaults.HTTP_PORT)
     private static final String SOLR_HTTP_PORT = "solr.http.port";
 
+    @Property(value = SolrServerConfigurationDefaults.CONTEXT)
+    private static final String SOLR_CONTEXT = "solr.context";
+
     private static SolrServer solrServer;
 
     private String solrHome;
@@ -55,6 +59,7 @@ public class OsgiSolrServerConfigurationProvider implements SolrServerConfigurat
     private String solrCoreName;
 
     private Integer solrHttpPort;
+    private String solrContext;
 
     private SolrServerConfiguration solrServerConfiguration;
 
@@ -67,12 +72,13 @@ public class OsgiSolrServerConfigurationProvider implements SolrServerConfigurat
             assert file.createNewFile();
         }
         solrConfigFile = String.valueOf(componentContext.getProperties().get(SOLR_CONFIG_FILE));
-        solrCoreName= String.valueOf(componentContext.getProperties().get(SOLR_CORE_NAME));
+        solrCoreName = String.valueOf(componentContext.getProperties().get(SOLR_CORE_NAME));
 
         solrHttpPort = Integer.valueOf(String.valueOf(componentContext.getProperties().get(SOLR_HTTP_PORT)));
-        // TODO : add the possibility to inject solrconfig and schema files
+        solrContext = String.valueOf(componentContext.getProperties().get(SOLR_CONTEXT));
 
-        solrServerConfiguration = new SolrServerConfiguration(solrHome, solrConfigFile, solrCoreName);
+        solrServerConfiguration = new SolrServerConfiguration(solrHome, solrConfigFile, solrCoreName).
+                withHttpConfiguration(solrContext, solrHttpPort);
     }
 
     @Deactivate
@@ -81,6 +87,7 @@ public class OsgiSolrServerConfigurationProvider implements SolrServerConfigurat
         solrHttpPort = null;
         solrConfigFile = null;
         solrCoreName = null;
+        solrContext = null;
         if (solrServer != null) {
             solrServer.shutdown();
             solrServer = null;

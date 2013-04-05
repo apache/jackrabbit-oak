@@ -76,7 +76,10 @@ public class SolrQueryIndex implements QueryIndex {
 
         SolrQuery solrQuery = new SolrQuery();
         solrQuery.setParam("q.op", "AND");
+
+        // TODO : change this to be not hard coded
         solrQuery.setParam("df", "catch_all");
+
         // TODO : can we handle this better?
         solrQuery.setParam("rows", String.valueOf(Integer.MAX_VALUE));
 
