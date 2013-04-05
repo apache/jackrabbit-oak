@@ -28,11 +28,6 @@ import org.apache.jackrabbit.oak.spi.query.Filter;
  */
 public class EmbeddedSolrConfiguration implements OakSolrConfiguration {
 
-    private static final String PATH_FIELD_NAME = "path";
-    private static final String CHILD_FIELD_NAME = "path_child";
-    private static final String DESC_FIELD_NAME = "path_desc";
-    private static final String ANC_FIELD_NAME = "path_anc";
-
     @Override
     public String getFieldNameFor(Type<?> propertyType) {
         if (Type.BINARIES.equals(propertyType) || Type.BINARY.equals(propertyType)) {
@@ -44,7 +39,7 @@ public class EmbeddedSolrConfiguration implements OakSolrConfiguration {
 
     @Override
     public String getPathField() {
-        return PATH_FIELD_NAME;
+        return SolrServerConfigurationDefaults.PATH_FIELD_NAME;
     }
 
     @Override
@@ -52,19 +47,19 @@ public class EmbeddedSolrConfiguration implements OakSolrConfiguration {
         String fieldName = null;
         switch (pathRestriction) {
             case ALL_CHILDREN: {
-                fieldName = DESC_FIELD_NAME;
+                fieldName = SolrServerConfigurationDefaults.DESC_FIELD_NAME;
                 break;
             }
             case DIRECT_CHILDREN: {
-                fieldName = CHILD_FIELD_NAME;
+                fieldName = SolrServerConfigurationDefaults.CHILD_FIELD_NAME;
                 break;
             }
             case EXACT: {
-                fieldName = PATH_FIELD_NAME;
+                fieldName = SolrServerConfigurationDefaults.PATH_FIELD_NAME;
                 break;
             }
             case PARENT: {
-                fieldName = ANC_FIELD_NAME;
+                fieldName = SolrServerConfigurationDefaults.ANC_FIELD_NAME;
                 break;
             }
 
@@ -84,6 +79,6 @@ public class EmbeddedSolrConfiguration implements OakSolrConfiguration {
 
     @Override
     public String getCoreName() {
-        return "oak";
+        return SolrServerConfigurationDefaults.CORE_NAME;
     }
 }

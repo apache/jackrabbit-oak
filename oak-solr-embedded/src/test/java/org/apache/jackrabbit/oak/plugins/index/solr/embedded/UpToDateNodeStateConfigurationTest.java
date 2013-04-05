@@ -13,7 +13,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 
 /**
- * Testcase for {@link org.apache.jackrabbit.oak.plugins.index.solr.server.UpToDateNodeStateConfiguration}
+ * Testcase for {@link UpToDateNodeStateConfiguration}
  */
 public class UpToDateNodeStateConfigurationTest {
 
@@ -40,7 +40,7 @@ public class UpToDateNodeStateConfigurationTest {
     public void testNonExistingPath() throws Exception {
         String path = "some/path/to/oak:index/solrIdx";
         UpToDateNodeStateConfiguration upToDateNodeStateConfiguration = new UpToDateNodeStateConfiguration(store, path);
-        assertNull(upToDateNodeStateConfiguration.getSolrConfigPath());
+        assertNull(upToDateNodeStateConfiguration.getCoreName());
     }
 
     @Test

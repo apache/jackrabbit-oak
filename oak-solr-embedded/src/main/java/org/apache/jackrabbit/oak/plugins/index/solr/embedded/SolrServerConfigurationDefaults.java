@@ -16,26 +16,22 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.embedded;
 
-import org.apache.jackrabbit.oak.plugins.index.solr.OakSolrConfiguration;
-import org.apache.jackrabbit.oak.plugins.index.solr.OakSolrConfigurationProvider;
-
 /**
- * An {@link OakSolrConfigurationProvider} for the embedded Solr server
+ * Defaults for embedded Solr server configurations.
  */
-public class EmbeddedSolrConfigurationProvider implements OakSolrConfigurationProvider {
+public class SolrServerConfigurationDefaults {
 
-    private final OakSolrConfiguration embeddedConfiguration;
+    public static final String SOLR_HOME_PATH = "./";
+    public static final String SOLR_CONFIG_PATH = "./solr.xml";
+    public static final String CORE_NAME = "oak";
 
-    public EmbeddedSolrConfigurationProvider() {
-        embeddedConfiguration = new EmbeddedSolrConfiguration();
-    }
+    public static final String HTTP_PORT = "8983";
+    public static final String LOCAL_BASE_URL = "http://127.0.0.1";
+    public static final String CONTEXT = "/solr";
 
-    public EmbeddedSolrConfigurationProvider(OakSolrConfiguration embeddedConfiguration) {
-        this.embeddedConfiguration = embeddedConfiguration;
-    }
+    public static final String PATH_FIELD_NAME = "path_exact";
+    public static final String CHILD_FIELD_NAME = "path_child";
+    public static final String DESC_FIELD_NAME = "path_desc";
+    public static final String ANC_FIELD_NAME = "path_anc";
 
-    @Override
-    public OakSolrConfiguration getConfiguration() {
-        return embeddedConfiguration;
-    }
 }

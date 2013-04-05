@@ -32,7 +32,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * Subclasses of this should at least provide the {@link org.apache.jackrabbit.oak.spi.state.NodeState} which holds
  * the configuration.
  */
-public abstract class OakSolrNodeStateConfiguration implements OakSolrConfiguration {
+public abstract class OakSolrNodeStateConfiguration extends EmbeddedSolrConfiguration implements OakSolrConfiguration, SolrServerConfigurationProvider {
 
     /**
      * get the {@link org.apache.jackrabbit.oak.spi.state.NodeState} which contains the properties for the Oak -
@@ -43,17 +43,8 @@ public abstract class OakSolrNodeStateConfiguration implements OakSolrConfigurat
     protected abstract NodeState getConfigurationNodeState();
 
     @Override
-    public String getFieldNameFor(Type<?> propertyType) {
-        if (Type.BINARIES.equals(propertyType) || Type.BINARY.equals(propertyType)) {
-            // TODO : use Tika / SolrCell here
-            return propertyType.toString() + "_bin";
-        }
-        return null;
-    }
-
-    @Override
     public String getPathField() {
-        return getStringValueFor(Properties.PATH_FIELD, "path_exact");
+        return getStringValueFor(Properties.PATH_FIELD, SolrServerConfigurationDefaults.PATH_FIELD_NAME);
     }
 
     @Override
@@ -61,19 +52,19 @@ public abstract class OakSolrNodeStateConfiguration implements OakSolrConfigurat
         String fieldName = null;
         switch (pathRestriction) {
             case ALL_CHILDREN: {
-                fieldName = getStringValueFor(Properties.DESCENDANTS_FIELD, "path_des");
+                fieldName = getStringValueFor(Properties.DESCENDANTS_FIELD, SolrServerConfigurationDefaults.DESC_FIELD_NAME);
                 break;
             }
             case DIRECT_CHILDREN: {
-                fieldName = getStringValueFor(Properties.CHILDREN_FIELD, "path_child");
+                fieldName = getStringValueFor(Properties.CHILDREN_FIELD, SolrServerConfigurationDefaults.CHILD_FIELD_NAME);
                 break;
             }
             case EXACT: {
-                fieldName = getStringValueFor(Properties.PATH_FIELD, "path_exact");
+                fieldName = getStringValueFor(Properties.PATH_FIELD, SolrServerConfigurationDefaults.PATH_FIELD_NAME);
                 break;
             }
             case PARENT: {
-                fieldName = getStringValueFor(Properties.PARENT_FIELD, "path_anc");
+                fieldName = getStringValueFor(Properties.PARENT_FIELD, SolrServerConfigurationDefaults.ANC_FIELD_NAME);
                 break;
             }
 
@@ -82,26 +73,13 @@ public abstract class OakSolrNodeStateConfiguration implements OakSolrConfigurat
     }
 
     @Override
-    public String getFieldForPropertyRestriction(Filter.PropertyRestriction propertyRestriction) {
-        return null;
-    }
-
-    @Override
     public CommitPolicy getCommitPolicy() {
-        return CommitPolicy.valueOf(getStringValueFor(Properties.COMMIT_POLICY, CommitPolicy.HARD.toString()));
-    }
-
-    public String getSolrHomePath() {
-        return getStringValueFor(Properties.SOLRHOME_PATH, "./");
-    }
-
-    public String getSolrConfigPath() {
-        return getStringValueFor(Properties.SOLRCONFIG_PATH, "./solr.xml");
+        return CommitPolicy.valueOf(getStringValueFor(Properties.COMMIT_POLICY, CommitPolicy.SOFT.toString()));
     }
 
     @Override
     public String getCoreName() {
-        return getStringValueFor(Properties.CORE_NAME, "oak");
+        return getStringValueFor(Properties.CORE_NAME, SolrServerConfigurationDefaults.CORE_NAME);
     }
 
     protected String getStringValueFor(String propertyName, String defaultValue) {
@@ -117,6 +95,12 @@ public abstract class OakSolrNodeStateConfiguration implements OakSolrConfigurat
             }
         }
         return value;
+    }
+
+    @Override
+    public SolrServerConfiguration getSolrServerConfiguration() {
+        return new SolrServerConfiguration(getStringValueFor(Properties.SOLRHOME_PATH, SolrServerConfigurationDefaults.SOLR_HOME_PATH),
+                getStringValueFor(Properties.SOLRCONFIG_PATH, SolrServerConfigurationDefaults.SOLR_CONFIG_PATH), getCoreName());
     }
 
     /**
