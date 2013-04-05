@@ -18,6 +18,8 @@ package org.apache.jackrabbit.oak.plugins.index.p2.strategy;
 
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
+import java.util.Collections;
+
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -50,7 +52,7 @@ public class ContentMirrorStoreStrategyTest {
         NodeState root = EMPTY_NODE;
         NodeBuilder index = root.builder();
 
-        store.insert(index, "key", false,
+        store.insert(index, "key",
                 Sets.newHashSet("/", "a/b/c", "a/b/d", "b", "d/e", "d/e/f"));
         checkPath(index, "key", "", true);
         checkPath(index, "key", "a/b/c", true);
@@ -77,7 +79,7 @@ public class ContentMirrorStoreStrategyTest {
         checkPath(index, "key", "a/b/c", true);
 
         // reinsert root and remove everything else
-        store.insert(index, "key", false, Sets.newHashSet("/"));
+        store.insert(index, "key", Sets.newHashSet("/"));
         store.remove(index, "key", Sets.newHashSet("d/e/f", "b", "a/b/c"));
 
         // remove the root key when the index is empty
@@ -113,17 +115,15 @@ public class ContentMirrorStoreStrategyTest {
     }
 
     @Test
-    public void testUnique() {
+    public void testUnique() throws CommitFailedException {
         IndexStoreStrategy store = new ContentMirrorStoreStrategy();
         NodeState root = EMPTY_NODE;
         NodeBuilder index = root.builder();
-        try {
-            store.insert(index, "key", true, Sets.newHashSet("a"));
-            store.insert(index, "key", true, Sets.newHashSet("a"));
-            Assert.fail("ContentMirrorStoreStrategy should guarantee uniqueness on insert");
-        } catch (CommitFailedException e) {
-            // expected
-        }
+        store.insert(index, "key", Sets.newHashSet("a"));
+        store.insert(index, "key", Sets.newHashSet("b"));
+        Assert.assertTrue(
+                "ContentMirrorStoreStrategy should guarantee uniqueness on insert",
+                store.count(index.getNodeState(), Collections.singletonList("key"), 2) > 1);
     }
 
 }
