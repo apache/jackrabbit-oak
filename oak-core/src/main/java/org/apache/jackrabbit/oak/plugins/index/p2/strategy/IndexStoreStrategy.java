@@ -45,13 +45,11 @@ public interface IndexStoreStrategy {
      * 
      * @param index the index node
      * @param key the index key
-     * @param unique if the index is defined as unique
-     * <b>Note:</b> If the uniqueness constraint is broken, the method will throw a <code>CommitFailedException</code>
      * @param values the values to be added to the given key
      * @throws CommitFailedException
      */
-    void insert(NodeBuilder index, String key, boolean unique,
-            Iterable<String> values) throws CommitFailedException;
+    void insert(NodeBuilder index, String key, Iterable<String> values)
+            throws CommitFailedException;
     
     /**
      * Search for a given set of values.

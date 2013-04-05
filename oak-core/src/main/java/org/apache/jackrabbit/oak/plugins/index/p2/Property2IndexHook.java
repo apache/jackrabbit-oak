@@ -47,6 +47,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 
 /**
  * {@link IndexHook} implementation that is responsible for keeping the
@@ -85,6 +86,8 @@ class Property2IndexHook implements IndexHook, Closeable {
      * The path of the changed node (built lazily).
      */
     private String path;
+
+    private final List<Property2IndexHookUpdate> updates = Lists.newArrayList();
 
     /**
      * The map of known indexes. Key: the property name. Value: the list of
@@ -199,9 +202,11 @@ class Property2IndexHook implements IndexHook, Closeable {
                 }
             }
             if (!exists) {
-                list.add(new Property2IndexHookUpdate(getPath(), node.child(
-                        INDEX_DEFINITIONS_NAME).child(indexName), store,
-                        typeNames));
+                Property2IndexHookUpdate update = new Property2IndexHookUpdate(
+                        getPath(), node.child(INDEX_DEFINITIONS_NAME).child(indexName),
+                        store, typeNames);
+                list.add(update);
+                updates.add(update);
             }
         }
     }
@@ -236,6 +241,9 @@ class Property2IndexHook implements IndexHook, Closeable {
     @Override
     public void leave(NodeState before, NodeState after)
             throws CommitFailedException {
+        for (Property2IndexHookUpdate update : updates) {
+            update.checkUniqueKeys();
+        }
     }
 
     @Override

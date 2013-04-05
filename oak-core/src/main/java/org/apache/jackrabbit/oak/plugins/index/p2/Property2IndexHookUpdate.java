@@ -19,7 +19,9 @@ package org.apache.jackrabbit.oak.plugins.index.p2;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.p2.Property2Index.encode;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 import javax.jcr.PropertyType;
 
@@ -29,9 +31,11 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.p2.strategy.IndexStoreStrategy;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 
 /**
  * Takes care of applying the updates to the index content.
@@ -63,6 +67,8 @@ class Property2IndexHookUpdate {
     private final NodeBuilder index;
 
     private final boolean unique;
+
+    private final Set<String> modifiedKeys = Sets.newHashSet();
 
     public Property2IndexHookUpdate(String path, NodeBuilder node,
             IndexStoreStrategy store, List<String> nodeTypeNames) {
@@ -98,7 +104,8 @@ class Property2IndexHookUpdate {
             return;
         }
         for (String key : encode(PropertyValues.create(value))) {
-            store.insert(index, key, unique, ImmutableSet.of(trimm(path)));
+            store.insert(index, key, ImmutableSet.of(trimm(path)));
+            modifiedKeys.add(key);
         }
     }
 
@@ -118,6 +125,19 @@ class Property2IndexHookUpdate {
         }
         for (String key : encode(PropertyValues.create(value))) {
             store.remove(index, key, ImmutableSet.of(trimm(path)));
+            modifiedKeys.add(key);
+        }
+    }
+
+    public void checkUniqueKeys() throws CommitFailedException {
+        if (unique && !modifiedKeys.isEmpty()) {
+            NodeState state = index.getNodeState();
+            for (String key : modifiedKeys) {
+                if (store.count(state, Collections.singletonList(key), 2) > 1) {
+                    throw new CommitFailedException(
+                            "Uniqueness constraint violated for key " + key);
+                }
+            }
         }
     }
 
