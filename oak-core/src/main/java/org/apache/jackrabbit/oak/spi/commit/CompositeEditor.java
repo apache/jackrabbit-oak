@@ -37,7 +37,7 @@ import javax.annotation.Nonnull;
 public class CompositeEditor implements Editor {
 
     @CheckForNull
-    public static Editor compose(@Nonnull Collection<Editor> editors) {
+    public static Editor compose(@Nonnull Collection<? extends Editor> editors) {
         checkNotNull(editors);
         switch (editors.size()) {
         case 0:

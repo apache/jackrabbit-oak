@@ -34,8 +34,6 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexHook;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
-import org.apache.jackrabbit.oak.spi.commit.EditorHook;
-import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
@@ -206,7 +204,7 @@ public class LuceneIndexDiff implements IndexHook, Closeable {
     }
 
     @Override
-    public void reindex(NodeState state) throws CommitFailedException {
+    public Editor reindex(NodeState state) {
         boolean reindex = false;
         for (LuceneIndexUpdate update : updates.values()) {
             if (update.getAndResetReindexFlag()) {
@@ -214,16 +212,9 @@ public class LuceneIndexDiff implements IndexHook, Closeable {
             }
         }
         if (reindex) {
-            EditorProvider provider = new EditorProvider() {
-                @Override
-                public Editor getRootEditor(NodeState before, NodeState after,
-                        NodeBuilder builder) {
-                    return new LuceneIndexDiff(node);
-                }
-            };
-            EditorHook eh = new EditorHook(provider);
-            eh.processCommit(EMPTY_NODE, state);
+            return new LuceneIndexDiff(node);
         }
+        return null;
     }
 
     // -----------------------------------------------------< Closeable >--

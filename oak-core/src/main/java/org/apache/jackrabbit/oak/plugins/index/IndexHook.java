@@ -16,27 +16,40 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
+import javax.annotation.CheckForNull;
+
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
  * Represents the content of a QueryIndex as well as a mechanism for keeping
- * this content up to date.
- * <br>
+ * this content up to date. <br>
  * An IndexHook listens for changes to the content and updates the index data
  * accordingly.
  */
 public interface IndexHook extends Editor {
 
     /**
-     * Re-create this index using the given state
+     * Return an editor that can be used to recreate this index, or
+     * <code>null</code> if reindexing is not required or is taken care of by
+     * the impl directly using the provided state as a reference <br>
+     * <br>
+     * By providing an Editor an impl could help the IndexManager gain some
+     * performance on account of doing the reindexing in parallel for all
+     * indexers <br>
+     * <br>
+     * <i>Note:</i> All the existing IndexHook impls require a call to
+     * {@link #enter(NodeState, NodeState)} to build initial state before
+     * calling {@link #reindex(NodeState)}, this is enforced via the
+     * IndexManager.
      * 
      * @param state
-     *            the parent of the node "oak:index" (the node that contains the
-     *            index definition)
-     * @throws CommitFailedException
+     *            state can be used to reindex inside the IndexHook directly,
+     *            instead of providing an Editor
+     * 
      */
-    void reindex(NodeState state) throws CommitFailedException;
+    @CheckForNull
+    Editor reindex(NodeState state) throws CommitFailedException;
 
 }
