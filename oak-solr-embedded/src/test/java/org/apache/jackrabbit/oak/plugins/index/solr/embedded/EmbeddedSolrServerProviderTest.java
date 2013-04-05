@@ -22,16 +22,16 @@ import org.junit.Test;
 import static org.junit.Assert.assertNotNull;
 
 /**
- * Testcase for {@link DefaultOakSolrProvider}
+ * Testcase for {@link EmbeddedSolrServerProvider}
  */
-public class DefaultOakSolrProviderTest {
+public class EmbeddedSolrServerProviderTest {
 
     @Test
     public void testSolrServerInitialization() throws Exception {
         SolrServerConfiguration solrServerConfiguration = new SolrServerConfiguration("target/solr",
                 "target/solr/solr.xml", "oak");
-        DefaultOakSolrProvider defaultOakSolrProvider = new DefaultOakSolrProvider(solrServerConfiguration);
-        SolrServer solrServer = defaultOakSolrProvider.getSolrServer();
+        EmbeddedSolrServerProvider embeddedSolrServerProvider = new EmbeddedSolrServerProvider(solrServerConfiguration);
+        SolrServer solrServer = embeddedSolrServerProvider.getSolrServer();
         assertNotNull(solrServer);
     }
 
