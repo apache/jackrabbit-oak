@@ -35,7 +35,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState.with;
 import static org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState.withNodes;
 import static org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState.withProperties;
