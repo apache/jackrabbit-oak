@@ -104,6 +104,7 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
 
     @Override
     public ReadStatus getReadStatus(@Nonnull Tree tree, @Nullable PropertyState property) {
+        // TODO: OAK-753 decide on where to filter out hidden items.
         if (isHidden(tree, property)) {
             return ReadStatus.DENY_ALL;
         } else if (isAccessControlContent(tree) && canReadAccessControlContent(tree, property)) {
@@ -126,7 +127,8 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
         if (isVersionContent(tree)) {
             TreeLocation location = getVersionableLocation(tree, property);
             if (location == null) {
-                return false;
+                // TODO: review permission evaluation on hierarchy nodes within the different version stores.
+                return compiledPermissions.isGranted(tree, property, permissions);
             }
             Tree versionableTree = (property == null) ? location.getTree() : location.getParent().getTree();
             if (versionableTree != null) {
@@ -222,7 +224,8 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
                 status = compiledPermissions.getReadStatus(tree, property);
             }
         } else {
-            status = ReadStatus.DENY_THIS;
+            // TODO: review access on hierarchy nodes within the different version stores.
+            status = compiledPermissions.getReadStatus(versionStoreTree, property);
         }
         return status;
     }
@@ -249,7 +252,7 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
         }
 
         if (versionablePath == null || versionablePath.length() == 0) {
-            log.warn("Unable to determine path of the version controlled node.");
+            log.warn("Unable to determine versionable path of the version store node.");
             return null;
         } else {
             return getImmutableRoot().getLocation(versionablePath);
