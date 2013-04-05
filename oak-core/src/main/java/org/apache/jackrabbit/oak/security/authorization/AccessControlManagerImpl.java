@@ -213,7 +213,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
         checkValidPolicy(oakPath, policy);
 
         if (policy instanceof PrincipalACL) {
-            // TODO
+            // TODO : OAK-758
             throw new RepositoryException("not yet implemented");
         } else {
             Tree tree = getTree(oakPath, Permissions.MODIFY_ACCESS_CONTROL);
@@ -258,7 +258,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
         checkValidPolicy(oakPath, policy);
 
         if (policy instanceof PrincipalACL) {
-            // TODO
+            // TODO : OAK-758
             throw new RepositoryException("not yet implemented");
         } else {
             Tree tree = getTree(oakPath, Permissions.MODIFY_ACCESS_CONTROL);
@@ -532,7 +532,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
 
     @Nonnull
     private Privilege[] getPrivileges(@Nullable String absPath, @Nullable PermissionProvider provider) throws RepositoryException {
-        // TODO
+        // TODO : OAK-707
         if (provider == null) {
             throw new UnsupportedRepositoryOperationException();
         }
@@ -552,7 +552,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
 
     private boolean hasPrivileges(@Nullable String absPath, @Nonnull Privilege[] privileges,
                                   @Nullable PermissionProvider provider) throws RepositoryException {
-        // TODO
+        // TODO : OAK-707
         if (provider == null) {
             throw new UnsupportedRepositoryOperationException();
         }
