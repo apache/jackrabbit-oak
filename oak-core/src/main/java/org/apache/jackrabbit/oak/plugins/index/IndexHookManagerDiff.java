@@ -22,6 +22,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFIN
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_UNKNOWN;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 import java.util.HashSet;
 import java.util.List;
@@ -33,9 +34,11 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.commit.CompositeEditor;
 import org.apache.jackrabbit.oak.spi.commit.DefaultEditor;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
+import org.apache.jackrabbit.oak.spi.commit.EditorHook;
+import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
+import org.apache.jackrabbit.oak.spi.commit.VisibleEditor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 
 import com.google.common.collect.Lists;
 
@@ -101,15 +104,41 @@ class IndexHookManagerDiff implements Editor {
                     hooks.addAll(hooksTmp);
                 }
             }
-            for (IndexHook ih : reindex) {
-                ih.enter(before, after);
-                ih.reindex(ref);
-            }
+            reindex(reindex, ref);
             if (!hooks.isEmpty()) {
-                this.inner = new CompositeEditor(hooks);
+                this.inner = VisibleEditor.wrap(CompositeEditor.compose(hooks));
                 this.inner.enter(before, after);
             }
         }
+    }
+
+    private void reindex(List<IndexHook> hooks, NodeState state)
+            throws CommitFailedException {
+        if (hooks.isEmpty()) {
+            return;
+        }
+        List<Editor> editors = Lists.newArrayList();
+        for (IndexHook ih : hooks) {
+            ih.enter(EMPTY_NODE, state);
+            Editor e = ih.reindex(state);
+            if (e != null) {
+                editors.add(e);
+            }
+        }
+        final Editor reindexer = VisibleEditor.wrap(CompositeEditor
+                .compose(editors));
+        if (reindexer == null) {
+            return;
+        }
+        EditorProvider provider = new EditorProvider() {
+            @Override
+            public Editor getRootEditor(NodeState before, NodeState after,
+                    NodeBuilder builder) {
+                return reindexer;
+            }
+        };
+        EditorHook eh = new EditorHook(provider);
+        eh.processCommit(EMPTY_NODE, state);
     }
 
     @Override
@@ -143,27 +172,18 @@ class IndexHookManagerDiff implements Editor {
     @Override
     public Editor childNodeAdded(String name, NodeState after)
             throws CommitFailedException {
-        if (NodeStateUtils.isHidden(name)) {
-            return null;
-        }
         return inner.childNodeAdded(name, after);
     }
 
     @Override
     public Editor childNodeChanged(String name, NodeState before,
             NodeState after) throws CommitFailedException {
-        if (NodeStateUtils.isHidden(name)) {
-            return null;
-        }
         return inner.childNodeChanged(name, before, after);
     }
 
     @Override
     public Editor childNodeDeleted(String name, NodeState before)
             throws CommitFailedException {
-        if (NodeStateUtils.isHidden(name)) {
-            return null;
-        }
         return inner.childNodeDeleted(name, before);
     }
 

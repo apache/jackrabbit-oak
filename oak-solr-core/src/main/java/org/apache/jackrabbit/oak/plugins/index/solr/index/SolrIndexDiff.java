@@ -28,8 +28,6 @@ import org.apache.jackrabbit.oak.plugins.index.IndexHook;
 import org.apache.jackrabbit.oak.plugins.index.solr.OakSolrConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.query.SolrQueryIndex;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
-import org.apache.jackrabbit.oak.spi.commit.EditorHook;
-import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
@@ -204,7 +202,7 @@ public class SolrIndexDiff implements IndexHook, Closeable {
     }
 
     @Override
-    public void reindex(NodeState state) throws CommitFailedException {
+    public Editor reindex(NodeState state) {
         boolean reindex = false;
         for (SolrIndexUpdate update : updates.values()) {
             if (update.getAndResetReindexFlag()) {
@@ -212,16 +210,9 @@ public class SolrIndexDiff implements IndexHook, Closeable {
             }
         }
         if (reindex) {
-            EditorProvider provider = new EditorProvider() {
-                @Override
-                public Editor getRootEditor(NodeState before, NodeState after,
-                        NodeBuilder builder) {
-                    return new SolrIndexDiff(node, solrServer, configuration);
-                }
-            };
-            EditorHook eh = new EditorHook(provider);
-            eh.processCommit(EMPTY_NODE, state);
+            return new SolrIndexDiff(node, solrServer, configuration);
         }
+        return null;
     }
 
     @Override

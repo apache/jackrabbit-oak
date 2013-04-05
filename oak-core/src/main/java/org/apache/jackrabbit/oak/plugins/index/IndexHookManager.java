@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.index;
 
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
+import org.apache.jackrabbit.oak.spi.commit.VisibleEditor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -44,6 +45,6 @@ public class IndexHookManager implements EditorProvider {
     @Override
     public Editor getRootEditor(NodeState before, NodeState after,
             NodeBuilder builder) {
-        return new IndexHookManagerDiff(provider, builder);
+        return VisibleEditor.wrap(new IndexHookManagerDiff(provider, builder));
     }
 }
