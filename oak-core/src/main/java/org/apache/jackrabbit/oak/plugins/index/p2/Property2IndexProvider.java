@@ -20,6 +20,8 @@ import java.util.List;
 
 import javax.annotation.Nonnull;
 
+import org.apache.felix.scr.annotations.Component;
+import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -35,6 +37,8 @@ import com.google.common.collect.ImmutableList;
  * @see Property2Index
  * 
  */
+@Component
+@Service(QueryIndexProvider.class)
 public class Property2IndexProvider implements QueryIndexProvider {
 
     @Override @Nonnull
