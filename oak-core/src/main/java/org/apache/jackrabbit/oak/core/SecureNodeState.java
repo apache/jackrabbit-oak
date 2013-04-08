@@ -24,7 +24,6 @@ import javax.annotation.Nonnull;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
@@ -64,15 +63,52 @@ public class SecureNodeState extends AbstractNodeState {
     /**
      * Predicate for testing whether a given property is readable.
      */
-    private final Predicate<PropertyState> isPropertyReadable =
-            new Predicate<PropertyState>() {
-                @Override
-                public boolean apply(@Nonnull PropertyState property) {
-                    ReadStatus status =
-                            permissionProvider.getReadStatus(base, property);
-                    return status.isAllow();
-                }
-            };
+    private final Predicate<PropertyState> isPropertyReadable = new Predicate<PropertyState>() {
+        @Override
+        public boolean apply(@Nonnull PropertyState property) {
+            ReadStatus status =
+                    permissionProvider.getReadStatus(base, property);
+            return status.isAllow();
+        }
+    };
+
+    /**
+     * Predicate for testing whether the node state in a child node entry
+     * is iterable.
+     */
+    private final Predicate<ChildNodeEntry> isIterableNode = new Predicate<ChildNodeEntry>() {
+        @Override
+        public boolean apply(@Nonnull ChildNodeEntry input) {
+            return input.getNodeState().exists();
+        }
+    };
+
+   /**
+    * Function that that adds a security wrapper to node states from
+    * in child node entries. The {@link #isIterableNode} predicate should be
+    * used on the result to filter out non-existing/iterable child nodes.
+    * <p>
+    * Note that the SecureNodeState wrapper is needed only when the child
+    * or any of its descendants has read access restrictions. Otherwise
+    * we can optimize access by skipping the security wrapper entirely.
+    */
+    private final Function<ChildNodeEntry, ChildNodeEntry> wrapChildNodeEntry = new Function<ChildNodeEntry, ChildNodeEntry>() {
+        @Override
+        public ChildNodeEntry apply(@Nonnull ChildNodeEntry input) {
+            String name = input.getName();
+            NodeState child = input.getNodeState();
+            SecureNodeState secure = new SecureNodeState(
+                    SecureNodeState.this, name, child);
+            if (!secure.readStatus.includes(ReadStatus.ALLOW_ALL)
+                    || child.getChildNodeCount() > 0) {
+                // secure wrapper is needed
+                return new MemoryChildNodeEntry(name, secure);
+            } else {
+                return input;
+            }
+        }
+    };
+
 
     private long childNodeCount = -1;
 
@@ -93,11 +129,15 @@ public class SecureNodeState extends AbstractNodeState {
         this.state = checkNotNull(nodeState);
         this.base = new ImmutableTree(parent.base, name, nodeState);
         this.permissionProvider = parent.permissionProvider;
+
+        ReadStatus status = null;
         if (base.getType() == parent.base.getType()) {
-            this.readStatus = ReadStatus.getChildStatus(parent.readStatus);
-        } else {
-            this.readStatus = permissionProvider.getReadStatus(base, null);
+            status = ReadStatus.getChildStatus(parent.readStatus);
         }
+        if (status == null) {
+            status = permissionProvider.getReadStatus(base, null);
+        }
+        this.readStatus = status;
     }
 
     @Override
@@ -112,6 +152,7 @@ public class SecureNodeState extends AbstractNodeState {
                 && !readStatus.includes(ReadStatus.ALLOW_PROPERTIES)) {
             if (!readStatus.appliesToThis()
                     || isPropertyReadable.apply(property)) {
+                // this property is not readable
                 property = null;
             }
         }
@@ -122,11 +163,14 @@ public class SecureNodeState extends AbstractNodeState {
     public synchronized long getPropertyCount() {
         if (propertyCount == -1) {
             if (readStatus.includes(ReadStatus.ALLOW_PROPERTIES)) {
+                // all properties are readable
                 propertyCount = state.getPropertyCount();
             } else if (readStatus.includes(ReadStatus.DENY_PROPERTIES)
                     || !readStatus.appliesToThis()) {
+                // no properties are readable
                 propertyCount = 0;
             } else {
+                // some properties are readable
                 propertyCount = count(Iterables.filter(
                         state.getProperties(), isPropertyReadable));
             }
@@ -138,35 +182,28 @@ public class SecureNodeState extends AbstractNodeState {
     @Override
     public Iterable<? extends PropertyState> getProperties() {
         if (readStatus.includes(ReadStatus.ALLOW_PROPERTIES)) {
+            // all properties are readable
             return state.getProperties();
         } else if (readStatus.includes(ReadStatus.DENY_PROPERTIES)
                 || !readStatus.appliesToThis()) {
+            // no properties are readable
             return Collections.emptySet();
         } else {
+            // some properties are readable
             return Iterables.filter(
                     state.getProperties(), isPropertyReadable);
         }
     }
 
     @Override
-    public boolean hasChildNode(@Nonnull String name) {
-        return getChildNode(name).exists();
-    }
-
-    @Override
     public NodeState getChildNode(@Nonnull String name) {
-        NodeState child = state.getChildNode(name);
+        NodeState child = state.getChildNode(checkNotNull(name));
         if (child.exists()) {
-            SecureNodeState secure = new SecureNodeState(this, name, child);
-            if (!secure.readStatus.includes(ReadStatus.ALLOW_ALL)
-                    || child.getChildNodeCount() > 0) {
-                // The SecureNodeState wrapper is needed if the child node
-                // 1) exists, 2) has access restrictions, or 3) contains
-                // descendants whose access control status isn't yet known
-                child = secure;
-            }
+            ChildNodeEntry entry = new MemoryChildNodeEntry(name, child);
+            return  wrapChildNodeEntry.apply(entry).getNodeState();
+        } else {
+            return child;
         }
-        return child;
     }
 
     @Override
@@ -186,9 +223,8 @@ public class SecureNodeState extends AbstractNodeState {
             // TODO: review if ALLOW_CHILDREN could be used as well although we
             // don't know the type of all child-nodes where ac node would need special treatment
             Iterable<ChildNodeEntry> readable = Iterables.transform(
-                    state.getChildNodeEntries(),
-                    new ReadableChildNodeEntries());
-            return Iterables.filter(readable, Predicates.notNull());
+                    state.getChildNodeEntries(), wrapChildNodeEntry);
+            return Iterables.filter(readable, isIterableNode);
         }
     }
 
@@ -202,21 +238,6 @@ public class SecureNodeState extends AbstractNodeState {
     public void compareAgainstBaseState(NodeState base, NodeStateDiff diff) {
         // FIXME: should not bypass access controls
         state.compareAgainstBaseState(base, diff);
-    }
-
-    //--------------------------------------------------------------------------
-
-    private class ReadableChildNodeEntries implements Function<ChildNodeEntry, ChildNodeEntry> {
-        @Override
-        public ChildNodeEntry apply(ChildNodeEntry input) {
-            String name = input.getName();
-            NodeState child = new SecureNodeState(SecureNodeState.this, name, input.getNodeState());
-            if (child.exists()) {
-                return new MemoryChildNodeEntry(name, child);
-            } else {
-                return null;
-            }
-        }
     }
 
     //-------------------------------------------------------------< Object >---

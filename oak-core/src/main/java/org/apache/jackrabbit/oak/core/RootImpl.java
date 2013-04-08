@@ -137,7 +137,7 @@ public class RootImpl implements Root {
         branch = this.store.branch();
         secureHead = new SecureNodeState(
                 branch.getHead(), getPermissionProvider(), getTypeProvider());
-        rootTree = new TreeImpl(this, lastMove);
+        rootTree = new TreeImpl(this, secureHead.builder(), lastMove);
     }
 
     // TODO: review if these constructors really make sense and cannot be replaced.
@@ -397,11 +397,6 @@ public class RootImpl implements Root {
     @Nonnull
     NodeState getBaseState() {
         return branch.getBase();
-    }
-
-    @Nonnull
-    NodeBuilder createRootBuilder() {
-        return secureHead.builder();
     }
 
     // TODO better way to determine purge limit. See OAK-175
