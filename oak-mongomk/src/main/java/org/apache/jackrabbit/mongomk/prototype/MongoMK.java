@@ -1250,7 +1250,7 @@ public class MongoMK implements MicroKernel {
         
         private DocumentStore documentStore;
         private BlobStore blobStore;
-        private int clusterId;
+        private int clusterId  = Integer.getInteger("oak.mongoMK.clusterId", 0);
         private int asyncDelay = 1000;
 
         /**
