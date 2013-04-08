@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.spi.state;
+package org.apache.jackrabbit.oak.core;
 
 import java.util.Collections;
 import javax.annotation.CheckForNull;
@@ -25,11 +25,15 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.ReadStatus;
+import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
+import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 
 /**
  * SecureNodeState...
@@ -38,6 +42,7 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.ReadStatu
  * TODO: add proper implementation for getPropertyCount and getChildrenCount
  * TODO: clarify usage of ReadStatus in getChildNodeEntries
  * TODO: add proper equals/hashcode implementation
+ * TODO: should be package-private
  */
 public class SecureNodeState extends AbstractNodeState {
 
