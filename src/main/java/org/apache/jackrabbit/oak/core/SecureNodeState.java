@@ -41,7 +41,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
  * SecureNodeState...
  *
  * TODO: clarify if HIDDEN items should be filtered by this NodeState implementation
- * TODO: add proper implementation for getPropertyCount and getChildrenCount
  * TODO: clarify usage of ReadStatus in getChildNodeEntries
  * TODO: add proper equals/hashcode implementation
  * TODO: should be package-private
@@ -61,6 +60,8 @@ public class SecureNodeState extends AbstractNodeState {
     private final PermissionProvider permissionProvider;
 
     private ReadStatus readStatus;
+    private long childNodeCount = -1;
+    private long propertyCount = -1;
 
     public SecureNodeState(@Nonnull NodeState rootState,
                            @Nonnull PermissionProvider permissionProvider,
@@ -99,8 +100,10 @@ public class SecureNodeState extends AbstractNodeState {
 
     @Override
     public long getPropertyCount() {
-        // TODO: make sure cnt respects read permissions (OAK-708)
-        return state.getPropertyCount();
+        if (propertyCount == -1){
+            propertyCount = super.getPropertyCount();
+        }
+        return propertyCount;
     }
 
     @Nonnull
@@ -136,8 +139,10 @@ public class SecureNodeState extends AbstractNodeState {
 
     @Override
     public long getChildNodeCount() {
-        // TODO: make sure cnt respects read permissions (OAK-708)
-        return state.getChildNodeCount();
+        if (childNodeCount == -1) {
+            childNodeCount = super.getChildNodeCount();
+        }
+        return childNodeCount;
     }
 
     @Override
