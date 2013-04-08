@@ -234,7 +234,7 @@ public abstract class AbstractNodeState implements NodeState {
 
     //-----------------------------------------------------------< private >--
 
-    private static long count(Iterable<?> iterable) {
+    protected static long count(Iterable<?> iterable) {
         long n = 0;
         Iterator<?> iterator = iterable.iterator();
         while (iterator.hasNext()) {
