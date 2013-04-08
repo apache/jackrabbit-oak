@@ -79,10 +79,10 @@ public class TreeImpl implements Tree {
     /** Pointer into the list of pending moves */
     private Move pendingMoves;
 
-    TreeImpl(RootImpl root, Move pendingMoves) {
+    TreeImpl(RootImpl root, NodeBuilder builder, Move pendingMoves) {
         this.root = checkNotNull(root);
         this.name = "";
-        this.nodeBuilder = root.createRootBuilder();
+        this.nodeBuilder = checkNotNull(builder);
         this.pendingMoves = checkNotNull(pendingMoves);
     }
 
