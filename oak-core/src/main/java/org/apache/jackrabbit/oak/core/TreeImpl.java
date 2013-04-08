@@ -90,7 +90,7 @@ public class TreeImpl implements Tree {
         this.root = checkNotNull(root);
         this.parent = checkNotNull(parent);
         this.name = checkNotNull(name);
-        this.nodeBuilder = parent.getNodeBuilder().child(name);
+        this.nodeBuilder = parent.nodeBuilder.child(name);
         this.pendingMoves = checkNotNull(pendingMoves);
     }
 
@@ -405,11 +405,6 @@ public class TreeImpl implements Tree {
     }
 
     //-----------------------------------------------------------< internal >---
-
-    @Nonnull
-    NodeBuilder getNodeBuilder() {
-        return nodeBuilder;
-    }
 
     /**
      * The (possibly non-existent) node state this tree is based on.

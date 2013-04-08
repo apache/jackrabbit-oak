@@ -58,6 +58,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
+import org.apache.jackrabbit.oak.spi.state.RebaseDiff;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -97,6 +98,8 @@ public class RootImpl implements Root {
      */
     private NodeStoreBranch branch;
 
+    private NodeState secureHead;
+
     /** Sentinel for the next move operation to take place on the this root */
     private Move lastMove = new Move();
 
@@ -132,6 +135,8 @@ public class RootImpl implements Root {
         this.indexProvider = indexProvider;
 
         branch = this.store.branch();
+        secureHead = new SecureNodeState(
+                branch.getHead(), getPermissionProvider(), getTypeProvider());
         rootTree = new TreeImpl(this, lastMove);
     }
 
@@ -241,7 +246,7 @@ public class RootImpl implements Root {
         if (!store.getRoot().equals(rootTree.getBaseState())) {
             purgePendingChanges();
             branch.rebase();
-            rootTree.reset(getSecureHead());
+            reset();
             permissionProvider = null;
         }
     }
@@ -250,7 +255,7 @@ public class RootImpl implements Root {
     public final void refresh() {
         checkLive();
         branch = store.branch();
-        rootTree.reset(getSecureHead());
+        reset();
         modCount = 0;
         if (permissionProvider != null) {
             permissionProvider.refresh();
@@ -396,7 +401,7 @@ public class RootImpl implements Root {
 
     @Nonnull
     NodeBuilder createRootBuilder() {
-        return getSecureHead().builder();
+        return secureHead.builder();
     }
 
     // TODO better way to determine purge limit. See OAK-175
@@ -426,7 +431,12 @@ public class RootImpl implements Root {
      * Purge all pending changes to the underlying {@link NodeStoreBranch}.
      */
     private void purgePendingChanges() {
-        branch.setRoot(getRootState());
+        NodeState before = secureHead;
+        NodeState after = getRootState();
+        NodeBuilder builder = branch.getHead().builder();
+        // FIXME: This rebase should fail on conflicts
+        after.compareAgainstBaseState(before, new RebaseDiff(builder));
+        branch.setRoot(builder.getNodeState());
         reset();
     }
 
@@ -434,7 +444,9 @@ public class RootImpl implements Root {
      * Reset the root builder to the branch's current root state
      */
     private void reset() {
-        rootTree.getNodeBuilder().reset(getSecureHead());
+        secureHead = new SecureNodeState(
+                branch.getHead(), getPermissionProvider(), getTypeProvider());
+        rootTree.reset(secureHead);
     }
 
     @Nonnull
@@ -445,11 +457,6 @@ public class RootImpl implements Root {
     @Nonnull
     private ImmutableTree.TypeProvider getTypeProvider() {
         return new ImmutableTree.DefaultTypeProvider(securityProvider.getAccessControlConfiguration().getContext());
-    }
-
-    @Nonnull
-    private NodeState getSecureHead() {
-        return new SecureNodeState(branch.getHead(), getPermissionProvider(), getTypeProvider());
     }
 
     @Nonnull
