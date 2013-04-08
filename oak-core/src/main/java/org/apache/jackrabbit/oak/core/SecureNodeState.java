@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.core;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.Collections;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -46,7 +48,16 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
  */
 public class SecureNodeState extends AbstractNodeState {
 
+    /**
+     * Underlying node state.
+     */
+    private final NodeState state;
+
+    /**
+     * Immutable tree based on the underlying node state.
+     */
     private final ImmutableTree base;
+
     private final PermissionProvider permissionProvider;
 
     private ReadStatus readStatus;
@@ -54,12 +65,15 @@ public class SecureNodeState extends AbstractNodeState {
     public SecureNodeState(@Nonnull NodeState rootState,
                            @Nonnull PermissionProvider permissionProvider,
                            @Nonnull ImmutableTree.TypeProvider typeProvider) {
+        this.state = checkNotNull(rootState);
         this.base = new ImmutableTree(rootState, typeProvider);
         this.permissionProvider = permissionProvider;
     }
 
-    private SecureNodeState(@Nonnull SecureNodeState parent, @Nonnull String name,
-                            @Nonnull NodeState nodeState) {
+    private SecureNodeState(
+            @Nonnull SecureNodeState parent,
+            @Nonnull String name, @Nonnull NodeState nodeState) {
+        this.state = checkNotNull(nodeState);
         this.base = new ImmutableTree(parent.base, name, nodeState);
         this.permissionProvider = parent.permissionProvider;
         if (base.getType() == parent.base.getType()) {
@@ -75,7 +89,7 @@ public class SecureNodeState extends AbstractNodeState {
     @Override
     @CheckForNull
     public PropertyState getProperty(String name) {
-        PropertyState property = getBaseState().getProperty(name);
+        PropertyState property = state.getProperty(name);
         if (canReadProperty(property)) {
             return property;
         } else {
@@ -86,14 +100,14 @@ public class SecureNodeState extends AbstractNodeState {
     @Override
     public long getPropertyCount() {
         // TODO: make sure cnt respects read permissions (OAK-708)
-        return getBaseState().getPropertyCount();
+        return state.getPropertyCount();
     }
 
     @Nonnull
     @Override
     public Iterable<? extends PropertyState> getProperties() {
         ReadStatus rs = getReadStatus();
-        Iterable<? extends PropertyState> properties = getBaseState().getProperties();
+        Iterable<? extends PropertyState> properties = state.getProperties();
         if (rs.includes(ReadStatus.ALLOW_PROPERTIES)) {
             return properties;
         } else if (rs.includes(ReadStatus.DENY_PROPERTIES)) {
@@ -111,7 +125,7 @@ public class SecureNodeState extends AbstractNodeState {
 
     @Override
     public NodeState getChildNode(@Nonnull String name) {
-        NodeState child = getBaseState().getChildNode(name);
+        NodeState child = state.getChildNode(name);
         if (child.exists()) {
             return new SecureNodeState(this, name, child);
         } else {
@@ -123,7 +137,7 @@ public class SecureNodeState extends AbstractNodeState {
     @Override
     public long getChildNodeCount() {
         // TODO: make sure cnt respects read permissions (OAK-708)
-        return getBaseState().getChildNodeCount();
+        return state.getChildNodeCount();
     }
 
     @Override
@@ -145,7 +159,8 @@ public class SecureNodeState extends AbstractNodeState {
         } else {
             // TODO: review if ALLOW_CHILDREN could be used as well although we
             // don't know the type of all child-nodes where ac node would need special treatment
-            Iterable<ChildNodeEntry> readable = Iterables.transform(getBaseState().getChildNodeEntries(),
+            Iterable<ChildNodeEntry> readable = Iterables.transform(
+                    state.getChildNodeEntries(),
                     new ReadableChildNodeEntries());
             return Iterables.filter(readable, Predicates.notNull());
         }
@@ -159,13 +174,11 @@ public class SecureNodeState extends AbstractNodeState {
 
     @Override
     public void compareAgainstBaseState(NodeState base, NodeStateDiff diff) {
-        getBaseState().compareAgainstBaseState(base, diff);
+        // FIXME: should not bypass access controls
+        state.compareAgainstBaseState(base, diff);
     }
 
     //--------------------------------------------------------------------------
-    private NodeState getBaseState() {
-        return base.getNodeState();
-    }
 
     private ReadStatus getReadStatus() {
         if (readStatus == null) {
@@ -218,6 +231,6 @@ public class SecureNodeState extends AbstractNodeState {
     // FIXME: add proper equals/hashcode implementation (see OAK-709)
     @Override
     public boolean equals(Object obj) {
-        return getBaseState().equals(obj);
+        return state.equals(obj);
     }
 }
