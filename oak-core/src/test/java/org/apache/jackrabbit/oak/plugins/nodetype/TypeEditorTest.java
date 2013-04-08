@@ -16,12 +16,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype;
 
-import org.apache.jackrabbit.oak.Oak;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
-import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
+import org.apache.jackrabbit.oak.spi.commit.EditorHook;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
 /**
@@ -31,17 +32,25 @@ public class TypeEditorTest {
 
     @Test
     public void ignoreHidden() throws CommitFailedException {
-        Oak oak = new Oak()
-                .with(new OpenSecurityProvider())
-                .with(new InitialContent())
-                .with(new TypeEditorProvider());
-        ContentSession session = oak.createContentSession();
-        Root root = session.getLatestRoot();
-        root.getTree("/").addChild(":hidden");
-        root.commit();
-        root.getTree("/:hidden").setProperty("prop", "value");
-        root.commit();
-        root.getTree("/:hidden").remove();
-        root.commit();
+        EditorHook hook = new EditorHook(new TypeEditorProvider());
+
+        NodeState root = new InitialContent().initialize(EMPTY_NODE);
+        NodeBuilder builder = root.builder();
+
+        NodeState before = builder.getNodeState();
+        builder.child(":hidden");
+        NodeState after = builder.getNodeState();
+        hook.processCommit(before, after);
+
+        before = after;
+        builder.child(":hidden").setProperty("prop", "value");
+        after = builder.getNodeState();
+        hook.processCommit(before, after);
+
+        before = after;
+        builder.removeNode(":hidden");
+        after = builder.getNodeState();
+        hook.processCommit(before, after);
     }
+
 }
