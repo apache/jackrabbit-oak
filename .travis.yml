@@ -17,7 +17,6 @@ script: mvn verify -PintegrationTesting
 language: java
 jdk:
   - openjdk6
-services: mongodb
 notifications:
   email:
     - oak-dev@jackrabbit.apache.org
