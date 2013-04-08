@@ -24,6 +24,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import com.google.common.base.Function;
+import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -87,11 +88,10 @@ public class SecureNodeState extends AbstractNodeState {
         return getReadStatus().includes(ReadStatus.ALLOW_THIS);
     }
 
-    @Override
-    @CheckForNull
+    @Override @CheckForNull
     public PropertyState getProperty(String name) {
         PropertyState property = state.getProperty(name);
-        if (canReadProperty(property)) {
+        if (property != null && canReadProperty(property)) {
             return property;
         } else {
             return null;
@@ -99,9 +99,17 @@ public class SecureNodeState extends AbstractNodeState {
     }
 
     @Override
-    public long getPropertyCount() {
-        if (propertyCount == -1){
-            propertyCount = super.getPropertyCount();
+    public synchronized long getPropertyCount() {
+        if (propertyCount == -1) {
+            ReadStatus rs = getReadStatus();
+            if (rs.includes(ReadStatus.ALLOW_PROPERTIES)) {
+                propertyCount = state.getPropertyCount();
+            } else if (rs.includes(ReadStatus.DENY_PROPERTIES)) {
+                propertyCount = 0;
+            } else {
+                propertyCount = count(Iterables.filter(
+                        state.getProperties(), isPropertyReadable()));
+            }
         }
         return propertyCount;
     }
@@ -110,14 +118,13 @@ public class SecureNodeState extends AbstractNodeState {
     @Override
     public Iterable<? extends PropertyState> getProperties() {
         ReadStatus rs = getReadStatus();
-        Iterable<? extends PropertyState> properties = state.getProperties();
         if (rs.includes(ReadStatus.ALLOW_PROPERTIES)) {
-            return properties;
+            return state.getProperties();
         } else if (rs.includes(ReadStatus.DENY_PROPERTIES)) {
             return Collections.emptySet();
         } else {
-            Iterable<PropertyState> readable = Iterables.transform(properties, new ReadableProperties());
-            return Iterables.filter(readable, Predicates.notNull());
+            return Iterables.filter(
+                    state.getProperties(), isPropertyReadable());
         }
     }
 
@@ -138,7 +145,7 @@ public class SecureNodeState extends AbstractNodeState {
     }
 
     @Override
-    public long getChildNodeCount() {
+    public synchronized long getChildNodeCount() {
         if (childNodeCount == -1) {
             childNodeCount = super.getChildNodeCount();
         }
@@ -192,10 +199,7 @@ public class SecureNodeState extends AbstractNodeState {
         return readStatus;
     }
 
-    private boolean canReadProperty(@Nullable PropertyState property) {
-        if (property == null) {
-            return false;
-        }
+    private boolean canReadProperty(@Nonnull PropertyState property) {
         if (readStatus == null || readStatus.appliesToThis()) {
             ReadStatus rs = permissionProvider.getReadStatus(this.base, property);
             if (rs.appliesToThis()) {
@@ -208,15 +212,18 @@ public class SecureNodeState extends AbstractNodeState {
         return readStatus.includes(ReadStatus.ALLOW_PROPERTIES);
     }
 
-    private class ReadableProperties implements Function<PropertyState, PropertyState> {
-        @Override
-        public PropertyState apply(PropertyState property) {
-            if (canReadProperty(property)) {
-                return property;
-            } else {
-                return null;
+    /**
+     * Returns a predicate for testing whether a given property is readable.
+     *
+     * @return predicate
+     */
+    private Predicate<PropertyState> isPropertyReadable() {
+        return new Predicate<PropertyState>() {
+            @Override
+            public boolean apply(@Nonnull PropertyState property) {
+                return canReadProperty(property);
             }
-        }
+        };
     }
 
     private class ReadableChildNodeEntries implements Function<ChildNodeEntry, ChildNodeEntry> {
