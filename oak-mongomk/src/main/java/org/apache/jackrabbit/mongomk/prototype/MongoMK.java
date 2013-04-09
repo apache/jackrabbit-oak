@@ -78,6 +78,11 @@ public class MongoMK implements MicroKernel {
      * When trying to access revisions that are older than this many milliseconds, a warning is logged.
      */
     private static final int WARN_REVISION_AGE = Integer.getInteger("oak.mongoMK.revisionAge", 10000);
+
+    /**
+     * Enable background operations
+     */
+    private static final boolean ENABLE_BACKGROUND_OPS = Boolean.getBoolean("oak.mongoMK.backgroundOps");
     
     /**
      * The delay for asynchronous operations (delayed commit propagation and
@@ -261,14 +266,16 @@ public class MongoMK implements MicroKernel {
             // only when using timestamp
             return;
         }
-        try {
-            // backgroundWrite();
-            // backgroundRead();
-        } catch (RuntimeException e) {
-            if (isDisposed.get()) {
-                return;
+        synchronized (this) {
+            try {
+                backgroundWrite();
+                backgroundRead();
+            } catch (RuntimeException e) {
+                if (isDisposed.get()) {
+                    return;
+                }
+                LOG.warn("Background operation failed: " + e.toString(), e);
             }
-            LOG.warn("Background operation failed: " + e.toString(), e);
         }
     }
     
@@ -323,9 +330,13 @@ public class MongoMK implements MicroKernel {
             if (r == null) {
                 continue;
             }
-            if (Revision.getTimestampDifference(now, r.getTimestamp()) < asyncDelay) {
-                continue;
-            }
+            // FIXME: with below code fragment the root (and other nodes
+            // 'close' to the root will not be updated in MongoDB when there
+            // are frequent changes. Uncommenting the lines below also
+            // leads to test failures because reads seem to become inconsistent
+//            if (Revision.getTimestampDifference(now, r.getTimestamp()) < asyncDelay) {
+//                continue;
+//            }
             
             Commit commit = new Commit(this, null, r);
             commit.touchNode(p);
@@ -1235,7 +1246,7 @@ public class MongoMK implements MicroKernel {
                     }
                 }
                 MongoMK mk = ref.get();
-                if (mk != null) {
+                if (mk != null && ENABLE_BACKGROUND_OPS) {
                     mk.runBackgroundOperations();
                     delay = mk.getAsyncDelay();
                 }
