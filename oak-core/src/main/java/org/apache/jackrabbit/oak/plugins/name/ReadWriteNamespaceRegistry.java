@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.name;
 
 import java.util.Map;
 
+import javax.jcr.AccessDeniedException;
 import javax.jcr.NamespaceException;
 import javax.jcr.RepositoryException;
 
@@ -103,6 +104,8 @@ public abstract class ReadWriteNamespaceRegistry
                     + prefix + " to " + uri;
             if (e.isOfType("Namespace")) {
                 throw new NamespaceException(message, e);
+            }  else if (e.isAccessViolation()) {
+                throw new AccessDeniedException(message, e);
             } else {
                 throw new RepositoryException(message, e);
             }
@@ -127,6 +130,8 @@ public abstract class ReadWriteNamespaceRegistry
             String message = "Failed to unregister namespace mapping for prefix " + prefix;
             if (e.isOfType("Namespace")) {
                 throw new NamespaceException(message, e);
+            } else if (e.isAccessViolation()) {
+                throw new AccessDeniedException(message, e);
             } else {
                 throw new RepositoryException(message, e);
             }
