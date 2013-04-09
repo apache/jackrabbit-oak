@@ -37,9 +37,10 @@ public class MoveTest extends AbstractEvaluationTest {
     protected void setUp() throws Exception {
         super.setUp();
 
-        Node node3 = testRootNode.getNode(childNPath).addNode(nodeName3);
+        Node node3 = superuser.getNode(childNPath).addNode(nodeName3);
         nodePath3 = node3.getPath();
         superuser.save();
+        testSession.refresh(false);
     }
 
     @Test

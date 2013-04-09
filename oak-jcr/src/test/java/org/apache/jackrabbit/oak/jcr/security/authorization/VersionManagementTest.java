@@ -53,29 +53,30 @@ public class VersionManagementTest extends AbstractEvaluationTest {
     }
 
     private Node createVersionableNode(Node parent) throws Exception {
-        Node n = parent.addNode(nodeName1);
+        Node n = (parent.hasNode(nodeName1)) ? parent.getNode(nodeName1) : parent.addNode(nodeName1);
         if (n.canAddMixin(mixVersionable)) {
             n.addMixin(mixVersionable);
         } else {
             throw new NotExecutableException();
         }
-        superuser.save();
+        n.getSession().save();
         return n;
     }
 
     @Test
     public void testAddMixVersionable() throws Exception {
-        Node trn = getTestNode();
+        Node trn = testSession.getNode(path);
         modify(trn.getPath(), REP_WRITE, true);
         modify(trn.getPath(), Privilege.JCR_VERSION_MANAGEMENT, false);
-        Node n = trn.addNode(nodeName1);
+
+        Node n = trn.hasNode(nodeName2) ? trn.getNode(nodeName2) : trn.addNode(nodeName2);
         try {
             if (n.canAddMixin(mixVersionable)) {
                 n.addMixin(mixVersionable);
             } else {
                 throw new NotExecutableException();
             }
-            superuser.save();
+            testSession.save();
             fail("Test session does not have write permission in the version storage -> adding mixin must fail.");
         } catch (AccessDeniedException e) {
             // success
@@ -88,7 +89,7 @@ public class VersionManagementTest extends AbstractEvaluationTest {
 
     @Test
     public void testAddMixVersionable2() throws Exception {
-        Node trn = getTestNode();
+        Node trn = testSession.getNode(path);
         modify(trn.getPath(), REP_WRITE, true);
         modify(trn.getPath(), Privilege.JCR_NODE_TYPE_MANAGEMENT, true);
         modify(trn.getPath(), Privilege.JCR_VERSION_MANAGEMENT, true);
@@ -100,14 +101,14 @@ public class VersionManagementTest extends AbstractEvaluationTest {
 
     @Test
     public void testCheckInCheckout() throws Exception {
-        Node trn = getTestNode();
-        modify(trn.getPath(), REP_WRITE, true);
-        modify(trn.getPath(), Privilege.JCR_VERSION_MANAGEMENT, false);
+        modify(path, REP_WRITE, true);
+        modify(path, Privilege.JCR_VERSION_MANAGEMENT, false);
 
-        Node n = createVersionableNode(testRootNode);
+        Node n = createVersionableNode(superuser.getNode(path));
         try {
-            Node n2 = trn.getNode(n.getName());
-            n2.checkin();
+            testSession.refresh(false);
+            Node testNode = testSession.getNode(n.getPath());
+            testNode.checkin();
             fail("Missing jcr:versionManagement privilege -> checkin/checkout must fail.");
         } catch (AccessDeniedException e) {
             // success
@@ -124,9 +125,9 @@ public class VersionManagementTest extends AbstractEvaluationTest {
      */
     @Test
     public void testRemoveVersion() throws Exception {
-        Node n = createVersionableNode(testRootNode);
+        Node n = createVersionableNode(superuser.getNode(path));
 
-        Node trn = getTestNode();
+        Node trn = testSession.getNode(path);
         modify(trn.getPath(), Privilege.JCR_VERSION_MANAGEMENT, true);
 
         Node testNode = trn.getNode(n.getName());
@@ -142,9 +143,9 @@ public class VersionManagementTest extends AbstractEvaluationTest {
      */
     @Test
     public void testRemoveVersion2() throws Exception {
-        Node n = createVersionableNode(testRootNode);
+        Node n = createVersionableNode(superuser.getNode(path));
 
-        Node trn = getTestNode();
+        Node trn = testSession.getNode(path);
         modify(trn.getPath(), Privilege.JCR_VERSION_MANAGEMENT, true);
 
         Node testNode = trn.getNode(n.getName());
@@ -167,7 +168,7 @@ public class VersionManagementTest extends AbstractEvaluationTest {
      */
     @Test
     public void testRemoveVersion3() throws Exception {
-        Node n = createVersionableNode(testRootNode);
+        Node n = createVersionableNode(superuser.getNode(path));
         Version v = n.checkin();
         n.checkout();
 
@@ -175,7 +176,7 @@ public class VersionManagementTest extends AbstractEvaluationTest {
         allow(SYSTEM, versionPrivileges);
 
         try {
-            Node testNode = getTestNode().getNode(n.getName());
+            Node testNode = testSession.getNode(n.getPath());
             testNode.getVersionHistory().removeVersion(v.getName());
 
             fail("Missing jcr:versionManagement privilege -> remove a version must fail.");
@@ -199,7 +200,7 @@ public class VersionManagementTest extends AbstractEvaluationTest {
      */
     @Test
     public void testAccessVersionContentWithoutStoreAccess() throws Exception {
-        Node n = createVersionableNode(testRootNode);
+        Node n = createVersionableNode(superuser.getNode(path));
         Version v = n.checkin();
         VersionHistory vh = v.getVersionHistory();
         n.checkout();
@@ -232,10 +233,10 @@ public class VersionManagementTest extends AbstractEvaluationTest {
      */
     @Test
     public void testAccessVersionHistory() throws Exception {
-        Node n = createVersionableNode(testRootNode);
+        Node n = createVersionableNode(superuser.getNode(path));
         allow(n.getPath(), versionPrivileges);
 
-        Node testNode = getTestNode().getNode(n.getName());
+        Node testNode = testSession.getNode(n.getPath());
         testNode.checkin();
         testNode.checkout();
 
@@ -254,11 +255,10 @@ public class VersionManagementTest extends AbstractEvaluationTest {
      */
     @Test
     public void testAccessVersionHistoryVersionableNodeNotAccessible() throws Exception {
-        Node n = createVersionableNode(testRootNode);
+        Node n = createVersionableNode(superuser.getNode(path));
         allow(n.getPath(), versionPrivileges);
 
-        Node trn = getTestNode();
-        Node testNode = trn.getNode(n.getName());
+        Node testNode = testSession.getNode(n.getPath());
         testNode.checkin();
         testNode.checkout();
 
@@ -300,11 +300,10 @@ public class VersionManagementTest extends AbstractEvaluationTest {
      */
     @Test
     public void testAddVersionLabel() throws Exception {
-        Node n = createVersionableNode(testRootNode);
+        Node n = createVersionableNode(superuser.getNode(path));
         allow(n.getPath(), versionPrivileges);
 
-        Node trn = getTestNode();
-        Node testNode = trn.getNode(n.getName());
+        Node testNode = testSession.getNode(n.getPath());
         Version v = testNode.checkin();
         testNode.checkout();
         Version v2 = testNode.checkin();

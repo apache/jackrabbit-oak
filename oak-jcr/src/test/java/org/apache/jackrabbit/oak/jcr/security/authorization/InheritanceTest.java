@@ -125,6 +125,7 @@ public class InheritanceTest extends AbstractEvaluationTest {
         // yet another level in the hierarchy
         Node grandChild = superuser.getNode(childNPath).addNode(nodeName3);
         superuser.save();
+        testSession.refresh(false);
         String gcPath = grandChild.getPath();
 
         // grant write privilege again
