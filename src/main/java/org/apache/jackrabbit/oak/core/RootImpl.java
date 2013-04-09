@@ -18,12 +18,19 @@
  */
 package org.apache.jackrabbit.oak.core;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+
 import javax.annotation.Nonnull;
 import javax.security.auth.Subject;
 
@@ -59,12 +66,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 import org.apache.jackrabbit.oak.spi.state.RebaseDiff;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 
 public class RootImpl implements Root {
 
@@ -160,6 +161,7 @@ public class RootImpl implements Root {
      */
     public Root getLatest() {
         checkLive();
+        // FIXME clarify: getIndexProvider includes transient changes from this root. Is this intended?
         RootImpl root = new RootImpl(store, hook, workspaceName, subject, securityProvider, getIndexProvider()) {
             @Override
             protected void checkLive() {
@@ -247,6 +249,7 @@ public class RootImpl implements Root {
             purgePendingChanges();
             branch.rebase();
             reset();
+            // FIXME clarify: why set to null here and refresh below?
             permissionProvider = null;
         }
     }
@@ -328,6 +331,7 @@ public class RootImpl implements Root {
     @Override
     public boolean hasPendingChanges() {
         checkLive();
+        // FIXME comparing insecure base state with secure root state
         return !getBaseState().equals(getRootState());
     }
 
