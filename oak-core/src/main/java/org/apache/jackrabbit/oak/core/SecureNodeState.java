@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.core;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import java.util.Collections;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -35,6 +33,8 @@ import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * SecureNodeState...
@@ -58,16 +58,13 @@ public class SecureNodeState extends AbstractNodeState {
 
     private final PermissionProvider permissionProvider;
 
-    private final ReadStatus readStatus;
-
     /**
      * Predicate for testing whether a given property is readable.
      */
     private final Predicate<PropertyState> isPropertyReadable = new Predicate<PropertyState>() {
         @Override
         public boolean apply(@Nonnull PropertyState property) {
-            ReadStatus status =
-                    permissionProvider.getReadStatus(base, property);
+            ReadStatus status = permissionProvider.getReadStatus(base, property);
             return status.isAllow();
         }
     };
@@ -93,22 +90,24 @@ public class SecureNodeState extends AbstractNodeState {
     * we can optimize access by skipping the security wrapper entirely.
     */
     private final Function<ChildNodeEntry, ChildNodeEntry> wrapChildNodeEntry = new Function<ChildNodeEntry, ChildNodeEntry>() {
-        @Override
+       @Nonnull
+       @Override
         public ChildNodeEntry apply(@Nonnull ChildNodeEntry input) {
             String name = input.getName();
             NodeState child = input.getNodeState();
-            SecureNodeState secure = new SecureNodeState(
-                    SecureNodeState.this, name, child);
-            if (!secure.readStatus.includes(ReadStatus.ALLOW_ALL)
-                    || child.getChildNodeCount() > 0) {
-                // secure wrapper is needed
-                return new MemoryChildNodeEntry(name, secure);
-            } else {
-                return input;
-            }
+            SecureNodeState secureChild = new SecureNodeState(SecureNodeState.this, name, child);
+            // TODO: add optimization to return 'input' if the child and all its
+            // children have the same type as this node state and full read
+            // access (including read-access-control) is granted to that subtree
+            // including all properties.
+            // NOTE: this currently cannot yet be implemented due to the fact that
+            // ALLOW_ALL just checks for regular read permission and does not take
+            // READ_ACCESSCONTROL into account
+            return new MemoryChildNodeEntry(name, secureChild);
         }
     };
 
+    private ReadStatus readStatus;
 
     private long childNodeCount = -1;
 
@@ -120,7 +119,6 @@ public class SecureNodeState extends AbstractNodeState {
         this.state = checkNotNull(rootState);
         this.base = new ImmutableTree(rootState, typeProvider);
         this.permissionProvider = permissionProvider;
-        this.readStatus = permissionProvider.getReadStatus(base, null);
     }
 
     private SecureNodeState(
@@ -130,49 +128,47 @@ public class SecureNodeState extends AbstractNodeState {
         this.base = new ImmutableTree(parent.base, name, nodeState);
         this.permissionProvider = parent.permissionProvider;
 
-        ReadStatus status = null;
         if (base.getType() == parent.base.getType()) {
-            status = ReadStatus.getChildStatus(parent.readStatus);
+            readStatus = ReadStatus.getChildStatus(parent.readStatus);
         }
-        if (status == null) {
-            status = permissionProvider.getReadStatus(base, null);
-        }
-        this.readStatus = status;
     }
 
     @Override
     public boolean exists() {
-        return readStatus.includes(ReadStatus.ALLOW_THIS);
+        return getReadStatus().includes(ReadStatus.ALLOW_THIS);
     }
 
     @Override @CheckForNull
     public PropertyState getProperty(String name) {
         PropertyState property = state.getProperty(name);
-        if (property != null
-                && !readStatus.includes(ReadStatus.ALLOW_PROPERTIES)) {
-            if (!readStatus.appliesToThis()
-                    || isPropertyReadable.apply(property)) {
-                // this property is not readable
-                property = null;
-            }
+        if (property == null) {
+            return property;
         }
-        return property;
+        ReadStatus rs = getReadStatus();
+        if (rs.includes(ReadStatus.ALLOW_PROPERTIES)) {
+            return property;
+        } else if (rs.appliesToThis()) {
+            // calculate for property individually
+            return (isPropertyReadable.apply(property)) ? property : null;
+        } else {
+            // property access is denied
+            return null;
+        }
     }
 
     @Override
     public synchronized long getPropertyCount() {
+        ReadStatus rs = getReadStatus();
         if (propertyCount == -1) {
-            if (readStatus.includes(ReadStatus.ALLOW_PROPERTIES)) {
+            if (rs.includes(ReadStatus.ALLOW_PROPERTIES)) {
                 // all properties are readable
                 propertyCount = state.getPropertyCount();
-            } else if (readStatus.includes(ReadStatus.DENY_PROPERTIES)
-                    || !readStatus.appliesToThis()) {
-                // no properties are readable
-                propertyCount = 0;
+            } else if (rs.appliesToThis()) {
+                // some properties may be readable
+                propertyCount = count(Iterables.filter(state.getProperties(), isPropertyReadable));
             } else {
-                // some properties are readable
-                propertyCount = count(Iterables.filter(
-                        state.getProperties(), isPropertyReadable));
+                // property access is denied
+                return 0;
             }
         }
         return propertyCount;
@@ -181,17 +177,16 @@ public class SecureNodeState extends AbstractNodeState {
     @Nonnull
     @Override
     public Iterable<? extends PropertyState> getProperties() {
-        if (readStatus.includes(ReadStatus.ALLOW_PROPERTIES)) {
+        ReadStatus rs = getReadStatus();
+        if (rs.includes(ReadStatus.ALLOW_PROPERTIES)) {
             // all properties are readable
             return state.getProperties();
-        } else if (readStatus.includes(ReadStatus.DENY_PROPERTIES)
-                || !readStatus.appliesToThis()) {
-            // no properties are readable
-            return Collections.emptySet();
+        } else if (rs.appliesToThis()) {
+            // some properties may be readable
+            return Iterables.filter(state.getProperties(), isPropertyReadable);
         } else {
-            // some properties are readable
-            return Iterables.filter(
-                    state.getProperties(), isPropertyReadable);
+            // property access is denied
+            return Collections.emptySet();
         }
     }
 
@@ -200,7 +195,7 @@ public class SecureNodeState extends AbstractNodeState {
         NodeState child = state.getChildNode(checkNotNull(name));
         if (child.exists()) {
             ChildNodeEntry entry = new MemoryChildNodeEntry(name, child);
-            return  wrapChildNodeEntry.apply(entry).getNodeState();
+            return wrapChildNodeEntry.apply(entry).getNodeState();
         } else {
             return child;
         }
@@ -217,7 +212,7 @@ public class SecureNodeState extends AbstractNodeState {
     @Override
     @Nonnull
     public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
-        if (readStatus.includes(ReadStatus.DENY_CHILDREN)) {
+        if (getReadStatus().includes(ReadStatus.DENY_CHILDREN)) {
             return Collections.emptySet();
         } else {
             // TODO: review if ALLOW_CHILDREN could be used as well although we
@@ -245,5 +240,13 @@ public class SecureNodeState extends AbstractNodeState {
     @Override
     public boolean equals(Object obj) {
         return state.equals(obj);
+    }
+
+    //------------------------------------------------------------< private >---
+    private ReadStatus getReadStatus() {
+        if (readStatus == null) {
+            readStatus = permissionProvider.getReadStatus(base, null);
+        }
+        return readStatus;
     }
 }
