@@ -140,6 +140,9 @@ class PermissionValidator extends DefaultValidator {
 
     private Validator checkPermissions(@Nonnull Tree tree, boolean isBefore,
                                        long defaultPermission) throws CommitFailedException {
+        if (NodeStateUtils.isHidden(tree.getName())) {
+            return null;
+        }
         long toTest = getPermission(tree, defaultPermission);
         if (Permissions.isRepositoryPermission(toTest)) {
             if (!permissionProvider.isGranted(toTest)) {
@@ -162,11 +165,17 @@ class PermissionValidator extends DefaultValidator {
 
     private void checkPermissions(@Nonnull Tree parent, @Nonnull PropertyState property,
                                   long defaultPermission) throws CommitFailedException {
-        if (!NodeStateUtils.isHidden((property.getName()))) {
-            long toTest = getPermission(parent, property, defaultPermission);
-            if (!permissionProvider.isGranted(parent, property, toTest)) {
+        if (NodeStateUtils.isHidden(property.getName())) {
+            return;
+        }
+
+        long toTest = getPermission(parent, property, defaultPermission);
+        if (Permissions.isRepositoryPermission(toTest)) {
+            if (!permissionProvider.isGranted(toTest)) {
                 throw new CommitFailedException(ACCESS, 0, "Access denied");
             }
+        } else if (!permissionProvider.isGranted(parent, property, toTest)) {
+            throw new CommitFailedException(ACCESS, 0, "Access denied");
         }
     }
 
