@@ -186,30 +186,18 @@ public class RootImpl implements Root {
     @Override
     public boolean move(String sourcePath, String destPath) {
         checkLive();
-        TreeImpl source = rootTree.getTree(sourcePath);
-        if (source == null) {
-            return false;
-        }
         TreeImpl destParent = rootTree.getTree(getParentPath(destPath));
         if (destParent == null) {
             return false;
         }
-
-        String destName = getName(destPath);
-        if (destParent.hasChild(destName)) {
-            return false;
-        }
-
         purgePendingChanges();
-        source.moveTo(destParent, destName);
         boolean success = branch.move(sourcePath, destPath);
         reset();
         if (success) {
             getTree(getParentPath(sourcePath)).updateChildOrder();
             getTree(getParentPath(destPath)).updateChildOrder();
+            lastMove = lastMove.setMove(sourcePath, destParent, getName(destPath));
         }
-
-        lastMove = lastMove.setMove(sourcePath, destParent, destName);
         return success;
     }
 
