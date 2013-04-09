@@ -16,11 +16,6 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static javax.jcr.Property.JCR_LOCK_IS_DEEP;
-import static javax.jcr.Property.JCR_LOCK_OWNER;
-import static javax.jcr.PropertyType.UNDEFINED;
-
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.util.Calendar;
@@ -28,7 +23,6 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
-
 import javax.annotation.Nonnull;
 import javax.jcr.AccessDeniedException;
 import javax.jcr.Binary;
@@ -89,6 +83,11 @@ import org.apache.jackrabbit.oak.util.TODO;
 import org.apache.jackrabbit.value.ValueHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static javax.jcr.Property.JCR_LOCK_IS_DEEP;
+import static javax.jcr.Property.JCR_LOCK_OWNER;
+import static javax.jcr.PropertyType.UNDEFINED;
 
 /**
  * TODO document
@@ -919,6 +918,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                     throw new NoSuchNodeTypeException();
                 }
 
+                // TODO: implement #removeMixin (OAK-767)
                 throw new ConstraintViolationException();
             }
         });
