@@ -106,8 +106,8 @@ public class AccessControlValidatorTest extends AbstractAccessControlTest implem
             fail("Policy node with child node ordering");
         } catch (CommitFailedException e) {
             // success
-            assertTrue(e.getCause() instanceof AccessControlException);
-            assertEquals("Invalid policy node: Order of children is not stable.", e.getCause().getMessage());
+            assertTrue(e.hasType("Access"));
+            assertEquals("OakAccess0004: Invalid policy node: Order of children is not stable.", e.getMessage());
         }
     }
 
@@ -121,7 +121,7 @@ public class AccessControlValidatorTest extends AbstractAccessControlTest implem
             fail("Only the root node can be made RepoAccessControllable.");
         } catch (CommitFailedException e) {
             // success
-            assertTrue(e.getCause() instanceof AccessControlException);
+            assertTrue(e.hasType("Access"));
         }
     }
 
@@ -135,7 +135,7 @@ public class AccessControlValidatorTest extends AbstractAccessControlTest implem
             fail("Attempt to add repo-policy with rep:AccessControllable node.");
         } catch (CommitFailedException e) {
             // success
-            assertTrue(e.getCause() instanceof AccessControlException);
+            assertTrue(e.hasType("Access"));
         } finally {
             policy.getTree().remove();
         }
@@ -154,7 +154,7 @@ public class AccessControlValidatorTest extends AbstractAccessControlTest implem
                 fail("Adding an ACL below access control content should fail");
             } catch (CommitFailedException e) {
                 // success
-                assertTrue(e.getCause() instanceof AccessControlException);
+                assertTrue(e.hasType("Access"));
             } finally {
                 policy.getTree().remove();
             }
@@ -174,7 +174,7 @@ public class AccessControlValidatorTest extends AbstractAccessControlTest implem
                 fail("Adding an ACL below access control content should fail");
             } catch (CommitFailedException e) {
                 // success
-                assertTrue(e.getCause() instanceof AccessControlException);
+                assertTrue(e.hasType("Access"));
             } finally {
                 policy.getTree().remove();
             }
@@ -194,7 +194,7 @@ public class AccessControlValidatorTest extends AbstractAccessControlTest implem
                 fail("Adding an ACE below an ACE or restriction should fail");
             } catch (CommitFailedException e) {
                 // success
-                assertTrue(e.getCause() instanceof AccessControlException);
+                assertTrue(e.hasType("Access"));
             } finally {
                 entry.getTree().remove();
             }
@@ -214,7 +214,7 @@ public class AccessControlValidatorTest extends AbstractAccessControlTest implem
                 fail("Adding an ACE below an ACE or restriction should fail");
             } catch (CommitFailedException e) {
                 // success
-                assertTrue(e.getCause() instanceof AccessControlException);
+                assertTrue(e.hasType("Access"));
             } finally {
                 entry.getTree().remove();
             }
@@ -233,7 +233,7 @@ public class AccessControlValidatorTest extends AbstractAccessControlTest implem
                 fail("Writing an isolated ACL without the parent being rep:AccessControllable should fail.");
             } catch (CommitFailedException e) {
                 // success
-                assertTrue(e.getCause() instanceof AccessControlException);
+                assertTrue(e.hasType("Access"));
             } finally {
                 // revert pending changes that cannot be saved.
                 policy.getTree().remove();
@@ -254,7 +254,7 @@ public class AccessControlValidatorTest extends AbstractAccessControlTest implem
                 fail("Writing an isolated ACE should fail.");
             } catch (CommitFailedException e) {
                 // success
-                assertTrue(e.getCause() instanceof AccessControlException);
+                assertTrue(e.hasType("Access"));
             } finally {
                 // revert pending changes that cannot be saved.
                 ace.getTree().remove();
@@ -271,7 +271,7 @@ public class AccessControlValidatorTest extends AbstractAccessControlTest implem
             fail("Writing an isolated Restriction should fail.");
         } catch (CommitFailedException e) {
             // success
-            assertTrue(e.getCause() instanceof AccessControlException);
+            assertTrue(e.hasType("Access"));
         } finally {
             // revert pending changes that cannot be saved.
             restriction.getTree().remove();
@@ -289,7 +289,7 @@ public class AccessControlValidatorTest extends AbstractAccessControlTest implem
             fail("Creating an ACE with invalid privilege should fail.");
         } catch (CommitFailedException e) {
             // success
-            assertTrue(e.getCause() instanceof AccessControlException);
+            assertTrue(e.hasType("Access"));
         }
     }
 
@@ -305,7 +305,7 @@ public class AccessControlValidatorTest extends AbstractAccessControlTest implem
             fail("Creating an ACE with an abstract privilege should fail.");
         } catch (CommitFailedException e) {
             // success
-            assertTrue(e.getCause() instanceof AccessControlException);
+            assertTrue(e.hasType("Access"));
         }
     }
 
@@ -318,7 +318,7 @@ public class AccessControlValidatorTest extends AbstractAccessControlTest implem
             fail("Creating an unsupported restriction should fail.");
         } catch (CommitFailedException e) {
             // success
-            assertTrue(e.getCause() instanceof AccessControlException);
+            assertTrue(e.hasType("Access"));
         }
     }
 
@@ -331,7 +331,7 @@ public class AccessControlValidatorTest extends AbstractAccessControlTest implem
             fail("Creating restriction with invalid type should fail.");
         } catch (CommitFailedException e) {
             // success
-            assertTrue(e.getCause() instanceof AccessControlException);
+            assertTrue(e.hasType("Access"));
         }
     }
 }

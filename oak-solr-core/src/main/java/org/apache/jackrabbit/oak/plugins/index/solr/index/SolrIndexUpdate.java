@@ -102,10 +102,10 @@ public class SolrIndexUpdate implements Closeable {
             OakSolrUtils.commitByPolicy(solrServer,  configuration.getCommitPolicy());
         } catch (IOException e) {
             throw new CommitFailedException(
-                    "Failed to update the full text search index", e);
+                    "Solr", 2, "Failed to update the full text search index", e);
         } catch (SolrServerException e) {
             throw new CommitFailedException(
-                    "Failed to update the full text search index", e);
+                    "Solr", 3, "Failed to update the full text search index", e);
         } finally {
             remove.clear();
             insert.clear();

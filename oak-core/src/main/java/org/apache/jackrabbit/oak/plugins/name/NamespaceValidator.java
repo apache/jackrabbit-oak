@@ -46,21 +46,25 @@ class NamespaceValidator extends DefaultValidator {
             return;
         }
         if (map.containsKey(prefix)) {
-            throw new NamespaceValidatorException(
-                    "Namespace mapping already registered", prefix);
+            throw new CommitFailedException(
+                    "Namespace", 1,
+                    "Namespace mapping already registered: " + prefix);
         } else if (Namespaces.isValidPrefix(prefix)) {
             if (after.isArray() || !STRING.equals(after.getType())) {
-                throw new NamespaceValidatorException(
-                        "Invalid namespace mapping", prefix);
+                throw new CommitFailedException(
+                        "Namespace", 2,
+                        "Invalid namespace mapping: " + prefix);
             } else if (prefix.toLowerCase(Locale.ENGLISH).startsWith("xml")) {
-                throw new NamespaceValidatorException(
-                        "XML prefixes are reserved", prefix);
+                throw new CommitFailedException(
+                        "Namespace", 3,
+                        "XML prefixes are reserved: " + prefix);
             } else if (map.containsValue(after.getValue(STRING))) {
                 throw modificationNotAllowed(prefix);
             }
         } else {
-            throw new NamespaceValidatorException(
-                    "Not a valid namespace prefix", prefix);
+            throw new CommitFailedException(
+                    "Namespace", 4,
+                    "Not a valid namespace prefix: " + prefix);
         }
     }
 
@@ -80,9 +84,10 @@ class NamespaceValidator extends DefaultValidator {
         }
     }
 
-    private static NamespaceValidatorException modificationNotAllowed(String prefix) {
-        return new NamespaceValidatorException(
-                "Namespace modification not allowed", prefix);
+    private static CommitFailedException modificationNotAllowed(String prefix) {
+        return new CommitFailedException(
+                "Namespace", 5,
+                "Namespace modification not allowed: " + prefix);
     }
 
 }

@@ -97,12 +97,15 @@ public abstract class ReadWriteNamespaceRegistry
             namespaces.setProperty(prefix, uri);
             root.commit();
             refresh();
-        } catch (NamespaceValidatorException e) {
-            throw e.getNamespaceException();
         } catch (CommitFailedException e) {
-            throw new RepositoryException(
+            String message =
                     "Failed to register namespace mapping from "
-                    + prefix + " to " + uri, e);
+                    + prefix + " to " + uri;
+            if (e.hasType("Namespace")) {
+                throw new NamespaceException(message, e);
+            } else {
+                throw new RepositoryException(message, e);
+            }
         }
     }
 
@@ -120,12 +123,13 @@ public abstract class ReadWriteNamespaceRegistry
             namespaces.removeProperty(prefix);
             root.commit();
             refresh();
-        } catch (NamespaceValidatorException e) {
-            throw e.getNamespaceException();
         } catch (CommitFailedException e) {
-            throw new RepositoryException(
-                    "Failed to unregister namespace mapping for prefix "
-                    + prefix, e);
+            String message = "Failed to unregister namespace mapping for prefix " + prefix;
+            if (e.hasType("Namespace")) {
+                throw new NamespaceException(message, e);
+            } else {
+                throw new RepositoryException(message, e);
+            }
         }
     }
 

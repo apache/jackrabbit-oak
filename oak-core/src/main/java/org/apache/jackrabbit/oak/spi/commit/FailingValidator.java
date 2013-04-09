@@ -28,63 +28,69 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  */
 public class FailingValidator implements Validator {
 
+    private final String type;
+
+    private final int code;
+
     private final String message;
 
     public FailingValidator() {
-        this("All changes are rejected");
+        this("Misc", 0, "All changes are rejected");
     }
 
-    public FailingValidator(String message) {
+    public FailingValidator(String type, int code, String message) {
+        this.type = type;
+        this.code = code;
         this.message = message;
     }
 
     @Override
     public void enter(NodeState before, NodeState after)
             throws CommitFailedException {
-        throw new CommitFailedException(message);
+        throw new CommitFailedException(type, code, message);
     }
 
     @Override
     public void leave(NodeState before, NodeState after)
             throws CommitFailedException {
-        throw new CommitFailedException(message);
+        throw new CommitFailedException(type, code, message);
     }
 
     @Override
     public void propertyAdded(PropertyState after)
             throws CommitFailedException {
-        throw new CommitFailedException(message);
+        throw new CommitFailedException(type, code, message);
     }
 
     @Override
     public void propertyChanged(PropertyState before, PropertyState after)
             throws CommitFailedException {
-        throw new CommitFailedException(message);
+        throw new CommitFailedException(type, code, message);
     }
 
     @Override
     public void propertyDeleted(PropertyState before)
             throws CommitFailedException {
-        throw new CommitFailedException(message);
+        throw new CommitFailedException(type, code, message);
     }
 
     @Override
     public Validator childNodeAdded(String name, NodeState after)
             throws CommitFailedException {
-        throw new CommitFailedException(message);
+        throw new CommitFailedException(type, code, message);
     }
 
     @Override
     public Validator childNodeChanged(
             String name, NodeState before, NodeState after)
             throws CommitFailedException {
-        throw new CommitFailedException(message);
+        throw new CommitFailedException(type, code, message);
     }
 
     @Override
     public Validator childNodeDeleted(String name, NodeState before)
             throws CommitFailedException {
-        throw new CommitFailedException(message);
+        throw new CommitFailedException(type, code, message);
     }
 
 }

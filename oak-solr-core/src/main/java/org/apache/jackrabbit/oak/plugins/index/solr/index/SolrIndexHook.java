@@ -230,7 +230,7 @@ public class SolrIndexHook implements IndexHook, Closeable {
             } catch (Exception e1) {
                 log.warn("An error occurred while rollback-ing too {}", e);
             }
-            throw new CommitFailedException(e);
+            throw new CommitFailedException("Solr", 1, "Index failure", e);
         }
     }
 
@@ -242,7 +242,7 @@ public class SolrIndexHook implements IndexHook, Closeable {
             solrInputDocuments.addAll(docsFromState(getPath(), state));
             apply();
         } catch (IOException e) {
-            throw new CommitFailedException(e);
+            throw new CommitFailedException("Solr", 2, "Re-index failure", e);
         }
         return null;
     }
