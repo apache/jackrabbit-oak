@@ -59,7 +59,8 @@ public class VersionHook implements CommitHook {
             after.compareAgainstBaseState(before,
                     new VersionDiff(null, vMgr, builder));
         } catch (UncheckedRepositoryException e) {
-            throw new CommitFailedException(e.getCause());
+            throw new CommitFailedException(
+                    "Version", 1, "Versioning failure", e.getCause());
         }
         return builder.getNodeState();
     }

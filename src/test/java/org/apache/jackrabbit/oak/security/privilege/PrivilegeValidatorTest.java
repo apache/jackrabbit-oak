@@ -65,7 +65,7 @@ public class PrivilegeValidatorTest extends AbstractSecurityTest implements Priv
             fail("Missing privilege bits property must be detected.");
         } catch (CommitFailedException e) {
             // success
-            assertEquals("PrivilegeBits are missing.", e.getMessage());
+            assertEquals("OakConstraint0048: PrivilegeBits are missing.", e.getMessage());
         } finally {
             root.refresh();
         }
@@ -80,7 +80,7 @@ public class PrivilegeValidatorTest extends AbstractSecurityTest implements Priv
             fail("Conflicting privilege bits property must be detected.");
         } catch (CommitFailedException e) {
             // success
-            assertEquals("PrivilegeBits already in used.", e.getMessage());
+            assertEquals("OakConstraint0049: PrivilegeBits already in used.", e.getMessage());
         } finally {
             root.refresh();
         }
@@ -98,7 +98,7 @@ public class PrivilegeValidatorTest extends AbstractSecurityTest implements Priv
             fail("Privilege bits don't match the aggregation.");
         } catch (CommitFailedException e) {
             // success
-            assertEquals("Invalid privilege bits for aggregated privilege definition.", e.getMessage());
+            assertEquals("OakConstraint0053: Invalid privilege bits for aggregated privilege definition.", e.getMessage());
         } finally {
             root.refresh();
         }
@@ -116,7 +116,7 @@ public class PrivilegeValidatorTest extends AbstractSecurityTest implements Priv
             fail("Outdated rep:next property must be detected.");
         } catch (CommitFailedException e) {
             // success
-            assertEquals("Next bits not updated.", e.getMessage());
+            assertEquals("OakConstraint0043: Next bits not updated", e.getMessage());
         } finally {
             root.refresh();
         }
@@ -130,7 +130,7 @@ public class PrivilegeValidatorTest extends AbstractSecurityTest implements Priv
             fail("Outdated rep:next property must be detected.");
         } catch (CommitFailedException e) {
             // success
-            assertEquals("Next bits not updated.", e.getMessage());
+            assertEquals("OakConstraint0043: Next bits not updated", e.getMessage());
         } finally {
             root.refresh();
         }
@@ -147,7 +147,7 @@ public class PrivilegeValidatorTest extends AbstractSecurityTest implements Priv
             fail("Aggregation of a single privilege is invalid.");
         } catch (CommitFailedException e) {
             // success
-            assertEquals("Singular aggregation is equivalent to existing privilege.", e.getMessage());
+            assertEquals("OakConstraint0050: Singular aggregation is equivalent to existing privilege.", e.getMessage());
         } finally {
             root.refresh();
         }

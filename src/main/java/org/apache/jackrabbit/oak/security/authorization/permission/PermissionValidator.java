@@ -102,7 +102,9 @@ class PermissionValidator extends DefaultValidator {
         if (isVersionstorageTree(child)) {
             child = getVersionHistoryTree(child);
             if (child == null) {
-                throw new CommitFailedException("New version storage node without version history: cannot verify permissions.");
+                throw new CommitFailedException(
+                        "Access", 21,
+                        "New version storage node without version history: cannot verify permissions.");
             }
         }
         return checkPermissions(child, false, Permissions.ADD_NODE);
@@ -124,7 +126,9 @@ class PermissionValidator extends DefaultValidator {
         Tree child = checkNotNull(parentBefore.getChild(name));
         if (isVersionstorageTree(child)) {
             // TODO: check again
-            throw new CommitFailedException("Attempt to remove versionstorage node: Fail to verify delete permission.");
+            throw new CommitFailedException(
+                    "Access", 22,
+                    "Attempt to remove versionstorage node: Fail to verify delete permission.");
         }
         return checkPermissions(child, true, Permissions.REMOVE_NODE);
     }
@@ -139,12 +143,12 @@ class PermissionValidator extends DefaultValidator {
         long toTest = getPermission(tree, defaultPermission);
         if (Permissions.isRepositoryPermission(toTest)) {
             if (!permissionProvider.isGranted(toTest)) {
-                throw new CommitFailedException(new AccessDeniedException());
+                throw new CommitFailedException("Access", 0, "Access denied");
             }
             return null; // no need for further validation down the subtree
         } else {
             if (!permissionProvider.isGranted(tree, null, toTest)) {
-                throw new CommitFailedException(new AccessDeniedException());
+                throw new CommitFailedException("Access", 0, "Access denied");
             }
             if (noTraverse(toTest)) {
                 return null;
@@ -161,7 +165,7 @@ class PermissionValidator extends DefaultValidator {
         if (!NodeStateUtils.isHidden((property.getName()))) {
             long toTest = getPermission(parent, property, defaultPermission);
             if (!permissionProvider.isGranted(parent, property, toTest)) {
-                throw new CommitFailedException(new AccessDeniedException());
+                throw new CommitFailedException("Access", 0, "Access denied");
             }
         }
     }
@@ -243,7 +247,7 @@ class PermissionValidator extends DefaultValidator {
                 versionHistory = getVersionHistoryTree(child);
             } else {
                 // TODO:
-                throw new CommitFailedException("unexpected node");
+                throw new CommitFailedException("Misc", 0, "unexpected node");
             }
         }
         return versionHistory;
