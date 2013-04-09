@@ -403,7 +403,11 @@ public class TreeImpl implements Tree {
 
     @Override
     public String toString() {
-        return getPathInternal() + ": " + getNodeState();
+        if (nodeBuilder.isConnected()) {
+            return getPathInternal() + ": " + getNodeState();
+        } else {
+            return "disconnected";
+        }
     }
 
     //-----------------------------------------------------------< internal >---
