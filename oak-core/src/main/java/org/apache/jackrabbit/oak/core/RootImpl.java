@@ -236,8 +236,9 @@ public class RootImpl implements Root {
             purgePendingChanges();
             branch.rebase();
             reset();
-            // FIXME clarify: why set to null here and refresh below?
-            permissionProvider = null;
+            if (permissionProvider != null) {
+                permissionProvider.refresh();
+            }
         }
     }
 
