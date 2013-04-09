@@ -103,9 +103,9 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest implements 
         testNode2.setString("propName2", "strValue");
         root.commit();
 
-        allPaths = ImmutableList.of("/").of(UserConstants.DEFAULT_USER_PATH).of(node1Path).of(node2Path);
-        rootAndUsers = ImmutableList.of("/").of(UserConstants.DEFAULT_USER_PATH);
-        nodePaths = ImmutableList.of(node1Path).of(node2Path);
+        allPaths = ImmutableList.of("/", UserConstants.DEFAULT_USER_PATH, node1Path, node2Path);
+        rootAndUsers = ImmutableList.of("/", UserConstants.DEFAULT_USER_PATH);
+        nodePaths = ImmutableList.of(node1Path, node2Path);
     }
 
     @Override
@@ -141,7 +141,7 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest implements 
 
         CompiledPermissionImpl cp = createPermissions(ImmutableSet.of(group1));
 
-        assertReadStatus(ReadStatus.DENY_THIS, cp, ImmutableList.of("/").of(node1Path).of(UserConstants.DEFAULT_USER_PATH));
+        assertReadStatus(ReadStatus.DENY_THIS, cp, ImmutableList.of("/", node1Path, UserConstants.DEFAULT_USER_PATH));
         assertReadStatus(ReadStatus.ALLOW_ALL, cp, Collections.singletonList(node2Path));
     }
 
@@ -245,7 +245,7 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest implements 
 
         CompiledPermissionImpl cp = createPermissions(ImmutableSet.of(group1, group2));
 
-        List<String> treePaths = ImmutableList.of("/").of(UserConstants.DEFAULT_USER_PATH).of(node1Path);
+        List<String> treePaths = ImmutableList.of("/", UserConstants.DEFAULT_USER_PATH, node1Path);
         assertReadStatus(ReadStatus.DENY_THIS, cp, treePaths);
         assertReadStatus(ReadStatus.ALLOW_NODES, cp, Collections.singletonList(node2Path));
     }
