@@ -147,8 +147,7 @@ public class TreeImpl implements Tree {
             return null;
         }
 
-        NodeState parentBase = getSecureBase();
-        PropertyState base = parentBase.getProperty(name);
+        PropertyState base = getSecureBase().getProperty(name);
 
         if (base == null) {
             return Status.NEW;
