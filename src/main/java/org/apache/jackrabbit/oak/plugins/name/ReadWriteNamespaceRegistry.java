@@ -101,7 +101,7 @@ public abstract class ReadWriteNamespaceRegistry
             String message =
                     "Failed to register namespace mapping from "
                     + prefix + " to " + uri;
-            if (e.hasType("Namespace")) {
+            if (e.isOfType("Namespace")) {
                 throw new NamespaceException(message, e);
             } else {
                 throw new RepositoryException(message, e);
@@ -125,7 +125,7 @@ public abstract class ReadWriteNamespaceRegistry
             refresh();
         } catch (CommitFailedException e) {
             String message = "Failed to unregister namespace mapping for prefix " + prefix;
-            if (e.hasType("Namespace")) {
+            if (e.isOfType("Namespace")) {
                 throw new NamespaceException(message, e);
             } else {
                 throw new RepositoryException(message, e);

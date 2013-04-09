@@ -37,6 +37,7 @@ import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.apache.jackrabbit.util.Text;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.api.CommitFailedException.ACCESS;
 
 /**
  * AccessControlValidator... TODO
@@ -217,7 +218,7 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
             restrictionProvider.validateRestrictions(path, aceTree);
         } catch (AccessControlException e) {
             throw new CommitFailedException(
-                    "Access", 1, "Access control violation", e);
+                    ACCESS, 1, "Access control violation", e);
         }
     }
 
@@ -236,6 +237,6 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
     }
 
     private static CommitFailedException accessViolation(int code, String message) {
-        return new CommitFailedException("Access", code, message);
+        return new CommitFailedException(ACCESS, code, message);
     }
 }
