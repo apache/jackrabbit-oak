@@ -319,8 +319,7 @@ public class RootImpl implements Root {
     @Override
     public boolean hasPendingChanges() {
         checkLive();
-        // FIXME comparing insecure base state with secure root state
-        return !getBaseState().equals(getRootState());
+        return !getSecureBase().equals(getRootState());
     }
 
     @Nonnull
@@ -389,6 +388,15 @@ public class RootImpl implements Root {
     @Nonnull
     NodeState getBaseState() {
         return branch.getBase();
+    }
+
+    /**
+     * Returns the secure view of the base state from which the current branch was creates.
+     *
+     * @return secure base node state
+     */
+    NodeState getSecureBase() {
+        return new SecureNodeState(branch.getBase(), getPermissionProvider(), getTypeProvider());
     }
 
     // TODO better way to determine purge limit. See OAK-175
