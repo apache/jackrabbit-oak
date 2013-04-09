@@ -144,6 +144,7 @@ class LuceneIndexUpdate implements Closeable, LuceneIndexConstants {
         } catch (IOException e) {
             e.printStackTrace();
             throw new CommitFailedException(
+                    "Lucene", 1,
                     "Failed to update the full text search index", e);
         } finally {
             remove.clear();

@@ -20,6 +20,8 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
+
+import javax.jcr.AccessDeniedException;
 import javax.jcr.RepositoryException;
 
 import com.google.common.collect.ImmutableMap;
@@ -115,9 +117,8 @@ class PrivilegeDefinitionWriter implements PrivilegeConstants {
             root.commit();
 
         } catch (CommitFailedException e) {
-            Throwable t = e.getCause();
-            if (t instanceof RepositoryException) {
-                throw (RepositoryException) t;
+            if (e.hasType("Access")) {
+                throw new AccessDeniedException(e);
             } else {
                 throw new RepositoryException(e);
             }

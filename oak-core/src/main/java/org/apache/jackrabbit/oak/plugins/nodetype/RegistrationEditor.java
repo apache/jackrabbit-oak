@@ -86,6 +86,7 @@ class RegistrationEditor extends DefaultEditor {
         if (nodeTypeName == null
                 || !name.equals(nodeTypeName.getValue(NAME))) {
             throw new CommitFailedException(
+                    "Constraint", 34,
                     "Unexpected " + JCR_NODETYPENAME + " in " + path);
         }
 
@@ -95,6 +96,7 @@ class RegistrationEditor extends DefaultEditor {
             for (String value : supertypes.getValue(NAMES)) {
                 if (!types.hasChildNode(value)) {
                     throw new CommitFailedException(
+                            "Constraint", 35,
                             "Missing supertype " + value + " in " + path);
                 }
             }
@@ -194,6 +196,7 @@ class RegistrationEditor extends DefaultEditor {
             for (String key : requiredTypes.getValue(NAMES)) {
                 if (!types.hasChildNode(key)) {
                     throw new CommitFailedException(
+                            "Constraint", 33,
                             "Unknown required primary type " + key);
                 } else if (!definitions.hasChildNode(key)) {
                     definitions.setNode(key, definition);
@@ -249,6 +252,7 @@ class RegistrationEditor extends DefaultEditor {
                 for (String superName : supertypes.getValue(NAMES)) {
                     if (removedTypes.contains(superName)) {
                         throw new CommitFailedException(
+                                "Constraint", 31,
                                 "Removed type " + superName
                                 + " is still referenced as a supertype of "
                                 + entry.getName());
@@ -267,6 +271,7 @@ class RegistrationEditor extends DefaultEditor {
                         for (String required : requiredTypes.getValue(NAMES)) {
                             if (removedTypes.contains(required)) {
                                 throw new CommitFailedException(
+                                        "Constraint", 32,
                                         "Removed type " + required
                                         + " is still referenced as a required "
                                         + " primary child node type in "

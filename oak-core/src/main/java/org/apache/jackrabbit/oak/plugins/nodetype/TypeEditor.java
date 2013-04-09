@@ -38,7 +38,6 @@ import java.util.Set;
 
 import javax.jcr.PropertyType;
 import javax.jcr.Value;
-import javax.jcr.nodetype.ConstraintViolationException;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -107,7 +106,7 @@ class TypeEditor extends DefaultEditor {
         if (parent != null
                 && parent.effective.getDefinition(nodeName, names) == null) {
             throw constraintViolation(
-                    "Incorrect node type of child node " + nodeName
+                    1, "Incorrect node type of child node " + nodeName
                     + " with types " + Joiner.on(", ").join(names));
         }
     }
@@ -121,13 +120,13 @@ class TypeEditor extends DefaultEditor {
         Set<String> missing = effective.findMissingMandatoryItems(after);
         if (!missing.isEmpty()) {
             throw constraintViolation(
-                    "Missing mandatory items " + Joiner.on(", ").join(missing));
+                    2, "Missing mandatory items " + Joiner.on(", ").join(missing));
         }
     }
 
-    private CommitFailedException constraintViolation(String message) {
+    private CommitFailedException constraintViolation(int code, String message) {
         return new CommitFailedException(
-                new ConstraintViolationException(getPath() + ": " + message));
+                "Constraint", code, getPath() + ": " + message);
     }
 
     @Override
@@ -135,7 +134,7 @@ class TypeEditor extends DefaultEditor {
         NodeState definition = effective.getDefinition(after);
         if (definition == null) {
             throw constraintViolation(
-                    "No matching property definition found for " + after);
+                    3, "No matching property definition found for " + after);
         }
         checkValueConstraints(definition, after);
     }
@@ -146,7 +145,7 @@ class TypeEditor extends DefaultEditor {
         NodeState definition = effective.getDefinition(after);
         if (definition == null) {
             throw constraintViolation(
-                    "No matching property definition found for " + after);
+                    4, "No matching property definition found for " + after);
         }
         checkValueConstraints(definition, after);
     }
@@ -222,7 +221,7 @@ class TypeEditor extends DefaultEditor {
                 }
             }
         }
-        throw constraintViolation("Value constraint violation in " + property);
+        throw constraintViolation(5, "Value constraint violation in " + property);
     }
 
     /**
@@ -248,13 +247,13 @@ class TypeEditor extends DefaultEditor {
             NodeState type = types.getChildNode(name);
             if (!type.exists()) {
                 throw constraintViolation(
-                        "Primary node type " + name + " does not exist");
+                        6, "Primary node type " + name + " does not exist");
             } else if (getBoolean(type, JCR_ISMIXIN)) {
                 throw constraintViolation(
-                        "Can not use mixin type " + name + " as primary");
+                        7, "Can not use mixin type " + name + " as primary");
             } else if (getBoolean(type, JCR_IS_ABSTRACT)) {
                 throw constraintViolation(
-                        "Can not use abstract type " + name + " as primary");
+                        8, "Can not use abstract type " + name + " as primary");
             }
 
             list.add(type);
@@ -268,13 +267,13 @@ class TypeEditor extends DefaultEditor {
                     NodeState type = types.getChildNode(name);
                     if (!type.exists()) {
                         throw constraintViolation(
-                                "Mixin node type " + name + " does not exist");
+                                9, "Mixin node type " + name + " does not exist");
                     } else if (!getBoolean(type, JCR_ISMIXIN)) {
                         throw constraintViolation(
-                                "Can not use primary type " + name + " as mixin");
+                                10, "Can not use primary type " + name + " as mixin");
                     } else if (getBoolean(type, JCR_IS_ABSTRACT)) {
                         throw constraintViolation(
-                                "Can not use abstract type " + name + " as mixin");
+                                11, "Can not use abstract type " + name + " as mixin");
                     }
 
                     list.add(type);

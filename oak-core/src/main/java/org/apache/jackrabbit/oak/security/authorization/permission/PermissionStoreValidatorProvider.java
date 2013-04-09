@@ -34,7 +34,8 @@ public class PermissionStoreValidatorProvider extends ValidatorProvider implemen
     @Nonnull
     @Override
     public Validator getRootValidator(NodeState before, NodeState after) {
-        FailingValidator validator = new FailingValidator("Attempt to modify permission store.");
+        FailingValidator validator = new FailingValidator(
+                "Constraint", 41, "Attempt to modify permission store.");
         return new SubtreeValidator(validator, JCR_SYSTEM, REP_PERMISSION_STORE);
     }
 }

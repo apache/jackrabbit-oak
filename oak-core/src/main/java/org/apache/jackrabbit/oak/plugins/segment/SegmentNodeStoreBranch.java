@@ -107,10 +107,11 @@ class SegmentNodeStoreBranch extends AbstractNodeStoreBranch {
                         backoff *= 2;
                     } catch (InterruptedException e) {
                         throw new CommitFailedException(
-                                "Commit was interrupted", e);
+                                "Segment", 1, "Commit was interrupted", e);
                     }
                 } else {
                     throw new CommitFailedException(
+                            "Segment", 2,
                             "System overloaded, try again later");
                 }
 

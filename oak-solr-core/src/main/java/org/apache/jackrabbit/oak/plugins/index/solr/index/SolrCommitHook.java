@@ -45,7 +45,7 @@ public class SolrCommitHook implements CommitHook {
             return after;
         } catch (IOException e) {
             throw new CommitFailedException(
-                    "Failed to update the Solr index", e);
+                    "Solr", 1, "Failed to update the Solr index", e);
         }
     }
 

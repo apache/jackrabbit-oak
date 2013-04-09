@@ -22,9 +22,16 @@ import java.io.IOException;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.jcr.AccessDeniedException;
+import javax.jcr.InvalidItemStateException;
 import javax.jcr.ItemExistsException;
 import javax.jcr.PathNotFoundException;
+import javax.jcr.ReferentialIntegrityException;
 import javax.jcr.RepositoryException;
+import javax.jcr.lock.LockException;
+import javax.jcr.nodetype.ConstraintViolationException;
+import javax.jcr.nodetype.NoSuchNodeTypeException;
+import javax.jcr.version.VersionException;
 
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -186,7 +193,7 @@ public class SessionDelegate {
         try {
             root.commit();
         } catch (CommitFailedException e) {
-            e.throwRepositoryException();
+            throw newRepositoryException(e);
         }
     }
 
@@ -235,9 +242,8 @@ public class SessionDelegate {
             Root currentRoot = contentSession.getLatestRoot();
             currentRoot.copy(srcPath, destPath);
             currentRoot.commit();
-        }
-        catch (CommitFailedException e) {
-            e.throwRepositoryException();
+        } catch (CommitFailedException e) {
+            throw newRepositoryException(e);
         }
     }
 
@@ -278,7 +284,7 @@ public class SessionDelegate {
                 moveRoot.commit();
             }
         } catch (CommitFailedException e) {
-            e.throwRepositoryException();
+            throw newRepositoryException(e);
         }
     }
 
@@ -309,4 +315,35 @@ public class SessionDelegate {
     private Tree getTree(String path) {
         return root.getTree(path);
     }
+
+    /**
+     * Wraps the given {@link CommitFailedException} instance using the
+     * appropriate {@link RepositoryException} subclass based on the
+     * {@link CommitFailedException#getType() type} of the given exception.
+     *
+     * @param exception typed commit failure exception
+     * @return matching repository exception
+     */
+    private static RepositoryException newRepositoryException(
+            CommitFailedException exception) {
+        checkNotNull(exception);
+        if (exception.hasType("Constraint")) {
+            return new ConstraintViolationException(exception);
+        } else if (exception.hasType("Type")) {
+            return new NoSuchNodeTypeException(exception);
+        } else if (exception.hasType("Access")) {
+            return new AccessDeniedException(exception);
+        } else if (exception.hasType("Integrity")) {
+            return new ReferentialIntegrityException(exception);
+        } else if (exception.hasType("State")) {
+            return new InvalidItemStateException(exception);
+        } else if (exception.hasType("Version")) {
+            return new VersionException(exception);
+        } else if (exception.hasType("Lock")) {
+            return new LockException(exception);
+        } else {
+            return new RepositoryException(exception);
+        }
+    }
+
 }

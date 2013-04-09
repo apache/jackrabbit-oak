@@ -172,7 +172,9 @@ class KernelNodeStoreBranch extends AbstractNodeStoreBranch {
             }
         } catch (MicroKernelException e) {
             head = oldRoot;
-            throw new CommitFailedException(e);
+            throw new CommitFailedException(
+                    "Kernel", 1,
+                    "Failed to merge changes to the underlying MicroKernel", e);
         }
     }
 

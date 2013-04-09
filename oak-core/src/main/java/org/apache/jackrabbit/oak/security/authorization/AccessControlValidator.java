@@ -133,7 +133,7 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
 
     private static void checkIsAccessControlEntry(Tree tree) throws CommitFailedException {
         if (!isAccessControlEntry(tree)) {
-            fail("Access control entry node expected.");
+            throw accessViolation(2, "Access control entry node expected.");
         }
     }
 
@@ -147,22 +147,22 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
                 POLICY_NODE_NAMES :
                 Collections.singleton(REP_POLICY);
         if (!validPolicyNames.contains(policyNode.getName())) {
-            fail("Invalid policy name " + policyNode.getName());
+            throw accessViolation(3, "Invalid policy name " + policyNode.getName());
         }
 
         if (!policyNode.hasProperty(TreeImpl.OAK_CHILD_ORDER)) {
-            fail("Invalid policy node: Order of children is not stable.");
+            throw accessViolation(4, "Invalid policy node: Order of children is not stable.");
         }
     }
 
     private void checkValidAccessControlledNode(Tree accessControlledTree, String requiredMixin) throws CommitFailedException {
         if (AC_NODETYPE_NAMES.contains(TreeUtil.getPrimaryTypeName(accessControlledTree))) {
-            fail("Access control policy within access control content (" + accessControlledTree.getPath() + ')');
+            throw accessViolation(5, "Access control policy within access control content (" + accessControlledTree.getPath() + ')');
         }
 
         String msg = "Isolated policy node. Parent is not of type " + requiredMixin;
         if (!ntMgr.isNodeType(accessControlledTree, requiredMixin)) {
-            fail(msg);
+            throw accessViolation(6, msg);
         }
 
         if (MIX_REP_REPO_ACCESS_CONTROLLABLE.equals(requiredMixin)) {
@@ -173,7 +173,7 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
     private void checkValidAccessControlEntry(Tree aceNode) throws CommitFailedException {
         Tree parent = aceNode.getParent();
         if (parent == null || !NT_REP_ACL.equals(TreeUtil.getPrimaryTypeName(parent))) {
-            fail("Isolated access control entry at " + aceNode.getPath());
+            throw accessViolation(7, "Isolated access control entry at " + aceNode.getPath());
         }
         checkValidPrincipal(TreeUtil.getString(aceNode, REP_PRINCIPAL_NAME));
         checkValidPrivileges(TreeUtil.getStrings(aceNode, REP_PRIVILEGES));
@@ -182,7 +182,7 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
 
     private void checkValidPrincipal(String principalName) throws CommitFailedException {
         if (principalName == null || principalName.isEmpty()) {
-            fail("Missing principal name.");
+            throw accessViolation(8, "Missing principal name.");
         }
         // validity of principal is only a JCR specific contract and will not be
         // enforced on the oak level.
@@ -190,16 +190,16 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
 
     private void checkValidPrivileges(String[] privilegeNames) throws CommitFailedException {
         if (privilegeNames == null || privilegeNames.length == 0) {
-            fail("Missing privileges.");
+            throw accessViolation(9, "Missing privileges.");
         }
         for (String privilegeName : privilegeNames) {
             if (privilegeName == null || !privileges.containsKey(privilegeName)) {
-                fail("Invalid privilege " + privilegeName);
+                throw accessViolation(10, "Invalid privilege " + privilegeName);
             }
 
             Privilege privilege = privileges.get(privilegeName);
             if (privilege.isAbstract()) {
-                fail("Abstract privilege " + privilegeName);
+                throw accessViolation(11, "Abstract privilege " + privilegeName);
             }
         }
     }
@@ -216,7 +216,8 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
         try {
             restrictionProvider.validateRestrictions(path, aceTree);
         } catch (AccessControlException e) {
-            throw new CommitFailedException(e);
+            throw new CommitFailedException(
+                    "Access", 1, "Access control violation", e);
         }
     }
 
@@ -230,11 +231,11 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
 
     private static void checkValidRepoAccessControlled(Tree accessControlledTree) throws CommitFailedException {
         if (!accessControlledTree.isRoot()) {
-            fail("Only root can store repository level policies.");
+            throw accessViolation(12, "Only root can store repository level policies.");
         }
     }
 
-    private static void fail(String msg) throws CommitFailedException {
-        throw new CommitFailedException(new AccessControlException(msg));
+    private static CommitFailedException accessViolation(int code, String message) {
+        return new CommitFailedException("Access", code, message);
     }
 }

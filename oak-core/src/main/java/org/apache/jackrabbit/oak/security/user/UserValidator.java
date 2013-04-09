@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.security.user;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import javax.jcr.nodetype.ConstraintViolationException;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -70,12 +69,12 @@ class UserValidator extends DefaultValidator implements UserConstants {
         String name = after.getName();
         if (REP_DISABLED.equals(name) && isAdminUser(parentAfter)) {
             String msg = "Admin user cannot be disabled.";
-            fail(msg);
+            throw constraintViolation(20, msg);
         }
 
         if (JcrConstants.JCR_UUID.equals(name) && !isValidUUID(parentAfter, after.getValue(Type.STRING))) {
             String msg = "Invalid jcr:uuid for authorizable " + parentAfter.getName();
-            fail(msg);
+            throw constraintViolation(21, msg);
         }
 
         if (REP_MEMBERS.equals(name)) {
@@ -92,18 +91,18 @@ class UserValidator extends DefaultValidator implements UserConstants {
         String name = before.getName();
         if (REP_PRINCIPAL_NAME.equals(name) || REP_AUTHORIZABLE_ID.equals(name)) {
             String msg = "Authorizable property " + name + " may not be altered after user/group creation.";
-            fail(msg);
+            throw constraintViolation(22, msg);
         } else if (JcrConstants.JCR_UUID.equals(name)) {
             checkNotNull(parentAfter);
             if (!isValidUUID(parentAfter, after.getValue(Type.STRING))) {
                 String msg = "Invalid jcr:uuid for authorizable " + parentAfter.getName();
-                fail(msg);
+                throw constraintViolation(23, msg);
             }
         }
 
         if (isUser(parentBefore) && REP_PASSWORD.equals(name) && PasswordUtility.isPlainTextPassword(after.getValue(Type.STRING))) {
             String msg = "Password may not be plain text.";
-            fail(msg);
+            throw constraintViolation(24, msg);
         }
 
         if (REP_MEMBERS.equals(name)) {
@@ -121,7 +120,7 @@ class UserValidator extends DefaultValidator implements UserConstants {
         String name = before.getName();
         if (REP_PASSWORD.equals(name) || REP_PRINCIPAL_NAME.equals(name) || REP_AUTHORIZABLE_ID.equals(name)) {
             String msg = "Authorizable property " + name + " may not be removed.";
-            fail(msg);
+            throw constraintViolation(25, msg);
         }
     }
 
@@ -136,7 +135,7 @@ class UserValidator extends DefaultValidator implements UserConstants {
             // assert rep:principalName is present (that should actually by covered
             // by node type validator)
             if (TreeUtil.getString(tree, REP_PRINCIPAL_NAME) == null) {
-                fail("Mandatory property rep:principalName missing.");
+                throw constraintViolation(26, "Mandatory property rep:principalName missing.");
             }
         }
         return new UserValidator(null, tree, provider);
@@ -153,7 +152,7 @@ class UserValidator extends DefaultValidator implements UserConstants {
         Tree node = parentBefore.getChild(name);
         if (isAdminUser(node)) {
             String msg = "The admin user cannot be removed.";
-            fail(msg);
+            throw constraintViolation(27, msg);
         }
         return null;
     }
@@ -193,20 +192,20 @@ class UserValidator extends DefaultValidator implements UserConstants {
     private static void assertHierarchy(@Nonnull Tree tree, @Nonnull String pathConstraint) throws CommitFailedException {
         if (!Text.isDescendant(pathConstraint, tree.getPath())) {
             String msg = "Attempt to create user/group outside of configured scope " + pathConstraint;
-            fail(msg);
+            throw constraintViolation(28, msg);
         }
         Tree parent = tree.getParent();
         while (parent != null && !parent.isRoot()) {
             if (!NT_REP_AUTHORIZABLE_FOLDER.equals(TreeUtil.getPrimaryTypeName(parent))) {
                 String msg = "Cannot create user/group: Intermediate folders must be of type rep:AuthorizableFolder.";
-                fail(msg);
+                throw constraintViolation(29, msg);
             }
             parent = parent.getParent();
         }
     }
 
-    private static void fail(@Nonnull String msg) throws CommitFailedException {
-        Exception e = new ConstraintViolationException(msg);
-        throw new CommitFailedException(e);
+    private static CommitFailedException constraintViolation(
+            int code, @Nonnull String message) {
+        return new CommitFailedException("Constraint", code, message);
     }
 }

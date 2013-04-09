@@ -16,56 +16,48 @@
  */
 package org.apache.jackrabbit.oak.api;
 
-import javax.jcr.RepositoryException;
-
 /**
- * Main exception thrown by methods defined on the {@code ContentSession} interface
- * indicating that committing a given set of changes failed.
+ * Main exception thrown by methods defined on the {@code ContentSession}
+ * interface indicating that committing a given set of changes failed.
  */
 public class CommitFailedException extends Exception {
-    public CommitFailedException() {
+
+    /** Serial version UID */
+    private static final long serialVersionUID = 2727602333350620918L;
+
+    private final String type;
+
+    private final int code;
+
+    public CommitFailedException(
+            String type, int code, String message, Throwable cause) {
+        super(String.format("Oak%s%04d: %s", type, code, message), cause);
+        this.type = type;
+        this.code = code;
     }
 
-    public CommitFailedException(String message) {
-        super(message);
+    public CommitFailedException(String type, int code, String message) {
+        this(type, code, message, null);
     }
 
-    public CommitFailedException(String message, Throwable cause) {
-        super(message, cause);
+    public boolean hasType(String type) {
+        return this.type.equals(type);
     }
 
-    public CommitFailedException(Throwable cause) {
-        super(cause);
+    public boolean hasCode(int code) {
+        return this.code == code;
     }
 
-    /**
-     * Rethrow this exception cast into a {@link RepositoryException}: if the cause
-     * for this exception already is a {@code RepositoryException}, this exception is
-     * wrapped into the actual type of the cause and rethrown. If creating an instance
-     * of the actual type of the cause fails, cause is simply re-thrown.
-     * If the cause for this exception is not a {@code RepositoryException} then  a
-     * new {@code RepositoryException} instance with this {@code CommitFailedException}
-     * is thrown.
-     * @throws RepositoryException
-     */
-    public void throwRepositoryException() throws RepositoryException {
-        Throwable cause = getCause();
-        if (cause instanceof RepositoryException) {
-            RepositoryException e;
-            try {
-                // Try to preserve all parts of the stack trace
-                e = (RepositoryException) cause.getClass().getConstructor().newInstance();
-                e.initCause(this);
-            }
-            catch (Exception ex) {
-                // Fall back to the initial cause on failure
-                e = (RepositoryException) cause;
-            }
-
-            throw e;
-        }
-        else {
-            throw new RepositoryException(this);
-        }
+    public boolean hasTypeAndCode(String type, int code) {
+        return hasType(type) && hasCode(code);
     }
+
+    public String getType() {
+        return type;
+    }
+
+    public int getCode() {
+        return code;
+    }
+
 }

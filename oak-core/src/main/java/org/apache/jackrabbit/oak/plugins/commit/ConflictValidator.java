@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.commit;
 
-import javax.jcr.InvalidItemStateException;
-
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -35,6 +33,21 @@ import static org.apache.jackrabbit.oak.api.Type.STRINGS;
  * @see AnnotatingConflictHandler
  */
 public class ConflictValidator extends DefaultValidator {
+
+    private final ConflictValidator parent;
+
+    private final String name;
+
+    public ConflictValidator() {
+        this.parent = null;
+        this.name = null;
+    }
+
+    private ConflictValidator(ConflictValidator parent, String name) {
+        this.parent = null;
+        this.name = name;
+    }
+
     @Override
     public void propertyAdded(PropertyState after) throws CommitFailedException {
         failOnMergeConflict(after);
@@ -48,27 +61,45 @@ public class ConflictValidator extends DefaultValidator {
 
     @Override
     public Validator childNodeAdded(String name, NodeState after) {
-        return this;
+        return new ConflictValidator(this, name);
     }
 
     @Override
     public Validator childNodeChanged(String name, NodeState before, NodeState after) {
-        return this;
+        return new ConflictValidator(this, name);
     }
 
     @Override
     public Validator childNodeDeleted(String name, NodeState before) {
-        return this;
+        return null;
     }
 
-    private static void failOnMergeConflict(PropertyState property) throws CommitFailedException {
+    private void failOnMergeConflict(PropertyState property) throws CommitFailedException {
         if (JcrConstants.JCR_MIXINTYPES.equals(property.getName())) {
             assert property.isArray();
             for (String v : property.getValue(STRINGS)) {
                 if (NodeTypeConstants.MIX_REP_MERGE_CONFLICT.equals(v)) {
-                    throw new CommitFailedException(new InvalidItemStateException("Item has unresolved conflicts"));
+                    throw new CommitFailedException(
+                            "State", 1, "Unresolved conflicts in " + getPath());
                 }
             }
         }
     }
+
+    private String getPath() {
+        if (parent == null) {
+            return "/";
+        } else {
+            return parent.getPath(name);
+        }
+    }
+
+    private String getPath(String name) {
+        if (parent == null) {
+            return "/" + name;
+        } else {
+            return parent.getPath(this.name) + "/" + name;
+        }
+    }
+
 }
