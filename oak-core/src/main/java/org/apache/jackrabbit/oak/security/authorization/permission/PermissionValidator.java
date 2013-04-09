@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.security.authorization.permission;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import javax.jcr.AccessDeniedException;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -36,6 +35,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.util.TreeUtil;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.api.CommitFailedException.ACCESS;
 
 /**
  * Validator implementation that checks for sufficient permission for all
@@ -103,7 +103,7 @@ class PermissionValidator extends DefaultValidator {
             child = getVersionHistoryTree(child);
             if (child == null) {
                 throw new CommitFailedException(
-                        "Access", 21,
+                        ACCESS, 21,
                         "New version storage node without version history: cannot verify permissions.");
             }
         }
@@ -127,7 +127,7 @@ class PermissionValidator extends DefaultValidator {
         if (isVersionstorageTree(child)) {
             // TODO: check again
             throw new CommitFailedException(
-                    "Access", 22,
+                    ACCESS, 22,
                     "Attempt to remove versionstorage node: Fail to verify delete permission.");
         }
         return checkPermissions(child, true, Permissions.REMOVE_NODE);
@@ -143,12 +143,12 @@ class PermissionValidator extends DefaultValidator {
         long toTest = getPermission(tree, defaultPermission);
         if (Permissions.isRepositoryPermission(toTest)) {
             if (!permissionProvider.isGranted(toTest)) {
-                throw new CommitFailedException("Access", 0, "Access denied");
+                throw new CommitFailedException(ACCESS, 0, "Access denied");
             }
             return null; // no need for further validation down the subtree
         } else {
             if (!permissionProvider.isGranted(tree, null, toTest)) {
-                throw new CommitFailedException("Access", 0, "Access denied");
+                throw new CommitFailedException(ACCESS, 0, "Access denied");
             }
             if (noTraverse(toTest)) {
                 return null;
@@ -165,7 +165,7 @@ class PermissionValidator extends DefaultValidator {
         if (!NodeStateUtils.isHidden((property.getName()))) {
             long toTest = getPermission(parent, property, defaultPermission);
             if (!permissionProvider.isGranted(parent, property, toTest)) {
-                throw new CommitFailedException("Access", 0, "Access denied");
+                throw new CommitFailedException(ACCESS, 0, "Access denied");
             }
         }
     }
