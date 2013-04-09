@@ -161,8 +161,7 @@ public class RootImpl implements Root {
      */
     public Root getLatest() {
         checkLive();
-        // FIXME clarify: getIndexProvider includes transient changes from this root. Is this intended?
-        RootImpl root = new RootImpl(store, hook, workspaceName, subject, securityProvider, getIndexProvider()) {
+        RootImpl root = new RootImpl(store, hook, workspaceName, subject, securityProvider, indexProvider) {
             @Override
             protected void checkLive() {
                 RootImpl.this.checkLive();
