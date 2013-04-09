@@ -536,7 +536,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
         if (provider == null) {
             throw new UnsupportedRepositoryOperationException();
         }
-        Tree tree = getTree(getOakPath(absPath), Permissions.NO_PERMISSION);
+        Tree tree = (absPath == null) ? null : getTree(getOakPath(absPath), Permissions.NO_PERMISSION);
         Set<String> pNames = provider.getPrivileges(tree);
         if (pNames.isEmpty()) {
             return new Privilege[0];
@@ -555,7 +555,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
         if (provider == null) {
             throw new UnsupportedRepositoryOperationException();
         }
-        Tree tree = getTree(getOakPath(absPath), Permissions.NO_PERMISSION);
+        Tree tree = (absPath == null) ? null : getTree(getOakPath(absPath), Permissions.NO_PERMISSION);
         Set<String> privilegeNames = new HashSet<String>(privileges.length);
         for (Privilege privilege : privileges) {
             privilegeNames.add(namePathMapper.getOakName(privilege.getName()));
