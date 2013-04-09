@@ -43,12 +43,13 @@ public class NodeTypeManagementTest extends AbstractEvaluationTest {
     protected void setUp() throws Exception {
         super.setUp();
 
-        Node child = testRootNode.addNode(nodeName2);
+        Node child = superuser.getNode(childNPath);
         if (child.isNodeType(mixReferenceable) || !child.canAddMixin(mixReferenceable)) {
             throw new NotExecutableException();
         }
         superuser.save();
-        
+
+        testSession.refresh(false);
         mixinName = testSession.getNamespacePrefix(NS_MIX_URI) + ":referenceable";
         childNode = testSession.getNode(child.getPath());
 

@@ -33,15 +33,16 @@ import static org.junit.Assert.assertArrayEquals;
 public class ReadTest extends AbstractEvaluationTest {
 
     @Test
-    public void testNewNodes() throws Exception {
+    public void testChildNodes() throws Exception {
         /* create some new nodes below 'path' */
         Node n = superuser.getNode(path);
         for (int i = 0; i < 5; i++) {
-            n = n.addNode(nodeName2, testNodeType);
+            n = n.addNode(nodeName4, testNodeType);
         }
         superuser.save();
 
         /* make sure the same privileges/permissions are granted as at path. */
+        testSession.refresh(false);
         String childPath = n.getPath();
         assertArrayEquals(readPrivileges, testAcMgr.getPrivileges(childPath));
         testSession.checkPermission(childPath, Session.ACTION_READ);

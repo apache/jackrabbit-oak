@@ -109,6 +109,10 @@ public abstract class AbstractEvaluationTest extends AbstractAccessControlTest {
         childchildPPath = ccp1.getPath();
         siblingPath = n2.getPath();
 
+        // setup default permissions
+        AccessControlUtils.addAccessControlEntry(superuser, "/", testUser.getPrincipal(), privilegesFromName(Privilege.JCR_READ), true);
+        superuser.save();
+
         testSession = getTestSession();
         testAcMgr = getAccessControlManager(testSession);
 
@@ -174,13 +178,6 @@ public abstract class AbstractEvaluationTest extends AbstractAccessControlTest {
         return testGroup;
     }
 
-    protected Node getTestNode() throws RepositoryException {
-        if (trn == null) {
-            trn = testSession.getNode(testRootNode.getPath());
-        }
-        return trn;
-    }
-
     protected String getActions(String... actions) {
         StringBuilder sb = new StringBuilder();
         for (String action : actions) {
@@ -215,6 +212,7 @@ public abstract class AbstractEvaluationTest extends AbstractAccessControlTest {
 
         acMgr.setPolicy(tmpl.getPath(), tmpl);
         superuser.save();
+        testSession.refresh(false);
 
         // remember for clean up during tearDown
         toClear.add(tmpl.getPath());
