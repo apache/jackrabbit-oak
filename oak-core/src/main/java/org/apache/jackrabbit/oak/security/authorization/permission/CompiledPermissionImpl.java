@@ -126,19 +126,17 @@ class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants
 
     @Override
     public boolean isGranted(long permissions) {
-        return hasPermissions(repoEntries.values().iterator(), permissions, null);
+        return hasPermissions(repoEntries.values().iterator(), permissions, null, null);
     }
 
     @Override
     public boolean isGranted(@Nonnull Tree tree, @Nullable PropertyState property, long permissions) {
-        return hasPermissions(getEntryIterator(tree, property), permissions, tree);
+        return hasPermissions(getEntryIterator(tree, property), permissions, tree, null);
     }
 
     @Override
     public boolean isGranted(@Nonnull String path, long permissions) {
-        Iterator<PermissionEntry> it = getEntryIterator(path);
-        // TODO
-        return false;
+        return hasPermissions(getEntryIterator(path), permissions, null, path);
     }
 
     @Override
@@ -183,12 +181,12 @@ class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants
     }
 
     private boolean hasPermissions(@Nonnull Iterator<PermissionEntry> entries,
-                                   long permissions, @Nullable Tree tree) {
+                                   long permissions, @Nullable Tree tree, @Nullable String path) {
         if (!entries.hasNext()) {
             return false;
         }
 
-        boolean respectParent = (tree != null) &&
+        boolean respectParent = (tree != null || path != null) &&
                 (Permissions.includes(permissions, Permissions.ADD_NODE) ||
                 Permissions.includes(permissions, Permissions.REMOVE_NODE) ||
                 Permissions.includes(permissions, Permissions.MODIFY_CHILD_NODE_COLLECTION));
@@ -200,22 +198,27 @@ class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants
         PrivilegeBits denyBits = PrivilegeBits.getInstance();
         PrivilegeBits parentAllowBits;
         PrivilegeBits parentDenyBits;
+
         Tree parent;
+        String parentPath;
 
         if (respectParent) {
             parentAllowBits = PrivilegeBits.getInstance();
             parentDenyBits = PrivilegeBits.getInstance();
-            parent = tree.getParent();
+            parent = (tree != null) ? tree.getParent() : null;
+            parentPath = (path != null) ? Strings.emptyToNull(Text.getRelativeParent(path, 1)) : null;
         } else {
             parentAllowBits = PrivilegeBits.EMPTY;
             parentDenyBits = PrivilegeBits.EMPTY;
             parent = null;
+            parentPath = null;
         }
 
         while (entries.hasNext()) {
             PermissionEntry entry = entries.next();
-            if (respectParent && parent != null) {
-                if (entry.matches(parent, null)) {
+            if (respectParent && (parent != null || parentPath != null)) {
+                boolean matchesParent = (parent != null) ? entry.matches(parent, null) : entry.matches(parentPath);
+                if (matchesParent) {
                     if (entry.isAllow) {
                         parentAllowBits.addDifference(entry.privilegeBits, parentDenyBits);
                     } else {
