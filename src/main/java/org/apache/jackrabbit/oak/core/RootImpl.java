@@ -456,7 +456,6 @@ public class RootImpl implements Root {
 
     @Nonnull
     private NodeState getRootState() {
-        // FIXME: should not return a state being (based on) SecureNodeState (see OAK-709)
         return rootTree.getNodeState();
     }
 
