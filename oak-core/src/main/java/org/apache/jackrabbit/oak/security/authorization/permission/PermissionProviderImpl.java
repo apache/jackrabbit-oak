@@ -107,9 +107,9 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
         // TODO: OAK-753 decide on where to filter out hidden items.
         if (isHidden(tree, property)) {
             return ReadStatus.DENY_ALL;
-        } else if (isAccessControlContent(tree) && canReadAccessControlContent(tree, property)) {
+        } else if (isAccessControlContent(tree)) {
             // TODO: review if read-ac permission is never fine-granular
-            return ReadStatus.ALLOW_ALL;
+            return canReadAccessControlContent(tree, null) ? ReadStatus.ALLOW_ALL : ReadStatus.DENY_ALL;
         } else if (isVersionContent(tree)) {
             return getVersionContentReadStatus(tree, property);
         } else {
@@ -124,7 +124,9 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
 
     @Override
     public boolean isGranted(@Nonnull Tree tree, @Nullable PropertyState property, long permissions) {
-        if (isVersionContent(tree)) {
+        if (isHidden(tree, property)) {
+            return false;
+        } else if (isVersionContent(tree)) {
             TreeLocation location = getVersionableLocation(tree, property);
             if (location == null) {
                 // TODO: review permission evaluation on hierarchy nodes within the different version stores.

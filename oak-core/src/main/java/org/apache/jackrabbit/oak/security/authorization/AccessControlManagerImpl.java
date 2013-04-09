@@ -118,7 +118,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
     @Nonnull
     @Override
     public Privilege[] getSupportedPrivileges(@Nullable String absPath) throws RepositoryException {
-        checkValidPath(absPath);
+        getTree(getOakPath(absPath), Permissions.NO_PERMISSION);
         return privilegeManager.getRegisteredPrivileges();
     }
 
@@ -351,24 +351,16 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
             throw new PathNotFoundException("No tree at " + oakPath);
         }
         if (permissions != Permissions.NO_PERMISSION) {
-            checkPermission(tree, permissions);
+            if (permissionProvider != null && !permissionProvider.isGranted(tree, null, permissions)) {
+                throw new AccessDeniedException("Access denied at " + tree);
+            }
+            // check if the tree is access controlled
+            if (acConfig.getContext().definesTree(tree)) {
+                throw new AccessControlException("Tree " + tree.getPath() + " defines access control content.");
+            }
         }
 
-        // check if the tree is access controlled
-        if (acConfig.getContext().definesTree(tree)) {
-            throw new AccessControlException("Tree " + tree.getPath() + " defines access control content.");
-        }
         return tree;
-    }
-
-    private void checkPermission(@Nonnull Tree tree, long permissions) throws AccessDeniedException {
-        if (permissionProvider != null && !permissionProvider.isGranted(tree, null, permissions)) {
-            throw new AccessDeniedException("Access denied at " + tree);
-        }
-    }
-
-    private void checkValidPath(@Nullable String jcrPath) throws RepositoryException {
-        getTree(getOakPath(jcrPath), Permissions.NO_PERMISSION);
     }
 
     private static void checkValidPolicy(@Nullable String oakPath, @Nonnull AccessControlPolicy policy) throws AccessControlException {
