@@ -233,7 +233,7 @@ public class RootImpl implements Root {
     @Override
     public void rebase() {
         checkLive();
-        if (!store.getRoot().equals(rootTree.getBaseState())) {
+        if (!store.getRoot().equals(getBaseState())) {
             purgePendingChanges();
             branch.rebase();
             reset();
@@ -408,19 +408,19 @@ public class RootImpl implements Root {
     }
 
     @Nonnull
-    PermissionProvider getPermissionProvider() {
-        if (permissionProvider == null) {
-            permissionProvider = createPermissionProvider();
-        }
-        return permissionProvider;
-    }
-
-    @Nonnull
     String getWorkspaceName() {
         return workspaceName;
     }
 
     //------------------------------------------------------------< private >---
+
+    @Nonnull
+    private PermissionProvider getPermissionProvider() {
+        if (permissionProvider == null) {
+            permissionProvider = createPermissionProvider();
+        }
+        return permissionProvider;
+    }
 
     /**
      * Purge all pending changes to the underlying {@link NodeStoreBranch}.
