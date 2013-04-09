@@ -147,8 +147,7 @@ public class TreeImpl implements Tree {
             return null;
         }
 
-        // FIXME: This should be based on the secure base state
-        NodeState parentBase = getBaseState();
+        NodeState parentBase = getSecureBase();
         PropertyState base = parentBase.getProperty(name);
 
         if (base == null) {
@@ -412,19 +411,6 @@ public class TreeImpl implements Tree {
 
     //-----------------------------------------------------------< internal >---
 
-    /**
-     * The (possibly non-existent) node state this tree is based on.
-     * @return the base node state of this tree
-     */
-    @Nonnull
-    final NodeState getBaseState() {
-        if (parent == null) {
-            return root.getBaseState();
-        } else {
-            return parent.getBaseState().getChildNode(name);
-        }
-    }
-
     @Nonnull
     NodeState getNodeState() {
         return nodeBuilder.getNodeState();
@@ -528,6 +514,19 @@ public class TreeImpl implements Tree {
     private void enterNoStateCheck() {
         root.checkLive();
         applyPendingMoves();
+    }
+
+    /**
+     * The (possibly non-existent) node state this tree is based on.
+     * @return the base node state of this tree
+     */
+    @Nonnull
+    private NodeState getSecureBase() {
+        if (parent == null) {
+            return root.getSecureBase();
+        } else {
+            return parent.getSecureBase().getChildNode(name);
+        }
     }
 
     private void applyPendingMoves() {
