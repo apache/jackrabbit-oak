@@ -327,19 +327,19 @@ public class SessionDelegate {
     private static RepositoryException newRepositoryException(
             CommitFailedException exception) {
         checkNotNull(exception);
-        if (exception.hasType("Constraint")) {
+        if (exception.isConstraintViolation()) {
             return new ConstraintViolationException(exception);
-        } else if (exception.hasType("Type")) {
+        } else if (exception.isOfType("Type")) {
             return new NoSuchNodeTypeException(exception);
-        } else if (exception.hasType("Access")) {
+        } else if (exception.isAccessViolation()) {
             return new AccessDeniedException(exception);
-        } else if (exception.hasType("Integrity")) {
+        } else if (exception.isOfType("Integrity")) {
             return new ReferentialIntegrityException(exception);
-        } else if (exception.hasType("State")) {
+        } else if (exception.isOfType("State")) {
             return new InvalidItemStateException(exception);
-        } else if (exception.hasType("Version")) {
+        } else if (exception.isOfType("Version")) {
             return new VersionException(exception);
-        } else if (exception.hasType("Lock")) {
+        } else if (exception.isOfType("Lock")) {
             return new LockException(exception);
         } else {
             return new RepositoryException(exception);
