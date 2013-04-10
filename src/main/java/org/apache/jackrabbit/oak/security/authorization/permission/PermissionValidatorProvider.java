@@ -25,6 +25,7 @@ import javax.security.auth.Subject;
 
 import org.apache.jackrabbit.oak.core.ImmutableRoot;
 import org.apache.jackrabbit.oak.core.ImmutableTree;
+import org.apache.jackrabbit.oak.core.TreeTypeProviderImpl;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.security.Context;
@@ -74,7 +75,7 @@ public class PermissionValidatorProvider extends ValidatorProvider {
     }
 
     private ImmutableTree createTree(NodeState root) {
-        return new ImmutableTree(root, new ImmutableTree.DefaultTypeProvider(getAccessControlContext()));
+        return new ImmutableTree(root, new TreeTypeProviderImpl(getAccessControlContext()));
     }
 
     private PermissionProvider getPermissionProvider(NodeState before) {

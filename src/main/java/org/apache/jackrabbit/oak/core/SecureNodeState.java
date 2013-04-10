@@ -122,10 +122,12 @@ public class SecureNodeState extends AbstractNodeState {
 
     public SecureNodeState(@Nonnull NodeState rootState,
                            @Nonnull PermissionProvider permissionProvider,
-                           @Nonnull ImmutableTree.TypeProvider typeProvider) {
+                           @Nonnull TreeTypeProvider typeProvider) {
         this.state = checkNotNull(rootState);
         this.base = new ImmutableTree(rootState, typeProvider);
         this.permissionProvider = permissionProvider;
+        // calculate the readstatus for the root
+        this.readStatus = permissionProvider.getReadStatus(base, null);
     }
 
     private SecureNodeState(

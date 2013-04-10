@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.core.TreeImpl;
+import org.apache.jackrabbit.oak.core.TreeTypeProvider;
 import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
 import org.apache.jackrabbit.oak.spi.commit.DefaultValidator;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
@@ -145,7 +146,7 @@ class PermissionValidator extends DefaultValidator {
 
     private Validator checkPermissions(@Nonnull Tree tree, boolean isBefore,
                                        long defaultPermission) throws CommitFailedException {
-        if (ImmutableTree.getType(tree) == ImmutableTree.TypeProvider.TYPE_HIDDEN) {
+        if (ImmutableTree.getType(tree) == TreeTypeProvider.TYPE_HIDDEN) {
             // ignore everything below a hidden tree
             return null;
         }
