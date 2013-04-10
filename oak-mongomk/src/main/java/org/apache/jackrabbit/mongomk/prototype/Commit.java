@@ -68,7 +68,7 @@ public class Commit {
         this.mk = mk;
     }
 
-    private UpdateOp getUpdateOperationForNode(String path) {
+    UpdateOp getUpdateOperationForNode(String path) {
         UpdateOp op = operations.get(path);
         if (op == null) {
             String id = Utils.getIdFromPath(path);

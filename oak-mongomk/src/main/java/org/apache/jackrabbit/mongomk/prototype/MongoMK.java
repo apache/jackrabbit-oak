@@ -323,7 +323,7 @@ public class MongoMK implements MicroKernel {
                 }
                 return o1.compareTo(o2);
             }
-            
+
         });
         long now = Revision.getCurrentTimestamp();
         for (String p : paths) {
@@ -332,16 +332,16 @@ public class MongoMK implements MicroKernel {
                 continue;
             }
             // FIXME: with below code fragment the root (and other nodes
-            // 'close' to the root will not be updated in MongoDB when there
-            // are frequent changes. Uncommenting the lines below also
-            // leads to test failures because reads seem to become inconsistent
-//            if (Revision.getTimestampDifference(now, r.getTimestamp()) < asyncDelay) {
-//                continue;
-//            }
+            // 'close' to the root) will not be updated in MongoDB when there
+            // are frequent changes.
+            if (Revision.getTimestampDifference(now, r.getTimestamp()) < asyncDelay) {
+                continue;
+            }
             
             Commit commit = new Commit(this, null, r);
             commit.touchNode(p);
-            commit.apply();
+            store.createOrUpdate(DocumentStore.Collection.NODES, commit.getUpdateOperationForNode(p));
+            unsavedLastRevisions.remove(p);
         }
     }
     
@@ -1203,7 +1203,18 @@ public class MongoMK implements MicroKernel {
             boolean isNew, boolean isDelete, boolean isWritten, 
             ArrayList<String> added, ArrayList<String> removed) {
         if (!isWritten) {
-            unsavedLastRevisions.put(path, rev);
+            Revision prev = unsavedLastRevisions.put(path, rev);
+            if (prev != null) {
+                if (isRevisionNewer(prev, rev)) {
+                    // revert
+                    unsavedLastRevisions.put(path, prev);
+                    String msg = String.format("Attempt to update " +
+                            "unsavedLastRevision for %s with %s, which is " +
+                            "older than current %s.",
+                            path, rev, prev);
+                    throw new MicroKernelException(msg);
+                }
+            }
         } else {
             // the document was updated:
             // we no longer need to update it in a background process
