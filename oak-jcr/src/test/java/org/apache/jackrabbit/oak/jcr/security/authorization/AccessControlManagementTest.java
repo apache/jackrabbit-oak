@@ -39,7 +39,6 @@ import org.junit.Test;
 /**
  * AccessControlManagementTest... TODO
  */
-@Ignore("OAK-51")
 public class AccessControlManagementTest extends AbstractEvaluationTest {
 
     @Test

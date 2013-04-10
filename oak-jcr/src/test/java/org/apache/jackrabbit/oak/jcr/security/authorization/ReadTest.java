@@ -29,7 +29,6 @@ import static org.junit.Assert.assertArrayEquals;
 /**
  * ReadTest... TODO
  */
-@Ignore("OAK-51")
 public class ReadTest extends AbstractEvaluationTest {
 
     @Test
@@ -111,6 +110,7 @@ public class ReadTest extends AbstractEvaluationTest {
         assertFalse(testSession.nodeExists(path));
     }
 
+    @Ignore("OAK-766") // FIXME
     @Test
     public void testReadDenied() throws Exception {
         /* deny READ privilege for testUser at 'path' */
@@ -198,6 +198,7 @@ public class ReadTest extends AbstractEvaluationTest {
         assertTrue(testSession.nodeExists(path));
     }
 
+    @Ignore("OAK-51") // FIXME
     @Test
     public void testAllowEveryoneDenyGroup() throws Exception {
         /*
@@ -228,6 +229,7 @@ public class ReadTest extends AbstractEvaluationTest {
         assertTrue(testSession.nodeExists(childNPath));
     }
 
+    @Ignore("OAK-51") // FIXME
     @Test
     public void testAllowEveryonePathDenyGroupChildPath() throws Exception {
         /*
@@ -238,7 +240,7 @@ public class ReadTest extends AbstractEvaluationTest {
         /*
          deny READ privilege for group at 'childNPath'
          */
-        deny(path, getTestGroup().getPrincipal(), readPrivileges);
+        deny(childNPath, getTestGroup().getPrincipal(), readPrivileges);
 
         assertFalse(testSession.nodeExists(childNPath));
     }
