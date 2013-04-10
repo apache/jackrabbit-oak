@@ -35,17 +35,15 @@ import org.apache.jackrabbit.mongomk.prototype.UpdateOp.Operation;
 public class MemoryDocumentStore implements DocumentStore {
 
     /**
-     * The 'nodes' collection. It contains all the node data, with one document
-     * per node, and the path as the primary key. Each document possibly
-     * contains multiple revisions.
-     * <p>
-     * Key: the path, value: the node data (possibly multiple revisions)
-     * <p>
-     * Old revisions are removed after some time, either by the process that
-     * removed or updated the node, lazily when reading, or in a background
-     * process.
+     * The 'nodes' collection.
      */
     private ConcurrentSkipListMap<String, Map<String, Object>> nodes =
+            new ConcurrentSkipListMap<String, Map<String, Object>>();
+    
+    /**
+     * The 'clusterNodes' collection.
+     */
+    private ConcurrentSkipListMap<String, Map<String, Object>> clusterNodes =
             new ConcurrentSkipListMap<String, Map<String, Object>>();
 
     public Map<String, Object> find(Collection collection, String key, int maxCacheAge) {
@@ -97,6 +95,8 @@ public class MemoryDocumentStore implements DocumentStore {
         switch (collection) {
         case NODES:
             return nodes;
+        case CLUSTER_NODES:
+            return clusterNodes;
         default:
             throw new IllegalArgumentException(collection.name());
         }
@@ -139,6 +139,12 @@ public class MemoryDocumentStore implements DocumentStore {
         return oldNode;
     }
     
+    /**
+     * Apply the changes to the in-memory map.
+     * 
+     * @param target the target map
+     * @param update the changes to apply
+     */
     public static void applyChanges(Map<String, Object> target, UpdateOp update) {
         for (Entry<String, Operation> e : update.changes.entrySet()) {
             String k = e.getKey();

@@ -52,14 +52,21 @@ public class MongoDocumentStore implements DocumentStore {
 
     private static final boolean LOG_TIME = false;
 
-    private final DBCollection nodesCollection;
+    private final DBCollection nodes;
+    private final DBCollection clusterNodes;
     
-    private long time;
+    /**
+     * The sum of all milliseconds this class waited for MongoDB.
+     */
+    private long timeSum;
     
     private final Cache<String, CachedDocument> cache;
 
     public MongoDocumentStore(DB db) {
-        nodesCollection = db.getCollection(Collection.NODES.toString());
+        nodes = db.getCollection(
+                Collection.NODES.toString());
+        clusterNodes = db.getCollection(
+                Collection.CLUSTER_NODES.toString());
         
         // the _id field is the primary key, so we don't need to define it
         // the following code is just a template in case we need more indexes
@@ -82,7 +89,7 @@ public class MongoDocumentStore implements DocumentStore {
     
     private void end(long start) {
         if (LOG_TIME) {
-            time += System.currentTimeMillis() - start;
+            timeSum += System.currentTimeMillis() - start;
         }
     }
     
@@ -98,19 +105,19 @@ public class MongoDocumentStore implements DocumentStore {
         cache.invalidateAll();
     }
 
-    public Map<String, Object> find(Collection collection, String path) {
-        return find(collection, path, Integer.MAX_VALUE);
+    public Map<String, Object> find(Collection collection, String key) {
+        return find(collection, key, Integer.MAX_VALUE);
     }
     
     @Override
-    public Map<String, Object> find(final Collection collection, final String path, int maxCacheAge) {
+    public Map<String, Object> find(final Collection collection, final String key, int maxCacheAge) {
         try {
             CachedDocument doc;
             while (true) {
-                doc = cache.get(path, new Callable<CachedDocument>() {
+                doc = cache.get(key, new Callable<CachedDocument>() {
                     @Override
                     public CachedDocument call() throws Exception {
-                        Map<String, Object> map = findUncached(collection, path);
+                        Map<String, Object> map = findUncached(collection, key);
                         return new CachedDocument(map);
                     }
                 });
@@ -121,19 +128,19 @@ public class MongoDocumentStore implements DocumentStore {
                     break;
                 }
                 // too old: invalidate, try again
-                cache.invalidate(path);
+                cache.invalidate(key);
             }
             return doc.value;
         } catch (ExecutionException e) {
-            throw new IllegalStateException("Failed to load node " + path, e);
+            throw new IllegalStateException("Failed to load document with " + key, e);
         }
     }
     
-    public Map<String, Object> findUncached(Collection collection, String path) {
+    Map<String, Object> findUncached(Collection collection, String key) {
         DBCollection dbCollection = getDBCollection(collection);
         long start = start();
         try {
-            DBObject doc = dbCollection.findOne(getByPathQuery(path));
+            DBObject doc = dbCollection.findOne(getByKeyQuery(key));
             if (doc == null) {
                 return null;
             }
@@ -171,13 +178,13 @@ public class MongoDocumentStore implements DocumentStore {
     }
 
     @Override
-    public void remove(Collection collection, String path) {
-        log("remove", path);        
+    public void remove(Collection collection, String key) {
+        log("remove", key);        
         DBCollection dbCollection = getDBCollection(collection);
         long start = start();
         try {
-            cache.invalidate(path);
-            WriteResult writeResult = dbCollection.remove(getByPathQuery(path), WriteConcern.SAFE);
+            cache.invalidate(key);
+            WriteResult writeResult = dbCollection.remove(getByKeyQuery(key), WriteConcern.SAFE);
             if (writeResult.getError() != null) {
                 throw new MicroKernelException("Remove failed: " + writeResult.getError());
             }
@@ -230,7 +237,7 @@ public class MongoDocumentStore implements DocumentStore {
             }
         }
 
-        DBObject query = getByPathQuery(updateOp.key);
+        DBObject query = getByKeyQuery(updateOp.key);
         BasicDBObject update = new BasicDBObject();
         if (!setUpdates.isEmpty()) {
             update.append("$set", setUpdates);
@@ -348,22 +355,24 @@ public class MongoDocumentStore implements DocumentStore {
     private DBCollection getDBCollection(Collection collection) {
         switch (collection) {
             case NODES:
-                return nodesCollection;
+                return nodes;
+            case CLUSTER_NODES:
+                return clusterNodes;
             default:
                 throw new IllegalArgumentException(collection.name());
         }
     }
 
-    private static DBObject getByPathQuery(String path) {
-        return QueryBuilder.start(UpdateOp.ID).is(path).get();
+    private static DBObject getByKeyQuery(String key) {
+        return QueryBuilder.start(UpdateOp.ID).is(key).get();
     }
     
     @Override
     public void dispose() {
         if (LOG.isDebugEnabled()) {
-            LOG.debug("MongoDB time: " + time);
+            LOG.debug("MongoDB time: " + timeSum);
         }
-        nodesCollection.getDB().getMongo().close();
+        nodes.getDB().getMongo().close();
     }
     
     private static void log(String message, Object... args) {
