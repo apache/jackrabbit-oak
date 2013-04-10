@@ -155,34 +155,6 @@ public class MongoMK implements MicroKernel {
      */
     private final Map<Revision, Revision> branchCommits
             = new ConcurrentHashMap<Revision, Revision>();
-
-    /**
-     * Create a new in-memory MongoMK used for testing.
-     */
-    public MongoMK() {
-        this(new Builder());
-    }
-    
-    /**
-     * Create a new MongoMK.
-     * 
-     * @param db the MongoDB connection (null for in-memory)
-     * @param clusterId the cluster id (must be unique)
-     */
-    public MongoMK(DB db, int clusterId) {
-        this(new Builder().setMongoDB(db).setClusterId(clusterId));
-    }
-
-    /**
-     * Create a new MongoMK.
-     *
-     * @param store the store (might be shared)
-     * @param blobStore the blob store to use
-     * @param clusterId the cluster id (must be unique)
-     */
-    public MongoMK(DocumentStore store, BlobStore blobStore, int clusterId) {
-        this(new Builder().setDocumentStore(store).setBlobStore(blobStore).setClusterId(clusterId));
-    }
     
     MongoMK(Builder builder) {
         this.store = builder.getDocumentStore();
