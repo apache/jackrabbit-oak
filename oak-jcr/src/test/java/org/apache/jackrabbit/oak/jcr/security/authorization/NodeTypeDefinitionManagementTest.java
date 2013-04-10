@@ -24,13 +24,11 @@ import javax.jcr.security.AccessControlPolicy;
 
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
  * NodeTypeDefinitionManagementTest... TODO
  */
-@Ignore("OAK-51")
 public class NodeTypeDefinitionManagementTest extends AbstractEvaluationTest {
 
     private static final String JCR_NODE_TYPE_DEFINITION_MANAGEMENT = "jcr:nodeTypeDefinitionManagement";
@@ -140,24 +138,20 @@ public class NodeTypeDefinitionManagementTest extends AbstractEvaluationTest {
             try {
                 NodeTypeManager testNtm = testWsp.getNodeTypeManager();
                 testNtm.unregisterNodeType(ntd.getName());
-                fail("Namespace unregistration should be denied.");
+                fail("Node type unregistration should be denied.");
             } catch (AccessDeniedException e) {
                 // success
             }
             try {
                 NodeTypeManager testNtm = testWsp.getNodeTypeManager();
                 testNtm.unregisterNodeTypes(new String[] {ntd.getName()});
-                fail("Namespace unregistration should be denied.");
+                fail("Node type unregistration should be denied.");
             } catch (AccessDeniedException e) {
                 // success
             }
         } finally {
-            // clean up (not supported by jackrabbit-core)
-            try {
-                ntm.unregisterNodeType(ntd.getName());
-            } catch (Exception e) {
-                // ns unregistration is not supported by jackrabbit-core.
-            }
+            // TODO: diff to jr-core where unregisterNt was not supported
+            ntm.unregisterNodeType(ntd.getName());
         }
     }
 }
