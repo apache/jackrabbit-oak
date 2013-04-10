@@ -35,7 +35,7 @@ import org.junit.Test;
 /**
  * Test access control evaluation for version operations.
  */
-@Ignore("OAK-51")
+@Ignore("OAK-168")
 public class VersionManagementTest extends AbstractEvaluationTest {
 
     private static final String SYSTEM = "/jcr:system";
@@ -65,40 +65,35 @@ public class VersionManagementTest extends AbstractEvaluationTest {
 
     @Test
     public void testAddMixVersionable() throws Exception {
-        Node trn = testSession.getNode(path);
-        modify(trn.getPath(), REP_WRITE, true);
-        modify(trn.getPath(), Privilege.JCR_VERSION_MANAGEMENT, false);
+        modify(path, REP_WRITE, true);
+        modify(path, Privilege.JCR_VERSION_MANAGEMENT, false);
 
-        Node n = trn.hasNode(nodeName2) ? trn.getNode(nodeName2) : trn.addNode(nodeName2);
+        Node testNode = testSession.getNode(path);
         try {
-            if (n.canAddMixin(mixVersionable)) {
-                n.addMixin(mixVersionable);
-            } else {
-                throw new NotExecutableException();
-            }
-            testSession.save();
-            fail("Test session does not have write permission in the version storage -> adding mixin must fail.");
+            createVersionableNode(testNode);
+            fail("Test session does not have permission to add mixins -> no version content should be created.");
         } catch (AccessDeniedException e) {
             // success
             // ... but autocreated versionable node properties must not be present
-            assertFalse(n.isNodeType(mixVersionable));
-            assertFalse(n.hasProperty("jcr:isCheckedOut"));
-            assertFalse(n.hasProperty(jcrVersionHistory));
+            assertFalse(testNode.isNodeType(mixVersionable));
+            assertFalse(testNode.hasProperty("jcr:isCheckedOut"));
+            assertFalse(testNode.hasProperty(jcrVersionHistory));
         }
     }
 
+    @Ignore("OAK-168") // FIXME: waiting for basic version mgt
     @Test
     public void testAddMixVersionable2() throws Exception {
-        Node trn = testSession.getNode(path);
-        modify(trn.getPath(), REP_WRITE, true);
-        modify(trn.getPath(), Privilege.JCR_NODE_TYPE_MANAGEMENT, true);
-        modify(trn.getPath(), Privilege.JCR_VERSION_MANAGEMENT, true);
+        modify(path, REP_WRITE, true);
+        modify(path, Privilege.JCR_NODE_TYPE_MANAGEMENT, true);
+        modify(path, Privilege.JCR_VERSION_MANAGEMENT, true);
 
-        Node n = createVersionableNode(trn);
+        Node n = createVersionableNode(testSession.getNode(path));
         n.checkin();
         n.checkout();
     }
 
+    @Ignore("OAK-168") // FIXME: waiting for basic version mgt
     @Test
     public void testCheckInCheckout() throws Exception {
         modify(path, REP_WRITE, true);
@@ -123,6 +118,7 @@ public class VersionManagementTest extends AbstractEvaluationTest {
     /**
      * @since oak (DIFF: jr required jcr:versionManagement privilege on the version store)
      */
+    @Ignore("OAK-168") // FIXME: waiting for basic version mgt
     @Test
     public void testRemoveVersion() throws Exception {
         Node n = createVersionableNode(superuser.getNode(path));
@@ -141,6 +137,7 @@ public class VersionManagementTest extends AbstractEvaluationTest {
     /**
      * @since oak (DIFF: jr required jcr:versionManagement privilege on the version store)
      */
+    @Ignore("OAK-168") // FIXME: waiting for basic version mgt
     @Test
     public void testRemoveVersion2() throws Exception {
         Node n = createVersionableNode(superuser.getNode(path));
@@ -166,6 +163,7 @@ public class VersionManagementTest extends AbstractEvaluationTest {
     /**
      * @since oak (DIFF: jr required jcr:versionManagement privilege on the version store)
      */
+    @Ignore("OAK-168") // FIXME: waiting for basic version mgt
     @Test
     public void testRemoveVersion3() throws Exception {
         Node n = createVersionableNode(superuser.getNode(path));
@@ -198,6 +196,7 @@ public class VersionManagementTest extends AbstractEvaluationTest {
     /**
      * @since oak
      */
+    @Ignore("OAK-168") // FIXME: waiting for basic version mgt
     @Test
     public void testAccessVersionContentWithoutStoreAccess() throws Exception {
         Node n = createVersionableNode(superuser.getNode(path));
@@ -231,6 +230,7 @@ public class VersionManagementTest extends AbstractEvaluationTest {
     /**
      * @since oak (DIFF: jr required jcr:versionManagement privilege on the version store)
      */
+    @Ignore("OAK-168") // FIXME: waiting for basic version mgt
     @Test
     public void testAccessVersionHistory() throws Exception {
         Node n = createVersionableNode(superuser.getNode(path));
@@ -253,6 +253,7 @@ public class VersionManagementTest extends AbstractEvaluationTest {
     /**
      * @since oak (DIFF: jr required jcr:versionManagement privilege on the version store)
      */
+    @Ignore("OAK-168") // FIXME: waiting for basic version mgt
     @Test
     public void testAccessVersionHistoryVersionableNodeNotAccessible() throws Exception {
         Node n = createVersionableNode(superuser.getNode(path));
@@ -298,6 +299,7 @@ public class VersionManagementTest extends AbstractEvaluationTest {
     /**
      * @since oak
      */
+    @Ignore("OAK-168") // FIXME: waiting for basic version mgt
     @Test
     public void testAddVersionLabel() throws Exception {
         Node n = createVersionableNode(superuser.getNode(path));
