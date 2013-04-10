@@ -32,12 +32,14 @@ import java.util.Collections;
 import java.util.List;
 
 import javax.annotation.Nonnull;
+import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.security.auth.Subject;
 
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.BlobFactory;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -60,12 +62,13 @@ import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
+import org.apache.jackrabbit.oak.spi.state.AbstractRebaseDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
-import org.apache.jackrabbit.oak.spi.state.RebaseDiff;
+import org.apache.jackrabbit.oak.util.TODO;
 
 public class RootImpl implements Root {
 
@@ -429,8 +432,7 @@ public class RootImpl implements Root {
         NodeState before = secureHead;
         NodeState after = getRootState();
         NodeBuilder builder = branch.getHead().builder();
-        // FIXME: This rebase should fail on conflicts
-        after.compareAgainstBaseState(before, new RebaseDiff(builder));
+        after.compareAgainstBaseState(before, new PurgeRebaseDiff(builder));
         branch.setRoot(builder.getNodeState());
         reset();
     }
@@ -457,6 +459,74 @@ public class RootImpl implements Root {
     @Nonnull
     private NodeState getRootState() {
         return rootTree.getNodeState();
+    }
+
+    //------------------------------------------------------------< PurgeRebaseDiff >---
+
+    private static class PurgeRebaseDiff extends AbstractRebaseDiff {
+        public PurgeRebaseDiff(NodeBuilder builder) {
+            super(builder);
+        }
+
+        @Override
+        protected PurgeRebaseDiff createDiff(NodeBuilder builder, String name) {
+            return new PurgeRebaseDiff(builder.child(name));
+        }
+
+        @Override
+        protected void addExistingProperty(NodeBuilder builder, PropertyState after) {
+            conflict();
+        }
+
+        @Override
+        protected void changeDeletedProperty(NodeBuilder builder, PropertyState after) {
+            conflict();
+        }
+
+        @Override
+        protected void changeChangedProperty(NodeBuilder builder, PropertyState before, PropertyState after) {
+            conflict();
+        }
+
+        @Override
+        protected void deleteDeletedProperty(NodeBuilder builder, PropertyState before) {
+            conflict();
+        }
+
+        @Override
+        protected void deleteChangedProperty(NodeBuilder builder, PropertyState before) {
+            conflict();
+        }
+
+        @Override
+        protected void addExistingNode(NodeBuilder builder, String name, NodeState after) {
+            conflict();
+        }
+
+        @Override
+        protected void changeDeletedNode(NodeBuilder builder, String name, NodeState after) {
+            conflict();
+        }
+
+        @Override
+        protected void deleteDeletedNode(NodeBuilder builder, String name, NodeState before) {
+            conflict();
+        }
+
+        @Override
+        protected void deleteChangedNode(NodeBuilder builder, String name, NodeState before) {
+            conflict();
+        }
+
+        private static void conflict() {
+            // FIXME correctly handle conflict cases
+            try {
+                TODO.unimplemented().doNothing();
+            }
+            catch (UnsupportedRepositoryOperationException e) {
+                throw new IllegalStateException(e);
+            }
+        }
     }
 
     //---------------------------------------------------------< MoveRecord >---
