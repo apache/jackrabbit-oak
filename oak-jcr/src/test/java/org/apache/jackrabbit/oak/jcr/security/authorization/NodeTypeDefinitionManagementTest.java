@@ -97,10 +97,17 @@ public class NodeTypeDefinitionManagementTest extends AbstractEvaluationTest {
     }
 
     @Test
-    public void testRegisterNodeTypeWithPrivilege() throws Exception {
+    public void testModifyNodeTypeWithPrivilege() throws Exception {
         modify(null, JCR_NODE_TYPE_DEFINITION_MANAGEMENT.toString(), true);
         assertHasPrivilege(null, JCR_NODE_TYPE_DEFINITION_MANAGEMENT, true);
 
+        modify(null, JCR_NODE_TYPE_DEFINITION_MANAGEMENT.toString(), false);
+        assertHasPrivilege(null, JCR_NODE_TYPE_DEFINITION_MANAGEMENT, false);
+    }
+
+    @Test
+    public void testRegisterNodeTypeWithPrivilege() throws Exception {
+        modify(null, JCR_NODE_TYPE_DEFINITION_MANAGEMENT.toString(), true);
         try {
             Workspace testWsp = testSession.getWorkspace();
             NodeTypeManager ntm = testWsp.getNodeTypeManager();
@@ -118,8 +125,6 @@ public class NodeTypeDefinitionManagementTest extends AbstractEvaluationTest {
         } finally {
             modify(null, JCR_NODE_TYPE_DEFINITION_MANAGEMENT.toString(), false);
         }
-
-        assertHasPrivilege(null, JCR_NODE_TYPE_DEFINITION_MANAGEMENT, false);
     }
 
     @Test
