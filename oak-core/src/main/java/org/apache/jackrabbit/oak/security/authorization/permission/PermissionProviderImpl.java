@@ -31,6 +31,8 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.ImmutableRoot;
 import org.apache.jackrabbit.oak.core.ImmutableTree;
+import org.apache.jackrabbit.oak.core.TreeTypeProvider;
+import org.apache.jackrabbit.oak.core.TreeTypeProviderImpl;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
 import org.apache.jackrabbit.oak.security.authorization.AccessControlConstants;
@@ -177,7 +179,7 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
         if (root instanceof ImmutableRoot) {
             return (ImmutableRoot) root;
         } else {
-            return new ImmutableRoot(root, new ImmutableTree.DefaultTypeProvider(acConfig.getContext()));
+            return new ImmutableRoot(root, new TreeTypeProviderImpl(acConfig.getContext()));
         }
     }
 
@@ -194,12 +196,12 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
     }
 
     private static boolean isHidden(@Nonnull Tree tree, @Nullable PropertyState propertyState) {
-        return ImmutableTree.TypeProvider.TYPE_HIDDEN == ImmutableTree.getType(tree)
+        return TreeTypeProvider.TYPE_HIDDEN == ImmutableTree.getType(tree)
                 && (propertyState != null && NodeStateUtils.isHidden(propertyState.getName()));
     }
 
     private static boolean isAccessControlContent(@Nonnull Tree tree) {
-        return ImmutableTree.TypeProvider.TYPE_AC == ImmutableTree.getType(tree);
+        return TreeTypeProvider.TYPE_AC == ImmutableTree.getType(tree);
     }
 
     private boolean canReadAccessControlContent(@Nonnull Tree acTree, @Nullable PropertyState acProperty) {
@@ -207,7 +209,7 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
     }
 
     private static boolean isVersionContent(@Nonnull Tree tree) {
-        return ImmutableTree.TypeProvider.TYPE_VERSION == ImmutableTree.getType(tree);
+        return TreeTypeProvider.TYPE_VERSION == ImmutableTree.getType(tree);
     }
 
     private ReadStatus getVersionContentReadStatus(@Nonnull Tree versionStoreTree, @Nullable PropertyState property) {

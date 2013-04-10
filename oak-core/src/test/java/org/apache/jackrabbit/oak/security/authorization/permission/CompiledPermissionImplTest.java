@@ -32,6 +32,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.core.ImmutableRoot;
 import org.apache.jackrabbit.oak.core.ImmutableTree;
+import org.apache.jackrabbit.oak.core.TreeTypeProvider;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.security.authorization.restriction.RestrictionProviderImpl;
@@ -308,7 +309,7 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest implements 
     // TODO: tests for path base evaluation
 
     private CompiledPermissionImpl createPermissions(Set<Principal> principals) {
-        ImmutableTree permissionsTree = new ImmutableRoot(root, ImmutableTree.TypeProvider.EMPTY).getTree(PERMISSIONS_STORE_PATH);
+        ImmutableTree permissionsTree = new ImmutableRoot(root, TreeTypeProvider.EMPTY).getTree(PERMISSIONS_STORE_PATH);
         return new CompiledPermissionImpl(principals, permissionsTree, pbp, rp);
     }
 
