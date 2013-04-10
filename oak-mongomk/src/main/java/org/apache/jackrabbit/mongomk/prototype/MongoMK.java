@@ -82,7 +82,8 @@ public class MongoMK implements MicroKernel {
     /**
      * Enable background operations
      */
-    private static final boolean ENABLE_BACKGROUND_OPS = Boolean.getBoolean("oak.mongoMK.backgroundOps");
+    private static final boolean ENABLE_BACKGROUND_OPS = Boolean.parseBoolean(
+            System.getProperty("oak.mongoMK.backgroundOps", "true"));
     
     /**
      * The delay for asynchronous operations (delayed commit propagation and
