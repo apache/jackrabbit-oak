@@ -86,7 +86,9 @@ public abstract class OakRepositoryFixture implements RepositoryFixture {
                 for (int i = 0; i < cluster.length; i++) {
                     MongoConnection mongo =
                             new MongoConnection(host, port, unique);
-                    kernels[i] = new MongoMK(mongo.getDB(), i);
+                    kernels[i] = new MongoMK.Builder().
+                            setMongoDB(mongo.getDB()).
+                            setClusterId(i).open();
                     Oak oak = new Oak(new KernelNodeStore(kernels[i], cacheSize));
                     cluster[i] = new Jcr(oak).createRepository();
                 }
@@ -103,7 +105,7 @@ public abstract class OakRepositoryFixture implements RepositoryFixture {
                     mongo.getDB().dropDatabase();
                     mongo.close();
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    throw new RuntimeException(e);
                 }
             }
         };
@@ -155,6 +157,7 @@ public abstract class OakRepositoryFixture implements RepositoryFixture {
 
     @Override
     public void tearDownCluster() {
+        // nothing to do by default
     }
 
     @Override
