@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -147,4 +148,15 @@ public class PasswordUtilityTest {
             previous = pw;
         }
     }
+    
+    @Test
+    public void testPBKDF2WithHmacSHA1() throws Exception {
+        String algo = "PBKDF2WithHmacSHA1";
+        // test vector from http://tools.ietf.org/html/rfc6070
+        String hash = PasswordUtility.generateHash(
+                "pass\0word", algo, 
+                PasswordUtility.convertBytesToHex("sa\0lt".getBytes()), 4096);
+        assertEquals("{PBKDF2WithHmacSHA1}7361006c74-4096-56fa6aa75548099dcc37d7f03425e0c3", hash);
+    }
+    
 }
