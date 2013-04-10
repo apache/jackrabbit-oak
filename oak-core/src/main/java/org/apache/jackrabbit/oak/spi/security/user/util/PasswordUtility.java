@@ -17,10 +17,16 @@
 package org.apache.jackrabbit.oak.spi.security.user.util;
 
 import java.io.UnsupportedEncodingException;
+import java.security.Key;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.KeySpec;
+
 import javax.annotation.Nullable;
+import javax.crypto.SecretKeyFactory;
+import javax.crypto.spec.PBEKeySpec;
 
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
@@ -39,6 +45,8 @@ public final class PasswordUtility {
     private static final int NO_ITERATIONS = 1;
     private static final String ENCODING = "UTF-8";
 
+    private static final String PBKDF2_PREFIX = "PBKDF2";
+    
     public static final String DEFAULT_ALGORITHM = "SHA-256";
     public static final int DEFAULT_SALT_SIZE = 8;
     public static final int DEFAULT_ITERATIONS = 1000;
@@ -171,7 +179,7 @@ public final class PasswordUtility {
 
     //------------------------------------------------------------< private >---
 
-    private static String generateHash(String pwd, String algorithm, String salt, int iterations) throws NoSuchAlgorithmException, UnsupportedEncodingException {
+    public static String generateHash(String pwd, String algorithm, String salt, int iterations) throws NoSuchAlgorithmException, UnsupportedEncodingException {
         StringBuilder passwordHash = new StringBuilder();
         passwordHash.append('{').append(algorithm).append('}');
         if (salt != null && !salt.isEmpty()) {
@@ -182,7 +190,13 @@ public final class PasswordUtility {
             if (iterations > NO_ITERATIONS) {
                 passwordHash.append(iterations).append(DELIMITER);
             }
-            passwordHash.append(generateDigest(data.toString(), algorithm, iterations));
+            String digest;
+            if (algorithm.startsWith(PBKDF2_PREFIX)) {
+                digest = generatePBKDF2(pwd, salt, algorithm, iterations, 128);
+            } else {
+                digest = generateDigest(data.toString(), algorithm, iterations);
+            }
+            passwordHash.append(digest);
         } else {
             // backwards compatible to jr 2.0: no salt, no iterations
             passwordHash.append(Text.digest(algorithm, pwd.getBytes(ENCODING)));
@@ -195,12 +209,56 @@ public final class PasswordUtility {
         byte[] salt = new byte[saltSize];
         random.nextBytes(salt);
 
-        StringBuilder res = new StringBuilder(salt.length * 2);
-        for (byte b : salt) {
+        return convertBytesToHex(salt);
+    }
+    
+    /**
+     * Convert a byte array to a hex encoded string.
+     *
+     * @param bytes the byte array
+     * @return the hex encoded string
+     */
+    public static String convertBytesToHex(byte[] bytes) {
+        StringBuilder res = new StringBuilder(bytes.length * 2);
+        for (byte b : bytes) {
             res.append(Text.hexTable[(b >> 4) & 15]);
             res.append(Text.hexTable[b & 15]);
         }
         return res.toString();
+    }
+    
+    /**
+     * Convert a hex encoded string to a byte array.
+     *
+     * @param s the hex encoded string
+     * @return the byte array
+     */
+    public static byte[] convertHexToBytes(String s) {
+        int len = s.length();
+        if (len % 2 != 0) {
+            throw new IllegalArgumentException("Not a hex encoded byte array: " + s);
+        }
+        byte[] bytes = new byte[len / 2];
+        for (int i = 0; i < bytes.length; i++) {
+            bytes[i] = (byte) (
+                    (Character.digit(s.charAt(i + i), 16) << 4) + 
+                    Character.digit(s.charAt(i + i + 1), 16));
+        }
+        return bytes;
+    }
+    
+    private static String generatePBKDF2(String pwd, String salt, String algorithm, int iterations, int keyLength) throws NoSuchAlgorithmException {
+        // for example PBKDF2WithHmacSHA1
+        SecretKeyFactory factory = SecretKeyFactory.getInstance(algorithm);
+        byte[] saltBytes = convertHexToBytes(salt);
+        KeySpec keyspec = new PBEKeySpec(pwd.toCharArray(), saltBytes, iterations, keyLength);
+        try {
+            Key key = factory.generateSecret(keyspec);
+            byte[] bytes = key.getEncoded();
+            return convertBytesToHex(bytes);
+        } catch (InvalidKeySpecException e) {
+            throw new NoSuchAlgorithmException(algorithm, e);
+        }  
     }
 
     private static String generateDigest(String data, String algorithm, int iterations) throws UnsupportedEncodingException, NoSuchAlgorithmException {
@@ -212,12 +270,7 @@ public final class PasswordUtility {
             bytes = md.digest(bytes);
         }
 
-        StringBuilder res = new StringBuilder(bytes.length * 2);
-        for (byte b : bytes) {
-            res.append(Text.hexTable[(b >> 4) & 15]);
-            res.append(Text.hexTable[b & 15]);
-        }
-        return res.toString();
+        return convertBytesToHex(bytes);
     }
 
     /**
