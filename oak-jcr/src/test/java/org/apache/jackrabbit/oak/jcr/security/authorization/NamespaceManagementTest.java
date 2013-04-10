@@ -32,7 +32,6 @@ import org.junit.Test;
 /**
  * NamespaceManagementTest... TODO
  */
-@Ignore("OAK-51")
 public class NamespaceManagementTest extends AbstractEvaluationTest {
 
     private static final String JCR_NAMESPACE_MANAGEMENT = "jcr:namespaceManagement";
@@ -49,7 +48,6 @@ public class NamespaceManagementTest extends AbstractEvaluationTest {
     @After
     protected void tearDown() throws Exception {
         try {
-            superuser.refresh(false);
             for (AccessControlPolicy policy : acMgr.getPolicies(null)) {
                 acMgr.removePolicy(null, policy);
             }
