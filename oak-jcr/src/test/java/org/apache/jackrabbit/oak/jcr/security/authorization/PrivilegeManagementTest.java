@@ -25,13 +25,11 @@ import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.api.JackrabbitWorkspace;
 import org.apache.jackrabbit.test.NotExecutableException;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
  * PrivilegeManagementTest... TODO
  */
-@Ignore("OAK-51")
 public class PrivilegeManagementTest extends AbstractEvaluationTest {
 
     private static final String REP_PRIVILEGE_MANAGEMENT = "rep:privilegeManagement";
@@ -86,16 +84,22 @@ public class PrivilegeManagementTest extends AbstractEvaluationTest {
     }
 
     @Test
-    public void testRegisterPrivilegeWithPrivilege() throws Exception {
+    public void testModifyPrivilegeMgtPrivilege() throws Exception {
         modify(null, REP_PRIVILEGE_MANAGEMENT, true);
         assertHasPrivilege(null, REP_PRIVILEGE_MANAGEMENT, true);
 
+        modify(null, REP_PRIVILEGE_MANAGEMENT, false);
+        assertHasPrivilege(null, REP_PRIVILEGE_MANAGEMENT, false);
+    }
+
+    @Test
+    public void testRegisterPrivilegeWithPrivilege() throws Exception {
+        modify(null, REP_PRIVILEGE_MANAGEMENT, true);
         try {
             Workspace testWsp = testSession.getWorkspace();
-            ((JackrabbitWorkspace) testWsp).getPrivilegeManager().registerPrivilege(getNewPrivilegeName(testWsp), false, new String[0]);        } finally {
+            ((JackrabbitWorkspace) testWsp).getPrivilegeManager().registerPrivilege(getNewPrivilegeName(testWsp), false, new String[0]);
+        } finally {
             modify(null, REP_PRIVILEGE_MANAGEMENT, false);
         }
-
-        assertHasPrivilege(null, REP_PRIVILEGE_MANAGEMENT, false);
     }
 }
