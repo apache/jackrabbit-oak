@@ -69,12 +69,14 @@ public abstract class BaseMongoMicroKernelFixture implements MicroKernelFixture 
         dropCollections(db);
 
         for (int i = 0; i < cluster.length; i++) {
-            cluster[i] = new MongoMK(db, i);
+            cluster[i] = new MongoMK.Builder().
+                    setMongoDB(db).setClusterId(i).open();
         }
     }
 
     @Override
     public void syncMicroKernelCluster(MicroKernel... nodes) {
+        // not needed
     }
 
     @Override
@@ -91,7 +93,7 @@ public abstract class BaseMongoMicroKernelFixture implements MicroKernelFixture 
 
     protected abstract BlobStore getBlobStore(DB db);
 
-    private void dropCollections(DB db) {
+    private static void dropCollections(DB db) {
         db.getCollection(MongoBlobStore.COLLECTION_BLOBS).drop();
         db.getCollection(DocumentStore.Collection.NODES.name()).drop();
     }
