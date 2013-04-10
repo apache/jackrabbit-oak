@@ -95,15 +95,22 @@ public class SecureNodeState extends AbstractNodeState {
         public ChildNodeEntry apply(@Nonnull ChildNodeEntry input) {
             String name = input.getName();
             NodeState child = input.getNodeState();
-            SecureNodeState secureChild = new SecureNodeState(SecureNodeState.this, name, child);
-            // TODO: add optimization to return 'input' if the child and all its
-            // children have the same type as this node state and full read
-            // access (including read-access-control) is granted to that subtree
-            // including all properties.
-            // NOTE: this currently cannot yet be implemented due to the fact that
-            // ALLOW_ALL just checks for regular read permission and does not take
-            // READ_ACCESSCONTROL into account
-            return new MemoryChildNodeEntry(name, secureChild);
+            SecureNodeState secureChild =
+                    new SecureNodeState(SecureNodeState.this, name, child);
+            if (child.getChildNodeCount() == 0
+                    && secureChild.getReadStatus().includes(
+                            ReadStatus.ALLOW_THIS_PROPERTIES)) {
+                // Since this is an accessible leaf node whose all properties
+                // are readable, we don't need the SecureNodeState wrapper
+                // TODO: A further optimization would be to return the raw
+                // underlying node state even for non-leaf nodes if we can
+                // tell in advance that the full subtree is readable. Then
+                // we also wouldn't need the above getChildNodeCount() call
+                // that's somewhat expensive on the MongoMK.
+                return input;
+            } else {
+                return new MemoryChildNodeEntry(name, secureChild);
+            }
         }
     };
 
