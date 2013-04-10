@@ -16,14 +16,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype.write;
 
-import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
-
 import java.util.ArrayList;
 import java.util.List;
-
 import javax.annotation.Nonnull;
+import javax.jcr.AccessDeniedException;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.NoSuchNodeTypeException;
@@ -39,6 +35,10 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
+
+import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
 
 /**
  * {@code ReadWriteNodeTypeManager} extends the {@link ReadOnlyNodeTypeManager}
@@ -154,7 +154,12 @@ public abstract class ReadWriteNodeTypeManager extends ReadOnlyNodeTypeManager {
             }
             return new NodeTypeIteratorAdapter(types);
         } catch (CommitFailedException e) {
-            throw new RepositoryException(e);
+            String message = "Failed to register node types.";
+            if (e.isAccessViolation()) {
+                throw new AccessDeniedException(message, e);
+            } else {
+                throw new RepositoryException(message, e);
+            }
         }
     }
 
@@ -187,7 +192,12 @@ public abstract class ReadWriteNodeTypeManager extends ReadOnlyNodeTypeManager {
             root.commit();
             refresh();
         } catch (CommitFailedException e) {
-            throw new RepositoryException("Failed to unregister node type " + name, e);
+            String message = "Failed to unregister node type " + name;
+            if (e.isAccessViolation()) {
+                throw new AccessDeniedException(message, e);
+            } else {
+                throw new RepositoryException(message, e);
+            }
         }
     }
 
@@ -210,7 +220,12 @@ public abstract class ReadWriteNodeTypeManager extends ReadOnlyNodeTypeManager {
             root.commit();
             refresh();
         } catch (CommitFailedException e) {
-            throw new RepositoryException("Failed to unregister node types", e);
+            String message = "Failed to unregister node types.";
+            if (e.isAccessViolation()) {
+                throw new AccessDeniedException(message, e);
+            } else {
+                throw new RepositoryException(message, e);
+            }
         }
     }
 }
