@@ -24,6 +24,7 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.core.TreeImpl;
 import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
 import org.apache.jackrabbit.oak.spi.commit.DefaultValidator;
@@ -85,7 +86,11 @@ class PermissionValidator extends DefaultValidator {
     @Override
     public void propertyChanged(PropertyState before, PropertyState after) throws CommitFailedException {
         if (TreeImpl.OAK_CHILD_ORDER.equals(after.getName())) {
-            checkPermissions(parentAfter, false, Permissions.MODIFY_CHILD_NODE_COLLECTION);
+            String childName = new ChildOrderDiff(before, after).firstReordered();
+            if (childName != null) {
+                Tree child = parentAfter.getChild(childName);
+                checkPermissions(child, false, Permissions.MODIFY_CHILD_NODE_COLLECTION);
+            } // else: no re-order but only internal update
         } else {
             checkPermissions(parentAfter, after, Permissions.MODIFY_PROPERTY);
         }
@@ -140,7 +145,8 @@ class PermissionValidator extends DefaultValidator {
 
     private Validator checkPermissions(@Nonnull Tree tree, boolean isBefore,
                                        long defaultPermission) throws CommitFailedException {
-        if (NodeStateUtils.isHidden(tree.getName())) {
+        if (ImmutableTree.getType(tree) == ImmutableTree.TypeProvider.TYPE_HIDDEN) {
+            // ignore everything below a hidden tree
             return null;
         }
         long toTest = getPermission(tree, defaultPermission);
@@ -166,6 +172,8 @@ class PermissionValidator extends DefaultValidator {
     private void checkPermissions(@Nonnull Tree parent, @Nonnull PropertyState property,
                                   long defaultPermission) throws CommitFailedException {
         if (NodeStateUtils.isHidden(property.getName())) {
+            // ignore any hidden properties (except for OAK_CHILD_ORDER which has
+            // been covered in "propertyChanged"
             return;
         }
 
