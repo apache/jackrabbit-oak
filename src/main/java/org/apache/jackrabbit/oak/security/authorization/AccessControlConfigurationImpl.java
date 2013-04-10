@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.version.VersionablePathHook;
 import org.apache.jackrabbit.oak.security.authorization.permission.PermissionHook;
+import org.apache.jackrabbit.oak.security.authorization.permission.PermissionProviderImpl;
 import org.apache.jackrabbit.oak.security.authorization.permission.PermissionStoreValidatorProvider;
 import org.apache.jackrabbit.oak.security.authorization.permission.PermissionValidatorProvider;
 import org.apache.jackrabbit.oak.security.authorization.restriction.RestrictionProviderImpl;
@@ -103,7 +104,6 @@ public class AccessControlConfigurationImpl extends SecurityConfiguration.Defaul
     @Nonnull
     @Override
     public PermissionProvider getPermissionProvider(Root root, Set<Principal> principals) {
-        // TODO OAK-51
-        return new TmpPermissionProvider(root, principals, securityProvider);
+        return new PermissionProviderImpl(root, principals, securityProvider);
     }
 }
