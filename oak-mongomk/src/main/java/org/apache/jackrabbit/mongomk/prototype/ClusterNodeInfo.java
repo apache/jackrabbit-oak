@@ -85,10 +85,10 @@ public class ClusterNodeInfo {
     private static final String WORKING_DIR = System.getProperty("user.dir", "");
     
     /**
-     * The initial number of milliseconds for a lease (1 minute). This value is
-     * only used until the first renewal.
+     * The number of milliseconds for a lease (1 minute by default, and
+     * initially).
      */
-    private static final long LEASE_INITIAL = 1000 * 60;
+    private long leaseTime = 1000 * 60;
     
     /**
      * The assigned cluster id.
@@ -137,6 +137,16 @@ public class ClusterNodeInfo {
     public int getId() {
         return id;
     }
+    
+    /**
+     * Create a cluster node info instance for the store, with the 
+     * 
+     * @param store the document store (for the lease)
+     * @return the cluster node info
+     */
+    public static ClusterNodeInfo getInstance(DocumentStore store) {
+        return getInstance(store, MACHINE_ID, WORKING_DIR);
+    }
 
     /**
      * Create a cluster node info instance for the store.
@@ -159,7 +169,7 @@ public class ClusterNodeInfo {
             update.set(ID_KEY, "" + clusterNode.id);
             update.set(MACHINE_ID_KEY, clusterNode.machineId);
             update.set(INSTANCE_ID_KEY, clusterNode.instanceId);
-            update.set(LEASE_END_KEY, System.currentTimeMillis() + LEASE_INITIAL);
+            update.set(LEASE_END_KEY, System.currentTimeMillis() + clusterNode.leaseTime);
             update.set(INFO_KEY, clusterNode.toString());
             boolean success = store.create(Collection.CLUSTER_NODES, Collections.singletonList(update));
             if (success) {
@@ -227,9 +237,17 @@ public class ClusterNodeInfo {
             return;
         }
         UpdateOp update = new UpdateOp(null, "" + id, true);
-        leaseEndTime = now + nextCheckMillis;
+        leaseEndTime = now + leaseTime;
         update.set(LEASE_END_KEY, leaseEndTime);
         store.createOrUpdate(Collection.CLUSTER_NODES, update);
+    }
+    
+    public void setLeaseTime(long leaseTime) {
+        this.leaseTime = leaseTime;
+    }
+    
+    public long getLeaseTime() {
+        return leaseTime;
     }
     
     public void dispose() {

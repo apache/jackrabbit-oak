@@ -52,8 +52,8 @@ public class MongoConnection {
     /**
      * Closes the underlying Mongo instance
      */
-    public void close(){
-        if (mongo != null){
+    public void close() {
+        if (mongo != null) {
             mongo.close();
         }
     }
