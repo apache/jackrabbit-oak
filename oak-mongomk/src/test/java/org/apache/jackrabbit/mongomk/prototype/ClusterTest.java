@@ -36,6 +36,56 @@ public class ClusterTest {
     
     private MemoryDocumentStore ds;
     private MemoryBlobStore bs;
+
+    @Test
+    public void clusterNodeInfoLease() throws InterruptedException {
+        MemoryDocumentStore store = new MemoryDocumentStore();
+        ClusterNodeInfo c1, c2;
+        c1 = ClusterNodeInfo.getInstance(store, "m1", null);
+        assertEquals(1, c1.getId());
+        // this will quickly expire
+        c1.renewLease(1);
+        Thread.sleep(10);
+        c2 = ClusterNodeInfo.getInstance(store, "m1", null);
+        assertEquals(1, c2.getId());
+    }
+    
+    @Test
+    public void clusterNodeInfo() {
+        MemoryDocumentStore store = new MemoryDocumentStore();
+        ClusterNodeInfo c1, c2, c3, c4;
+        
+        c1 = ClusterNodeInfo.getInstance(store, "m1", null);
+        assertEquals(1, c1.getId());
+        c1.dispose();
+        
+        // get the same id
+        c1 = ClusterNodeInfo.getInstance(store, "m1", null);
+        assertEquals(1, c1.getId());
+        c1.dispose();
+        
+        // now try to add another one:
+        // must get a new id
+        c2 = ClusterNodeInfo.getInstance(store, "m2", null);
+        assertEquals(2, c2.getId());
+        
+        // a different machine
+        c3 = ClusterNodeInfo.getInstance(store, "m3", "/a");
+        assertEquals(3, c3.getId());
+        
+        c2.dispose();
+        c3.dispose();
+        
+        c3 = ClusterNodeInfo.getInstance(store, "m3", "/a");
+        assertEquals(3, c3.getId());
+
+        c3.dispose();
+        
+        c4 = ClusterNodeInfo.getInstance(store, "m3", "/b");
+        assertEquals(4, c4.getId());
+
+        c1.dispose();
+    }
     
     @Test
     public void conflict() {

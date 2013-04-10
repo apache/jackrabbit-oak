@@ -109,7 +109,7 @@ public class MongoMK implements MicroKernel {
     /**
      * The unique cluster id, similar to the unique machine id in MongoDB.
      */
-    private final int clusterId;
+    private int clusterId;
 
     /**
      * The node cache.
@@ -188,6 +188,7 @@ public class MongoMK implements MicroKernel {
         this.store = builder.getDocumentStore();
         this.blobStore = builder.getBlobStore();
         this.clusterId = builder.getClusterId();
+        clusterId = Integer.getInteger("oak.mongoMK.clusterId", clusterId);
         this.asyncDelay = builder.getAsyncDelay();
 
         //TODO Use size based weigher

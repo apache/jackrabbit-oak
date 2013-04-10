@@ -32,7 +32,38 @@ public interface DocumentStore {
     /**
      * The list of collections.
      */
-    enum Collection { NODES }
+    enum Collection { 
+        
+        /**
+         * The 'nodes' collection. It contains all the node data, with one document
+         * per node, and the path as the primary key. Each document possibly
+         * contains multiple revisions.
+         * <p>
+         * Key: the path, value: the node data (possibly multiple revisions)
+         * <p>
+         * Old revisions are removed after some time, either by the process that
+         * removed or updated the node, lazily when reading, or in a background
+         * process.
+         */
+        NODES("nodes"), 
+        
+        /**
+         * The 'clusterNodes' collection contains the list of currently running
+         * cluster nodes. The key is the clusterNodeId (0, 1, 2,...).
+         */
+        CLUSTER_NODES("clusterNodes");
+            
+        final String name;
+        
+        Collection(String name) {
+            this.name = name;
+        }
+        
+        public String toString() {
+            return name;
+        }
+        
+    }
 
     /**
      * Get a document.
@@ -62,6 +93,16 @@ public interface DocumentStore {
     @CheckForNull
     Map<String, Object> find(Collection collection, String key, int maxCacheAge);
 
+    /**
+     * Get a list of documents where the key is greater than a start value and
+     * less than an end value.
+     * 
+     * @param collection the collection
+     * @param fromKey the start value (excluding)
+     * @param toKey the end value (excluding)
+     * @param limit the maximum number of entries to return
+     * @return the list (possibly empty)
+     */
     @Nonnull
     List<Map<String, Object>> query(Collection collection, String fromKey, String toKey, int limit);
     
@@ -95,8 +136,14 @@ public interface DocumentStore {
     Map<String, Object> createOrUpdate(Collection collection, UpdateOp update)
             throws MicroKernelException;
 
+    /**
+     * Invalidate the document cache.
+     */
     void invalidateCache();
 
+    /**
+     * Dispose this instance.
+     */
     void dispose();
 
 }
