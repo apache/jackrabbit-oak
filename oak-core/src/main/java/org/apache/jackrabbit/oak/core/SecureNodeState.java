@@ -240,8 +240,9 @@ public class SecureNodeState extends AbstractNodeState {
 
     @Override
     public void compareAgainstBaseState(NodeState base, NodeStateDiff diff) {
-        // FIXME: should not bypass access controls
-        state.compareAgainstBaseState(base, diff);
+        // FIXME: decide if comparison during commit should compare the secure
+        // states or the original node states without ac restrictions
+        super.compareAgainstBaseState(base, diff);
     }
 
     //-------------------------------------------------------------< Object >---
