@@ -49,6 +49,13 @@ public class OakMongoMKRepositoryStub extends RepositoryStub {
 
     protected static final String DB =
             System.getProperty("mongo.db", "MongoMKDB");
+    
+    private static final Principal UNKNOWN_PRINCIPAL = new Principal() {
+        @Override
+        public String getName() {
+            return "an_unknown_user";
+        }
+    };
 
     private final MongoConnection connection;
     private final Repository repository;
@@ -65,7 +72,8 @@ public class OakMongoMKRepositoryStub extends RepositoryStub {
         Session session = null;
         try {
             this.connection = new MongoConnection(HOST, PORT, DB);
-            Jcr jcr = new Jcr(new MongoMK(connection.getDB(), 0));
+            Jcr jcr = new Jcr(new MongoMK.Builder().
+                    setMongoDB(connection.getDB()).open());
             jcr.with(Executors.newScheduledThreadPool(1));
             this.repository = jcr.createRepository();
 
@@ -83,6 +91,9 @@ public class OakMongoMKRepositoryStub extends RepositoryStub {
                 new Thread(new ShutdownHook(connection)));
     }
 
+    /**
+     * A shutdown hook that closed the MongoDB connection if needed.
+     */
     private static class ShutdownHook implements Runnable {
 
         private final WeakReference<MongoConnection> reference;
@@ -134,17 +145,9 @@ public class OakMongoMKRepositoryStub extends RepositoryStub {
     public Principal getKnownPrincipal(Session session) throws RepositoryException {
         if (session instanceof JackrabbitSession) {
             return ((JackrabbitSession) session).getPrincipalManager().getPrincipal(session.getUserID());
-        } else {
-            throw new UnsupportedRepositoryOperationException();
         }
+        throw new UnsupportedRepositoryOperationException();
     }
-
-    private static final Principal UNKNOWN_PRINCIPAL = new Principal() {
-        @Override
-        public String getName() {
-            return "an_unknown_user";
-        }
-    };
 
     @Override
     public Principal getUnknownPrincipal(Session session) throws RepositoryException,
