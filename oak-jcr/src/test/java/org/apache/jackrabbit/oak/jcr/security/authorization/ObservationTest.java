@@ -20,13 +20,11 @@ import javax.jcr.observation.Event;
 import javax.jcr.observation.ObservationManager;
 
 import org.apache.jackrabbit.test.api.observation.EventResult;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
  * ObservationTest... TODO
  */
-@Ignore("OAK-51")
 public class ObservationTest extends AbstractEvaluationTest {
 
     private static final long DEFAULT_WAIT_TIMEOUT = 5000;
