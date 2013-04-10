@@ -35,7 +35,7 @@ public class BaseMongoMKTest extends BaseMongoMicroKernelTest {
 
     @Override
     public void tearDownConnection() throws Exception {
-        super.tearDownConnection();
         ((MongoMK) mk).dispose();
+        super.tearDownConnection();
     }
 }

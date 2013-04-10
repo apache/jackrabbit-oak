@@ -72,6 +72,9 @@ public class AbstractMongoConnectionTest {
 
     @After
     public void tearDownConnection() throws Exception {
+        // the db might already be closed
+        mongoConnection.close();
+        mongoConnection = new MongoConnection(HOST, PORT, DB);
         dropCollections(mongoConnection.getDB());
         mongoConnection.close();
     }

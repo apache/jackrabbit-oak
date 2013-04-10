@@ -105,11 +105,16 @@ public class MongoMK implements MicroKernel {
      * The MongoDB blob store.
      */
     private final BlobStore blobStore;
+    
+    /**
+     * The cluster node info.
+     */
+    private final ClusterNodeInfo clusterNodeInfo;
 
     /**
      * The unique cluster id, similar to the unique machine id in MongoDB.
      */
-    private int clusterId;
+    private final int clusterId;
 
     /**
      * The node cache.
@@ -159,8 +164,15 @@ public class MongoMK implements MicroKernel {
     MongoMK(Builder builder) {
         this.store = builder.getDocumentStore();
         this.blobStore = builder.getBlobStore();
-        this.clusterId = builder.getClusterId();
-        clusterId = Integer.getInteger("oak.mongoMK.clusterId", clusterId);
+        int cid = builder.getClusterId();
+        cid = Integer.getInteger("oak.mongoMK.clusterId", cid);
+        if (cid == 0) {
+            clusterNodeInfo = ClusterNodeInfo.getInstance(store);
+            cid = clusterNodeInfo.getId();
+        } else {
+            clusterNodeInfo = null;
+        }
+        this.clusterId = cid;
         this.asyncDelay = builder.getAsyncDelay();
 
         //TODO Use size based weigher
@@ -235,8 +247,12 @@ public class MongoMK implements MicroKernel {
         if (isDisposed.get()) {
             return;
         }
+        backgroundRenewClusterIdLease();
         if (simpleRevisionCounter != null) {
             // only when using timestamp
+            return;
+        }
+        if (!ENABLE_BACKGROUND_OPS) {
             return;
         }
         synchronized (this) {
@@ -250,6 +266,13 @@ public class MongoMK implements MicroKernel {
                 LOG.warn("Background operation failed: " + e.toString(), e);
             }
         }
+    }
+
+    private void backgroundRenewClusterIdLease() {
+        if (clusterNodeInfo == null) {
+            return;
+        }
+        clusterNodeInfo.renewLease(asyncDelay);
     }
     
     private void backgroundRead() {
@@ -326,6 +349,9 @@ public class MongoMK implements MicroKernel {
                 backgroundThread.join();
             } catch (InterruptedException e) {
                 // ignore
+            }
+            if (clusterNodeInfo != null) {
+                clusterNodeInfo.dispose();
             }
             store.dispose();
         }
@@ -1230,7 +1256,7 @@ public class MongoMK implements MicroKernel {
                     }
                 }
                 MongoMK mk = ref.get();
-                if (mk != null && ENABLE_BACKGROUND_OPS) {
+                if (mk != null) {
                     mk.runBackgroundOperations();
                     delay = mk.getAsyncDelay();
                 }
@@ -1299,7 +1325,8 @@ public class MongoMK implements MicroKernel {
         }
 
         /**
-         * Set the cluster id to use. By default, 0 is used.
+         * Set the cluster id to use. By default, 0 is used, meaning the cluster
+         * id is automatically generated.
          * 
          * @param clusterId the cluster id
          * @return this
@@ -1337,6 +1364,10 @@ public class MongoMK implements MicroKernel {
         public MongoMK open() {
             return new MongoMK(this);
         }
+    }
+
+    public ClusterNodeInfo getClusterInfo() {
+        return clusterNodeInfo;
     }
 
 }
