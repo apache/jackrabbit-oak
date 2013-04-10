@@ -39,6 +39,7 @@ import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
+import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.test.NotExecutableException;
 import org.apache.jackrabbit.test.api.security.AbstractAccessControlTest;
 import org.junit.After;
@@ -74,7 +75,6 @@ public abstract class AbstractEvaluationTest extends AbstractAccessControlTest {
     protected Session testSession;
     protected AccessControlManager testAcMgr;
 
-    private Node trn;
     private Set<String> toClear = new HashSet<String>();
 
     @Override
@@ -110,7 +110,7 @@ public abstract class AbstractEvaluationTest extends AbstractAccessControlTest {
         siblingPath = n2.getPath();
 
         // setup default permissions
-        AccessControlUtils.addAccessControlEntry(superuser, "/", testUser.getPrincipal(), privilegesFromName(Privilege.JCR_READ), true);
+        AccessControlUtils.addAccessControlEntry(superuser, "/", EveryonePrincipal.getInstance(), privilegesFromName(Privilege.JCR_READ), true);
         superuser.save();
 
         testSession = getTestSession();
@@ -131,6 +131,7 @@ public abstract class AbstractEvaluationTest extends AbstractAccessControlTest {
             if (testSession != null && testSession.isLive()) {
                 testSession.logout();
             }
+            superuser.refresh(false);
             for (String path : toClear) {
                 AccessControlPolicy[] policies = acMgr.getPolicies(path);
                 for (AccessControlPolicy policy : policies) {
