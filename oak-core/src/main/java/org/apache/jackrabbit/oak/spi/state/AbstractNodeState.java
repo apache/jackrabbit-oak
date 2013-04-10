@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.spi.state;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
@@ -34,10 +32,10 @@ import org.apache.jackrabbit.oak.api.PropertyState;
  * <p>
  * This class also implements trivial (and potentially very slow) versions of
  * the {@link #getProperty(String)} and {@link #getPropertyCount()} methods
- * based on {@link #getProperties()}. The {@link #getChildNode(String)} and
- * {@link #getChildNodeCount()} methods are similarly implemented based on
- * {@link #getChildNodeEntries()}. Subclasses should normally
- * override these method with a more efficient alternatives.
+ * based on {@link #getProperties()}. The {@link #getChildNodeCount()} method
+ * is similarly implemented based on {@link #getChildNodeEntries()}.
+ * Subclasses should normally override these method with a more efficient
+ * alternatives.
  */
 public abstract class AbstractNodeState implements NodeState {
 
@@ -59,17 +57,6 @@ public abstract class AbstractNodeState implements NodeState {
     @Override
     public boolean hasChildNode(String name) {
         return getChildNode(name).exists();
-    }
-
-    @Override
-    public NodeState getChildNode(String name) {
-        checkNotNull(name);
-        for (ChildNodeEntry entry : getChildNodeEntries()) {
-            if (name.equals(entry.getName())) {
-                return entry.getNodeState();
-            }
-        }
-        return null;
     }
 
     @Override
