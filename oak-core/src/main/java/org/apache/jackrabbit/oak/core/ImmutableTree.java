@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.core;
 import java.util.Iterator;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 import com.google.common.base.Objects;
 import org.apache.jackrabbit.JcrConstants;
@@ -27,12 +26,8 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
-import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
-import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
@@ -73,21 +68,21 @@ import static org.apache.jackrabbit.oak.api.Type.STRING;
  *     {@link #getIdentifier()}</li>
  * </ul>
  *
- * <h3>TypeProvider</h3>
+ * <h3>TreeTypeProvider</h3>
  * For optimization purpose an Immutable tree will be associated with a
- * {@code TypeProvider} that allows for fast detection of the following types
+ * {@code TreeTypeProvider} that allows for fast detection of the following types
  * of Trees:
  *
  * <ul>
- *     <li>{@link TypeProvider#TYPE_HIDDEN}: a hidden tree whose name starts with ":".
+ *     <li>{@link TreeTypeProvider#TYPE_HIDDEN}: a hidden tree whose name starts with ":".
  *     Please note that the whole subtree of a hidden node is considered hidden.</li>
- *     <li>{@link TypeProvider#TYPE_AC}: A tree that stores access control content
+ *     <li>{@link TreeTypeProvider#TYPE_AC}: A tree that stores access control content
  *     and requires special access {@link org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions#READ_ACCESS_CONTROL permissions}.</li>
- *     <li>{@link TypeProvider#TYPE_VERSION}: if a given tree is located within
+ *     <li>{@link TreeTypeProvider#TYPE_VERSION}: if a given tree is located within
  *     any of the version related stores defined by JSR 283. Depending on the
  *     permission evaluation implementation those items require special treatment.</li>
- *     <li>{@link TypeProvider#TYPE_DEFAULT}: the default type for trees that don't
- *     match any of the uper types.</li>
+ *     <li>{@link TreeTypeProvider#TYPE_DEFAULT}: the default type for trees that don't
+ *     match any of the upper types.</li>
  * </ul>
  *
  * <h3>Equality and hash code</h3>
@@ -102,15 +97,15 @@ import static org.apache.jackrabbit.oak.api.Type.STRING;
 public final class ImmutableTree extends ReadOnlyTree {
 
     private final ParentProvider parentProvider;
-    private final TypeProvider typeProvider;
+    private final TreeTypeProvider typeProvider;
 
     private String path;
 
     public ImmutableTree(@Nonnull NodeState rootState) {
-        this(ParentProvider.ROOTPROVIDER, "", rootState, TypeProvider.EMPTY);
+        this(ParentProvider.ROOTPROVIDER, "", rootState, TreeTypeProvider.EMPTY);
     }
 
-    public ImmutableTree(@Nonnull NodeState rootState, @Nonnull TypeProvider typeProvider) {
+    public ImmutableTree(@Nonnull NodeState rootState, @Nonnull TreeTypeProvider typeProvider) {
         this(ParentProvider.ROOTPROVIDER, "", rootState, typeProvider);
     }
 
@@ -119,17 +114,17 @@ public final class ImmutableTree extends ReadOnlyTree {
     }
 
     public ImmutableTree(@Nonnull ParentProvider parentProvider, @Nonnull String name, @Nonnull NodeState state) {
-        this(parentProvider, name, state, TypeProvider.EMPTY);
+        this(parentProvider, name, state, TreeTypeProvider.EMPTY);
     }
 
     public ImmutableTree(@Nonnull ParentProvider parentProvider, @Nonnull String name,
-                         @Nonnull NodeState state, @Nonnull TypeProvider typeProvider) {
+                         @Nonnull NodeState state, @Nonnull TreeTypeProvider typeProvider) {
         super(null, name, state);
         this.parentProvider = checkNotNull(parentProvider);
         this.typeProvider = typeProvider;
     }
 
-    public static ImmutableTree createFromRoot(@Nonnull Root root, @Nonnull TypeProvider typeProvider) {
+    public static ImmutableTree createFromRoot(@Nonnull Root root, @Nonnull TreeTypeProvider typeProvider) {
         if (root instanceof RootImpl) {
             return new ImmutableTree(((RootImpl) root).getBaseState(), typeProvider);
         } else if (root instanceof ImmutableRoot) {
@@ -255,7 +250,7 @@ public final class ImmutableTree extends ReadOnlyTree {
         if (tree instanceof ImmutableTree) {
             return ((ImmutableTree) tree).getType();
         } else {
-            return TypeProvider.TYPE_DEFAULT;
+            return TreeTypeProvider.TYPE_DEFAULT;
         }
     }
 
@@ -269,79 +264,6 @@ public final class ImmutableTree extends ReadOnlyTree {
             return "/";
         } else {
             return PathUtils.concat(getParent().getIdentifier(), getName());
-        }
-    }
-
-    //--------------------------------------------------------------------------
-    // TODO
-    public interface TypeProvider {
-
-        // regular trees
-        int TYPE_DEFAULT = 1;
-        // version store(s) content
-        int TYPE_VERSION = 2;
-        // access control content
-        int TYPE_AC = 4;
-        // node type definition content
-        int TYPE_NODE_TYPE = 8;
-        // hidden trees
-        int TYPE_HIDDEN = 16;
-
-        TypeProvider EMPTY = new TypeProvider() {
-            @Override
-            public int getType(@Nullable ImmutableTree tree) {
-                return TYPE_DEFAULT;
-            }
-        };
-
-        int getType(ImmutableTree tree);
-    }
-
-    public static final class DefaultTypeProvider implements TypeProvider {
-
-        private final Context contextInfo;
-
-        public DefaultTypeProvider(@Nonnull Context contextInfo) {
-            this.contextInfo = contextInfo;
-        }
-
-        @Override
-        public int getType(ImmutableTree tree) {
-            ImmutableTree parent = tree.getParent();
-            if (parent == null) {
-                return TYPE_DEFAULT;
-            }
-
-            int type;
-            switch (parent.getType()) {
-                case TYPE_HIDDEN:
-                    type = TYPE_HIDDEN;
-                    break;
-                case TYPE_NODE_TYPE:
-                    type = TYPE_NODE_TYPE;
-                    break;
-                case TYPE_VERSION:
-                    type = TYPE_VERSION;
-                    break;
-                case TYPE_AC:
-                    type = TYPE_AC;
-                    break;
-                default:
-                    String name = tree.getName();
-                    if (NodeStateUtils.isHidden(name)) {
-                        type = TYPE_HIDDEN;
-                    } else if (NodeTypeConstants.JCR_NODE_TYPES.equals(name)) {
-                        type = TYPE_NODE_TYPE;
-                    } else if (VersionConstants.VERSION_NODE_NAMES.contains(name) ||
-                            VersionConstants.VERSION_NODE_TYPE_NAMES.contains(NodeStateUtils.getPrimaryTypeName(tree.state))) {
-                        type = TYPE_VERSION;
-                    } else if (contextInfo.definesTree(tree)) {
-                        type = TYPE_AC;
-                    } else {
-                        type = TYPE_DEFAULT;
-                    }
-            }
-            return type;
         }
     }
 

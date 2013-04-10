@@ -44,7 +44,7 @@ public class ImmutableRootTest extends OakBaseTest {
         root.commit();
 
         // Acquire a fresh new root to avoid problems from lingering state
-        this.root = new ImmutableRoot(session.getLatestRoot(), ImmutableTree.TypeProvider.EMPTY);
+        this.root = new ImmutableRoot(session.getLatestRoot(), TreeTypeProvider.EMPTY);
     }
 
     // TODO: add more tests

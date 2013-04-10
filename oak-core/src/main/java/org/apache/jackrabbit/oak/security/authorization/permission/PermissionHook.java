@@ -32,6 +32,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.ImmutableRoot;
 import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.core.TreeImpl;
+import org.apache.jackrabbit.oak.core.TreeTypeProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.security.authorization.AccessControlConstants;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeBits;
@@ -109,7 +110,7 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
     }
 
     private static Tree getTree(String name, NodeState nodeState) {
-        return new ImmutableTree(ImmutableTree.ParentProvider.UNSUPPORTED, name, nodeState, ImmutableTree.TypeProvider.EMPTY);
+        return new ImmutableTree(ImmutableTree.ParentProvider.UNSUPPORTED, name, nodeState, TreeTypeProvider.EMPTY);
     }
 
     private static String getAccessControlledPath(Node aclNode) {

@@ -76,7 +76,7 @@ public class ImmutableTreeTest extends OakBaseTest {
 
     @Test
     public void testGetNodeState() {
-        ImmutableTree tree = ImmutableTree.createFromRoot(root, ImmutableTree.TypeProvider.EMPTY);
+        ImmutableTree tree = ImmutableTree.createFromRoot(root, TreeTypeProvider.EMPTY);
         assertNotNull(tree.getNodeState());
 
         for (Tree child : tree.getChildren()) {
@@ -87,23 +87,23 @@ public class ImmutableTreeTest extends OakBaseTest {
 
     @Test
     public void testRoot() {
-        ImmutableTree tree = ImmutableTree.createFromRoot(root, ImmutableTree.TypeProvider.EMPTY);
+        ImmutableTree tree = ImmutableTree.createFromRoot(root, TreeTypeProvider.EMPTY);
         assertTrue(tree.isRoot());
         assertNull(tree.getParent());
         assertEquals("", tree.getName());
-        assertEquals(ImmutableTree.TypeProvider.TYPE_DEFAULT, tree.getType());
+        assertEquals(TreeTypeProvider.TYPE_DEFAULT, tree.getType());
     }
 
     @Test
     public void testGetParent() {
-        ImmutableTree tree = ImmutableTree.createFromRoot(root, ImmutableTree.TypeProvider.EMPTY);
+        ImmutableTree tree = ImmutableTree.createFromRoot(root, TreeTypeProvider.EMPTY);
         assertNull(tree.getParent());
 
         ImmutableTree child = tree.getChild("x");
         assertNotNull(child.getParent());
         assertEquals("/", child.getParent().getPath());
 
-        ImmutableTree disconnected = new ImmutableTree(ImmutableTree.ParentProvider.UNSUPPORTED, child.getName(), child.getNodeState(), ImmutableTree.TypeProvider.EMPTY);
+        ImmutableTree disconnected = new ImmutableTree(ImmutableTree.ParentProvider.UNSUPPORTED, child.getName(), child.getNodeState(), TreeTypeProvider.EMPTY);
         try {
             disconnected.getParent();
         } catch (UnsupportedOperationException e) {
