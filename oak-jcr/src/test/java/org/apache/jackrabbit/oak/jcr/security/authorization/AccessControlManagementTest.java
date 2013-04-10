@@ -123,6 +123,41 @@ public class AccessControlManagementTest extends AbstractEvaluationTest {
     }
 
     @Test
+    public void testRemovePolicyWithoutPrivilege() throws Exception {
+        // re-grant READ in order to have an ACL-node
+        Privilege[] privileges = privilegesFromName(Privilege.JCR_READ);
+        AccessControlPolicy policy = allow(path, privileges);
+
+        /*
+         Testuser must still have READ-only access only and must not be
+         allowed to view the acl-node that has been created.
+        */
+        assertFalse(testAcMgr.hasPrivileges(path, privilegesFromName(Privilege.JCR_MODIFY_ACCESS_CONTROL)));
+        try {
+            testAcMgr.removePolicy(path, policy);
+            fail("Test user must not be allowed to remove the access control policy.");
+        } catch (AccessDeniedException e) {
+            // success
+        }
+    }
+
+    @Test
+    public void testRemovePolicy() throws Exception {
+        // re-grant READ in order to have an ACL-node
+        Privilege[] privileges = privilegesFromNames(new String[] {Privilege.JCR_READ,
+                Privilege.JCR_READ_ACCESS_CONTROL,
+                Privilege.JCR_MODIFY_ACCESS_CONTROL});
+        allow(path, privileges);
+
+        /*
+         Testuser must be allowed to view and remove the acl-node that has been created.
+        */
+        assertTrue(testAcMgr.hasPrivileges(path, privilegesFromName(Privilege.JCR_MODIFY_ACCESS_CONTROL)));
+        testAcMgr.removePolicy(path, testAcMgr.getPolicies(path)[0]);
+        testSession.save();
+    }
+
+    @Test
     public void testRetrievePrivilegesOnAcNodes() throws Exception {
         // give 'testUser' jcr:readAccessControl privileges at 'path'
         Privilege[] privileges = privilegesFromName(Privilege.JCR_READ_ACCESS_CONTROL);
@@ -160,127 +195,30 @@ public class AccessControlManagementTest extends AbstractEvaluationTest {
         }
     }
 
-    @Test // TODO: check if this duplicates the next test
-    public void testAccessControlRead() throws Exception {
+    @Test
+    public void testReadAccessControlWithoutPrivilege() throws Exception {
         // re-grant READ in order to have an ACL-node
         Privilege[] privileges = privilegesFromName(Privilege.JCR_READ);
         JackrabbitAccessControlList tmpl = allow(path, privileges);
+        String policyPath = tmpl.getPath() + "/rep:policy";
         // make sure the 'rep:policy' node has been created.
-        assertTrue(superuser.itemExists(tmpl.getPath() + "/rep:policy"));
+        assertTrue(superuser.itemExists(policyPath));
 
         /*
          Testuser must still have READ-only access only and must not be
-         allowed to view the acl-node that has been created.
+         allowed to view the acl-node nor any item in the subtree that
+         has been created.
         */
         assertFalse(testAcMgr.hasPrivileges(path, privilegesFromName(Privilege.JCR_READ_ACCESS_CONTROL)));
-        assertFalse(testSession.itemExists(path + "/rep:policy"));
+        assertFalse(testSession.itemExists(policyPath));
 
-        Node n = testSession.getNode(tmpl.getPath());
-        assertFalse(n.hasNode("rep:policy"));
+        assertFalse(testSession.nodeExists(policyPath));
         try {
-            n.getNode("rep:policy");
+            testSession.getNode(policyPath);
             fail("Accessing the rep:policy node must throw PathNotFoundException.");
         } catch (PathNotFoundException e) {
             // ok.
         }
-
-        /* Finally the test user must not be allowed to remove the policy. */
-        try {
-            testAcMgr.removePolicy(path, new AccessControlPolicy() {});
-            fail("Test user must not be allowed to remove the access control policy.");
-        } catch (AccessDeniedException e) {
-            // success
-        }
-    }
-
-    @Test
-    public void testReadAccessControl() throws Exception {
-        /* give 'testUser' jcr:readAccessControl privileges at subtree below
-           path excluding the node at path itself. */
-        Privilege[] privileges = privilegesFromName(Privilege.JCR_READ_ACCESS_CONTROL);
-        allow(path, privileges, createGlobRestriction('/' + nodeName2));
-
-        /*
-         testuser must not be allowed to read AC content at the target node;
-         however, retrieving potential AC content at 'childPath' is granted.
-        */
-
-        assertFalse(testAcMgr.hasPrivileges(path, privileges));
-        try {
-            testAcMgr.getPolicies(path);
-            fail("AccessDeniedException expected");
-        } catch (AccessDeniedException e) {
-            // success.
-        }
-
-        assertTrue(testAcMgr.hasPrivileges(childNPath, privileges));
-        assertEquals(0, testAcMgr.getPolicies(childNPath).length);
-
-        /* similarly reading the corresponding AC items at 'path' must be forbidden */
-        String aclNodePath = null;
-        Node n = superuser.getNode(path);
-        for (NodeIterator itr = n.getNodes(); itr.hasNext();) {
-            Node child = itr.nextNode();
-            if (child.isNodeType("rep:Policy")) {
-                aclNodePath = child.getPath();
-            }
-        }
-        if (aclNodePath == null) {
-            fail("Expected node at " + path + " to have an ACL child node.");
-        }
-
-        assertFalse(testSession.nodeExists(aclNodePath));
-
-        for (NodeIterator aceNodes = superuser.getNode(aclNodePath).getNodes(); aceNodes.hasNext();) {
-            Node aceNode = aceNodes.nextNode();
-            String aceNodePath = aceNode.getPath();
-            assertFalse(testSession.nodeExists(aceNodePath));
-
-            for (PropertyIterator it = aceNode.getProperties(); it.hasNext();) {
-                assertFalse(testSession.propertyExists(it.nextProperty().getPath()));
-            }
-        }
-    }
-
-    @Test
-    public void testAclReferingToRemovedPrincipal() throws Exception {
-
-        JackrabbitAccessControlList acl = allow(path, repWritePrivileges);
-        String acPath = acl.getPath();
-
-        // remove the test user
-        testUser.remove();
-        superuser.save();
-
-        // try to retrieve the acl again
-        Session s = getHelper().getSuperuserSession();
-        try {
-            AccessControlManager acMgr = getAccessControlManager(s);
-            acMgr.getPolicies(acPath);
-        } finally {
-            s.logout();
-        }
-    }
-
-    @Test
-    public void testAccessControlModification() throws Exception {
-        // give 'testUser' ADD_CHILD_NODES|MODIFY_PROPERTIES| REMOVE_CHILD_NODES privileges at 'path'
-        Privilege[] privileges = privilegesFromNames(new String[] {
-                Privilege.JCR_ADD_CHILD_NODES,
-                Privilege.JCR_REMOVE_CHILD_NODES,
-                Privilege.JCR_MODIFY_PROPERTIES
-        });
-        JackrabbitAccessControlList tmpl = allow(path, privileges);
-        /*
-         testuser must not have
-         - permission to view AC items
-         - permission to modify AC items
-        */
-
-        // make sure the 'rep:policy' node has been created.
-        assertTrue(superuser.itemExists(tmpl.getPath() + "/rep:policy"));
-        // the policy node however must not be visible to the test-user
-        assertFalse(testSession.itemExists(tmpl.getPath() + "/rep:policy"));
         try {
             testAcMgr.getPolicies(tmpl.getPath());
             fail("test user must not have READ_AC privilege.");
@@ -293,14 +231,106 @@ public class AccessControlManagementTest extends AbstractEvaluationTest {
         } catch (AccessDeniedException e) {
             // success
         }
+        for (NodeIterator aceNodes = superuser.getNode(policyPath).getNodes(); aceNodes.hasNext();) {
+            Node aceNode = aceNodes.nextNode();
+            String aceNodePath = aceNode.getPath();
+            assertFalse(testSession.nodeExists(aceNodePath));
+
+            for (PropertyIterator it = aceNode.getProperties(); it.hasNext();) {
+                assertFalse(testSession.propertyExists(it.nextProperty().getPath()));
+            }
+        }
+    }
+
+    @Test
+    public void testReadAccessControl() throws Exception {
+        /* give 'testUser' jcr:readAccessControl privileges at subtree below
+           path excluding the node at path itself. */
+        Privilege[] privileges = privilegesFromName(Privilege.JCR_READ_ACCESS_CONTROL);
+        allow(path, privileges);
+
+        /*
+         testuser must be allowed to read AC content at the target node...
+        */
+        assertTrue(testAcMgr.hasPrivileges(path, privileges));
+        assertTrue(testSession.nodeExists(path + "/rep:policy"));
+        testAcMgr.getPolicies(path);
+        /*
+         ... and the child node
+         */
+        assertTrue(testAcMgr.hasPrivileges(childNPath, privileges));
+        assertEquals(0, testAcMgr.getPolicies(childNPath).length);
+    }
+
+    @Test
+    public void testReadAccessControlWithRestriction() throws Exception {
+        /* give 'testUser' jcr:readAccessControl privileges at subtree below
+           path excluding the node at path itself. */
+        Privilege[] privileges = privilegesFromName(Privilege.JCR_READ_ACCESS_CONTROL);
+        allow(path, privileges, createGlobRestriction('/' + nodeName2));
+
+        /*
+         testuser must not be allowed to read AC content at the target node;
+         however, retrieving potential AC content at 'childPath' is granted.
+        */
+        assertFalse(testAcMgr.hasPrivileges(path, privileges));
+        assertFalse(testSession.nodeExists(path + "/rep:policy"));
         try {
-            testAcMgr.getEffectivePolicies(path);
-            fail("test user must not have READ_AC privilege.");
+            testAcMgr.getPolicies(path);
+            fail("AccessDeniedException expected");
+        } catch (AccessDeniedException e) {
+            // success.
+        }
+        assertTrue(testAcMgr.hasPrivileges(childNPath, privileges));
+        assertEquals(0, testAcMgr.getPolicies(childNPath).length);
+    }
+
+    @Test
+    public void testAclReferingToRemovedPrincipal() throws Exception {
+
+        JackrabbitAccessControlList acl = allow(path, repWritePrivileges);
+        String acPath = acl.getPath();
+
+        // remove the test user
+        testUser.remove();
+        superuser.save();
+        testUser = null;
+
+        // try to retrieve the acl again
+        Session s = getHelper().getSuperuserSession();
+        try {
+            AccessControlManager acMgr = getAccessControlManager(s);
+            acMgr.getPolicies(acPath);
+        } finally {
+            s.logout();
+        }
+    }
+
+    @Test
+    public void testAccessControlModificationWithoutPrivilege() throws Exception {
+        // give 'testUser' ADD_CHILD_NODES|MODIFY_PROPERTIES| REMOVE_CHILD_NODES privileges at 'path'
+        Privilege[] privileges = privilegesFromNames(new String[] {
+                Privilege.JCR_ADD_CHILD_NODES,
+                Privilege.JCR_REMOVE_CHILD_NODES,
+                Privilege.JCR_MODIFY_PROPERTIES
+        });
+        JackrabbitAccessControlList tmpl = allow(path, privileges);
+        String policyPath = tmpl.getPath() + "/rep:policy";
+        // make sure the 'rep:policy' node has been created.
+        assertTrue(superuser.itemExists(policyPath));
+
+        /*
+         testuser must not have
+         - permission to modify AC items
+        */
+        try {
+            testAcMgr.setPolicy(tmpl.getPath(), tmpl);
+            fail("test user must not have MODIFY_AC privilege.");
         } catch (AccessDeniedException e) {
             // success
         }
         try {
-            testAcMgr.removePolicy(tmpl.getPath(), new AccessControlPolicy() {});
+            testAcMgr.removePolicy(tmpl.getPath(), tmpl);
             fail("test user must not have MODIFY_AC privilege.");
         } catch (AccessDeniedException e) {
             // success
@@ -308,7 +338,7 @@ public class AccessControlManagementTest extends AbstractEvaluationTest {
     }
 
     @Test
-    public void testAccessControlModification2() throws Exception {
+    public void testAccessControlModification() throws Exception {
         // give 'testUser' READ_AC|MODIFY_AC privileges at 'path'
         Privilege[] privileges = privilegesFromNames(new String[] {
                 Privilege.JCR_READ_ACCESS_CONTROL,
@@ -345,12 +375,7 @@ public class AccessControlManagementTest extends AbstractEvaluationTest {
         }
 
         // test: MODIFY_AC privilege does not apply outside of the tree.
-        try {
-            testAcMgr.setPolicy(siblingPath, policies[0]);
-            fail("MODIFY_AC privilege must not apply outside of the tree it has applied to.");
-        } catch (AccessDeniedException e) {
-            // success
-        }
+        assertFalse(testAcMgr.hasPrivileges(siblingPath, privilegesFromName(Privilege.JCR_MODIFY_ACCESS_CONTROL)));
 
         // test if testuser can modify AC-items
         // 1) add an ac-entry
@@ -359,8 +384,7 @@ public class AccessControlManagementTest extends AbstractEvaluationTest {
         testAcMgr.setPolicy(path, acl);
         testSession.save();
 
-        assertTrue(testAcMgr.hasPrivileges(path,
-                privilegesFromName(Privilege.JCR_REMOVE_CHILD_NODES)));
+        assertTrue(testAcMgr.hasPrivileges(path, privilegesFromName(Privilege.JCR_REMOVE_CHILD_NODES)));
 
         // 2) remove the policy
         testAcMgr.removePolicy(path, policies[0]);
@@ -445,7 +469,7 @@ public class AccessControlManagementTest extends AbstractEvaluationTest {
                 throw new NotExecutableException("Reordering child nodes is not supported..");
             }
 
-            n.orderBefore(Text.getName(childNPath), Text.getName(childNPath2));
+            n.orderBefore(Text.getName(childNPath2), Text.getName(childNPath));
             testSession.save();
             fail("test session must not be allowed to reorder nodes.");
         } catch (AccessDeniedException e) {
@@ -455,10 +479,14 @@ public class AccessControlManagementTest extends AbstractEvaluationTest {
         // grant all privileges
         allow(path, privilegesFromNames(new String[] {Privilege.JCR_ALL}));
 
+        n.orderBefore(Text.getName(childNPath2), Text.getName(childNPath));
+        testSession.save();
+
         n.orderBefore("rep:policy", Text.getName(childNPath2));
         testSession.save();
     }
 
+    @Ignore("OAK-767 : Implement Node#removeMixin")
     @Test
     public void testRemoveMixin() throws Exception {
         Node n = superuser.getNode(path);
