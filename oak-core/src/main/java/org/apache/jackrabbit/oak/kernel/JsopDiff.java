@@ -16,8 +16,14 @@
  */
 package org.apache.jackrabbit.oak.kernel;
 
+import static org.apache.jackrabbit.oak.api.Type.BINARIES;
+import static org.apache.jackrabbit.oak.api.Type.BOOLEANS;
+import static org.apache.jackrabbit.oak.api.Type.LONGS;
+import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Arrays;
 
 import javax.jcr.PropertyType;
 
@@ -31,11 +37,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.apache.jackrabbit.oak.api.Type.BINARIES;
-import static org.apache.jackrabbit.oak.api.Type.BOOLEANS;
-import static org.apache.jackrabbit.oak.api.Type.LONGS;
-import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 
 /**
  * TODO document
@@ -63,6 +64,17 @@ class JsopDiff implements NodeStateDiff {
             MicroKernel kernel, NodeState before, NodeState after,
             String path, JsopBuilder jsop) {
         after.compareAgainstBaseState(before, new JsopDiff(kernel, jsop, path));
+    }
+
+    public static String diffToJsop(NodeState before, NodeState after) {
+        JsopDiff diff = new JsopDiff(null) {
+            @Override
+            protected String writeBlob(Blob blob) {
+                return "Blob{" + Arrays.toString(blob.sha256()) + '}';
+            }
+        };
+        after.compareAgainstBaseState(before, diff);
+        return diff.toString();
     }
 
     protected JsopDiff createChildDiff(JsopBuilder jsop, String path) {
@@ -156,14 +168,7 @@ class JsopDiff implements NodeStateDiff {
                 break;
             case PropertyType.BINARY:
                 for (Blob value : property.getValue(BINARIES)) {
-                    String binId;
-                    if (value instanceof KernelBlob) {
-                        binId = ((KernelBlob) value).getBinaryID();
-                    } else {
-                        InputStream is = value.getNewStream();
-                        binId = kernel.write(is);
-                        close(is);
-                    }
+                    String binId = writeBlob(value);
                     jsop.value(TypeCodes.encode(type, binId));
                 }
                 break;
@@ -176,6 +181,23 @@ class JsopDiff implements NodeStateDiff {
                 }
                 break;
         }
+    }
+
+    /**
+     * Make sure {@code blob} is persisted and return the id of the persisted blob.
+     * @param blob  blob to persist
+     * @return  id of the persisted blob
+     */
+    protected String writeBlob(Blob blob) {
+        String blobId;
+        if (blob instanceof KernelBlob) {
+            blobId = ((KernelBlob) blob).getBinaryID();
+        } else {
+            InputStream is = blob.getNewStream();
+            blobId = kernel.write(is);
+            close(is);
+        }
+        return blobId;
     }
 
     private static void close(InputStream stream) {
