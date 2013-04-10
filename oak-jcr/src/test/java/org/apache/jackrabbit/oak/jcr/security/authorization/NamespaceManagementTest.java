@@ -49,6 +49,7 @@ public class NamespaceManagementTest extends AbstractEvaluationTest {
     @After
     protected void tearDown() throws Exception {
         try {
+            superuser.refresh(false);
             for (AccessControlPolicy policy : acMgr.getPolicies(null)) {
                 acMgr.removePolicy(null, policy);
             }
@@ -92,18 +93,23 @@ public class NamespaceManagementTest extends AbstractEvaluationTest {
     }
 
     @Test
-    public void testRegisterNamespaceWithPrivilege() throws Exception {
+    public void testModifyNamespaceWithPrivilege() throws Exception {
         modify(null, JCR_NAMESPACE_MANAGEMENT.toString(), true);
         assertHasPrivilege(null, JCR_NAMESPACE_MANAGEMENT, true);
 
+        modify(null, JCR_NAMESPACE_MANAGEMENT.toString(), false);
+        assertHasPrivilege(null, JCR_NAMESPACE_MANAGEMENT, false);
+    }
+
+    @Test
+    public void testRegisterNamespaceWithPrivilege() throws Exception {
+        modify(null, JCR_NAMESPACE_MANAGEMENT.toString(), true);
         try {
             Workspace testWsp = testSession.getWorkspace();
             testWsp.getNamespaceRegistry().registerNamespace(getNewNamespacePrefix(testWsp), getNewNamespaceURI(testWsp));
         } finally {
             modify(null, JCR_NAMESPACE_MANAGEMENT.toString(), false);
         }
-
-        assertHasPrivilege(null, JCR_NAMESPACE_MANAGEMENT, false);
     }
 
     @Test
