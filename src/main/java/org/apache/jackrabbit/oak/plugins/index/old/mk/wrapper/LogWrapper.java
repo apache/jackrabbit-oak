@@ -20,8 +20,8 @@ import java.io.InputStream;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
+import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.json.JsopBuilder;
-import org.apache.jackrabbit.oak.plugins.index.old.mk.ExceptionFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -271,7 +271,7 @@ public class LogWrapper implements MicroKernel {
             return (RuntimeException) e;
         }
         log("// unexpected exception type: " + e.getClass().getName());
-        return ExceptionFactory.convert(e);
+        return new MicroKernelException("Unexpected exception: " + e.toString(), e);
     }
 
     private static void logException(Exception e) {
