@@ -22,6 +22,7 @@ import java.util.Arrays;
 import junit.framework.Assert;
 
 import org.apache.jackrabbit.mongomk.BaseMongoMicroKernelTest;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -43,6 +44,7 @@ public class MongoMKReadGridFSTest extends BaseMongoMicroKernelTest {
     }
 
     @Test
+    @Ignore    
     public void large() throws Exception {
         read(20 * 1024 * 1024);
     }

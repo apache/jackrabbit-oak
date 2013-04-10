@@ -23,10 +23,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.mk.blobs.BlobStore;
-import org.apache.jackrabbit.mongomk.impl.MongoMicroKernel;
-import org.apache.jackrabbit.mongomk.impl.MongoNodeStore;
-import org.apache.jackrabbit.mongomk.impl.blob.MongoGridFSBlobStore;
+import org.apache.jackrabbit.mongomk.prototype.MongoMK;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -44,15 +41,8 @@ public class BaseMongoMicroKernelTest extends AbstractMongoConnectionTest {
     @Before
     public void setUp() throws Exception {
         DB db = mongoConnection.getDB();
-        MongoNodeStore nodeStore = new MongoNodeStore(db);
-        MongoAssert.setNodeStore(nodeStore);
-        BlobStore blobStore = new MongoGridFSBlobStore(db);
-        mk = new MongoMicroKernel(mongoConnection, nodeStore, blobStore);
-    }
-
-    protected MongoNodeStore getNodeStore() {
-        MongoMicroKernel mongoMk = (MongoMicroKernel)mk;
-        return (MongoNodeStore)mongoMk.getNodeStore();
+        
+        mk = new MongoMK.Builder().setMongoDB(db).open();
     }
 
     protected JSONObject getObjectArrayEntry(JSONArray array, int pos) {
@@ -185,10 +175,10 @@ public class BaseMongoMicroKernelTest extends AbstractMongoConnectionTest {
     }
 
     private Object resolveValue(JSONObject obj, String relPath) {
-        String names[] = relPath.split("/");
+        String[] names = relPath.split("/");
         Object val = obj;
         for (String name : names) {
-            if (! (val instanceof JSONObject)) {
+            if (!(val instanceof JSONObject)) {
                 throw new AssertionError("not found: " + relPath);
             }
             val = ((JSONObject) val).get(name);

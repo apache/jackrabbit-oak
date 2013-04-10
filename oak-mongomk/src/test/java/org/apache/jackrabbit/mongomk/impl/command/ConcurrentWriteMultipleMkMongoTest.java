@@ -22,9 +22,8 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mongomk.BaseMongoMicroKernelTest;
-import org.apache.jackrabbit.mongomk.impl.MongoMicroKernel;
-import org.apache.jackrabbit.mongomk.impl.MongoNodeStore;
 import org.apache.jackrabbit.mongomk.impl.blob.MongoGridFSBlobStore;
+import org.apache.jackrabbit.mongomk.prototype.MongoMK;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -58,8 +57,7 @@ public class ConcurrentWriteMultipleMkMongoTest extends BaseMongoMicroKernelTest
                     numberOfNodes, prefixes[i], new StringBuilder()).toString();
             //System.out.println(diff);
             DB db = mongoConnection.getDB();
-            MongoMicroKernel mk = new MongoMicroKernel(mongoConnection,
-                    new MongoNodeStore(db), new MongoGridFSBlobStore(db));
+            MongoMK mk = new MongoMK.Builder().open();
             GenericWriteTask task = new GenericWriteTask("mk-" + i, mk, diff, 10);
             executor.execute(task);
         }
@@ -105,7 +103,7 @@ public class ConcurrentWriteMultipleMkMongoTest extends BaseMongoMicroKernelTest
         private String diff;
         private int nodesPerCommit;
 
-        public GenericWriteTask(String id, MongoMicroKernel mk, String diff,
+        public GenericWriteTask(String id, MongoMK mk, String diff,
                 int nodesPerCommit) {
             this.id = id;
             this.mk = mk;

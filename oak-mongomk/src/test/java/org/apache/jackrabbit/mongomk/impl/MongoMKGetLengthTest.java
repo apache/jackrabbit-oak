@@ -23,8 +23,8 @@ import java.io.ByteArrayInputStream;
 
 import org.apache.jackrabbit.mk.blobs.BlobStore;
 import org.apache.jackrabbit.mongomk.AbstractMongoConnectionTest;
-import org.apache.jackrabbit.mongomk.MongoAssert;
 import org.apache.jackrabbit.mongomk.impl.blob.MongoBlobStore;
+import org.apache.jackrabbit.mongomk.prototype.MongoMK;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -35,16 +35,13 @@ import com.mongodb.DB;
  */
 public class MongoMKGetLengthTest extends AbstractMongoConnectionTest {
 
-    private MongoMicroKernel mk;
+    private MongoMK mk;
 
     @Before
     public void setUp() throws Exception {
         DB db = mongoConnection.getDB();
 
-        MongoNodeStore nodeStore = new MongoNodeStore(db);
-        MongoAssert.setNodeStore(nodeStore);
-        BlobStore blobStore = new MongoBlobStore(db);
-        mk = new MongoMicroKernel(mongoConnection, nodeStore, blobStore);
+        mk = new MongoMK.Builder().setMongoDB(db).open();
     }
 
     @Test

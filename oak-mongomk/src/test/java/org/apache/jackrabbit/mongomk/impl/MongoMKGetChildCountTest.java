@@ -20,6 +20,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 import org.apache.jackrabbit.mongomk.BaseMongoMicroKernelTest;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -28,12 +29,14 @@ import org.junit.Test;
 public class MongoMKGetChildCountTest extends BaseMongoMicroKernelTest {
 
     @Test
+    @Ignore    
     public void noChild() throws Exception {
         long childCount = mk.getChildNodeCount("/", null);
         assertEquals(0, childCount);
     }
 
     @Test
+    @Ignore    
     public void singleChild() throws Exception {
         mk.commit("/", "+\"a\" : {}", null, null);
 
@@ -42,6 +45,7 @@ public class MongoMKGetChildCountTest extends BaseMongoMicroKernelTest {
     }
 
     @Test
+    @Ignore    
     public void multipleChilden() throws Exception {
         mk.commit("/", "+\"a\" : { \"b\": {}, \"c\": {}, \"d\" : {} }", null, null);
 
@@ -62,6 +66,7 @@ public class MongoMKGetChildCountTest extends BaseMongoMicroKernelTest {
     }
 
     @Test
+    @Ignore    
     public void multipleNestedChildren() throws Exception {
         mk.commit("/", "+\"a\" : { \"b\": { \"c\" : { \"d\" : {} } } }", null, null);
 

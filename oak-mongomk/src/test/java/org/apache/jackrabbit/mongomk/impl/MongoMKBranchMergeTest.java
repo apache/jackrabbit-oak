@@ -134,6 +134,7 @@ public class MongoMKBranchMergeTest extends BaseMongoMicroKernelTest {
      * This is a test to make sure properties are properly escaped in merge.
      */
     @Test
+    @Ignore    
     public void oneBranchAddPropertyRoot() {
         String branchRev = mk.branch(null);
 
@@ -261,6 +262,7 @@ public class MongoMKBranchMergeTest extends BaseMongoMicroKernelTest {
     }
 
     @Test
+    @Ignore    
     public void oneBranchAddedChildrenWithConflict() {
         addNodes(null, "/trunk", "/trunk/child1");
         assertNodesExist(null, "/trunk", "/trunk/child1");
@@ -280,6 +282,7 @@ public class MongoMKBranchMergeTest extends BaseMongoMicroKernelTest {
     }
 
     @Test
+    @Ignore    
     public void oneBranchChangedPropertiesWithConflict() {
         addNodes(null, "/trunk");
         setProp(null, "/trunk/prop1", "value1");
@@ -350,6 +353,7 @@ public class MongoMKBranchMergeTest extends BaseMongoMicroKernelTest {
     }
 
     @Test
+    @Ignore    
     public void movesInBranch() {
         String rev = mk.commit("/", "+\"a\":{\"b\":{}}", null, null);
         String branchRev = mk.branch(rev);

@@ -18,6 +18,7 @@ package org.apache.jackrabbit.mongomk.impl;
 
 import org.apache.jackrabbit.mongomk.BaseMongoMicroKernelTest;
 import org.json.simple.JSONObject;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.assertFalse;
@@ -27,6 +28,7 @@ import static org.junit.Assert.assertTrue;
 /**
  * Tests for MicroKernel#diff
  */
+@Ignore    
 public class MongoMKDiffTest extends BaseMongoMicroKernelTest {
 
     @Test

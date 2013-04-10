@@ -23,6 +23,7 @@ import java.io.ByteArrayInputStream;
 import java.util.Arrays;
 
 import org.apache.jackrabbit.mongomk.BaseMongoMicroKernelTest;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -41,6 +42,7 @@ public class MongoMKWriteGridFSTest extends BaseMongoMicroKernelTest {
     }
 
     @Test
+    @Ignore
     public void large() throws Exception {
         write(20 * 1024 * 1024);
     }
@@ -63,7 +65,7 @@ public class MongoMKWriteGridFSTest extends BaseMongoMicroKernelTest {
     private byte[] createBlob(int blobLength) {
         byte[] blob = new byte[blobLength];
         for (int i = 0; i < blob.length; i++) {
-            blob[i] = (byte)i;
+            blob[i] = (byte) i;
         }
         return blob;
     }

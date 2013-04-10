@@ -20,6 +20,7 @@ import static org.junit.Assert.fail;
 
 import org.apache.jackrabbit.mongomk.BaseMongoMicroKernelTest;
 import org.json.simple.JSONObject;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -44,6 +45,7 @@ public class MongoMKGetNodesTest extends BaseMongoMicroKernelTest {
     }
 
     @Test
+    @Ignore    
     public void afterDelete() throws Exception {
         SimpleNodeScenario scenario = new SimpleNodeScenario(mk);
         scenario.create();
@@ -60,6 +62,7 @@ public class MongoMKGetNodesTest extends BaseMongoMicroKernelTest {
     }
 
     @Test
+    @Ignore    
     public void depthNegative() throws Exception {
         SimpleNodeScenario scenario = new SimpleNodeScenario(mk);
         scenario.create();
@@ -69,6 +72,7 @@ public class MongoMKGetNodesTest extends BaseMongoMicroKernelTest {
     }
 
     @Test
+    @Ignore    
     public void depthZero() throws Exception {
         SimpleNodeScenario scenario = new SimpleNodeScenario(mk);
         scenario.create();
@@ -81,6 +85,7 @@ public class MongoMKGetNodesTest extends BaseMongoMicroKernelTest {
     }
 
     @Test
+    @Ignore    
     public void depthOne() throws Exception {
         SimpleNodeScenario scenario = new SimpleNodeScenario(mk);
         scenario.create();
@@ -100,6 +105,7 @@ public class MongoMKGetNodesTest extends BaseMongoMicroKernelTest {
     }
 
     @Test
+    @Ignore    
     public void depthLimitless() throws Exception {
         SimpleNodeScenario scenario = new SimpleNodeScenario(mk);
         scenario.create();
