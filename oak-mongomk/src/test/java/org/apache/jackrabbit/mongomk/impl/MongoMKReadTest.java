@@ -21,10 +21,9 @@ import java.util.Arrays;
 
 import junit.framework.Assert;
 
-import org.apache.jackrabbit.mk.blobs.BlobStore;
 import org.apache.jackrabbit.mk.util.MicroKernelInputStream;
 import org.apache.jackrabbit.mongomk.AbstractMongoConnectionTest;
-import org.apache.jackrabbit.mongomk.impl.blob.MongoBlobStore;
+import org.apache.jackrabbit.mongomk.prototype.MongoMK;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -35,7 +34,7 @@ import com.mongodb.DB;
  */
 public class MongoMKReadTest extends AbstractMongoConnectionTest {
 
-    private MongoMicroKernel mk;
+    private MongoMK mk;
     private byte[] blob;
     private String blobId;
 
@@ -43,9 +42,7 @@ public class MongoMKReadTest extends AbstractMongoConnectionTest {
     public void setUp() throws Exception {
         DB db = mongoConnection.getDB();
 
-        MongoNodeStore nodeStore = new MongoNodeStore(db);
-        BlobStore blobStore = new MongoBlobStore(db);
-        mk = new MongoMicroKernel(mongoConnection, nodeStore, blobStore);
+        mk = new MongoMK.Builder().setMongoDB(db).open();
     }
 
     @Test

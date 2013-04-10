@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.mongomk.impl;
 
 import org.apache.jackrabbit.mongomk.BaseMongoMicroKernelTest;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -28,6 +29,7 @@ import static org.junit.Assert.assertTrue;
  * Tests for {@code MicroKernel#rebase}
  * FIXME: this is copied from MicroKernelImplTest. Factor out.
  */
+@Ignore    
 public class MongoMKRebaseTest extends BaseMongoMicroKernelTest {
 
     @Test
@@ -46,6 +48,7 @@ public class MongoMKRebaseTest extends BaseMongoMicroKernelTest {
     }
 
     @Test
+    @Ignore    
     public void rebaseEmptyBranch() {
         String branch = mk.branch(null);
         String trunk = mk.commit("", "+\"/a\":{}", null, null);
@@ -58,6 +61,7 @@ public class MongoMKRebaseTest extends BaseMongoMicroKernelTest {
     }
 
     @Test
+    @Ignore    
     public void rebaseAddNode() {
         mk.commit("", "+\"/x\":{}", null, null);
         String branch = mk.branch(null);
@@ -77,6 +81,7 @@ public class MongoMKRebaseTest extends BaseMongoMicroKernelTest {
     }
 
     @Test
+    @Ignore    
     public void rebaseRemoveNode() {
         mk.commit("", "+\"/x\":{\"y\":{}}", null, null);
         String branch = mk.branch(null);
@@ -95,6 +100,7 @@ public class MongoMKRebaseTest extends BaseMongoMicroKernelTest {
     }
 
     @Test
+    @Ignore    
     public void rebaseAddProperty() {
         mk.commit("", "+\"/x\":{\"y\":{}}", null, null);
         String branch = mk.branch(null);
@@ -116,6 +122,7 @@ public class MongoMKRebaseTest extends BaseMongoMicroKernelTest {
     }
 
     @Test
+    @Ignore    
     public void rebaseRemoveProperty() {
         mk.commit("", "+\"/x\":{\"y\":{\"p\":42}}", null, null);
         String branch = mk.branch(null);
@@ -137,6 +144,7 @@ public class MongoMKRebaseTest extends BaseMongoMicroKernelTest {
     }
 
     @Test
+    @Ignore    
     public void rebaseChangeProperty() {
         mk.commit("", "+\"/x\":{\"y\":{\"p\":42}}", null, null);
         String branch = mk.branch(null);
@@ -327,6 +335,7 @@ public class MongoMKRebaseTest extends BaseMongoMicroKernelTest {
     }
 
     @Test
+    @Ignore    
     public void mergeRebased() {
         mk.commit("", "+\"/x\":{\"y\":{}}", null, null);
         String branch = mk.branch(null);

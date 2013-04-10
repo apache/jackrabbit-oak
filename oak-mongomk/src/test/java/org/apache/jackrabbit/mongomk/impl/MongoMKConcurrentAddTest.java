@@ -27,7 +27,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mongomk.AbstractMongoConnectionTest;
-import org.apache.jackrabbit.mongomk.impl.blob.MongoGridFSBlobStore;
+import org.apache.jackrabbit.mongomk.prototype.MongoMK;
 import org.junit.After;
 import org.junit.Test;
 
@@ -47,9 +47,7 @@ public class MongoMKConcurrentAddTest extends AbstractMongoConnectionTest {
                 PORT, DB);
         connections.add(connection);
         DB mongoDB = connection.getDB();
-        MongoNodeStore nodeStore = new MongoNodeStore(mongoDB);
-        MongoGridFSBlobStore blobStore = new MongoGridFSBlobStore(mongoDB);
-        return new MongoMicroKernel(connection, nodeStore, blobStore);
+        return new MongoMK.Builder().setMongoDB(mongoDB).open();
     }
 
     @After

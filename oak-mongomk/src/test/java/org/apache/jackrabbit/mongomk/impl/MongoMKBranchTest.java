@@ -19,6 +19,7 @@ package org.apache.jackrabbit.mongomk.impl;
 import org.apache.jackrabbit.mongomk.BaseMongoMicroKernelTest;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.assertFalse;
@@ -46,6 +47,7 @@ public class MongoMKBranchTest extends BaseMongoMicroKernelTest {
      * the version from the first commit.
      */
     @Test
+    @Ignore    
     public void isolatedBranches() throws Exception {
         String rev1 = mk.commit("", "+\"/child1\":{}", null, "");
 
