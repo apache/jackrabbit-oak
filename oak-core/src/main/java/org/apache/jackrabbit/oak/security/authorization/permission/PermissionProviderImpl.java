@@ -256,7 +256,7 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
         }
 
         if (versionablePath == null || versionablePath.length() == 0) {
-            log.warn("Unable to determine versionable path of the version store node.");
+            log.debug("Unable to determine versionable path of the version store node.");
             return null;
         } else {
             return getImmutableRoot().getLocation(versionablePath);
