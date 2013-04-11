@@ -29,7 +29,6 @@ import javax.annotation.Nullable;
 import javax.jcr.AccessDeniedException;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
-import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.query.Query;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.AccessControlList;
@@ -469,7 +468,6 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
 
     @Nonnull
     private Result searchAces(@Nonnull Set<Principal> principals) throws RepositoryException {
-        // TODO: replace XPATH
         // TODO: specify sort order
         StringBuilder stmt = new StringBuilder("/jcr:root");
         stmt.append("//element(*,");
@@ -531,11 +529,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
     }
 
     @Nonnull
-    private Privilege[] getPrivileges(@Nullable String absPath, @Nullable PermissionProvider provider) throws RepositoryException {
-        // TODO : OAK-707
-        if (provider == null) {
-            throw new UnsupportedRepositoryOperationException();
-        }
+    private Privilege[] getPrivileges(@Nullable String absPath, @Nonnull PermissionProvider provider) throws RepositoryException {
         Tree tree = (absPath == null) ? null : getTree(getOakPath(absPath), Permissions.NO_PERMISSION);
         Set<String> pNames = provider.getPrivileges(tree);
         if (pNames.isEmpty()) {
@@ -550,11 +544,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
     }
 
     private boolean hasPrivileges(@Nullable String absPath, @Nonnull Privilege[] privileges,
-                                  @Nullable PermissionProvider provider) throws RepositoryException {
-        // TODO : OAK-707
-        if (provider == null) {
-            throw new UnsupportedRepositoryOperationException();
-        }
+                                  @Nonnull PermissionProvider provider) throws RepositoryException {
         Tree tree = (absPath == null) ? null : getTree(getOakPath(absPath), Permissions.NO_PERMISSION);
         Set<String> privilegeNames = new HashSet<String>(privileges.length);
         for (Privilege privilege : privileges) {
