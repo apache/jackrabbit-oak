@@ -40,7 +40,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 /**
- * ImmutableACLTest... TODO
+ * Test for {@code ImmutableACL}
  */
 public class ImmutableACLTest extends AbstractAccessControlListTest {
 
