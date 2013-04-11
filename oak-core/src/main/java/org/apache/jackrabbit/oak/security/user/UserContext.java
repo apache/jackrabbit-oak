@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.security.user;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.util.TreeUtil;
@@ -25,7 +26,7 @@ import org.apache.jackrabbit.oak.util.TreeUtil;
 /**
  * UserContext... TODO
  */
-final class UserContext implements Context {
+final class UserContext implements Context, UserConstants {
 
     private static final Context INSTANCE = new UserContext();
 
@@ -40,11 +41,11 @@ final class UserContext implements Context {
     @Override
     public boolean definesProperty(Tree parent, PropertyState property) {
         String ntName = TreeUtil.getPrimaryTypeName(parent);
-        if (UserConstants.NT_REP_USER.equals(ntName)) {
-            return UserConstants.USER_PROPERTY_NAMES.contains(property.getName());
-        } else if (UserConstants.NT_REP_GROUP.equals(ntName)) {
-            return UserConstants.GROUP_PROPERTY_NAMES.contains(property.getName());
-        } else if (UserConstants.NT_REP_MEMBERS.equals(ntName)) {
+        if (NT_REP_USER.equals(ntName)) {
+            return USER_PROPERTY_NAMES.contains(property.getName());
+        } else if (NT_REP_GROUP.equals(ntName)) {
+            return GROUP_PROPERTY_NAMES.contains(property.getName());
+        } else if (NT_REP_MEMBERS.equals(ntName)) {
             return true;
         }
         return false;
@@ -53,6 +54,17 @@ final class UserContext implements Context {
     @Override
     public boolean definesTree(Tree tree) {
         String ntName = TreeUtil.getPrimaryTypeName(tree);
-        return UserConstants.NT_REP_GROUP.equals(ntName) || UserConstants.NT_REP_USER.equals(ntName) || UserConstants.NT_REP_MEMBERS.equals(ntName);
+        return NT_REP_GROUP.equals(ntName) || NT_REP_USER.equals(ntName) || NT_REP_MEMBERS.equals(ntName);
+    }
+
+    @Override
+    public boolean definesLocation(TreeLocation location) {
+        if (location.exists()) {
+            PropertyState p = location.getProperty();
+            return (p == null) ? definesTree(location.getTree()) : definesProperty(location.getTree(), p);
+        } else {
+            // FIXME
+            return false;
+        }
     }
 }
