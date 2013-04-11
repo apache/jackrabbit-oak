@@ -16,9 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
-import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.createIndexDefinition;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -31,9 +30,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.p2.Property2IndexHookProvider;
 import org.apache.jackrabbit.oak.plugins.index.p2.Property2IndexLookup;
-import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
-import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -59,22 +56,14 @@ public class IndexHookManagerTest {
 
         NodeBuilder builder = root.builder();
 
-        builder.child("oak:index")
-                .child("rootIndex")
-                .setProperty("propertyNames", "foo")
-                .setProperty("type", "p2")
-                .setProperty(JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE,
-                        Type.NAME);
-        builder.child("newchild")
-                .child("other")
-                .child("oak:index")
-                .child("subIndex")
-                .setProperty("propertyNames", "foo")
-                .setProperty("type", "p2")
-                .setProperty(JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE,
-                        Type.NAME);
+        createIndexDefinition(builder.child("oak:index"), "rootIndex", true,
+                false, ImmutableSet.of("foo"), null);
+        createIndexDefinition(
+                builder.child("newchild").child("other").child("oak:index"),
+                "subIndex", true, false, ImmutableSet.of("foo"), null);
 
         NodeState before = builder.getNodeState();
+
         // Add nodes
         builder.child("testRoot").setProperty("foo", "abc");
         builder.child("newchild").child("other").child("testChild")
@@ -125,14 +114,9 @@ public class IndexHookManagerTest {
 
         builder.child("testRoot").setProperty("foo", "abc");
         NodeState before = builder.getNodeState();
+        createIndexDefinition(builder.child("oak:index"), "rootIndex", true,
+                false, ImmutableSet.of("foo"), null);
 
-        builder.child("oak:index")
-                .child("rootIndex")
-                .setProperty("propertyNames", "foo")
-                .setProperty("type", "p2")
-                .setProperty(REINDEX_PROPERTY_NAME, true)
-                .setProperty(JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE,
-                        Type.NAME);
         NodeState after = builder.getNodeState();
 
         IndexHookManager im = IndexHookManager
@@ -169,12 +153,9 @@ public class IndexHookManagerTest {
         builder.child("testRoot").setProperty("foo", "abc");
         NodeState before = builder.getNodeState();
 
-        builder.child("oak:index")
-                .child("rootIndex")
-                .setProperty("propertyNames", "foo")
-                .setProperty("type", "p2")
-                .setProperty(JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE,
-                        Type.NAME);
+        createIndexDefinition(builder.child("oak:index"), "rootIndex", true,
+                false, ImmutableSet.of("foo"), null).removeProperty("reindex");
+
         NodeState after = builder.getNodeState();
 
         IndexHookManager im = IndexHookManager
@@ -207,14 +188,11 @@ public class IndexHookManagerTest {
         NodeState root = EMPTY_NODE;
 
         NodeBuilder builder = root.builder();
-
         builder.child("testRoot").setProperty("foo", "abc");
-        builder.child("oak:index")
-                .child("rootIndex")
-                .setProperty("propertyNames", "foo")
-                .setProperty("type", "p2")
-                .setProperty(JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE,
-                        Type.NAME);
+
+        createIndexDefinition(builder.child("oak:index"), "rootIndex", true,
+                false, ImmutableSet.of("foo"), null).removeProperty("reindex");
+
         NodeState before = builder.getNodeState();
         builder.child("oak:index").child("rootIndex")
                 .setProperty(REINDEX_PROPERTY_NAME, true);
@@ -242,38 +220,21 @@ public class IndexHookManagerTest {
         NodeState root = EMPTY_NODE;
 
         NodeBuilder builder = root.builder();
-        // this index is on the current update branch, it should be seen by the
-        // diff
-        builder.child("oak:index")
-                .child("existing")
-                .setProperty("type", "p2")
-                .setProperty(JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE,
-                        Type.NAME);
+        createIndexDefinition(builder.child("oak:index"), "existing", true,
+                false, ImmutableSet.of("foo"), null);
 
         NodeState before = builder.getNodeState();
         // Add index definition
-        builder.child("oak:index")
-                .child("foo")
-                .setProperty(JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE,
-                        Type.NAME);
-        builder.child("test")
-                .child("other")
-                .child("oak:index")
-                .child("index2")
-                .setProperty("type", "p2")
-                .setProperty(JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE,
-                        Type.NAME);
+        createIndexDefinition(builder.child("oak:index"), "foo", true, false,
+                ImmutableSet.of("foo"), null);
+        createIndexDefinition(
+                builder.child("test").child("other").child("oak:index"),
+                "index2", true, false, ImmutableSet.of("foo"), null);
         NodeState after = builder.getNodeState();
 
-        EditorProvider provider = new EditorProvider() {
-            @Override
-            public Editor getRootEditor(NodeState before, NodeState after,
-                    NodeBuilder builder) {
-                return new IndexHookManagerDiff(
-                        new Property2IndexHookProvider(), builder);
-            }
-        };
-        EditorHook hook = new EditorHook(provider);
+        IndexHookManager im = IndexHookManager
+                .of(new Property2IndexHookProvider());
+        EditorHook hook = new EditorHook(im);
         NodeState indexed = hook.processCommit(before, after);
 
         // check that the index content nodes exist
