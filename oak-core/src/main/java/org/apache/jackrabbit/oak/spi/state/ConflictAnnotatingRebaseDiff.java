@@ -47,7 +47,7 @@ public class ConflictAnnotatingRebaseDiff extends AbstractRebaseDiff {
     }
 
     @Override
-    protected void addExistingProperty(NodeBuilder builder, PropertyState after) {
+    protected void addExistingProperty(NodeBuilder builder, PropertyState before, PropertyState after) {
         conflictMarker(builder, ADD_EXISTING_PROPERTY).setProperty(after);
     }
 
@@ -72,7 +72,7 @@ public class ConflictAnnotatingRebaseDiff extends AbstractRebaseDiff {
     }
 
     @Override
-    protected void addExistingNode(NodeBuilder builder, String name, NodeState after) {
+    protected void addExistingNode(NodeBuilder builder, String name, NodeState before, NodeState after) {
         conflictMarker(builder, ADD_EXISTING_NODE).setNode(name, after);
     }
 
