@@ -46,7 +46,7 @@ class OurChangesRebaseDiff extends AbstractRebaseDiff {
     }
 
     @Override
-    protected void addExistingProperty(NodeBuilder builder, PropertyState after) {
+    protected void addExistingProperty(NodeBuilder builder, PropertyState before, PropertyState after) {
         builder.setProperty(after);
     }
 
@@ -71,7 +71,7 @@ class OurChangesRebaseDiff extends AbstractRebaseDiff {
     }
 
     @Override
-    protected void addExistingNode(NodeBuilder builder, String name, NodeState after) {
+    protected void addExistingNode(NodeBuilder builder, String name, NodeState before, NodeState after) {
         builder.setNode(name, after);
     }
 
