@@ -43,10 +43,6 @@
                             org.apache.jackrabbit.mongomk.*
                         </Private-Package>
                         <Export-Package>
-                            org.apache.jackrabbit.mongomk.api.*,
-                            org.apache.jackrabbit.mk.model.*,
-                            org.apache.jackrabbit.mk.store.*,
-                            org.apache.jackrabbit.mk.persistence.*
                         </Export-Package>
                         <Embed-Dependency>
                             org.apache.sling.commons.osgi;inline=org/apache/sling/commons/osgi/PropertiesUtil.class
