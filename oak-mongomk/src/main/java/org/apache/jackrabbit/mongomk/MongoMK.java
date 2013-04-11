@@ -189,6 +189,7 @@ public class MongoMK implements MicroKernel {
                         .build();
         
         init();
+        LOG.info("Initialized MongoMK with clusterNodeId: {}", clusterId);
     }
     
     void init() {
@@ -521,8 +522,17 @@ public class MongoMK implements MicroKernel {
         if (value == null) {
             return false;
         }
-        if (value.equals("true") && !branchCommits.containsKey(readRevision)) {
-            return true;
+        if (value.equals("true")) {
+            if (!branchCommits.containsKey(readRevision)) {
+                return true;
+            }
+        } else {
+            // branch commit
+            if (Revision.fromString(value).getClusterId() != clusterId) {
+                // this is an unmerged branch commit from another cluster node,
+                // hence never visible to us
+                return false;
+            }
         }
         return includeRevision(revision, readRevision);
     }
