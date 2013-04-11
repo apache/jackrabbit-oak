@@ -309,7 +309,7 @@ public class RootImpl implements Root {
     @Override
     public boolean hasPendingChanges() {
         checkLive();
-        return !getSecureBase().equals(getRootState());
+        return !getSecureBase().equals(getSecureRootState());
     }
 
     @Nonnull
