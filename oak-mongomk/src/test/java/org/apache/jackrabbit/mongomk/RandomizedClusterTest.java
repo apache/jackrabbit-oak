@@ -176,8 +176,6 @@ int todo2;
     private void log(String msg) {
         msg = opId + ": [" + mkId + "] " + msg + "\n";
         log.append(msg);
-int test;        
-System.out.print(msg);
     }
     
     private void get(String node) {

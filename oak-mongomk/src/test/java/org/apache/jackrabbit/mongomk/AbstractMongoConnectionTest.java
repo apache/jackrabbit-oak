@@ -43,9 +43,9 @@ public class AbstractMongoConnectionTest {
 
     protected static Boolean mongoAvailable;
 
+    private static Exception mongoException;
+    
     protected MongoConnection mongoConnection;
-
-    private static Exception mongoException = null;
 
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {

@@ -26,8 +26,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 /**
- * Tests for {@link MongoMicroKernel#commit(String, String, String, String)}
- * with emphasis on copy operations.
+ * Tests with emphasis on copy operations.
  */
 public class MongoMKCommitCopyTest extends BaseMongoMicroKernelTest {
 
@@ -113,7 +112,9 @@ public class MongoMKCommitCopyTest extends BaseMongoMicroKernelTest {
         try {
             mk.commit("/", "*\"b\" : \"c\"", null, null);
             fail("Exception expected");
-        } catch (Exception expected) {}
+        } catch (Exception expected) {
+            // expected
+        }
     }
 
     @Test
@@ -124,7 +125,9 @@ public class MongoMKCommitCopyTest extends BaseMongoMicroKernelTest {
         try {
             mk.commit("/", "*\"c\" : \"a/b\"", null, null);
             fail("Exception expected");
-        } catch (Exception expected) {}
+        } catch (Exception expected) {
+            // expected
+        }
     }
 
     @Test
@@ -192,7 +195,9 @@ public class MongoMKCommitCopyTest extends BaseMongoMicroKernelTest {
             mk.commit("/", "-\"a/b\"\n" +
                     "*\"a/b\":\"c\"", null, null);
             fail("Expected expected");
-        } catch (Exception expected) {}
+        } catch (Exception expected) {
+            // expected
+        }
     }
 
     @Test

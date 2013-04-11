@@ -58,7 +58,8 @@ public class MongoMKWaitForCommitTest extends BaseMongoMicroKernelTest {
         String rev = mk2.waitForCommit(null, -1);
         long after = System.currentTimeMillis();
         assertEquals(headRev, rev);
-        assertTrue(after - before < 100); // Basically no wait.
+        // Basically no wait.
+        assertTrue(after - before < 100); 
     }
 
     @Test
@@ -120,7 +121,8 @@ public class MongoMKWaitForCommitTest extends BaseMongoMicroKernelTest {
         long after = System.currentTimeMillis();
         assertEquals(headRev, rev);
         assertEquals(headRev, rev);
-        assertTrue(after - before < 10); // Basically no wait.
+        // Basically no wait.
+        assertTrue(after - before < 10); 
     }
 
     private ScheduledFuture<String> scheduleCommit(long delay, final String revisionId) {

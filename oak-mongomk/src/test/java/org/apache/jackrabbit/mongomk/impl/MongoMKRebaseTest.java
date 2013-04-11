@@ -57,7 +57,7 @@ public class MongoMKRebaseTest extends BaseMongoMicroKernelTest {
         assertEquals("{\":childNodeCount\":1,\"a\":{}}", mk.getNodes("/", rebased, 0, 0, -1, null));
         assertEquals("{\":childNodeCount\":1,\"a\":{}}", mk.getNodes("/", null, 0, 0, -1, null));
         assertEquals(trunk, mk.getHeadRevision());
-        assertFalse((trunk.equals(rebased)));
+        assertFalse(trunk.equals(rebased));
     }
 
     @Test
@@ -66,7 +66,7 @@ public class MongoMKRebaseTest extends BaseMongoMicroKernelTest {
         mk.commit("", "+\"/x\":{}", null, null);
         String branch = mk.branch(null);
         branch = mk.commit("", "+\"/x/b\":{}", branch, null);
-        String trunk = mk.commit("", "+\"/x/a\":{}", null, null);
+        mk.commit("", "+\"/x/a\":{}", null, null);
         String rebased = mk.rebase(branch, null);
 
         assertEquals(1, mk.getChildNodeCount("/x", null));
@@ -86,7 +86,7 @@ public class MongoMKRebaseTest extends BaseMongoMicroKernelTest {
         mk.commit("", "+\"/x\":{\"y\":{}}", null, null);
         String branch = mk.branch(null);
         branch = mk.commit("", "-\"/x/y\"", branch, null);
-        String trunk = mk.commit("", "+\"/x/a\":{}", null, null);
+        mk.commit("", "+\"/x/a\":{}", null, null);
         String rebased = mk.rebase(branch, null);
 
         assertEquals(2, mk.getChildNodeCount("/x", null));
@@ -105,7 +105,7 @@ public class MongoMKRebaseTest extends BaseMongoMicroKernelTest {
         mk.commit("", "+\"/x\":{\"y\":{}}", null, null);
         String branch = mk.branch(null);
         branch = mk.commit("", "^\"/x/y/p\":42", branch, null);
-        String trunk = mk.commit("", "^\"/x/y/q\":99", null, null);
+        mk.commit("", "^\"/x/y/q\":99", null, null);
         String rebased = mk.rebase(branch, null);
 
         String branchNode = mk.getNodes("/x/y", branch, 0, 0, -1, null);
@@ -127,7 +127,7 @@ public class MongoMKRebaseTest extends BaseMongoMicroKernelTest {
         mk.commit("", "+\"/x\":{\"y\":{\"p\":42}}", null, null);
         String branch = mk.branch(null);
         branch = mk.commit("", "^\"/x/y/p\":null", branch, null);
-        String trunk = mk.commit("", "^\"/x/y/q\":99", null, null);
+        mk.commit("", "^\"/x/y/q\":99", null, null);
         String rebased = mk.rebase(branch, null);
 
         String branchNode = mk.getNodes("/x/y", branch, 0, 0, -1, null);
@@ -149,7 +149,7 @@ public class MongoMKRebaseTest extends BaseMongoMicroKernelTest {
         mk.commit("", "+\"/x\":{\"y\":{\"p\":42}}", null, null);
         String branch = mk.branch(null);
         branch = mk.commit("", "^\"/x/y/p\":41", branch, null);
-        String trunk = mk.commit("", "^\"/x/y/q\":99", null, null);
+        mk.commit("", "^\"/x/y/q\":99", null, null);
         String rebased = mk.rebase(branch, null);
 
         String branchNode = mk.getNodes("/x/y", branch, 0, 0, -1, null);
@@ -170,8 +170,8 @@ public class MongoMKRebaseTest extends BaseMongoMicroKernelTest {
         mk.commit("", "+\"/x\":{\"y\":{\"p\":42}}", null, null);
         String branch = mk.branch(null);
         branch = mk.commit("", "^\"/x/y/p\":99", branch, null);
-        String trunk = mk.commit("", "^\"/x/y/p\":99", null, null);
-        String rebased = mk.rebase(branch, null);
+        mk.commit("", "^\"/x/y/p\":99", null, null);
+        mk.rebase(branch, null);
 
         String branchNode = mk.getNodes("/x/y", branch, 0, 0, -1, null);
         assertTrue(branchNode.contains("\"p\":99"));
@@ -339,7 +339,7 @@ public class MongoMKRebaseTest extends BaseMongoMicroKernelTest {
     public void mergeRebased() {
         mk.commit("", "+\"/x\":{\"y\":{}}", null, null);
         String branch = mk.branch(null);
-        String trunk = mk.commit("", "^\"/x/p\":42", null, null);
+        mk.commit("", "^\"/x/p\":42", null, null);
         branch = mk.commit("", "^\"/x/q\":43", branch, null);
         branch = mk.rebase(branch, null);
 

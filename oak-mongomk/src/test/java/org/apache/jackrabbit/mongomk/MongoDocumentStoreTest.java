@@ -29,6 +29,8 @@ import java.util.concurrent.TimeUnit;
 import org.apache.jackrabbit.mongomk.DocumentStore.Collection;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBCollection;
@@ -39,6 +41,8 @@ import com.mongodb.WriteResult;
  * Tests the document store.
  */
 public class MongoDocumentStoreTest {
+    
+    private static final Logger LOG = LoggerFactory.getLogger(MongoDocumentStoreTest.class);
 
 //    private static final boolean MONGO_DB = true;
 //    private static final int NODE_COUNT = 2000;
@@ -182,10 +186,7 @@ public class MongoDocumentStoreTest {
     }
 
     private static void log(String s) {
-        if (NODE_COUNT < 100) {
-            return;
-        }
-        System.out.println(s);
+        LOG.info(s);
     }
 
     /**

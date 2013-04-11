@@ -24,7 +24,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 /**
- * Tests for {@code MongoMicroKernel#getHeadRevision()}.
+ * Tests for getHeadRevision().
  */
 public class MongoMKGetNodesTest extends BaseMongoMicroKernelTest {
 
@@ -33,7 +33,9 @@ public class MongoMKGetNodesTest extends BaseMongoMicroKernelTest {
         try {
             mk.getNodes("/", "123", 1, 0, -1, null);
             fail("Exception expected");
-        } catch (Exception expected) {}
+        } catch (Exception expected) {
+            // expected
+        }
     }
 
     @Test
@@ -41,7 +43,9 @@ public class MongoMKGetNodesTest extends BaseMongoMicroKernelTest {
         try {
             mk.getNodes("/", "invalid", 1, 0, -1, null);
             fail("Exception expected");
-        } catch (Exception expected) {}
+        } catch (Exception expected) {
+            // expected
+        }
     }
 
     @Test
@@ -56,7 +60,7 @@ public class MongoMKGetNodesTest extends BaseMongoMicroKernelTest {
         JSONObject a = resolveObjectValue(root, "a");
         assertPropertyValue(a, ":childNodeCount", 2L);
 
-        scenario.delete_A();
+        scenario.deleteA();
         root = parseJSONObject(mk.getNodes("/", null, 1, 0, -1, null));
         assertPropertyValue(root, ":childNodeCount", 0L);
     }

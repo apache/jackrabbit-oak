@@ -26,8 +26,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 /**
- * Tests for {@link MongoMicroKernel#commit(String, String, String, String)}
- * with emphasis on remove node and property operations.
+ * Tests with emphasis on remove node and property operations.
  */
 public class MongoMKCommitRemoveTest extends BaseMongoMicroKernelTest {
 
@@ -49,7 +48,9 @@ public class MongoMKCommitRemoveTest extends BaseMongoMicroKernelTest {
         try {
             mk.commit("/", "-\"a\"", null, null);
             fail("Exception expected");
-        } catch (Exception expected) {}
+        } catch (Exception expected) {
+            // expected
+        }
     }
 
     @Test

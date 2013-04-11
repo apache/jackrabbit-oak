@@ -24,7 +24,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 /**
- * Tests for {@link MongoMicroKernel#getChildNodeCount(String, String)}
+ * Tests getChildNodeCount.
  */
 public class MongoMKGetChildCountTest extends BaseMongoMicroKernelTest {
 
@@ -93,6 +93,8 @@ public class MongoMKGetChildCountTest extends BaseMongoMicroKernelTest {
         try {
             mk.getChildNodeCount("/nonexisting", null);
             fail("Expected: non-existing path exception");
-        } catch (Exception expected){}
+        } catch (Exception expected) {
+            // expected
+        }
     }
 }

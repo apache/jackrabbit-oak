@@ -24,7 +24,7 @@ import org.apache.jackrabbit.mongomk.BaseMongoMicroKernelTest;
 import org.junit.Test;
 
 /**
- * Tests for {@code MongoMicroKernel#nodeExists(String, String)}
+ * Tests for nodeExists.
  */
 public class MongoMKNodeExistsTest extends BaseMongoMicroKernelTest {
 
@@ -39,7 +39,7 @@ public class MongoMKNodeExistsTest extends BaseMongoMicroKernelTest {
         exists = mk.nodeExists("/a/b", revisionId);
         assertTrue(exists);
 
-        revisionId = scenario.delete_A();
+        revisionId = scenario.deleteA();
 
         exists = mk.nodeExists("/a", revisionId);
         assertFalse(exists);
@@ -56,7 +56,7 @@ public class MongoMKNodeExistsTest extends BaseMongoMicroKernelTest {
         boolean exists = mk.nodeExists("/a", null);
         assertTrue(exists);
 
-        scenario.delete_A();
+        scenario.deleteA();
 
         exists = mk.nodeExists("/a", null);
         assertFalse(exists);
@@ -71,6 +71,7 @@ public class MongoMKNodeExistsTest extends BaseMongoMicroKernelTest {
             mk.nodeExists("/a", "123456789");
             fail("Expected: Invalid revision id exception");
         } catch (Exception expected) {
+            // expected
         }
     }
 
@@ -82,7 +83,7 @@ public class MongoMKNodeExistsTest extends BaseMongoMicroKernelTest {
         boolean exists = mk.nodeExists("/a/b", null);
         assertTrue(exists);
 
-        scenario.delete_A();
+        scenario.deleteA();
         exists = mk.nodeExists("/a/b", null);
         assertFalse(exists);
     }
@@ -111,7 +112,7 @@ public class MongoMKNodeExistsTest extends BaseMongoMicroKernelTest {
     public void existsInOldRevNotInNewRev() throws Exception {
         SimpleNodeScenario scenario = new SimpleNodeScenario(mk);
         String rev1 = scenario.create();
-        String rev2 = scenario.delete_A();
+        String rev2 = scenario.deleteA();
 
         boolean exists = mk.nodeExists("/a", rev1);
         assertTrue(exists);
@@ -125,7 +126,7 @@ public class MongoMKNodeExistsTest extends BaseMongoMicroKernelTest {
         SimpleNodeScenario scenario = new SimpleNodeScenario(mk);
         scenario.create();
 
-        scenario.delete_B();
+        scenario.deleteB();
         boolean exists = mk.nodeExists("/a/b", null);
         assertFalse(exists);
 
