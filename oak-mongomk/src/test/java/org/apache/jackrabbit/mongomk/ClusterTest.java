@@ -23,7 +23,6 @@ import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.blobs.MemoryBlobStore;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.mongodb.DB;
@@ -64,7 +63,6 @@ public class ClusterTest {
     }    
     
     @Test
-    @Ignore
     public void clusterBranchInVisibility() {
         MongoMK mk1 = createMK(0);
         mk1.commit("/", "+\"regular\": {}", null, null);

@@ -1131,7 +1131,7 @@ public class MongoMK implements MicroKernel {
         Revision baseRevId = Revision.fromString(revisionId);
         while (baseRevId != null) {
             branchRevisions.add(baseRevId);
-            op.set(UpdateOp.REVISIONS + "." + baseRevId, "true");
+            op.setMapEntry(UpdateOp.REVISIONS, baseRevId.toString(), "true");
             baseRevId = branchCommits.get(baseRevId);
         }
         store.createOrUpdate(DocumentStore.Collection.NODES, op);
