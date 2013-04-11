@@ -18,21 +18,26 @@
  */
 package org.apache.jackrabbit.oak.core;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+
 import javax.annotation.Nonnull;
-import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.security.auth.Subject;
 
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.BlobFactory;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -55,19 +60,11 @@ import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
-import org.apache.jackrabbit.oak.spi.state.AbstractRebaseDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
-import org.apache.jackrabbit.oak.util.TODO;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 
 public class RootImpl implements Root {
 
@@ -101,6 +98,9 @@ public class RootImpl implements Root {
      */
     private NodeStoreBranch branch;
 
+    /**
+     * Secure view of the head of the branch underlying this root.
+     */
     private NodeState secureHead;
 
     /** Sentinel for the next move operation to take place on the this root */
@@ -321,7 +321,7 @@ public class RootImpl implements Root {
     @Override
     public boolean hasPendingChanges() {
         checkLive();
-        return !getSecureBase().equals(getRootState());
+        return !getSecureBase().equals(getSecureRootState());
     }
 
     @Nonnull
@@ -416,6 +416,29 @@ public class RootImpl implements Root {
 
     //------------------------------------------------------------< private >---
 
+    /**
+     * Root node state of the tree including all transient changes at the time of
+     * this call.
+     *
+     * @return root node state
+     */
+    @Nonnull
+    private NodeState getRootState() {
+        NodeBuilder builder = branch.getHead().builder();
+        return PurgeRebaseDiff.rebase(secureHead, getSecureRootState(), builder);
+    }
+
+    /**
+     * Secure view of the root node state of the tree including all transient changes
+     * at the time of this call.
+     *
+     * @return secure root node state
+     */
+    @Nonnull
+    private NodeState getSecureRootState() {
+        return rootTree.getNodeState();
+    }
+
     @Nonnull
     private PermissionProvider getPermissionProvider() {
         if (permissionProvider == null) {
@@ -428,11 +451,7 @@ public class RootImpl implements Root {
      * Purge all pending changes to the underlying {@link NodeStoreBranch}.
      */
     private void purgePendingChanges() {
-        NodeState before = secureHead;
-        NodeState after = getRootState();
-        NodeBuilder builder = branch.getHead().builder();
-        after.compareAgainstBaseState(before, new PurgeRebaseDiff(builder));
-        branch.setRoot(builder.getNodeState());
+        branch.setRoot(getRootState());
         reset();
     }
 
@@ -447,85 +466,12 @@ public class RootImpl implements Root {
 
     @Nonnull
     private PermissionProvider createPermissionProvider() {
-        return  securityProvider.getAccessControlConfiguration().getPermissionProvider(this, subject.getPrincipals());
+        return securityProvider.getAccessControlConfiguration().getPermissionProvider(this, subject.getPrincipals());
     }
 
     @Nonnull
     private TreeTypeProviderImpl getTypeProvider() {
         return new TreeTypeProviderImpl(securityProvider.getAccessControlConfiguration().getContext());
-    }
-
-    @Nonnull
-    private NodeState getRootState() {
-        return rootTree.getNodeState();
-    }
-
-    //------------------------------------------------------------< PurgeRebaseDiff >---
-
-    private static class PurgeRebaseDiff extends AbstractRebaseDiff {
-        public PurgeRebaseDiff(NodeBuilder builder) {
-            super(builder);
-        }
-
-        @Override
-        protected PurgeRebaseDiff createDiff(NodeBuilder builder, String name) {
-            return new PurgeRebaseDiff(builder.child(name));
-        }
-
-        @Override
-        protected void addExistingProperty(NodeBuilder builder, PropertyState after) {
-            conflict();
-        }
-
-        @Override
-        protected void changeDeletedProperty(NodeBuilder builder, PropertyState after) {
-            conflict();
-        }
-
-        @Override
-        protected void changeChangedProperty(NodeBuilder builder, PropertyState before, PropertyState after) {
-            conflict();
-        }
-
-        @Override
-        protected void deleteDeletedProperty(NodeBuilder builder, PropertyState before) {
-            conflict();
-        }
-
-        @Override
-        protected void deleteChangedProperty(NodeBuilder builder, PropertyState before) {
-            conflict();
-        }
-
-        @Override
-        protected void addExistingNode(NodeBuilder builder, String name, NodeState after) {
-            conflict();
-        }
-
-        @Override
-        protected void changeDeletedNode(NodeBuilder builder, String name, NodeState after) {
-            conflict();
-        }
-
-        @Override
-        protected void deleteDeletedNode(NodeBuilder builder, String name, NodeState before) {
-            conflict();
-        }
-
-        @Override
-        protected void deleteChangedNode(NodeBuilder builder, String name, NodeState before) {
-            conflict();
-        }
-
-        private static void conflict() {
-            // FIXME correctly handle conflict cases
-            try {
-                TODO.unimplemented().doNothing();
-            }
-            catch (UnsupportedRepositoryOperationException e) {
-                throw new IllegalStateException(e);
-            }
-        }
     }
 
     //---------------------------------------------------------< MoveRecord >---
