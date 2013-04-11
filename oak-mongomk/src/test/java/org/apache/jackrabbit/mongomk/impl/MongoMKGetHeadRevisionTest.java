@@ -35,7 +35,7 @@ public class MongoMKGetHeadRevisionTest extends BaseMongoMicroKernelTest {
         String rev2 = mk.getHeadRevision();
         assertEquals(rev1, rev2);
 
-        String rev3 = scenario.delete_A();
+        String rev3 = scenario.deleteA();
         assertFalse(rev3.equals(rev2));
     }
 }

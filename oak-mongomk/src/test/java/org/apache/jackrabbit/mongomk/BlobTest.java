@@ -22,6 +22,8 @@ import java.util.ArrayList;
 import java.util.Random;
 
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.mongodb.DB;
 
@@ -29,6 +31,8 @@ import com.mongodb.DB;
  * Tests the blob store.
  */
 public class BlobTest {
+    
+    private static final Logger LOG = LoggerFactory.getLogger(RandomizedClusterTest.class);
 
 //     private static final boolean MONGO_DB = true;
 //     private static final long TOTAL_SIZE = 1 * 1024 * 1024 * 1024;
@@ -68,10 +72,7 @@ public class BlobTest {
     }
     
     private static void log(String s) {
-        if (TOTAL_SIZE < 10 * 1024 * 1024) {
-            return;
-        }
-        System.out.println(s);
+        LOG.info(s);
     }
     
 }

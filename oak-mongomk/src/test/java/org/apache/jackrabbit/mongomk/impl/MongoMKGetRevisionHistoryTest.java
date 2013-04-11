@@ -24,7 +24,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 /**
- * Tests for {@link MongoMicroKernel#getRevisionHistory(long, int, String)}
+ * Tests for getRevisionHistory
  */
 public class MongoMKGetRevisionHistoryTest extends BaseMongoMicroKernelTest {
 
@@ -85,7 +85,8 @@ public class MongoMKGetRevisionHistoryTest extends BaseMongoMicroKernelTest {
     @Test
     @Ignore    
     public void since() throws Exception {
-        Thread.sleep(100); // To make sure there's a little delay since the initial commit.
+        // To make sure there's a little delay since the initial commit.
+        Thread.sleep(100); 
         long since1 = System.currentTimeMillis();
         int count1 = 6;
         for (int i = 0; i < count1; i++) {

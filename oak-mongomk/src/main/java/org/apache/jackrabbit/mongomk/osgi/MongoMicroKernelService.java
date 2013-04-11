@@ -38,7 +38,9 @@ import org.slf4j.LoggerFactory;
 
 import com.mongodb.DB;
 
-
+/**
+ * The OSGi service to start/stop a MongoMK instance.
+ */
 @Component(metatype = true,
         label = "%oak.mongomk.label",
         description = "%oak.mongomk.description",

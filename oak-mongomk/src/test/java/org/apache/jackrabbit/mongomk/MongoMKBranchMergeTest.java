@@ -296,7 +296,9 @@ public class MongoMKBranchMergeTest extends BaseMongoMKTest {
         try {
             mk.merge(branchRev, "");
             fail("Expected: Concurrent modification exception");
-        } catch (Exception expected){}
+        } catch (Exception expected) {
+            // expected
+        }
     }
 
     @Test
@@ -309,7 +311,9 @@ public class MongoMKBranchMergeTest extends BaseMongoMKTest {
         try {
             branchRev = addNodes(branchRev, "/root");
             fail("Should not be able to add the same root node twice");
-        } catch (Exception expected) {}
+        } catch (Exception expected) {
+            // expected
+        }
     }
 
     @Test
@@ -325,7 +329,9 @@ public class MongoMKBranchMergeTest extends BaseMongoMKTest {
         try {
             branchRev = addNodes(branchRev, "/root/child1");
             fail("Should not be able to add the same root node twice");
-        } catch (Exception expected) {}
+        } catch (Exception expected) {
+            // expected
+        }
     }
 
     @Test
@@ -350,7 +356,9 @@ public class MongoMKBranchMergeTest extends BaseMongoMKTest {
         try {
             mk.merge(rev, "");
             fail("Exception expected");
-        } catch (Exception expected) {}
+        } catch (Exception expected) {
+            // expected
+        }
     }
 
     @Test

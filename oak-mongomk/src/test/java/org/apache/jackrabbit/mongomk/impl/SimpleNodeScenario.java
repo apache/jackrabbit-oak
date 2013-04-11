@@ -18,6 +18,9 @@ package org.apache.jackrabbit.mongomk.impl;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 
+/**
+ * A class that can perform simple operations.
+ */
 public class SimpleNodeScenario {
 
     private final MicroKernel mk;
@@ -41,22 +44,12 @@ public class SimpleNodeScenario {
         return revisionId;
     }
 
-    public String delete_A() throws Exception {
+    public String deleteA() throws Exception {
         return mk.commit("/", "-\"a\"", null, "Commit with deleted /a");
     }
 
-    public String delete_B() throws Exception {
+    public String deleteB() throws Exception {
         return mk.commit("/a", "-\"b\"", null, "Commit with deleted /a/b");
     }
-
-    public String update_A_and_add_D_and_E() throws Exception {
-        StringBuilder diff = new StringBuilder();
-        diff.append("+\"a/d\" : {}");
-        diff.append("+\"a/b/e\" : {}");
-        diff.append("^\"a/double\" : 0.123");
-        diff.append("^\"a/d/int\" :  2");
-        diff.append("^\"a/b/e/array\" : [ 123, null, 123.456, \"for:bar\", true ]");
-        return mk.commit("/", diff.toString(), null,
-                "Commit with updated /a and added /a/d and /a/b/e");
-    }
+    
 }

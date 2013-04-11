@@ -30,8 +30,7 @@ import com.jamonapi.Monitor;
 import com.jamonapi.MonitorFactory;
 
 /**
- * Tests for {@link MongoMicroKernel#commit(String, String, String, String)}
- * with emphasis on add node and property operations.
+ * Tests for add node and property operations.
  */
 public class MongoMKCommitAddTest extends BaseMongoMicroKernelTest {
 
@@ -52,20 +51,20 @@ public class MongoMKCommitAddTest extends BaseMongoMicroKernelTest {
     public void addNodeWithChildren() throws Exception {
         mk.commit("/", "+\"a\" : { \"b\": {}, \"c\": {}, \"d\" : {} }", null, null);
 
-        assertTrue(mk.nodeExists("/a",null));
-        assertTrue(mk.nodeExists("/a/b",null));
-        assertTrue(mk.nodeExists("/a/c",null));
-        assertTrue(mk.nodeExists("/a/d",null));
+        assertTrue(mk.nodeExists("/a", null));
+        assertTrue(mk.nodeExists("/a/b", null));
+        assertTrue(mk.nodeExists("/a/c", null));
+        assertTrue(mk.nodeExists("/a/d", null));
     }
 
     @Test
     public void addNodeWithNestedChildren() throws Exception {
         mk.commit("/", "+\"a\" : { \"b\": { \"c\" : { \"d\" : {} } } }", null, null);
 
-        assertTrue(mk.nodeExists("/a",null));
-        assertTrue(mk.nodeExists("/a/b",null));
-        assertTrue(mk.nodeExists("/a/b/c",null));
-        assertTrue(mk.nodeExists("/a/b/c/d",null));
+        assertTrue(mk.nodeExists("/a", null));
+        assertTrue(mk.nodeExists("/a/b", null));
+        assertTrue(mk.nodeExists("/a/b/c", null));
+        assertTrue(mk.nodeExists("/a/b/c/d", null));
     }
 
     @Test
@@ -75,9 +74,9 @@ public class MongoMKCommitAddTest extends BaseMongoMicroKernelTest {
         mk.commit("/a/b", "+\"c\" : {}", null, null);
         mk.commit("/a", "+\"d\" : {}", null, null);
 
-        assertTrue(mk.nodeExists("/a",null));
-        assertTrue(mk.nodeExists("/a/b",null));
-        assertTrue(mk.nodeExists("/a/b/c",null));
+        assertTrue(mk.nodeExists("/a", null));
+        assertTrue(mk.nodeExists("/a/b", null));
+        assertTrue(mk.nodeExists("/a/b/c", null));
         assertTrue(mk.nodeExists("/a/d", null));
     }
 
@@ -111,7 +110,9 @@ public class MongoMKCommitAddTest extends BaseMongoMicroKernelTest {
         try {
             mk.commit("/", "+\"a\" : {}", null, null);
             fail("Exception expected");
-        } catch (Exception expected) {}
+        } catch (Exception expected) {
+            // expected
+        }
     }
 
     @Test
@@ -175,7 +176,9 @@ public class MongoMKCommitAddTest extends BaseMongoMicroKernelTest {
         try {
             mk.commit("/", "^\"a/key1\" : \"value1\"", null, null);
             fail("Exception expected");
-        } catch (Exception expected) {}
+        } catch (Exception expected) {
+            // expected
+        }
     }
 
     @Test
@@ -203,12 +206,18 @@ public class MongoMKCommitAddTest extends BaseMongoMicroKernelTest {
         for (int i = 0; i < 1000; i++) {
             commitMonitor.start();
             String diff = "+\"a"+i+"\" : {} +\"b"+i+"\" : {} +\"c"+i+"\" : {}";
-            if (debug) System.out.println("Committing: " + diff);
+            if (debug) {
+                System.out.println("Committing: " + diff);
+            }
             mk.commit("/", diff, null, null);
             commitMonitor.stop();
-            if (debug) System.out.println("Committed in " + commitMonitor.getLastValue() + "ms");
+            if (debug) {
+                System.out.println("Committed in " + commitMonitor.getLastValue() + "ms");
+            }
         }
-        if (debug) System.out.println("Final Result:" + commitMonitor);
+        if (debug) {
+            System.out.println("Final Result:" + commitMonitor);
+        }
     }
 
     @Test

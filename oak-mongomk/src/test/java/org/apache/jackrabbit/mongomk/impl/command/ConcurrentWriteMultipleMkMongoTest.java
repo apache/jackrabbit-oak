@@ -26,8 +26,6 @@ import org.apache.jackrabbit.mongomk.MongoMK;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import com.mongodb.DB;
-
 /**
  * Tests for multiple MongoMKs writing against the same DB in separate trees.
  */
@@ -39,7 +37,8 @@ public class ConcurrentWriteMultipleMkMongoTest extends BaseMongoMicroKernelTest
     }
 
     @Test
-    @Ignore // Ignored only because it takes a while to complete.
+    // Ignored only because it takes a while to complete.
+    @Ignore 
     public void testLarge() throws Exception {
         doTest(10000);
     }
@@ -54,8 +53,6 @@ public class ConcurrentWriteMultipleMkMongoTest extends BaseMongoMicroKernelTest
         for (int i = 0; i < numberOfMks; i++) {
             String diff = buildPyramidDiff("/", 0, numberOfChildren,
                     numberOfNodes, prefixes[i], new StringBuilder()).toString();
-            //System.out.println(diff);
-            DB db = mongoConnection.getDB();
             MongoMK mk = new MongoMK.Builder().open();
             GenericWriteTask task = new GenericWriteTask("mk-" + i, mk, diff, 10);
             executor.execute(task);
@@ -68,8 +65,9 @@ public class ConcurrentWriteMultipleMkMongoTest extends BaseMongoMicroKernelTest
             int index, int numberOfChildren, long nodesNumber,
             String nodePrefixName, StringBuilder diff) {
         if (numberOfChildren == 0) {
-            for (long i = 0; i < nodesNumber; i++)
+            for (long i = 0; i < nodesNumber; i++) {
                 diff.append(addNodeToDiff(startingPoint, nodePrefixName + i));
+            }
             return diff;
         }
 
@@ -79,8 +77,9 @@ public class ConcurrentWriteMultipleMkMongoTest extends BaseMongoMicroKernelTest
 
         diff.append(addNodeToDiff(startingPoint, nodePrefixName + index));
         for (int i = 1; i <= numberOfChildren; i++) {
-            if (!startingPoint.endsWith("/"))
+            if (!startingPoint.endsWith("/")) {
                 startingPoint = startingPoint + "/";
+            }
             buildPyramidDiff(startingPoint + nodePrefixName + index, index
                     * numberOfChildren + i, numberOfChildren, nodesNumber,
                     nodePrefixName, diff);
@@ -88,13 +87,16 @@ public class ConcurrentWriteMultipleMkMongoTest extends BaseMongoMicroKernelTest
         return diff;
     }
 
-    private String addNodeToDiff(String startingPoint, String nodeName) {
+    private static String addNodeToDiff(String startingPoint, String nodeName) {
         if (!startingPoint.endsWith("/")) {
             startingPoint = startingPoint + "/";
         }
-        return ("+\"" + startingPoint + nodeName + "\" : {} \n");
+        return "+\"" + startingPoint + nodeName + "\" : {} \n";
     }
 
+    /**
+     * A simple write task.
+     */
     private static class GenericWriteTask implements Runnable {
 
         private String id;
@@ -108,6 +110,10 @@ public class ConcurrentWriteMultipleMkMongoTest extends BaseMongoMicroKernelTest
             this.mk = mk;
             this.diff = diff;
             this.nodesPerCommit = nodesPerCommit;
+        }
+        
+        public String toString() {
+            return id;
         }
 
         @Override
@@ -125,15 +131,16 @@ public class ConcurrentWriteMultipleMkMongoTest extends BaseMongoMicroKernelTest
                 i++;
                 if (i == nodesPerCommit) {
                     //System.out.println("[" + id + "] Committing: " + currentCommit.toString());
-                    String rev = mk.commit("", currentCommit.toString(), null, null);
+                    mk.commit("", currentCommit.toString(), null, null);
                     //System.out.println("[" + id + "] Committed-" + rev + ":" + currentCommit.toString());
                     currentCommit.setLength(0);
                     i = 0;
                 }
             }
             // Commit remaining nodes
-            if (currentCommit.length() > 0)
+            if (currentCommit.length() > 0) {
                 mk.commit("", currentCommit.toString(), null, null);
+            }
         }
     }
 }

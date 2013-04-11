@@ -30,7 +30,7 @@ import static org.junit.Assert.assertTrue;
 public class MongoMKDiffTest extends BaseMongoMKTest {
 
     @Test
-    public void oak_596() {
+    public void oak596() {
         String rev1 = mk.commit("/", "+\"node1\":{\"node2\":{\"prop1\":\"val1\",\"prop2\":\"val2\"}}", null, null);
         String rev2 = mk.commit("/", "^\"node1/node2/prop1\":\"val1 new\" ^\"node1/node2/prop2\":null", null, null);
 
@@ -94,7 +94,8 @@ public class MongoMKDiffTest extends BaseMongoMKTest {
     @Ignore("New MongoMK only supports depth 0")
     public void removePath() {
         // Add level1 & level1/level2
-        String rev0 = mk.commit("/","+\"level1\":{}" +
+        String rev0 = mk.commit("/", 
+                "+\"level1\":{}" +
                 "+\"level1/level2\":{}", null, null);
         assertTrue(mk.nodeExists("/level1", null));
         assertTrue(mk.nodeExists("/level1/level2", null));

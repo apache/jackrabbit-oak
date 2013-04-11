@@ -49,7 +49,9 @@ public class MongoMKCommitMoveTest extends BaseMongoMKTest {
         try {
             mk.commit("/", ">\"b\" : \"a\"", null, null);
             fail("Exception expected");
-        } catch (Exception expected) {}
+        } catch (Exception expected) {
+            // expected
+        }
     }
 
     @Test
@@ -133,7 +135,9 @@ public class MongoMKCommitMoveTest extends BaseMongoMKTest {
         try {
             mk.commit("/", ">\"b\" : \"c\"", null, null);
             fail("Exception expected");
-        } catch (Exception expected) {}
+        } catch (Exception expected) {
+            // expected
+        }
     }
 
     @Test
@@ -144,7 +148,9 @@ public class MongoMKCommitMoveTest extends BaseMongoMKTest {
         try {
             mk.commit("/", ">\"c\" : \"a/b\"", null, null);
             fail("Exception expected");
-        } catch (Exception expected) {}
+        } catch (Exception expected) {
+            // expected
+        }
     }
 
     @Test
@@ -215,7 +221,9 @@ public class MongoMKCommitMoveTest extends BaseMongoMKTest {
             mk.commit("/", "-\"a/b\"\n"
                          + ">\"a/b\":\"c\"", null, null);
             fail("Expected expected");
-        } catch (Exception expected) {}
+        } catch (Exception expected) {
+            // expected
+        }
     }
 
     @Test
