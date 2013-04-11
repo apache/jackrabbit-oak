@@ -226,7 +226,7 @@ public class MongoDocumentStore implements DocumentStore {
                     incUpdates.append(k, op.value);
                     break;
                 }
-                case ADD_MAP_ENTRY: {
+                case SET_MAP_ENTRY: {
                     setUpdates.append(k, op.value);
                     break;
                 }
@@ -234,7 +234,7 @@ public class MongoDocumentStore implements DocumentStore {
                     unsetUpdates.append(k, "1");
                     break;
                 }
-                case SET_MAP_ENTRY: {
+                case SET_MAP: {
                     String[] kv = k.split("\\.");
                     BasicDBObject sub = new BasicDBObject();
                     sub.put(kv[1], op.value);
@@ -309,8 +309,8 @@ public class MongoDocumentStore implements DocumentStore {
                         inserts[i].put(k, op.value);
                         break;
                     }
-                    case SET_MAP_ENTRY:
-                    case ADD_MAP_ENTRY: {
+                    case SET_MAP:
+                    case SET_MAP_ENTRY: {
                         String[] kv = k.split("\\.");
                         DBObject value = new BasicDBObject(kv[1], op.value);
                         inserts[i].put(kv[0], value);

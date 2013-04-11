@@ -27,6 +27,7 @@ import java.util.Map;
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mongomk.DocumentStore.Collection;
 import org.apache.jackrabbit.mongomk.Node.Children;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.Lists;
@@ -86,7 +87,7 @@ public class SimpleTest {
         n.setProperty("name", "Hello");
         UpdateOp op = n.asOperation(true);
         // mark as commit root
-        op.addMapEntry(UpdateOp.REVISIONS + "." + rev, "true");
+        op.setMapEntry(UpdateOp.REVISIONS, rev.toString(), "true");
         DocumentStore s = mk.getDocumentStore();
         assertTrue(s.create(Collection.NODES, Lists.newArrayList(op)));
         Node n2 = mk.getNode("/test", rev);
@@ -268,10 +269,35 @@ public class SimpleTest {
     }
 
     @Test
-    public void testDeletion() {
+    public void delete() {
         MongoMK mk = createMK();
 
         mk.commit("/", "+\"testDel\":{\"name\": \"Hello\"}", null, null);
+        mk.commit("/testDel", "+\"a\":{\"name\": \"World\"}", null, null);
+        mk.commit("/testDel", "+\"b\":{\"name\": \"!\"}", null, null);
+        String r1 = mk.commit("/testDel", "+\"c\":{\"name\": \"!\"}", null, null);
+
+        Children c = mk.getChildren("/testDel", Revision.fromString(r1),
+                Integer.MAX_VALUE);
+        assertEquals(3, c.children.size());
+
+        String r2 = mk.commit("/testDel", "-\"c\"", null, null);
+        c = mk.getChildren("/testDel", Revision.fromString(r2),
+                Integer.MAX_VALUE);
+        assertEquals(2, c.children.size());
+
+        String r3 = mk.commit("/", "-\"testDel\"", null, null);
+        Node n = mk.getNode("/testDel", Revision.fromString(r3));
+        assertNull(n);
+    }
+    
+    @Test
+    @Ignore
+    // OAK-771 (WIP)
+    public void nodeAndPropertyNames() {
+        MongoMK mk = createMK();
+
+        mk.commit("/", "+\"0\":{\"name\": \"Hello\"}", null, null);
         mk.commit("/testDel", "+\"a\":{\"name\": \"World\"}", null, null);
         mk.commit("/testDel", "+\"b\":{\"name\": \"!\"}", null, null);
         String r1 = mk.commit("/testDel", "+\"c\":{\"name\": \"!\"}", null, null);
