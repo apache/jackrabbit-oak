@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mongomk.prototype;
+package org.apache.jackrabbit.mongomk;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,7 +26,7 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.mk.api.MicroKernelException;
-import org.apache.jackrabbit.mongomk.prototype.UpdateOp.Operation;
+import org.apache.jackrabbit.mongomk.UpdateOp.Operation;
 
 /**
  * Emulates a MongoDB store (possibly consisting of multiple shards and

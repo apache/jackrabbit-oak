@@ -23,7 +23,7 @@ import junit.framework.Assert;
 
 import org.apache.jackrabbit.mk.util.MicroKernelInputStream;
 import org.apache.jackrabbit.mongomk.AbstractMongoConnectionTest;
-import org.apache.jackrabbit.mongomk.prototype.MongoMK;
+import org.apache.jackrabbit.mongomk.MongoMK;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -94,7 +94,7 @@ public class MongoMKReadTest extends AbstractMongoConnectionTest {
     private void createAndWriteBlob(int blobLength) throws Exception {
         blob = new byte[blobLength];
         for (int i = 0; i < blob.length; i++) {
-            blob[i] = (byte)1;
+            blob[i] = (byte) 1;
         }
         blobId = mk.write(new ByteArrayInputStream(blob));
     }

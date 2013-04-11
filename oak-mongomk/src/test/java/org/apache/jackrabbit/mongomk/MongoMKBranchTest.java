@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mongomk.prototype;
+package org.apache.jackrabbit.mongomk;
 
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;

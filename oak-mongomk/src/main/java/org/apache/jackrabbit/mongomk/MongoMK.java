@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mongomk.prototype;
+package org.apache.jackrabbit.mongomk;
 
 import java.io.InputStream;
 import java.lang.ref.WeakReference;
@@ -44,9 +44,9 @@ import org.apache.jackrabbit.mk.json.JsopReader;
 import org.apache.jackrabbit.mk.json.JsopStream;
 import org.apache.jackrabbit.mk.json.JsopTokenizer;
 import org.apache.jackrabbit.mk.json.JsopWriter;
+import org.apache.jackrabbit.mongomk.DocumentStore.Collection;
+import org.apache.jackrabbit.mongomk.Node.Children;
 import org.apache.jackrabbit.mongomk.blob.MongoBlobStore;
-import org.apache.jackrabbit.mongomk.prototype.DocumentStore.Collection;
-import org.apache.jackrabbit.mongomk.prototype.Node.Children;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -22,7 +22,7 @@ import static org.junit.Assert.fail;
 import java.io.ByteArrayInputStream;
 
 import org.apache.jackrabbit.mongomk.AbstractMongoConnectionTest;
-import org.apache.jackrabbit.mongomk.prototype.MongoMK;
+import org.apache.jackrabbit.mongomk.MongoMK;
 import org.junit.Before;
 import org.junit.Test;
 

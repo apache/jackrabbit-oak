@@ -35,6 +35,7 @@ public class MongoMKGetLengthGridFSTest extends BaseMongoMicroKernelTest {
             mk.getLength("nonExistentBlob");
             fail("Exception expected");
         } catch (Exception expected) {
+            // expected
         }
     }
 
@@ -64,10 +65,10 @@ public class MongoMKGetLengthGridFSTest extends BaseMongoMicroKernelTest {
         return mk.write(new ByteArrayInputStream(blob));
     }
 
-    private byte[] createBlob(int blobLength) {
+    private static byte[] createBlob(int blobLength) {
         byte[] blob = new byte[blobLength];
         for (int i = 0; i < blob.length; i++) {
-            blob[i] = (byte)i;
+            blob[i] = (byte) i;
         }
         return blob;
     }

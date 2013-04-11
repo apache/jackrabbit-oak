@@ -14,13 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mongomk.prototype;
+package org.apache.jackrabbit.mongomk;
+
+import static org.junit.Assert.fail;
 
 import java.util.LinkedList;
 import java.util.concurrent.Callable;
 
 import org.junit.Test;
-import static org.junit.Assert.fail;
 
 /**
  * Simple test to measure how much memory a certain object uses.

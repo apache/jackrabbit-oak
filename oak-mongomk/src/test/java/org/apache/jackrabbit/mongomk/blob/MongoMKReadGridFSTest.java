@@ -78,7 +78,7 @@ public class MongoMKReadGridFSTest extends BaseMongoMicroKernelTest {
     private void createAndWriteBlob(int blobLength) throws Exception {
         blob = new byte[blobLength];
         for (int i = 0; i < blob.length; i++) {
-            blob[i] = (byte)i;
+            blob[i] = (byte) i;
         }
         blobId = mk.write(new ByteArrayInputStream(blob));
     }
