@@ -24,9 +24,9 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeStoreBranch;
+import org.apache.jackrabbit.oak.spi.state.ConflictAnnotatingRebaseDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.RebaseDiff;
 
 class SegmentNodeStoreBranch extends AbstractNodeStoreBranch {
 
@@ -72,7 +72,7 @@ class SegmentNodeStoreBranch extends AbstractNodeStoreBranch {
         if (!baseId.equals(newBaseId)) {
             NodeBuilder builder =
                     new SegmentNodeState(store, newBaseId).builder();
-            getHead().compareAgainstBaseState(getBase(), new RebaseDiff(builder));
+            getHead().compareAgainstBaseState(getBase(), new ConflictAnnotatingRebaseDiff(builder));
             this.baseId = newBaseId;
             this.rootId = writer.writeNode(builder.getNodeState()).getRecordId();
             writer.flush();

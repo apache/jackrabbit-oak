@@ -16,6 +16,17 @@
  */
 package org.apache.jackrabbit.oak.plugins.commit;
 
+import static org.apache.jackrabbit.oak.spi.state.ConflictAnnotatingRebaseDiff.ADD_EXISTING_NODE;
+import static org.apache.jackrabbit.oak.spi.state.ConflictAnnotatingRebaseDiff.ADD_EXISTING_PROPERTY;
+import static org.apache.jackrabbit.oak.spi.state.ConflictAnnotatingRebaseDiff.CHANGE_CHANGED_PROPERTY;
+import static org.apache.jackrabbit.oak.spi.state.ConflictAnnotatingRebaseDiff.CHANGE_DELETED_NODE;
+import static org.apache.jackrabbit.oak.spi.state.ConflictAnnotatingRebaseDiff.CHANGE_DELETED_PROPERTY;
+import static org.apache.jackrabbit.oak.spi.state.ConflictAnnotatingRebaseDiff.CONFLICT;
+import static org.apache.jackrabbit.oak.spi.state.ConflictAnnotatingRebaseDiff.DELETE_CHANGED_NODE;
+import static org.apache.jackrabbit.oak.spi.state.ConflictAnnotatingRebaseDiff.DELETE_CHANGED_PROPERTY;
+import static org.apache.jackrabbit.oak.spi.state.ConflictAnnotatingRebaseDiff.DELETE_DELETED_NODE;
+import static org.apache.jackrabbit.oak.spi.state.ConflictAnnotatingRebaseDiff.DELETE_DELETED_PROPERTY;
+
 import java.util.Map;
 
 import com.google.common.collect.ImmutableMap;
@@ -32,17 +43,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.PropertyBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.apache.jackrabbit.oak.spi.state.RebaseDiff.ADD_EXISTING_NODE;
-import static org.apache.jackrabbit.oak.spi.state.RebaseDiff.ADD_EXISTING_PROPERTY;
-import static org.apache.jackrabbit.oak.spi.state.RebaseDiff.CHANGE_CHANGED_PROPERTY;
-import static org.apache.jackrabbit.oak.spi.state.RebaseDiff.CHANGE_DELETED_NODE;
-import static org.apache.jackrabbit.oak.spi.state.RebaseDiff.CHANGE_DELETED_PROPERTY;
-import static org.apache.jackrabbit.oak.spi.state.RebaseDiff.CONFLICT;
-import static org.apache.jackrabbit.oak.spi.state.RebaseDiff.DELETE_CHANGED_NODE;
-import static org.apache.jackrabbit.oak.spi.state.RebaseDiff.DELETE_CHANGED_PROPERTY;
-import static org.apache.jackrabbit.oak.spi.state.RebaseDiff.DELETE_DELETED_NODE;
-import static org.apache.jackrabbit.oak.spi.state.RebaseDiff.DELETE_DELETED_PROPERTY;
 
 /**
  * MergingNodeStateDiff... TODO
