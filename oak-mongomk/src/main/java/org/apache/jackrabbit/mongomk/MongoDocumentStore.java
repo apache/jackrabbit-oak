@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mongomk.prototype;
+package org.apache.jackrabbit.mongomk;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -27,7 +27,7 @@ import java.util.concurrent.ExecutionException;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.mk.api.MicroKernelException;
-import org.apache.jackrabbit.mongomk.prototype.UpdateOp.Operation;
+import org.apache.jackrabbit.mongomk.UpdateOp.Operation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mongomk.prototype;
+package org.apache.jackrabbit.mongomk;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -25,8 +25,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 /**
- * Tests for {@link MongoMicroKernel#commit(String, String, String, String)}
- * with emphasis on move operations.
+ * Tests for commit with emphasis on move operations.
  */
 @Ignore
 public class MongoMKCommitMoveTest extends BaseMongoMKTest {

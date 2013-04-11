@@ -23,7 +23,6 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.mongomk.prototype.MongoMK;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -174,7 +173,7 @@ public class BaseMongoMicroKernelTest extends AbstractMongoConnectionTest {
         throw new AssertionError("failed to resolve JSONObject value at " + relPath + ": " + val);
     }
 
-    private Object resolveValue(JSONObject obj, String relPath) {
+    private static Object resolveValue(JSONObject obj, String relPath) {
         String[] names = relPath.split("/");
         Object val = obj;
         for (String name : names) {

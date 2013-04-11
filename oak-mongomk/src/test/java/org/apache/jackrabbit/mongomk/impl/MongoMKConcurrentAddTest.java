@@ -27,7 +27,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mongomk.AbstractMongoConnectionTest;
-import org.apache.jackrabbit.mongomk.prototype.MongoMK;
+import org.apache.jackrabbit.mongomk.MongoMK;
 import org.apache.jackrabbit.mongomk.util.MongoConnection;
 import org.junit.After;
 import org.junit.Test;

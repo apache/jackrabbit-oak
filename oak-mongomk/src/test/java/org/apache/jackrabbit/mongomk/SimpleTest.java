@@ -14,9 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mongomk.prototype;
-
-import java.util.Map;
+package org.apache.jackrabbit.mongomk;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -24,9 +22,11 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.util.Map;
+
 import org.apache.jackrabbit.mk.api.MicroKernelException;
-import org.apache.jackrabbit.mongomk.prototype.DocumentStore.Collection;
-import org.apache.jackrabbit.mongomk.prototype.Node.Children;
+import org.apache.jackrabbit.mongomk.DocumentStore.Collection;
+import org.apache.jackrabbit.mongomk.Node.Children;
 import org.junit.Test;
 
 import com.google.common.collect.Lists;

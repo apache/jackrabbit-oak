@@ -62,7 +62,7 @@ public class MongoMKWriteGridFSTest extends BaseMongoMicroKernelTest {
         assertTrue(Arrays.equals(blob, readBlob));
     }
 
-    private byte[] createBlob(int blobLength) {
+    private static byte[] createBlob(int blobLength) {
         byte[] blob = new byte[blobLength];
         for (int i = 0; i < blob.length; i++) {
             blob[i] = (byte) i;

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mongomk.prototype;
+package org.apache.jackrabbit.mongomk;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -25,12 +25,10 @@ import java.util.HashMap;
 import java.util.Random;
 
 import org.apache.jackrabbit.mk.api.MicroKernelException;
-import org.apache.jackrabbit.mk.blobs.MemoryBlobStore;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.mk.json.JsonObject;
 import org.apache.jackrabbit.mk.json.JsopBuilder;
 import org.apache.jackrabbit.mk.json.JsopTokenizer;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.mongodb.DB;
@@ -38,40 +36,34 @@ import com.mongodb.DB;
 /**
  * A simple randomized single-instance test.
  */
-public class RandomizedClusterTest {
+public class RandomizedTest {
     
     private static final boolean MONGO_DB = false;
     // private static final boolean MONGO_DB = true;
     
-    private static final int MK_COUNT = 2;
+    private MongoMK mk;
+    private MicroKernelImpl mkGold;
     
-    private MemoryDocumentStore ds;
-    private MemoryBlobStore bs;
-    
-    private MongoMK[] mkList = new MongoMK[MK_COUNT];
-    private MicroKernelImpl[] mkListGold = new MicroKernelImpl[MK_COUNT];
-    private String[] revList = new String[MK_COUNT];
-    private String[] revListGold = new String[MK_COUNT];
-
-    private int opId;
-    
-    private int mkId;
+    private String commitRev;
+    private String commitRevGold;
     
     private StringBuilder log;
 
     @Test
-    @Ignore
-    public void addRemoveSet() throws Exception {
-        MicroKernelImpl mkG = new MicroKernelImpl();
-        for (int i = 0; i < MK_COUNT; i++) {
-            mkList[i] = createMK(i);
-            revList[i] = mkList[i].getHeadRevision();
-            mkListGold[i] = mkG;
-            revListGold[i] = mkListGold[i].getHeadRevision();
-        }
-        HashMap<Integer, ClusterRev> revs = 
-                new HashMap<Integer, ClusterRev>();
-        
+    public void addRemoveSetMoveCopy() throws Exception {
+        addRemoveSetMoveCopy(false);
+    }
+    
+    @Test
+    public void addRemoveSetMoveCopyBranchMerge() throws Exception {
+        addRemoveSetMoveCopy(true);
+    }
+    
+    private void addRemoveSetMoveCopy(boolean branchMerge) throws Exception {
+        mk = createMK();
+        mkGold = new MicroKernelImpl();
+        HashMap<Integer, String> revsGold = new HashMap<Integer, String>();
+        HashMap<Integer, String> revs = new HashMap<Integer, String>();
         Random r = new Random(1);
         int operations = 1000, nodeCount = 10;
         int propertyCount = 5, valueCount = 10;
@@ -79,21 +71,17 @@ public class RandomizedClusterTest {
         log = new StringBuilder();
         try {
             int maskOk = 0, maskFail = 0;
-            int opCount = 6;
+            int opCount = 5;
+            if (branchMerge) {
+                opCount = 7;
+            }
             for (int i = 0; i < operations; i++) {
-                opId = i;
-                mkId = r.nextInt(mkList.length);
                 String node = "t" + r.nextInt(nodeCount);
                 String node2 = "t" + r.nextInt(nodeCount);
                 String property = "p" + r.nextInt(propertyCount);
                 String value = "" + r.nextInt(valueCount);
                 String diff;
                 int op = r.nextInt(opCount);
-                if (i < 20) {
-                    // we need to add many nodes first, so that
-                    // there are enough nodes to operate on
-                    op = 0;
-                }
                 boolean result;
                 switch(op) {
                 case 0:
@@ -122,10 +110,32 @@ public class RandomizedClusterTest {
                     result = commit(diff);
                     break;
                 case 5:
-                    revList[mkId] = mkList[mkId].getHeadRevision();
-                    revListGold[mkId] = mkListGold[mkId].getHeadRevision();
-                    // fake failure
-                    result = i % 2 == 0;
+                    if (!branchMerge) {
+                        fail();
+                    }
+                    if (commitRevGold == null) {
+                        log("branch");
+                        commitRevGold = mkGold.branch(commitRevGold);
+                        commitRev = mk.branch(commitRev);
+                        result = true;
+                    } else {
+                        result = false;
+                    }
+                    break;
+                case 6:
+                    if (!branchMerge) {
+                        fail();
+                    }
+                    if (commitRevGold != null) {
+                        log("merge");
+                        mkGold.merge(commitRevGold, null);
+                        mk.merge(commitRev, null);
+                        commitRevGold = null;
+                        commitRev = null;
+                        result = true;
+                    } else {
+                        result = false;
+                    }
                     break;
                 default:
                     fail();
@@ -136,22 +146,19 @@ public class RandomizedClusterTest {
                 } else {
                     maskFail |= 1 << op;
                 }
-int todo;                
-//                get(node);
-//                get(node2);
-                MongoMK mk = mkList[mkId];
-                MicroKernelImpl mkGold = mkListGold[mkId];
-                ClusterRev cr = new ClusterRev();
-                cr.mkId = mkId;
-                cr.rev = mk.getHeadRevision();
-                cr.revGold = mkGold.getHeadRevision();
-                revs.put(i, cr);
+                get(node);
+                get(node2);
+                String revGold = mkGold.getHeadRevision();
+                String rev = mk.getHeadRevision();
+                revsGold.put(i, revGold);
+                revs.put(i, rev);
+                revsGold.remove(i - maxBackRev);
                 revs.remove(i - maxBackRev);
                 int revId = i - r.nextInt(maxBackRev);
-                cr = revs.get(revId);
-                if (cr != null) {
-int todo2;                
-//                    get(node, cr.revGold, cr.rev);
+                revGold = revsGold.get(revId);
+                if (revGold != null) {
+                    rev = revs.get(revId);
+                    get(node, revGold, rev);
                 }
             }
             if (Integer.bitCount(maskOk) != opCount) {
@@ -165,36 +172,29 @@ int todo2;
         } catch (Exception e) {
             throw new Exception("log: " + log, e);
         }
-        for (int i = 0; i < MK_COUNT; i++) {
-            mkList[i].dispose();
-            mkListGold[i].dispose();
-        }
+        mk.dispose();
+        mkGold.dispose();
         // System.out.println(log);
         // System.out.println();
     }
     
     private void log(String msg) {
-        msg = opId + ": [" + mkId + "] " + msg + "\n";
-        log.append(msg);
-int test;        
-System.out.print(msg);
+        log.append(msg).append('\n');
     }
     
     private void get(String node) {
-        String headGold = mkListGold[mkId].getHeadRevision();
-        String head = mkList[mkId].getHeadRevision();
+        String headGold = mkGold.getHeadRevision();
+        String head = mk.getHeadRevision();
         get(node, headGold, head);
     }
         
     private void get(String node, String headGold, String head) {
         String p = "/" + node;
-        MicroKernelImpl mkGold = mkListGold[mkId];
-        MongoMK mk = mkList[mkId];
         if (!mkGold.nodeExists(p, headGold)) {
             assertFalse(mk.nodeExists(p, head));
             return;
         }
-        assertTrue("path: " + p, mk.nodeExists(p, head));
+        assertTrue(mk.nodeExists(p, head));
         String resultGold = mkGold.getNodes(p, headGold, 0, 0, Integer.MAX_VALUE, null);
         String result = mk.getNodes(p, head, 0, 0, Integer.MAX_VALUE, null);
         resultGold = normalize(resultGold);
@@ -213,52 +213,37 @@ System.out.print(msg);
 
     private boolean commit(String diff) {
         boolean ok = false;
-        MicroKernelImpl mkGold = mkListGold[mkId];
-        String revGold = revListGold[mkId];
-        MongoMK mk = mkList[mkId];
-        String rev = revList[mkId];
         try {
-            mkGold.commit("/", diff, revGold, null);
+            String r = mkGold.commit("/", diff, commitRevGold, null);
+            if (commitRevGold != null) {
+                commitRevGold = r;
+            }
             ok = true;
         } catch (MicroKernelException e) {
-            // System.out.println("--> fail " + e.toString());            
             try {
-                mk.commit("/", diff, rev, null);
+                mk.commit("/", diff, commitRev, null);
                 fail("Should fail: " + diff + " with exception " + e);
             } catch (MicroKernelException e2) {
                 // expected
             }
         }
         if (ok) {
-            mk.commit("/", diff, rev, null);
+            String r = mk.commit("/", diff, commitRev, null);
+            if (commitRev != null) {
+                commitRev = r;
+            }
         }
         return ok;
     }
     
-    private MongoMK createMK(int clusterId) {
+    private static MongoMK createMK() {
         MongoMK.Builder builder = new MongoMK.Builder();
         if (MONGO_DB) {
             DB db = MongoUtils.getConnection().getDB();
             MongoUtils.dropCollections(db);
             builder.setMongoDB(db);
-        } else {
-            if (ds == null) {
-                ds = new MemoryDocumentStore();
-            }
-            if (bs == null) {
-                bs = new MemoryBlobStore();
-            }
-            builder.setDocumentStore(ds).setBlobStore(bs);
         }
-        return builder.setClusterId(clusterId).open();
-    }
-    
-    /**
-     * A revision in a certain cluster node.
-     */
-    static class ClusterRev {
-        int mkId;
-        String rev, revGold;
+        return builder.open();
     }
 
 }

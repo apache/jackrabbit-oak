@@ -22,8 +22,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mongomk.BaseMongoMicroKernelTest;
-import org.apache.jackrabbit.mongomk.blob.gridfs.MongoGridFSBlobStore;
-import org.apache.jackrabbit.mongomk.prototype.MongoMK;
+import org.apache.jackrabbit.mongomk.MongoMK;
 import org.junit.Ignore;
 import org.junit.Test;
 

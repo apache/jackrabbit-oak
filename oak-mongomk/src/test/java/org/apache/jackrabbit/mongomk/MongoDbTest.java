@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mongomk.prototype;
+package org.apache.jackrabbit.mongomk;
 
-import org.apache.jackrabbit.mongomk.prototype.DocumentStore.Collection;
+import org.apache.jackrabbit.mongomk.DocumentStore.Collection;
 import org.junit.Ignore;
 import org.junit.Test;
 

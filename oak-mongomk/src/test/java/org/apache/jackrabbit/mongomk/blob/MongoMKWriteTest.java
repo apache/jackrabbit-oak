@@ -24,7 +24,7 @@ import java.util.Arrays;
 
 import org.apache.jackrabbit.mk.util.MicroKernelInputStream;
 import org.apache.jackrabbit.mongomk.AbstractMongoConnectionTest;
-import org.apache.jackrabbit.mongomk.prototype.MongoMK;
+import org.apache.jackrabbit.mongomk.MongoMK;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -68,7 +68,7 @@ public class MongoMKWriteTest extends AbstractMongoConnectionTest {
         assertTrue(Arrays.equals(blob, readBlob));
     }
 
-    private byte[] createBlob(int blobLength) {
+    private static byte[] createBlob(int blobLength) {
         byte[] blob = new byte[blobLength];
         for (int i = 0; i < blob.length; i++) {
             blob[i] = (byte) i;
