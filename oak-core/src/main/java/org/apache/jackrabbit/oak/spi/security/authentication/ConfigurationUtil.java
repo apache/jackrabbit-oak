@@ -26,13 +26,20 @@ import org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 
 /**
- * ConfigurationUtil... TODO
+ * Utility to create {@link Configuration}s for built-in LoginModule implementations.
  */
 public final class ConfigurationUtil {
 
     private ConfigurationUtil() {
     }
 
+    /**
+     * Creates a new {@link Configuration} for the default OAK authentication
+     * setup which only handles login for standard JCR credentials.
+     *
+     * @param loginConfiguration The configuration parameters.
+     * @return A new {@code Configuration}
+     */
     public static Configuration getDefaultConfiguration(final ConfigurationParameters loginConfiguration) {
         return new Configuration() {
             @Override
@@ -43,12 +50,26 @@ public final class ConfigurationUtil {
         };
     }
 
+    /**
+     * Creates a new {@link Configuration} backwards compatible with the default
+     * Jackrabbit 2.x authentication setup. In addition to login with standard JCR
+     * credentials this configuration also handles
+     * {@link org.apache.jackrabbit.api.security.authentication.token.TokenCredentials}
+     * and under certain circumstances treats login without credentials as
+     * anonymous login.
+     *
+     * @param loginConfiguration The configuration parameters.
+     * @return A new {@code Configuration}
+     */
     public static Configuration getJackrabbit2Configuration(final ConfigurationParameters loginConfiguration) {
         return new Configuration() {
             @Override
             public AppConfigurationEntry[] getAppConfigurationEntry(String applicationName) {
                 Map<String, ?> options = loginConfiguration.getConfigValue(applicationName, Collections.<String, Object>emptyMap());
-                return new AppConfigurationEntry[]{new GuestEntry(options), new TokenEntry(options), new DefaultEntry(options)};
+                return new AppConfigurationEntry[]{
+                        new GuestEntry(options),
+                        new TokenEntry(options),
+                        new DefaultEntry(options)};
             }
         };
     }
