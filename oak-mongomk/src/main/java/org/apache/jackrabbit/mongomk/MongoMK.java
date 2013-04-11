@@ -58,12 +58,12 @@ import com.mongodb.DB;
  */
 public class MongoMK implements MicroKernel {
 
+    private static final Logger LOG = LoggerFactory.getLogger(MongoMK.class);
+
     /**
      * The number of documents to cache.
      */
     static final int CACHE_DOCUMENTS = Integer.getInteger("oak.mongoMK.cacheDocs", 20 * 1024);
-
-    private static final Logger LOG = LoggerFactory.getLogger(MongoMK.class);
 
     /**
      * The number of child node list entries to cache.
@@ -778,7 +778,7 @@ public class MongoMK implements MicroKernel {
         revisionId = revisionId != null ? revisionId : headRevision.toString();
         if (revisionId.startsWith("b")) {
             // reading from the branch is reading from the trunk currently
-            revisionId = revisionId.substring(1).replace('+', ' ').trim();
+            revisionId = stripBranchRevMarker(revisionId);
         }
         Revision rev = Revision.fromString(revisionId);
         Node n = getNode(path, rev);
@@ -1124,8 +1124,7 @@ public class MongoMK implements MicroKernel {
             throw new MicroKernelException("Not a branch: " + branchRevisionId);
         }
 
-        // reading from the branch is reading from the trunk currently
-        String revisionId = branchRevisionId.substring(1).replace('+', ' ').trim();
+        String revisionId = stripBranchRevMarker(branchRevisionId);
         // make branch commits visible
         List<Revision> branchRevisions = new ArrayList<Revision>();
         UpdateOp op = new UpdateOp("/", Utils.getIdFromPath("/"), false);
@@ -1142,14 +1141,6 @@ public class MongoMK implements MicroKernel {
         }
         headRevision = newRevision();
         return headRevision.toString();
-
-        // TODO improve implementation if needed
-        // if (!branchRevisionId.startsWith("b")) {
-        //     throw new MicroKernelException("Not a branch: " + branchRevisionId);
-        // }
-        //
-        // String commit = branchCommits.remove(branchRevisionId);
-        // return commit("", commit, null, null);
     }
 
     @Override
