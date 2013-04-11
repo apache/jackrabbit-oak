@@ -223,7 +223,8 @@ class PermissionValidator extends DefaultValidator {
         long perm;
         if (JcrConstants.JCR_PRIMARYTYPE.equals(name) || JcrConstants.JCR_MIXINTYPES.equals(name)) {
             // FIXME: distinguish between autocreated and user-supplied modification (?)
-            perm = Permissions.NODE_TYPE_MANAGEMENT;
+            // perm = Permissions.NODE_TYPE_MANAGEMENT;
+            perm = defaultPermission;
         } else if (isLockProperty(name)) {
             perm = Permissions.LOCK_MANAGEMENT;
         } else if (VersionConstants.VERSION_PROPERTY_NAMES.contains(name)) {
