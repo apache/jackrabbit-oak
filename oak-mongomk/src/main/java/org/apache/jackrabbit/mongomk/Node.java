@@ -74,11 +74,11 @@ public class Node {
         String id = Utils.getIdFromPath(path);
         UpdateOp op = new UpdateOp(path, id, isNew);
         op.set(UpdateOp.ID, id);
-        op.addMapEntry(UpdateOp.DELETED + "." + rev.toString(), "false");
-        op.setMapEntry(UpdateOp.LAST_REV + "." + rev.getClusterId(), rev.toString());
+        op.setMapEntry(UpdateOp.DELETED, rev.toString(), "false");
+        op.setMapEntry(UpdateOp.LAST_REV, "" + rev.getClusterId(), rev.toString());
         for (String p : properties.keySet()) {
             String key = Utils.escapePropertyName(p);
-            op.addMapEntry(key + "." + rev.toString(), properties.get(p));
+            op.setMapEntry(key, rev.toString(), properties.get(p));
         }
         return op;
     }

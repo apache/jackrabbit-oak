@@ -164,7 +164,7 @@ public class MemoryDocumentStore implements DocumentStore {
                 target.put(k, ((Long) old) + x);
                 break;
             }
-            case ADD_MAP_ENTRY: {
+            case SET_MAP_ENTRY: {
                 Object old = target.get(kv[0]);
                 @SuppressWarnings("unchecked")
                 Map<String, Object> m = (Map<String, Object>) old;
@@ -184,7 +184,7 @@ public class MemoryDocumentStore implements DocumentStore {
                 }
                 break;
             }
-            case SET_MAP_ENTRY: {
+            case SET_MAP: {
                 Object old = target.get(kv[0]);
                 @SuppressWarnings("unchecked")
                 Map<String, Object> m = (Map<String, Object>) old;

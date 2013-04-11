@@ -92,14 +92,14 @@ public class Commit {
     
     public void touchNode(String path) {
         UpdateOp op = getUpdateOperationForNode(path);
-        op.setMapEntry(UpdateOp.LAST_REV + "." + revision.getClusterId(), revision.toString());        
+        op.setMapEntry(UpdateOp.LAST_REV, "" + revision.getClusterId(), revision.toString());        
     }
     
     void updateProperty(String path, String propertyName, String value) {
         UpdateOp op = getUpdateOperationForNode(path);
         String key = Utils.escapePropertyName(propertyName);
-        op.addMapEntry(key + "." + revision.toString(), value);
-        op.setMapEntry(UpdateOp.LAST_REV + "." + revision.getClusterId(), revision.toString());        
+        op.setMapEntry(key, revision.toString(), value);
+        op.setMapEntry(UpdateOp.LAST_REV, "" + revision.getClusterId(), revision.toString());        
     }
 
     void addNode(Node n) {
@@ -175,14 +175,14 @@ public class Commit {
         UpdateOp commitRoot = getUpdateOperationForNode(commitRootPath);
         for (String p : operations.keySet()) {
             UpdateOp op = operations.get(p);
-            op.setMapEntry(UpdateOp.LAST_REV + "." + revision.getClusterId(), revision.toString());
+            op.setMapEntry(UpdateOp.LAST_REV, "" + revision.getClusterId(), revision.toString());
             if (op.isNew) {
-                op.addMapEntry(UpdateOp.DELETED + "." + revision.toString(), "false");
+                op.setMapEntry(UpdateOp.DELETED, revision.toString(), "false");
             }
             if (op == commitRoot) {
                 // apply at the end
             } else {
-                op.addMapEntry(UpdateOp.COMMIT_ROOT + "." + revision.toString(), commitRootDepth);
+                op.setMapEntry(UpdateOp.COMMIT_ROOT, revision.toString(), commitRootDepth);
                 if (op.isNew()) {
                     newNodes.add(op);
                 } else {
@@ -194,7 +194,7 @@ public class Commit {
             // no updates and root of commit is also new. that is,
             // it is the root of a subtree added in a commit.
             // so we try to add the root like all other nodes
-            commitRoot.addMapEntry(UpdateOp.REVISIONS + "." + revision.toString(), commitValue);
+            commitRoot.setMapEntry(UpdateOp.REVISIONS, revision.toString(), commitValue);
             newNodes.add(commitRoot);
         }
         try {
@@ -207,7 +207,7 @@ public class Commit {
                         if (op == commitRoot) {
                             // don't write the commit root just yet
                             // (because there might be a conflict)
-                            commitRoot.unset(UpdateOp.REVISIONS + "." + revision.toString());
+                            commitRoot.unsetMapEntry(UpdateOp.REVISIONS, revision.toString());
                         }
                         changedNodes.add(op);
                     }
@@ -216,7 +216,7 @@ public class Commit {
             }
             for (UpdateOp op : changedNodes) {
                 // set commit root on changed nodes
-                op.addMapEntry(UpdateOp.COMMIT_ROOT + "." + revision.toString(), commitRootDepth);
+                op.setMapEntry(UpdateOp.COMMIT_ROOT, revision.toString(), commitRootDepth);
                 done.add(op);
                 createOrUpdateNode(store, op);
             }
@@ -225,7 +225,7 @@ public class Commit {
             // first to check if there was a conflict, and only then to commit
             // the revision, with the revision property set)
             if (changedNodes.size() > 0 || !commitRoot.isNew) {
-                commitRoot.addMapEntry(UpdateOp.REVISIONS + "." + revision.toString(), commitValue);
+                commitRoot.setMapEntry(UpdateOp.REVISIONS, revision.toString(), commitValue);
                 done.add(commitRoot);
                 createOrUpdateNode(store, commitRoot);
                 operations.put(commitRootPath, commitRoot);
@@ -323,7 +323,7 @@ public class Commit {
                 // ok
             } else if (key.equals(UpdateOp.LAST_REV)) {
                 // only maintain the lastRev in the main document
-                main.setMapEntry(UpdateOp.LAST_REV + "." + revision.getClusterId(), revision.toString());        
+                main.setMap(UpdateOp.LAST_REV, "" + revision.getClusterId(), revision.toString());        
             } else {
                 // UpdateOp.DELETED,
                 // UpdateOp.REVISIONS,
@@ -341,9 +341,9 @@ public class Commit {
                     Revision propRev = Revision.fromString(r);
                     Object v = valueMap.get(r);
                     if (propRev.equals(latestRev)) {
-                        main.setMapEntry(key + "." + propRev.toString(), v);
+                        main.setMap(key, propRev.toString(), v);
                     } else {
-                        old.addMapEntry(key + "." + propRev.toString(), v);
+                        old.setMapEntry(key, propRev.toString(), v);
                     }
                 }
             }
@@ -431,8 +431,8 @@ public class Commit {
         removedNodes.add(path);
         UpdateOp op = getUpdateOperationForNode(path);
         op.setDelete(true);
-        op.addMapEntry(UpdateOp.DELETED + "." + revision.toString(), "true");
-        op.setMapEntry(UpdateOp.LAST_REV + "." + revision.getClusterId(), revision.toString());
+        op.setMapEntry(UpdateOp.DELETED, revision.toString(), "true");
+        op.setMapEntry(UpdateOp.LAST_REV, "" + revision.getClusterId(), revision.toString());
     }
 
 }

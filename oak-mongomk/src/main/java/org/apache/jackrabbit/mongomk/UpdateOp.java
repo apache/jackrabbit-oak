@@ -106,33 +106,50 @@ public class UpdateOp {
     }
     
     /**
-     * Add a new map entry for this revision.
+     * Add a new or update an existing map entry.
+     * The property is a map of sub-names / values.
      * 
      * @param property the property
+     * @param subName the entry name
      * @param value the value
      */
-    void addMapEntry(String property, Object value) {
-        Operation op = new Operation();
-        op.type = Operation.Type.ADD_MAP_ENTRY;
-        op.value = value;
-        changes.put(property, op);
-    }
-    
-    public void removeMapEntry(String property) {
-        Operation op = new Operation();
-        op.type = Operation.Type.REMOVE_MAP_ENTRY;
-        changes.put(property, op);
-    }
-    
-    public void setMapEntry(String property, Object value) {
+    void setMapEntry(String property, String subName, Object value) {
         Operation op = new Operation();
         op.type = Operation.Type.SET_MAP_ENTRY;
         op.value = value;
-        changes.put(property, op);
+        changes.put(property + "." + subName, op);
     }
     
     /**
-     * Set the property.
+     * Remove a map entry.
+     * The property is a map of sub-names / values.
+     * 
+     * @param property the property
+     * @param subName the entry name
+     */
+    public void removeMapEntry(String property, String subName) {
+        Operation op = new Operation();
+        op.type = Operation.Type.REMOVE_MAP_ENTRY;
+        changes.put(property + "." + subName, op);
+    }
+    
+    /**
+     * Set a map to a single key-value pair.
+     * The property is a map of sub-names / values.
+     * 
+     * @param property the property
+     * @param subName the entry name
+     * @param value the value
+     */
+    public void setMap(String property, String subName, Object value) {
+        Operation op = new Operation();
+        op.type = Operation.Type.SET_MAP;
+        op.value = value;
+        changes.put(property + "." + subName, op);
+    }
+    
+    /**
+     * Set the property to the given value.
      * 
      * @param property the property name
      * @param value the value
@@ -151,6 +168,17 @@ public class UpdateOp {
      */
     void unset(String property) {
         changes.remove(property);
+    }
+    
+    /**
+     * Do not set the property entry (after it has been set).
+     * The property is a map of sub-names / values.
+     * 
+     * @param property the property name
+     * @param subName the entry name
+     */
+    void unsetMapEntry(String property, String subName) {
+        changes.remove(property + "." + subName);
     }
 
     /**
@@ -218,7 +246,7 @@ public class UpdateOp {
              * Add the sub-key / value pair.
              * The value in the stored node is a map.
              */ 
-             ADD_MAP_ENTRY, 
+             SET_MAP_ENTRY, 
              
              /**
               * Remove the sub-key / value pair.
@@ -230,7 +258,7 @@ public class UpdateOp {
               * Set the sub-key / value pair.
               * The value in the stored node is a map.
               */
-             SET_MAP_ENTRY,
+             SET_MAP,
              
          }
              
@@ -259,10 +287,10 @@ public class UpdateOp {
                 break;
             case SET:
             case REMOVE_MAP_ENTRY:
-            case SET_MAP_ENTRY:
+            case SET_MAP:
                 // nothing to do
                 break;
-            case ADD_MAP_ENTRY:
+            case SET_MAP_ENTRY:
                 reverse = new Operation();
                 reverse.type = Type.REMOVE_MAP_ENTRY;
                 break;
