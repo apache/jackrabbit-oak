@@ -25,7 +25,6 @@ import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.user.Group;
-import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -33,18 +32,39 @@ import org.junit.Test;
 /**
  * InheritanceTest... TODO
  */
-@Ignore("OAK-51")
 public class InheritanceTest extends AbstractEvaluationTest {
+
+    private Group group2;
+
+    @Override
+    protected void setUp() throws Exception {
+        super.setUp();
+
+        /* create a second group the test user is member of */
+        group2 = getUserManager(superuser).createGroup("testGroup" + UUID.randomUUID());
+        group2.addMember(testUser);
+        superuser.save();
+
+        // recreate test session
+        testSession.logout();
+        testSession = createTestSession();
+        testAcMgr = testSession.getAccessControlManager();
+    }
+
+    @Override
+    protected void tearDown() throws Exception {
+        group2.remove();
+        superuser.save();
+        super.tearDown();
+    }
 
     @Test
     public void testInheritance() throws Exception {
         // give 'modify_properties' and 'remove_node' privilege on 'path'
-        Privilege[] privileges = privilegesFromNames(new String[] {
-                Privilege.JCR_REMOVE_NODE, Privilege.JCR_MODIFY_PROPERTIES});
+        Privilege[] privileges = privilegesFromNames(new String[] {Privilege.JCR_REMOVE_NODE, Privilege.JCR_MODIFY_PROPERTIES});
         allow(path, privileges);
         // give 'add-child-nodes', remove_child_nodes' on 'childNPath'
-        privileges = privilegesFromNames(new String[] {
-                Privilege.JCR_ADD_CHILD_NODES, Privilege.JCR_REMOVE_CHILD_NODES});
+        privileges = privilegesFromNames(new String[] {Privilege.JCR_ADD_CHILD_NODES, Privilege.JCR_REMOVE_CHILD_NODES});
         allow(childNPath, privileges);
 
         /*
@@ -139,8 +159,6 @@ public class InheritanceTest extends AbstractEvaluationTest {
 
     @Test
     public void testInheritedGroupPermissions() throws Exception {
-        Group testGroup = getTestGroup();
-
         /* allow MODIFY_PROPERTIES privilege for testGroup at 'path' */
         allow(path, testGroup.getPrincipal(), modPropPrivileges);
         /* deny MODIFY_PROPERTIES privilege for everyone at 'childNPath' */
@@ -152,8 +170,6 @@ public class InheritanceTest extends AbstractEvaluationTest {
 
     @Test
     public void testInheritedGroupPermissions2() throws Exception {
-        Group testGroup = getTestGroup();
-
         // NOTE: same as testInheritedGroupPermissions above but using
         // everyone on path, testgroup on childpath -> result must be the same
 
@@ -168,123 +184,77 @@ public class InheritanceTest extends AbstractEvaluationTest {
 
     @Test
     public void testMultipleGroupPermissionsOnNode() throws Exception {
-        Group testGroup = getTestGroup();
+        /* add privileges for the Group the test-user is member of */
+        allow(path, testGroup.getPrincipal(), modPropPrivileges);
+        deny(path, group2.getPrincipal(), modPropPrivileges);
 
-        /* create a second group the test user is member of */
-        UserManager umgr = getUserManager(superuser);
-        Group group2 = umgr.createGroup("testGroup" + UUID.randomUUID());
-        try {
-            group2.addMember(testUser);
-            superuser.save();
-
-            /* add privileges for the Group the test-user is member of */
-            allow(path, testGroup.getPrincipal(), modPropPrivileges);
-            deny(path, group2.getPrincipal(), modPropPrivileges);
-
-            /*
-             testuser must get the permissions/privileges inherited from
-             the group it is member of.
-             the denial of group2 must succeed
-            */
-            String actions = getActions(Session.ACTION_SET_PROPERTY, Session.ACTION_READ);
-            assertFalse(testSession.hasPermission(path, actions));
-            assertFalse(testAcMgr.hasPrivileges(path, modPropPrivileges));
-
-        } finally {
-            group2.remove();
-        }
+        /*
+         testuser must get the permissions/privileges inherited from
+         the group it is member of.
+         the denial of group2 must succeed
+        */
+        String actions = getActions(Session.ACTION_SET_PROPERTY, Session.ACTION_READ);
+        assertFalse(testSession.hasPermission(path, actions));
+        assertFalse(testAcMgr.hasPrivileges(path, modPropPrivileges));
     }
 
     @Test
     public void testMultipleGroupPermissionsOnNode2() throws Exception {
-        Group testGroup = getTestGroup();
+        /* add privileges for the Group the test-user is member of */
+        deny(path, testGroup.getPrincipal(), modPropPrivileges);
+        allow(path, group2.getPrincipal(), modPropPrivileges);
 
-        /* create a second group the test user is member of */
-        UserManager umgr = getUserManager(superuser);
-        Group group2 = umgr.createGroup("testGroup" + UUID.randomUUID());
-
-        try {
-            group2.addMember(testUser);
-            if (!umgr.isAutoSave() && superuser.hasPendingChanges()) {
-                superuser.save();
-            }
-
-            /* add privileges for the Group the test-user is member of */
-            deny(path, testGroup.getPrincipal(), modPropPrivileges);
-            allow(path, group2.getPrincipal(), modPropPrivileges);
-
-            /*
-             testuser must get the permissions/privileges inherited from
-             the group it is member of.
-             granting permissions for group2 must be effective
-            */
-            String actions = getActions(Session.ACTION_SET_PROPERTY, Session.ACTION_READ);
-            assertTrue(testSession.hasPermission(path, actions));
-
-            assertTrue(testAcMgr.hasPrivileges(path, modPropPrivileges));
-        } finally {
-            group2.remove();
-        }
+        /*
+         testuser must get the permissions/privileges inherited from
+         the group it is member of.
+         granting permissions for group2 must be effective
+        */
+        String actions = getActions(Session.ACTION_SET_PROPERTY, Session.ACTION_READ);
+        assertTrue(testSession.hasPermission(path, actions));
+        assertTrue(testAcMgr.hasPrivileges(path, modPropPrivileges));
     }
 
+    @Ignore("OAK-526 : missing handling for reorder in PermissionHook")
     @Test
     public void testReorderGroupPermissions() throws Exception {
-        Group testGroup = getTestGroup();
+        /* add privileges for the Group the test-user is member of */
+        deny(path, testGroup.getPrincipal(), modPropPrivileges);
+        allow(path, group2.getPrincipal(), modPropPrivileges);
 
-        /* create a second group the test user is member of */
-        UserManager umgr = getUserManager(superuser);
-        Group group2 = umgr.createGroup("testGroup" + UUID.randomUUID());
+        /*
+         testuser must get the permissions/privileges inherited from
+         the group it is member of.
+         granting permissions for group2 must be effective
+        */
+        String actions = getActions(Session.ACTION_SET_PROPERTY, Session.ACTION_READ);
+        assertTrue(testSession.hasPermission(path, actions));
+        Privilege[] privs = privilegesFromName(Privilege.JCR_MODIFY_PROPERTIES);
+        assertTrue(testAcMgr.hasPrivileges(path, privs));
 
-        try {
-            group2.addMember(testUser);
-            superuser.save();
-
-            /* add privileges for the Group the test-user is member of */
-            deny(path, testGroup.getPrincipal(), modPropPrivileges);
-            allow(path, group2.getPrincipal(), modPropPrivileges);
-
-            /*
-             testuser must get the permissions/privileges inherited from
-             the group it is member of.
-             granting permissions for group2 must be effective
-            */
-            String actions = getActions(Session.ACTION_SET_PROPERTY, Session.ACTION_READ);
-
-            assertTrue(testSession.hasPermission(path, actions));
-            Privilege[] privs = privilegesFromName(Privilege.JCR_MODIFY_PROPERTIES);
-            assertTrue(testAcMgr.hasPrivileges(path, privs));
-
-            // reorder the ACEs
-            AccessControlEntry srcEntry = null;
-            AccessControlEntry destEntry = null;
-            JackrabbitAccessControlList acl = (JackrabbitAccessControlList) acMgr.getPolicies(path)[0];
-            for (AccessControlEntry entry : acl.getAccessControlEntries()) {
-                Principal princ = entry.getPrincipal();
-                if (testGroup.getPrincipal().equals(princ)) {
-                    destEntry = entry;
-                } else if (group2.getPrincipal().equals(princ)) {
-                    srcEntry = entry;
-                }
-
+        // reorder the ACEs
+        AccessControlEntry srcEntry = null;
+        AccessControlEntry destEntry = null;
+        JackrabbitAccessControlList acl = (JackrabbitAccessControlList) acMgr.getPolicies(path)[0];
+        for (AccessControlEntry entry : acl.getAccessControlEntries()) {
+            Principal princ = entry.getPrincipal();
+            if (testGroup.getPrincipal().equals(princ)) {
+                destEntry = entry;
+            } else if (group2.getPrincipal().equals(princ)) {
+                srcEntry = entry;
             }
-
-            acl.orderBefore(srcEntry, destEntry);
-            acMgr.setPolicy(path, acl);
-            superuser.save();
-
-            /* after reordering the permissions must be denied */
-            assertFalse(testSession.hasPermission(path, actions));
-            assertFalse(testAcMgr.hasPrivileges(path, privs));
-
-        } finally {
-            group2.remove();
         }
+        acl.orderBefore(srcEntry, destEntry);
+        acMgr.setPolicy(path, acl);
+        superuser.save();
+        testSession.refresh(false);
+
+        /* after reordering the permissions must be denied */
+        assertFalse(testSession.hasPermission(path, actions));
+        assertFalse(testAcMgr.hasPrivileges(path, privs));
     }
 
     @Test
     public void testInheritanceAndMixedUserGroupPermissions() throws Exception {
-        Group testGroup = getTestGroup();
-
         /* give MODIFY_PROPERTIES privilege for testGroup at 'path' */
         allow(path, testGroup.getPrincipal(), modPropPrivileges);
 

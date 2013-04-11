@@ -261,6 +261,8 @@
 
       org.apache.jackrabbit.oak.jcr.security.authorization.AccessControlManagementTest#testRemoveMixin       <!-- OAK-767 -->
       org.apache.jackrabbit.oak.jcr.security.authorization.ReadTest#testReadDenied                           <!-- OAK-766 -->
+      org.apache.jackrabbit.oak.jcr.security.authorization.InheritanceTest#testReorderGroupPermissions       <!-- OAK-526 -->
+
     </known.issues>
   </properties>
 
