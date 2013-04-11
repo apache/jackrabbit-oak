@@ -18,19 +18,20 @@
  */
 package org.apache.jackrabbit.oak.core;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.api.BlobFactory;
+import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 
 /**
  * Simple implementation of the Root interface that only supports simple read
@@ -131,4 +132,10 @@ public final class ImmutableRoot implements Root {
     public BlobFactory getBlobFactory() {
         throw new UnsupportedOperationException();
     }
+    
+	@Override
+	public ContentSession getContentSession() {
+		throw new UnsupportedOperationException();
+	}
+    
 }

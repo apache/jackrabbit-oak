@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.core;
 
+import static com.google.common.base.Preconditions.checkState;
+
 import java.io.IOException;
 import java.util.Set;
 
@@ -32,8 +34,6 @@ import org.apache.jackrabbit.oak.spi.security.authentication.LoginContext;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static com.google.common.base.Preconditions.checkState;
 
 /**
  * {@code MicroKernel}-based implementation of the {@link ContentSession} interface.
@@ -97,7 +97,12 @@ class ContentSessionImpl implements ContentSession {
             @Override
             protected void checkLive() {
                 ContentSessionImpl.this.checkLive();
-            }
+            }            
+ 
+            @Override
+            public ContentSession getContentSession() {
+            	return ContentSessionImpl.this;
+            }            
         };
         return root;
     }
