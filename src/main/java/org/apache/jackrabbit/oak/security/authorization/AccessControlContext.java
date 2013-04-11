@@ -52,9 +52,10 @@ final class AccessControlContext implements Context, AccessControlConstants, Per
 
     @Override
     public boolean definesLocation(TreeLocation location) {
-        if (location.exists()) {
+        Tree tree = location.getTree();
+        if (tree != null && location.exists()) {
             PropertyState p = location.getProperty();
-            return (p == null) ? definesTree(location.getTree()) : definesProperty(location.getTree(), p);
+            return (p == null) ? definesTree(tree) : definesProperty(tree, p);
         } else {
             String path = location.getPath();
             String name = Text.getName(location.getPath());
