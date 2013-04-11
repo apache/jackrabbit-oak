@@ -59,7 +59,7 @@ public class PrivilegeConfigurationImpl extends SecurityConfiguration.Default im
     @Nonnull
     @Override
     public List<? extends ValidatorProvider> getValidators(String workspaceName) {
-        return Collections.singletonList(new PrivilegeValidatorProvider(workspaceName));
+        return Collections.singletonList(new PrivilegeValidatorProvider());
     }
 
     @Nonnull

@@ -50,12 +50,9 @@ class AccessControlValidatorProvider extends ValidatorProvider {
     private static final Logger log = LoggerFactory.getLogger(AccessControlValidatorProvider.class);
 
     private final SecurityProvider securityProvider;
-    private final String workspaceName;
 
-    AccessControlValidatorProvider(@Nonnull SecurityProvider securityProvider,
-                                   @Nonnull String workspaceName) {
+    AccessControlValidatorProvider(@Nonnull SecurityProvider securityProvider) {
         this.securityProvider = securityProvider;
-        this.workspaceName = workspaceName;
     }
 
     //--------------------------------------------------< ValidatorProvider >---
@@ -75,7 +72,7 @@ class AccessControlValidatorProvider extends ValidatorProvider {
     }
 
     private Map<String, Privilege> getPrivileges(NodeState beforeRoot, PrivilegeConfiguration config) {
-        Root root = new ImmutableRoot(beforeRoot, workspaceName);
+        Root root = new ImmutableRoot(beforeRoot);
         PrivilegeManager pMgr = config.getPrivilegeManager(root, NamePathMapper.DEFAULT);
         ImmutableMap.Builder privileges = ImmutableMap.builder();
         try {

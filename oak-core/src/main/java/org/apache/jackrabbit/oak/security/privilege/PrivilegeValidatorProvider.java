@@ -35,12 +35,6 @@ import static org.apache.jackrabbit.oak.security.privilege.PrivilegeConstants.RE
  */
 class PrivilegeValidatorProvider extends ValidatorProvider {
 
-    private final String workspaceName;
-
-    PrivilegeValidatorProvider(String workspaceName) {
-        this.workspaceName = workspaceName;
-    }
-
     @Nonnull
     @Override
     public Validator getRootValidator(NodeState before, NodeState after) {
@@ -49,6 +43,6 @@ class PrivilegeValidatorProvider extends ValidatorProvider {
     }
 
     private Root createRoot(NodeState nodeState) {
-        return new ImmutableRoot(nodeState, workspaceName);
+        return new ImmutableRoot(nodeState);
     }
 }

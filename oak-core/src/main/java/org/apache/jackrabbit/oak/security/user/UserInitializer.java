@@ -33,6 +33,7 @@ import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.lifecycle.WorkspaceInitializer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
+import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
@@ -95,7 +96,8 @@ public class UserInitializer implements WorkspaceInitializer, UserConstants {
         } catch (CommitFailedException e) {
             throw new RuntimeException(e);
         }
-        Root root = new RootImpl(store, commitHook, workspaceName, SystemSubject.INSTANCE, securityProvider, indexProvider);
+        // TODO reconsider
+        Root root = new RootImpl(store, commitHook, workspaceName, SystemSubject.INSTANCE, new OpenSecurityProvider(), indexProvider);
 
         UserConfiguration userConfiguration = securityProvider.getUserConfiguration();
         UserManager userManager = userConfiguration.getUserManager(root, NamePathMapper.DEFAULT);

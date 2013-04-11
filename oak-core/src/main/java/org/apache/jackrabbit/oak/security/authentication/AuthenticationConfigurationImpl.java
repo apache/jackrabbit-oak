@@ -19,18 +19,16 @@ package org.apache.jackrabbit.oak.security.authentication;
 import javax.annotation.Nonnull;
 import javax.security.auth.login.Configuration;
 
+import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.security.authentication.ConfigurationUtil;
 import org.apache.jackrabbit.oak.security.authentication.token.TokenProviderImpl;
-import org.apache.jackrabbit.oak.spi.commit.CommitHook;
-import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginContextProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,7 +53,7 @@ public class AuthenticationConfigurationImpl extends SecurityConfiguration.Defau
 
     @Nonnull
     @Override
-    public LoginContextProvider getLoginContextProvider(NodeStore nodeStore, CommitHook commitHook, QueryIndexProvider indexProvider) {
+    public LoginContextProvider getLoginContextProvider(ContentRepository contentRepository) {
         String appName = config.getConfigValue(PARAM_APP_NAME, DEFAULT_APP_NAME);
         Configuration loginConfig = null;
         try {
@@ -73,7 +71,7 @@ public class AuthenticationConfigurationImpl extends SecurityConfiguration.Defau
             // TODO: review if having a default is desirable or if login should fail without valid login configuration.
             loginConfig = ConfigurationUtil.getDefaultConfiguration(config);
         }
-        return new LoginContextProviderImpl(appName, loginConfig, nodeStore, commitHook, indexProvider, securityProvider);
+        return new LoginContextProviderImpl(appName, loginConfig, contentRepository, securityProvider);
     }
 
     @Nonnull

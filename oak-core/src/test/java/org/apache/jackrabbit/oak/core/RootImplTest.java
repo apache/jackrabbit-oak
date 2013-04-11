@@ -403,28 +403,6 @@ public class RootImplTest extends OakBaseTest {
         checkEqual(root1.getTree("/"), (root2.getTree("/")));
     }
 
-    @Test
-    public void testGetLatest() throws Exception {
-        RootImpl root = (RootImpl) session.getLatestRoot();
-        Root root2 = root.getLatest();
-        assertNotSame(root, root2);
-
-        session.close();
-        try {
-            root.getLatest();
-            fail();
-        } catch (IllegalStateException e) {
-            // success
-        }
-
-        try {
-            ((RootImpl) root2).checkLive();
-            fail();
-        } catch (IllegalStateException e) {
-            // success
-        }
-    }
-
     private static void checkEqual(Tree tree1, Tree tree2) {
         assertEquals(tree1.getChildrenCount(), tree2.getChildrenCount());
         assertEquals(tree1.getPropertyCount(), tree2.getPropertyCount());

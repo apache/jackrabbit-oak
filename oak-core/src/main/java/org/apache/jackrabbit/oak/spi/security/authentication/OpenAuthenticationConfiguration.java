@@ -20,12 +20,10 @@ import javax.annotation.Nonnull;
 import javax.jcr.Credentials;
 import javax.security.auth.Subject;
 
+import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.spi.commit.CommitHook;
-import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 /**
  * This implementation of the authentication configuration provides login
@@ -36,7 +34,7 @@ public class OpenAuthenticationConfiguration extends SecurityConfiguration.Defau
 
     @Nonnull
     @Override
-    public LoginContextProvider getLoginContextProvider(NodeStore nodeStore, CommitHook commitHook, QueryIndexProvider indexProvider) {
+    public LoginContextProvider getLoginContextProvider(ContentRepository contentRepository) {
         return new LoginContextProvider() {
             @Nonnull
             @Override

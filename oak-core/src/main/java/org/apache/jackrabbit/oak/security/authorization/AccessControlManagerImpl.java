@@ -100,11 +100,9 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
     private PermissionProvider permissionProvider;
 
     public AccessControlManagerImpl(@Nonnull Root root, @Nonnull NamePathMapper namePathMapper,
-                                    @Nonnull SecurityProvider securityProvider,
-                                    @Nullable PermissionProvider permissionProvider) {
+                                    @Nonnull SecurityProvider securityProvider) {
         this.root = root;
         this.namePathMapper = namePathMapper;
-        this.permissionProvider = permissionProvider;
 
         privilegeManager = securityProvider.getPrivilegeConfiguration().getPrivilegeManager(root, namePathMapper);
         principalManager = securityProvider.getPrincipalConfiguration().getPrincipalManager(root, namePathMapper);
@@ -130,13 +128,13 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
 
     @Override
     public boolean hasPrivileges(@Nullable String absPath, @Nonnull Privilege[] privileges) throws RepositoryException {
-        return hasPrivileges(absPath, privileges, permissionProvider);
+        return hasPrivileges(absPath, privileges, getPermissionProvider());
     }
 
     @Nonnull
     @Override
     public Privilege[] getPrivileges(@Nullable String absPath) throws RepositoryException {
-        return getPrivileges(absPath, permissionProvider);
+        return getPrivileges(absPath, getPermissionProvider());
     }
 
     @Nonnull
@@ -351,7 +349,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
             throw new PathNotFoundException("No tree at " + oakPath);
         }
         if (permissions != Permissions.NO_PERMISSION) {
-            if (permissionProvider != null && !permissionProvider.isGranted(tree, null, permissions)) {
+            if (!getPermissionProvider().isGranted(tree, null, permissions)) {
                 throw new AccessDeniedException("Access denied at " + tree);
             }
             // check if the tree is access controlled
@@ -510,6 +508,16 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
             principal = new PrincipalImpl(principalName);
         }
         return principal;
+    }
+
+    @Nonnull
+    private PermissionProvider getPermissionProvider() {
+        if (permissionProvider == null) {
+            permissionProvider = acConfig.getPermissionProvider(root, root.getContentSession().getAuthInfo().getPrincipals());
+        } else {
+            permissionProvider.refresh();
+        }
+        return permissionProvider;
     }
 
     @Nonnull

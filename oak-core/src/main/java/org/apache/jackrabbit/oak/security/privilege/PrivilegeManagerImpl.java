@@ -25,13 +25,11 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.RepositoryException;
-import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.core.RootImpl;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeDefinition;
 import org.slf4j.Logger;
@@ -92,12 +90,8 @@ public class PrivilegeManagerImpl implements PrivilegeManager {
 
     //------------------------------------------------------------< private >---
     @Nonnull
-    private Root getWriteRoot() throws UnsupportedRepositoryOperationException {
-        if (root instanceof RootImpl) {
-            return ((RootImpl) root).getLatest();
-        } else {
-            throw new UnsupportedRepositoryOperationException("Privilege registration not supported");
-        }
+    private Root getWriteRoot() {
+        return root.getContentSession().getLatestRoot();
     }
 
     @Nonnull

@@ -158,10 +158,6 @@ public final class TokenLoginModule extends AbstractLoginModule {
             return true;
         }
 
-        // the login attempt on this module did not succeed: clear state
-        // and check if another successful login asks for a new token to be created.
-        clearState();
-
         if (tokenProvider != null && sharedState.containsKey(SHARED_KEY_CREDENTIALS)) {
             Credentials shared = getSharedCredentials();
             if (shared != null && tokenProvider.doCreateToken(shared)) {
@@ -180,6 +176,10 @@ public final class TokenLoginModule extends AbstractLoginModule {
                 }
             }
         }
+        // the login attempt on this module did not succeed: clear state
+        // and check if another successful login asks for a new token to be created.
+        clearState();
+
         return false;
     }
 

@@ -81,7 +81,7 @@ public class ContentRepositoryImpl implements ContentRepository {
             throw new NoSuchWorkspaceException(workspaceName);
         }
 
-        LoginContextProvider lcProvider = securityProvider.getAuthenticationConfiguration().getLoginContextProvider(nodeStore, commitHook, indexProvider);
+        LoginContextProvider lcProvider = securityProvider.getAuthenticationConfiguration().getLoginContextProvider(this);
         LoginContext loginContext = lcProvider.getLoginContext(credentials, workspaceName);
         loginContext.login();
 

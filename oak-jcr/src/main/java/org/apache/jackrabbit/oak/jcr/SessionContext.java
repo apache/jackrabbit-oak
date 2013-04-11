@@ -16,12 +16,9 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.PathNotFoundException;
@@ -52,6 +49,8 @@ import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Instances of this class are passed to all JCR implementation classes
@@ -171,7 +170,7 @@ public abstract class SessionContext implements NamePathMapper {
     public AccessControlManager getAccessControlManager() throws RepositoryException {
         if (accessControlManager == null) {
             SecurityProvider securityProvider = repository.getSecurityProvider();
-            accessControlManager = securityProvider.getAccessControlConfiguration().getAccessControlManager(delegate.getRoot(), namePathMapper, getPermissionProvider());
+            accessControlManager = securityProvider.getAccessControlConfiguration().getAccessControlManager(delegate.getRoot(), namePathMapper);
         }
         return accessControlManager;
     }

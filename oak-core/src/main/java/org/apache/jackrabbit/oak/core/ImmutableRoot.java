@@ -18,12 +18,7 @@
  */
 package org.apache.jackrabbit.oak.core;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
-
-import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.api.BlobFactory;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -33,6 +28,9 @@ import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
+
 /**
  * Simple implementation of the Root interface that only supports simple read
  * operations (excluding query) based on the {@code NodeState} (or {@code ImmutableTree})
@@ -41,37 +39,18 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 public final class ImmutableRoot implements Root {
 
     private final ImmutableTree rootTree;
-    private final String workspaceName;
 
-    public ImmutableRoot(@Nonnull NodeState rootState, @Nullable String workspaceName) {
-        this(new ImmutableTree(rootState), workspaceName);
+    public ImmutableRoot(@Nonnull NodeState rootState) {
+        this(new ImmutableTree(rootState));
     }
 
     public ImmutableRoot(@Nonnull Root root, @Nonnull TreeTypeProvider typeProvider) {
-        this(ImmutableTree.createFromRoot(root, typeProvider), getWorkspaceName(root));
+        this(ImmutableTree.createFromRoot(root, typeProvider));
     }
 
-    public ImmutableRoot(@Nonnull ImmutableTree rootTree, @Nullable String workspaceName) {
+    public ImmutableRoot(@Nonnull ImmutableTree rootTree) {
         checkArgument(rootTree.isRoot());
         this.rootTree = rootTree;
-        this.workspaceName = workspaceName;
-    }
-
-    @CheckForNull
-    public String getWorkspaceName() {
-        return workspaceName;
-    }
-
-    // TODO: review if getWorkspaceName() may be part of Root API
-    @CheckForNull
-    public static String getWorkspaceName(Root root) {
-        if (root instanceof ImmutableRoot) {
-            return ((ImmutableRoot) root).getWorkspaceName();
-        } else if (root instanceof RootImpl) {
-            return ((RootImpl) root).getWorkspaceName();
-        } else {
-            return null;
-        }
     }
 
     //---------------------------------------------------------------< Root >---

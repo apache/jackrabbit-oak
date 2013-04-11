@@ -72,7 +72,7 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
     public PermissionProviderImpl(@Nonnull Root root, @Nonnull Set<Principal> principals,
                                   @Nonnull SecurityProvider securityProvider) {
         this.root = root;
-        this.workspaceName = checkNotNull(ImmutableRoot.getWorkspaceName(root));
+        this.workspaceName = root.getContentSession().getWorkspaceName();
         acConfig = securityProvider.getAccessControlConfiguration();
         if (principals.contains(SystemPrincipal.INSTANCE) || isAdmin(principals)) {
             compiledPermissions = AllPermissions.getInstance();
