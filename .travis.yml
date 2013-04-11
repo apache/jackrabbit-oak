@@ -19,4 +19,6 @@ jdk:
   - openjdk6
 notifications:
   email:
-    - oak-dev@jackrabbit.apache.org
+    recipients: oak-dev@jackrabbit.apache.org
+    on_success: change
+    on_failure: change
