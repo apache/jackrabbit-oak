@@ -83,9 +83,10 @@ public abstract class AbstractRebaseDiff implements NodeStateDiff {
      * exists already in the trunk.
      *
      * @param builder  parent builder
+     * @param before existing property
      * @param after  added property
      */
-    protected abstract void addExistingProperty(NodeBuilder builder, PropertyState after);
+    protected abstract void addExistingProperty(NodeBuilder builder, PropertyState before, PropertyState after);
 
     /**
      * Called when the property {@code after} was changed on the branch but was
@@ -130,9 +131,10 @@ public abstract class AbstractRebaseDiff implements NodeStateDiff {
      *
      * @param builder  parent builder
      * @param name  name of the added node
+     * @param before existing node
      * @param after  added added
      */
-    protected abstract void addExistingNode(NodeBuilder builder, String name, NodeState after);
+    protected abstract void addExistingNode(NodeBuilder builder, String name, NodeState before, NodeState after);
 
     /**
      * Called when the node {@code after} was changed on the branch but was
@@ -168,7 +170,7 @@ public abstract class AbstractRebaseDiff implements NodeStateDiff {
         if (other == null) {
             builder.setProperty(after);
         } else if (!other.equals(after)) {
-            addExistingProperty(builder, after);
+            addExistingProperty(builder, other, after);
         }
     }
 
@@ -199,7 +201,8 @@ public abstract class AbstractRebaseDiff implements NodeStateDiff {
     @Override
     public void childNodeAdded(String name, NodeState after) {
         if (builder.hasChildNode(name)) {
-            addExistingNode(builder, name, after);
+            NodeState other = builder.child(name).getNodeState();
+            addExistingNode(builder, name, other, after);
         } else {
             builder.setNode(name, after);
         }
