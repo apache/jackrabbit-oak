@@ -19,12 +19,16 @@ package org.apache.jackrabbit.oak;
 import javax.annotation.Nullable;
 import javax.jcr.Credentials;
 import javax.jcr.NoSuchWorkspaceException;
+import javax.jcr.RepositoryException;
 import javax.jcr.SimpleCredentials;
 import javax.jcr.security.AccessControlManager;
+import javax.jcr.security.Privilege;
 import javax.security.auth.login.Configuration;
 import javax.security.auth.login.LoginException;
 
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
+import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
+import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -50,6 +54,7 @@ public abstract class AbstractSecurityTest {
 
     private ContentRepository contentRepository;
     private UserManager userManager;
+    private PrivilegeManager privMgr;
 
     protected NamePathMapper namePathMapper = NamePathMapper.DEFAULT;
     protected SecurityProvider securityProvider;
@@ -99,6 +104,9 @@ public abstract class AbstractSecurityTest {
         return new SimpleCredentials(adminId, adminId.toCharArray());
     }
 
+    protected NamePathMapper getNamePathMapper() {
+        return namePathMapper;
+    }
 
     protected UserConfiguration getUserConfiguration() {
         return getSecurityProvider().getUserConfiguration();
@@ -110,6 +118,10 @@ public abstract class AbstractSecurityTest {
         }
         return userManager;
     }
+
+    protected PrincipalManager getPrincipalManager() {
+        return getSecurityProvider().getPrincipalConfiguration().getPrincipalManager(root, getNamePathMapper());
+    }
     
     protected JackrabbitAccessControlManager getAccessControlManager(Root root) {
         AccessControlManager acMgr = securityProvider.getAccessControlConfiguration().getAccessControlManager(root, NamePathMapper.DEFAULT);
@@ -118,5 +130,20 @@ public abstract class AbstractSecurityTest {
         } else {
             throw new UnsupportedOperationException("Expected JackrabbitAccessControlManager found " + acMgr.getClass());
         }
+    }
+
+    protected Privilege[] privilegesFromNames(String... privilegeNames) throws RepositoryException {
+        Privilege[] privs = new Privilege[privilegeNames.length];
+        for (int i = 0; i < privilegeNames.length; i++) {
+            privs[i] = getPrivilegeManager().getPrivilege(privilegeNames[i]);
+        }
+        return privs;
+    }
+
+    protected PrivilegeManager getPrivilegeManager() {
+        if (privMgr == null) {
+            privMgr = getSecurityProvider().getPrivilegeConfiguration().getPrivilegeManager(root, getNamePathMapper());
+        }
+        return privMgr;
     }
 }

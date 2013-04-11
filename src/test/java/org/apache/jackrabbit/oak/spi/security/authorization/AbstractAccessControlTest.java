@@ -17,14 +17,10 @@
 package org.apache.jackrabbit.oak.spi.security.authorization;
 
 import javax.jcr.NamespaceRegistry;
-import javax.jcr.security.Privilege;
 
-import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
-import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.name.ReadWriteNamespaceRegistry;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 
@@ -33,7 +29,6 @@ import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restrict
  */
 public abstract class AbstractAccessControlTest extends AbstractSecurityTest {
 
-    private PrivilegeManager privMgr;
     private RestrictionProvider restrictionProvider;
 
     protected void registerNamespace(String prefix, String uri) throws Exception {
@@ -51,33 +46,10 @@ public abstract class AbstractAccessControlTest extends AbstractSecurityTest {
         nsRegistry.registerNamespace(prefix, uri);
     }
 
-    protected NamePathMapper getNamePathMapper() {
-        return namePathMapper;
-    }
-
-    protected Privilege[] privilegesFromNames(String... privilegeNames) throws Exception {
-        Privilege[] privs = new Privilege[privilegeNames.length];
-        for (int i = 0; i < privilegeNames.length; i++) {
-            privs[i] = getPrivilegeManager().getPrivilege(privilegeNames[i]);
-        }
-        return privs;
-    }
-
     protected RestrictionProvider getRestrictionProvider() {
         if (restrictionProvider == null) {
             restrictionProvider = getSecurityProvider().getAccessControlConfiguration().getRestrictionProvider(getNamePathMapper());
         }
         return restrictionProvider;
-    }
-
-    protected PrincipalManager getPrincipalManager() {
-        return getSecurityProvider().getPrincipalConfiguration().getPrincipalManager(root, getNamePathMapper());
-    }
-
-    protected PrivilegeManager getPrivilegeManager() {
-        if (privMgr == null) {
-            privMgr = getSecurityProvider().getPrivilegeConfiguration().getPrivilegeManager(root, getNamePathMapper());
-        }
-        return privMgr;
     }
 }
