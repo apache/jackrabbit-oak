@@ -21,7 +21,8 @@ import static org.junit.Assert.fail;
 
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.blobs.MemoryBlobStore;
-import org.junit.Ignore;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import com.mongodb.DB;
@@ -119,7 +120,6 @@ public class ClusterTest {
     }
     
     @Test
-    @Ignore
     public void revisionVisibility() throws InterruptedException {
         MongoMK mk1 = createMK(1);
         MongoMK mk2 = createMK(2);
@@ -133,11 +133,22 @@ public class ClusterTest {
         assertEquals("{\"test\":{},\":childNodeCount\":1}", m1h);
         
         m2h = mk2.getNodes("/", mk2.getHeadRevision(), 0, 0, 2, null);
+        
         // not available yet...
         assertEquals("{\":childNodeCount\":0}", m2h);
+        m2h = mk2.getNodes("/test", mk2.getHeadRevision(), 0, 0, 2, null);
         
-        // the delay is 10 ms
-        Thread.sleep(100);
+        // the delay is 10 ms - wait at most 1000 millis
+        for (int i = 0; i < 100; i++) {
+            Thread.sleep(10);
+            if (mk1.getPendingWriteCount() > 0) {
+                continue;
+            }
+            if (mk2.isCached("/")) {
+                continue;
+            }
+            break;
+        }
         
         // so now it should be available
         m2h = mk2.getNodes("/", mk2.getHeadRevision(), 0, 0, 5, null);
@@ -168,12 +179,19 @@ public class ClusterTest {
         mk2.dispose();
     }
 
+    @Before
+    @After
+    public void clear() {
+        if (MONGO_DB) {
+            DB db = MongoUtils.getConnection().getDB();
+            MongoUtils.dropCollections(db);
+        }                    
+    }
 
     private MongoMK createMK(int clusterId) {
         MongoMK.Builder builder = new MongoMK.Builder();
         if (MONGO_DB) {
             DB db = MongoUtils.getConnection().getDB();
-            MongoUtils.dropCollections(db);
             builder.setMongoDB(db);
         } else {
             if (ds == null) {

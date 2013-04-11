@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.mongomk;
 
-import org.apache.jackrabbit.mongomk.impl.MongoConnection;
+import org.apache.jackrabbit.mongomk.util.MongoConnection;
 import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;

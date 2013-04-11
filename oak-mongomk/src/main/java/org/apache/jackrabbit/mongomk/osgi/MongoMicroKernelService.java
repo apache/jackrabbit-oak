@@ -27,8 +27,8 @@ import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.ConfigurationPolicy;
 import org.apache.felix.scr.annotations.Property;
 import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.mongomk.impl.MongoConnection;
 import org.apache.jackrabbit.mongomk.prototype.MongoMK;
+import org.apache.jackrabbit.mongomk.util.MongoConnection;
 import org.apache.sling.commons.osgi.PropertiesUtil;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
@@ -47,7 +47,7 @@ import com.mongodb.DB;
 public class MongoMicroKernelService {
 
     private static final String DEFAULT_HOST = "localhost";
-    private static final int DEFAULT_PORT= 27017;
+    private static final int DEFAULT_PORT = 27017;
     private static final String DEFAULT_DB = "oak";
 
     @Property(value = DEFAULT_HOST)
@@ -88,7 +88,7 @@ public class MongoMicroKernelService {
 
     @Deactivate
     private void deactivate() {
-        if (reg != null){
+        if (reg != null) {
             reg.unregister();
         }
 

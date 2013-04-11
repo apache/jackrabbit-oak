@@ -238,4 +238,9 @@ public class MemoryDocumentStore implements DocumentStore {
         // ignore
     }
 
+    @Override
+    public boolean isCached(Collection collection, String key) {
+        return false;
+    }
+
 }
