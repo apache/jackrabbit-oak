@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
 import javax.annotation.Nonnull;
@@ -51,8 +50,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 public class Jcr {
 
     private final Oak oak;
-
-    private ScheduledExecutorService executor = Executors.newScheduledThreadPool(0);
 
     private SecurityProvider securityProvider;
 
@@ -138,13 +135,15 @@ public class Jcr {
 
     @Nonnull
     public final Jcr with(@Nonnull ScheduledExecutorService executor) {
-        this.executor = checkNotNull(executor);
+        oak.with(checkNotNull(executor));
         return this;
     }
 
     public Repository createRepository() {
         return new RepositoryImpl(
-                oak.createContentRepository(), executor, securityProvider);
+                oak.createContentRepository(), 
+                oak.getExecutorService(), 
+                securityProvider);
     }
 
 }

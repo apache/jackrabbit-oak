@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.p2;
 
-import static org.apache.jackrabbit.oak.plugins.index.p2.Property2Index.TYPE;
-
 import java.util.List;
 
 import org.apache.felix.scr.annotations.Component;
@@ -38,6 +36,8 @@ import com.google.common.collect.ImmutableList;
 @Component
 @Service(IndexHookProvider.class)
 public class Property2IndexHookProvider implements IndexHookProvider {
+
+    public static final String TYPE = "p2";
 
     @Override
     public List<? extends IndexHook> getIndexHooks(String type,

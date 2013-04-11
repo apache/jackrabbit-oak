@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ScheduledExecutorService;
 
 import javax.annotation.Nonnull;
 import javax.jcr.NoSuchWorkspaceException;
@@ -57,6 +58,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Lists.newArrayList;
+import static java.util.concurrent.Executors.newScheduledThreadPool;
 
 /**
  * Builder class for constructing {@link ContentRepository} instances with
@@ -86,6 +88,8 @@ public class Oak {
     private List<EditorProvider> editorProviders = newArrayList();
 
     private SecurityProvider securityProvider;
+
+    private ScheduledExecutorService executor = newScheduledThreadPool(0);
 
     private String defaultWorkspaceName = DEFAULT_WORKSPACE_NAME;
 
@@ -224,6 +228,17 @@ public class Oak {
         withEditorHook();
         commitHooks.add(new ConflictHook(conflictHandler));
         return this;
+    }
+
+    @Nonnull
+    public Oak with(@Nonnull ScheduledExecutorService executorService) {
+        this.executor = executorService;
+        return this;
+    }
+
+    @Nonnull
+    public ScheduledExecutorService getExecutorService() {
+        return this.executor;
     }
 
     public ContentRepository createContentRepository() {
