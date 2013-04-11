@@ -20,6 +20,8 @@ package org.apache.jackrabbit.oak.security.authorization;
  
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.security.Principal;
@@ -41,6 +43,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class ShadowInvisibleContentTest extends AbstractSecurityTest {
@@ -61,7 +64,7 @@ public class ShadowInvisibleContentTest extends AbstractSecurityTest {
         NodeUtil b = a.addChild("b", NT_UNSTRUCTURED);
         b.setString("y", "yValue");
         NodeUtil c = b.addChild("c", NT_UNSTRUCTURED);
-        c.setString("propName3", "strValue");
+        c.setString("z", "zValue");
     }
      
     private void setupPermission(Principal principal, String path, boolean isAllow, String privilegeName)
@@ -87,8 +90,37 @@ public class ShadowInvisibleContentTest extends AbstractSecurityTest {
 
         Root root = getLatestRoot();
         Tree a = root.getTree("/a");
+
+        // /b not visible to this session
+        assertFalse(a.hasChild("b"));
+
+        // shadow /b with transient node of the same name
         Tree b = a.addChild("b");
+        assertTrue(a.hasChild("b"));
         assertFalse(b.hasChild("c"));
+
+        try {
+            root.commit();
+        } catch (CommitFailedException e) {
+            assertTrue(e.isAccessViolation());
+        }
+    }
+
+    @Test
+    @Ignore  // TODO incomplete implementation of PermissionValidator.childNodeChanged()
+    public void testShadowInvisibleProperty() throws CommitFailedException, RepositoryException, LoginException {
+        setupPermission(userPrincipal, "/a", true, PrivilegeConstants.JCR_ALL);
+        setupPermission(userPrincipal, "/a", false, PrivilegeConstants.REP_READ_PROPERTIES);
+
+        Root root = getLatestRoot();
+        Tree a = root.getTree("/a");
+
+        // /a/x not visible to this session
+        assertNull(a.getProperty("x"));
+
+        // shadow /a/x with transient property of the same name
+        a.setProperty("x", "xValue1");
+        assertNotNull(a.getProperty("x"));
 
         try {
             root.commit();
