@@ -20,9 +20,11 @@ import javax.annotation.Nullable;
 import javax.jcr.Credentials;
 import javax.jcr.NoSuchWorkspaceException;
 import javax.jcr.SimpleCredentials;
+import javax.jcr.security.AccessControlManager;
 import javax.security.auth.login.Configuration;
 import javax.security.auth.login.LoginException;
 
+import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -36,6 +38,7 @@ import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.ConfigurationUtil;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtility;
 import org.junit.After;
@@ -107,5 +110,15 @@ public abstract class AbstractSecurityTest {
             userManager = getUserConfiguration().getUserManager(root, namePathMapper);
         }
         return userManager;
+    }
+    
+    protected JackrabbitAccessControlManager getAccessControlManager(Root root) {
+        PermissionProvider pp = null; // TODO
+        AccessControlManager acMgr = securityProvider.getAccessControlConfiguration().getAccessControlManager(root, NamePathMapper.DEFAULT, pp);
+        if (acMgr instanceof JackrabbitAccessControlManager) {
+            return (JackrabbitAccessControlManager) acMgr;
+        } else {
+            throw new UnsupportedOperationException("Expected JackrabbitAccessControlManager found " + acMgr.getClass());
+        }
     }
 }
