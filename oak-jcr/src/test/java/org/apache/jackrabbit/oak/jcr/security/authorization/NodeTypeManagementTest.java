@@ -32,7 +32,7 @@ import org.junit.Test;
 /**
  * NodeTypeManagementTest... TODO
  */
-@Ignore("OAK-51")
+@Ignore("OAK-51 : permission validator doesn't detect changes to mixin/primary type")
 public class NodeTypeManagementTest extends AbstractEvaluationTest {
 
     private Node childNode;
@@ -82,6 +82,7 @@ public class NodeTypeManagementTest extends AbstractEvaluationTest {
         superuser.save();
     }
 
+    @Ignore("OAK-767 : Implement Node#removeMixin")
     @Test
     public void testRemoveMixin() throws Exception {
         ((Node) superuser.getItem(childNode.getPath())).addMixin(mixinName);
@@ -173,7 +174,7 @@ public class NodeTypeManagementTest extends AbstractEvaluationTest {
         Workspace wsp = testSession.getWorkspace();
         String parentPath = childNode.getParent().getPath();
         String srcPath = childNode.getPath();
-        String destPath = parentPath + '/' + nodeName3;
+        String destPath = parentPath + "/destination";
 
         try {
             wsp.copy(srcPath, destPath);
@@ -201,7 +202,7 @@ public class NodeTypeManagementTest extends AbstractEvaluationTest {
         Workspace wsp = testSession.getWorkspace();
         String parentPath = childNode.getParent().getPath();
         String srcPath = childNode.getPath();
-        String destPath = parentPath + '/' + nodeName3;
+        String destPath = parentPath + "/destination";
 
         try {
             wsp.move(srcPath, destPath);
@@ -228,7 +229,7 @@ public class NodeTypeManagementTest extends AbstractEvaluationTest {
     public void testSessionMove() throws Exception {
         String parentPath = childNode.getParent().getPath();
         String srcPath = childNode.getPath();
-        String destPath = parentPath + '/' + nodeName3;
+        String destPath = parentPath + "/destination";
 
         try {
             testSession.move(srcPath, destPath);
@@ -285,6 +286,7 @@ public class NodeTypeManagementTest extends AbstractEvaluationTest {
         testSession.save();
     }
 
+    @Ignore("OAK-773 : Workspace Import XML")
     @Test
     public void testWorkspaceImportXML() throws Exception {
         Workspace wsp = testSession.getWorkspace();
