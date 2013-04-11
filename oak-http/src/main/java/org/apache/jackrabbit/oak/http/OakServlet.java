@@ -79,6 +79,10 @@ public class OakServlet extends HttpServlet {
                 String tail = "";
                 Tree tree = root.getTree(head);
                 while (tree == null) {
+                    if (head.equals("/")) {
+                        response.sendError(HttpServletResponse.SC_NOT_FOUND);
+                        return;
+                    }
                     int slash = head.lastIndexOf('/');
                     tail = head.substring(slash) + tail;
                     head = head.substring(0, slash);
