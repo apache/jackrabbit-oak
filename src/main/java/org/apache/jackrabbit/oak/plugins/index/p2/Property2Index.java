@@ -80,8 +80,6 @@ import com.google.common.base.Charsets;
  */
 class Property2Index implements QueryIndex {
 
-    public static final String TYPE = "p2";
-
     // TODO the max string length should be removed, or made configurable
     private static final int MAX_STRING_LENGTH = 100; 
 
