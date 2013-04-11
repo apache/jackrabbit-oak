@@ -14,12 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mongomk.impl.blob;
+package org.apache.jackrabbit.mongomk.blob;
 
 import org.apache.jackrabbit.mk.blobs.AbstractBlobStore;
-import org.apache.jackrabbit.mk.blobs.BlobStore;
 import org.apache.jackrabbit.mk.util.StringUtils;
-import org.apache.jackrabbit.mongomk.impl.model.MongoBlob;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,14 +29,12 @@ import com.mongodb.QueryBuilder;
 import com.mongodb.WriteResult;
 
 /**
- * Implementation of {@link BlobStore} for the {@code MongoDB} extending from
- * {@link AbstractBlobStore}. Unlike {@link MongoGridFSBlobStore}, it saves blobs
- * into a separate collection in {@link MongoDB} instead of GridFS and it supports
- * basic garbage collection.
- *
- * FIXME:
- * -Do we need to create commands for retry etc.?
- * -Not sure if this is going to work for multiple MKs talking to same MongoDB?
+ * Implementation of blob store for the MongoDB extending from
+ * {@link AbstractBlobStore}. It saves blobs into a separate collection in
+ * MongoDB (not using GridFS) and it supports basic garbage collection.
+ * 
+ * FIXME: -Do we need to create commands for retry etc.? -Not sure if this is
+ * going to work for multiple MKs talking to same MongoDB?
  */
 public class MongoBlobStore extends AbstractBlobStore {
 
@@ -127,7 +123,7 @@ public class MongoBlobStore extends AbstractBlobStore {
 
         long countAfter = getBlobCollection().count(query);
         minLastModified = 0;
-        return (int)(countBefore - countAfter);
+        return (int) (countBefore - countAfter);
     }
 
     private DBCollection getBlobCollection() {
@@ -150,10 +146,10 @@ public class MongoBlobStore extends AbstractBlobStore {
 
     private MongoBlob getBlob(String id, long lastMod) {
         DBObject query = getBlobQuery(id, lastMod);
-        return (MongoBlob)getBlobCollection().findOne(query);
+        return (MongoBlob) getBlobCollection().findOne(query);
     }
 
-    private DBObject getBlobQuery(String id, long lastMod) {
+    private static DBObject getBlobQuery(String id, long lastMod) {
         QueryBuilder queryBuilder = new QueryBuilder();
         if (id != null) {
             queryBuilder = queryBuilder.and(MongoBlob.KEY_ID).is(id);
@@ -163,4 +159,5 @@ public class MongoBlobStore extends AbstractBlobStore {
         }
         return queryBuilder.get();
     }
+    
 }

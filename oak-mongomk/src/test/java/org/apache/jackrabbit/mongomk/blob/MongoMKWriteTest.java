@@ -14,60 +14,64 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mongomk.impl;
+package org.apache.jackrabbit.mongomk.blob;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayInputStream;
+import java.util.Arrays;
 
-import org.apache.jackrabbit.mongomk.BaseMongoMicroKernelTest;
+import org.apache.jackrabbit.mk.util.MicroKernelInputStream;
+import org.apache.jackrabbit.mongomk.AbstractMongoConnectionTest;
+import org.apache.jackrabbit.mongomk.prototype.MongoMK;
+import org.junit.Before;
 import org.junit.Test;
 
-/**
- * Tests for {@code MongoMicroKernel#getLength(String)}
- */
-public class MongoMKGetLengthGridFSTest extends BaseMongoMicroKernelTest {
+import com.mongodb.DB;
 
-    @Test
-    public void nonExistent() throws Exception {
-        try {
-            mk.getLength("nonExistentBlob");
-            fail("Exception expected");
-        } catch (Exception expected) {
-        }
+/**
+ * Tests for {@code MongoMicroKernel#write(java.io.InputStream)}
+ */
+public class MongoMKWriteTest extends AbstractMongoConnectionTest {
+
+    private MongoMK mk;
+
+    @Before
+    public void setUp() throws Exception {
+        DB db = mongoConnection.getDB();
+
+        mk = new MongoMK.Builder().setMongoDB(db).open();
     }
 
     @Test
     public void small() throws Exception {
-        getLength(1024);
+        write(1024);
     }
 
     @Test
     public void medium() throws Exception {
-        getLength(1024 * 1024);
+        write(1024 * 1024);
     }
 
     @Test
     public void large() throws Exception {
-        getLength(20 * 1024 * 1024);
+        write(20 * 1024 * 1024);
     }
 
-    private void getLength(int blobLength) throws Exception {
-        String blobId = createAndWriteBlob(blobLength);
-        long length = mk.getLength(blobId);
-        assertEquals(blobLength, length);
-    }
-
-    private String createAndWriteBlob(int blobLength) {
+    private void write(int blobLength) throws Exception {
         byte[] blob = createBlob(blobLength);
-        return mk.write(new ByteArrayInputStream(blob));
+        String blobId = mk.write(new ByteArrayInputStream(blob));
+        assertNotNull(blobId);
+
+        byte[] readBlob = MicroKernelInputStream.readFully(mk, blobId);
+        assertTrue(Arrays.equals(blob, readBlob));
     }
 
     private byte[] createBlob(int blobLength) {
         byte[] blob = new byte[blobLength];
         for (int i = 0; i < blob.length; i++) {
-            blob[i] = (byte)i;
+            blob[i] = (byte) i;
         }
         return blob;
     }

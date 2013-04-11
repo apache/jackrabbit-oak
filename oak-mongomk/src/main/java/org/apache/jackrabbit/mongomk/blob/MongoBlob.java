@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mongomk.impl.model;
+package org.apache.jackrabbit.mongomk.blob;
 
 import com.mongodb.BasicDBObject;
 
 /**
- * The {@code MongoDB} representation of a blob. Only used by {@link MongoBlobStore}
+ * The {@code MongoDB} representation of a blob. Only used by MongoBlobStore
  */
 public class MongoBlob extends BasicDBObject {
 
@@ -45,7 +45,7 @@ public class MongoBlob extends BasicDBObject {
     }
 
     public byte[] getData() {
-        return (byte[])get(KEY_DATA);
+        return (byte[]) get(KEY_DATA);
     }
 
     public void setData(byte[] data) {

@@ -14,16 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mongomk.impl;
+package org.apache.jackrabbit.mongomk.blob;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 import java.io.ByteArrayInputStream;
 
-import org.apache.jackrabbit.mk.blobs.BlobStore;
 import org.apache.jackrabbit.mongomk.AbstractMongoConnectionTest;
-import org.apache.jackrabbit.mongomk.impl.blob.MongoBlobStore;
 import org.apache.jackrabbit.mongomk.prototype.MongoMK;
 import org.junit.Before;
 import org.junit.Test;
@@ -50,6 +48,7 @@ public class MongoMKGetLengthTest extends AbstractMongoConnectionTest {
             mk.getLength("nonExistentBlob");
             fail("Exception expected");
         } catch (Exception expected) {
+            // expected
         }
     }
 
@@ -79,10 +78,10 @@ public class MongoMKGetLengthTest extends AbstractMongoConnectionTest {
         return mk.write(new ByteArrayInputStream(blob));
     }
 
-    private byte[] createBlob(int blobLength) {
+    private static byte[] createBlob(int blobLength) {
         byte[] blob = new byte[blobLength];
         for (int i = 0; i < blob.length; i++) {
-            blob[i] = (byte)i;
+            blob[i] = (byte) i;
         }
         return blob;
     }

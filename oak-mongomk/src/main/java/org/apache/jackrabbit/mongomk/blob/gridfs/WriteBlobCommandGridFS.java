@@ -14,14 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mongomk.impl.command.blob;
+package org.apache.jackrabbit.mongomk.blob.gridfs;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
 import org.apache.commons.codec.digest.DigestUtils;
-import org.apache.jackrabbit.mongomk.impl.command.BaseCommand;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.gridfs.GridFS;
@@ -67,7 +66,7 @@ public class WriteBlobCommandGridFS extends BaseCommand<String> {
         return gridFSInputFile.getMD5();
     }
 
-    private String calculateMd5(BufferedInputStream bis) throws IOException {
+    private static String calculateMd5(BufferedInputStream bis) throws IOException {
         bis.mark(Integer.MAX_VALUE);
         String md5 = DigestUtils.md5Hex(bis);
         bis.reset();

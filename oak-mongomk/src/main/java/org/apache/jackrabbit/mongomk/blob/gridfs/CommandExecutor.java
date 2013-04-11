@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mongomk.api.command;
+package org.apache.jackrabbit.mongomk.blob.gridfs;
 
 /**
  * The executor part of the <a href="http://en.wikipedia.org/wiki/Command_pattern">Command Pattern</a>.
