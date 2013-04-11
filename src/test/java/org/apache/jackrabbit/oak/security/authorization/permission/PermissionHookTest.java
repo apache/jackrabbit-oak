@@ -157,7 +157,7 @@ public class PermissionHookTest extends AbstractAccessControlTest implements Acc
 
     }
 
-    @Ignore("PermissionHook#propertyChange") // TODO
+    @Ignore("OAK-526 : PermissionHook#propertyChange") // TODO
     @Test
     public void testReorderAce() throws Exception {
         Tree entry = getEntry(testPrincipalName, testPath);
@@ -172,7 +172,7 @@ public class PermissionHookTest extends AbstractAccessControlTest implements Acc
         assertEquals(1, entry.getProperty(REP_INDEX).getValue(Type.LONG).longValue());
     }
 
-    @Ignore("PermissionHook#propertyChange") // TODO
+    @Ignore("OAK-526 : PermissionHook#propertyChange") // TODO
     @Test
     public void testReorderAndAddAce() throws Exception {
         Tree entry = getEntry(testPrincipalName, testPath);
