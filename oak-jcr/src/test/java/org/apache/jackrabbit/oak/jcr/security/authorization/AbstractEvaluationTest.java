@@ -24,6 +24,7 @@ import java.util.Set;
 import java.util.UUID;
 import javax.jcr.Credentials;
 import javax.jcr.Node;
+import javax.jcr.PathNotFoundException;
 import javax.jcr.Property;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -137,9 +138,11 @@ public abstract class AbstractEvaluationTest extends AbstractAccessControlTest {
             }
             superuser.refresh(false);
             for (String path : toClear) {
-                AccessControlPolicy[] policies = acMgr.getPolicies(path);
-                for (AccessControlPolicy policy : policies) {
-                    acMgr.removePolicy(path, policy);
+                if (superuser.nodeExists(path)) {
+                    AccessControlPolicy[] policies = acMgr.getPolicies(path);
+                    for (AccessControlPolicy policy : policies) {
+                        acMgr.removePolicy(path, policy);
+                    }
                 }
             }
             if (testGroup != null) {
@@ -191,6 +194,19 @@ public abstract class AbstractEvaluationTest extends AbstractAccessControlTest {
     protected void assertHasPrivilege(String path, String privName, boolean isAllow) throws Exception {
         Privilege[] privs = privilegesFromName(privName.toString());
         assertEquals(isAllow, testAcMgr.hasPrivileges(path, privs));
+    }
+
+    protected void assertHasPrivileges(String path, Privilege[] privileges, boolean isAllow) throws Exception {
+        if (testSession.nodeExists(path)) {
+            assertEquals(isAllow, testAcMgr.hasPrivileges(path, privileges));
+        } else {
+            try {
+                testAcMgr.hasPrivileges(path, privileges);
+                fail("PathNotFoundException expected");
+            } catch (PathNotFoundException e) {
+                // success
+            }
+        }
     }
 
     protected void assertReadOnly(String path) throws Exception {
