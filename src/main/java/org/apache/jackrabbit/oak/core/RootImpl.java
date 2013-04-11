@@ -18,19 +18,12 @@
  */
 package org.apache.jackrabbit.oak.core;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-
 import javax.annotation.Nonnull;
 import javax.security.auth.Subject;
 
@@ -66,6 +59,12 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
+
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 
 public class RootImpl implements Root {
 
@@ -153,24 +152,6 @@ public class RootImpl implements Root {
         // FIXME: define proper default or pass workspace name with the constructor
         this(store, hook, Oak.DEFAULT_WORKSPACE_NAME, SystemSubject.INSTANCE,
                 new OpenSecurityProvider(), new CompositeQueryIndexProvider());
-    }
-
-    /**
-     * Oak level variant of {@link org.apache.jackrabbit.oak.api.ContentSession#getLatestRoot()}
-     * to be used when no {@code ContentSession} is available.
-     *
-     * @return A new Root instance.
-     * @see org.apache.jackrabbit.oak.api.ContentSession#getLatestRoot()
-     */
-    public Root getLatest() {
-        checkLive();
-        RootImpl root = new RootImpl(store, hook, workspaceName, subject, securityProvider, indexProvider) {
-            @Override
-            protected void checkLive() {
-                RootImpl.this.checkLive();
-            }
-        };
-        return root;
     }
 
     /**
@@ -328,7 +309,7 @@ public class RootImpl implements Root {
     @Override
     public boolean hasPendingChanges() {
         checkLive();
-        return !getSecureBase().equals(getSecureRootState());
+        return !getSecureBase().equals(getRootState());
     }
 
     @Nonnull
@@ -414,11 +395,6 @@ public class RootImpl implements Root {
             modCount = 0;
             purgePendingChanges();
         }
-    }
-
-    @Nonnull
-    String getWorkspaceName() {
-        return workspaceName;
     }
 
     //------------------------------------------------------------< private >---

@@ -78,7 +78,7 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
 
         permissionRoot = getPermissionRoot(rootAfter);
         ntMgr = ReadOnlyNodeTypeManager.getInstance(before);
-        bitsProvider = new PrivilegeBitsProvider(new ImmutableRoot(before, workspaceName));
+        bitsProvider = new PrivilegeBitsProvider(new ImmutableRoot(before));
 
         after.compareAgainstBaseState(before, new Diff(new BeforeNode(before), new AfterNode(rootAfter)));
         return rootAfter.getNodeState();

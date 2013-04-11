@@ -52,7 +52,6 @@ import org.apache.jackrabbit.oak.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.AbstractAccessControlTest;
-import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.util.NodeUtil;
@@ -120,8 +119,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
     }
 
     private AccessControlManagerImpl getAccessControlManager(NamePathMapper npMapper) {
-        PermissionProvider pp = getSecurityProvider().getAccessControlConfiguration().getPermissionProvider(root, adminSession.getAuthInfo().getPrincipals());
-        return new AccessControlManagerImpl(root, npMapper, getSecurityProvider(), pp);
+        return new AccessControlManagerImpl(root, npMapper, getSecurityProvider());
     }
 
     private NamePathMapper getLocalNamePathMapper() {

@@ -25,12 +25,10 @@ import javax.security.auth.callback.NameCallback;
 import javax.security.auth.callback.PasswordCallback;
 import javax.security.auth.callback.UnsupportedCallbackException;
 
-import org.apache.jackrabbit.oak.spi.commit.CommitHook;
-import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
+import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.callback.CredentialsCallback;
 import org.apache.jackrabbit.oak.spi.security.authentication.callback.RepositoryCallback;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 /**
  * Default implementation of the {@link CallbackHandler} interface. It currently
@@ -47,19 +45,15 @@ public class CallbackHandlerImpl implements CallbackHandler {
 
     private final Credentials credentials;
     private final String workspaceName;
-    private final NodeStore nodeStore;
-    private final CommitHook commitHook;
-    private final QueryIndexProvider indexProvider;
+    private final ContentRepository contentRepository;
     private final SecurityProvider securityProvider;
 
     public CallbackHandlerImpl(Credentials credentials, String workspaceName,
-                               NodeStore nodeStore, CommitHook commitHook, QueryIndexProvider indexProvider,
+                               ContentRepository contentRepository,
                                SecurityProvider securityProvider) {
         this.credentials = credentials;
         this.workspaceName = workspaceName;
-        this.nodeStore = nodeStore;
-        this.commitHook = commitHook;
-        this.indexProvider = indexProvider;
+        this.contentRepository = contentRepository;
         this.securityProvider = securityProvider;
     }
 
@@ -75,10 +69,8 @@ public class CallbackHandlerImpl implements CallbackHandler {
                 ((PasswordCallback) callback).setPassword(getPassword());
             } else if (callback instanceof RepositoryCallback) {
                 RepositoryCallback repositoryCallback = (RepositoryCallback) callback;
-                repositoryCallback.setNodeStore(nodeStore);
+                repositoryCallback.setContentRepository(contentRepository);
                 repositoryCallback.setSecurityProvider(securityProvider);
-                repositoryCallback.setCommitHook(commitHook);
-                repositoryCallback.setIndexProvider(indexProvider);
                 repositoryCallback.setWorkspaceName(workspaceName);
             } else {
                 throw new UnsupportedCallbackException(callback);

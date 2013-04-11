@@ -18,12 +18,10 @@ package org.apache.jackrabbit.oak.spi.security.authentication;
 
 import javax.annotation.Nonnull;
 
+import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.spi.commit.CommitHook;
-import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenProvider;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 /**
  * AuthenticationConfiguration... TODO
@@ -35,7 +33,7 @@ public interface AuthenticationConfiguration extends SecurityConfiguration {
 
     // TODO review again
     @Nonnull
-    LoginContextProvider getLoginContextProvider(NodeStore nodeStore, CommitHook commitHook, QueryIndexProvider indexProvider);
+    LoginContextProvider getLoginContextProvider(ContentRepository contentRepository);
 
     @Nonnull
     TokenProvider getTokenProvider(Root root);

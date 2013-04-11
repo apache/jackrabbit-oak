@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.plugins.version;
 
 import java.util.Collections;
-import java.util.GregorianCalendar;
 import java.util.Iterator;
 import javax.annotation.Nonnull;
 
@@ -33,7 +32,6 @@ import org.apache.jackrabbit.oak.core.ImmutableRoot;
 import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
-import org.apache.jackrabbit.oak.plugins.value.Conversions;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.util.TODO;
 
@@ -83,7 +81,7 @@ class ReadWriteVersionManager extends ReadOnlyVersionManager {
     @Nonnull
     @Override
     protected Root getWorkspaceRoot() {
-        return new ImmutableRoot(workspaceRoot.getNodeState(), null);
+        return new ImmutableRoot(workspaceRoot.getNodeState());
     }
 
     @Nonnull
