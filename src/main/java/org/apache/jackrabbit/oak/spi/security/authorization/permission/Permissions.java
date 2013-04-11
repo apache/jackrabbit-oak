@@ -24,6 +24,7 @@ import java.util.Set;
 import javax.annotation.Nullable;
 import javax.jcr.Session;
 
+import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceConstants;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
@@ -177,11 +178,14 @@ public final class Permissions {
         return permissions & ~otherPermissions;
     }
 
-    public static long getPermissions(String jcrActions, TreeLocation location) {
+    public static long getPermissions(String jcrActions, TreeLocation location,
+                                      boolean isAccessControlContent) {
         Set<String> actions = new HashSet<String>(Arrays.asList(jcrActions.split(",")));
         int permissions = 0;
         if (actions.remove(Session.ACTION_READ)) {
-            if (!location.exists()) {
+            if (isAccessControlContent) {
+                permissions |= READ_ACCESS_CONTROL;
+            } else if (!location.exists()) {
                 permissions |= READ;
             } else if (location.getProperty() != null) {
                 permissions |= READ_PROPERTY;
@@ -189,23 +193,32 @@ public final class Permissions {
                 permissions |= READ_NODE;
             }
         }
-        if (actions.remove(Session.ACTION_ADD_NODE)) {
-            permissions |= ADD_NODE;
-        }
-        if (actions.remove(Session.ACTION_SET_PROPERTY)) {
-            if (location.getProperty() == null) {
-                permissions |= ADD_PROPERTY;
+
+        if (!actions.isEmpty()) {
+            if (isAccessControlContent) {
+                actions.removeAll(ImmutableSet.of(Session.ACTION_ADD_NODE,
+                        Session.ACTION_REMOVE, Session.ACTION_SET_PROPERTY));
+                permissions |= MODIFY_ACCESS_CONTROL;
             } else {
-                permissions |= MODIFY_PROPERTY;
-            }
-        }
-        if (actions.remove(Session.ACTION_REMOVE)) {
-            if (!location.exists()) {
-                permissions |= REMOVE;
-            } else if (location.getProperty() != null) {
-                permissions |= REMOVE_PROPERTY;
-            } else {
-                permissions |= REMOVE_NODE;
+                if (actions.remove(Session.ACTION_ADD_NODE)) {
+                    permissions |= ADD_NODE;
+                }
+                if (actions.remove(Session.ACTION_SET_PROPERTY)) {
+                    if (location.getProperty() == null) {
+                        permissions |= ADD_PROPERTY;
+                    } else {
+                        permissions |= MODIFY_PROPERTY;
+                    }
+                }
+                if (actions.remove(Session.ACTION_REMOVE)) {
+                    if (!location.exists()) {
+                        permissions |= REMOVE;
+                    } else if (location.getProperty() != null) {
+                        permissions |= REMOVE_PROPERTY;
+                    } else {
+                        permissions |= REMOVE_NODE;
+                    }
+                }
             }
         }
         if (!actions.isEmpty()) {

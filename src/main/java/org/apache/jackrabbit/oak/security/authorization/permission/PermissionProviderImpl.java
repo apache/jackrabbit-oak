@@ -148,7 +148,8 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
     @Override
     public boolean isGranted(@Nonnull String oakPath, @Nonnull String jcrActions) {
         TreeLocation location = getImmutableRoot().getLocation(oakPath);
-        long permissions = Permissions.getPermissions(jcrActions, location);
+        boolean isAcContent = acConfig.getContext().definesLocation(location);
+        long permissions = Permissions.getPermissions(jcrActions, location, isAcContent);
         if (!location.exists()) {
             // TODO: deal with version content
             return compiledPermissions.isGranted(oakPath, permissions);
