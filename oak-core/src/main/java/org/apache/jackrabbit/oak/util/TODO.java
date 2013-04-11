@@ -71,6 +71,17 @@ public class TODO {
         }
     }
 
+    public <T> T returnValueOrNull(T value) {
+        if (strict) {
+            return null;
+        } else {
+            if (log) {
+                logger.warn(message, exception);
+            }
+            return value;
+        }
+    }
+
     public void doNothing() throws UnsupportedRepositoryOperationException {
         if (strict) {
             throw exception();
