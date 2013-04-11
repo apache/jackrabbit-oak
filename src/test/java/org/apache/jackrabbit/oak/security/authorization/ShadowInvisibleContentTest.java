@@ -129,4 +129,27 @@ public class ShadowInvisibleContentTest extends AbstractSecurityTest {
         }
     }
 
+    @Test
+    @Ignore // FIXME how do we handle the case where the shadowing item is the same as the shadowing item?
+    public void testShadowInvisibleProperty2() throws CommitFailedException, RepositoryException, LoginException {
+        setupPermission(userPrincipal, "/a", true, PrivilegeConstants.JCR_ALL);
+        setupPermission(userPrincipal, "/a", false, PrivilegeConstants.REP_READ_PROPERTIES);
+
+        Root root = getLatestRoot();
+        Tree a = root.getTree("/a");
+
+        // /a/x not visible to this session
+        assertNull(a.getProperty("x"));
+
+        // shadow /a/x with transient property of the same name
+        a.setProperty("x", "xValue");
+        assertNotNull(a.getProperty("x"));
+
+        try {
+            root.commit();
+        } catch (CommitFailedException e) {
+            assertTrue(e.isAccessViolation());
+        }
+    }
+
 }
