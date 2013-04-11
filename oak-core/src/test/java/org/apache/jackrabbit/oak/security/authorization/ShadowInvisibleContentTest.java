@@ -18,14 +18,7 @@
  */
 package org.apache.jackrabbit.oak.security.authorization;
  
-import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-
 import java.security.Principal;
-
 import javax.jcr.NoSuchWorkspaceException;
 import javax.jcr.RepositoryException;
 import javax.jcr.SimpleCredentials;
@@ -46,8 +39,15 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+
 public class ShadowInvisibleContentTest extends AbstractSecurityTest {
-	private static final String USER_ID = "test";
+
+    private static final String USER_ID = "test";
 
 	private Principal userPrincipal;
   
@@ -72,7 +72,7 @@ public class ShadowInvisibleContentTest extends AbstractSecurityTest {
 
         AccessControlManager acMgr = getAccessControlManager(root);
         JackrabbitAccessControlList acl = AccessControlUtils.getAccessControlList(acMgr, path);
-        acl.addEntry(principal,AccessControlUtils.privilegesFromNames(acMgr, privilegeName) , isAllow);
+        acl.addEntry(principal, privilegesFromNames(privilegeName) , isAllow);
         acMgr.setPolicy(path, acl);
         root.commit();
     }
