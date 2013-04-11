@@ -39,6 +39,7 @@ import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
+import org.apache.jackrabbit.oak.util.TODO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -242,7 +243,8 @@ class ChangeProcessor implements Runnable {
             String jcrPath = namePathMapper.getJcrPath(PathUtils.concat(parentPath, property.getName()));
 
             // TODO support userId, identifier, info, date
-            return new EventImpl(eventType, jcrPath, null, null, null, 0);
+            String userId = TODO.dummyImplementation().returnValueOrNull("oak:unknown");
+            return new EventImpl(eventType, jcrPath, userId, null, null, 0);
         }
 
         private Iterator<Event> generateNodeEvents(int eventType, String parentPath, String name, NodeState node) {
@@ -254,7 +256,8 @@ class ChangeProcessor implements Runnable {
             Iterator<Event> nodeEvent;
             if (filter.include(eventType, jcrParentPath, associatedParentNode)) {
                 // TODO support userId, identifier, info, date
-                Event event = new EventImpl(eventType, jcrPath, null, null, null, 0);
+                String userId = TODO.dummyImplementation().returnValueOrNull("oak:unknown");
+                Event event = new EventImpl(eventType, jcrPath, userId, null, null, 0);
                 nodeEvent = Iterators.singletonIterator(event);
             } else {
                 nodeEvent = Iterators.emptyIterator();
