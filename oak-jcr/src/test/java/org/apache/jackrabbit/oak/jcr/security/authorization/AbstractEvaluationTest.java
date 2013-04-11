@@ -22,6 +22,8 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.jcr.Credentials;
 import javax.jcr.Node;
 import javax.jcr.PathNotFoundException;
@@ -138,7 +140,7 @@ public abstract class AbstractEvaluationTest extends AbstractAccessControlTest {
             }
             superuser.refresh(false);
             for (String path : toClear) {
-                if (superuser.nodeExists(path)) {
+                if (path != null && superuser.nodeExists(path)) {
                     AccessControlPolicy[] policies = acMgr.getPolicies(path);
                     for (AccessControlPolicy policy : policies) {
                         acMgr.removePolicy(path, policy);
@@ -191,12 +193,14 @@ public abstract class AbstractEvaluationTest extends AbstractAccessControlTest {
         return Collections.singletonMap("rep:glob", testSession.getValueFactory().createValue(value));
     }
 
-    protected void assertHasPrivilege(String path, String privName, boolean isAllow) throws Exception {
+    protected void assertHasPrivilege(@Nullable String path,
+                                      @Nonnull String privName, boolean isAllow) throws Exception {
         Privilege[] privs = privilegesFromName(privName.toString());
         assertEquals(isAllow, testAcMgr.hasPrivileges(path, privs));
     }
 
-    protected void assertHasPrivileges(String path, Privilege[] privileges, boolean isAllow) throws Exception {
+    protected void assertHasPrivileges(@Nullable String path,
+                                       @Nonnull Privilege[] privileges, boolean isAllow) throws Exception {
         if (testSession.nodeExists(path)) {
             assertEquals(isAllow, testAcMgr.hasPrivileges(path, privileges));
         } else {
@@ -214,7 +218,8 @@ public abstract class AbstractEvaluationTest extends AbstractAccessControlTest {
         assertArrayEquals(privilegesFromName(Privilege.JCR_READ), privs);
     }
 
-    protected JackrabbitAccessControlList modify(String path, String privilege, boolean isAllow) throws Exception {
+    protected JackrabbitAccessControlList modify(@Nullable String path,
+                                                 @Nonnull String privilege, boolean isAllow) throws Exception {
         return modify(path, testUser.getPrincipal(), privilegesFromName(privilege), isAllow, EMPTY_RESTRICTIONS);
     }
 
@@ -231,12 +236,14 @@ public abstract class AbstractEvaluationTest extends AbstractAccessControlTest {
         return tmpl;
     }
 
-    protected JackrabbitAccessControlList allow(String nPath, Privilege[] privileges)
+    protected JackrabbitAccessControlList allow(@Nullable String nPath,
+                                                @Nonnull Privilege[] privileges)
             throws Exception {
         return modify(nPath, testUser.getPrincipal(), privileges, true, EMPTY_RESTRICTIONS);
     }
 
-    protected JackrabbitAccessControlList allow(String nPath, Privilege[] privileges,
+    protected JackrabbitAccessControlList allow(@Nullable String nPath,
+                                                @Nonnull Privilege[] privileges,
                                                 Map<String, Value> restrictions)
             throws Exception {
         return modify(nPath, testUser.getPrincipal(), privileges, true, restrictions);
