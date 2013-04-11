@@ -16,21 +16,21 @@
  */
 package org.apache.jackrabbit.oak.kernel;
 
-import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.mk.api.MicroKernelException;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.spi.commit.CommitHook;
-import org.apache.jackrabbit.oak.spi.state.AbstractNodeStoreBranch;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.RebaseDiff;
-
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
+
+import org.apache.jackrabbit.mk.api.MicroKernel;
+import org.apache.jackrabbit.mk.api.MicroKernelException;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.spi.commit.CommitHook;
+import org.apache.jackrabbit.oak.spi.state.AbstractNodeStoreBranch;
+import org.apache.jackrabbit.oak.spi.state.ConflictAnnotatingRebaseDiff;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
  * {@code NodeStoreBranch} based on {@link MicroKernel} branching and merging.
@@ -190,7 +190,7 @@ class KernelNodeStoreBranch extends AbstractNodeStoreBranch {
             // Nothing written to persistent branch yet
             // perform rebase in memory
             NodeBuilder builder = root.builder();
-            getHead().compareAgainstBaseState(getBase(), new RebaseDiff(builder));
+            getHead().compareAgainstBaseState(getBase(), new ConflictAnnotatingRebaseDiff(builder));
             head = builder.getNodeState();
             base = root;
             baseRevision = root.getRevision();

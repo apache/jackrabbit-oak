@@ -19,84 +19,75 @@
 
 package org.apache.jackrabbit.oak.core;
 
-import javax.jcr.UnsupportedRepositoryOperationException;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.AbstractRebaseDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.util.TODO;
 
 /**
- * FIXME rename, document
+ * This implementation of {@code RebaseDiff} implements a
+ * {@link org.apache.jackrabbit.oak.spi.state.NodeStateDiff},
+ * which handled conflicts by giving precedence to our changes.
+ * I.e. the changes in the {@code after} node state.
  */
-class PurgeRebaseDiff extends AbstractRebaseDiff {
-    private PurgeRebaseDiff(NodeBuilder builder) {
+class OurChangesRebaseDiff extends AbstractRebaseDiff {
+    private OurChangesRebaseDiff(NodeBuilder builder) {
         super(builder);
     }
 
     public static NodeState rebase(NodeState before, NodeState after, NodeBuilder builder) {
-        after.compareAgainstBaseState(before, new PurgeRebaseDiff(builder));
+        after.compareAgainstBaseState(before, new OurChangesRebaseDiff(builder));
         return builder.getNodeState();
     }
 
     @Override
-    protected PurgeRebaseDiff createDiff(NodeBuilder builder, String name) {
-        return new PurgeRebaseDiff(builder.child(name));
+    protected OurChangesRebaseDiff createDiff(NodeBuilder builder, String name) {
+        return new OurChangesRebaseDiff(builder.child(name));
     }
 
     @Override
     protected void addExistingProperty(NodeBuilder builder, PropertyState after) {
-        conflict();
+        builder.setProperty(after);
     }
 
     @Override
     protected void changeDeletedProperty(NodeBuilder builder, PropertyState after) {
-        conflict();
+        builder.setProperty(after);
     }
 
     @Override
     protected void changeChangedProperty(NodeBuilder builder, PropertyState before, PropertyState after) {
-        conflict();
+        builder.setProperty(after);
     }
 
     @Override
     protected void deleteDeletedProperty(NodeBuilder builder, PropertyState before) {
-        conflict();
+        // ignore
     }
 
     @Override
     protected void deleteChangedProperty(NodeBuilder builder, PropertyState before) {
-        conflict();
+        builder.removeProperty(before.getName());
     }
 
     @Override
     protected void addExistingNode(NodeBuilder builder, String name, NodeState after) {
-        conflict();
+        builder.setNode(name, after);
     }
 
     @Override
     protected void changeDeletedNode(NodeBuilder builder, String name, NodeState after) {
-        conflict();
+        builder.setNode(name, after);
     }
 
     @Override
     protected void deleteDeletedNode(NodeBuilder builder, String name, NodeState before) {
-        conflict();
+        // ignore
     }
 
     @Override
     protected void deleteChangedNode(NodeBuilder builder, String name, NodeState before) {
-        conflict();
+        builder.removeNode(name);
     }
 
-    private static void conflict() {
-        // FIXME correctly handle conflict cases
-        try {
-            TODO.unimplemented().doNothing();
-        }
-        catch (UnsupportedRepositoryOperationException e) {
-            throw new IllegalStateException(e);
-        }
-    }
 }
