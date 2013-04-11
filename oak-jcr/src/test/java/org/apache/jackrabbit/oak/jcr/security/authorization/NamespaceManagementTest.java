@@ -26,14 +26,14 @@ import javax.jcr.security.AccessControlPolicy;
 
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
- * NamespaceManagementTest... TODO
+ * Permission evaluation tests related to {@link #JCR_NAMESPACE_MANAGEMENT} privilege.
  */
 public class NamespaceManagementTest extends AbstractEvaluationTest {
 
+    // TODO: replace with JCR privilege constant (JSR-333)
     private static final String JCR_NAMESPACE_MANAGEMENT = "jcr:namespaceManagement";
 
     @Override

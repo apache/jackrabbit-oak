@@ -27,11 +27,13 @@ import org.junit.Before;
 import org.junit.Test;
 
 /**
- * NodeTypeDefinitionManagementTest... TODO
+ * Permission evaluation tests related to {@link #JCR_NODE_TYPE_DEFINITION_MANAGEMENT} privilege.
  */
 public class NodeTypeDefinitionManagementTest extends AbstractEvaluationTest {
 
+    // TODO: replace with JCR privilege constant (JSR-333)
     private static final String JCR_NODE_TYPE_DEFINITION_MANAGEMENT = "jcr:nodeTypeDefinitionManagement";
+
     @Override
     @Before
     protected void setUp() throws Exception {

@@ -27,7 +27,7 @@ import org.junit.Test;
 import static org.junit.Assert.assertArrayEquals;
 
 /**
- * ReadTest... TODO
+ * Permission evaluation tests related to {@link javax.jcr.security.Privilege#JCR_READ} privilege.
  */
 public class ReadTest extends AbstractEvaluationTest {
 

@@ -30,7 +30,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 /**
- * InheritanceTest... TODO
+ * Permission evaluation tests focusing on inheritance.
  */
 public class InheritanceTest extends AbstractEvaluationTest {
 

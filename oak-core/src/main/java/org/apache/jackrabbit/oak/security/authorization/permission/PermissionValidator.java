@@ -46,8 +46,8 @@ import static org.apache.jackrabbit.oak.api.CommitFailedException.ACCESS;
 class PermissionValidator extends DefaultValidator {
 
     /* TODO
-     * - Renaming nodes or Move with same parent are reflected as remove+add -> needs special handling
-     * - Proper handling of jcr:nodeTypeManagement privilege.
+     * - OAK-710: Renaming nodes or Move with same parent are reflected as remove+add -> needs special handling
+     * - OAK-711: Proper handling of jcr:nodeTypeManagement privilege.
      */
 
     private final Tree parentBefore;
@@ -209,7 +209,7 @@ class PermissionValidator extends DefaultValidator {
         } else if (provider.getUserContext().definesTree(tree)) {
             perm = Permissions.USER_MANAGEMENT;
         } else {
-            // FIXME: identify renaming/move of nodes that only required MODIFY_CHILD_NODE_COLLECTION permission
+            // FIXME: OAK-710 (identify renaming/move of nodes that only required MODIFY_CHILD_NODE_COLLECTION permission)
             perm = defaultPermission;
         }
         return perm;
@@ -222,7 +222,7 @@ class PermissionValidator extends DefaultValidator {
         String name = propertyState.getName();
         long perm;
         if (JcrConstants.JCR_PRIMARYTYPE.equals(name) || JcrConstants.JCR_MIXINTYPES.equals(name)) {
-            // FIXME: distinguish between autocreated and user-supplied modification (?)
+            // FIXME: OAK-711 (distinguish between autocreated and user-supplied modification (?))
             // perm = Permissions.NODE_TYPE_MANAGEMENT;
             perm = defaultPermission;
         } else if (isLockProperty(name)) {

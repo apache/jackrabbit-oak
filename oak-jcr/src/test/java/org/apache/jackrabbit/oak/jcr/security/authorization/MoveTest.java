@@ -25,9 +25,9 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 /**
- * MoveTest... TODO
+ * Permission evaluation tests for move operations.
  */
-@Ignore("OAK-51 : permission validator doesn't detect move")
+@Ignore("OAK-710 : permission validator doesn't detect move")
 public class MoveTest extends AbstractEvaluationTest {
 
     private String nodePath3;

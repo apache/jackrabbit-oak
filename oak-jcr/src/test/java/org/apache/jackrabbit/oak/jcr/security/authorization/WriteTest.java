@@ -33,7 +33,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 /**
- * WriteTest... TODO
+ * Permission evaluation tests related to write operations.
  */
 public class WriteTest extends AbstractEvaluationTest {
 

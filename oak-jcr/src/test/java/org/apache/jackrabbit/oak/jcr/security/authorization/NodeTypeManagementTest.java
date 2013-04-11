@@ -30,9 +30,9 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 /**
- * NodeTypeManagementTest... TODO
+ * Permission evaluation tests related to {@link Privilege#JCR_NODE_TYPE_MANAGEMENT} privilege.
  */
-@Ignore("OAK-51 : permission validator doesn't detect changes to mixin/primary type")
+@Ignore("OAK-711 : permission validator doesn't detect changes to mixin/primary type")
 public class NodeTypeManagementTest extends AbstractEvaluationTest {
 
     private Node childNode;
