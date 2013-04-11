@@ -14,10 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mongomk.impl.command;
+package org.apache.jackrabbit.mongomk.blob.gridfs;
 
-import org.apache.jackrabbit.mongomk.api.command.Command;
-import org.apache.jackrabbit.mongomk.api.command.CommandExecutor;
 
 /**
  * Implementation of the {@link CommandExecutor} interface.

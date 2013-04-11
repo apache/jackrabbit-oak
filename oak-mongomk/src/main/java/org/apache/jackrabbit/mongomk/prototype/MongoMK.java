@@ -44,7 +44,7 @@ import org.apache.jackrabbit.mk.json.JsopReader;
 import org.apache.jackrabbit.mk.json.JsopStream;
 import org.apache.jackrabbit.mk.json.JsopTokenizer;
 import org.apache.jackrabbit.mk.json.JsopWriter;
-import org.apache.jackrabbit.mongomk.impl.blob.MongoBlobStore;
+import org.apache.jackrabbit.mongomk.blob.MongoBlobStore;
 import org.apache.jackrabbit.mongomk.prototype.DocumentStore.Collection;
 import org.apache.jackrabbit.mongomk.prototype.Node.Children;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -160,6 +160,8 @@ public class MongoMK implements MicroKernel {
     /**
      * Maps branch commit revision to revision it is based on
      */
+    // TODO at some point, open (unmerged) branches 
+    // need to be garbage collected (in-memory and on disk)
     private final Map<Revision, Revision> branchCommits
             = new ConcurrentHashMap<Revision, Revision>();
     

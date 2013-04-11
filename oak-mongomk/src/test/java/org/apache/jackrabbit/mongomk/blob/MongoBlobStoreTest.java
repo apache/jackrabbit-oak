@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mk.blobs;
+package org.apache.jackrabbit.mongomk.blob;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -32,8 +32,9 @@ import java.util.HashMap;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.jackrabbit.mk.blobs.AbstractBlobStore;
+import org.apache.jackrabbit.mk.blobs.BlobStoreInputStream;
 import org.apache.jackrabbit.mongomk.AbstractMongoConnectionTest;
-import org.apache.jackrabbit.mongomk.impl.blob.MongoBlobStore;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -153,12 +154,6 @@ public class MongoBlobStoreTest extends AbstractMongoConnectionTest {
         } catch (Exception e) {
             // expected
         }
-        try {
-            store.mark("ff");
-            fail();
-        } catch (Exception e) {
-            // expected
-        }
     }
 
     @Test
@@ -211,7 +206,8 @@ public class MongoBlobStoreTest extends AbstractMongoConnectionTest {
             if (d[0] != 0) {
                 continue;
             }
-            store.mark(id);
+            // this should mark the id
+            store.getBlobLength(id);
         }
         count = store.sweep();
 

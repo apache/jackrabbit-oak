@@ -14,24 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mongomk.impl.blob;
+package org.apache.jackrabbit.mongomk.blob.gridfs;
 
 import java.io.InputStream;
 
 import org.apache.jackrabbit.mk.blobs.BlobStore;
-import org.apache.jackrabbit.mongomk.api.command.Command;
-import org.apache.jackrabbit.mongomk.api.command.CommandExecutor;
-import org.apache.jackrabbit.mongomk.impl.command.DefaultCommandExecutor;
-import org.apache.jackrabbit.mongomk.impl.command.blob.GetBlobLengthCommandGridFS;
-import org.apache.jackrabbit.mongomk.impl.command.blob.ReadBlobCommandGridFS;
-import org.apache.jackrabbit.mongomk.impl.command.blob.WriteBlobCommandGridFS;
 
 import com.mongodb.DB;
 import com.mongodb.gridfs.GridFS;
 
 /**
- * Implementation of {@link BlobStore} for the {@code MongoDB} using GridFS. It
- * does not support garbage collection at the moment.
+ * Implementation of {@link BlobStore} for MongoDB using GridFS. It does not
+ * support garbage collection at the moment.
  */
 public class MongoGridFSBlobStore implements BlobStore {
 
@@ -66,4 +60,5 @@ public class MongoGridFSBlobStore implements BlobStore {
         Command<String> command = new WriteBlobCommandGridFS(gridFS, is);
         return commandExecutor.execute(command);
     }
+    
 }

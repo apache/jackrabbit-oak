@@ -14,58 +14,60 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mongomk.impl;
+package org.apache.jackrabbit.mongomk.blob;
 
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 import java.io.ByteArrayInputStream;
-import java.util.Arrays;
 
 import org.apache.jackrabbit.mongomk.BaseMongoMicroKernelTest;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
- * Tests for {@code MongoMicroKernel#write(java.io.InputStream)}
+ * Tests for {@code MongoMicroKernel#getLength(String)}
  */
-public class MongoMKWriteGridFSTest extends BaseMongoMicroKernelTest {
+public class MongoMKGetLengthGridFSTest extends BaseMongoMicroKernelTest {
+
+    @Test
+    public void nonExistent() throws Exception {
+        try {
+            mk.getLength("nonExistentBlob");
+            fail("Exception expected");
+        } catch (Exception expected) {
+        }
+    }
 
     @Test
     public void small() throws Exception {
-        write(1024);
+        getLength(1024);
     }
 
     @Test
     public void medium() throws Exception {
-        write(1024 * 1024);
+        getLength(1024 * 1024);
     }
 
     @Test
-    @Ignore
     public void large() throws Exception {
-        write(20 * 1024 * 1024);
+        getLength(20 * 1024 * 1024);
     }
 
-    private void write(int blobLength) throws Exception {
-        byte[] blob = createBlob(blobLength);
-        String blobId = mk.write(new ByteArrayInputStream(blob));
-        assertNotNull(blobId);
+    private void getLength(int blobLength) throws Exception {
+        String blobId = createAndWriteBlob(blobLength);
+        long length = mk.getLength(blobId);
+        assertEquals(blobLength, length);
+    }
 
-        byte[] readBlob = new byte[blobLength];
-        mk.read(blobId, 0, readBlob, 0, readBlob.length);
-        for (int i = 0; i < blob.length; i++) {
-            if (blob[i] != readBlob[i]) {
-                System.out.println(i + " " + blob[i] + "==>" + readBlob[i]);
-            }
-        }
-        assertTrue(Arrays.equals(blob, readBlob));
+    private String createAndWriteBlob(int blobLength) {
+        byte[] blob = createBlob(blobLength);
+        return mk.write(new ByteArrayInputStream(blob));
     }
 
     private byte[] createBlob(int blobLength) {
         byte[] blob = new byte[blobLength];
         for (int i = 0; i < blob.length; i++) {
-            blob[i] = (byte) i;
+            blob[i] = (byte)i;
         }
         return blob;
     }

@@ -14,53 +14,69 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mongomk.impl;
+package org.apache.jackrabbit.mongomk.blob;
 
 import java.io.ByteArrayInputStream;
 import java.util.Arrays;
 
 import junit.framework.Assert;
 
-import org.apache.jackrabbit.mongomk.BaseMongoMicroKernelTest;
-import org.junit.Ignore;
+import org.apache.jackrabbit.mk.util.MicroKernelInputStream;
+import org.apache.jackrabbit.mongomk.AbstractMongoConnectionTest;
+import org.apache.jackrabbit.mongomk.prototype.MongoMK;
+import org.junit.Before;
 import org.junit.Test;
+
+import com.mongodb.DB;
 
 /**
  * Tests for {@code MongoMicroKernel#read(String, long, byte[], int, int)}
  */
-public class MongoMKReadGridFSTest extends BaseMongoMicroKernelTest {
+public class MongoMKReadTest extends AbstractMongoConnectionTest {
 
+    private MongoMK mk;
     private byte[] blob;
     private String blobId;
 
+    @Before
+    public void setUp() throws Exception {
+        DB db = mongoConnection.getDB();
+
+        mk = new MongoMK.Builder().setMongoDB(db).open();
+    }
+
     @Test
     public void small() throws Exception {
-        read(1024);
+        read(1024, false);
     }
 
     @Test
     public void medium() throws Exception {
-        read(1024 * 1024);
+        read(1024 * 1024, false);
     }
 
     @Test
-    @Ignore    
     public void large() throws Exception {
-        read(20 * 1024 * 1024);
+        // Skip range tests for large blobs for now as it's complicated with
+        // block size.
+        read(20 * 1024 * 1024, true);
     }
 
-    private void read(int blobLength) throws Exception {
+    private void read(int blobLength, boolean skipRangeTests) throws Exception {
         createAndWriteBlob(blobLength);
 
         // Complete read.
-        byte[] buffer = new byte[blob.length];
-        int totalBytes = mk.read(blobId, 0, buffer, 0, blob.length);
-        Assert.assertEquals(blob.length, totalBytes);
+        byte[] buffer = MicroKernelInputStream.readFully(mk, blobId);
+        Assert.assertEquals(blob.length, buffer.length);
         Assert.assertTrue(Arrays.equals(blob, buffer));
+
+        if (skipRangeTests) {
+            return;
+        }
 
         // Range end from end.
         buffer = new byte[blob.length / 2];
-        totalBytes = mk.read(blobId, (blob.length / 2) - 1, buffer, 0, blob.length / 2);
+        int totalBytes = mk.read(blobId, (blob.length / 2) - 1, buffer, 0, blob.length / 2);
         Assert.assertEquals(blob.length / 2, totalBytes);
         for (int i = 0; i < buffer.length; i++) {
             Assert.assertEquals(blob[((blob.length / 2) - 1) + i], buffer[i]);
@@ -78,7 +94,7 @@ public class MongoMKReadGridFSTest extends BaseMongoMicroKernelTest {
     private void createAndWriteBlob(int blobLength) throws Exception {
         blob = new byte[blobLength];
         for (int i = 0; i < blob.length; i++) {
-            blob[i] = (byte)i;
+            blob[i] = (byte)1;
         }
         blobId = mk.write(new ByteArrayInputStream(blob));
     }

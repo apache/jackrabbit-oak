@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mongomk.impl;
+package org.apache.jackrabbit.mongomk.blob;
 
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -22,27 +22,14 @@ import static org.junit.Assert.assertTrue;
 import java.io.ByteArrayInputStream;
 import java.util.Arrays;
 
-import org.apache.jackrabbit.mk.util.MicroKernelInputStream;
-import org.apache.jackrabbit.mongomk.AbstractMongoConnectionTest;
-import org.apache.jackrabbit.mongomk.prototype.MongoMK;
-import org.junit.Before;
+import org.apache.jackrabbit.mongomk.BaseMongoMicroKernelTest;
+import org.junit.Ignore;
 import org.junit.Test;
-
-import com.mongodb.DB;
 
 /**
  * Tests for {@code MongoMicroKernel#write(java.io.InputStream)}
  */
-public class MongoMKWriteTest extends AbstractMongoConnectionTest {
-
-    private MongoMK mk;
-
-    @Before
-    public void setUp() throws Exception {
-        DB db = mongoConnection.getDB();
-
-        mk = new MongoMK.Builder().setMongoDB(db).open();
-    }
+public class MongoMKWriteGridFSTest extends BaseMongoMicroKernelTest {
 
     @Test
     public void small() throws Exception {
@@ -55,6 +42,7 @@ public class MongoMKWriteTest extends AbstractMongoConnectionTest {
     }
 
     @Test
+    @Ignore
     public void large() throws Exception {
         write(20 * 1024 * 1024);
     }
@@ -64,7 +52,13 @@ public class MongoMKWriteTest extends AbstractMongoConnectionTest {
         String blobId = mk.write(new ByteArrayInputStream(blob));
         assertNotNull(blobId);
 
-        byte[] readBlob = MicroKernelInputStream.readFully(mk, blobId);
+        byte[] readBlob = new byte[blobLength];
+        mk.read(blobId, 0, readBlob, 0, readBlob.length);
+        for (int i = 0; i < blob.length; i++) {
+            if (blob[i] != readBlob[i]) {
+                System.out.println(i + " " + blob[i] + "==>" + readBlob[i]);
+            }
+        }
         assertTrue(Arrays.equals(blob, readBlob));
     }
 
