@@ -60,7 +60,7 @@ public class MongoDocumentStore implements DocumentStore {
      */
     private long timeSum;
     
-    private final Cache<String, CachedDocument> cache;
+    private final Cache<String, CachedDocument> nodesCache;
 
     public MongoDocumentStore(DB db) {
         nodes = db.getCollection(
@@ -77,7 +77,7 @@ public class MongoDocumentStore implements DocumentStore {
         // nodesCollection.ensureIndex(index, options);
 
         // TODO expire entries if the parent was changed
-        cache = CacheBuilder.newBuilder()
+        nodesCache = CacheBuilder.newBuilder()
                 .maximumSize(MongoMK.CACHE_DOCUMENTS)
                 .build();
         
@@ -102,7 +102,7 @@ public class MongoDocumentStore implements DocumentStore {
     
     @Override
     public void invalidateCache() {
-        cache.invalidateAll();
+        nodesCache.invalidateAll();
     }
 
     public Map<String, Object> find(Collection collection, String key) {
@@ -111,10 +111,13 @@ public class MongoDocumentStore implements DocumentStore {
     
     @Override
     public Map<String, Object> find(final Collection collection, final String key, int maxCacheAge) {
+        if (collection != Collection.NODES) {
+            return findUncached(collection, key);
+        }
         try {
             CachedDocument doc;
             while (true) {
-                doc = cache.get(key, new Callable<CachedDocument>() {
+                doc = nodesCache.get(key, new Callable<CachedDocument>() {
                     @Override
                     public CachedDocument call() throws Exception {
                         Map<String, Object> map = findUncached(collection, key);
@@ -128,7 +131,7 @@ public class MongoDocumentStore implements DocumentStore {
                     break;
                 }
                 // too old: invalidate, try again
-                cache.invalidate(key);
+                nodesCache.invalidate(key);
             }
             return doc.value;
         } catch (ExecutionException e) {
@@ -167,8 +170,10 @@ public class MongoDocumentStore implements DocumentStore {
             for (int i = 0; i < limit && cursor.hasNext(); i++) {
                 DBObject o = cursor.next();
                 Map<String, Object> map = convertFromDBObject(o);
-                String key = (String) map.get(UpdateOp.ID);
-                cache.put(key, new CachedDocument(map));
+                if (collection == Collection.NODES) {
+                    String key = (String) map.get(UpdateOp.ID);
+                    nodesCache.put(key, new CachedDocument(map));
+                }
                 list.add(map);
             }
             return list;
@@ -183,7 +188,9 @@ public class MongoDocumentStore implements DocumentStore {
         DBCollection dbCollection = getDBCollection(collection);
         long start = start();
         try {
-            cache.invalidate(key);
+            if (collection == Collection.NODES) {
+                nodesCache.invalidate(key);
+            }
             WriteResult writeResult = dbCollection.remove(getByKeyQuery(key), WriteConcern.SAFE);
             if (writeResult.getError() != null) {
                 throw new MicroKernelException("Remove failed: " + writeResult.getError());
@@ -261,11 +268,13 @@ public class MongoDocumentStore implements DocumentStore {
             Map<String, Object> map = convertFromDBObject(oldNode);
             
             // cache the new document
-            Map<String, Object> newMap = Utils.newMap();
-            Utils.deepCopyMap(map, newMap);
-            String key = updateOp.getKey();
-            MemoryDocumentStore.applyChanges(newMap, updateOp);
-            cache.put(key, new CachedDocument(newMap));
+            if (collection == Collection.NODES) {
+                Map<String, Object> newMap = Utils.newMap();
+                Utils.deepCopyMap(map, newMap);
+                String key = updateOp.getKey();
+                MemoryDocumentStore.applyChanges(newMap, updateOp);
+                nodesCache.put(key, new CachedDocument(newMap));
+            }
             
             log("createOrUpdate returns ", map);
             return map;
@@ -322,9 +331,11 @@ public class MongoDocumentStore implements DocumentStore {
                 if (writeResult.getError() != null) {
                     return false;
                 }
-                for (Map<String, Object> map : maps) {
-                    String id = (String) map.get(UpdateOp.ID);
-                    cache.put(id, new CachedDocument(map));
+                if (collection == Collection.NODES) {
+                    for (Map<String, Object> map : maps) {
+                        String id = (String) map.get(UpdateOp.ID);
+                        nodesCache.put(id, new CachedDocument(map));
+                    }
                 }
                 return true;
             } catch (MongoException e) {
@@ -394,6 +405,14 @@ public class MongoDocumentStore implements DocumentStore {
         CachedDocument(Map<String, Object> value) {
             this.value = value;
         }
+    }
+
+    @Override
+    public boolean isCached(Collection collection, String key) {
+        if (collection != Collection.NODES) {
+            return false;
+        }
+        return nodesCache.getIfPresent(key) != null;
     }
 
 }

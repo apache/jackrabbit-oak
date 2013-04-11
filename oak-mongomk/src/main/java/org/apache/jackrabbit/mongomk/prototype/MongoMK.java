@@ -45,6 +45,7 @@ import org.apache.jackrabbit.mk.json.JsopStream;
 import org.apache.jackrabbit.mk.json.JsopTokenizer;
 import org.apache.jackrabbit.mk.json.JsopWriter;
 import org.apache.jackrabbit.mongomk.impl.blob.MongoBlobStore;
+import org.apache.jackrabbit.mongomk.prototype.DocumentStore.Collection;
 import org.apache.jackrabbit.mongomk.prototype.Node.Children;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.slf4j.Logger;
@@ -1369,6 +1370,14 @@ public class MongoMK implements MicroKernel {
 
     public ClusterNodeInfo getClusterInfo() {
         return clusterNodeInfo;
+    }
+
+    public int getPendingWriteCount() {
+        return unsavedLastRevisions.size();
+    }
+
+    public boolean isCached(String path) {
+        return store.isCached(Collection.NODES, Utils.getIdFromPath(path));
     }
 
 }

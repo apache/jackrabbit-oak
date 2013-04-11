@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mongomk.impl;
+package org.apache.jackrabbit.mongomk.util;
 
 import com.mongodb.DB;
 import com.mongodb.Mongo;

@@ -146,4 +146,13 @@ public interface DocumentStore {
      */
     void dispose();
 
+    /**
+     * Check whether the given document is in the cache.
+     * 
+     * @param collection the collection
+     * @param key the key
+     * @return true if yes
+     */
+    boolean isCached(Collection collection, String key);
+
 }

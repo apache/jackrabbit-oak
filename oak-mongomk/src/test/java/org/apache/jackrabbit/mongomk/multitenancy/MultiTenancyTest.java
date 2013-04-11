@@ -22,8 +22,8 @@ import static org.junit.Assert.assertTrue;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mongomk.AbstractMongoConnectionTest;
-import org.apache.jackrabbit.mongomk.impl.MongoConnection;
 import org.apache.jackrabbit.mongomk.prototype.MongoMK;
+import org.apache.jackrabbit.mongomk.util.MongoConnection;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;

@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.mongomk.prototype;
 
-import org.apache.jackrabbit.mongomk.impl.MongoConnection;
+import org.apache.jackrabbit.mongomk.util.MongoConnection;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
