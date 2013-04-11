@@ -31,7 +31,7 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 
 /**
- * TestACL... TODO
+ * Test implementation of AbstractAccessControlList
  */
 public final class TestACL extends AbstractAccessControlList {
 
