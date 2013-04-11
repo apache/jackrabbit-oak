@@ -198,7 +198,6 @@ public class ReadTest extends AbstractEvaluationTest {
         assertTrue(testSession.nodeExists(path));
     }
 
-    @Ignore("OAK-51") // FIXME
     @Test
     public void testAllowEveryoneDenyGroup() throws Exception {
         /*
@@ -229,7 +228,6 @@ public class ReadTest extends AbstractEvaluationTest {
         assertTrue(testSession.nodeExists(childNPath));
     }
 
-    @Ignore("OAK-51") // FIXME
     @Test
     public void testAllowEveryonePathDenyGroupChildPath() throws Exception {
         /*

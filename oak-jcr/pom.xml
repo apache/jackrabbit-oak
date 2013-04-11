@@ -260,9 +260,7 @@
       org.apache.jackrabbit.oak.jcr.version.VersionHistoryTest#testGetVersionHistoryAfterMove            <!-- OAK-602 -->
 
       org.apache.jackrabbit.oak.jcr.security.authorization.AccessControlManagementTest#testRemoveMixin       <!-- OAK-767 -->
-      org.apache.jackrabbit.oak.jcr.security.authorization.ReadTest#testReadDenied                           <!-- OAK-51 -->
-      org.apache.jackrabbit.oak.jcr.security.authorization.ReadTest#testAllowEveryoneDenyGroup               <!-- OAK-51 -->
-      org.apache.jackrabbit.oak.jcr.security.authorization.ReadTest#testAllowEveryonePathDenyGroupChildPath  <!-- OAK-51 -->
+      org.apache.jackrabbit.oak.jcr.security.authorization.ReadTest#testReadDenied                           <!-- OAK-766 -->
     </known.issues>
   </properties>
 

@@ -93,6 +93,10 @@ public abstract class AbstractEvaluationTest extends AbstractAccessControlTest {
         creds = new SimpleCredentials(uid, uid.toCharArray());
         testUser = uMgr.createUser(uid, uid);
 
+        UserManager umgr = getUserManager(superuser);
+        testGroup = umgr.createGroup("testGroup" + UUID.randomUUID());
+        testGroup.addMember(testUser);
+
         // create some nodes below the test root in order to apply ac-stuff
         Node node = testRootNode.addNode(nodeName1, testNodeType);
         Node cn1 = node.addNode(nodeName2, testNodeType);
@@ -170,12 +174,6 @@ public abstract class AbstractEvaluationTest extends AbstractAccessControlTest {
     }
 
     protected Group getTestGroup() throws Exception {
-        if (testGroup == null) {
-            UserManager umgr = getUserManager(superuser);
-            testGroup = umgr.createGroup("testGroup" + UUID.randomUUID());
-            testGroup.addMember(testUser);
-            superuser.save();
-        }
         return testGroup;
     }
 
