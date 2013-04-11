@@ -209,7 +209,7 @@ class PermissionValidator extends DefaultValidator {
         } else if (provider.getUserContext().definesTree(tree)) {
             perm = Permissions.USER_MANAGEMENT;
         } else {
-            // TODO: identify renaming/move of nodes that only required MODIFY_CHILD_NODE_COLLECTION permission
+            // FIXME: identify renaming/move of nodes that only required MODIFY_CHILD_NODE_COLLECTION permission
             perm = defaultPermission;
         }
         return perm;
