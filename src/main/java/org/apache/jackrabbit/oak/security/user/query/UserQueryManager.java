@@ -45,9 +45,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * UserQueryManager... TODO
- * <p/>
- * TODO OAK-253: replace usage of XPATH
+ * Query manager for user specific searches.
  */
 public class UserQueryManager {
 

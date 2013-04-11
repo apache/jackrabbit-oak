@@ -27,7 +27,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * GroupPredicate... TODO
+ * Predicate used to filter authorizables based on their group membership.
  */
 class GroupPredicate implements Predicate<Authorizable> {
 
