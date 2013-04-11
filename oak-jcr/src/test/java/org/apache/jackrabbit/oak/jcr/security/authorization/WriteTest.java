@@ -25,7 +25,6 @@ import javax.jcr.Session;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.Privilege;
 
-import org.apache.jackrabbit.api.JackrabbitNode;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
@@ -377,35 +376,6 @@ public class WriteTest extends AbstractEvaluationTest {
         // -> reorder must now succeed
         allow(path, privilegesFromName(Privilege.JCR_REMOVE_CHILD_NODES));
         n.orderBefore(Text.getName(childNPath), Text.getName(childNPath2));
-        testSession.save();
-    }
-
-    @Test
-    public void testRename() throws Exception {
-        Node child = testSession.getNode(childNPath);
-        try {
-            ((JackrabbitNode) child).rename("rename");
-            testSession.save();
-            fail("test session must not be allowed to rename nodes.");
-        } catch (AccessDeniedException e) {
-            // success.
-        }
-
-        // give 'add_child_nodes' and 'nt-management' privilege
-        // -> not sufficient privileges for a renaming of the child
-        allow(path, privilegesFromNames(new String[] {Privilege.JCR_ADD_CHILD_NODES, Privilege.JCR_NODE_TYPE_MANAGEMENT}));
-        try {
-            ((JackrabbitNode) child).rename("rename");
-            testSession.save();
-            fail("test session must not be allowed to rename nodes.");
-        } catch (AccessDeniedException e) {
-            // success.
-        }
-
-        // add 'remove_child_nodes' at 'path
-        // -> rename of child must now succeed
-        allow(path, privilegesFromName(Privilege.JCR_REMOVE_CHILD_NODES));
-        ((JackrabbitNode) child).rename("rename");
         testSession.save();
     }
 
