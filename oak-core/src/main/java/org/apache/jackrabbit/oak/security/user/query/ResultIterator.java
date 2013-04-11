@@ -24,8 +24,6 @@ import java.util.NoSuchElementException;
  * element from an underlying iterator starting at a given offset.
  *
  * @param <T> element type of the query results
- *
- * TODO move to query-commons ?
  */
 public final class ResultIterator<T> implements Iterator<T> {
 
