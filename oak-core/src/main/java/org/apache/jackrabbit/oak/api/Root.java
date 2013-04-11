@@ -144,4 +144,14 @@ public interface Root {
      */
     @Nonnull
     BlobFactory getBlobFactory();
+    
+    /**
+     * Get the {@code ContentSession} from which this root was acquired
+     * 
+     * @return the associated ContentSession
+     * 
+     * @throws UnsupportedOperationException
+     */
+    @Nonnull
+    ContentSession getContentSession();
 }

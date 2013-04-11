@@ -38,6 +38,7 @@ import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.BlobFactory;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -184,6 +185,12 @@ public class RootImpl implements Root {
     }
 
     //---------------------------------------------------------------< Root >---
+    
+	@Override
+	public ContentSession getContentSession() {
+		throw new UnsupportedOperationException();
+	}
+    
     @Override
     public boolean move(String sourcePath, String destPath) {
         checkLive();
