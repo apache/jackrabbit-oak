@@ -35,7 +35,6 @@ import com.google.common.collect.ImmutableList;
  * PropertyIndex instance, which is used for all indexes.
  * 
  * @see Property2Index
- * 
  */
 @Component
 @Service(QueryIndexProvider.class)
