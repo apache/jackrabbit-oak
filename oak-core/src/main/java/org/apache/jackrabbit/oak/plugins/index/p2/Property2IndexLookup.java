@@ -20,6 +20,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DECLARING_N
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.PROPERTY_NAMES;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.p2.Property2IndexHookProvider.TYPE;
 
 import java.util.Iterator;
 import java.util.List;
@@ -53,7 +54,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * </pre>
  */
 public class Property2IndexLookup {
-    
+
     private static final int MAX_COST = 100;
 
     private final IndexStoreStrategy store = new ContentMirrorStoreStrategy();
@@ -131,7 +132,7 @@ public class Property2IndexLookup {
         for (ChildNodeEntry entry : state.getChildNodeEntries()) {
             NodeState ns = entry.getNodeState();
             PropertyState type = ns.getProperty(TYPE_PROPERTY_NAME);
-            if (type == null || type.isArray() || !Property2Index.TYPE.equals(type.getValue(Type.STRING))) {
+            if (type == null || type.isArray() || !TYPE.equals(type.getValue(Type.STRING))) {
                 continue;
             }
             if (containsValue(ns.getProperty(PROPERTY_NAMES), propertyName)) {
