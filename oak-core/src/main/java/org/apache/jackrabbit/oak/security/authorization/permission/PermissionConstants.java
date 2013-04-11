@@ -22,25 +22,15 @@ import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.JcrConstants;
 
 /**
- * PermissionConstants... TODO
+ * Implementation specific constants related to permission evaluation.
+ *
+ * @since OAK 1.0
  */
 public interface PermissionConstants {
 
-    /**
-     * @since OAK 1.0
-     */
     String NT_REP_PERMISSIONS = "rep:Permissions";
-    /**
-     * @since OAK 1.0
-     */
     String NT_REP_PERMISSION_STORE = "rep:PermissionStore";
-    /**
-     * @since OAK 1.0
-     */
     String REP_PERMISSION_STORE = "rep:permissionStore";
-    /**
-     * @since OAK 1.0
-     */
     String PERMISSIONS_STORE_PATH = '/' + JcrConstants.JCR_SYSTEM + '/' + REP_PERMISSION_STORE;
 
     String REP_ACCESS_CONTROLLED_PATH = "rep:accessControlledPath";
