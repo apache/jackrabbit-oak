@@ -17,7 +17,7 @@
 package org.apache.jackrabbit.mk.test;
 
 import org.apache.jackrabbit.mk.blobs.BlobStore;
-import org.apache.jackrabbit.mongomk.impl.blob.MongoGridFSBlobStore;
+import org.apache.jackrabbit.mongomk.blob.gridfs.MongoGridFSBlobStore;
 
 import com.mongodb.DB;
 
