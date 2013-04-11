@@ -70,13 +70,13 @@ public class ClusterTest {
         mk1.commit("/", "+\"regular\": {}", null, null);
         String b1 = mk1.branch(null);
         String b2 = mk1.branch(null);
-        mk1.commit("/", "+\"branchVisible\": {}", b1, null);
-        mk1.commit("/", "+\"branchInvisible\": {}", b2, null);
+        b1 = mk1.commit("/", "+\"branchVisible\": {}", b1, null);
+        b2 = mk1.commit("/", "+\"branchInvisible\": {}", b2, null);
         mk1.merge(b1, null);
         
         MongoMK mk2 = createMK(0);
         String nodes = mk2.getNodes("/", null, 0, 0, 100, null);
-        assertEquals("{\"branchVisible\":{},\"regular\":{},\":childNodeCount\":3}", nodes);
+        assertEquals("{\"branchVisible\":{},\"regular\":{},\":childNodeCount\":2}", nodes);
         
         mk1.dispose();
         mk2.dispose();
