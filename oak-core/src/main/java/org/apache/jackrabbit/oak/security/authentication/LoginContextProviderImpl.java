@@ -25,14 +25,12 @@ import javax.security.auth.callback.CallbackHandler;
 import javax.security.auth.login.Configuration;
 import javax.security.auth.login.LoginException;
 
-import org.apache.jackrabbit.oak.spi.commit.CommitHook;
-import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
+import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.JaasLoginContext;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginContext;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginContextProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.PreAuthContext;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,19 +43,15 @@ public class LoginContextProviderImpl implements LoginContextProvider {
 
     private final String appName;
     private final Configuration configuration;
-    private final NodeStore nodeStore;
-    private final CommitHook commitHook;
-    private final QueryIndexProvider indexProvider;
+    private final ContentRepository contentRepository;
     private final SecurityProvider securityProvider;
 
     public LoginContextProviderImpl(String appName, Configuration configuration,
-                                    NodeStore nodeStore, CommitHook commitHook, QueryIndexProvider indexProvider,
+                                    ContentRepository contentRepository,
                                     SecurityProvider securityProvider) {
         this.appName = appName;
         this.configuration = configuration;
-        this.nodeStore = nodeStore;
-        this.commitHook = commitHook;
-        this.indexProvider = indexProvider;
+        this.contentRepository = contentRepository;
         this.securityProvider = securityProvider;
     }
 
@@ -92,6 +86,6 @@ public class LoginContextProviderImpl implements LoginContextProvider {
 
     @Nonnull
     private CallbackHandler getCallbackHandler(Credentials credentials, String workspaceName) {
-        return new CallbackHandlerImpl(credentials, workspaceName, nodeStore, commitHook, indexProvider, securityProvider);
+        return new CallbackHandlerImpl(credentials, workspaceName, contentRepository, securityProvider);
     }
 }

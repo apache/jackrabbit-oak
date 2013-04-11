@@ -17,20 +17,15 @@
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
 import java.security.AccessController;
-import java.security.Principal;
-import java.util.Collections;
-import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.security.auth.Subject;
 
-import org.apache.jackrabbit.oak.core.ImmutableRoot;
 import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.core.TreeTypeProviderImpl;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
-import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -40,21 +35,19 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 public class PermissionValidatorProvider extends ValidatorProvider {
 
     private final SecurityProvider securityProvider;
-    private final String workspaceName;
 
     private Context acCtx;
     private Context userCtx;
 
-    public PermissionValidatorProvider(SecurityProvider securityProvider, String workspaceName) {
+    public PermissionValidatorProvider(SecurityProvider securityProvider) {
         this.securityProvider = securityProvider;
-        this.workspaceName = workspaceName;
     }
 
     //--------------------------------------------------< ValidatorProvider >---
     @Nonnull
     @Override
     public Validator getRootValidator(NodeState before, NodeState after) {
-        PermissionProvider pp = getPermissionProvider(before);
+        PermissionProvider pp = getPermissionProvider();
         return new PermissionValidator(createTree(before), createTree(after), pp, this);
     }
 
@@ -78,12 +71,10 @@ public class PermissionValidatorProvider extends ValidatorProvider {
         return new ImmutableTree(root, new TreeTypeProviderImpl(getAccessControlContext()));
     }
 
-    private PermissionProvider getPermissionProvider(NodeState before) {
+    private PermissionProvider getPermissionProvider() {
         Subject subject = Subject.getSubject(AccessController.getContext());
         if (subject == null || subject.getPublicCredentials(PermissionProvider.class).isEmpty()) {
-            Set<Principal> principals = (subject != null) ? subject.getPrincipals() : Collections.<Principal>emptySet();
-            AccessControlConfiguration acConfig = securityProvider.getAccessControlConfiguration();
-            return acConfig.getPermissionProvider(new ImmutableRoot(createTree(before), workspaceName), principals);
+            throw new IllegalStateException("Unable to validate permissions; no permission provider associated with the commit call.");
         } else {
             return subject.getPublicCredentials(PermissionProvider.class).iterator().next();
         }

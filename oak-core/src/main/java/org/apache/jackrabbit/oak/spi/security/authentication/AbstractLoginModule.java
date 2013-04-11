@@ -18,12 +18,15 @@ package org.apache.jackrabbit.oak.spi.security.authentication;
 
 import java.io.IOException;
 import java.security.Principal;
+import java.security.PrivilegedActionException;
+import java.security.PrivilegedExceptionAction;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.Credentials;
+import javax.jcr.NoSuchWorkspaceException;
 import javax.security.auth.Subject;
 import javax.security.auth.callback.Callback;
 import javax.security.auth.callback.CallbackHandler;
@@ -32,8 +35,11 @@ import javax.security.auth.login.LoginException;
 import javax.security.auth.spi.LoginModule;
 
 import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.oak.api.ContentRepository;
+import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.security.authentication.SystemSubject;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.callback.CredentialsCallback;
@@ -153,6 +159,8 @@ public abstract class AbstractLoginModule implements LoginModule {
     protected ConfigurationParameters options;
 
     private SecurityProvider securityProvider;
+
+    private ContentSession systemSession;
     private Root root;
 
     //--------------------------------------------------------< LoginModule >---
@@ -192,6 +200,13 @@ public abstract class AbstractLoginModule implements LoginModule {
     protected void clearState() {
         securityProvider = null;
         root = null;
+        if (systemSession != null) {
+            try {
+                systemSession.close();
+            } catch (IOException e) {
+                log.debug(e.getMessage());
+            }
+        }
     }
 
     /**
@@ -321,13 +336,23 @@ public abstract class AbstractLoginModule implements LoginModule {
     @CheckForNull
     protected Root getRoot() {
         if (root == null && callbackHandler != null) {
-            RepositoryCallback rcb = new RepositoryCallback();
             try {
+                final RepositoryCallback rcb = new RepositoryCallback();
                 callbackHandler.handle(new Callback[]{rcb});
-                root = rcb.getRoot();
+
+                final ContentRepository repository = rcb.getContentRepository();
+                systemSession = Subject.doAs(SystemSubject.INSTANCE, new PrivilegedExceptionAction<ContentSession>() {
+                    @Override
+                    public ContentSession run() throws LoginException, NoSuchWorkspaceException {
+                        return repository.login(null, rcb.getWorkspaceName());
+                    }
+                });
+                root = systemSession.getLatestRoot();
             } catch (UnsupportedCallbackException e) {
                 log.debug(e.getMessage());
             } catch (IOException e) {
+                log.debug(e.getMessage());
+            } catch (PrivilegedActionException e){
                 log.debug(e.getMessage());
             }
         }

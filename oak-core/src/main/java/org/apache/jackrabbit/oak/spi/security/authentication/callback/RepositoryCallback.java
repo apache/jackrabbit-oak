@@ -19,26 +19,19 @@ package org.apache.jackrabbit.oak.spi.security.authentication.callback;
 import javax.annotation.CheckForNull;
 import javax.security.auth.callback.Callback;
 
-import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.core.RootImpl;
-import org.apache.jackrabbit.oak.security.authentication.SystemSubject;
-import org.apache.jackrabbit.oak.spi.commit.CommitHook;
-import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
+import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
 /**
  * Callback implementation used to access the repository. It allows to set and
- * get the {@code NodeStore} and the name of the workspace for which the login
- * applies. In addition it provides access to a {@link Root} object based on
- * the given node store and workspace name.
+ * get the {@code ContentRepository} and the name of the workspace for which
+ * the login applies. In addition it provides access to a {@link SecurityProvider}
+ * associated with the content repository.
  */
 public class RepositoryCallback implements Callback {
 
-    private NodeStore nodeStore;
-    private CommitHook commitHook;
+    private ContentRepository contentRepository;
     private SecurityProvider securityProvider;
-    private QueryIndexProvider indexProvider;
     private String workspaceName;
 
     @CheckForNull
@@ -46,12 +39,17 @@ public class RepositoryCallback implements Callback {
         return workspaceName;
     }
 
+    public void setWorkspaceName(String workspaceName) {
+        this.workspaceName = workspaceName;
+    }
+
     @CheckForNull
-    public Root getRoot() {
-        if (nodeStore != null) {
-            return new RootImpl(nodeStore, commitHook, workspaceName, SystemSubject.INSTANCE, securityProvider, indexProvider);
-        }
-        return null;
+    public ContentRepository getContentRepository() {
+        return contentRepository;
+    }
+
+    public void setContentRepository(ContentRepository contentRepository) {
+        this.contentRepository = contentRepository;
     }
 
     @CheckForNull
@@ -59,24 +57,7 @@ public class RepositoryCallback implements Callback {
         return securityProvider;
     }
 
-    public void setNodeStore(NodeStore nodeStore) {
-        this.nodeStore = nodeStore;
-    }
-
-    public void setCommitHook(CommitHook commitHook) {
-        this.commitHook = commitHook;
-    }
-
     public void setSecurityProvider(SecurityProvider securityProvider) {
         this.securityProvider = securityProvider;
     }
-
-    public void setIndexProvider(QueryIndexProvider indexProvider) {
-        this.indexProvider = indexProvider;
-    }
-
-    public void setWorkspaceName(String workspaceName) {
-        this.workspaceName = workspaceName;
-    }
-
 }

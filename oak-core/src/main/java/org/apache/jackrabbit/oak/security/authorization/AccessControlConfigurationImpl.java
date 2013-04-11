@@ -79,8 +79,8 @@ public class AccessControlConfigurationImpl extends SecurityConfiguration.Defaul
     public List<ValidatorProvider> getValidators(String workspaceName) {
         return ImmutableList.of(
                 new PermissionStoreValidatorProvider(),
-                new PermissionValidatorProvider(securityProvider, workspaceName),
-                new AccessControlValidatorProvider(securityProvider, workspaceName));
+                new PermissionValidatorProvider(securityProvider),
+                new AccessControlValidatorProvider(securityProvider));
     }
 
     @Nonnull
@@ -91,8 +91,8 @@ public class AccessControlConfigurationImpl extends SecurityConfiguration.Defaul
 
     //-----------------------------------------< AccessControlConfiguration >---
     @Override
-    public AccessControlManager getAccessControlManager(Root root, NamePathMapper namePathMapper, PermissionProvider permissionProvider) {
-        return new AccessControlManagerImpl(root, namePathMapper, securityProvider, permissionProvider);
+    public AccessControlManager getAccessControlManager(Root root, NamePathMapper namePathMapper) {
+        return new AccessControlManagerImpl(root, namePathMapper, securityProvider);
     }
 
     @Nonnull

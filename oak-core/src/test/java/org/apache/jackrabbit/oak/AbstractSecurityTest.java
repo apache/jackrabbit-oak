@@ -38,7 +38,6 @@ import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.ConfigurationUtil;
-import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtility;
 import org.junit.After;
@@ -113,8 +112,7 @@ public abstract class AbstractSecurityTest {
     }
     
     protected JackrabbitAccessControlManager getAccessControlManager(Root root) {
-        PermissionProvider pp = null; // TODO
-        AccessControlManager acMgr = securityProvider.getAccessControlConfiguration().getAccessControlManager(root, NamePathMapper.DEFAULT, pp);
+        AccessControlManager acMgr = securityProvider.getAccessControlConfiguration().getAccessControlManager(root, NamePathMapper.DEFAULT);
         if (acMgr instanceof JackrabbitAccessControlManager) {
             return (JackrabbitAccessControlManager) acMgr;
         } else {
