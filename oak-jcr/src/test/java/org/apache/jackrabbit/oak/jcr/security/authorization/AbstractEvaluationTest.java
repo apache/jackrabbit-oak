@@ -117,7 +117,7 @@ public abstract class AbstractEvaluationTest extends AbstractAccessControlTest {
         AccessControlUtils.addAccessControlEntry(superuser, "/", EveryonePrincipal.getInstance(), privilegesFromName(Privilege.JCR_READ), true);
         superuser.save();
 
-        testSession = getTestSession();
+        testSession = createTestSession();
         testAcMgr = getAccessControlManager(testSession);
 
         /*
@@ -154,11 +154,8 @@ public abstract class AbstractEvaluationTest extends AbstractAccessControlTest {
         }
     }
 
-    private Session getTestSession() throws RepositoryException {
-        if (testSession == null) {
-            testSession = getHelper().getRepository().login(creds);
-        }
-        return testSession;
+    protected Session createTestSession() throws RepositoryException {
+        return getHelper().getRepository().login(creds);
     }
 
     protected static UserManager getUserManager(Session session) throws
