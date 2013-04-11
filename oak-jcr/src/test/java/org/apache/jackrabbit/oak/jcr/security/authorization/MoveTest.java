@@ -27,7 +27,7 @@ import org.junit.Test;
 /**
  * MoveTest... TODO
  */
-@Ignore("OAK-51")
+@Ignore("OAK-51 : permission validator doesn't detect move")
 public class MoveTest extends AbstractEvaluationTest {
 
     private String nodePath3;
@@ -137,9 +137,9 @@ public class MoveTest extends AbstractEvaluationTest {
         deny(childNPath, readPrivileges);
 
         assertFalse(testSession.nodeExists(childNPath));
-        assertFalse(testAcMgr.hasPrivileges(childNPath, readPrivileges));
+        assertHasPrivileges(childNPath, readPrivileges, false);
         assertFalse(testSession.nodeExists(nodePath3));
-        assertFalse(testAcMgr.hasPrivileges(nodePath3, readPrivileges));
+        assertHasPrivileges(nodePath3, readPrivileges, false);
 
         // move the ancestor node
         String movedChildNPath = path + "/movedNode";
@@ -152,9 +152,9 @@ public class MoveTest extends AbstractEvaluationTest {
         // the AC-content present on childNode is still enforced both on
         // the node itself and on the subtree.
         assertFalse(testSession.nodeExists(movedChildNPath));
-        assertFalse(testAcMgr.hasPrivileges(movedChildNPath, readPrivileges));
+        assertHasPrivileges(movedChildNPath, readPrivileges, false);
         assertFalse(testSession.nodeExists(movedNode3Path));
-        assertFalse(testAcMgr.hasPrivileges(movedNode3Path, readPrivileges));
+        assertHasPrivileges(movedNode3Path, readPrivileges, false);
     }
 
     @Test
@@ -164,7 +164,7 @@ public class MoveTest extends AbstractEvaluationTest {
         deny(nodePath3, readPrivileges);
 
         assertFalse(testSession.nodeExists(nodePath3));
-        assertFalse(testAcMgr.hasPrivileges(nodePath3, readPrivileges));
+        assertHasPrivileges(nodePath3, readPrivileges, false);
 
         // move the ancestor node
         String movedChildNPath = path + "/movedNode";
@@ -176,7 +176,7 @@ public class MoveTest extends AbstractEvaluationTest {
         // expected behavior:
         // the AC-content present on node3 is still enforced
         assertFalse(testSession.nodeExists(movedNode3Path));
-        assertFalse(testAcMgr.hasPrivileges(movedNode3Path, readPrivileges));
+        assertHasPrivileges(movedNode3Path, readPrivileges, false);
     }
 
     @Test
@@ -197,7 +197,7 @@ public class MoveTest extends AbstractEvaluationTest {
         // expected behavior:
         // due to move node3 should not e visible any more
         assertFalse(testSession.nodeExists(movedPath));
-        assertFalse(testAcMgr.hasPrivileges(movedPath, readPrivileges));
+        assertHasPrivileges(movedPath, readPrivileges, false);
     }
 
     @Test
@@ -207,7 +207,7 @@ public class MoveTest extends AbstractEvaluationTest {
         deny(childNPath, readPrivileges, createGlobRestriction('/' +nodeName3));
 
         assertFalse(testSession.nodeExists(nodePath3));
-        assertFalse(testAcMgr.hasPrivileges(nodePath3, readPrivileges));
+        assertHasPrivileges(nodePath3, readPrivileges, false);
 
         String movedChildNPath = path + "/movedNode";
         String movedNode3Path = movedChildNPath + '/' + nodeName3;
@@ -216,7 +216,7 @@ public class MoveTest extends AbstractEvaluationTest {
         superuser.save();
 
         assertFalse(testSession.nodeExists(movedNode3Path));
-        assertFalse(testAcMgr.hasPrivileges(movedNode3Path, readPrivileges));
+        assertHasPrivileges(movedNode3Path, readPrivileges, false);
     }
 
     @Test
@@ -225,8 +225,7 @@ public class MoveTest extends AbstractEvaluationTest {
         // restriction: remove read priv to nodeName3 node
         deny(childNPath, readPrivileges, createGlobRestriction('/' + nodeName3));
 
-        // don't fill the per-session read-cache by calling Session.nodeExists
-        assertFalse(testAcMgr.hasPrivileges(nodePath3, readPrivileges));
+        assertHasPrivileges(nodePath3, readPrivileges, false);
 
         String movedChildNPath = path + "/movedNode";
         String movedNode3Path = movedChildNPath + '/' + nodeName3;
@@ -235,6 +234,6 @@ public class MoveTest extends AbstractEvaluationTest {
         superuser.save();
 
         assertFalse(testSession.nodeExists(movedNode3Path));
-        assertFalse(testAcMgr.hasPrivileges(movedNode3Path, readPrivileges));
+        assertHasPrivileges(movedNode3Path, readPrivileges, false);
     }
 }
