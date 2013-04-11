@@ -37,7 +37,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 /**
- * AccessControlManagementTest... TODO
+ * Permission evaluation tests related to access control management.
  */
 public class AccessControlManagementTest extends AbstractEvaluationTest {
 

@@ -28,7 +28,7 @@ import org.apache.jackrabbit.test.NotExecutableException;
 import org.junit.Test;
 
 /**
- * PrivilegeManagementTest... TODO
+ * Permission evaluation tests related to {@link #REP_PRIVILEGE_MANAGEMENT} privilege.
  */
 public class PrivilegeManagementTest extends AbstractEvaluationTest {
 

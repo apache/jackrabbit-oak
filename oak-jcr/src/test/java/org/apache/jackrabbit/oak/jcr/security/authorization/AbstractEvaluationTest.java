@@ -51,7 +51,7 @@ import org.junit.Before;
 import static org.junit.Assert.assertArrayEquals;
 
 /**
- * Base class for testing access control evaluation using JCR API.
+ * Base class for testing permission evaluation using JCR API.
  */
 public abstract class AbstractEvaluationTest extends AbstractAccessControlTest {
 

@@ -23,7 +23,7 @@ import org.apache.jackrabbit.test.api.observation.EventResult;
 import org.junit.Test;
 
 /**
- * ObservationTest... TODO
+ * Permission evaluation tests related to observation.
  */
 public class ObservationTest extends AbstractEvaluationTest {
 

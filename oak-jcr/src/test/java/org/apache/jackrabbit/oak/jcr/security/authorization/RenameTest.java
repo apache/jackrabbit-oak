@@ -23,11 +23,9 @@ import javax.jcr.security.Privilege;
 import org.apache.jackrabbit.api.JackrabbitNode;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
- * RenameTest... TODO
+ * Permission evaluation tests related to {@link JackrabbitNode#rename(String)}.
  */
 @Ignore("OAK-770 : NodeImpl doesn't implement JackrabbitNode#rename")
 public class RenameTest extends AbstractEvaluationTest {
