@@ -20,12 +20,12 @@ import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.api.PropertyState;
 
 /**
- * {@code RebaseDiff} implements a {@link NodeStateDiff}, which performs
- * the conflict handling as defined in {@link MicroKernel#rebase(String, String)}
+ * This implementation of {@code AbstractRebaseDiff} implements a {@link NodeStateDiff},
+ * which performs the conflict handling as defined in {@link MicroKernel#rebase(String, String)}
  * on the Oak SPI state level by annotating conflicting items with conflict
  * markers.
  */
-public class RebaseDiff extends AbstractRebaseDiff {
+public class ConflictAnnotatingRebaseDiff extends AbstractRebaseDiff {
     public static final String CONFLICT = ":conflict";
     public static final String DELETE_CHANGED_PROPERTY = "deleteChangedProperty";
     public static final String DELETE_CHANGED_NODE = "deleteChangedNode";
@@ -37,13 +37,13 @@ public class RebaseDiff extends AbstractRebaseDiff {
     public static final String CHANGE_DELETED_NODE = "changeDeletedNode";
     public static final String DELETE_DELETED_NODE = "deleteDeletedNode";
 
-    public RebaseDiff(NodeBuilder builder) {
+    public ConflictAnnotatingRebaseDiff(NodeBuilder builder) {
         super(builder);
     }
 
     @Override
-    protected RebaseDiff createDiff(NodeBuilder builder, String name) {
-        return new RebaseDiff(builder.child(name));
+    protected ConflictAnnotatingRebaseDiff createDiff(NodeBuilder builder, String name) {
+        return new ConflictAnnotatingRebaseDiff(builder.child(name));
     }
 
     @Override

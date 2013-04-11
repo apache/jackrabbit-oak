@@ -432,7 +432,7 @@ public class RootImpl implements Root {
     @Nonnull
     private NodeState getRootState() {
         NodeBuilder builder = branch.getHead().builder();
-        return PurgeRebaseDiff.rebase(secureHead, getSecureRootState(), builder);
+        return OurChangesRebaseDiff.rebase(secureHead, getSecureRootState(), builder);
     }
 
     /**
