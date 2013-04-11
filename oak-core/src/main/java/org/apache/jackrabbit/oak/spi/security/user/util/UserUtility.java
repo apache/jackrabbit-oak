@@ -28,7 +28,7 @@ import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.apache.jackrabbit.util.Text;
 
 /**
- * UserUtils... TODO
+ * Utility methods for user management.
  */
 public final class UserUtility implements UserConstants {
 
@@ -46,7 +46,6 @@ public final class UserUtility implements UserConstants {
     }
 
     public static boolean isType(@Nullable Tree authorizableTree, @Nonnull AuthorizableType type) {
-        // FIXME: check for node type according to the specified type constraint
         if (authorizableTree != null) {
             String ntName = TreeUtil.getPrimaryTypeName(authorizableTree);
             switch (type) {
