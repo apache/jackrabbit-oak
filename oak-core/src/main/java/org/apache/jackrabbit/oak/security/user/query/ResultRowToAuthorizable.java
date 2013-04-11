@@ -33,7 +33,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * ResultRowToAuthorizable... TODO
+ * Function to convert query result rows {@link Authorizable}s of a given
+ * target type.
  */
 class ResultRowToAuthorizable implements Function<ResultRow, Authorizable> {
 
