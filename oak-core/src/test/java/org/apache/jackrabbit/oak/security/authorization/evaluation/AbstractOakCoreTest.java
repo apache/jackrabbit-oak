@@ -21,6 +21,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.SimpleCredentials;
 import javax.jcr.security.AccessControlManager;
+import javax.jcr.security.AccessControlPolicy;
 
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -75,12 +76,24 @@ public abstract class AbstractOakCoreTest extends AbstractSecurityTest {
     @Override
     public void after() throws Exception {
         try {
+            // remove the test user
             Authorizable testUser = getUserManager().getAuthorizable(TEST_USER_ID);
             if (testUser != null) {
                 testUser.remove();
-                root.commit();
             }
 
+            // clean up policies at the root node
+            AccessControlManager acMgr = getAccessControlManager(root);
+            AccessControlPolicy[] policies = acMgr.getPolicies("/");
+            for (AccessControlPolicy policy : policies) {
+                acMgr.removePolicy("/", policy);
+            }
+
+            // remove all test content
+            root.getTree("/a").remove();
+            root.commit();
+
+            // release test session
             if (testSession != null) {
                 testSession.close();
             }
