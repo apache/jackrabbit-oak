@@ -71,7 +71,7 @@ public class LuceneIndexQueryTest extends AbstractQueryTest {
         root.commit();
 
         Iterator<String> result = executeQuery(
-                "select * from [nt:base] where isdescendantnode('/test')",
+                "select [jcr:path] from [nt:base] where isdescendantnode('/test')",
                 "JCR-SQL2").iterator();
         assertTrue(result.hasNext());
         assertEquals("/test/a", result.next());
@@ -87,7 +87,7 @@ public class LuceneIndexQueryTest extends AbstractQueryTest {
         root.commit();
 
         Iterator<String> result = executeQuery(
-                "select * from [nt:base] where isdescendantnode('/test') and name='World'",
+                "select [jcr:path] from [nt:base] where isdescendantnode('/test') and name='World'",
                 "JCR-SQL2").iterator();
         assertTrue(result.hasNext());
         assertEquals("/test/a", result.next());
@@ -105,7 +105,7 @@ public class LuceneIndexQueryTest extends AbstractQueryTest {
         root.commit();
 
         Iterator<String> result = executeQuery(
-                "select * from [nt:base] as p inner join [nt:base] as p2 on ischildnode(p2, p) where p.[jcr:path] = '/'",
+                "select p.[jcr:path], p2.[jcr:path] from [nt:base] as p inner join [nt:base] as p2 on ischildnode(p2, p) where p.[jcr:path] = '/'",
                 "JCR-SQL2").iterator();
         assertTrue(result.hasNext());
         assertEquals("/, /children", result.next());

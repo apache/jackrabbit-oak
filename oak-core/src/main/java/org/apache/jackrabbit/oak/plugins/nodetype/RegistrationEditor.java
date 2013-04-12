@@ -47,7 +47,7 @@ import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_C
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_MANDATORY_CHILD_NODES;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_MANDATORY_PROPERTIES;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_NAMED_CHILD_NODE_DEFINITIONS;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_NAMED_PROPERTIES;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_NAMED_SINGLE_VALUED_PROPERTIES;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_NAMED_PROPERTY_DEFINITIONS;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_PROPERTY_DEFINITIONS;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_RESIDUAL_CHILD_NODE_DEFINITIONS;
@@ -164,9 +164,9 @@ class RegistrationEditor extends DefaultEditor {
                 supertype.getProperty(JCR_NODETYPENAME).getValue(NAME);
         addNameToList(type, OAK_SUPERTYPES, supername);
         mergeNameList(type, supertype, OAK_SUPERTYPES);
-        mergeNameList(type, supertype, OAK_NAMED_PROPERTIES);
         mergeNameList(type, supertype, OAK_MANDATORY_PROPERTIES);
         mergeNameList(type, supertype, OAK_MANDATORY_CHILD_NODES);
+        mergeNameList(type, supertype, OAK_NAMED_SINGLE_VALUED_PROPERTIES);
         mergeSubtree(type, supertype, OAK_NAMED_PROPERTY_DEFINITIONS, 2);
         mergeSubtree(type, supertype, OAK_RESIDUAL_PROPERTY_DEFINITIONS, 1);
         mergeSubtree(type, supertype, OAK_NAMED_CHILD_NODE_DEFINITIONS, 2);
@@ -221,9 +221,9 @@ class RegistrationEditor extends DefaultEditor {
         type.setProperty(JCR_PRIMARYTYPE, "oak:nodeType", NAME);
         type.removeProperty(OAK_SUPERTYPES);
         type.setProperty(OAK_SUBTYPES, empty, NAMES);
-        type.setProperty(OAK_NAMED_PROPERTIES, empty, NAMES);
         type.setProperty(OAK_MANDATORY_PROPERTIES, empty, NAMES);
         type.setProperty(OAK_MANDATORY_CHILD_NODES, empty, NAMES);
+        type.setProperty(OAK_NAMED_SINGLE_VALUED_PROPERTIES, empty, NAMES);
         type.removeNode(OAK_NAMED_PROPERTY_DEFINITIONS);
         type.removeNode(OAK_RESIDUAL_PROPERTY_DEFINITIONS);
         type.removeNode(OAK_NAMED_CHILD_NODE_DEFINITIONS);
@@ -258,8 +258,9 @@ class RegistrationEditor extends DefaultEditor {
         // - jcr:name (NAME) protected 
         PropertyState name = definition.getProperty(JCR_NAME);
         NodeBuilder definitions;
+        String propertyName = null;
         if (name != null) {
-            String propertyName = name.getValue(NAME);
+            propertyName = name.getValue(NAME);
             String escapedName = propertyName;
             if (JCR_PRIMARYTYPE.equals(escapedName)) {
                 escapedName = "oak:primaryType";
@@ -302,6 +303,8 @@ class RegistrationEditor extends DefaultEditor {
             } else {
                 key = key + "S";
             }
+        } else if (propertyName != null) {
+            addNameToList(type, OAK_NAMED_SINGLE_VALUED_PROPERTIES, propertyName);
         }
 
         definitions.setNode(key, definition);

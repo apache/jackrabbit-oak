@@ -39,11 +39,11 @@ explain select * from [nt:base] as a inner join [nt:base] as b on isdescendantno
 
 commit / + "test": { "jcr:uuid": "xyz", "a": { "jcr:uuid": "123" } }
 
-select * from [nt:base] where [jcr:uuid] is not null
+select [jcr:path] from [nt:base] where [jcr:uuid] is not null
 /test
 /test/a
 
-select * from [nt:base] where [jcr:uuid] = 'xyz'
+select [jcr:path] from [nt:base] where [jcr:uuid] = 'xyz'
 /test
 
 commit / - "test"

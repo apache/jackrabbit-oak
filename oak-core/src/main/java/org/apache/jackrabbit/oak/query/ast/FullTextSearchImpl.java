@@ -25,6 +25,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.query.ast.ComparisonImpl.LikePattern;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
@@ -38,14 +39,33 @@ import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 public class FullTextSearchImpl extends ConstraintImpl {
 
     private final String selectorName;
+    private final String relativePath;
     private final String propertyName;
     private final StaticOperandImpl fullTextSearchExpression;
     private SelectorImpl selector;
 
-    public FullTextSearchImpl(String selectorName, String propertyName,
+    public FullTextSearchImpl(
+            String selectorName, String propertyName,
             StaticOperandImpl fullTextSearchExpression) {
         this.selectorName = selectorName;
-        this.propertyName = propertyName;
+
+        int slash = -1;
+        if (propertyName != null) {
+            slash = propertyName.lastIndexOf('/');
+        }
+        if (slash == -1) {
+            this.relativePath = null;
+        } else {
+            this.relativePath = propertyName.substring(0, slash);
+            propertyName = propertyName.substring(slash + 1);
+        }
+
+        if (propertyName == null || "*".equals(propertyName)) {
+            this.propertyName = null;
+        } else {
+            this.propertyName = propertyName;
+        }
+
         this.fullTextSearchExpression = fullTextSearchExpression;
     }
 
@@ -63,13 +83,16 @@ public class FullTextSearchImpl extends ConstraintImpl {
         StringBuilder builder = new StringBuilder();
         builder.append("contains(");
         builder.append(quote(selectorName));
-        if (propertyName != null) {
-            builder.append('.');
-            builder.append(quote(propertyName));
-            builder.append(", ");
-        } else {
-            builder.append(".*, ");
+        builder.append('.');
+        String propertyName = this.propertyName;
+        if (propertyName == null) {
+            propertyName = "*";
         }
+        if (relativePath != null) {
+            propertyName = relativePath + "/" + propertyName;
+        }
+        builder.append(quote(propertyName));
+        builder.append(", ");
         builder.append(getFullTextSearchExpression());
         builder.append(')');
         return builder.toString();
@@ -78,19 +101,33 @@ public class FullTextSearchImpl extends ConstraintImpl {
     @Override
     public boolean evaluate() {
         StringBuilder buff = new StringBuilder();
-        if (propertyName != null) {
+        if (relativePath == null && propertyName != null) {
             PropertyValue p = selector.currentProperty(propertyName);
             if (p == null) {
                 return false;
             }
             appendString(buff, p);
         } else {
-            Tree tree = getTree(selector.currentPath());
+            String path = selector.currentPath();
+            if (relativePath != null) {
+                path = PathUtils.concat(path, relativePath);
+            }
+
+            Tree tree = getTree(path);
             if (tree == null) {
                 return false;
             }
-            for (PropertyState p : tree.getProperties()) {
+
+            if (propertyName != null) {
+                PropertyState p = tree.getProperty(propertyName);
+                if (p == null) {
+                    return false;
+                }
                 appendString(buff, PropertyValues.create(p));
+            } else {
+                for (PropertyState p : tree.getProperties()) {
+                    appendString(buff, PropertyValues.create(p));
+                }
             }
         }
         // TODO fulltext conditions: need a way to disable evaluation

@@ -18,8 +18,9 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import org.apache.jackrabbit.oak.api.PropertyValue;
-import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 
 /**
  * A result column expression.
@@ -30,9 +31,9 @@ public class ColumnImpl extends AstElement {
     private SelectorImpl selector;
 
     public ColumnImpl(String selectorName, String propertyName, String columnName) {
-        this.selectorName = selectorName;
-        this.propertyName = propertyName;
-        this.columnName = columnName;
+        this.selectorName = checkNotNull(selectorName);
+        this.propertyName = checkNotNull(propertyName);
+        this.columnName = checkNotNull(columnName);
     }
     
     public String getColumnName() {
@@ -46,23 +47,11 @@ public class ColumnImpl extends AstElement {
 
     @Override
     public String toString() {
-        if (propertyName != null) {
-            return quote(selectorName) + '.' + quote(propertyName) + 
-                    " as " + quote(columnName);
-        } else {
-            return quote(selectorName) + ".*";
-        }
+        return quote(selectorName) + '.' + quote(propertyName)
+                + " as " + quote(columnName);
     }
 
     public PropertyValue currentProperty() {
-        if (propertyName == null || propertyName.equals("*")) {
-            // TODO for SELECT * FROM queries, currently return the path (for testing only)
-            String p = selector.currentPath();
-            if (p == null) {
-                return null;
-            }
-            return PropertyValues.newString(p);
-        }
         return selector.currentProperty(propertyName);
     }
 

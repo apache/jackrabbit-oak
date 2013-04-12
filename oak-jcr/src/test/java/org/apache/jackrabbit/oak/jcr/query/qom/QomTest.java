@@ -400,7 +400,7 @@ public class QomTest extends AbstractRepositoryTest {
 
     @Test
     public void createQuery() throws RepositoryException {
-        Selector s = f.selector("nodeTypeName", "x");
+        Selector s = f.selector("nt:file", "x");
         BindVariableValue b = f.bindVariable("var");
         Constraint c = f.propertyExistence("x", "c");
         PropertyValue p = f.propertyValue("x", "propertyName");
