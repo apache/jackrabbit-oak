@@ -196,8 +196,10 @@ public final class Permissions {
 
         if (!actions.isEmpty()) {
             if (isAccessControlContent) {
-                actions.removeAll(ImmutableSet.of(Session.ACTION_ADD_NODE,
-                        Session.ACTION_REMOVE, Session.ACTION_SET_PROPERTY));
+                actions.removeAll(ImmutableSet.of(
+                        Session.ACTION_ADD_NODE,
+                        Session.ACTION_REMOVE,
+                        Session.ACTION_SET_PROPERTY));
                 permissions |= MODIFY_ACCESS_CONTROL;
             } else {
                 if (actions.remove(Session.ACTION_ADD_NODE)) {
