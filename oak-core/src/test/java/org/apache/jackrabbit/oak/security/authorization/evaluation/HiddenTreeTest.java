@@ -27,7 +27,9 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
 /**
- * HiddenTreeTest... TODO
+ * Test to make sure hidden trees are never exposed.
+ *
+ * TODO: review if this should rather be moved to o.a.jackrabbit.oak.core tests.
  */
 public class HiddenTreeTest extends AbstractOakCoreTest {
 
