@@ -161,8 +161,9 @@ class KernelNodeStoreBranch extends AbstractNodeStoreBranch {
                 } else {
                     // commit into branch and merge
                     head.compareAgainstBaseState(store.getRootState(headRevision), diff);
-                    if (diff.toString().length() > 0) {
-                        headRevision = kernel.commit("", diff.toString(), headRevision, null);
+                    String jsop = diff.toString();
+                    if (!jsop.isEmpty()) {
+                        headRevision = kernel.commit("", jsop, headRevision, null);
                     }
                     newRevision = kernel.merge(headRevision, null);
                     headRevision = null;
