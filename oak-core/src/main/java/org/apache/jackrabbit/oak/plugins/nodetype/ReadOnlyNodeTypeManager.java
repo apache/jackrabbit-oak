@@ -17,14 +17,14 @@
 package org.apache.jackrabbit.oak.plugins.nodetype;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Iterables.contains;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_SUPERTYPES;
 
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -44,7 +44,6 @@ import javax.jcr.nodetype.PropertyDefinition;
 import javax.jcr.nodetype.PropertyDefinitionTemplate;
 
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.iterator.NodeTypeIteratorAdapter;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -282,49 +281,41 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
             return false;
         }
 
-        Set<String> typeNames = Sets.newHashSet();
+        Tree types = getTypes();
 
         PropertyState primary = tree.getProperty(JcrConstants.JCR_PRIMARYTYPE);
         if (primary != null && primary.getType() == Type.NAME) {
             String name = primary.getValue(Type.NAME);
-            if (oakNtName.equals(name)) {
+            if (isa(types, name, oakNtName)) {
                 return true;
-            } else {
-                typeNames.add(name);
             }
         }
 
         PropertyState mixins = tree.getProperty(JcrConstants.JCR_MIXINTYPES);
         if (mixins != null && mixins.getType() == Type.NAMES) {
             for (String name : mixins.getValue(Type.NAMES)) {
-                if (oakNtName.equals(name)) {
+                if (isa(types, name, oakNtName)) {
                     return true;
-                } else {
-                    typeNames.add(name);
-                }
-            }
-        }
-
-        Tree types = getTypes();
-        LinkedList<String> queue = Lists.newLinkedList(typeNames);
-        while (!queue.isEmpty()) {
-            Tree type = types.getChild(queue.removeFirst());
-            if (type != null) {
-                PropertyState supertypes =
-                        type.getProperty(JcrConstants.JCR_SUPERTYPES);
-                if (supertypes != null && supertypes.getType() == Type.NAMES) {
-                    for (String name : supertypes.getValue(Type.NAMES)) {
-                        if (oakNtName.equals(name)) {
-                            return true;
-                        } else if (typeNames.add(name)) {
-                            queue.addLast(name);
-                        }
-                    }
                 }
             }
         }
 
         return false;
+    }
+
+    private static boolean isa(Tree types, String typeName, String superName) {
+        if (typeName.equals(superName)) {
+            return true;
+        }
+
+        Tree type = types.getChild(typeName);
+        if (type == null) {
+            return false;
+        }
+
+        PropertyState supertypes = type.getProperty(OAK_SUPERTYPES);
+        return supertypes != null
+                && contains(supertypes.getValue(Type.NAMES), superName);
     }
 
     /**

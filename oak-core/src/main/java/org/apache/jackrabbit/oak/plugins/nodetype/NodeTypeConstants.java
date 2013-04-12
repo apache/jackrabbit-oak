@@ -58,4 +58,22 @@ public interface NodeTypeConstants extends JcrConstants {
     String DELETE_DELETED = "deleteDeleted";
 
     String RESIDUAL_NAME = "*";
+
+    // Precompiled Oak type information fields
+    String OAK_SUPERTYPES = "oak:supertypes";
+    String OAK_SUBTYPES = "oak:subtypes";
+    String OAK_NAMED_PROPERTIES = "oak:namedProperties";
+    String OAK_MANDATORY_PROPERTIES = "oak:mandatoryProperties";
+    String OAK_MANDATORY_CHILD_NODES = "oak:mandatoryChildNodes";
+    String OAK_RESIDUAL_CHILD_NODE_DEFINITIONS =
+            "oak:residualChildNodeDefinitions";
+    String OAK_NAMED_CHILD_NODE_DEFINITIONS =
+            "oak:namedChildNodeDefinitions";
+    String OAK_RESIDUAL_PROPERTY_DEFINITIONS =
+            "oak:residualPropertyDefinitions";
+    String OAK_NAMED_PROPERTY_DEFINITIONS =
+            "oak:namedPropertyDefinitions";
+    String OAK_PROPERTY_DEFINITIONS = "oak:propertyDefinitions";
+    String OAK_CHILD_NODE_DEFINITIONS = "oak:childNodeDefinitions";
+
 }

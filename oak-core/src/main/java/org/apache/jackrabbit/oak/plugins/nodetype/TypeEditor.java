@@ -17,13 +17,13 @@
 package org.apache.jackrabbit.oak.plugins.nodetype;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.JcrConstants.JCR_ISMIXIN;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_REQUIREDTYPE;
-import static org.apache.jackrabbit.JcrConstants.JCR_SUPERTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_VALUECONSTRAINTS;
-import static org.apache.jackrabbit.JcrConstants.NT_BASE;
+import static org.apache.jackrabbit.oak.api.CommitFailedException.CONSTRAINT;
 import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
@@ -33,7 +33,6 @@ import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_I
 import static org.apache.jackrabbit.oak.plugins.nodetype.constraint.Constraints.valueConstraint;
 
 import java.util.List;
-import java.util.Queue;
 import java.util.Set;
 
 import javax.jcr.PropertyType;
@@ -49,8 +48,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Queues;
-import com.google.common.collect.Sets;
 
 /**
  * Validator implementation that check JCR node type constraints.
@@ -68,6 +65,8 @@ class TypeEditor extends DefaultEditor {
     private final String nodeName;
 
     private final NodeState types;
+
+    private final List<String> typeNames = newArrayList();
 
     private EffectiveType effective = null;
 
@@ -99,15 +98,14 @@ class TypeEditor extends DefaultEditor {
     @Override
     public void enter(NodeState before, NodeState after)
             throws CommitFailedException {
-        Iterable<String> names = computeEffectiveType(after);
+        computeEffectiveType(after);
 
         // find matching entry in the parent node's effective type
         // TODO: this should be in childNodeAdded()
-        if (parent != null
-                && parent.effective.getDefinition(nodeName, names) == null) {
+        if (parent != null && parent.effective.getDefinition(
+                nodeName, effective.getTypeNames()) == null) {
             throw constraintViolation(
-                    1, "Incorrect node type of child node " + nodeName
-                    + " with types " + Joiner.on(", ").join(names));
+                    1, "Incorrect node type of child node " + nodeName);
         }
     }
 
@@ -126,7 +124,7 @@ class TypeEditor extends DefaultEditor {
 
     private CommitFailedException constraintViolation(int code, String message) {
         return new CommitFailedException(
-                "Constraint", code, getPath() + ": " + message);
+                CONSTRAINT, code, getPath() + ": " + message + " " + typeNames);
     }
 
     @Override
@@ -230,19 +228,17 @@ class TypeEditor extends DefaultEditor {
      * of effective node type definitions.
      *
      * @param node node state
-     * @return names of the types that make up the effective type
      * @throws CommitFailedException if the effective node type is invalid
      */
-    private Iterable<String> computeEffectiveType(NodeState node)
+    private void computeEffectiveType(NodeState node)
             throws CommitFailedException {
         List<NodeState> list = Lists.newArrayList();
-        Set<String> names = Sets.newLinkedHashSet();
 
         // primary type
         PropertyState primary = node.getProperty(JCR_PRIMARYTYPE);
         if (primary != null && primary.getType() == NAME) {
             String name = primary.getValue(NAME);
-            names.add(name);
+            typeNames.add(name);
 
             NodeState type = types.getChildNode(name);
             if (!type.exists()) {
@@ -263,57 +259,25 @@ class TypeEditor extends DefaultEditor {
         PropertyState mixins = node.getProperty(JCR_MIXINTYPES);
         if (mixins != null && mixins.getType() == NAMES) {
             for (String name : mixins.getValue(NAMES)) {
-                if (names.add(name)) {
-                    NodeState type = types.getChildNode(name);
-                    if (!type.exists()) {
-                        throw constraintViolation(
-                                9, "Mixin node type " + name + " does not exist");
-                    } else if (!getBoolean(type, JCR_ISMIXIN)) {
-                        throw constraintViolation(
-                                10, "Can not use primary type " + name + " as mixin");
-                    } else if (getBoolean(type, JCR_IS_ABSTRACT)) {
-                        throw constraintViolation(
-                                11, "Can not use abstract type " + name + " as mixin");
-                    }
+                typeNames.add(name);
 
-                    list.add(type);
+                NodeState type = types.getChildNode(name);
+                if (!type.exists()) {
+                    throw constraintViolation(
+                            9, "Mixin node type " + name + " does not exist");
+                } else if (!getBoolean(type, JCR_ISMIXIN)) {
+                    throw constraintViolation(
+                            10, "Can not use primary type " + name + " as mixin");
+                } else if (getBoolean(type, JCR_IS_ABSTRACT)) {
+                    throw constraintViolation(
+                            11, "Can not use abstract type " + name + " as mixin");
                 }
-            }
-        }
 
-        // supertypes
-        Queue<NodeState> queue = Queues.newArrayDeque(list);
-        while (!queue.isEmpty()) {
-            NodeState type = queue.remove();
-
-            PropertyState supertypes = type.getProperty(JCR_SUPERTYPES);
-            if (supertypes != null) {
-                for (String name : supertypes.getValue(NAMES)) {
-                    if (names.add(name)) {
-                        NodeState supertype = types.getChildNode(name);
-                        if (supertype.exists()) {
-                            list.add(supertype);
-                            queue.add(supertype);
-                        } else {
-                            // TODO: ignore/warning/error?
-                        }
-                    }
-                }
-            }
-        }
-
-        // always include nt:base
-        if (names.add(NT_BASE)) {
-            NodeState base = types.getChildNode(NT_BASE);
-            if (base.exists()) {
-                list.add(base);
-            } else {
-                // TODO: ignore/warning/error?
+                list.add(type);
             }
         }
 
         effective = new EffectiveType(list);
-        return names;
     }
 
     private boolean getBoolean(NodeState node, String name) {
