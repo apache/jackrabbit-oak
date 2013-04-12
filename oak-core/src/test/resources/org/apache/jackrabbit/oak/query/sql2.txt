@@ -28,10 +28,10 @@
 commit / + "test": { "a": { "x": "1", "yes": { } }, "b": { "yes" : { } }, "c": { "x": "1", "no" : { } }}
 
 xpath test//yes/..[@x]
-/test/a, null, /test/a
+/test/a, null, null
 
-select b.[jcr:path] as [jcr:path], b.[jcr:score] as [jcr:score], b.* from [nt:base] as a inner join [nt:base] as b on ischildnode(a, b) where name(a) = 'yes' and isdescendantnode(a, '/test') and b.[x] is not null
-/test/a, null, /test/a
+select b.[jcr:path] as [jcr:path], b.[jcr:score] as [jcr:score] from [nt:base] as a inner join [nt:base] as b on ischildnode(a, b) where name(a) = 'yes' and isdescendantnode(a, '/test') and b.[x] is not null
+/test/a, null
 
 commit / - "test"
 
@@ -39,7 +39,7 @@ commit / - "test"
 
 commit / + "test": { "space space": { "x": "1" }}
 
-select * from [nt:base] where issamenode([/test/space space])
+select [jcr:path] from [nt:base] where issamenode([/test/space space])
 /test/space space
 
 commit / - "test"
@@ -48,44 +48,44 @@ commit / - "test"
 
 commit / + "test": { "a": { "name": ["Hello", "World" ] }, "b": { "name" : "Hello" }}
 
-select * from [nt:base] where name = 'Hello'
+select [jcr:path] from [nt:base] where name = 'Hello'
 /test/a
 /test/b
 
-select * from [nt:base] where name = 'World'
+select [jcr:path] from [nt:base] where name = 'World'
 /test/a
 
-select * from [nt:base] where isdescendantnode('/test') and name = 'World'
+select [jcr:path] from [nt:base] where isdescendantnode('/test') and name = 'World'
 /test/a
 
 commit / - "test"
 
 # expected error on two selectors with the same name
 
-select * from [nt:base] as p inner join [nt:base] as p on ischildnode(p, p) where p.[jcr:path] = '/'
-java.text.ParseException: select * from [nt:base] as p inner join [nt:base] as p on ischildnode(p, p) where p.[jcr:path] = '/': Two selectors with the same name: p
+select [jcr:path] from [nt:base] as p inner join [nt:base] as p on ischildnode(p, p) where p.[jcr:path] = '/'
+java.text.ParseException: select [jcr:path] from [nt:base] as p inner join [nt:base] as p on ischildnode(p, p) where p.[jcr:path] = '/': Two selectors with the same name: p
 
 # combining 'not' and 'and'
 
 commit / + "test": { "a": { "id": "10" }, "b": { "id" : "20" }}
 
-select * from [nt:base] where id is not null and not id = '100' and id <> '20'
+select [jcr:path] from [nt:base] where id is not null and not id = '100' and id <> '20'
 /test/a
 
-select * from [nt:base] where id < '1000'
+select [jcr:path] from [nt:base] where id < '1000'
 /test/a
 
-select * from [nt:base] where id is not null and not (id = '100' and id <> '20')
+select [jcr:path] from [nt:base] where id is not null and not (id = '100' and id <> '20')
 /test/a
 /test/b
 
-select * from [nt:base] where id = '10'
+select [jcr:path] from [nt:base] where id = '10'
 /test/a
 
-select [jcr:path], * from [nt:base] where id = '10'
-/test/a, /test/a
+select [jcr:path], id from [nt:base] where id = '10'
+/test/a, 10
 
-select * from [nt:base] where id > '10'
+select [jcr:path] from [nt:base] where id > '10'
 /test/b
 
 commit / - "test"
@@ -94,10 +94,10 @@ commit / - "test"
 
 commit / + "test": { "name": "hello world" }
 
-select * from [nt:base] where contains(name, 'hello')
+select [jcr:path] from [nt:base] where contains(name, 'hello')
 /test
 
-select * from [nt:base] where contains(*, 'hello')
+select [jcr:path] from [nt:base] where contains(*, 'hello')
 /test
 
 commit / - "test"
@@ -116,29 +116,29 @@ commit / - "test"
 
 commit / + "test": { "jcr:resource": {}, "resource": { "x" : {}}}
 
-select * from [nt:base] where id = -1
+select [jcr:path] from [nt:base] where id = -1
 
-select * from [nt:base] as b where isdescendantnode(b, '/test')
+select [jcr:path] from [nt:base] as b where isdescendantnode(b, '/test')
 /test/jcr:resource
 /test/resource
 /test/resource/x
 
-select * from [nt:base] as b where ischildnode(b, '/test')
+select [jcr:path] from [nt:base] as b where ischildnode(b, '/test')
 /test/jcr:resource
 /test/resource
 
-select * from [nt:base] as b where issamenode(b, '/test')
+select [jcr:path] from [nt:base] as b where issamenode(b, '/test')
 /test
 
-select * from [nt:base] where name() = 'resource'
+select [jcr:path] from [nt:base] where name() = 'resource'
 /test/resource
 
-select * from [nt:base] as b where localname(b) = 'resource'
+select [jcr:path] from [nt:base] as b where localname(b) = 'resource'
 /jcr:system/jcr:nodeTypes/nt:resource
 /test/jcr:resource
 /test/resource
 
-select * from [nt:base] as x where isdescendantnode(x, '/test')
+select [jcr:path] from [nt:base] as x where isdescendantnode(x, '/test')
 /test/jcr:resource
 /test/resource
 /test/resource/x
@@ -149,27 +149,27 @@ commit / + "parents": { "p0": {"id": "0"}, "p1": {"id": "1"}, "p2": {"id": "2"}}
 commit / + "children": { "c1": {"p": "1"}, "c2": {"p": "1"}, "c3": {"p": "2"}, "c4": {"p": "3"}}
 
 # relative property
-select * from [nt:base] where [c1/p] = '1'
+select [jcr:path] from [nt:base] where [c1/p] = '1'
 /children
 
-select * from [nt:base] as p where p.[jcr:path] = '/parents'
+select [jcr:path] from [nt:base] as p where p.[jcr:path] = '/parents'
 /parents
 
-select * from [nt:base] as [p] where [p].[jcr:path] = '/parents'
+select [jcr:path] from [nt:base] as [p] where [p].[jcr:path] = '/parents'
 /parents
 
-select * from [nt:base] as p inner join [nt:base] as p2 on ischildnode(p2, p) where p.[jcr:path] = '/'
+select p.[jcr:path], p2.[jcr:path] from [nt:base] as p inner join [nt:base] as p2 on ischildnode(p2, p) where p.[jcr:path] = '/'
 /, /children
 /, /jcr:system
 /, /oak:index
 /, /parents
 
-select * from [nt:base] as p inner join [nt:base] as p2 on isdescendantnode(p2, p) where p.[jcr:path] = '/parents'
+select p.[jcr:path], p2.[jcr:path] from [nt:base] as p inner join [nt:base] as p2 on isdescendantnode(p2, p) where p.[jcr:path] = '/parents'
 /parents, /parents/p0
 /parents, /parents/p1
 /parents, /parents/p2
 
-select * from [nt:base] as p inner join [nt:base] as p2 on issamenode(p2, p) where p.[jcr:path] = '/parents'
+select p.[jcr:path], p2.[jcr:path] from [nt:base] as p inner join [nt:base] as p2 on issamenode(p2, p) where p.[jcr:path] = '/parents'
 /parents, /parents
 
 select id from [nt:base] where id is not null
@@ -182,27 +182,27 @@ select id from [nt:base] where id is not null order by id desc
 1
 0
 
-select * from [nt:base] as c right outer join [nt:base] as p on p.id = c.p where p.id is not null and not isdescendantnode(p, '/jcr:system')
+select c.[jcr:path], p.[jcr:path] from [nt:base] as c right outer join [nt:base] as p on p.id = c.p where p.id is not null and not isdescendantnode(p, '/jcr:system')
 /children/c1, /parents/p1
 /children/c2, /parents/p1
 /children/c3, /parents/p2
 null, /parents/p0
 
-select * from [nt:base] as p left outer join [nt:base] as c on p.id = c.p where p.id is not null
+select p.[jcr:path], c.[jcr:path] from [nt:base] as p left outer join [nt:base] as c on p.id = c.p where p.id is not null
 /parents/p0, null
 /parents/p1, /children/c1
 /parents/p1, /children/c2
 /parents/p2, /children/c3
 
-select * from [nt:base] as p left outer join [nt:base] as c on p.id = c.p where p.id is not null and c.p is null
+select p.[jcr:path], c.[jcr:path] from [nt:base] as p left outer join [nt:base] as c on p.id = c.p where p.id is not null and c.p is null
 /parents/p0, null
 
-select * from [nt:base] as p left outer join [nt:base] as c on p.id = c.p where p.id is not null and c.p is not null
+select p.[jcr:path], c.[jcr:path] from [nt:base] as p left outer join [nt:base] as c on p.id = c.p where p.id is not null and c.p is not null
 /parents/p1, /children/c1
 /parents/p1, /children/c2
 /parents/p2, /children/c3
 
-select * from [nt:base] as p inner join [nt:base] as c on p.id = c.p
+select p.[jcr:path], c.[jcr:path] from [nt:base] as p inner join [nt:base] as c on p.id = c.p
 /parents/p1, /children/c1
 /parents/p1, /children/c2
 /parents/p2, /children/c3
@@ -214,27 +214,27 @@ commit / + "testRoot": {}
 commit /testRoot + "test": { "hello": { "x": "1" }, "world": { "x": "2" } }
 commit /testRoot + "test2": { "id":"1", "x": "2" }
 
-select * from [nt:base] where isdescendantnode('/testRoot')
+select [jcr:path] from [nt:base] where isdescendantnode('/testRoot')
 /testRoot/test
 /testRoot/test/hello
 /testRoot/test/world
 /testRoot/test2
 
-select * from [nt:base] where id = '1'
+select [jcr:path] from [nt:base] where id = '1'
 /testRoot/test2
 
-select * from [nt:base] where id = '1' and x = '2'
+select [jcr:path] from [nt:base] where id = '1' and x = '2'
 /testRoot/test2
 
-select * from [nt:base] where id = '1' or x = '2'
+select [jcr:path] from [nt:base] where id = '1' or x = '2'
 /testRoot/test/world
 /testRoot/test2
 
-select * from [nt:base] where not (id = '1' or x = '2') and isdescendantnode('/testRoot')
+select [jcr:path] from [nt:base] where not (id = '1' or x = '2') and isdescendantnode('/testRoot')
 /testRoot/test
 /testRoot/test/hello
 
-select * from [nt:base] where x is null and isdescendantnode('/testRoot')
+select [jcr:path] from [nt:base] where x is null and isdescendantnode('/testRoot')
 /testRoot/test
 
 commit /testRoot - "test"
@@ -253,43 +253,43 @@ Hallo
 hello
 World!
 
-select * from [nt:base] where length(name) = 5
+select [jcr:path] from [nt:base] where length(name) = 5
 /testRoot/test
 /testRoot/test3
 
-select * from [nt:base] where upper(name) = 'HELLO'
+select [jcr:path] from [nt:base] where upper(name) = 'HELLO'
 /testRoot/test
 
-select * from [nt:base] where lower(name) = 'world!'
+select [jcr:path] from [nt:base] where lower(name) = 'world!'
 /testRoot/test2
 
-select * from [nt:base] where name like 'W%'
+select [jcr:path] from [nt:base] where name like 'W%'
 /testRoot/test2
 
-select * from [nt:base] where name like '%o_%'
+select [jcr:path] from [nt:base] where name like '%o_%'
 /testRoot/test2
 
-select * from [nt:base] where name like '__llo'
-/testRoot/test
-/testRoot/test3
-
-select * from [nt:base] where upper(name) like 'H_LLO'
+select [jcr:path] from [nt:base] where name like '__llo'
 /testRoot/test
 /testRoot/test3
 
-select * from [nt:base] where upper(name) like 'H\_LLO'
+select [jcr:path] from [nt:base] where upper(name) like 'H_LLO'
+/testRoot/test
+/testRoot/test3
 
-select * from [nt:base] where upper(name) like '10%'
+select [jcr:path] from [nt:base] where upper(name) like 'H\_LLO'
+
+select [jcr:path] from [nt:base] where upper(name) like '10%'
 /testRoot/test4
 /testRoot/test5
 
-select * from [nt:base] where upper(name) like '10\%'
+select [jcr:path] from [nt:base] where upper(name) like '10\%'
 /testRoot/test4
 
 # errors
 
-select * from [nt:base] where name =+ 'Hello'
-java.text.ParseException: Query: select * from [nt:base] where name =+ 'Hello(*)'; expected: Illegal operation: + Hello
+select [jcr:path] from [nt:base] where name =+ 'Hello'
+java.text.ParseException: Query: select [jcr:path] from [nt:base] where name =+ 'Hello(*)'; expected: Illegal operation: + Hello
 
-select * from [nt:base] where name => 'Hello'
-java.text.ParseException: Query: select * from [nt:base] where name =>(*)'Hello'; expected: (, ., =, <>, <, >, <=, >=, LIKE, IS, NOT
+select [jcr:path] from [nt:base] where name => 'Hello'
+java.text.ParseException: Query: select [jcr:path] from [nt:base] where name =>(*)'Hello'; expected: (, ., =, <>, <, >, <=, >=, LIKE, IS, NOT

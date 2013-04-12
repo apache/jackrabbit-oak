@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.jcr.query;
 
+import static com.google.common.collect.Sets.newHashSet;
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertTrue;
 import static org.junit.Assert.assertFalse;
@@ -45,6 +46,7 @@ import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.commons.iterator.RowIterable;
 import org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest;
 import org.junit.Test;
+
 
 /**
  * Tests the query feature.
@@ -108,11 +110,9 @@ public class QueryTest extends AbstractRepositoryTest {
 
         q = qm.createQuery("//*[@id=1]", Query.XPATH);
         r = q.execute();
-        columns = r.getColumnNames();
-        assertEquals(3, columns.length);
-        assertEquals("jcr:path", columns[0]);
-        assertEquals("jcr:score", columns[1]);
-        assertEquals("*", columns[2]);
+        assertEquals(
+                newHashSet("jcr:path", "jcr:score", "jcr:primaryType"),
+                newHashSet(r.getColumnNames()));
     }
 
     @Test
