@@ -73,6 +73,8 @@ public class IndexUtils {
      * @param unique        {@code true} if the index is expected the assert property
      *                      uniqueness.
      * @param propertyNames The property names that should be indexed.
+     * @param declaringNodeTypeNames The declaring node type names or {@code null}.
+     * @return the NodeBuilder of the new index definition.
      */
     public static NodeBuilder createIndexDefinition(@Nonnull NodeBuilder index,
                                              @Nonnull String indexDefName,
@@ -126,7 +128,10 @@ public class IndexUtils {
      * Checks only children of the provided state for an index definitions
      * container node, aka a node named {@link IndexConstants#INDEX_DEFINITIONS_NAME}
      *
-     * @return
+     * @param state
+     * @param indexConfigPath
+     * @param typeFilter
+     * @return A list of index definitions.
      */
     public static List<IndexDefinition> buildIndexDefinitions(NodeState state,
                                                               String indexConfigPath, String typeFilter) {
@@ -149,6 +154,11 @@ public class IndexUtils {
 
     /**
      * Builds an {@link IndexDefinition} out of a {@link ChildNodeEntry}
+     *
+     * @param path
+     * @param def {@code ChildNodeEntry} storing the index definition.
+     * @param typeFilter
+     * @return a new {@code IndexDefinition}
      */
     private static IndexDefinition getDefinition(String path,
                                                  ChildNodeEntry def, String typeFilter) {
@@ -171,13 +181,13 @@ public class IndexUtils {
                 && ps.getValue(STRING).equals(INDEX_DEFINITIONS_NODE_TYPE);
     }
 
-    public static boolean getBoolean(NodeState state, String property,
-            boolean def) {
+    public static boolean getBoolean(NodeState state, String property, boolean def) {
         PropertyState ps = state.getProperty(property);
         if (ps == null) {
             return def;
+        } else {
+            return ps.getValue(BOOLEAN);
         }
-        return ps != null && ps.getValue(BOOLEAN);
     }
 
 }
