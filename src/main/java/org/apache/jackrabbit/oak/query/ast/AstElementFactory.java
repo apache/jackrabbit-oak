@@ -13,6 +13,8 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
+import java.util.Set;
+
 import org.apache.jackrabbit.oak.api.PropertyValue;
 
 /**
@@ -128,8 +130,10 @@ public class AstElementFactory {
         return new SameNodeJoinConditionImpl(selector1Name, selector2Name, selector2Path);
     }
 
-    public SelectorImpl selector(String nodeTypeName, String selectorName) {
-        return new SelectorImpl(nodeTypeName, selectorName);
+    public SelectorImpl selector(
+            String nodeTypeName, String selectorName,
+            Set<String> matchingTypes) {
+        return new SelectorImpl(nodeTypeName, selectorName, matchingTypes);
     }
 
     public UpperCaseImpl upperCase(DynamicOperandImpl operand) {

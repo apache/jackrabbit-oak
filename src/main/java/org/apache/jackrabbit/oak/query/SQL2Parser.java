@@ -16,6 +16,14 @@
  */
 package org.apache.jackrabbit.oak.query;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Maps.newHashMap;
+import static org.apache.jackrabbit.JcrConstants.NT_BASE;
+import static org.apache.jackrabbit.oak.api.Type.NAMES;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_NAMED_SINGLE_VALUED_PROPERTIES;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_SUBTYPES;
+
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -35,14 +43,20 @@ import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
 import org.apache.jackrabbit.oak.query.ast.SourceImpl;
 import org.apache.jackrabbit.oak.query.ast.StaticOperandImpl;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.ImmutableSet;
 
 import javax.jcr.PropertyType;
 import java.math.BigDecimal;
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * The SQL2 parser can convert a JCR-SQL2 query to a query. The 'old' SQL query
@@ -61,6 +75,8 @@ public class SQL2Parser {
     private static final int KEYWORD = 1, IDENTIFIER = 2, PARAMETER = 3, END = 4, VALUE = 5;
     private static final int MINUS = 12, PLUS = 13, OPEN = 14, CLOSE = 15;
 
+    private final NodeState types;
+
     // The query as an array of characters and character types
     private String statement;
     private char[] statementChars;
@@ -78,7 +94,7 @@ public class SQL2Parser {
     private HashMap<String, BindVariableValueImpl> bindVariables;
 
     // The list of selectors of this query
-    private ArrayList<SelectorImpl> selectors;
+    private final Map<String, SelectorImpl> selectors = newHashMap();
 
     // SQL injection protection: if disabled, literals are not allowed
     private boolean allowTextLiterals = true;
@@ -92,7 +108,8 @@ public class SQL2Parser {
      * Create a new parser. A parser can be re-used, but it is not thread safe.
      *
      */
-    public SQL2Parser() {
+    public SQL2Parser(NodeState types) {
+        this.types = checkNotNull(types);
     }
 
     /**
@@ -107,7 +124,7 @@ public class SQL2Parser {
         // http://docs.jboss.org/modeshape/latest/manuals/reference/html/jcr-query-and-search.html
 
         initialize(query);
-        selectors = new ArrayList<SelectorImpl>();
+        selectors.clear();
         expected = new ArrayList<String>();
         bindVariables = new HashMap<String, BindVariableValueImpl>();
         read();
@@ -177,11 +194,30 @@ public class SQL2Parser {
 
     private SelectorImpl parseSelector() throws ParseException {
         String nodeTypeName = readName();
+
+        Set<String> matchingTypes = null;
+        if (!NT_BASE.equals(nodeTypeName)) {
+            ImmutableSet.Builder<String> builder = ImmutableSet.builder();
+            NodeState type = types.getChildNode(nodeTypeName);
+            if (type.exists()) {
+                builder.add(nodeTypeName);
+                PropertyState subtypes = type.getProperty(OAK_SUBTYPES);
+                if (subtypes != null) {
+                    for (String subname : subtypes.getValue(NAMES)) {
+                        builder.add(subname);
+                    }
+                }
+            } else {
+                throw getSyntaxError("unknown node type");
+            }
+            matchingTypes = builder.build();
+        }
+
         if (readIf("AS")) {
             String selectorName = readName();
-            return factory.selector(nodeTypeName, selectorName);
+            return factory.selector(nodeTypeName, selectorName, matchingTypes);
         } else {
-            return factory.selector(nodeTypeName, nodeTypeName);
+            return factory.selector(nodeTypeName, nodeTypeName, matchingTypes);
         }
     }
 
@@ -201,7 +237,7 @@ public class SQL2Parser {
 
     private SourceImpl parseSource() throws ParseException {
         SelectorImpl selector = parseSelector();
-        selectors.add(selector);
+        selectors.put(selector.getSelectorName(), selector);
         SourceImpl source = selector;
         while (true) {
             JoinType joinType;
@@ -218,7 +254,7 @@ public class SQL2Parser {
             }
             read("JOIN");
             selector = parseSelector();
-            selectors.add(selector);
+            selectors.put(selector.getSelectorName(), selector);
             read("ON");
             JoinConditionImpl on = parseJoinCondition();
             source = factory.join(source, selector, joinType, on);
@@ -709,20 +745,24 @@ public class SQL2Parser {
         } else {
             do {
                 ColumnOrWildcard column = new ColumnOrWildcard();
-                column.propertyName = readName();
-                if (readIf(".")) {
-                    column.selectorName = column.propertyName;
-                    if (readIf("*")) {
-                        column.propertyName = null;
+                if (readIf("*")) {
+                    column.propertyName = null;
+                } else {
+                    column.propertyName = readName();
+                    if (readIf(".")) {
+                        column.selectorName = column.propertyName;
+                        if (readIf("*")) {
+                            column.propertyName = null;
+                        } else {
+                            column.propertyName = readName();
+                            if (readIf("AS")) {
+                                column.columnName = readName();
+                            }
+                        }
                     } else {
-                        column.propertyName = readName();
                         if (readIf("AS")) {
                             column.columnName = readName();
                         }
-                    }
-                } else {
-                    if (readIf("AS")) {
-                        column.columnName = readName();
                     }
                 }
                 list.add(column);
@@ -735,30 +775,61 @@ public class SQL2Parser {
         ArrayList<ColumnImpl> columns = new ArrayList<ColumnImpl>();
         for (ColumnOrWildcard c : list) {
             if (c.propertyName == null) {
-                for (SelectorImpl selector : selectors) {
-                    if (c.selectorName == null
-                            || c.selectorName
-                                    .equals(selector.getSelectorName())) {
-                        ColumnImpl column = factory.column(selector
-                                .getSelectorName(), null, null);
-                        columns.add(column);
-                    }
-                }
+                addWildcardColumns(columns, c.selectorName);
             } else {
-                ColumnImpl column;
-                if (c.selectorName != null) {
-                    column = factory.column(c.selectorName, c.propertyName, c.columnName);
-                } else if (c.columnName != null) {
-                    column = factory.column(getOnlySelectorName(), c.propertyName, c.columnName);
-                } else {
-                    column = factory.column(getOnlySelectorName(), c.propertyName, c.propertyName);
+                String selectorName = c.selectorName;
+                if (selectorName == null) {
+                    selectorName = getOnlySelectorName();
                 }
-                columns.add(column);
+
+                String columnName = c.columnName;
+                if (columnName == null) {
+                    columnName = c.propertyName;
+                }
+
+                columns.add(factory.column(
+                        selectorName, c.propertyName, columnName));
             }
         }
         ColumnImpl[] array = new ColumnImpl[columns.size()];
         columns.toArray(array);
         return array;
+    }
+
+    private void addWildcardColumns(
+            Collection<ColumnImpl> columns, String selectorName)
+            throws ParseException {
+        if (selectorName == null) {
+            for (SelectorImpl selector : selectors.values()) {
+                addWildcardColumns(columns, selector, selectors.size() > 1);
+            }
+        } else {
+            SelectorImpl selector = selectors.get(selectorName);
+            if (selector != null) {
+                addWildcardColumns(columns, selector, true);
+            } else {
+                throw getSyntaxError("Unknown selector: " + selectorName);
+            }
+        }
+    }
+
+    private void addWildcardColumns(
+            Collection<ColumnImpl> columns, SelectorImpl selector,
+            boolean includeSelectorName) {
+        String name = selector.getNodeTypeName();
+
+        PropertyState properties = types.getChildNode(name).getProperty(
+                OAK_NAMED_SINGLE_VALUED_PROPERTIES);
+        if (properties != null) {
+            String selectorName = selector.getSelectorName();
+            for (String property : properties.getValue(NAMES)) {
+                String columnName = property;
+                if (includeSelectorName) {
+                    columnName = selectorName + "." + property;
+                }
+                columns.add(factory.column(selectorName, property, columnName));
+            }
+        }
     }
 
     private boolean readIf(String token) throws ParseException {
@@ -1152,7 +1223,7 @@ public class SQL2Parser {
         if (selectors.size() > 1) {
             throw getSyntaxError("Need to specify the selector name because the query contains more than one selector.");
         }
-        return selectors.get(0).getSelectorName();
+        return selectors.values().iterator().next().getSelectorName();
     }
 
     public static String escapeStringLiteral(String value) {

@@ -18,23 +18,19 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.oak.api.Type.NAME;
+import static org.apache.jackrabbit.oak.api.Type.NAMES;
 
-import javax.annotation.CheckForNull;
-import javax.jcr.RepositoryException;
-import javax.jcr.nodetype.NoSuchNodeTypeException;
-import javax.jcr.nodetype.NodeTypeManager;
+import java.util.Set;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
-import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.query.Query;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
@@ -44,9 +40,6 @@ import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
-
 /**
  * A selector within a query.
  */
@@ -55,20 +48,18 @@ public class SelectorImpl extends SourceImpl {
     // TODO possibly support using multiple indexes (using index intersection / index merge)
     protected QueryIndex index;
 
-    private final String nodeTypeName, selectorName;
-    private Cursor cursor;
-    private IndexRow currentRow;
-    private int scanCount;
+    private final String nodeTypeName;
+
+    private final String selectorName;
 
     /**
-     * Names of all matching node type names encountered so far.
+     * Names of matching node types, or {@code null} if all types match.
      */
     private final Set<String> matchingTypes;
 
-    /**
-     * Names of all <em>non-matching</em> node type names encountered so far.
-     */
-    private final Set<String> nonMatchingTypes;
+    private Cursor cursor;
+    private IndexRow currentRow;
+    private int scanCount;
 
     /**
      * The selector condition can be evaluated when the given selector is
@@ -79,19 +70,16 @@ public class SelectorImpl extends SourceImpl {
      */
     private ConstraintImpl selectorCondition;
 
-    public SelectorImpl(String nodeTypeName, String selectorName) {
-        this.nodeTypeName = nodeTypeName;
-        this.selectorName = selectorName;
+    public SelectorImpl(
+            String nodeTypeName, String selectorName,
+            Set<String> matchingTypes) {
+        this.nodeTypeName = checkNotNull(nodeTypeName);
+        this.selectorName = checkNotNull(selectorName);
+        this.matchingTypes = matchingTypes;
+    }
 
-        if (JcrConstants.NT_BASE.equals(nodeTypeName)) {
-            matchingTypes = null;
-            nonMatchingTypes = null;
-        } else {
-            matchingTypes = Sets.newHashSet();
-            matchingTypes.add(nodeTypeName);
-            nonMatchingTypes = Sets.newHashSet();
-            nonMatchingTypes.add(JcrConstants.NT_BASE);
-        }
+    public String getNodeTypeName() {
+        return nodeTypeName;
     }
 
     public String getSelectorName() {
@@ -151,7 +139,6 @@ public class SelectorImpl extends SourceImpl {
     private Filter createFilter(boolean preparing) {
         FilterImpl f = new FilterImpl(this, query.getStatement());
         f.setPreparing(preparing);
-        validateNodeType();
         f.setNodeType(nodeTypeName);
         if (joinCondition != null) {
             joinCondition.restrict(f);
@@ -171,30 +158,6 @@ public class SelectorImpl extends SourceImpl {
         }
 
         return f;
-    }
-    
-    private void validateNodeType() {
-        if (!JcrConstants.NT_BASE.equals(nodeTypeName)) {
-            try {
-                // Check both the syntactic validity of the type name
-                // and the existence of the named type in one call
-                getNodeTypeManager().getNodeType(nodeTypeName);
-            } catch (NoSuchNodeTypeException e) {
-                // TODO: QueryManagerImpl.executeQuery() expects an
-                // IllegalArgumentException to signal an invalid query.
-                // This is a bit troublesome since any method could throw
-                // that exception as a result of some internal programming
-                // error or some other inconsistency that has nothing to
-                // do with the validity of the query. A better solution
-                // would be to use some checked exception or explicit
-                // return value to signal whether the query is valid or not.
-                throw new IllegalArgumentException(
-                        "Unknown node type: " + nodeTypeName, e);
-            } catch (RepositoryException e) {
-                throw new RuntimeException(
-                        "Unable to evaluate node type constraints", e);
-            }
-        }
     }
 
     @Override
@@ -225,61 +188,28 @@ public class SelectorImpl extends SourceImpl {
     }
 
     private boolean evaluateTypeMatch(Tree tree) {
-        if (JcrConstants.NT_BASE.equals(nodeTypeName)) {
+        if (matchingTypes == null) {
             return true; // shortcut for a common case
         }
 
-        Set<String> types = Sets.newHashSet();
-
-        PropertyState primary = tree.getProperty(JcrConstants.JCR_PRIMARYTYPE);
-        if (primary != null && primary.getType() == Type.NAME) {
-            String name = primary.getValue(Type.NAME);
+        PropertyState primary = tree.getProperty(JCR_PRIMARYTYPE);
+        if (primary != null && primary.getType() == NAME) {
+            String name = primary.getValue(NAME);
             if (matchingTypes.contains(name)) {
                 return true;
-            } else if (!nonMatchingTypes.contains(name)) {
-                types.add(name);
             }
         }
 
-        PropertyState mixins = tree.getProperty(JcrConstants.JCR_MIXINTYPES);
-        if (mixins != null && mixins.getType() == Type.NAMES) {
-            for (String name : mixins.getValue(Type.NAMES)) {
+        PropertyState mixins = tree.getProperty(JCR_MIXINTYPES);
+        if (mixins != null && mixins.getType() == NAMES) {
+            for (String name : mixins.getValue(NAMES)) {
                 if (matchingTypes.contains(name)) {
                     return true;
-                } else if (!nonMatchingTypes.contains(name)) {
-                    types.add(name);
                 }
-            }
-        }
-
-        if (!types.isEmpty()) {
-            try {
-                NodeTypeManager manager = getNodeTypeManager();
-                for (String type : types) {
-                    if (manager.getNodeType(type).isNodeType(nodeTypeName)) {
-                        matchingTypes.add(type);
-                        return true;
-                    } else {
-                        nonMatchingTypes.add(type);
-                        // continue iterating
-                    }
-                }
-            } catch (RepositoryException e) {
-                throw new RuntimeException(
-                        "Unable to evaluate node type constraints", e);
             }
         }
 
         return false; // no matches found
-    }
-
-    private NodeTypeManager getNodeTypeManager() {
-        return new ReadOnlyNodeTypeManager() {
-            @Override @CheckForNull
-            protected Tree getTypes() {
-                return getTree(NodeTypeConstants.NODE_TYPES_PATH);
-            }
-        };
     }
 
     /**
@@ -333,16 +263,6 @@ public class SelectorImpl extends SourceImpl {
             }
             return PropertyValues.newString(local);
         }
-        if (propertyName.equals("*")) {
-            // TODO currently all property values are converted to strings - 
-            // this doesn't play well with the idea that the types may be different
-            List<String> values = new ArrayList<String>();
-            for (PropertyState p : t.getProperties()) {
-                Iterables.addAll(values, p.getValue(Type.STRINGS));
-            }
-            // "*"
-            return PropertyValues.newString(values);
-        } 
         return PropertyValues.create(t.getProperty(propertyName));
     }
 
