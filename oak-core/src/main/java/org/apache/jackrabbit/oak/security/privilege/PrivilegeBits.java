@@ -227,7 +227,7 @@ public final class PrivilegeBits implements PrivilegeConstants {
         } else {
             if ((privs & ADD_PROPERTIES) == ADD_PROPERTIES) {
                 perm |= Permissions.ADD_PROPERTY;
-            } else if ((privs & MODIFY_PROPERTIES) == MODIFY_PROPERTIES) {
+            } else if ((privs & ALTER_PROPERTIES) == ALTER_PROPERTIES) {
                 perm |= Permissions.MODIFY_PROPERTY;
             } else if ((privs & REMOVE_PROPERTIES) == REMOVE_PROPERTIES) {
                 perm |= Permissions.REMOVE_PROPERTY;
