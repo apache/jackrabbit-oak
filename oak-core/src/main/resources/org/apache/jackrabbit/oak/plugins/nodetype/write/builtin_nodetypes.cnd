@@ -426,6 +426,11 @@
   + jcr:childNodeDefinition (nt:childNodeDefinition) = nt:childNodeDefinition protected sns
 
 [oak:nodeType] > nt:nodeType
+  - oak:supertypes (NAME) protected multiple autocreated
+  - oak:subtypes (NAME) protected multiple autocreated
+  - oak:namedProperties (NAME) protected multiple autocreated
+  - oak:mandatoryProperties (NAME) protected multiple autocreated
+  - oak:mandatoryChildNodes (NAME) protected multiple autocreated
   + oak:namedPropertyDefinitions (oak:namedPropertyDefinitions) = oak:namedPropertyDefinitions protected mandatory
   + oak:residualPropertyDefinitions (oak:propertyDefinitions) = oak:propertyDefinitions protected mandatory
   + oak:namedChildNodeDefinitions (oak:namedChildNodeDefinitions) = oak:namedChildNodeDefinitions protected mandatory

@@ -17,7 +17,14 @@
 package org.apache.jackrabbit.oak.plugins.nodetype;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Iterables.contains;
+import static com.google.common.collect.Lists.newArrayList;
+import static com.google.common.collect.Sets.newHashSet;
+import static com.google.common.collect.Sets.newLinkedHashSet;
+import static java.util.Collections.emptyList;
 import static org.apache.jackrabbit.JcrConstants.JCR_CHILDNODEDEFINITION;
+import static org.apache.jackrabbit.JcrConstants.JCR_ISMIXIN;
+import static org.apache.jackrabbit.JcrConstants.JCR_MANDATORY;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_MULTIPLE;
 import static org.apache.jackrabbit.JcrConstants.JCR_NAME;
@@ -29,30 +36,43 @@ import static org.apache.jackrabbit.JcrConstants.JCR_REQUIREDTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_SUPERTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
+import static org.apache.jackrabbit.JcrConstants.NT_BASE;
+import static org.apache.jackrabbit.oak.api.CommitFailedException.CONSTRAINT;
+import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_CHILD_NODE_DEFINITIONS;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_MANDATORY_CHILD_NODES;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_MANDATORY_PROPERTIES;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_NAMED_CHILD_NODE_DEFINITIONS;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_NAMED_PROPERTIES;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_NAMED_PROPERTY_DEFINITIONS;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_PROPERTY_DEFINITIONS;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_RESIDUAL_CHILD_NODE_DEFINITIONS;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_RESIDUAL_PROPERTY_DEFINITIONS;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_SUBTYPES;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_SUPERTYPES;
 
-import java.util.Queue;
+import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 
-import com.google.common.collect.Queues;
-import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.commit.DefaultEditor;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
-import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+
+import com.google.common.collect.Iterables;
 
 /**
  * Editor that validates the consistency of the in-content node type registry
  * under {@code /jcr:system/jcr:nodeTypes} and maintains the access-optimized
- * version under {@code /jcr:system/oak:nodeTypes}.
+ * versions of node type information as defined in {@code oak:nodeType}.
  *
  * <ul>
  *     <li>validate new definitions</li>
@@ -66,71 +86,181 @@ class RegistrationEditor extends DefaultEditor {
 
     private final NodeBuilder builder;
 
-    private final Set<String> changedTypes = Sets.newHashSet();
+    private final Set<String> changedTypes = newHashSet();
 
-    private final Set<String> removedTypes = Sets.newHashSet();
+    private final Set<String> removedTypes = newHashSet();
+
+    private boolean modified = false;
 
     RegistrationEditor(NodeBuilder builder) {
         this.builder = checkNotNull(builder);
     }
 
-    private void validateAndCompile(String name, NodeState after)
+    /**
+     * Validates the inheritance hierarchy of the identified node type and
+     * merges supertype information to the pre-compiled type information
+     * fields. This makes full type information directly accessible without
+     * having to traverse up the type hierarchy.
+     *
+     * @param types
+     * @param name
+     * @return
+     * @throws CommitFailedException
+     */
+    private void mergeSupertypes(NodeBuilder types, NodeBuilder type)
             throws CommitFailedException {
-        NodeBuilder types = builder.child(JCR_SYSTEM).child(JCR_NODE_TYPES);
+        if (type.getProperty(OAK_SUPERTYPES) == null) {
+            List<String> empty = Collections.emptyList();
+            type.setProperty(OAK_SUPERTYPES, empty, NAMES);
 
-        String path = NODE_TYPES_PATH + "/" + name;
-        NodeBuilder type = types.child(name);
+            // - jcr:supertypes (NAME) protected multiple
+            PropertyState supertypes = type.getProperty(JCR_SUPERTYPES);
+            if (supertypes != null) {
+                for (String supername : supertypes.getValue(NAMES)) {
+                    if (types.hasChildNode(supername)) {
+                        NodeBuilder supertype = types.child(supername);
+                        mergeSupertypes(types, supertype);
+                        mergeSupertype(type, supertype.getNodeState());
+                    } else {
+                        throw new CommitFailedException(
+                                CONSTRAINT, 35,
+                                "Missing supertype " + supername);
+                    }
+                }
+            }
 
-        // - jcr:nodeTypeName (NAME) protected mandatory
-        PropertyState nodeTypeName = after.getProperty(JCR_NODETYPENAME);
-        if (nodeTypeName == null
-                || !name.equals(nodeTypeName.getValue(NAME))) {
-            throw new CommitFailedException(
-                    "Constraint", 34,
-                    "Unexpected " + JCR_NODETYPENAME + " in " + path);
-        }
-
-        // - jcr:supertypes (NAME) protected multiple
-        PropertyState supertypes = after.getProperty(JCR_SUPERTYPES);
-        if (supertypes != null) {
-            for (String value : supertypes.getValue(NAMES)) {
-                if (!types.hasChildNode(value)) {
+            if (!getBoolean(type, JCR_ISMIXIN)
+                    && !contains(getNames(type, OAK_SUPERTYPES), NT_BASE)
+                    && !NT_BASE.equals(type.getProperty(JCR_NODETYPENAME).getValue(NAME))) {
+                if (types.hasChildNode(NT_BASE)) {
+                    NodeBuilder supertype = types.child(NT_BASE);
+                    mergeSupertypes(types, supertype);
+                    mergeSupertype(type, supertype.getNodeState());
+                } else {
                     throw new CommitFailedException(
-                            "Constraint", 35,
-                            "Missing supertype " + value + " in " + path);
+                            CONSTRAINT, 35,
+                            "Missing supertype " + NT_BASE);
                 }
             }
         }
+    }
 
+    private boolean getBoolean(NodeBuilder builder, String name) {
+        PropertyState property = builder.getProperty(name);
+        return property != null && property.getValue(BOOLEAN);
+    }
+
+    private Iterable<String> getNames(NodeBuilder builder, String name) {
+        PropertyState property = builder.getProperty(name);
+        if (property != null) {
+            return property.getValue(NAMES);
+        } else {
+            return Collections.<String>emptyList();
+        }
+    }
+
+    private void mergeSupertype(NodeBuilder type, NodeState supertype) {
+        String supername =
+                supertype.getProperty(JCR_NODETYPENAME).getValue(NAME);
+        addNameToList(type, OAK_SUPERTYPES, supername);
+        mergeNameList(type, supertype, OAK_SUPERTYPES);
+        mergeNameList(type, supertype, OAK_NAMED_PROPERTIES);
+        mergeNameList(type, supertype, OAK_MANDATORY_PROPERTIES);
+        mergeNameList(type, supertype, OAK_MANDATORY_CHILD_NODES);
+        mergeSubtree(type, supertype, OAK_NAMED_PROPERTY_DEFINITIONS, 2);
+        mergeSubtree(type, supertype, OAK_RESIDUAL_PROPERTY_DEFINITIONS, 1);
+        mergeSubtree(type, supertype, OAK_NAMED_CHILD_NODE_DEFINITIONS, 2);
+        mergeSubtree(type, supertype, OAK_RESIDUAL_CHILD_NODE_DEFINITIONS, 1);
+    }
+
+    private void mergeNameList(
+            NodeBuilder builder, NodeState state, String listName) {
+        LinkedHashSet<String> nameList =
+                newLinkedHashSet(getNames(builder, listName));
+        Iterables.addAll(
+                nameList, state.getProperty(listName).getValue(NAMES));
+        builder.setProperty(listName, nameList, NAMES);
+    }
+
+    private void mergeSubtree(NodeBuilder builder, NodeState state, String name, int depth) {
+        NodeState subtree = state.getChildNode(name);
+        if (subtree.exists()) {
+            if (!builder.hasChildNode(name)) {
+                builder.setNode(name, subtree);
+            } else if (depth > 0) {
+                NodeBuilder subbuilder = builder.child(name);
+                for (String subname : subtree.getChildNodeNames()) {
+                    mergeSubtree(subbuilder, subtree, subname, depth - 1);
+                }
+            }
+        }
+    }
+
+    /**
+     * Validates and pre-compiles the named node type.
+     *
+     * @param types builder for the /jcr:system/jcr:nodeTypes node
+     * @param name name of the node type to validate and compile
+     * @throws CommitFailedException if type validation fails
+     */
+    private void validateAndCompileType(NodeBuilder types, String name)
+            throws CommitFailedException {
+        NodeBuilder type = types.child(name);
+
+        // - jcr:nodeTypeName (NAME) protected mandatory
+        PropertyState nodeTypeName = type.getProperty(JCR_NODETYPENAME);
+        if (nodeTypeName == null
+                || !name.equals(nodeTypeName.getValue(NAME))) {
+            throw new CommitFailedException(
+                    CONSTRAINT, 34,
+                    "Unexpected " + JCR_NODETYPENAME + " in type " + name);
+        }
+
+        // Prepare the type node pre-compilation of the oak:nodeType info
+        Iterable<String> empty = emptyList();
         type.setProperty(JCR_PRIMARYTYPE, "oak:nodeType", NAME);
-        type.removeNode("oak:namedPropertyDefinitions");
-        type.removeNode("oak:residualPropertyDefinitions");
-        type.removeNode("oak:namedChildNodeDefinitions");
-        type.removeNode("oak:residualChildNodeDefinitions");
+        type.removeProperty(OAK_SUPERTYPES);
+        type.setProperty(OAK_SUBTYPES, empty, NAMES);
+        type.setProperty(OAK_NAMED_PROPERTIES, empty, NAMES);
+        type.setProperty(OAK_MANDATORY_PROPERTIES, empty, NAMES);
+        type.setProperty(OAK_MANDATORY_CHILD_NODES, empty, NAMES);
+        type.removeNode(OAK_NAMED_PROPERTY_DEFINITIONS);
+        type.removeNode(OAK_RESIDUAL_PROPERTY_DEFINITIONS);
+        type.removeNode(OAK_NAMED_CHILD_NODE_DEFINITIONS);
+        type.removeNode(OAK_RESIDUAL_CHILD_NODE_DEFINITIONS);
 
         // + jcr:propertyDefinition (nt:propertyDefinition)
         //   = nt:propertyDefinition protected sns
         // + jcr:childNodeDefinition (nt:childNodeDefinition)
         //   = nt:childNodeDefinition protected sns
-        for (ChildNodeEntry entry : after.getChildNodeEntries()) {
-            String childName = entry.getName();
-            if (childName.startsWith(JCR_PROPERTYDEFINITION)) {
-                processPropertyDefinition(type, entry.getNodeState());
-            } else if (childName.startsWith(JCR_CHILDNODEDEFINITION)) {
-                processChildNodeDefinition(
-                        types, type, entry.getNodeState());
+        for (String childNodeName : type.getChildNodeNames()) {
+            NodeState definition = type.child(childNodeName).getNodeState();
+            if (childNodeName.startsWith(JCR_PROPERTYDEFINITION)) {
+                validateAndCompilePropertyDefinition(type, definition);
+            } else if (childNodeName.startsWith(JCR_CHILDNODEDEFINITION)) {
+                validateAndCompileChildNodeDefinition(types, type, definition);
             }
         }
     }
 
-    private void processPropertyDefinition(
+    private void addNameToList(NodeBuilder type, String name, String value) {
+        List<String> values;
+        values = newArrayList(getNames(type, name));
+        if (!values.contains(value)) {
+            values.add(value);
+        }
+        type.setProperty(name, values, NAMES);
+    }
+
+    private void validateAndCompilePropertyDefinition(
             NodeBuilder type, NodeState definition)
             throws CommitFailedException {
         // - jcr:name (NAME) protected 
         PropertyState name = definition.getProperty(JCR_NAME);
         NodeBuilder definitions;
         if (name != null) {
-            String escapedName = name.getValue(NAME);
+            String propertyName = name.getValue(NAME);
+            String escapedName = propertyName;
             if (JCR_PRIMARYTYPE.equals(escapedName)) {
                 escapedName = "oak:primaryType";
             } else if (JCR_MIXINTYPES.equals(escapedName)) {
@@ -138,15 +268,21 @@ class RegistrationEditor extends DefaultEditor {
             } else if (JCR_UUID.equals(escapedName)) {
                 escapedName = "oak:uuid";
             }
-            definitions = type.child("oak:namedPropertyDefinitions");
+            definitions = type.child(OAK_NAMED_PROPERTY_DEFINITIONS);
             definitions.setProperty(
-                    JCR_PRIMARYTYPE, "oak:namedPropertyDefinitions", NAME);
+                    JCR_PRIMARYTYPE, OAK_NAMED_PROPERTY_DEFINITIONS, NAME);
             definitions = definitions.child(escapedName);
+
+            // - jcr:mandatory (BOOLEAN) protected mandatory
+            PropertyState mandatory = definition.getProperty(JCR_MANDATORY);
+            if (mandatory != null && mandatory.getValue(BOOLEAN)) {
+                addNameToList(type, OAK_MANDATORY_PROPERTIES, propertyName);
+            }
         } else {
-            definitions = type.child("oak:residualPropertyDefinitions");
+            definitions = type.child(OAK_RESIDUAL_PROPERTY_DEFINITIONS);
         }
         definitions.setProperty(
-                JCR_PRIMARYTYPE, "oak:propertyDefinitions", NAME);
+                JCR_PRIMARYTYPE, OAK_PROPERTY_DEFINITIONS, NAME);
 
         // - jcr:requiredType (STRING) protected mandatory
         // < 'STRING', 'URI', 'BINARY', 'LONG', 'DOUBLE',
@@ -160,7 +296,7 @@ class RegistrationEditor extends DefaultEditor {
 
         // - jcr:multiple (BOOLEAN) protected mandatory
         PropertyState multiple = definition.getProperty(JCR_MULTIPLE);
-        if (multiple != null && multiple.getValue(Type.BOOLEAN)) {
+        if (multiple != null && multiple.getValue(BOOLEAN)) {
             if ("BINARY".equals(key)) {
                 key = "BINARIES";
             } else {
@@ -171,22 +307,29 @@ class RegistrationEditor extends DefaultEditor {
         definitions.setNode(key, definition);
     }
 
-    private void processChildNodeDefinition(
+    private void validateAndCompileChildNodeDefinition(
             NodeBuilder types, NodeBuilder type, NodeState definition)
             throws CommitFailedException {
         // - jcr:name (NAME) protected 
         PropertyState name = definition.getProperty(JCR_NAME);
         NodeBuilder definitions;
         if (name != null) {
-            definitions = type.child("oak:namedChildNodeDefinitions");
+            String childNodeName = name.getValue(NAME);
+            definitions = type.child(OAK_NAMED_CHILD_NODE_DEFINITIONS);
             definitions.setProperty(
-                    JCR_PRIMARYTYPE, "oak:namedChildNodeDefinitions", NAME);
-            definitions = definitions.child(name.getValue(NAME));
+                    JCR_PRIMARYTYPE, OAK_NAMED_CHILD_NODE_DEFINITIONS, NAME);
+            definitions = definitions.child(childNodeName);
+
+            // - jcr:mandatory (BOOLEAN) protected mandatory
+            PropertyState mandatory = definition.getProperty(JCR_MANDATORY);
+            if (mandatory != null && mandatory.getValue(BOOLEAN)) {
+                addNameToList(type, OAK_MANDATORY_CHILD_NODES, childNodeName);
+            }
         } else {
-            definitions = type.child("oak:residualChildNodeDefinitions");
+            definitions = type.child(OAK_RESIDUAL_CHILD_NODE_DEFINITIONS);
         }
         definitions.setProperty(
-                JCR_PRIMARYTYPE, "oak:childNodeDefinitions", NAME);
+                JCR_PRIMARYTYPE, OAK_CHILD_NODE_DEFINITIONS, NAME);
 
         // - jcr:requiredPrimaryTypes (NAME)
         //   = 'nt:base' protected mandatory multiple
@@ -205,123 +348,50 @@ class RegistrationEditor extends DefaultEditor {
         }
     }
 
-    /**
-     * Updates the {@link #changedTypes} set to contain also all subtypes
-     * that may have been affected by the content changes even if they haven't
-     * been directly modified.
-     *
-     * @param types {@code /jcr:system/jcr:nodeTypes} after the changes
-     */
-    private void findAllAffectedTypes(NodeState types) {
-        Queue<String> queue = Queues.newArrayDeque(changedTypes);
-        while (!queue.isEmpty()) {
-            String name = queue.remove();
-
-            // TODO: We should be able to do this with just one pass
-            for (ChildNodeEntry entry : types.getChildNodeEntries()) {
-                NodeState type = entry.getNodeState();
-                PropertyState supertypes = type.getProperty(JCR_SUPERTYPES);
-                if (supertypes != null) {
-                    for (String superName : supertypes.getValue(NAMES)) {
-                        if (name.equals(superName)) {
-                            if (!changedTypes.add(entry.getName())) {
-                                queue.add(entry.getName());
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    /**
-     * Verifies that none of the remaining node types still references
-     * one of the removed types.
-     *
-     * @param types {@code /jcr:system/jcr:nodeTypes} after the changes
-     * @throws CommitFailedException if a removed type is still referenced
-     */
-    private void checkTypeReferencesToRemovedTypes(NodeState types)
-            throws CommitFailedException {
-        for (ChildNodeEntry entry : types.getChildNodeEntries()) {
-            NodeState type = entry.getNodeState();
-
-            // Are there any supertype references to removed types?
-            PropertyState supertypes = type.getProperty(JCR_SUPERTYPES);
-            if (supertypes != null) {
-                for (String superName : supertypes.getValue(NAMES)) {
-                    if (removedTypes.contains(superName)) {
-                        throw new CommitFailedException(
-                                "Constraint", 31,
-                                "Removed type " + superName
-                                + " is still referenced as a supertype of "
-                                + entry.getName());
-                    }
-                }
-            }
-
-            // Are there any child node definition references to removed types?
-            for (ChildNodeEntry childEntry : types.getChildNodeEntries()) {
-                String childName = childEntry.getName();
-                if (childName.startsWith(JCR_CHILDNODEDEFINITION)) {
-                    NodeState definition = childEntry.getNodeState();
-                    PropertyState requiredTypes =
-                            definition.getProperty(JCR_REQUIREDTYPE);
-                    if (requiredTypes != null) {
-                        for (String required : requiredTypes.getValue(NAMES)) {
-                            if (removedTypes.contains(required)) {
-                                throw new CommitFailedException(
-                                        "Constraint", 32,
-                                        "Removed type " + required
-                                        + " is still referenced as a required "
-                                        + " primary child node type in "
-                                        + entry.getName());
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
     //------------------------------------------------------------< Editor >--
 
     @Override
     public void leave(NodeState before, NodeState after)
             throws CommitFailedException {
-        if (!removedTypes.isEmpty()) {
-            checkTypeReferencesToRemovedTypes(after);
-        }
+        if (modified) {
+            NodeBuilder types = builder.child(JCR_SYSTEM).child(JCR_NODE_TYPES);
+            for (String name : types.getChildNodeNames()) {
+                validateAndCompileType(types, name);
+            }
+            for (String name : types.getChildNodeNames()) {
+                mergeSupertypes(types, types.child(name));
+            }
+            for (String name : types.getChildNodeNames()) {
+                NodeBuilder type = types.child(name);
+                for (String supername : getNames(type, OAK_SUPERTYPES)) {
+                    addNameToList(types.child(supername), OAK_SUBTYPES, name);
+                }
+            }
 
-        if (!changedTypes.isEmpty()) {
-            findAllAffectedTypes(after);
-        }
-
-        if (!changedTypes.isEmpty() || !removedTypes.isEmpty()) {
-            // TODO: Find and re-validate any nodes in the repository that
-            // refer to any of the changed (or removed) node types.
+            if (!changedTypes.isEmpty() || !removedTypes.isEmpty()) {
+                // TODO: Find and re-validate any nodes in the repository that
+                // refer to any of the changed (or removed) node types.
+            }
         }
     }
 
     @Override
-    public Validator childNodeAdded(String name, NodeState after)
-            throws CommitFailedException {
-        validateAndCompile(name, after);
+    public Validator childNodeAdded(String name, NodeState after) {
+        modified = true;
         return null;
     }
 
     @Override
     public Validator childNodeChanged(
-            String name, NodeState before, NodeState after)
-            throws CommitFailedException {
-        validateAndCompile(name, after);
+            String name, NodeState before, NodeState after) {
+        modified = true;
         changedTypes.add(name);
         return null;
     }
 
     @Override
-    public Validator childNodeDeleted(String name, NodeState before)
-            throws CommitFailedException {
+    public Validator childNodeDeleted(String name, NodeState before) {
+        modified = true;
         removedTypes.add(name);
         return null;
     }

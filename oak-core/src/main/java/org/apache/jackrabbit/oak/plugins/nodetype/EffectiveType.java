@@ -17,11 +17,13 @@
 package org.apache.jackrabbit.oak.plugins.nodetype;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.JcrConstants.JCR_MANDATORY;
+import static com.google.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
+import static org.apache.jackrabbit.JcrConstants.JCR_NODETYPENAME;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
-import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
+import static org.apache.jackrabbit.oak.api.Type.NAME;
+import static org.apache.jackrabbit.oak.api.Type.NAMES;
 
 import java.util.List;
 import java.util.Set;
@@ -31,10 +33,10 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 
 class EffectiveType {
 
@@ -49,29 +51,18 @@ class EffectiveType {
         ImmutableSet.Builder<String> builder = ImmutableSet.builder();
 
         for (NodeState type : types) {
-            NodeState properties =
-                    type.getChildNode("oak:namedPropertyDefinitions");
-            for (ChildNodeEntry entry : properties.getChildNodeEntries()) {
-                String name = entry.getName();
-                if ("oak:primaryType".equals(name)) {
-                    name = JCR_PRIMARYTYPE;
-                } else if ("oak:mixinTypes".equals(name)) {
-                    name = JCR_MIXINTYPES;
-                } else if ("oak:uuid".equals(name)) {
-                    name = JCR_UUID;
-                }
-                if (node.getProperty(name) == null
-                        && isMandatory(name, entry.getNodeState())) {
+            PropertyState properties =
+                    type.getProperty("oak:mandatoryProperties");
+            for (String name : properties.getValue(NAMES)) {
+                if (node.getProperty(name) == null) {
                     builder.add(name);
                 }
             }
 
-            NodeState childNodes =
-                    type.getChildNode("oak:namedChildNodeDefinitions");
-            for (ChildNodeEntry entry : childNodes.getChildNodeEntries()) {
-                String name = entry.getName();
-                if (!node.hasChildNode(name)
-                        && isMandatory(name, entry.getNodeState())) {
+            PropertyState childNodes =
+                    type.getProperty("oak:mandatoryChildNodes");
+            for (String name : childNodes.getValue(NAMES)) {
+                if (!node.hasChildNode(name)) {
                     builder.add(name);
                 }
             }
@@ -200,24 +191,16 @@ class EffectiveType {
         return null;
     }
 
-    //-----------------------------------------------------------< private >--
-    
-    private boolean isMandatory(String name, NodeState definitions) {
-        for (ChildNodeEntry entry : definitions.getChildNodeEntries()) {
-            NodeState definition = entry.getNodeState();
-            if (getBoolean(definition, JCR_MANDATORY)) {
-                return true;
-            }
+    Set<String> getTypeNames() {
+        Set<String> names = newHashSet();
+        for (NodeState type : types) {
+            names.add(type.getProperty(JCR_NODETYPENAME).getValue(NAME));
+            Iterables.addAll(names, type.getProperty("oak:supertypes").getValue(NAMES));
         }
-        return false;
+        return names;
     }
 
-    private boolean getBoolean(NodeState node, String name) {
-        PropertyState property = node.getProperty(name);
-        return property != null
-                && property.getType() == BOOLEAN
-                && property.getValue(BOOLEAN);
-    }
+    //-----------------------------------------------------------< private >--
 
     private String getTypeKey(Type<?> type) {
         if (type == Type.BINARIES) {
