@@ -50,6 +50,7 @@ class ChangeProcessor implements Runnable {
 
     private static final Logger log = LoggerFactory.getLogger(ChangeProcessor.class);
 
+    private static final String DUMMY_USER_ID = TODO.dummyImplementation().returnValueOrNull("oak:unknown");
     private final ObservationManagerImpl observationManager;
     private final NamePathMapper namePathMapper;
     private final ChangeExtractor changeExtractor;
@@ -243,8 +244,7 @@ class ChangeProcessor implements Runnable {
             String jcrPath = namePathMapper.getJcrPath(PathUtils.concat(parentPath, property.getName()));
 
             // TODO support userId, identifier, info, date
-            String userId = TODO.dummyImplementation().returnValueOrNull("oak:unknown");
-            return new EventImpl(eventType, jcrPath, userId, null, null, 0);
+            return new EventImpl(eventType, jcrPath, DUMMY_USER_ID, null, null, 0);
         }
 
         private Iterator<Event> generateNodeEvents(int eventType, String parentPath, String name, NodeState node) {
@@ -256,8 +256,7 @@ class ChangeProcessor implements Runnable {
             Iterator<Event> nodeEvent;
             if (filter.include(eventType, jcrParentPath, associatedParentNode)) {
                 // TODO support userId, identifier, info, date
-                String userId = TODO.dummyImplementation().returnValueOrNull("oak:unknown");
-                Event event = new EventImpl(eventType, jcrPath, userId, null, null, 0);
+                Event event = new EventImpl(eventType, jcrPath, DUMMY_USER_ID, null, null, 0);
                 nodeEvent = Iterators.singletonIterator(event);
             } else {
                 nodeEvent = Iterators.emptyIterator();
