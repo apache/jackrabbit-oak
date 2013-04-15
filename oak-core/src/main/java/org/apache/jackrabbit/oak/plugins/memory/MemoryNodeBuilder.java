@@ -432,7 +432,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
     public NodeBuilder removeProperty(String name) {
         write();
 
-        if (writeState.base.getProperty(name) != null) {
+        if (writeState.base.hasProperty(name)) {
             writeState.properties.put(name, null);
         } else {
             writeState.properties.remove(name);
@@ -557,6 +557,11 @@ public class MemoryNodeBuilder implements NodeBuilder {
         @Override
         public long getPropertyCount() {
             return withProperties(base, properties).getPropertyCount();
+        }
+
+        @Override
+        public boolean hasProperty(String name) {
+            return withProperties(base, properties).hasProperty(name);
         }
 
         @Override

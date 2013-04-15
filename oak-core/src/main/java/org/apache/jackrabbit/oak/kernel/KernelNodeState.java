@@ -231,6 +231,12 @@ public final class KernelNodeState extends AbstractNodeState {
     }
 
     @Override
+    public boolean hasProperty(String name) {
+        init();
+        return properties.containsKey(name);
+    }
+
+    @Override
     public PropertyState getProperty(String name) {
         init();
         return properties.get(name);

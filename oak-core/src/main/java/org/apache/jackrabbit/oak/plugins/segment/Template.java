@@ -19,6 +19,8 @@ package org.apache.jackrabbit.oak.plugins.segment;
 import static com.google.common.base.Preconditions.checkElementIndex;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 import static org.apache.jackrabbit.oak.plugins.segment.Segment.RECORD_ID_BYTES;
 
@@ -177,11 +179,34 @@ class Template {
         }
     }
 
+    public boolean hasProperty(String name) {
+        if (JCR_PRIMARYTYPE.equals(name)) {
+            return primaryType != null;
+        } else if (JCR_MIXINTYPES.equals(name)) {
+            return mixinTypes != null;
+        } else {
+            int hash = name.hashCode();
+            int index = 0;
+            while (index < properties.length
+                    && properties[index].getName().hashCode() < hash) {
+                index++;
+            }
+            while (index < properties.length
+                    && properties[index].getName().hashCode() == hash) {
+                if (name.equals(properties[index].getName())) {
+                    return true;
+                }
+                index++;
+            }
+            return false;
+        }
+    }
+
     public PropertyState getProperty(
             String name, SegmentStore store, RecordId recordId) {
-        if ("jcr:primaryType".equals(name) && primaryType != null) {
+        if (JCR_PRIMARYTYPE.equals(name) && primaryType != null) {
             return primaryType;
-        } else if ("jcr:mixinTypes".equals(name) && mixinTypes != null) {
+        } else if (JCR_MIXINTYPES.equals(name) && mixinTypes != null) {
             return mixinTypes;
         } else {
             int hash = name.hashCode();

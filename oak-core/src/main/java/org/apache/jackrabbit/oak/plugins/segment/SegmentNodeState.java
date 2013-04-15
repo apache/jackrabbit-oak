@@ -79,6 +79,12 @@ class SegmentNodeState extends AbstractNodeState {
         return getTemplate().getPropertyCount();
     }
 
+    @Override
+    public boolean hasProperty(String name) {
+        checkNotNull(name);
+        return getTemplate().hasProperty(name);
+    }
+
     @Override @CheckForNull
     public PropertyState getProperty(String name) {
         checkNotNull(name);
