@@ -16,17 +16,13 @@
  */
 package org.apache.jackrabbit.oak.spi.commit;
 
-import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 /**
  * This commit hook implementation processes changes to be committed
@@ -51,147 +47,13 @@ public class EditorHook implements CommitHook {
         checkNotNull(after);
         NodeBuilder builder = after.builder();
         Editor editor = provider.getRootEditor(before, after, builder);
-        CommitFailedException exception = process(editor, before, after);
+        CommitFailedException exception =
+                EditorDiff.process(editor, before, after);
         if (exception == null) {
             return builder.getNodeState();
         } else {
             throw exception;
         }
-    }
-
-    //------------------------------------------------------------< private >---
-
-    /**
-     * Validates and possibly edits the given subtree by diffing and recursing through it.
-     *
-     * @param editor editor for the root of the subtree
-     * @param before state of the original subtree
-     * @param after state of the modified subtree
-     * @return exception if the processing failed, {@code null} otherwise
-     */
-    @CheckForNull
-    private static CommitFailedException process(
-            @CheckForNull Editor editor,
-            @Nonnull NodeState before, @Nonnull NodeState after) {
-        checkNotNull(before);
-        checkNotNull(after);
-        if (editor != null) {
-            EditorDiff diff = new EditorDiff(editor);
-            return diff.process(before, after);
-        } else {
-            return null;
-        }
-    }
-
-    private static class EditorDiff implements NodeStateDiff {
-
-        private final Editor editor;
-
-        /**
-         * Checked exceptions don't compose. So we need to hack around.
-         * See http://markmail.org/message/ak67n5k7mr3vqylm and
-         * http://markmail.org/message/bhocbruikljpuhu6
-         */
-        private CommitFailedException exception;
-
-        private EditorDiff(Editor editor) {
-            this.editor = editor;
-        }
-
-        public CommitFailedException process(
-                NodeState before, NodeState after) {
-            try {
-                editor.enter(before, after);
-            } catch (CommitFailedException e) {
-                return e;
-            }
-
-            after.compareAgainstBaseState(before, this);
-            if (exception != null) {
-                return exception;
-            }
-
-            try {
-                editor.leave(before, after);
-            } catch (CommitFailedException e) {
-                return e;
-            }
-
-            return null;
-        }
-
-        //-------------------------------------------------< NodeStateDiff >--
-
-        @Override
-        public void propertyAdded(PropertyState after) {
-            if (exception == null) {
-                try {
-                    editor.propertyAdded(after);
-                } catch (CommitFailedException e) {
-                    exception = e;
-                }
-            }
-        }
-
-        @Override
-        public void propertyChanged(PropertyState before, PropertyState after) {
-            if (exception == null) {
-                try {
-                    editor.propertyChanged(before, after);
-                } catch (CommitFailedException e) {
-                    exception = e;
-                }
-            }
-        }
-
-        @Override
-        public void propertyDeleted(PropertyState before) {
-            if (exception == null) {
-                try {
-                    editor.propertyDeleted(before);
-                } catch (CommitFailedException e) {
-                    exception = e;
-                }
-            }
-        }
-
-        @Override
-        public void childNodeAdded(String name, NodeState after) {
-            if (exception == null) {
-                try {
-                    Editor e = editor.childNodeAdded(name, after);
-                    exception = EditorHook.process(e, EMPTY_NODE, after);
-                } catch (CommitFailedException e) {
-                    exception = e;
-                }
-            }
-        }
-
-        @Override
-        public void childNodeChanged(
-                String name, NodeState before, NodeState after) {
-            if (exception == null) {
-                try {
-                    Editor e = editor.childNodeChanged(name, before, after);
-                    exception = EditorHook.process(e, before, after);
-                } catch (CommitFailedException e) {
-                    exception = e;
-                }
-            }
-        }
-
-        @Override
-        public void childNodeDeleted(String name, NodeState before) {
-            if (exception == null) {
-                try {
-                    Editor e = editor.childNodeDeleted(name, before);
-                    exception = EditorHook.process(e, before, EMPTY_NODE);
-                } catch (CommitFailedException e) {
-                    exception = e;
-                }
-            }
-        }
-
     }
 
 }
