@@ -22,25 +22,12 @@ import static org.junit.Assert.fail;
 import java.io.ByteArrayInputStream;
 
 import org.apache.jackrabbit.mongomk.AbstractMongoConnectionTest;
-import org.apache.jackrabbit.mongomk.MongoMK;
-import org.junit.Before;
 import org.junit.Test;
-
-import com.mongodb.DB;
 
 /**
  * Tests for {@code MongoMicroKernel#getLength(String)}
  */
 public class MongoMKGetLengthTest extends AbstractMongoConnectionTest {
-
-    private MongoMK mk;
-
-    @Before
-    public void setUp() throws Exception {
-        DB db = mongoConnection.getDB();
-
-        mk = new MongoMK.Builder().setMongoDB(db).open();
-    }
 
     @Test
     public void nonExistent() throws Exception {

@@ -23,27 +23,15 @@ import junit.framework.Assert;
 
 import org.apache.jackrabbit.mk.util.MicroKernelInputStream;
 import org.apache.jackrabbit.mongomk.AbstractMongoConnectionTest;
-import org.apache.jackrabbit.mongomk.MongoMK;
-import org.junit.Before;
 import org.junit.Test;
-
-import com.mongodb.DB;
 
 /**
  * Tests for {@code MongoMicroKernel#read(String, long, byte[], int, int)}
  */
 public class MongoMKReadTest extends AbstractMongoConnectionTest {
 
-    private MongoMK mk;
     private byte[] blob;
     private String blobId;
-
-    @Before
-    public void setUp() throws Exception {
-        DB db = mongoConnection.getDB();
-
-        mk = new MongoMK.Builder().setMongoDB(db).open();
-    }
 
     @Test
     public void small() throws Exception {

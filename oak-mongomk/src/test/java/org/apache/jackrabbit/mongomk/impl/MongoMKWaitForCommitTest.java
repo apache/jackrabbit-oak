@@ -44,10 +44,10 @@ public class MongoMKWaitForCommitTest extends BaseMongoMicroKernelTest {
     private MicroKernel mk2;
 
     @Before
-    public void setUp() throws Exception {
-        super.setUp();
+    @Override
+    public void setUpConnection() throws Exception {
+        super.setUpConnection();
         DB db = mongoConnection.getDB();
-        
         mk2 = new MongoMK.Builder().setMongoDB(db).open();
     }
 

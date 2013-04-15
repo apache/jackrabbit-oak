@@ -14,14 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mongomk.impl;
+package org.apache.jackrabbit.mongomk;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import org.apache.jackrabbit.mongomk.BaseMongoMicroKernelTest;
 import org.json.simple.JSONObject;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -32,17 +30,13 @@ import com.jamonapi.MonitorFactory;
 /**
  * Tests for add node and property operations.
  */
-public class MongoMKCommitAddTest extends BaseMongoMicroKernelTest {
+public class MongoMKCommitAddTest extends BaseMongoMKTest {
 
     @Test
-    @Ignore    
     public void addSingleNode() throws Exception {
         mk.commit("/", "+\"a\" : {}", null, null);
 
-        long childCount = mk.getChildNodeCount("/", null);
-        assertEquals(1, childCount);
-
-        String nodes = mk.getNodes("/", null, -1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        String nodes = mk.getNodes("/", null, 0 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
         JSONObject obj = parseJSONObject(nodes);
         assertPropertyValue(obj, ":childNodeCount", 1L);
     }
@@ -81,10 +75,9 @@ public class MongoMKCommitAddTest extends BaseMongoMicroKernelTest {
     }
 
     @Test
-    @Ignore    
     public void addNodeWithParanthesis() throws Exception {
         mk.commit("/", "+\"Test({0})\" : {}", null, null);
-        String nodes = mk.getNodes("/Test({0})", null, 1, 0, -1, null);
+        String nodes = mk.getNodes("/Test({0})", null, 0, 0, -1, null);
         JSONObject obj = parseJSONObject(nodes);
         assertPropertyValue(obj, ":childNodeCount", 0L);
     }
@@ -116,59 +109,54 @@ public class MongoMKCommitAddTest extends BaseMongoMicroKernelTest {
     }
 
     @Test
-    @Ignore    
     public void setSingleProperty() throws Exception {
         mk.commit("/", "+\"a\" : {} ^\"a/key1\" : \"value1\"", null, null);
 
-        long childCount = mk.getChildNodeCount("/", null);
-        assertEquals(1, childCount);
-
-        String nodes = mk.getNodes("/", null, 1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        String nodes = mk.getNodes("/", null, 0 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
         JSONObject obj = parseJSONObject(nodes);
         assertPropertyValue(obj, ":childNodeCount", 1L);
-        assertPropertyValue(obj, "a/key1", "value1");
+        nodes = mk.getNodes("/a", null, 0 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        obj = parseJSONObject(nodes);
+        assertPropertyValue(obj, "key1", "value1");
     }
 
     @Test
-    @Ignore    
     public void setMultipleProperties() throws Exception {
         mk.commit("/", "+\"a\" : {} ^\"a/key1\" : \"value1\"", null, null);
         mk.commit("/", "^\"a/key2\" : 2", null, null);
         mk.commit("/", "^\"a/key3\" : false", null, null);
         mk.commit("/", "^\"a/key4\" : 0.25", null, null);
 
-        long childCount = mk.getChildNodeCount("/", null);
-        assertEquals(1, childCount);
-
-        String nodes = mk.getNodes("/", null, 1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        String nodes = mk.getNodes("/", null, 0 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
         JSONObject obj = parseJSONObject(nodes);
         assertPropertyValue(obj, ":childNodeCount", 1L);
-        assertPropertyValue(obj, "a/key1", "value1");
-        assertPropertyValue(obj, "a/key2", 2L);
-        assertPropertyValue(obj, "a/key3", false);
-        assertPropertyValue(obj, "a/key4", 0.25);
+        nodes = mk.getNodes("/a", null, 0 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        obj = parseJSONObject(nodes);
+        assertPropertyValue(obj, "key1", "value1");
+        assertPropertyValue(obj, "key2", 2L);
+        assertPropertyValue(obj, "key3", false);
+        assertPropertyValue(obj, "key4", 0.25);
     }
 
     // See http://www.mongodb.org/display/DOCS/Legal+Key+Names
     @Test
-    @Ignore    
     public void setPropertyIllegalKey() throws Exception {
         mk.commit("/", "+\"a\" : {}", null, null);
 
         mk.commit("/", "^\"a/ke.y1\" : \"value\"", null, null);
-        String nodes = mk.getNodes("/", null, 1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        String nodes = mk.getNodes("/a", null, 0 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
         JSONObject obj = parseJSONObject(nodes);
-        assertPropertyValue(obj, "a/ke.y1", "value");
+        assertPropertyValue(obj, "ke.y1", "value");
 
         mk.commit("/", "^\"a/ke.y.1\" : \"value\"", null, null);
-        nodes = mk.getNodes("/", null, 1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        nodes = mk.getNodes("/a", null, 0 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
         obj = parseJSONObject(nodes);
-        assertPropertyValue(obj, "a/ke.y.1", "value");
+        assertPropertyValue(obj, "ke.y.1", "value");
 
         mk.commit("/", "^\"a/$key1\" : \"value\"", null, null);
-        nodes = mk.getNodes("/", null, 1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        nodes = mk.getNodes("/a", null, 0 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
         obj = parseJSONObject(nodes);
-        assertPropertyValue(obj, "a/$key1", "value");
+        assertPropertyValue(obj, "$key1", "value");
     }
 
     @Test
@@ -182,7 +170,6 @@ public class MongoMKCommitAddTest extends BaseMongoMicroKernelTest {
     }
 
     @Test
-    @Ignore        
     public void setOverwritingProperty() throws Exception {
         String rev1 = mk.commit("/", "+\"a\" : {} ^\"a/key1\" : \"value1\"", null, null);
 
@@ -192,9 +179,9 @@ public class MongoMKCommitAddTest extends BaseMongoMicroKernelTest {
         // Commit with rev1 again (to overwrite rev2)
         mk.commit("/", "^\"a/key1\" : \"value3\"", rev1, null);
 
-        String nodes = mk.getNodes("/", null, 1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        String nodes = mk.getNodes("/a", null, 0 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
         JSONObject obj = parseJSONObject(nodes);
-        assertPropertyValue(obj, "a/key1", "value3");
+        assertPropertyValue(obj, "key1", "value3");
    }
 
     // This is a test to make sure commit time stays the same as time goes on.
@@ -221,7 +208,6 @@ public class MongoMKCommitAddTest extends BaseMongoMicroKernelTest {
     }
 
     @Test
-    @Ignore    
     public void existingNodesMerged() throws Exception {
         String rev = mk.commit("/", "+\"a\" : {}", null, null);
         mk.commit("/", "+\"a/b\" : {}", null, null);
@@ -231,10 +217,12 @@ public class MongoMKCommitAddTest extends BaseMongoMicroKernelTest {
         mk.commit("/", "^\"a/key2\" : \"value2\"", rev, null);
 
         // Check that key1 and b were merged
-        String nodes = mk.getNodes("/", null, 1 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        String nodes = mk.getNodes("/", null, 0 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
         JSONObject obj = parseJSONObject(nodes);
         assertPropertyValue(obj, ":childNodeCount", 1L);
-        assertPropertyValue(obj, "a/key1", "value1");
-        assertPropertyValue(obj, "a/key2", "value2");
+        nodes = mk.getNodes("/a", null, 0 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        obj = parseJSONObject(nodes);
+        assertPropertyValue(obj, "key1", "value1");
+        assertPropertyValue(obj, "key2", "value2");
     }
 }
