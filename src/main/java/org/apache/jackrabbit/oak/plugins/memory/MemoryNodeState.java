@@ -64,6 +64,11 @@ class MemoryNodeState extends AbstractNodeState {
     }
 
     @Override
+    public boolean hasProperty(String name) {
+        return properties.containsKey(name);
+    }
+
+    @Override
     public PropertyState getProperty(String name) {
         return properties.get(name);
     }

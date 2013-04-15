@@ -75,7 +75,7 @@ public class JcrAllCommitHook implements PostValidationHook, PrivilegeConstants 
 
                 // update the privilege bits of the jcr:all in case the new
                 // privilege isn't an aggregate
-                if (after.getProperty(REP_AGGREGATES) == null) {
+                if (!after.hasProperty(REP_AGGREGATES)) {
                     PrivilegeBits bits = PrivilegeBits.getInstance(after.getProperty(REP_BITS));
                     PrivilegeBits all = PrivilegeBits.getInstance(jcrAll.getProperty(REP_BITS));
                     jcrAll.setProperty(PrivilegeBits.getInstance(all).add(bits).asPropertyState(REP_BITS));

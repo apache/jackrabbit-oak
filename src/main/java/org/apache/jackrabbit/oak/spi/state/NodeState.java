@@ -128,6 +128,17 @@ public interface NodeState {
     boolean exists();
 
     /**
+     * Checks whether the named property exists. The implementation is
+     * equivalent to {@code getProperty(name) != null}, but may be optimized
+     * to avoid having to load the property value.
+     *
+     * @param name property name
+     * @return {@code true} if the named property exists,
+     *         {@code false} otherwise
+     */
+    boolean hasProperty(@Nonnull String name);
+
+    /**
      * Returns the named property. The name is an opaque string and
      * is not parsed or otherwise interpreted by this method.
      * <p>

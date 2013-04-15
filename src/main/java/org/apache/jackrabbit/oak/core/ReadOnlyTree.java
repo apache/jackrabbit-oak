@@ -114,7 +114,7 @@ public class ReadOnlyTree implements Tree {
 
     @Override
     public boolean hasProperty(String name) {
-        return state.getProperty(name) != null;
+        return state.hasProperty(name);
     }
 
     @Override

@@ -54,7 +54,7 @@ class EffectiveType {
             PropertyState properties =
                     type.getProperty("oak:mandatoryProperties");
             for (String name : properties.getValue(NAMES)) {
-                if (node.getProperty(name) == null) {
+                if (!node.hasProperty(name)) {
                     builder.add(name);
                 }
             }

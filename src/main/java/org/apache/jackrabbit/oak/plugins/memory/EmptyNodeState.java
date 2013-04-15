@@ -56,6 +56,11 @@ public final class EmptyNodeState implements NodeState {
         return 0;
     }
 
+    @Override
+    public boolean hasProperty(String name) {
+        return false;
+    }
+
     @Override @CheckForNull
     public PropertyState getProperty(String name) {
         return null;

@@ -83,6 +83,7 @@ public class KernelNodeStateTest {
         assertEquals("c", state.getProperty("c").getName());
         assertEquals(3, (long) state.getProperty("c").getValue(LONG));
         assertNull(state.getProperty("x"));
+        assertFalse(state.hasProperty("x"));
     }
 
     @Test
