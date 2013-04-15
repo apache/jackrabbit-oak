@@ -17,7 +17,7 @@
 package org.apache.jackrabbit.oak.spi.commit;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -126,7 +126,7 @@ public class EditorDiff implements NodeStateDiff {
         if (exception == null) {
             try {
                 Editor e = editor.childNodeAdded(name, after);
-                exception = EditorHook.process(e, EMPTY_NODE, after);
+                exception = process(e, MISSING_NODE, after);
             } catch (CommitFailedException e) {
                 exception = e;
             }
@@ -139,7 +139,7 @@ public class EditorDiff implements NodeStateDiff {
         if (exception == null) {
             try {
                 Editor e = editor.childNodeChanged(name, before, after);
-                exception = EditorHook.process(e, before, after);
+                exception = process(e, before, after);
             } catch (CommitFailedException e) {
                 exception = e;
             }
@@ -151,7 +151,7 @@ public class EditorDiff implements NodeStateDiff {
         if (exception == null) {
             try {
                 Editor e = editor.childNodeDeleted(name, before);
-                exception = EditorHook.process(e, before, EMPTY_NODE);
+                exception = process(e, before, MISSING_NODE);
             } catch (CommitFailedException e) {
                 exception = e;
             }
