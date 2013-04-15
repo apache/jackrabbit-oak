@@ -16,25 +16,23 @@
  */
 package org.apache.jackrabbit.mongomk;
 
+import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.junit.Before;
-
-import com.mongodb.DB;
 
 /**
  * <code>BaseMongoMKTest</code>...
  */
-public class BaseMongoMKTest extends BaseMongoMicroKernelTest {
+public class BaseMongoMKTest extends MongoMKTestBase {
+
+    protected MongoMK mk;
 
     @Before
-    @Override
-    public void setUp() throws Exception {
-        DB db = mongoConnection.getDB();
-        mk = new MongoMK.Builder().setMongoDB(db).open();
+    public void initMongoMK() {
+        mk = new MongoMK.Builder().open();
     }
 
     @Override
-    public void tearDownConnection() throws Exception {
-        ((MongoMK) mk).dispose();
-        super.tearDownConnection();
+    protected MicroKernel getMicroKernel() {
+        return mk;
     }
 }

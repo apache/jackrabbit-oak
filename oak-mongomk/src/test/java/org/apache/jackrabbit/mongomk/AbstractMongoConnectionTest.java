@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.mongomk;
 
+import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mongomk.util.MongoConnection;
 import org.junit.After;
 import org.junit.Assume;
@@ -30,7 +31,7 @@ import com.mongodb.DB;
  * to a clean test database. Tests in subclasses are automatically
  * skipped if the configured MongoDB connection can not be created.
  */
-public class AbstractMongoConnectionTest {
+public abstract class AbstractMongoConnectionTest extends MongoMKTestBase {
 
     protected static final String HOST =
             System.getProperty("mongo.host", "127.0.0.1");
@@ -46,6 +47,8 @@ public class AbstractMongoConnectionTest {
     private static Exception mongoException;
     
     protected MongoConnection mongoConnection;
+
+    protected MongoMK mk;
 
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {
@@ -68,15 +71,22 @@ public class AbstractMongoConnectionTest {
     public void setUpConnection() throws Exception {
         mongoConnection = new MongoConnection(HOST, PORT, DB);
         dropCollections(mongoConnection.getDB());
+        mk = new MongoMK.Builder().setMongoDB(mongoConnection.getDB()).open();
     }
 
     @After
     public void tearDownConnection() throws Exception {
+        mk.dispose();
         // the db might already be closed
         mongoConnection.close();
         mongoConnection = new MongoConnection(HOST, PORT, DB);
         dropCollections(mongoConnection.getDB());
         mongoConnection.close();
+    }
+
+    @Override
+    protected MicroKernel getMicroKernel() {
+        return mk;
     }
 
     protected void dropCollections(DB db) throws Exception {
