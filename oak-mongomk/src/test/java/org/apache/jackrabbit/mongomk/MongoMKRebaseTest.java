@@ -14,9 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mongomk.impl;
+package org.apache.jackrabbit.mongomk;
 
-import org.apache.jackrabbit.mongomk.BaseMongoMicroKernelTest;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -30,7 +29,7 @@ import static org.junit.Assert.assertTrue;
  * FIXME: this is copied from MicroKernelImplTest. Factor out.
  */
 @Ignore    
-public class MongoMKRebaseTest extends BaseMongoMicroKernelTest {
+public class MongoMKRebaseTest extends BaseMongoMKTest {
 
     @Test
     public void rebaseWithoutChanges() {

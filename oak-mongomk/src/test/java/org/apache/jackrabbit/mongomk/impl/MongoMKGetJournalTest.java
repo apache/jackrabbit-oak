@@ -27,10 +27,10 @@ import org.junit.Test;
 /**
  * Tests for {@code MongoMicroKernel#getJournal(String, String, String)}
  */
+@Ignore("MongoMK does not implement getJournal()")
 public class MongoMKGetJournalTest extends BaseMongoMicroKernelTest {
 
     @Test
-    @Ignore
     public void simple() throws Exception {
         String fromDiff = "+\"/a\":{}";
         String fromMsg = "Add /a";
@@ -57,7 +57,6 @@ public class MongoMKGetJournalTest extends BaseMongoMicroKernelTest {
     }
 
     @Test
-    @Ignore    
     public void commitAddWithDiffPaths() {
         // Commit with empty path and retrieve with root path
         String rev = mk.commit("", "+\"/a\":{}", null, "");
@@ -93,7 +92,6 @@ public class MongoMKGetJournalTest extends BaseMongoMicroKernelTest {
     }
 
     @Test
-    @Ignore    
     public void commitCopyWithDiffPaths() {
         mk.commit("", "+\"/a\":{}", null, "");
 
@@ -125,7 +123,6 @@ public class MongoMKGetJournalTest extends BaseMongoMicroKernelTest {
     }
 
     @Test
-    @Ignore    
     public void commitMoveWithDiffPaths() {
         mk.commit("", "+\"/a\":{}", null, "");
 
@@ -158,7 +155,6 @@ public class MongoMKGetJournalTest extends BaseMongoMicroKernelTest {
     }
 
     @Test
-    @Ignore
     public void commitRemoveMoveWithDiffPaths() {
         mk.commit("", "+\"/a\":{}", null, "");
 
@@ -192,7 +188,6 @@ public class MongoMKGetJournalTest extends BaseMongoMicroKernelTest {
     }
 
     @Test
-    @Ignore
     public void commitSetPropertyWithDiffPaths() {
         mk.commit("", "+\"/a\":{}", null, "");
 
