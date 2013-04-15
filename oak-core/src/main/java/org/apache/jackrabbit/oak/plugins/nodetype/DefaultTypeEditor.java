@@ -55,7 +55,7 @@ public class DefaultTypeEditor implements CommitHook {
         public void childNodeAdded(String name, NodeState after) {
             if (!NodeStateUtils.isHidden(name)) {
                 NodeBuilder childBuilder = builder.child(name);
-                if (after.getProperty("jcr:primaryType") == null) {
+                if (!after.hasProperty("jcr:primaryType")) {
                     childBuilder.setProperty("jcr:primaryType", defaultType, Type.NAME);
                 }
                 DefaultTypeDiff childDiff =

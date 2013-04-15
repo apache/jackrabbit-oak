@@ -142,7 +142,7 @@ public class ModifiedNodeState extends AbstractNodeState {
         long count = base.getPropertyCount();
 
         for (Map.Entry<String, ? extends PropertyState> entry : properties.entrySet()) {
-            if (base.getProperty(entry.getKey()) != null) {
+            if (base.hasProperty(entry.getKey())) {
                 count--;
             }
             if (entry.getValue() != null) {
@@ -151,6 +151,18 @@ public class ModifiedNodeState extends AbstractNodeState {
         }
 
         return count;
+    }
+
+    @Override
+    public boolean hasProperty(String name) {
+        PropertyState property = properties.get(name);
+        if (property != null) {
+            return true;
+        } else if (properties.containsKey(name)) {
+            return false; // removed
+        } else {
+            return base.hasProperty(name);
+        }
     }
 
     @Override

@@ -40,6 +40,11 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 public abstract class AbstractNodeState implements NodeState {
 
     @Override
+    public boolean hasProperty(String name) {
+        return getProperty(name) != null;
+    }
+
+    @Override
     public PropertyState getProperty(String name) {
         for (PropertyState property : getProperties()) {
             if (name.equals(property.getName())) {

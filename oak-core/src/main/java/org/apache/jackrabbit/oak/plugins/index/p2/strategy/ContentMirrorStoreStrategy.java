@@ -374,7 +374,7 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
 
         @Override
         public void visit(NodeState state) {
-            if (state.getProperty("match") != null) {
+            if (state.hasProperty("match")) {
                 count++;
                 depthTotal += depth;
             }

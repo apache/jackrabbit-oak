@@ -364,20 +364,20 @@ public class TreeImplTest extends OakBaseTest {
     public void testSetOrderableChildrenSetsProperty() throws Exception {
         Tree tree = root.getTree("/").addChild("test");
         tree.setOrderableChildren(true);
-        assertNotNull(((TreeImpl) tree).getNodeState().getProperty(TreeImpl.OAK_CHILD_ORDER));
+        assertTrue(((TreeImpl) tree).getNodeState().hasProperty(TreeImpl.OAK_CHILD_ORDER));
 
         tree.setOrderableChildren(false);
-        assertNull(((TreeImpl) tree).getNodeState().getProperty(TreeImpl.OAK_CHILD_ORDER));
+        assertFalse(((TreeImpl) tree).getNodeState().hasProperty(TreeImpl.OAK_CHILD_ORDER));
 
         tree.setOrderableChildren(true);
         root.commit();
 
-        assertNotNull(((TreeImpl) tree).getNodeState().getProperty(TreeImpl.OAK_CHILD_ORDER));
+        assertTrue(((TreeImpl) tree).getNodeState().hasProperty(TreeImpl.OAK_CHILD_ORDER));
 
         tree.setOrderableChildren(false);
         root.commit();
 
-        assertNull(((TreeImpl) tree).getNodeState().getProperty(TreeImpl.OAK_CHILD_ORDER));
+        assertFalse(((TreeImpl) tree).getNodeState().hasProperty(TreeImpl.OAK_CHILD_ORDER));
     }
 
     @Test
