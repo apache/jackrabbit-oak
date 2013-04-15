@@ -14,19 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mongomk.impl;
+package org.apache.jackrabbit.mongomk;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import org.apache.jackrabbit.mongomk.BaseMongoMicroKernelTest;
+import org.apache.jackrabbit.mongomk.impl.SimpleNodeScenario;
 import org.junit.Test;
 
 /**
  * Tests for nodeExists.
  */
-public class MongoMKNodeExistsTest extends BaseMongoMicroKernelTest {
+public class MongoMKNodeExistsTest extends BaseMongoMKTest {
 
     @Test
     public void simple() throws Exception {

@@ -14,33 +14,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mongomk.impl;
+package org.apache.jackrabbit.mongomk;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import org.apache.jackrabbit.mongomk.BaseMongoMicroKernelTest;
 import org.junit.Ignore;
 import org.junit.Test;
 
 /**
  * Tests with emphasis on remove node and property operations.
  */
-public class MongoMKCommitRemoveTest extends BaseMongoMicroKernelTest {
+public class MongoMKCommitRemoveTest extends BaseMongoMKTest {
 
     @Test
-    @Ignore    
     public void removeSingleNode() throws Exception {
         mk.commit("/", "+\"a\" : {}", null, null);
 
-        long childCount = mk.getChildNodeCount("/", null);
-        assertEquals(1, childCount);
+        assertNodesExist(null, "/a");
 
         mk.commit("/", "-\"a\"", null, null);
-        childCount = mk.getChildNodeCount("/", null);
-        assertEquals(0, childCount);
+        assertNodesNotExist(null, "/a");
     }
 
     @Test
@@ -54,7 +49,7 @@ public class MongoMKCommitRemoveTest extends BaseMongoMicroKernelTest {
     }
 
     @Test
-    @Ignore    
+    @Ignore
     public void removeNodeTwice() throws Exception {
         String base = mk.commit("", "+\"/a\":{}", null, null);
         mk.commit("", "-\"/a\"", base, null);

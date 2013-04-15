@@ -26,10 +26,10 @@ import org.junit.Test;
 /**
  * Tests for getRevisionHistory
  */
+@Ignore("MongoMK does not implement getRevisionHistory()")
 public class MongoMKGetRevisionHistoryTest extends BaseMongoMicroKernelTest {
 
     @Test
-    @Ignore    
     public void maxEntriesZero() throws Exception {
         mk.commit("/", "+\"a\" : {}", null, null);
         JSONArray array = parseJSONArray(mk.getRevisionHistory(0, 0, "/"));
@@ -37,7 +37,6 @@ public class MongoMKGetRevisionHistoryTest extends BaseMongoMicroKernelTest {
     }
 
     @Test
-    @Ignore    
     public void maxEntriesLimitless() throws Exception {
         int count = 10;
         for (int i = 0; i < count; i++) {
@@ -48,7 +47,6 @@ public class MongoMKGetRevisionHistoryTest extends BaseMongoMicroKernelTest {
     }
 
     @Test
-    @Ignore    
     public void maxEntriesLimited() throws Exception {
         int count = 10;
         int limit = 4;
@@ -61,7 +59,6 @@ public class MongoMKGetRevisionHistoryTest extends BaseMongoMicroKernelTest {
     }
 
     @Test
-    @Ignore
     public void path() throws Exception {
         int count1 = 5;
         for (int i = 0; i < count1; i++) {
@@ -83,7 +80,6 @@ public class MongoMKGetRevisionHistoryTest extends BaseMongoMicroKernelTest {
     }
 
     @Test
-    @Ignore    
     public void since() throws Exception {
         // To make sure there's a little delay since the initial commit.
         Thread.sleep(100); 

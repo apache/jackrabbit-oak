@@ -791,6 +791,9 @@ public class MongoMK implements MicroKernel {
         includeId |= filter != null && filter.contains(":hash");
         json.object();
         n.append(json, includeId);
+        if (maxChildNodes == -1) {
+            maxChildNodes = Integer.MAX_VALUE;
+        }
         // FIXME: must not read all children!
         Children c = getChildren(path, rev, Integer.MAX_VALUE);
         for (long i = offset; i < c.children.size(); i++) {

@@ -38,7 +38,7 @@ import com.mongodb.DB;
 /**
  * Tests for {@code MongoMicroKernel#waitForCommit(String, long)}
  */
-@Ignore    
+@Ignore("MongoMK does not implement waitForCommit()")
 public class MongoMKWaitForCommitTest extends BaseMongoMicroKernelTest {
 
     private MicroKernel mk2;

@@ -14,19 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.mongomk.impl;
+package org.apache.jackrabbit.mongomk;
 
 import static org.junit.Assert.fail;
 
-import org.apache.jackrabbit.mongomk.BaseMongoMicroKernelTest;
+import org.apache.jackrabbit.mongomk.impl.SimpleNodeScenario;
 import org.json.simple.JSONObject;
 import org.junit.Ignore;
 import org.junit.Test;
 
 /**
- * Tests for getHeadRevision().
+ * Tests for getNodes().
  */
-public class MongoMKGetNodesTest extends BaseMongoMicroKernelTest {
+public class MongoMKGetNodesTest extends BaseMongoMKTest {
 
     @Test
     public void nonExistingRevision() throws Exception {
@@ -49,19 +49,18 @@ public class MongoMKGetNodesTest extends BaseMongoMicroKernelTest {
     }
 
     @Test
-    @Ignore    
     public void afterDelete() throws Exception {
         SimpleNodeScenario scenario = new SimpleNodeScenario(mk);
         scenario.create();
 
-        JSONObject root = parseJSONObject(mk.getNodes("/", null, 1, 0, -1, null));
+        JSONObject root = parseJSONObject(mk.getNodes("/", null, 0, 0, -1, null));
         assertPropertyValue(root, ":childNodeCount", 1L);
 
-        JSONObject a = resolveObjectValue(root, "a");
+        JSONObject a = parseJSONObject(mk.getNodes("/a", null, 0, 0, -1, null));
         assertPropertyValue(a, ":childNodeCount", 2L);
 
         scenario.deleteA();
-        root = parseJSONObject(mk.getNodes("/", null, 1, 0, -1, null));
+        root = parseJSONObject(mk.getNodes("/", null, 0, 0, -1, null));
         assertPropertyValue(root, ":childNodeCount", 0L);
     }
 
@@ -76,7 +75,6 @@ public class MongoMKGetNodesTest extends BaseMongoMicroKernelTest {
     }
 
     @Test
-    @Ignore    
     public void depthZero() throws Exception {
         SimpleNodeScenario scenario = new SimpleNodeScenario(mk);
         scenario.create();
