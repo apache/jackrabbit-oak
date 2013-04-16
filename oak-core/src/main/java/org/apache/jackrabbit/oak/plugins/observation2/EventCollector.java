@@ -45,6 +45,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * TODO document
+ * FIXME this implementation needs read/write access to /jcr:system/rep:observation
  */
 class EventCollector implements Runnable {
     private static final Logger log = LoggerFactory.getLogger(EventCollector.class);
