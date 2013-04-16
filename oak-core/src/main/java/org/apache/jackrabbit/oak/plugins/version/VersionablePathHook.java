@@ -75,7 +75,7 @@ public class VersionablePathHook implements CommitHook {
                     && nodeAfter.isVersionable(versionManager)) {
                 NodeBuilder vhBuilder = versionManager.getOrCreateVersionHistory(nodeAfter.builder);
 
-                if (vhBuilder.getProperty(JcrConstants.JCR_MIXINTYPES) == null) {
+                if (!vhBuilder.hasProperty(JcrConstants.JCR_MIXINTYPES)) {
                     vhBuilder.setProperty(
                             JcrConstants.JCR_MIXINTYPES,
                             ImmutableSet.of(MIX_REP_VERSIONABLE_PATHS),

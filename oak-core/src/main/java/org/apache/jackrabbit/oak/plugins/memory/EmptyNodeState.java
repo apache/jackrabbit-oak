@@ -66,6 +66,11 @@ public final class EmptyNodeState implements NodeState {
         return null;
     }
 
+    @Override
+    public boolean getBoolean(String name) {
+        return false;
+    }
+
     @Override @Nonnull
     public Iterable<? extends PropertyState> getProperties() {
         return Collections.emptyList();

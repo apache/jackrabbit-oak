@@ -103,6 +103,11 @@ public class ReadOnlyBuilder implements NodeBuilder {
     }
 
     @Override
+    public boolean hasProperty(String name) {
+        return state.hasProperty(name);
+    }
+
+    @Override
     public PropertyState getProperty(String name) {
         return state.getProperty(name);
     }

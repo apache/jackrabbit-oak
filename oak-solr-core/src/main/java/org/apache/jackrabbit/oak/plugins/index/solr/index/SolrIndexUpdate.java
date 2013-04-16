@@ -80,9 +80,8 @@ public class SolrIndexUpdate implements Closeable {
     }
 
     boolean getAndResetReindexFlag() {
-        boolean reindex = index.getProperty("reindex") != null
-                && index.getProperty("reindex").getValue(
-                Type.BOOLEAN);
+        boolean reindex = index.hasProperty("reindex")
+                && index.getProperty("reindex").getValue(Type.BOOLEAN);
         index.setProperty("reindex", false);
         return reindex;
     }

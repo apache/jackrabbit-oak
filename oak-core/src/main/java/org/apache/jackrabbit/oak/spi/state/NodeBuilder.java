@@ -143,6 +143,17 @@ public interface NodeBuilder {
     Iterable<? extends PropertyState> getProperties();
 
     /**
+     * Checks whether the named property exists. The implementation is
+     * equivalent to {@code getProperty(name) != null}, but may be optimized
+     * to avoid having to load the property value.
+     *
+     * @param name property name
+     * @return {@code true} if the named property exists,
+     *         {@code false} otherwise
+     */
+    boolean hasProperty(String name);
+
+    /**
      * Returns the current state of the named property, or {@code null}
      * if the property is not set.
      *

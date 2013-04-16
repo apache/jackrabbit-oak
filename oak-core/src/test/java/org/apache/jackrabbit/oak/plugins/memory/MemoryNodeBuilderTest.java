@@ -52,9 +52,9 @@ public class MemoryNodeBuilderTest {
         NodeBuilder childA = root.child("x");
         NodeBuilder childB = root.child("x");
 
-        assertNull(childA.getProperty("test"));
+        assertFalse(childA.hasProperty("test"));
         childB.setProperty("test", "foo");
-        assertNotNull(childA.getProperty("test"));
+        assertTrue(childA.hasProperty("test"));
     }
 
     @Test
@@ -79,8 +79,8 @@ public class MemoryNodeBuilderTest {
         childB.setProperty("test", "foo");
 
         childA.removeProperty("test");
-        assertNull(childA.getProperty("test"));
-        assertNull(childB.getProperty("test"));
+        assertFalse(childA.hasProperty("test"));
+        assertFalse(childB.hasProperty("test"));
 
         childA.setProperty("test", "bar");
         assertEquals("bar", childA.getProperty("test").getValue(STRING));

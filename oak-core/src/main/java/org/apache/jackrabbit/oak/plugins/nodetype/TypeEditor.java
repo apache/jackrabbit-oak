@@ -24,7 +24,6 @@ import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_REQUIREDTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_VALUECONSTRAINTS;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.CONSTRAINT;
-import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
@@ -244,10 +243,10 @@ class TypeEditor extends DefaultEditor {
             if (!type.exists()) {
                 throw constraintViolation(
                         6, "Primary node type " + name + " does not exist");
-            } else if (getBoolean(type, JCR_ISMIXIN)) {
+            } else if (type.getBoolean(JCR_ISMIXIN)) {
                 throw constraintViolation(
                         7, "Can not use mixin type " + name + " as primary");
-            } else if (getBoolean(type, JCR_IS_ABSTRACT)) {
+            } else if (type.getBoolean(JCR_IS_ABSTRACT)) {
                 throw constraintViolation(
                         8, "Can not use abstract type " + name + " as primary");
             }
@@ -265,10 +264,10 @@ class TypeEditor extends DefaultEditor {
                 if (!type.exists()) {
                     throw constraintViolation(
                             9, "Mixin node type " + name + " does not exist");
-                } else if (!getBoolean(type, JCR_ISMIXIN)) {
+                } else if (!type.getBoolean(JCR_ISMIXIN)) {
                     throw constraintViolation(
                             10, "Can not use primary type " + name + " as mixin");
-                } else if (getBoolean(type, JCR_IS_ABSTRACT)) {
+                } else if (type.getBoolean(JCR_IS_ABSTRACT)) {
                     throw constraintViolation(
                             11, "Can not use abstract type " + name + " as mixin");
                 }
@@ -278,13 +277,6 @@ class TypeEditor extends DefaultEditor {
         }
 
         effective = new EffectiveType(list);
-    }
-
-    private boolean getBoolean(NodeState node, String name) {
-        PropertyState property = node.getProperty(name);
-        return property != null
-                && property.getType() == BOOLEAN
-                && property.getValue(BOOLEAN);
     }
 
 }

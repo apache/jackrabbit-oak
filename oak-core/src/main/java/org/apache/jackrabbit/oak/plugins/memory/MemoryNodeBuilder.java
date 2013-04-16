@@ -424,6 +424,11 @@ public class MemoryNodeBuilder implements NodeBuilder {
     }
 
     @Override
+    public boolean hasProperty(String name) {
+        return read().hasProperty(name);
+    }
+
+    @Override
     public PropertyState getProperty(String name) {
         return read().getProperty(name);
     }

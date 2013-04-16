@@ -129,7 +129,7 @@ public class IndexHookManagerTest {
         checkPathExists(ns, ":index");
         PropertyState ps = ns.getProperty(REINDEX_PROPERTY_NAME);
         assertNotNull(ps);
-        assertFalse(ps.getValue(Type.BOOLEAN).booleanValue());
+        assertFalse(ps.getValue(Type.BOOLEAN));
 
         // next, lookup
         Property2IndexLookup lookup = new Property2IndexLookup(indexed);
@@ -168,7 +168,7 @@ public class IndexHookManagerTest {
         checkPathExists(ns, ":index");
         PropertyState ps = ns.getProperty(REINDEX_PROPERTY_NAME);
         assertNotNull(ps);
-        assertFalse(ps.getValue(Type.BOOLEAN).booleanValue());
+        assertFalse(ps.getValue(Type.BOOLEAN));
 
         // next, lookup
         Property2IndexLookup lookup = new Property2IndexLookup(indexed);
@@ -208,7 +208,7 @@ public class IndexHookManagerTest {
         checkPathExists(ns, ":index");
         PropertyState ps = ns.getProperty(REINDEX_PROPERTY_NAME);
         assertNotNull(ps);
-        assertFalse(ps.getValue(Type.BOOLEAN).booleanValue());
+        assertFalse(ps.getValue(Type.BOOLEAN));
 
         // next, lookup
         Property2IndexLookup lookup = new Property2IndexLookup(indexed);

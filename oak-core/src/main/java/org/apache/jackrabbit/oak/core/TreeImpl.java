@@ -568,7 +568,7 @@ public class TreeImpl implements Tree {
      *         {@code false} otherwise.
      */
     private boolean hasOrderableChildren() {
-        return internalGetProperty(OAK_CHILD_ORDER) != null;
+        return nodeBuilder.hasProperty(OAK_CHILD_ORDER);
     }
 
     /**
@@ -611,8 +611,7 @@ public class TreeImpl implements Tree {
      * of the children as returned by {@link NodeBuilder#getChildNodeNames()}.
      */
     private void ensureChildOrderProperty() {
-        PropertyState childOrder = nodeBuilder.getProperty(OAK_CHILD_ORDER);
-        if (childOrder == null) {
+        if (!nodeBuilder.hasProperty(OAK_CHILD_ORDER)) {
             nodeBuilder.setProperty(
                     MultiStringPropertyState.stringProperty(OAK_CHILD_ORDER, nodeBuilder.getChildNodeNames()));
         }

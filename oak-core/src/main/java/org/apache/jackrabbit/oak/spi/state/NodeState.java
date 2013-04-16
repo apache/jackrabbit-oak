@@ -151,7 +151,22 @@ public interface NodeState {
      * @return named property, or {@code null} if not found
      */
     @CheckForNull
-    PropertyState getProperty(String name);
+    PropertyState getProperty(@Nonnull String name);
+
+    /**
+     * Returns the boolean value of the named property. The implementation
+     * is equivalent to the following code, but may be optimized.
+     * <pre>
+     * PropertyState property = state.getProperty(name);
+     * return property != null
+     *     && property.getType() == Type.BOOLEAN
+     *     && property.getValue(Type.BOOLEAN);
+     * </pre>
+     *
+     * @param name property name
+     * @return boolean value of the named property, or {@code false}
+     */
+    boolean getBoolean(@Nonnull String name);
 
     /**
      * Returns the number of properties of this node.

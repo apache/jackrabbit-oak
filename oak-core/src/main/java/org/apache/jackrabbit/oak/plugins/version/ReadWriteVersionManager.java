@@ -113,7 +113,7 @@ class ReadWriteVersionManager extends ReadOnlyVersionManager {
         for (Iterator<String> it = PathUtils.elements(relPath).iterator(); it.hasNext(); ) {
             String name = it.next();
             node = node.child(name);
-            if (node.getProperty(JCR_PRIMARYTYPE) == null) {
+            if (!node.hasProperty(JCR_PRIMARYTYPE)) {
                 String nt;
                 if (it.hasNext()) {
                     nt = REP_VERSIONSTORAGE;
@@ -154,7 +154,7 @@ class ReadWriteVersionManager extends ReadOnlyVersionManager {
                     IdentifierManager.generateUUID(), Type.STRING);
             frozenNode.setProperty(JCR_PRIMARYTYPE, NT_FROZENNODE, Type.NAME);
             Iterable<String> mixinTypes;
-            if (versionable.getProperty(JCR_MIXINTYPES) != null) {
+            if (versionable.hasProperty(JCR_MIXINTYPES)) {
                 mixinTypes = versionable.getProperty(JCR_MIXINTYPES).getValue(Type.NAMES);
             } else {
                 mixinTypes = Collections.emptyList();
