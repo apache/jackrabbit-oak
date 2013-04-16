@@ -48,7 +48,7 @@ import com.google.common.collect.Maps;
  */
 public class ModifiedNodeState extends AbstractNodeState {
 
-    public static NodeState withProperties(
+    static NodeState withProperties(
             NodeState base, Map<String, ? extends PropertyState> properties) {
         if (properties.isEmpty()) {
             return base;
@@ -57,7 +57,7 @@ public class ModifiedNodeState extends AbstractNodeState {
         }
     }
 
-    public static NodeState withNodes(
+    static NodeState withNodes(
             NodeState base, Map<String, ? extends NodeState> nodes) {
         if (nodes.isEmpty()) {
             return base;
@@ -66,7 +66,7 @@ public class ModifiedNodeState extends AbstractNodeState {
         }
     }
 
-    public static NodeState with(
+    static NodeState with(
             NodeState base,
             Map<String, ? extends PropertyState> properties,
             Map<String, ? extends NodeState> nodes) {
@@ -111,7 +111,7 @@ public class ModifiedNodeState extends AbstractNodeState {
      */
     private final Map<String, ? extends NodeState> nodes;
 
-    public ModifiedNodeState(
+    private ModifiedNodeState(
             @Nonnull NodeState base,
             @Nonnull Map<String, ? extends PropertyState> properties,
             @Nonnull Map<String, ? extends NodeState> nodes) {
