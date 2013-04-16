@@ -44,7 +44,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * TODO: add proper equals/hashcode implementation
  * TODO: should be package-private
  */
-public class SecureNodeState extends AbstractNodeState {
+class SecureNodeState extends AbstractNodeState {
 
     /**
      * Underlying root state, used to optimize a common case
