@@ -113,7 +113,7 @@ public class UserInitializer implements WorkspaceInitializer, UserConstants {
             if (!index.hasChild("principalName")) {
                 IndexUtils.createIndexDefinition(index, "principalName", true,
                         new String[]{REP_PRINCIPAL_NAME},
-                        new String[]{NT_REP_GROUP, NT_REP_USER});
+                        new String[]{NT_REP_GROUP, NT_REP_USER, NT_REP_AUTHORIZABLE});
             }
             if (!index.hasChild("members")) {
                 IndexUtils.createIndexDefinition(index, "members", false, new String[]{UserConstants.REP_MEMBERS}, null);
