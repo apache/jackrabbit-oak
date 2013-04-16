@@ -31,9 +31,10 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.collect.Lists.newArrayList;
+import static com.google.common.collect.Maps.newHashMap;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState.with;
 import static org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState.withNodes;
@@ -291,13 +292,6 @@ public class MemoryNodeBuilder implements NodeBuilder {
         // do nothing
     }
 
-    protected void compareAgainstBaseState(NodeStateDiff diff) {
-        NodeState state = read();
-        if (writeState != null) {
-            writeState.compareAgainstBaseState(state, diff);
-        }
-    }
-
     //--------------------------------------------------------< NodeBuilder >---
 
     @Override
@@ -496,15 +490,13 @@ public class MemoryNodeBuilder implements NodeBuilder {
          * Set of added, modified or removed ({@code null} value)
          * property states.
          */
-        private final Map<String, PropertyState> properties =
-                Maps.newHashMap();
+        private final Map<String, PropertyState> properties = newHashMap();
 
         /**
          * Set of added, modified or removed ({@code null} value)
          * child nodes.
          */
-        private final Map<String, MutableNodeState> nodes =
-                Maps.newHashMap();
+        private final Map<String, MutableNodeState> nodes = newHashMap();
 
         public MutableNodeState(NodeState base) {
             if (base != null) {
@@ -576,7 +568,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
 
         @Override @Nonnull
         public Iterable<? extends PropertyState> getProperties() {
-            Map<String, PropertyState> copy = Maps.newHashMap(properties);
+            Map<String, PropertyState> copy = newHashMap(properties);
             return withProperties(base, copy).getProperties();
         }
 
@@ -594,26 +586,23 @@ public class MemoryNodeBuilder implements NodeBuilder {
 
         @Override
         public NodeState getChildNode(String name) {
-            checkNotNull(name);
-            checkArgument(!name.isEmpty());
-            return withNodes(base, nodes).getChildNode(name); // mutable
+            throw new UnsupportedOperationException();
         }
 
         @Override @Nonnull
         public Iterable<String> getChildNodeNames() {
             Map<String, MutableNodeState> copy = Maps.newHashMap(nodes);
-            return withNodes(base, copy).getChildNodeNames();
+            return newArrayList(withNodes(base, copy).getChildNodeNames());
         }
 
         @Override @Nonnull
         public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
-            Map<String, MutableNodeState> copy = Maps.newHashMap(nodes);
-            return withNodes(base, copy).getChildNodeEntries();
+            throw new UnsupportedOperationException();
         }
 
         @Override
         public void compareAgainstBaseState(NodeState base, NodeStateDiff diff) {
-            with(this.base, properties, nodes).compareAgainstBaseState(base, diff);
+            throw new UnsupportedOperationException();
         }
 
         @Override @Nonnull
