@@ -273,10 +273,9 @@ public class Commit {
                             newestRev + "; before " + revision + "; document " + map);
                 }
                 if (mk.isRevisionNewer(newestRev, baseRevision)
-                        && isConflicting(map, op)) {
+                        && (op.isDelete || isConflicting(map, op))) {
                     throw new MicroKernelException("The node " + 
-                            op.path + " was changed in revision " + 
-                            newestRev + 
+                            op.path + " was changed in revision " + newestRev +
                             ", which was applied after the base revision " + 
                             baseRevision + "; before " + revision + "; document " + map);
                 }
