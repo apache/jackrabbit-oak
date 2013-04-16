@@ -45,7 +45,6 @@ import org.apache.jackrabbit.mk.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.core.SecureNodeState;
 import org.apache.jackrabbit.oak.plugins.memory.BinaryPropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.BooleanPropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
@@ -375,11 +374,6 @@ public final class KernelNodeState extends AbstractNodeState {
      */
     @Override
     public boolean equals(Object object) {
-        // FIXME: temporary solution (see discussion in OAK-709)
-        if (object instanceof SecureNodeState) {
-            return object.equals(this);
-        }
-
         if (this == object) {
             return true;
         } else if (object instanceof KernelNodeState) {
