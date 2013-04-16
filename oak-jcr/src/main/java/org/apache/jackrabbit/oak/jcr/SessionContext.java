@@ -16,9 +16,12 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.PathNotFoundException;
@@ -44,13 +47,12 @@ import org.apache.jackrabbit.oak.plugins.name.Namespaces;
 import org.apache.jackrabbit.oak.plugins.nodetype.DefinitionProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.EffectiveNodeTypeProvider;
 import org.apache.jackrabbit.oak.plugins.observation.ObservationManagerImpl;
+import org.apache.jackrabbit.oak.plugins.observation2.ObservationManagerImpl2;
 import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Instances of this class are passed to all JCR implementation classes
@@ -59,6 +61,9 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * {@code ValueFactory}, etc.).
  */
 public abstract class SessionContext implements NamePathMapper {
+    // FIXME remove OAK-775 feature flag and unify ObservationManager implementations
+    private static final boolean OAK_775 = Boolean.getBoolean("OAK-775");
+
     private final RepositoryImpl repository;
     private final SessionDelegate delegate;
     private final SessionNamespaces namespaces;
@@ -70,7 +75,7 @@ public abstract class SessionContext implements NamePathMapper {
     private PrincipalManager principalManager;
     private UserManager userManager;
     private PrivilegeManager privilegeManager;
-    private ObservationManagerImpl observationManager;
+    private ObservationManager observationManager;
 
     private SessionContext(RepositoryImpl repository,
                            final SessionDelegate delegate) {
@@ -226,14 +231,22 @@ public abstract class SessionContext implements NamePathMapper {
     @Nonnull
     public ObservationManager getObservationManager() {
         if (observationManager == null) {
-            observationManager = new ObservationManagerImpl(
+            if (OAK_775) {
+                observationManager = new ObservationManagerImpl2(
+                        delegate.getRoot(), namePathMapper, repository.getObservationExecutor());
+            } else {
+                observationManager = new ObservationManagerImpl(
                     delegate.getRoot(), namePathMapper, repository.getObservationExecutor());
+            }
         }
         return observationManager;
     }
 
     public boolean hasPendingEvents() {
-        return observationManager != null && observationManager.hasEvents();
+        return observationManager != null &&
+                (OAK_775
+                    ? ((ObservationManagerImpl2) observationManager).hasEvents()
+                    : ((ObservationManagerImpl) observationManager).hasEvents());
     }
 
     //-----------------------------------------------------< NamePathMapper >---
@@ -318,7 +331,11 @@ public abstract class SessionContext implements NamePathMapper {
 
     void dispose() {
         if (observationManager != null) {
-            observationManager.dispose();
+            if (OAK_775) {
+                ((ObservationManagerImpl2) observationManager).dispose();
+            } else {
+                ((ObservationManagerImpl) observationManager).dispose();
+            }
         }
         namespaces.clear();
     }

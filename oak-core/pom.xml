@@ -60,6 +60,7 @@
               org.apache.jackrabbit.oak.plugins.nodetype,
               org.apache.jackrabbit.oak.plugins.nodetype.write,
               org.apache.jackrabbit.oak.plugins.observation,
+              org.apache.jackrabbit.oak.plugins.observation2,
               org.apache.jackrabbit.oak.plugins.version,
               org.apache.jackrabbit.oak.spi.query,
               org.apache.jackrabbit.oak.spi.commit,

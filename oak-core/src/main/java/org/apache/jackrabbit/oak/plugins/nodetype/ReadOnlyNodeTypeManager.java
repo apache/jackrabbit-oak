@@ -318,6 +318,11 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
                 && contains(supertypes.getValue(Type.NAMES), superName);
     }
 
+    @Override
+    public boolean isNodeType(String typeName, String superName) {
+        return isa(getTypes(), typeName, superName);
+    }
+
     /**
      * Returns all the node types of the given node, in a breadth-first
      * traversal order of the type hierarchy.
