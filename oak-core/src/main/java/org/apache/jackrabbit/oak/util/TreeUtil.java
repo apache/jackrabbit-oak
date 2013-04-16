@@ -42,7 +42,7 @@ public final class TreeUtil {
 
     @CheckForNull
     public static String getPrimaryTypeName(Tree tree) {
-        return getString(tree, JcrConstants.JCR_PRIMARYTYPE);
+        return getStringInternal(tree, JcrConstants.JCR_PRIMARYTYPE, Type.NAME);
     }
 
     @CheckForNull
@@ -57,9 +57,16 @@ public final class TreeUtil {
 
     @CheckForNull
     public static String getString(Tree tree, String propertyName) {
+        return getStringInternal(tree, propertyName, Type.STRING);
+    }
+
+    @CheckForNull
+    private static String getStringInternal(Tree tree,
+                                            String propertyName,
+                                            Type<? extends String> type) {
         PropertyState property = tree.getProperty(propertyName);
         if (property != null && !property.isArray()) {
-            return property.getValue(Type.STRING);
+            return property.getValue(type);
         } else {
             return null;
         }
