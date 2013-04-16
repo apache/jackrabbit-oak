@@ -27,7 +27,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.mongomk.BaseMongoMicroKernelTest;
+import org.apache.jackrabbit.mongomk.AbstractMongoConnectionTest;
 import org.apache.jackrabbit.mongomk.MongoMK;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -39,7 +39,7 @@ import com.mongodb.DB;
  * Tests for {@code MongoMicroKernel#waitForCommit(String, long)}
  */
 @Ignore("MongoMK does not implement waitForCommit()")
-public class MongoMKWaitForCommitTest extends BaseMongoMicroKernelTest {
+public class MongoMKWaitForCommitTest extends AbstractMongoConnectionTest {
 
     private MicroKernel mk2;
 

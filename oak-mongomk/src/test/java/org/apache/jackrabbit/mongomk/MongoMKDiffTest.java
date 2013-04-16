@@ -27,7 +27,7 @@ import static org.junit.Assert.assertTrue;
 /**
  * Tests for MicroKernel#diff
  */
-public class MongoMKDiffTest extends BaseMongoMicroKernelTest {
+public class MongoMKDiffTest extends AbstractMongoConnectionTest {
 
     @Test
     public void oak596() {

@@ -22,14 +22,14 @@ import static org.junit.Assert.assertTrue;
 import java.io.ByteArrayInputStream;
 import java.util.Arrays;
 
-import org.apache.jackrabbit.mongomk.BaseMongoMicroKernelTest;
+import org.apache.jackrabbit.mongomk.AbstractMongoConnectionTest;
 import org.junit.Ignore;
 import org.junit.Test;
 
 /**
  * Tests for {@code MongoMicroKernel#write(java.io.InputStream)}
  */
-public class MongoMKWriteGridFSTest extends BaseMongoMicroKernelTest {
+public class MongoMKWriteGridFSTest extends AbstractMongoConnectionTest {
 
     @Test
     public void small() throws Exception {
