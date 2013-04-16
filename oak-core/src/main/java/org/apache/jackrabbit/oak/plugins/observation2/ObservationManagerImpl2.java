@@ -40,6 +40,7 @@ import org.apache.jackrabbit.commons.iterator.EventListenerIteratorAdapter;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.slf4j.Logger;
@@ -51,7 +52,7 @@ import org.slf4j.LoggerFactory;
 public class ObservationManagerImpl2 implements ObservationManager {
     private static final Logger log = LoggerFactory.getLogger(ObservationManagerImpl2.class);
 
-    private final Root root;
+    private final ContentSession contentSession;
     private final NamePathMapper namePathMapper;
     private final ScheduledExecutorService executor;
     private final ReadOnlyNodeTypeManager ntMgr;
@@ -59,10 +60,29 @@ public class ObservationManagerImpl2 implements ObservationManager {
     private final AtomicBoolean hasEvents = new AtomicBoolean(false);
 
     public ObservationManagerImpl2(Root root, NamePathMapper namePathMapper, ScheduledExecutorService executor) {
-        this.root = checkNotNull(root);
+        this.contentSession = checkNotNull(root).getContentSession();
         this.namePathMapper = checkNotNull(namePathMapper);
         this.executor = checkNotNull(executor);
         this.ntMgr = ReadOnlyNodeTypeManager.getInstance(root, namePathMapper);
+        clearEventQueueOnRestart();
+    }
+
+    // FIXME: we need a better way to communicate BUNDLE_ID across.
+    // Preferably through persisting it to th repository
+    private void clearEventQueueOnRestart() {
+        if (EventQueueWriterProvider.BUNDLE_ID.get() == 0) {
+            try {
+                Root root = contentSession.getLatestRoot();
+                Tree events = root.getTree(ObservationConstants.EVENTS_PATH);
+                if (events != null) {
+                    events.remove();
+                    root.commit();
+                }
+            }
+            catch (CommitFailedException e) {
+                log.warn("Error clearing event queue after restart", e);
+            }
+        }
     }
 
     private static void stop(EventCollector collector) {
@@ -181,7 +201,7 @@ public class ObservationManagerImpl2 implements ObservationManager {
     }
 
     ContentSession getContentSession() {
-        return root.getContentSession();
+        return contentSession;
     }
 
     NamePathMapper getNamePathMapper() {
