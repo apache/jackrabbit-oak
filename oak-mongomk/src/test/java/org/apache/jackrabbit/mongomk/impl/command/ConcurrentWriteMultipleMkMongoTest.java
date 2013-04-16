@@ -21,7 +21,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
-import org.apache.jackrabbit.mongomk.BaseMongoMicroKernelTest;
+import org.apache.jackrabbit.mongomk.AbstractMongoConnectionTest;
 import org.apache.jackrabbit.mongomk.MongoMK;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -29,7 +29,8 @@ import org.junit.Test;
 /**
  * Tests for multiple MongoMKs writing against the same DB in separate trees.
  */
-public class ConcurrentWriteMultipleMkMongoTest extends BaseMongoMicroKernelTest {
+public class ConcurrentWriteMultipleMkMongoTest extends
+        AbstractMongoConnectionTest {
 
     @Test
     public void testSmall() throws Exception {

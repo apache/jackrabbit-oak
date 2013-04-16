@@ -19,7 +19,7 @@ package org.apache.jackrabbit.mongomk.impl;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
-import org.apache.jackrabbit.mongomk.BaseMongoMicroKernelTest;
+import org.apache.jackrabbit.mongomk.AbstractMongoConnectionTest;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -27,7 +27,7 @@ import org.junit.Test;
  * Tests getChildNodeCount.
  */
 @Ignore("MongoMK does not implement getChildNodeCount()")
-public class MongoMKGetChildCountTest extends BaseMongoMicroKernelTest {
+public class MongoMKGetChildCountTest extends AbstractMongoConnectionTest {
 
     @Test
     public void noChild() throws Exception {

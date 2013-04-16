@@ -18,7 +18,7 @@ package org.apache.jackrabbit.mongomk.impl;
 
 import static org.junit.Assert.assertEquals;
 
-import org.apache.jackrabbit.mongomk.BaseMongoMicroKernelTest;
+import org.apache.jackrabbit.mongomk.AbstractMongoConnectionTest;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.junit.Ignore;
@@ -28,7 +28,7 @@ import org.junit.Test;
  * Tests for {@code MongoMicroKernel#getJournal(String, String, String)}
  */
 @Ignore("MongoMK does not implement getJournal()")
-public class MongoMKGetJournalTest extends BaseMongoMicroKernelTest {
+public class MongoMKGetJournalTest extends AbstractMongoConnectionTest {
 
     @Test
     public void simple() throws Exception {

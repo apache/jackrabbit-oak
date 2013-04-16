@@ -21,13 +21,13 @@ import static org.junit.Assert.fail;
 
 import java.io.ByteArrayInputStream;
 
-import org.apache.jackrabbit.mongomk.BaseMongoMicroKernelTest;
+import org.apache.jackrabbit.mongomk.AbstractMongoConnectionTest;
 import org.junit.Test;
 
 /**
  * Tests for {@code MongoMicroKernel#getLength(String)}
  */
-public class MongoMKGetLengthGridFSTest extends BaseMongoMicroKernelTest {
+public class MongoMKGetLengthGridFSTest extends AbstractMongoConnectionTest {
 
     @Test
     public void nonExistent() throws Exception {

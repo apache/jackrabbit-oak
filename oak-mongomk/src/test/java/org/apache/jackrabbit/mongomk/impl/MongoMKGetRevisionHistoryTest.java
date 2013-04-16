@@ -18,7 +18,7 @@ package org.apache.jackrabbit.mongomk.impl;
 
 import static org.junit.Assert.assertEquals;
 
-import org.apache.jackrabbit.mongomk.BaseMongoMicroKernelTest;
+import org.apache.jackrabbit.mongomk.AbstractMongoConnectionTest;
 import org.json.simple.JSONArray;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -27,7 +27,7 @@ import org.junit.Test;
  * Tests for getRevisionHistory
  */
 @Ignore("MongoMK does not implement getRevisionHistory()")
-public class MongoMKGetRevisionHistoryTest extends BaseMongoMicroKernelTest {
+public class MongoMKGetRevisionHistoryTest extends AbstractMongoConnectionTest {
 
     @Test
     public void maxEntriesZero() throws Exception {

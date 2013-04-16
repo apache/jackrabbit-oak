@@ -21,14 +21,14 @@ import java.util.Arrays;
 
 import junit.framework.Assert;
 
-import org.apache.jackrabbit.mongomk.BaseMongoMicroKernelTest;
+import org.apache.jackrabbit.mongomk.AbstractMongoConnectionTest;
 import org.junit.Ignore;
 import org.junit.Test;
 
 /**
  * Tests for {@code MongoMicroKernel#read(String, long, byte[], int, int)}
  */
-public class MongoMKReadGridFSTest extends BaseMongoMicroKernelTest {
+public class MongoMKReadGridFSTest extends AbstractMongoConnectionTest {
 
     private byte[] blob;
     private String blobId;

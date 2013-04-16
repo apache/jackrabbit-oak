@@ -18,7 +18,7 @@ package org.apache.jackrabbit.mongomk.impl;
 
 import java.util.Arrays;
 
-import org.apache.jackrabbit.mongomk.BaseMongoMicroKernelTest;
+import org.apache.jackrabbit.mongomk.AbstractMongoConnectionTest;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -28,7 +28,7 @@ import org.junit.Test;
  *
  * Tests for MongoMicroKernel limits.
  */
-public class MongoMKLimitsTest extends BaseMongoMicroKernelTest {
+public class MongoMKLimitsTest extends AbstractMongoConnectionTest {
 
     /**
      * This test currently fails due to 1000 char limit in property sizes in
