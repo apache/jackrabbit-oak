@@ -87,7 +87,7 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
     @Nonnull
     private NodeBuilder getPermissionRoot(NodeBuilder rootBuilder) {
         NodeBuilder permissionStore = rootBuilder.child(JCR_SYSTEM).child(REP_PERMISSION_STORE);
-        if (permissionStore.getProperty(JCR_PRIMARYTYPE) == null) {
+        if (!permissionStore.hasProperty(JCR_PRIMARYTYPE)) {
             permissionStore.setProperty(JCR_PRIMARYTYPE, NT_REP_PERMISSION_STORE, Type.NAME);
         }
         NodeBuilder permissionRoot;
@@ -337,7 +337,7 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
 
         private void writeTo(NodeBuilder permissionRoot) {
             NodeBuilder principalRoot = permissionRoot.child(principalName);
-            if (principalRoot.getProperty(JCR_PRIMARYTYPE) == null) {
+            if (!principalRoot.hasProperty(JCR_PRIMARYTYPE)) {
                 principalRoot.setProperty(JCR_PRIMARYTYPE, NT_REP_PERMISSION_STORE, Type.NAME);
             }
             NodeBuilder entry = principalRoot.child(nodeName)

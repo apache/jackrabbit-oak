@@ -31,8 +31,7 @@ class MergeDiff implements NodeStateDiff {
 
     @Override
     public void propertyAdded(PropertyState after) {
-        PropertyState other = builder.getProperty(after.getName());
-        if (other == null) {
+        if (!builder.hasProperty(after.getName())) {
             builder.setProperty(after);
         }
     }

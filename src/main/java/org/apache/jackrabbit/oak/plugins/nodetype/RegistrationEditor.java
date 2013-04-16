@@ -109,7 +109,7 @@ class RegistrationEditor extends DefaultEditor {
      */
     private void mergeSupertypes(NodeBuilder types, NodeBuilder type)
             throws CommitFailedException {
-        if (type.getProperty(OAK_SUPERTYPES) == null) {
+        if (!type.hasProperty(OAK_SUPERTYPES)) {
             List<String> empty = Collections.emptyList();
             type.setProperty(OAK_SUPERTYPES, empty, NAMES);
 
@@ -275,8 +275,7 @@ class RegistrationEditor extends DefaultEditor {
             definitions = definitions.child(escapedName);
 
             // - jcr:mandatory (BOOLEAN) protected mandatory
-            PropertyState mandatory = definition.getProperty(JCR_MANDATORY);
-            if (mandatory != null && mandatory.getValue(BOOLEAN)) {
+            if (definition.getBoolean(JCR_MANDATORY)) {
                 addNameToList(type, OAK_MANDATORY_PROPERTIES, propertyName);
             }
         } else {
@@ -296,8 +295,7 @@ class RegistrationEditor extends DefaultEditor {
         }
 
         // - jcr:multiple (BOOLEAN) protected mandatory
-        PropertyState multiple = definition.getProperty(JCR_MULTIPLE);
-        if (multiple != null && multiple.getValue(BOOLEAN)) {
+        if (definition.getBoolean(JCR_MULTIPLE)) {
             if ("BINARY".equals(key)) {
                 key = "BINARIES";
             } else {
@@ -324,8 +322,7 @@ class RegistrationEditor extends DefaultEditor {
             definitions = definitions.child(childNodeName);
 
             // - jcr:mandatory (BOOLEAN) protected mandatory
-            PropertyState mandatory = definition.getProperty(JCR_MANDATORY);
-            if (mandatory != null && mandatory.getValue(BOOLEAN)) {
+            if (definition.getBoolean(JCR_MANDATORY)) {
                 addNameToList(type, OAK_MANDATORY_CHILD_NODES, childNodeName);
             }
         } else {
