@@ -126,14 +126,14 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
     }
 
     @Override
-    public boolean hasPrivileges(@Nullable String absPath, @Nonnull Privilege[] privileges) throws RepositoryException {
-        return hasPrivileges(absPath, privileges, getPermissionProvider());
+    public boolean hasPrivileges(@Nullable String absPath, @Nullable Privilege[] privileges) throws RepositoryException {
+        return hasPrivileges(absPath, privileges, getPermissionProvider(), Permissions.NO_PERMISSION);
     }
 
     @Nonnull
     @Override
     public Privilege[] getPrivileges(@Nullable String absPath) throws RepositoryException {
-        return getPrivileges(absPath, getPermissionProvider());
+        return getPrivileges(absPath, getPermissionProvider(), Permissions.NO_PERMISSION);
     }
 
     @Nonnull
@@ -316,15 +316,31 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
     }
 
     @Override
-    public boolean hasPrivileges(@Nullable String absPath, @Nonnull Set<Principal> principals, @Nonnull Privilege[] privileges) throws RepositoryException {
-        PermissionProvider provider = acConfig.getPermissionProvider(root, principals);
-        return hasPrivileges(absPath, privileges, provider);
+    public boolean hasPrivileges(@Nullable String absPath, @Nonnull Set<Principal> principals, @Nullable Privilege[] privileges) throws RepositoryException {
+        if (getPrincipals().equals(principals)) {
+            return hasPrivileges(absPath, privileges);
+        } else {
+            PermissionProvider provider = acConfig.getPermissionProvider(root, principals);
+            try {
+                return hasPrivileges(absPath, privileges, provider, Permissions.READ_ACCESS_CONTROL);
+            } finally {
+                provider = null;
+            }
+        }
     }
 
     @Override
     public Privilege[] getPrivileges(@Nullable String absPath, @Nonnull Set<Principal> principals) throws RepositoryException {
-        PermissionProvider provider = acConfig.getPermissionProvider(root, principals);
-        return getPrivileges(absPath, provider);
+        if (getPrincipals().equals(principals)) {
+            return getPrivileges(absPath);
+        } else {
+            PermissionProvider provider = acConfig.getPermissionProvider(root, principals);
+            try {
+                return getPrivileges(absPath, provider, Permissions.READ_ACCESS_CONTROL);
+            } finally {
+                provider = null;
+            }
+        }
     }
 
     //------------------------------------------------------------< private >---
@@ -348,9 +364,8 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
             throw new PathNotFoundException("No tree at " + oakPath);
         }
         if (permissions != Permissions.NO_PERMISSION) {
-            if (!getPermissionProvider().isGranted(tree, null, permissions)) {
-                throw new AccessDeniedException("Access denied at " + tree);
-            }
+            // check permissions
+            checkPermissions((oakPath == null) ? null : tree, permissions);
             // check if the tree is access controlled
             if (acConfig.getContext().definesTree(tree)) {
                 throw new AccessControlException("Tree " + tree.getPath() + " defines access control content.");
@@ -358,6 +373,18 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
         }
 
         return tree;
+    }
+
+    private void checkPermissions(@Nullable Tree tree, long permissions) throws AccessDeniedException {
+        boolean isGranted;
+        if (tree == null) {
+            isGranted = getPermissionProvider().isGranted(permissions);
+        } else {
+            isGranted = getPermissionProvider().isGranted(tree, null, permissions);
+        }
+        if (!isGranted) {
+            throw new AccessDeniedException("Access denied.");
+        }
     }
 
     private static void checkValidPolicy(@Nullable String oakPath, @Nonnull AccessControlPolicy policy) throws AccessControlException {
@@ -509,9 +536,14 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
     }
 
     @Nonnull
+    private Set<Principal> getPrincipals() {
+        return root.getContentSession().getAuthInfo().getPrincipals();
+    }
+
+    @Nonnull
     private PermissionProvider getPermissionProvider() {
         if (permissionProvider == null) {
-            permissionProvider = acConfig.getPermissionProvider(root, root.getContentSession().getAuthInfo().getPrincipals());
+            permissionProvider = acConfig.getPermissionProvider(root, getPrincipals());
         } else {
             permissionProvider.refresh();
         }
@@ -529,8 +561,17 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
     }
 
     @Nonnull
-    private Privilege[] getPrivileges(@Nullable String absPath, @Nonnull PermissionProvider provider) throws RepositoryException {
-        Tree tree = (absPath == null) ? null : getTree(getOakPath(absPath), Permissions.NO_PERMISSION);
+    private Privilege[] getPrivileges(@Nullable String absPath, @Nonnull PermissionProvider provider,
+                                      long permissions) throws RepositoryException {
+        Tree tree;
+        if (absPath == null) {
+            tree = null;
+            if (permissions != Permissions.NO_PERMISSION) {
+                checkPermissions(null, permissions);
+            }
+        } else {
+            tree = getTree(getOakPath(absPath), permissions);
+        }
         Set<String> pNames = provider.getPrivileges(tree);
         if (pNames.isEmpty()) {
             return new Privilege[0];
@@ -543,14 +584,28 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
         }
     }
 
-    private boolean hasPrivileges(@Nullable String absPath, @Nonnull Privilege[] privileges,
-                                  @Nonnull PermissionProvider provider) throws RepositoryException {
-        Tree tree = (absPath == null) ? null : getTree(getOakPath(absPath), Permissions.NO_PERMISSION);
-        Set<String> privilegeNames = new HashSet<String>(privileges.length);
-        for (Privilege privilege : privileges) {
-            privilegeNames.add(namePathMapper.getOakName(privilege.getName()));
+    private boolean hasPrivileges(@Nullable String absPath, @Nullable Privilege[] privileges,
+                                  @Nonnull PermissionProvider provider, long permissions) throws RepositoryException {
+        Tree tree;
+        if (absPath == null) {
+            tree = null;
+            if (permissions != Permissions.NO_PERMISSION) {
+                checkPermissions(null, permissions);
+            }
+        } else {
+            tree = getTree(getOakPath(absPath), permissions);
         }
-        return (privilegeNames.isEmpty()) || provider.hasPrivileges(tree, privilegeNames.toArray(new String[privilegeNames.size()]));
+        if (privileges == null || privileges.length == 0) {
+            // null or empty privilege array -> return true
+            log.debug("No privileges passed -> allowed.");
+            return true;
+        } else {
+            Set<String> privilegeNames = new HashSet<String>(privileges.length);
+            for (Privilege privilege : privileges) {
+                privilegeNames.add(namePathMapper.getOakName(privilege.getName()));
+            }
+            return provider.hasPrivileges(tree, privilegeNames.toArray(new String[privilegeNames.size()]));
+        }
     }
 
     @CheckForNull
