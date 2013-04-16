@@ -43,6 +43,16 @@ public interface EffectiveNodeTypeProvider {
     boolean isNodeType(Tree tree, String nodeTypeName) throws NoSuchNodeTypeException, RepositoryException;
 
     /**
+     * Returns {@code true} if {@code typeName} is of the specified primary node
+     * type or mixin type, or a subtype thereof. Returns {@code false} otherwise.
+     *
+     * @param typeName  the internal oak name of the node type to test
+     * @param superName The internal oak name of the super type to be tested for.
+     * @return {@code true} if the specified node type is of the given node type.
+     */
+    boolean isNodeType(String typeName, String superName);
+
+    /**
      * Calculates and returns the effective node types of the given node.
      *
      * @param targetNode the node for which the types should be calculated.
