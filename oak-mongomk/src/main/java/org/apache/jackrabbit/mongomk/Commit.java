@@ -272,7 +272,8 @@ public class Commit {
                             op.path + " was already added in revision " + 
                             newestRev + "; before " + revision + "; document " + map);
                 }
-                if (mk.isRevisionNewer(newestRev, baseRevision)) {
+                if (mk.isRevisionNewer(newestRev, baseRevision)
+                        && isConflicting(map, op)) {
                     throw new MicroKernelException("The node " + 
                             op.path + " was changed in revision " + 
                             newestRev + 
@@ -302,7 +303,49 @@ public class Commit {
             }
         }
     }
-    
+
+    /**
+     * Checks whether the given <code>UpdateOp</code> conflicts with the
+     * existing content in <code>nodeMap</code>. The check is done based on the
+     * {@link #baseRevision} of this commit. An <code>UpdateOp</code> conflicts
+     * when there were changes after {@link #baseRevision} on properties also
+     * contained in <code>UpdateOp</code>.
+     *
+     * @param nodeMap the contents of the nodes before the update.
+     * @param op the update to perform.
+     * @return <code>true</code> if the update conflicts; <code>false</code>
+     *         otherwise.
+     */
+    private boolean isConflicting(Map<String, Object> nodeMap,
+                                  UpdateOp op) {
+        if (baseRevision == null) {
+            // no conflict is possible when there is no baseRevision
+            return false;
+        }
+        for (Map.Entry<String, UpdateOp.Operation> entry : op.changes.entrySet()) {
+            if (entry.getValue().type != UpdateOp.Operation.Type.SET_MAP_ENTRY) {
+                continue;
+            }
+            int idx = entry.getKey().indexOf('.');
+            String name = entry.getKey().substring(0, idx);
+            if (!Utils.isPropertyName(name)) {
+                continue;
+            }
+            // was this property touched after baseRevision?
+            @SuppressWarnings("unchecked")
+            Map<String, Object> changes = (Map<String, Object>) nodeMap.get(name);
+            if (changes == null) {
+                continue;
+            }
+            for (String rev : changes.keySet()) {
+                if (mk.isRevisionNewer(Revision.fromString(rev), baseRevision)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     private UpdateOp[] splitDocument(Map<String, Object> map) {
         String id = (String) map.get(UpdateOp.ID);
         String path = Utils.getPathFromId(id);

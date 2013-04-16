@@ -20,6 +20,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.json.simple.JSONObject;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -143,9 +144,14 @@ public class MongoMKCommitAddTest extends BaseMongoMKTest {
     public void setPropertyIllegalKey() throws Exception {
         mk.commit("/", "+\"a\" : {}", null, null);
 
-        mk.commit("/", "^\"a/ke.y1\" : \"value\"", null, null);
+        mk.commit("/", "^\"a/_id\" : \"value\"", null, null);
         String nodes = mk.getNodes("/a", null, 0 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
         JSONObject obj = parseJSONObject(nodes);
+        assertPropertyValue(obj, "_id", "value");
+
+        mk.commit("/", "^\"a/ke.y1\" : \"value\"", null, null);
+        nodes = mk.getNodes("/a", null, 0 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
+        obj = parseJSONObject(nodes);
         assertPropertyValue(obj, "ke.y1", "value");
 
         mk.commit("/", "^\"a/ke.y.1\" : \"value\"", null, null);
@@ -174,10 +180,18 @@ public class MongoMKCommitAddTest extends BaseMongoMKTest {
         String rev1 = mk.commit("/", "+\"a\" : {} ^\"a/key1\" : \"value1\"", null, null);
 
         // Commit with rev1
-        mk.commit("/", "^\"a/key1\" : \"value2\"", rev1, null);
+        String rev2 = mk.commit("/", "^\"a/key1\" : \"value2\"", rev1, null);
 
-        // Commit with rev1 again (to overwrite rev2)
-        mk.commit("/", "^\"a/key1\" : \"value3\"", rev1, null);
+        // try to commit with rev1 again (to overwrite rev2)
+        try {
+            mk.commit("/", "^\"a/key1\" : \"value3\"", rev1, null);
+            fail("commit must fail with conflicting change");
+        } catch (MicroKernelException e) {
+            // expected
+        }
+
+        // now overwrite with correct base revision
+        mk.commit("/", "^\"a/key1\" : \"value3\"", rev2, null);
 
         String nodes = mk.getNodes("/a", null, 0 /*depth*/, 0 /*offset*/, -1 /*maxChildNodes*/, null /*filter*/);
         JSONObject obj = parseJSONObject(nodes);

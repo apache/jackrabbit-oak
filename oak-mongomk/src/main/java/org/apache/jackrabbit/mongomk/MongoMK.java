@@ -51,6 +51,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Maps;
 import com.mongodb.DB;
 
 /**
@@ -1056,15 +1057,19 @@ public class MongoMK implements MicroKernel {
         if (nodeMap == null) {
             return null;
         }
+        Map<String, String> revisions = Maps.newHashMap();
+        if (nodeMap.containsKey(UpdateOp.REVISIONS)) {
+            //noinspection unchecked
+            revisions.putAll((Map<String, String>) nodeMap.get(UpdateOp.REVISIONS));
+        }
         @SuppressWarnings("unchecked")
-        Map<String, String> valueMap = (Map<String, String>) nodeMap
+        Map<String, String> deletedMap = (Map<String, String>) nodeMap
                 .get(UpdateOp.DELETED);
-        if (valueMap == null) {
-            return null;
+        if (deletedMap != null) {
+            revisions.putAll(deletedMap);
         }
         Revision newestRev = null;
-        String newestValue = null;
-        for (String r : valueMap.keySet()) {
+        for (String r : revisions.keySet()) {
             Revision propRev = Revision.fromString(r);
             if (newestRev == null || isRevisionNewer(propRev, newestRev)) {
                 if (isRevisionNewer(before, propRev)) {
@@ -1072,14 +1077,19 @@ public class MongoMK implements MicroKernel {
                             || isValidRevision(propRev, before,
                                 nodeMap, new HashSet<Revision>())) {
                         newestRev = propRev;
-                        newestValue = valueMap.get(r);
                     }
                 }
             }
         }
-        if ("true".equals(newestValue)) {
-            // deleted in the newest revision
+        if (newestRev == null) {
             return null;
+        }
+        if (deletedMap != null) {
+            String value = deletedMap.get(newestRev.toString());
+            if ("true".equals(value)) {
+                // deleted in the newest revision
+                return null;
+            }
         }
         return newestRev;
     }
