@@ -226,10 +226,6 @@
       org.apache.jackrabbit.test.api.observation.NodeMovedTest#testMoveNode
       org.apache.jackrabbit.test.api.observation.NodeMovedTest#testMoveTree
       org.apache.jackrabbit.test.api.observation.NodeMovedTest#testMoveWithRemove
-      org.apache.jackrabbit.test.api.observation.NodeReorderTest#testNodeReorderAddRemove           <!-- OAK-144 -->
-      org.apache.jackrabbit.test.api.observation.NodeReorderTest#testNodeReorderMove                <!-- OAK-144 -->
-      org.apache.jackrabbit.test.api.observation.NodeReorderTest#testNodeReorderSameName            <!-- OAK-144 -->
-      org.apache.jackrabbit.test.api.observation.NodeReorderTest#testNodeReorderSameNameWithRemove  <!-- OAK-144 -->
       org.apache.jackrabbit.test.api.observation.AddEventListenerTest#testNoLocalTrue
       org.apache.jackrabbit.test.api.observation.GetIdentifierTest#testNodeAdded
       org.apache.jackrabbit.test.api.observation.GetIdentifierTest#testNodeMoved
