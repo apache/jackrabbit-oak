@@ -44,6 +44,6 @@ public final class NodeStateUtils {
     @CheckForNull
     public static String getPrimaryTypeName(NodeState nodeState) {
         PropertyState ps = nodeState.getProperty(JcrConstants.JCR_PRIMARYTYPE);
-        return (ps == null) ? null : ps.getValue(Type.STRING);
+        return (ps == null) ? null : ps.getValue(Type.NAME);
     }
 }
