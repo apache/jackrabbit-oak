@@ -22,7 +22,6 @@ import java.util.Map.Entry;
 
 import javax.annotation.Nonnull;
 
-import com.google.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
@@ -33,7 +32,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Maps.newHashMap;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState.with;
@@ -507,7 +505,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
         }
 
         public NodeState snapshot() {
-            Map<String, NodeState> nodes = Maps.newHashMap();
+            Map<String, NodeState> nodes = newHashMap();
             for (Map.Entry<String, MutableNodeState> entry : this.nodes.entrySet()) {
                 String name = entry.getKey();
                 MutableNodeState node = entry.getValue();
@@ -523,7 +521,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
                     }
                 }
             }
-            return with(base, Maps.newHashMap(this.properties), nodes);
+            return with(base, newHashMap(this.properties), nodes);
         }
 
         void reset(NodeState newBase) {
@@ -591,8 +589,8 @@ public class MemoryNodeBuilder implements NodeBuilder {
 
         @Override @Nonnull
         public Iterable<String> getChildNodeNames() {
-            Map<String, MutableNodeState> copy = Maps.newHashMap(nodes);
-            return newArrayList(withNodes(base, copy).getChildNodeNames());
+            Map<String, MutableNodeState> copy = newHashMap(nodes);
+            return withNodes(base, copy).getChildNodeNames();
         }
 
         @Override @Nonnull
