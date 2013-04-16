@@ -103,7 +103,7 @@ public class UserInitializerTest extends AbstractSecurityTest {
         Tree princName = oakIndex.getChild("principalName");
         assertIndexDefinition(princName, UserConstants.REP_PRINCIPAL_NAME, true);
         String[] declaringNtNames = TreeUtil.getStrings(princName, IndexConstants.DECLARING_NODE_TYPES);
-        assertArrayEquals(new String[]{UserConstants.NT_REP_GROUP, UserConstants.NT_REP_USER}, declaringNtNames);
+        assertArrayEquals(new String[]{UserConstants.NT_REP_GROUP, UserConstants.NT_REP_USER, UserConstants.NT_REP_AUTHORIZABLE}, declaringNtNames);
 
         Tree members = oakIndex.getChild("members");
         assertIndexDefinition(members, UserConstants.REP_MEMBERS, false);
