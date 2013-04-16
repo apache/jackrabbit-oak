@@ -49,6 +49,11 @@ import com.mongodb.WriteResult;
 public class MongoDocumentStore implements DocumentStore {
 
     private static final Logger LOG = LoggerFactory.getLogger(MongoDocumentStore.class);
+    
+    /**
+     * The number of documents to cache.
+     */
+    private static final int CACHE_DOCUMENTS = Integer.getInteger("oak.mongoMK.cacheDocs", 20 * 1024);
 
     private static final boolean LOG_TIME = false;
 
@@ -78,7 +83,7 @@ public class MongoDocumentStore implements DocumentStore {
 
         // TODO expire entries if the parent was changed
         nodesCache = CacheBuilder.newBuilder()
-                .maximumSize(MongoMK.CACHE_DOCUMENTS)
+                .maximumSize(CACHE_DOCUMENTS)
                 .build();
         
     }
