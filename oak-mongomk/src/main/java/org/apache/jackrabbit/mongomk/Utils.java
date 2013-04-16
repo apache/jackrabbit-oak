@@ -75,22 +75,71 @@ public class Utils {
     }
 
     public static String escapePropertyName(String propertyName) {
-        String key = propertyName;
-        if (key.startsWith("$") || key.startsWith("_")) {
-            key = "_" + key;
+        int len = propertyName.length();
+        if (len == 0) {
+            return "_";
         }
-        // '*' in a property name is illegal in JCR I believe
-        // TODO find a better solution
-        key = key.replace('.', '*');
-        return key;
+        // avoid creating a buffer if escaping is not needed
+        StringBuilder buff = null;
+        char c = propertyName.charAt(0);
+        int i = 0;
+        if (c == '_' || c == '$') {
+            buff = new StringBuilder(len + 1);
+            buff.append('_').append(c);
+            i++;
+        }
+        for (; i < len; i++) {
+            c = propertyName.charAt(i);
+            char rep;
+            switch (c) {
+            case '.':
+                rep = 'd';
+                break;
+            case '\\':
+                rep = '\\';
+                break;
+            default:
+                rep = 0;
+            }
+            if (rep != 0) {
+                if (buff == null) {
+                    buff = new StringBuilder(propertyName.substring(0, i));
+                }
+                buff.append('\\').append(rep);
+            } else if (buff != null) {
+                buff.append(c);
+            }
+        }
+        return buff == null ? propertyName : buff.toString();
     }
     
     public static String unescapePropertyName(String key) {
-        if (key.startsWith("__") || key.startsWith("_$")) {
+        int len = key.length();
+        if (key.startsWith("_")
+                && (key.startsWith("__") || key.startsWith("_$") || len == 1)) {
             key = key.substring(1);
+            len--;
         }
-        key = key.replace('*', '.');
-        return key;
+        // avoid creating a buffer if escaping is not needed
+        StringBuilder buff = null;
+        for (int i = 0; i < len; i++) {
+            char c = key.charAt(i);
+            if (c == '\\') {
+                if (buff == null) {
+                    buff = new StringBuilder(key.substring(0, i));
+                }
+                c = key.charAt(++i);
+                if (c == '\\') {
+                    // ok
+                } else if (c == 'd') {
+                    c = '.';
+                }
+                buff.append(c);
+            } else if (buff != null) {
+                buff.append(c);
+            }
+        }
+        return buff == null ? key : buff.toString();
     }
     
     public static boolean isPropertyName(String key) {

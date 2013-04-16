@@ -62,11 +62,6 @@ public class MongoMK implements MicroKernel {
     private static final Logger LOG = LoggerFactory.getLogger(MongoMK.class);
 
     /**
-     * The number of documents to cache.
-     */
-    static final int CACHE_DOCUMENTS = Integer.getInteger("oak.mongoMK.cacheDocs", 20 * 1024);
-
-    /**
      * The number of child node list entries to cache.
      */
     private static final int CACHE_CHILDREN = Integer.getInteger("oak.mongoMK.cacheChildren", 1024);
