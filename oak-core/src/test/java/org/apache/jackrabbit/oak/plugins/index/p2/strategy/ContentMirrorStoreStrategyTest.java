@@ -97,7 +97,7 @@ public class ContentMirrorStoreStrategyTest {
             check = check.child(p);
         }
         if (checkMatch) {
-            Assert.assertNotNull(check.getProperty("match"));
+            Assert.assertTrue(check.hasProperty("match"));
         }
     }
 

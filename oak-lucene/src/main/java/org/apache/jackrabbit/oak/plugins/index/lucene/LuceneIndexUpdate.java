@@ -119,9 +119,8 @@ class LuceneIndexUpdate implements Closeable, LuceneIndexConstants {
     }
 
     boolean getAndResetReindexFlag() {
-        boolean reindex = index.getProperty(REINDEX_PROPERTY_NAME) != null
-                && index.getProperty(REINDEX_PROPERTY_NAME).getValue(
-                        Type.BOOLEAN);
+        PropertyState property = index.getProperty(REINDEX_PROPERTY_NAME);
+        boolean reindex = property != null && property.getValue(Type.BOOLEAN);
         index.setProperty(REINDEX_PROPERTY_NAME, false);
         return reindex;
     }

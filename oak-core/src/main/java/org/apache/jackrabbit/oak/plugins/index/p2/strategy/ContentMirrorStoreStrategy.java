@@ -25,8 +25,6 @@ import java.util.Set;
 import java.util.TreeMap;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.query.Filter;
@@ -115,7 +113,7 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
         // finally prune the index node
         pruneNode(child);
         if (child.getChildNodeCount() == 0
-                && child.getProperty("match") == null) {
+                && !child.hasProperty("match")) {
             index.removeNode(key);
         }
     }
@@ -127,7 +125,7 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
         for (String name : parent.getChildNodeNames()) {
             NodeBuilder segment = parent.child(name);
             if (segment.getChildNodeCount() == 0
-                    && segment.getProperty("match") == null) {
+                    && !segment.hasProperty("match")) {
                 parent.removeNode(name);
             }
         }
@@ -201,11 +199,6 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
         }
         return count;
     }
-    
-    static boolean matches(NodeState state) {
-        PropertyState ps = state.getProperty("match");
-        return ps != null && !ps.isArray() && ps.getValue(Type.BOOLEAN);
-    }
 
     /**
      * An iterator over paths within an index node.
@@ -274,7 +267,7 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
                     nodeIterators.addLast(node.getChildNodeEntries().iterator());
                     parentPath = currentPath;
 
-                    if (matches(node)) {
+                    if (node.getBoolean("match")) {
                         return;
                     }
                     
