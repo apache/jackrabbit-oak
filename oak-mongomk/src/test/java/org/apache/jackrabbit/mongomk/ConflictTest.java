@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.mongomk;
 
 import org.apache.jackrabbit.mk.api.MicroKernelException;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.fail;
@@ -120,7 +119,6 @@ public class ConflictTest extends BaseMongoMKTest {
     }
 
     @Test
-    @Ignore
     public void removeChangedNode() {
         String rev = mk.commit("/", "+\"foo\":{}", null, null);
         mk.commit("/foo", "^\"prop\":\"value\"", rev, null);
@@ -144,5 +142,26 @@ public class ConflictTest extends BaseMongoMKTest {
         } catch (MicroKernelException e) {
             // expected
         }
+    }
+
+    @Test
+    public void nonConflictingChangeProperty() {
+        String rev = mk.commit("/", "+\"foo\":{\"prop1\":\"value\", \"prop2\":\"value\"}", null, null);
+        mk.commit("/foo", "^\"prop1\":\"bar\"", rev, null);
+        mk.commit("/foo", "^\"prop2\":\"baz\"", rev, null);
+    }
+
+    @Test
+    public void nonConflictingAddProperty() {
+        String rev = mk.commit("/", "+\"foo\":{\"prop1\":\"value\"}", null, null);
+        mk.commit("/foo", "^\"prop1\":\"bar\"", rev, null);
+        mk.commit("/foo", "^\"prop2\":\"baz\"", rev, null);
+    }
+
+    @Test
+    public void nonConflictingRemoveProperty() {
+        String rev = mk.commit("/", "+\"foo\":{\"prop1\":\"value\", \"prop2\":\"value\"}", null, null);
+        mk.commit("/foo", "^\"prop1\":\"bar\"", rev, null);
+        mk.commit("/foo", "^\"prop2\":null", rev, null);
     }
 }
