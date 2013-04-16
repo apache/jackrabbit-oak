@@ -47,6 +47,12 @@ import static com.google.common.base.Preconditions.checkNotNull;
 public class SecureNodeState extends AbstractNodeState {
 
     /**
+     * Underlying root state, used to optimize a common case
+     * in {@link #equals(Object)}.
+     */
+    private final NodeState root;
+
+    /**
      * Underlying node state.
      */
     private final NodeState state;
@@ -123,7 +129,8 @@ public class SecureNodeState extends AbstractNodeState {
     public SecureNodeState(@Nonnull NodeState rootState,
                            @Nonnull PermissionProvider permissionProvider,
                            @Nonnull TreeTypeProvider typeProvider) {
-        this.state = checkNotNull(rootState);
+        this.root = checkNotNull(rootState);
+        this.state = rootState;
         this.base = new ImmutableTree(rootState, typeProvider);
         this.permissionProvider = permissionProvider;
         // calculate the readstatus for the root
@@ -133,6 +140,7 @@ public class SecureNodeState extends AbstractNodeState {
     private SecureNodeState(
             @Nonnull SecureNodeState parent,
             @Nonnull String name, @Nonnull NodeState nodeState) {
+        this.root = checkNotNull(parent).root;
         this.state = checkNotNull(nodeState);
         this.base = new ImmutableTree(parent.base, name, nodeState);
         this.permissionProvider = parent.permissionProvider;
@@ -246,10 +254,23 @@ public class SecureNodeState extends AbstractNodeState {
     }
 
     //-------------------------------------------------------------< Object >---
-    // FIXME: add proper equals/hashcode implementation (see OAK-709)
+
     @Override
-    public boolean equals(Object obj) {
-        return state.equals(obj);
+    public boolean equals(Object object) {
+        if (object == this) {
+            return true;
+        } else if (object instanceof SecureNodeState) {
+            SecureNodeState that = (SecureNodeState) object;
+            // TODO: We should be able to do this optimization also across
+            // different revisions (root states) as long as the path,
+            // the subtree, and any security-related areas like the
+            // permission store are equal for both states.
+            if (root.equals(that.root)
+                    && base.getPath().equals(that.base.getPath())) {
+                return true;
+            }
+        }
+        return super.equals(object);
     }
 
     //------------------------------------------------------------< private >---
