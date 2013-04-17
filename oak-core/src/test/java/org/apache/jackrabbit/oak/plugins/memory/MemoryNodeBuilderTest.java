@@ -198,6 +198,28 @@ public class MemoryNodeBuilderTest {
     }
 
     @Test
+    @Ignore("OAK-782")
+    public void setNodeTest() {
+        MemoryNodeBuilder rootBuilder = new MemoryNodeBuilder(EmptyNodeState.EMPTY_NODE);
+        MemoryNodeBuilder aBuilder = new MemoryNodeBuilder(EmptyNodeState.EMPTY_NODE);
+        aBuilder.child("b").setProperty("c", "cValue");
+        rootBuilder.setNode("a", aBuilder.getNodeState());
+
+// Note: using the following way to construct the initial state makes the test pass
+//        rootBuilder = new MemoryNodeBuilder(EmptyNodeState.EMPTY_NODE);
+//        rootBuilder.child("a").child("b").setProperty("c", "cValue");
+
+        NodeState b = rootBuilder.getNodeState().getChildNode("a").getChildNode("b");
+        assertTrue(b.hasProperty("c"));
+
+        rootBuilder.child("a").child("b").setProperty("c2", "c2Value");
+
+        b = rootBuilder.getNodeState().getChildNode("a").getChildNode("b");
+        assertTrue(b.hasProperty("c"));
+        assertTrue(b.hasProperty("c2"));
+    }
+
+    @Test
     public void assertion_OAK781() {
         MemoryNodeBuilder rootBuilder = new MemoryNodeBuilder(EmptyNodeState.EMPTY_NODE);
         rootBuilder.child("a").setNode("b", createBC(false));
