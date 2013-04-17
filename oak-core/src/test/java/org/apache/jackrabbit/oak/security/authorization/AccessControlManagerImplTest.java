@@ -1261,4 +1261,13 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
             }
         }
     }
+
+    //-----------------------------------< getApplicablePolicies(Principal) >---
+    // TODO
+
+    //---------------------------------------------< getPolicies(Principal) >---
+    // TODO
+
+    //------------------------------------< getEffectivePolicies(Principal) >---
+    // TODO
 }
