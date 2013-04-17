@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.core;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.ReadStatus;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -44,15 +45,18 @@ class SecurityContext {
 
     private final PermissionProvider permissionProvider;
 
+    private final Context acContext;
+
     private ReadStatus readStatus;
 
     SecurityContext(
             @Nonnull NodeState rootState,
             @Nonnull PermissionProvider permissionProvider,
-            @Nonnull TreeTypeProvider typeProvider) {
+            @Nonnull Context acContext) {
         this.root = checkNotNull(rootState);
-        this.base = new ImmutableTree(rootState, typeProvider);
+        this.base = new ImmutableTree(rootState, new TreeTypeProviderImpl(acContext));
         this.permissionProvider = permissionProvider;
+        this.acContext = acContext;
         // calculate the readstatus for the root
         this.readStatus = permissionProvider.getReadStatus(base, null);
     }
@@ -63,8 +67,9 @@ class SecurityContext {
         this.root = checkNotNull(parent).root;
         this.base = new ImmutableTree(parent.base, name, nodeState);
         this.permissionProvider = parent.permissionProvider;
+        this.acContext = parent.acContext;
         if (base.getType() == parent.base.getType()) {
-            readStatus = ReadStatus.getChildStatus(parent.readStatus);
+            readStatus = ReadStatus.getChildStatus(parent.readStatus, acContext.hasChildItems(parent.base));
         } else {
             readStatus = null;
         }
@@ -98,9 +103,8 @@ class SecurityContext {
         }
     }
 
-    boolean canNotReadChildNodes() {
-        ReadStatus rs = getReadStatus();
-        return rs.includes(ReadStatus.DENY_CHILDREN);
+    boolean canReadAll() {
+        return readStatus != null && readStatus.includes(ReadStatus.ALLOW_ALL);
     }
 
     SecurityContext getChildContext(String name, NodeState state) {

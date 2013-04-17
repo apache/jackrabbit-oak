@@ -25,7 +25,7 @@ import org.apache.jackrabbit.oak.util.TreeUtil;
 /**
  * PrivilegeContext... TODO
  */
-final class PrivilegeContext implements Context {
+final class PrivilegeContext implements Context, PrivilegeConstants {
 
     private static final Context INSTANCE = new PrivilegeContext();
 
@@ -39,16 +39,23 @@ final class PrivilegeContext implements Context {
     //------------------------------------------------------------< Context >---
     @Override
     public boolean definesProperty(Tree parent, PropertyState property) {
-        return definesTree(parent) && PrivilegeConstants.PRIVILEGE_PROPERTY_NAMES.contains(property.getName());
+        return definesTree(parent) && PRIVILEGE_PROPERTY_NAMES.contains(property.getName());
     }
 
     @Override
     public boolean definesTree(Tree tree) {
-        return PrivilegeConstants.NT_REP_PRIVILEGE.equals(TreeUtil.getPrimaryTypeName(tree));
+        return NT_REP_PRIVILEGE.equals(TreeUtil.getPrimaryTypeName(tree));
     }
 
     @Override
     public boolean definesLocation(TreeLocation location) {
-        return location.getPath().startsWith(PrivilegeConstants.PRIVILEGES_PATH);
+        return location.getPath().startsWith(PRIVILEGES_PATH);
+    }
+
+    @Override
+    public boolean hasChildItems(Tree parent) {
+        return parent.hasChild(REP_PRIVILEGES)
+                || NT_REP_PRIVILEGES.equals(TreeUtil.getPrimaryTypeName(parent))
+                || NT_REP_PRIVILEGE.equals(TreeUtil.getPrimaryTypeName(parent));
     }
 }

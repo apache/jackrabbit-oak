@@ -20,9 +20,6 @@ import java.util.Collections;
 import java.util.List;
 import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.lifecycle.WorkspaceInitializer;
@@ -96,22 +93,7 @@ public interface SecurityConfiguration {
 
         @Override
         public Context getContext() {
-            return new Context() {
-                @Override
-                public boolean definesProperty(Tree parent, PropertyState property) {
-                    return false;
-                }
-
-                @Override
-                public boolean definesTree(Tree tree) {
-                    return false;
-                }
-
-                @Override
-                public boolean definesLocation(TreeLocation location) {
-                    return false;
-                }
-            };
+            return new Context.Default();
         }
     }
 }

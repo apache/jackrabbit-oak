@@ -18,19 +18,12 @@
  */
 package org.apache.jackrabbit.oak.core;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-
 import javax.annotation.Nonnull;
 import javax.security.auth.Subject;
 
@@ -57,6 +50,7 @@ import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.observation.ChangeExtractor;
 import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
+import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
@@ -66,6 +60,12 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
+
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 
 public class RootImpl implements Root {
 
@@ -426,9 +426,7 @@ public class RootImpl implements Root {
 
     @Nonnull
     private SecurityContext getRootContext(NodeState root) {
-        TreeTypeProvider typeProvider = new TreeTypeProviderImpl(
-                securityProvider.getAccessControlConfiguration().getContext());
-        return new SecurityContext(root, getPermissionProvider(), typeProvider);
+        return new SecurityContext(root, getPermissionProvider(), getAcContext());
     }
 
     @Nonnull
@@ -459,6 +457,11 @@ public class RootImpl implements Root {
     @Nonnull
     private PermissionProvider createPermissionProvider() {
         return securityProvider.getAccessControlConfiguration().getPermissionProvider(this, subject.getPrincipals());
+    }
+
+    @Nonnull
+    private Context getAcContext() {
+        return securityProvider.getAccessControlConfiguration().getContext();
     }
 
     //---------------------------------------------------------< MoveRecord >---
