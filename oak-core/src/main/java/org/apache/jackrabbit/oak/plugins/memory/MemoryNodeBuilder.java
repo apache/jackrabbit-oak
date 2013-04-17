@@ -16,6 +16,17 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.collect.Maps.newHashMap;
+import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
+import static org.apache.jackrabbit.oak.api.Type.NAME;
+import static org.apache.jackrabbit.oak.api.Type.NAMES;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState.with;
+import static org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState.withNodes;
+import static org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState.withProperties;
+
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -30,17 +41,6 @@ import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.collect.Maps.newHashMap;
-import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
-import static org.apache.jackrabbit.oak.api.Type.NAME;
-import static org.apache.jackrabbit.oak.api.Type.NAMES;
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState.with;
-import static org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState.withNodes;
-import static org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState.withProperties;
 
 /**
  * In-memory node state builder.
@@ -256,7 +256,6 @@ public class MemoryNodeBuilder implements NodeBuilder {
             writeState = parent.getWriteState(name);
             if (writeState == null) {
                 if (exists()) {
-                    assert baseState.exists();
                     writeState = new MutableNodeState(baseState);
                 }
                 else {
