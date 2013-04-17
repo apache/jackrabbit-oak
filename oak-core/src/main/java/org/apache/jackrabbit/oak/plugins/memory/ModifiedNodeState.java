@@ -73,7 +73,8 @@ public class ModifiedNodeState extends AbstractNodeState {
         if (properties.isEmpty() && nodes.isEmpty()) {
             return base;
         } else {
-            return new ModifiedNodeState(base, properties, nodes);
+            // TODO: Do we need collapse() here? See OAK-778
+            return collapse(new ModifiedNodeState(base, properties, nodes));
         }
     }
 
