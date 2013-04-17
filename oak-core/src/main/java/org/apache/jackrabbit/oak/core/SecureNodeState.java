@@ -16,6 +16,10 @@
  */
 package org.apache.jackrabbit.oak.core;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Iterables.filter;
+import static com.google.common.collect.Iterables.transform;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
@@ -28,19 +32,12 @@ import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.collect.Iterables.filter;
-import static com.google.common.collect.Iterables.transform;
 
 /**
  * SecureNodeState...
  *
  * TODO: clarify if HIDDEN items should be filtered by this NodeState implementation
  * TODO: clarify usage of ReadStatus in getChildNodeEntries
- * TODO: add proper equals/hashcode implementation
- * TODO: should be package-private
  */
 class SecureNodeState extends AbstractNodeState {
 
@@ -159,13 +156,6 @@ class SecureNodeState extends AbstractNodeState {
     @Override @Nonnull
     public NodeBuilder builder() {
         return new MemoryNodeBuilder(this);
-    }
-
-    @Override
-    public void compareAgainstBaseState(NodeState base, NodeStateDiff diff) {
-        // FIXME: decide if comparison during commit should compare the secure
-        // states or the original node states without ac restrictions
-        super.compareAgainstBaseState(base, diff);
     }
 
     //-------------------------------------------------------------< Object >---
