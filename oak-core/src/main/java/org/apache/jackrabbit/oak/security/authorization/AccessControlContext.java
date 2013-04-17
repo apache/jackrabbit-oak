@@ -62,4 +62,15 @@ final class AccessControlContext implements Context, AccessControlConstants, Per
             return POLICY_NODE_NAMES.contains(name) || ACE_PROPERTY_NAMES.contains(name) || path.startsWith(PERMISSIONS_STORE_PATH);
         }
     }
+
+    @Override
+    public boolean hasChildItems(Tree parent) {
+        for (String name : POLICY_NODE_NAMES) {
+            if (parent.hasChild(name)) {
+                return true;
+            }
+        }
+        String ntName = TreeUtil.getPrimaryTypeName(parent);
+        return AC_NODETYPE_NAMES.contains(ntName) || PERMISSION_NODETYPE_NAMES.contains(ntName);
+    }
 }

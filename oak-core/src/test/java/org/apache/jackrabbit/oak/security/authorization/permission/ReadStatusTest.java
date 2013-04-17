@@ -29,12 +29,15 @@ public class ReadStatusTest {
     @Test
     public void testAllowAll() {
         ReadStatus allowAll = ReadStatus.ALLOW_ALL;
+
         assertTrue(allowAll.includes(ReadStatus.ALLOW_THIS));
         assertTrue(allowAll.includes(ReadStatus.ALLOW_CHILDREN));
         assertTrue(allowAll.includes(ReadStatus.ALLOW_NODES));
         assertTrue(allowAll.includes(ReadStatus.ALLOW_PROPERTIES));
         assertTrue(allowAll.includes(ReadStatus.ALLOW_THIS_PROPERTIES));
         assertTrue(allowAll.includes(ReadStatus.ALLOW_CHILDITEMS));
+        assertTrue(allowAll.includes(ReadStatus.ALLOW_ALL_REGULAR));
+        assertTrue(allowAll.includes(ReadStatus.ALLOW_ACCESS_CONTROL));
         assertTrue(allowAll.includes(ReadStatus.ALLOW_ALL));
     }
 }

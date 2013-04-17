@@ -22,6 +22,7 @@ import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.util.TreeUtil;
+import org.apache.jackrabbit.util.Text;
 
 /**
  * UserContext... TODO
@@ -64,8 +65,31 @@ final class UserContext implements Context, UserConstants {
             PropertyState p = location.getProperty();
             return (p == null) ? definesTree(tree) : definesProperty(tree, p);
         } else {
-            // FIXME
-            return false;
+            String path = location.getPath();
+            String name = Text.getName(path);
+            if (USER_PROPERTY_NAMES.contains(name) || GROUP_PROPERTY_NAMES.contains(name) || path.contains(REP_MEMBERS)) {
+                return true;
+            } else {
+                // undefined: unable to determine if the specified location
+                // defines a user or group node (missing node type information
+                // on non-existing location
+                return false;
+            }
         }
+    }
+
+    @Override
+    public boolean hasChildItems(Tree parent) {
+        if (NODE_TYPE_NAMES.contains(TreeUtil.getPrimaryTypeName(parent))) {
+            // covers all properties
+            return true;
+        }
+        for (Tree child : parent.getChildren()) {
+            String ntName = TreeUtil.getPrimaryTypeName(child);
+            if (NODE_TYPE_NAMES.contains(ntName)) {
+                return true;
+            }
+        }
+        return false;
     }
 }

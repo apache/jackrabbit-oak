@@ -31,6 +31,7 @@ public interface UserConstants {
     String NT_REP_GROUP = "rep:Group";
     String NT_REP_MEMBERS = "rep:Members";
     String MIX_REP_IMPERSONATABLE = "rep:Impersonatable";
+
     String REP_PRINCIPAL_NAME = "rep:principalName";
     String REP_AUTHORIZABLE_ID = "rep:authorizableId";
     String REP_PASSWORD = "rep:password";
@@ -51,6 +52,8 @@ public interface UserConstants {
             REP_DISABLED,
             REP_IMPERSONATORS
     );
+
+    Collection<String> NODE_TYPE_NAMES = ImmutableSet.of(NT_REP_AUTHORIZABLE, NT_REP_USER, NT_REP_GROUP, NT_REP_MEMBERS);
 
     /**
      * Configuration option defining the ID of the administrator user.

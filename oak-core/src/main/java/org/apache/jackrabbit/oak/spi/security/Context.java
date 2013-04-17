@@ -30,4 +30,28 @@ public interface Context {
     boolean definesTree(Tree tree);
 
     boolean definesLocation(TreeLocation location);
+
+    boolean hasChildItems(Tree parent);
+
+    class Default implements Context {
+        @Override
+        public boolean definesProperty(Tree parent, PropertyState property) {
+            return false;
+        }
+
+        @Override
+        public boolean definesTree(Tree tree) {
+            return false;
+        }
+
+        @Override
+        public boolean definesLocation(TreeLocation location) {
+            return false;
+        }
+
+        @Override
+        public boolean hasChildItems(Tree parent) {
+            return false;
+        }
+    }
 }

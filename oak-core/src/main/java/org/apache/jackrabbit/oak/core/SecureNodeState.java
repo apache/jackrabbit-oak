@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.core;
 
-import java.util.Collections;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
@@ -58,23 +57,13 @@ class SecureNodeState extends AbstractNodeState {
     /**
      * Predicate for testing whether a given property is readable.
      */
-    private final Predicate<PropertyState> isPropertyReadable = new Predicate<PropertyState>() {
-        @Override
-        public boolean apply(@Nonnull PropertyState property) {
-            return context.canReadProperty(property);
-        }
-    };
+    private final Predicate<PropertyState> isPropertyReadable = new ReadablePropertyPredicate();
 
     /**
      * Predicate for testing whether the node state in a child node entry
      * is iterable.
      */
-    private final Predicate<ChildNodeEntry> isIterableNode = new Predicate<ChildNodeEntry>() {
-        @Override
-        public boolean apply(@Nonnull ChildNodeEntry input) {
-            return input.getNodeState().exists();
-        }
-    };
+    private final Predicate<ChildNodeEntry> isIterableNode = new IterableNodePredicate();
 
    /**
     * Function that that adds a security wrapper to node states from
@@ -85,30 +74,7 @@ class SecureNodeState extends AbstractNodeState {
     * or any of its descendants has read access restrictions. Otherwise
     * we can optimize access by skipping the security wrapper entirely.
     */
-    private final Function<ChildNodeEntry, ChildNodeEntry> wrapChildNodeEntry = new Function<ChildNodeEntry, ChildNodeEntry>() {
-        @Override @Nonnull
-        public ChildNodeEntry apply(@Nonnull ChildNodeEntry input) {
-            String name = input.getName();
-            NodeState child = input.getNodeState();
-            SecurityContext childContext = context.getChildContext(name, child);
-            SecureNodeState secureChild =
-                    new SecureNodeState(child, childContext);
-            if (child.getChildNodeCount() == 0
-                    && secureChild.context.canReadThisNode()
-                    && secureChild.context.canReadAllProperties()) {
-                // Since this is an accessible leaf node whose all properties
-                // are readable, we don't need the SecureNodeState wrapper
-                // TODO: A further optimization would be to return the raw
-                // underlying node state even for non-leaf nodes if we can
-                // tell in advance that the full subtree is readable. Then
-                // we also wouldn't need the above getChildNodeCount() call
-                // that's somewhat expensive on the MongoMK.
-                return input;
-            } else {
-                return new MemoryChildNodeEntry(name, secureChild);
-            }
-        }
-    };
+    private final WrapChildEntryFunction wrapChildNodeEntry = new WrapChildEntryFunction();
 
     private long childNodeCount = -1;
 
@@ -138,13 +104,10 @@ class SecureNodeState extends AbstractNodeState {
     @Override
     public synchronized long getPropertyCount() {
         if (propertyCount == -1) {
-            if (context.canReadAllProperties()) {
+            if (context.canReadAll()) {
                 propertyCount = state.getPropertyCount();
-            } else if (context.canReadThisNode()) {
-                propertyCount = count(
-                        filter(state.getProperties(), isPropertyReadable));
             } else {
-                propertyCount = 0;
+                propertyCount = count(filter(state.getProperties(), isPropertyReadable));
             }
         }
         return propertyCount;
@@ -152,19 +115,17 @@ class SecureNodeState extends AbstractNodeState {
 
     @Override @Nonnull
     public Iterable<? extends PropertyState> getProperties() {
-        if (context.canReadAllProperties()) {
+        if (context.canReadAll()) {
             return state.getProperties();
-        } else if (context.canReadThisNode()) {
-            return filter(state.getProperties(), isPropertyReadable);
         } else {
-            return Collections.emptySet();
+            return filter(state.getProperties(), isPropertyReadable);
         }
     }
 
     @Override
     public NodeState getChildNode(@Nonnull String name) {
         NodeState child = state.getChildNode(checkNotNull(name));
-        if (child.exists()) {
+        if (child.exists() && !context.canReadAll()) {
             ChildNodeEntry entry = new MemoryChildNodeEntry(name, child);
             return wrapChildNodeEntry.apply(entry).getNodeState();
         } else {
@@ -175,20 +136,22 @@ class SecureNodeState extends AbstractNodeState {
     @Override
     public synchronized long getChildNodeCount() {
         if (childNodeCount == -1) {
-            childNodeCount = super.getChildNodeCount();
+            if (context.canReadAll()) {
+                childNodeCount = state.getChildNodeCount();
+            } else {
+                childNodeCount = super.getChildNodeCount();
+            }
         }
         return childNodeCount;
     }
 
     @Override @Nonnull
     public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
-        if (context.canNotReadChildNodes()) {
-            return Collections.emptySet();
+        if (context.canReadAll()) {
+            // everything is readable including ac-content -> no secure wrapper needed
+            return state.getChildNodeEntries();
         } else {
-            // TODO: review if ALLOW_CHILDREN could be used as well although we
-            // don't know the type of all child-nodes where ac node would need special treatment
-            Iterable<ChildNodeEntry> readable =
-                    transform(state.getChildNodeEntries(), wrapChildNodeEntry);
+            Iterable<ChildNodeEntry> readable = transform(state.getChildNodeEntries(), wrapChildNodeEntry);
             return filter(readable, isIterableNode);
         }
     }
@@ -224,4 +187,59 @@ class SecureNodeState extends AbstractNodeState {
         return super.equals(object);
     }
 
+
+    //------------------------------------------------------< inner classes >---
+    /**
+     * Predicate for testing whether a given property is readable.
+     */
+    private class ReadablePropertyPredicate implements Predicate<PropertyState> {
+        @Override
+        public boolean apply(@Nonnull PropertyState property) {
+            return context.canReadProperty(property);
+        }
+    }
+
+    /**
+     * Predicate for testing whether the node state in a child node entry is iterable.
+     */
+    private class IterableNodePredicate implements Predicate<ChildNodeEntry> {
+        @Override
+        public boolean apply(@Nonnull ChildNodeEntry input) {
+            return input.getNodeState().exists();
+        }
+    }
+
+    /**
+    * Function that that adds a security wrapper to node states from
+    * in child node entries. The {@link IterableNodePredicate} predicate should be
+    * used on the result to filter out non-existing/iterable child nodes.
+    * <p>
+    * Note that the SecureNodeState wrapper is needed only when the child
+    * or any of its descendants has read access restrictions. Otherwise
+    * we can optimize access by skipping the security wrapper entirely.
+    */
+    private class WrapChildEntryFunction implements Function<ChildNodeEntry, ChildNodeEntry> {
+        @Nonnull
+        @Override
+        public ChildNodeEntry apply(@Nonnull ChildNodeEntry input) {
+            String name = input.getName();
+            NodeState child = input.getNodeState();
+            SecurityContext childContext = context.getChildContext(name, child);
+            SecureNodeState secureChild = new SecureNodeState(child, childContext);
+            if (child.getChildNodeCount() == 0
+                    && secureChild.context.canReadThisNode()
+                    && secureChild.context.canReadAllProperties()) {
+                // Since this is an accessible leaf node whose all properties
+                // are readable, we don't need the SecureNodeState wrapper
+                // TODO: A further optimization would be to return the raw
+                // underlying node state even for non-leaf nodes if we can
+                // tell in advance that the full subtree is readable. Then
+                // we also wouldn't need the above getChildNodeCount() call
+                // that's somewhat expensive on the MongoMK.
+                return input;
+            } else {
+                return new MemoryChildNodeEntry(name, secureChild);
+            }
+        }
+    }
 }

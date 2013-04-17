@@ -32,21 +32,6 @@ public interface PrivilegeConstants {
     String REP_PRIVILEGES = "rep:privileges";
 
     /**
-     * Internal (oak) path for the privilege store.
-     */
-    String PRIVILEGES_PATH = '/' + JcrConstants.JCR_SYSTEM + '/' + REP_PRIVILEGES;
-
-    /**
-     * Node type name of the root node of the privilege store
-     */
-    String NT_REP_PRIVILEGES = "rep:Privileges";
-
-    /**
-     * Node type name of the privilege definition nodes
-     */
-    String NT_REP_PRIVILEGE = "rep:Privilege";
-
-    /**
      * Name of the property that defines if the privilege is abstract.
      */
     String REP_IS_ABSTRACT = "rep:isAbstract";
@@ -60,6 +45,27 @@ public interface PrivilegeConstants {
      * Name of the property storing the value of the next available privilege bits.
      */
     String REP_NEXT = "rep:next";
+
+    /**
+     * The internal names of all property definitions that are associated with
+     * the {@link #NT_REP_PRIVILEGE rep:Privilege} node type
+     */
+    Set<String> PRIVILEGE_PROPERTY_NAMES = ImmutableSet.of(REP_IS_ABSTRACT, REP_AGGREGATES, REP_NEXT);
+
+    /**
+     * Internal (oak) path for the privilege store.
+     */
+    String PRIVILEGES_PATH = '/' + JcrConstants.JCR_SYSTEM + '/' + REP_PRIVILEGES;
+
+    /**
+     * Node type name of the root node of the privilege store
+     */
+    String NT_REP_PRIVILEGES = "rep:Privileges";
+
+    /**
+     * Node type name of the privilege definition nodes
+     */
+    String NT_REP_PRIVILEGE = "rep:Privilege";
 
     /**
      * Name of the privilege definition property that stores the internal representation
@@ -192,10 +198,4 @@ public interface PrivilegeConstants {
      * Internal (oak) name of the rep:removeProperties privilege
      */
     String REP_REMOVE_PROPERTIES = "rep:removeProperties";
-
-    /**
-     * The internal names of all property definitions that are associated with
-     * the {@link #NT_REP_PRIVILEGE rep:Privilege} node type
-     */
-    Set<String> PRIVILEGE_PROPERTY_NAMES = ImmutableSet.of(REP_IS_ABSTRACT, REP_AGGREGATES);
 }
