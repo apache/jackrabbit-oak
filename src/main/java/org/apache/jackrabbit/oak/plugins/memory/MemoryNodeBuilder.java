@@ -147,9 +147,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
     private boolean classInvariants() {
         boolean rootHasNoParent = isRoot() == (parent == null);
         boolean rootHasWriteState = root.writeState != null;
-        boolean baseStateOrWriteStateNotNull = baseState.exists() || writeState != null;
-
-        return rootHasNoParent && rootHasWriteState && baseStateOrWriteStateNotNull;
+        return rootHasNoParent && rootHasWriteState;
     }
 
     private boolean isRoot() {

@@ -213,6 +213,11 @@ public class MemoryNodeBuilderTest {
 
         // No assertion must fail in .child("c")
         rootBuilder.child("a").child("b").child("c");
+
+        rootBuilder = new MemoryNodeBuilder(r);
+
+        // No assertion must fail in .child("c")
+        rootBuilder.child("a").child("b").child("c");
     }
 
     @Test
