@@ -164,6 +164,57 @@ public interface NodeBuilder {
     PropertyState getProperty(String name);
 
     /**
+     * Returns the boolean value of the named property. The implementation
+     * is equivalent to the following code, but may be optimized.
+     * <pre>
+     * PropertyState property = builder.getProperty(name);
+     * return property != null
+     *     && property.getType() == Type.BOOLEAN
+     *     && property.getValue(Type.BOOLEAN);
+     * </pre>
+     *
+     * @param name property name
+     * @return boolean value of the named property, or {@code false}
+     */
+    boolean getBoolean(@Nonnull String name);
+
+    /**
+     * Returns the name value of the named property. The implementation
+     * is equivalent to the following code, but may be optimized.
+     * <pre>
+     * PropertyState property = builder.getProperty(name);
+     * if (property != null && property.getType() == Type.NAME) {
+     *     return property.getValue(Type.NAME);
+     * } else {
+     *     return null;
+     * }
+     * </pre>
+     *
+     * @param name property name
+     * @return name value of the named property, or {@code null}
+     */
+    @CheckForNull
+    String getName(@Nonnull String name);
+
+    /**
+     * Returns the name values of the named property. The implementation
+     * is equivalent to the following code, but may be optimized.
+     * <pre>
+     * PropertyState property = builder.getProperty(name);
+     * if (property != null && property.getType() == Type.NAMES) {
+     *     return property.getValue(Type.NAMES);
+     * } else {
+     *     return null;
+     * }
+     * </pre>
+     *
+     * @param name property name
+     * @return name values of the named property, or {@code null}
+     */
+    @CheckForNull
+    Iterable<String> getNames(@Nonnull String name);
+
+    /**
      * Set a property state
      * @param property  The property state to set
      * @return this builder

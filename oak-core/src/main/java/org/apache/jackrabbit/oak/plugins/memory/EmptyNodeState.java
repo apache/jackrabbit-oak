@@ -71,6 +71,16 @@ public final class EmptyNodeState implements NodeState {
         return false;
     }
 
+    @Override @CheckForNull
+    public String getName(@Nonnull String name) {
+        return null;
+    }
+
+    @Override @CheckForNull
+    public Iterable<String> getNames(@Nonnull String name) {
+        return null;
+    }
+
     @Override @Nonnull
     public Iterable<? extends PropertyState> getProperties() {
         return Collections.emptyList();
@@ -132,10 +142,18 @@ public final class EmptyNodeState implements NodeState {
         }
     }
 
+    public static boolean isEmptyState(NodeState state) {
+        return state == EMPTY_NODE || state == MISSING_NODE;
+    }
+
     //------------------------------------------------------------< Object >--
 
     public String toString() {
-        return "{ }";
+        if (exists) {
+            return "{ }";
+        } else {
+            return "{N/A}";
+        }
     }
 
     public boolean equals(Object object) {
