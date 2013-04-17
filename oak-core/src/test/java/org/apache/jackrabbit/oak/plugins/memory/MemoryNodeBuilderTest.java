@@ -16,19 +16,24 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.junit.Before;
-import org.junit.Test;
-
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertFalse;
-import static junit.framework.Assert.assertNotNull;
-import static junit.framework.Assert.assertNull;
 import static junit.framework.Assert.assertTrue;
 import static junit.framework.Assert.fail;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+
+import javax.annotation.Nonnull;
+
+import com.google.common.collect.ImmutableSet;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
+import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.junit.Before;
+import org.junit.Ignore;
+import org.junit.Test;
 
 public class MemoryNodeBuilderTest {
 
@@ -190,6 +195,61 @@ public class MemoryNodeBuilderTest {
 
         root.removeNode("m");
         n.hasChildNode("any");
+    }
+
+    @Test
+    @Ignore
+    public void assertion_OAK781() {
+        MemoryNodeBuilder rootBuilder = new MemoryNodeBuilder(EmptyNodeState.EMPTY_NODE);
+        rootBuilder.child("a").setNode("b", createBC(false));
+
+        NodeState r = rootBuilder.getNodeState();
+        NodeState a = r.getChildNode("a");
+        NodeState b = a.getChildNode("b");
+        NodeState c = b.getChildNode("c");
+
+        assertTrue(a.exists());
+        assertFalse(b.exists());
+        assertTrue(c.exists());
+
+        rootBuilder.child("a").child("b").child("c");
+    }
+
+    private static NodeState createBC(final boolean exists) {
+        return new AbstractNodeState() {
+            @Override
+            public boolean exists() {
+                return exists;
+            }
+
+            @Nonnull
+            @Override
+            public Iterable<? extends PropertyState> getProperties() {
+                return ImmutableSet.of();
+            }
+
+            @Nonnull
+            @Override
+            public NodeState getChildNode(@Nonnull String name) {
+                if ("c".equals(name)) {
+                    return EmptyNodeState.EMPTY_NODE;
+                } else {
+                    return EmptyNodeState.MISSING_NODE;
+                }
+            }
+
+            @Nonnull
+            @Override
+            public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
+                return ImmutableSet.of();
+            }
+
+            @Nonnull
+            @Override
+            public NodeBuilder builder() {
+                return new MemoryNodeBuilder(this);
+            }
+        };
     }
 
 }
