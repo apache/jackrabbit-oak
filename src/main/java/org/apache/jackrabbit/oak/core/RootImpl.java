@@ -139,8 +139,8 @@ public class RootImpl implements Root {
         this.indexProvider = indexProvider;
 
         branch = this.store.branch();
-        secureHead = new SecureNodeState(
-                branch.getHead(), getPermissionProvider(), getTypeProvider());
+        NodeState root = branch.getHead();
+        secureHead = new SecureNodeState(root, getRootContext(root));
         rootTree = new TreeImpl(this, secureHead.builder(), lastMove);
     }
 
@@ -387,7 +387,8 @@ public class RootImpl implements Root {
      * @return secure base node state
      */
     NodeState getSecureBase() {
-        return new SecureNodeState(branch.getBase(), getPermissionProvider(), getTypeProvider());
+        NodeState root = branch.getBase();
+        return new SecureNodeState(root, getRootContext(root));
     }
 
     // TODO better way to determine purge limit. See OAK-175
@@ -424,6 +425,13 @@ public class RootImpl implements Root {
     }
 
     @Nonnull
+    private SecurityContext getRootContext(NodeState root) {
+        TreeTypeProvider typeProvider = new TreeTypeProviderImpl(
+                securityProvider.getAccessControlConfiguration().getContext());
+        return new SecurityContext(root, getPermissionProvider(), typeProvider);
+    }
+
+    @Nonnull
     private PermissionProvider getPermissionProvider() {
         if (permissionProvider == null) {
             permissionProvider = createPermissionProvider();
@@ -443,19 +451,14 @@ public class RootImpl implements Root {
      * Reset the root builder to the branch's current root state
      */
     private void reset() {
-        secureHead = new SecureNodeState(
-                branch.getHead(), getPermissionProvider(), getTypeProvider());
+        NodeState root = branch.getHead();
+        secureHead = new SecureNodeState(root, getRootContext(root));
         rootTree.reset(secureHead);
     }
 
     @Nonnull
     private PermissionProvider createPermissionProvider() {
         return securityProvider.getAccessControlConfiguration().getPermissionProvider(this, subject.getPrincipals());
-    }
-
-    @Nonnull
-    private TreeTypeProviderImpl getTypeProvider() {
-        return new TreeTypeProviderImpl(securityProvider.getAccessControlConfiguration().getContext());
     }
 
     //---------------------------------------------------------< MoveRecord >---
