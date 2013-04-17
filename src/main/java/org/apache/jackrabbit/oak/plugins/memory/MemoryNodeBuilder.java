@@ -20,6 +20,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -33,6 +34,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Maps.newHashMap;
+import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
+import static org.apache.jackrabbit.oak.api.Type.NAME;
+import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState.with;
 import static org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState.withNodes;
@@ -423,6 +427,34 @@ public class MemoryNodeBuilder implements NodeBuilder {
     @Override
     public PropertyState getProperty(String name) {
         return read().getProperty(name);
+    }
+
+    @Override
+    public boolean getBoolean(String name) {
+        PropertyState property = getProperty(name);
+        return property != null
+                && property.getType() == BOOLEAN
+                && property.getValue(BOOLEAN);
+    }
+
+    @Override @CheckForNull
+    public String getName(@Nonnull String name) {
+        PropertyState property = getProperty(name);
+        if (property != null && property.getType() == NAME) {
+            return property.getValue(NAME);
+        } else {
+            return null;
+        }
+    }
+
+    @Override @CheckForNull
+    public Iterable<String> getNames(@Nonnull String name) {
+        PropertyState property = getProperty(name);
+        if (property != null && property.getType() == NAMES) {
+            return property.getValue(NAMES);
+        } else {
+            return null;
+        }
     }
 
     @Override @Nonnull

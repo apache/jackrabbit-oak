@@ -169,6 +169,42 @@ public interface NodeState {
     boolean getBoolean(@Nonnull String name);
 
     /**
+     * Returns the name value of the named property. The implementation
+     * is equivalent to the following code, but may be optimized.
+     * <pre>
+     * PropertyState property = state.getProperty(name);
+     * if (property != null && property.getType() == Type.NAME) {
+     *     return property.getValue(Type.NAME);
+     * } else {
+     *     return null;
+     * }
+     * </pre>
+     *
+     * @param name property name
+     * @return name value of the named property, or {@code null}
+     */
+    @CheckForNull
+    String getName(@Nonnull String name);
+
+    /**
+     * Returns the name values of the named property. The implementation
+     * is equivalent to the following code, but may be optimized.
+     * <pre>
+     * PropertyState property = state.getProperty(name);
+     * if (property != null && property.getType() == Type.NAMES) {
+     *     return property.getValue(Type.NAMES);
+     * } else {
+     *     return null;
+     * }
+     * </pre>
+     *
+     * @param name property name
+     * @return name values of the named property, or {@code null}
+     */
+    @CheckForNull
+    Iterable<String> getNames(@Nonnull String name);
+
+    /**
      * Returns the number of properties of this node.
      *
      * @return number of properties

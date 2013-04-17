@@ -17,10 +17,15 @@
 package org.apache.jackrabbit.oak.spi.state;
 
 import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
+import static org.apache.jackrabbit.oak.api.Type.NAME;
+import static org.apache.jackrabbit.oak.api.Type.NAMES;
 
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
+
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
@@ -54,6 +59,27 @@ public abstract class AbstractNodeState implements NodeState {
                 && property.getType() == BOOLEAN
                 && property.getValue(BOOLEAN);
     }
+
+    @Override @CheckForNull
+    public String getName(@Nonnull String name) {
+        PropertyState property = getProperty(name);
+        if (property != null && property.getType() == NAME) {
+            return property.getValue(NAME);
+        } else {
+            return null;
+        }
+    }
+
+    @Override @CheckForNull
+    public Iterable<String> getNames(@Nonnull String name) {
+        PropertyState property = getProperty(name);
+        if (property != null && property.getType() == NAMES) {
+            return property.getValue(NAMES);
+        } else {
+            return null;
+        }
+    }
+
     @Override
     public PropertyState getProperty(String name) {
         for (PropertyState property : getProperties()) {
