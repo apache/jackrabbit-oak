@@ -70,7 +70,7 @@ public class SimpleTest {
     
     @Test
     public void revision() {
-        for (int i = 0; i < 100; i++) {
+        for (int i = 0; i < 1000; i++) {
             Revision r = Revision.newRevision(i);
             // System.out.println(r);
             Revision r2 = Revision.fromString(r.toString());

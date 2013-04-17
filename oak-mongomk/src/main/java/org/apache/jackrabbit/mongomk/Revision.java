@@ -118,7 +118,7 @@ public class Revision {
         int idx = rev.indexOf('-');
         int c = 0;
         if (idx > 8) {
-            t = rev.substring(9, 11);
+            t = rev.substring(8, 11);
             c = Integer.parseInt(t, 16);
         }
         t = rev.substring(idx + 1);
