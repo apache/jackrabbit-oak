@@ -32,6 +32,7 @@ import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class MemoryNodeBuilderTest {
@@ -214,7 +215,44 @@ public class MemoryNodeBuilderTest {
         rootBuilder.child("a").child("b").child("c");
     }
 
+    @Test
+    @Ignore("OAK-781")
+    public void modifyChildNodeOfNonExistingNode() {
+        MemoryNodeBuilder rootBuilder = new MemoryNodeBuilder(EmptyNodeState.EMPTY_NODE);
+
+        // +"/a":{"b":{"c":{"c":"cValue"}}} where b.exists() == false
+        rootBuilder.child("a").setNode("b", createBC(false));
+
+        NodeState r = rootBuilder.getNodeState();
+        NodeState a = r.getChildNode("a");
+        NodeState b = a.getChildNode("b");
+        NodeState c = b.getChildNode("c");
+
+        assertTrue(a.exists());
+        assertFalse(b.exists());
+        assertTrue(c.exists());
+        assertTrue(c.hasProperty("c"));
+
+        rootBuilder.child("a").child("b").child("c").setProperty("c2", "c2Value");
+
+        r = rootBuilder.getNodeState();
+        a = r.getChildNode("a");
+        b = a.getChildNode("b");
+        c = b.getChildNode("c");
+
+        assertTrue(a.exists());
+        assertFalse(b.exists());  // FIXME fails
+        assertTrue(c.exists());
+
+        assertTrue(c.hasProperty("c"));  // FIXME fails
+        assertTrue(c.hasProperty("c2"));
+    }
+
     private static NodeState createBC(final boolean exists) {
+        final NodeState C = new MemoryNodeBuilder(EmptyNodeState.EMPTY_NODE)
+            .setProperty("c", "cValue")
+            .getNodeState();
+
         return new AbstractNodeState() {
             @Override
             public boolean exists() {
@@ -231,7 +269,7 @@ public class MemoryNodeBuilderTest {
             @Override
             public NodeState getChildNode(@Nonnull String name) {
                 if ("c".equals(name)) {
-                    return EmptyNodeState.EMPTY_NODE;
+                    return C;
                 } else {
                     return EmptyNodeState.MISSING_NODE;
                 }
@@ -240,7 +278,11 @@ public class MemoryNodeBuilderTest {
             @Nonnull
             @Override
             public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
-                return ImmutableSet.of();
+                if (exists) {
+                    return ImmutableSet.of(new MemoryChildNodeEntry("c", C));
+                } else {
+                    return ImmutableSet.of();
+                }
             }
 
             @Nonnull
