@@ -573,6 +573,25 @@ public class MemoryNodeBuilder implements NodeBuilder {
             }
         }
 
+        @Override
+        public String toString() {
+            StringBuilder builder = new StringBuilder();
+            builder.append(base).append(" + {");
+            String separator = " ";
+            for (PropertyState property : properties.values()) {
+                builder.append(separator);
+                separator = ", ";
+                builder.append(property);
+            }
+            for (Entry<String, MutableNodeState> entry : nodes.entrySet()) {
+                builder.append(separator);
+                separator = ", ";
+                builder.append(entry);
+            }
+            builder.append(" }");
+            return builder.toString();
+        }
+
         //-----------------------------------------------------< NodeState >--
 
         @Override
