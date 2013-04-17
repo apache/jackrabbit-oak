@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.state;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -110,6 +111,21 @@ public class ReadOnlyBuilder implements NodeBuilder {
     @Override
     public PropertyState getProperty(String name) {
         return state.getProperty(name);
+    }
+
+    @Override
+    public boolean getBoolean(String name) {
+        return state.getBoolean(name);
+    }
+
+    @Override @CheckForNull
+    public String getName(@Nonnull String name) {
+        return state.getName(name);
+    }
+
+    @Override @CheckForNull
+    public Iterable<String> getNames(@Nonnull String name) {
+        return state.getNames(name);
     }
 
     @Override @Nonnull
