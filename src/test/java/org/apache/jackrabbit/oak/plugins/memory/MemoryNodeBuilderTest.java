@@ -32,7 +32,6 @@ import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class MemoryNodeBuilderTest {
@@ -198,7 +197,6 @@ public class MemoryNodeBuilderTest {
     }
 
     @Test
-    @Ignore
     public void assertion_OAK781() {
         MemoryNodeBuilder rootBuilder = new MemoryNodeBuilder(EmptyNodeState.EMPTY_NODE);
         rootBuilder.child("a").setNode("b", createBC(false));
@@ -212,6 +210,7 @@ public class MemoryNodeBuilderTest {
         assertFalse(b.exists());
         assertTrue(c.exists());
 
+        // No assertion must fail in .child("c")
         rootBuilder.child("a").child("b").child("c");
     }
 
