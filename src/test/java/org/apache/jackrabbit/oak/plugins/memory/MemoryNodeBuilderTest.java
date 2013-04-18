@@ -264,7 +264,7 @@ public class MemoryNodeBuilderTest {
         assertFalse(b.exists());  // FIXME fails
         assertTrue(c.exists());
 
-        assertTrue(c.hasProperty("c"));  // FIXME fails
+        assertTrue(c.hasProperty("c"));
         assertTrue(c.hasProperty("c2"));
     }
 
