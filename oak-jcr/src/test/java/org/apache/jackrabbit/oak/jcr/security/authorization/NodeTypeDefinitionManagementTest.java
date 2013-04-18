@@ -152,7 +152,7 @@ public class NodeTypeDefinitionManagementTest extends AbstractEvaluationTest {
                 // success
             }
         } finally {
-            // TODO: diff to jr-core where unregisterNt was not supported
+            // NOTE: diff to jr-core where unregisterNt was not supported
             ntm.unregisterNodeType(ntd.getName());
         }
     }

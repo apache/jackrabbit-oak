@@ -102,6 +102,26 @@ public class NodeTypeManagementTest extends AbstractEvaluationTest {
     }
 
     @Test
+    public void testSetPrimaryTypeWithoutPrivilege() throws Exception {
+        Node child = (Node) superuser.getItem(childNode.getPath());
+        String ntName = child.getPrimaryNodeType().getName();
+
+        try {
+            childNode.setPrimaryType("nt:folder");
+            superuser.save();
+            fail("TestSession does not have sufficient privileges to change the primary type.");
+        } catch (AccessDeniedException e) {
+            // success
+        } finally {
+            testSession.refresh(false);
+            if (!ntName.equals(child.getPrimaryNodeType().getName())) {
+                child.setPrimaryType(ntName);
+                superuser.save();
+            }
+        }
+    }
+
+    @Test
     public void testSetPrimaryType() throws Exception {
         Node child = (Node) superuser.getItem(childNode.getPath());
         String ntName = child.getPrimaryNodeType().getName();
@@ -110,26 +130,9 @@ public class NodeTypeManagementTest extends AbstractEvaluationTest {
         child.setPrimaryType(changedNtName);
         superuser.save();
 
-        try {
-            try {
-                childNode.setPrimaryType(ntName);
-                superuser.save();
-                fail("TestSession does not have sufficient privileges to change the primary type.");
-            } catch (AccessDeniedException e) {
-                // success
-                testSession.refresh(false); // TODO: see JCR-1916
-            }
-
-            modify(childNode.getPath(), Privilege.JCR_NODE_TYPE_MANAGEMENT, true);
-            childNode.setPrimaryType(ntName);
-            superuser.save();
-
-        } finally {
-            if (!ntName.equals(child.getPrimaryNodeType().getName())) {
-                child.setPrimaryType(ntName);
-                superuser.save();
-            }
-        }
+        modify(childNode.getPath(), Privilege.JCR_NODE_TYPE_MANAGEMENT, true);
+        childNode.setPrimaryType(ntName);
+        superuser.save();
     }
 
     /**
