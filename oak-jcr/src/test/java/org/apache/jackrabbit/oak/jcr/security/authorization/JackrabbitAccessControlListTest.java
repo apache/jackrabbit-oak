@@ -35,9 +35,10 @@ import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.test.NotExecutableException;
 import org.apache.jackrabbit.test.api.security.AbstractAccessControlTest;
+import org.junit.Test;
 
 /**
- * JackrabbitAccessControlListTest... TODO
+ * Testing {@code JackrabbitAccessControlList} functionality exposed by the API.
  */
 public class JackrabbitAccessControlListTest extends AbstractAccessControlTest {
 
@@ -89,10 +90,12 @@ public class JackrabbitAccessControlListTest extends AbstractAccessControlTest {
         }
     }
 
+    @Test
     public void testGetRestrictionNames() throws RepositoryException {
         assertNotNull(acl.getRestrictionNames());
     }
 
+    @Test
     public void testGetRestrictionType() throws RepositoryException {
         String[] names = acl.getRestrictionNames();
         for (String name : names) {
@@ -101,11 +104,13 @@ public class JackrabbitAccessControlListTest extends AbstractAccessControlTest {
         }
     }
 
+    @Test
     public void testApplicablePolicyIsEmpty() {
         assertTrue(acl.isEmpty());
         assertEquals(0, acl.size());
     }
 
+    @Test
     public void testIsEmpty() throws RepositoryException {
         if (acl.addAccessControlEntry(testPrincipal, testPrivileges)) {
             assertFalse(acl.isEmpty());
@@ -114,6 +119,7 @@ public class JackrabbitAccessControlListTest extends AbstractAccessControlTest {
         }
     }
 
+    @Test
     public void testSize() throws RepositoryException {
         if (acl.addAccessControlEntry(testPrincipal, testPrivileges)) {
             assertTrue(acl.size() > 0);
@@ -122,6 +128,7 @@ public class JackrabbitAccessControlListTest extends AbstractAccessControlTest {
         }
     }
 
+    @Test
     public void testAddEntry() throws NotExecutableException, RepositoryException {
         List<AccessControlEntry> entriesBefore = Arrays.asList(acl.getAccessControlEntries());
         if (acl.addEntry(testPrincipal, testPrivileges, true, Collections.<String, Value>emptyMap())) {
@@ -140,40 +147,7 @@ public class JackrabbitAccessControlListTest extends AbstractAccessControlTest {
         }
     }
 
-    // TODO: rewrite
-//    public void testAllowWriteDenyRemove() throws NotExecutableException, RepositoryException {
-//        Principal princ = getValidPrincipal();
-//        Privilege[] grPriv = privilegesFromName("rep:write");
-//        Privilege[] dePriv = privilegesFromName(Privilege.JCR_REMOVE_CHILD_NODES);
-//
-//        acl.addEntry(princ, grPriv, true, Collections.<String, Value>emptyMap());
-//        acl.addEntry(princ, dePriv, false, Collections.<String, Value>emptyMap());
-//
-//        Set<Privilege> allows = new HashSet<Privilege>();
-//        Set<Privilege> denies = new HashSet<Privilege>();
-//        AccessControlEntry[] entries = acl.getAccessControlEntries();
-//        for (AccessControlEntry en : entries) {
-//            if (princ.equals(en.getPrincipal()) && en instanceof JackrabbitAccessControlEntry) {
-//                JackrabbitAccessControlEntry ace = (JackrabbitAccessControlEntry) en;
-//                Privilege[] privs = ace.getPrivileges();
-//                if (ace.isAllow()) {
-//                    allows.addAll(Arrays.asList(privs));
-//                } else {
-//                    denies.addAll(Arrays.asList(privs));
-//                }
-//            }
-//        }
-//
-//        String[] expected = new String[] {Privilege.JCR_ADD_CHILD_NODES, Privilege.JCR_REMOVE_NODE, Privilege.JCR_MODIFY_PROPERTIES, Privilege.JCR_NODE_TYPE_MANAGEMENT};
-//        assertEquals(expected.length, allows.size());
-//        for (String name : expected) {
-//            assertTrue(allows.contains(acMgr.privilegeFromName(name)));
-//        }
-//
-//        assertEquals(1, denies.size());
-//        assertEquals(acMgr.privilegeFromName(Privilege.JCR_REMOVE_CHILD_NODES), denies.iterator().next());
-//    }
-
+    @Test
     public void testRemoveEntry() throws NotExecutableException, RepositoryException {
         Principal princ = getValidPrincipal();
         Privilege[] grPriv = privilegesFromName("rep:write");

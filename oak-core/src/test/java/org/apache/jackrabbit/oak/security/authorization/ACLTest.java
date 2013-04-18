@@ -18,9 +18,12 @@ package org.apache.jackrabbit.oak.security.authorization;
 
 import java.security.Principal;
 import java.security.acl.Group;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.PropertyType;
@@ -30,6 +33,7 @@ import javax.jcr.security.AccessControlEntry;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
@@ -38,8 +42,8 @@ import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.security.principal.PrincipalImpl;
-import org.apache.jackrabbit.oak.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeBitsProvider;
+import org.apache.jackrabbit.oak.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.ACE;
 import org.apache.jackrabbit.oak.spi.security.authorization.AbstractAccessControlList;
 import org.apache.jackrabbit.oak.spi.security.authorization.AbstractAccessControlListTest;
@@ -57,7 +61,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 /**
- * ACLTest... TODO
+ * Test abstract {@code ACL} implementation.
  * <p/>
  * TODO: test restrictions
  * TODO: add test with multiple entries
@@ -461,6 +465,39 @@ public class ACLTest extends AbstractAccessControlListTest implements PrivilegeC
         JackrabbitAccessControlEntry second = (JackrabbitAccessControlEntry) entries[1];
         assertEquals(testPrincipal, second.getPrincipal());
         assertACE(second, false, privilegesFromNames(JCR_READ, JCR_WRITE));
+    }
+
+    @Ignore("OAK-51") // TODO
+    @Test
+    public void testAllowWriteDenyRemoveGroupEntries() throws Exception {
+        Principal everyone = principalManager.getEveryone();
+        Privilege[] grPriv = privilegesFromNames("rep:write");
+        Privilege[] dePriv = privilegesFromNames(JCR_REMOVE_CHILD_NODES);
+
+        acl.addEntry(everyone, grPriv, true, Collections.<String, Value>emptyMap());
+        acl.addEntry(everyone, dePriv, false, Collections.<String, Value>emptyMap());
+
+        Set<Privilege> allows = new HashSet<Privilege>();
+        Set<Privilege> denies = new HashSet<Privilege>();
+        AccessControlEntry[] entries = acl.getAccessControlEntries();
+        for (AccessControlEntry en : entries) {
+            if (everyone.equals(en.getPrincipal()) && en instanceof JackrabbitAccessControlEntry) {
+                JackrabbitAccessControlEntry ace = (JackrabbitAccessControlEntry) en;
+                Privilege[] privs = ace.getPrivileges();
+                if (ace.isAllow()) {
+                    allows.addAll(Arrays.asList(privs));
+                } else {
+                    denies.addAll(Arrays.asList(privs));
+                }
+            }
+        }
+
+        Privilege[] expected = privilegesFromNames(JCR_ADD_CHILD_NODES, JCR_REMOVE_NODE, JCR_MODIFY_PROPERTIES, JCR_NODE_TYPE_MANAGEMENT);
+        assertEquals(expected.length, allows.size());
+        assertTrue(allows.containsAll(ImmutableList.of(expected)));
+
+        assertEquals(1, denies.size());
+        assertEquals(privilegesFromNames(JCR_REMOVE_CHILD_NODES)[0], denies.iterator().next());
     }
 
     @Test
