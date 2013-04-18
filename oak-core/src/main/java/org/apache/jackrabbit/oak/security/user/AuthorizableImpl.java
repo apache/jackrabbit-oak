@@ -37,7 +37,7 @@ import org.slf4j.LoggerFactory;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 
 /**
- * AuthorizableImpl...
+ * Base class for {@code User} and {@code Group} implementations.
  */
 abstract class AuthorizableImpl implements Authorizable, UserConstants {
 
