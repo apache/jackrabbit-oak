@@ -526,7 +526,38 @@ public class MemoryNodeBuilder implements NodeBuilder {
         private final Map<String, MutableNodeState> nodes = newHashMap();
 
         public MutableNodeState(NodeState base) {
-            if (base != null) {
+            if (base instanceof ModifiedNodeState) {
+                ModifiedNodeState modified = (ModifiedNodeState) base;
+                this.base = modified.getBaseState();
+                modified.compareAgainstBaseState(new NodeStateDiff() {
+                    @Override
+                    public void propertyAdded(PropertyState after) {
+                        properties.put(after.getName(), after);
+                    }
+                    @Override
+                    public void propertyChanged(
+                            PropertyState before, PropertyState after) {
+                        properties.put(after.getName(), after);
+                    }
+                    @Override
+                    public void propertyDeleted(PropertyState before) {
+                        properties.put(before.getName(), null);
+                    }
+                    @Override
+                    public void childNodeAdded(String name, NodeState after) {
+                        nodes.put(name, new MutableNodeState(after));
+                    }
+                    @Override
+                    public void childNodeChanged(
+                            String name, NodeState before, NodeState after) {
+                        nodes.put(name, new MutableNodeState(after));
+                    }
+                    @Override
+                    public void childNodeDeleted(String name, NodeState before) {
+                        nodes.put(name, null);
+                    }
+                });
+            } else if (base != null) {
                 this.base = base;
             } else {
                 this.base = EMPTY_NODE;
@@ -554,19 +585,77 @@ public class MemoryNodeBuilder implements NodeBuilder {
         }
 
         void reset(NodeState newBase) {
-            base = newBase;
-            properties.clear();
+            if (newBase instanceof ModifiedNodeState) {
+                ModifiedNodeState modified = (ModifiedNodeState) newBase;
+                base = modified.getBaseState();
+                properties.clear();
 
-            Iterator<Map.Entry<String, MutableNodeState>> iterator =
-                    nodes.entrySet().iterator();
-            while (iterator.hasNext()) {
-                Map.Entry<String, MutableNodeState> entry = iterator.next();
-                MutableNodeState cstate = entry.getValue();
-                NodeState cbase = newBase.getChildNode(entry.getKey());
-                if (!cbase.exists() || cstate == null) {
-                    iterator.remove();
-                } else {
-                    cstate.reset(cbase);
+                Iterator<Map.Entry<String, MutableNodeState>> iterator =
+                        nodes.entrySet().iterator();
+                while (iterator.hasNext()) {
+                    Map.Entry<String, MutableNodeState> entry = iterator.next();
+                    MutableNodeState cstate = entry.getValue();
+                    NodeState cbase = newBase.getChildNode(entry.getKey());
+                    if (!cbase.exists() || cstate == null) {
+                        iterator.remove();
+                    } else {
+                        cstate.reset(cbase);
+                    }
+                }
+
+                modified.compareAgainstBaseState(new NodeStateDiff() {
+                    @Override
+                    public void propertyAdded(PropertyState after) {
+                        properties.put(after.getName(), after);
+                    }
+                    @Override
+                    public void propertyChanged(
+                            PropertyState before, PropertyState after) {
+                        properties.put(after.getName(), after);
+                    }
+                    @Override
+                    public void propertyDeleted(PropertyState before) {
+                        properties.put(before.getName(), null);
+                    }
+                    @Override
+                    public void childNodeAdded(String name, NodeState after) {
+                        MutableNodeState cstate = nodes.get(name);
+                        if (cstate != null) {
+                            cstate.reset(after);
+                        } else {
+                            nodes.put(name, new MutableNodeState(after));
+                        }
+                    }
+                    @Override
+                    public void childNodeChanged(
+                            String name, NodeState before, NodeState after) {
+                        MutableNodeState cstate = nodes.get(name);
+                        if (cstate != null) {
+                            cstate.reset(after);
+                        } else {
+                            nodes.put(name, new MutableNodeState(after));
+                        }
+                    }
+                    @Override
+                    public void childNodeDeleted(String name, NodeState before) {
+                        nodes.put(name, null);
+                    }
+                });
+            } else {
+                base = newBase;
+                properties.clear();
+
+                Iterator<Map.Entry<String, MutableNodeState>> iterator =
+                        nodes.entrySet().iterator();
+                while (iterator.hasNext()) {
+                    Map.Entry<String, MutableNodeState> entry = iterator.next();
+                    MutableNodeState cstate = entry.getValue();
+                    NodeState cbase = newBase.getChildNode(entry.getKey());
+                    if (!cbase.exists() || cstate == null) {
+                        iterator.remove();
+                    } else {
+                        cstate.reset(cbase);
+                    }
                 }
             }
         }
