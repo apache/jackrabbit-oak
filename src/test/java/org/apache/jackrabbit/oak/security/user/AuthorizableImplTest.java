@@ -65,6 +65,9 @@ public class AuthorizableImplTest extends AbstractSecurityTest {
         }
     }
 
+    /**
+     * @since OAK 1.0
+     */
     @Test
     public void testEqualAuthorizables() throws Exception {
         Authorizable user = userMgr.getAuthorizable(testUser.getID());
@@ -84,6 +87,9 @@ public class AuthorizableImplTest extends AbstractSecurityTest {
         }
     }
 
+    /**
+     * @since OAK 1.0
+     */
     @Test
     public void testNotEqualAuthorizables() throws Exception {
         UserManager otherUserManager = getSecurityProvider().getUserConfiguration().getUserManager(root, getNamePathMapper());
@@ -102,6 +108,9 @@ public class AuthorizableImplTest extends AbstractSecurityTest {
         }
     }
 
+    /**
+     * @since OAK 1.0
+     */
     @Test
     public void testHashCode() throws Exception {
         Authorizable user = userMgr.getAuthorizable(testUser.getID());
