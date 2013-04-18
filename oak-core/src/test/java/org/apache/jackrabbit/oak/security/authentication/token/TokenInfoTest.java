@@ -23,6 +23,7 @@ import java.util.Map;
 
 import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenInfo;
+import org.junit.Before;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -34,6 +35,15 @@ import static org.junit.Assert.assertTrue;
  * TokenInfoTest...
  */
 public class TokenInfoTest extends AbstractTokenTest {
+
+    private String userId;
+
+    @Override
+    @Before
+    public void before() throws Exception {
+        super.before();
+        userId = getTestUser().getID();
+    }
 
     @Test
     public void testGetUserId() {

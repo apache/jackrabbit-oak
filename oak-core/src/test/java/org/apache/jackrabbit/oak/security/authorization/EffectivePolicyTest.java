@@ -19,10 +19,8 @@ package org.apache.jackrabbit.oak.security.authorization;
 import java.security.Principal;
 import java.util.Collections;
 import java.util.Set;
-import java.util.UUID;
 import javax.annotation.Nonnull;
 import javax.jcr.AccessDeniedException;
-import javax.jcr.SimpleCredentials;
 import javax.jcr.Value;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.Privilege;
@@ -30,8 +28,6 @@ import javax.jcr.security.Privilege;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
-import org.apache.jackrabbit.api.security.user.User;
-import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
@@ -57,8 +53,6 @@ public class EffectivePolicyTest extends AbstractAccessControlTest {
     private String path;
     private String childNPath;
 
-    private String testUserId = "testUser" + UUID.randomUUID();
-    private User testUser;
     protected ContentSession testSession;
     protected Root testRoot;
     protected JackrabbitAccessControlManager testAccessControlManager;
@@ -79,11 +73,7 @@ public class EffectivePolicyTest extends AbstractAccessControlTest {
         path = testNode.getTree().getPath();
         childNPath = cn1.getTree().getPath();
 
-        UserManager uMgr = getUserManager();
-        testUser = uMgr.createUser(testUserId, testUserId);
-        root.commit();
-
-        testSession = login(new SimpleCredentials(testUserId, testUserId.toCharArray()));
+        testSession = createTestSession();
         testRoot = testSession.getLatestRoot();
         testAccessControlManager = getAccessControlManager(testRoot);
 
@@ -99,10 +89,11 @@ public class EffectivePolicyTest extends AbstractAccessControlTest {
     @After
     public void after() throws Exception {
         try {
-            testSession.close();
+            if (testSession != null) {
+                testSession.close();
+            }
 
             root.getTree(path).remove();
-            testUser.remove();
             root.commit();
         } finally {
             super.after();
@@ -123,12 +114,12 @@ public class EffectivePolicyTest extends AbstractAccessControlTest {
 
     @Nonnull
     private JackrabbitAccessControlList allow(String nPath, Privilege[] privileges) throws Exception {
-        return modify(nPath, testUser.getPrincipal(), privileges, true);
+        return modify(nPath, getTestPrincipal(), privileges, true);
     }
 
     @Nonnull
     private JackrabbitAccessControlList deny(String nPath, Privilege[] privileges) throws Exception {
-        return modify(nPath, testUser.getPrincipal(), privileges, false);
+        return modify(nPath, getTestPrincipal(), privileges, false);
     }
 
     @Test
@@ -167,7 +158,7 @@ public class EffectivePolicyTest extends AbstractAccessControlTest {
         allow(path, privileges);
 
         // effective policies for testPrinicpal only on path -> must succeed.
-        testAccessControlManager.getEffectivePolicies(Collections.singleton(testUser.getPrincipal()));
+        testAccessControlManager.getEffectivePolicies(Collections.singleton(getTestPrincipal()));
 
         // effective policies for a combination of principals -> must fail since
         // policy for 'everyone' at root node cannot be read by testuser
@@ -185,7 +176,7 @@ public class EffectivePolicyTest extends AbstractAccessControlTest {
         // the effective policies included the allowed acl at 'path' and
         // the denied acl at 'childNPath' -> must fail
         try {
-            testAccessControlManager.getEffectivePolicies(Collections.singleton(testUser.getPrincipal()));
+            testAccessControlManager.getEffectivePolicies(Collections.singleton(getTestPrincipal()));
             fail();
         } catch (AccessDeniedException e) {
             // success

@@ -34,6 +34,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenInfo;
+import org.junit.Before;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -46,6 +47,15 @@ import static org.junit.Assert.assertTrue;
  * TokenProviderImplTest...
  */
 public class TokenProviderImplTest extends AbstractTokenTest {
+
+    private String userId;
+
+    @Override
+    @Before
+    public void before() throws Exception {
+        super.before();
+        userId = getTestUser().getID();
+    }
 
     @Test
     public void testDoCreateToken() throws Exception {

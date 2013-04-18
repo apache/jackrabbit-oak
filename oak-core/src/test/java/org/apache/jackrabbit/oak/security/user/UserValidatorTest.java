@@ -32,7 +32,6 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.util.Text;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -43,33 +42,18 @@ import static org.junit.Assert.fail;
  */
 public class UserValidatorTest extends AbstractSecurityTest {
 
-    private User user;
+    private String userPath;
 
     @Before
     public void before() throws Exception {
         super.before();
-
-        user = getUserManager().createUser("test", "pw");
-        root.commit();
-    }
-
-    @After
-    public void after() throws Exception {
-        try {
-            Authorizable a = getUserManager().getAuthorizable("test");
-            if (a != null) {
-                a.remove();
-                root.commit();
-            }
-        } finally {
-            super.after();
-        }
+        userPath = getTestUser().getPath();
     }
 
     @Test
     public void removePassword() throws Exception {
         try {
-            Tree userTree = root.getTree(user.getPath());
+            Tree userTree = root.getTree(userPath);
             userTree.removeProperty(UserConstants.REP_PASSWORD);
             root.commit();
             fail("removing password should fail");
@@ -83,7 +67,7 @@ public class UserValidatorTest extends AbstractSecurityTest {
     @Test
     public void removePrincipalName() throws Exception {
         try {
-            Tree userTree = root.getTree(user.getPath());
+            Tree userTree = root.getTree(userPath);
             userTree.removeProperty(UserConstants.REP_PRINCIPAL_NAME);
             root.commit();
             fail("removing principal name should fail");
@@ -97,7 +81,7 @@ public class UserValidatorTest extends AbstractSecurityTest {
     @Test
     public void removeAuthorizableId() throws Exception {
         try {
-            Tree userTree = root.getTree(user.getPath());
+            Tree userTree = root.getTree(userPath);
             userTree.removeProperty(UserConstants.REP_AUTHORIZABLE_ID);
             root.commit();
             fail("removing authorizable id should fail");
@@ -112,7 +96,7 @@ public class UserValidatorTest extends AbstractSecurityTest {
     public void createWithoutPrincipalName() throws Exception {
         try {
             User user = getUserManager().createUser("withoutPrincipalName", "pw");
-            Tree tree = root.getTree(user.getPath());
+            Tree tree = root.getTree(userPath);
             tree.removeProperty(UserConstants.REP_PRINCIPAL_NAME);
             root.commit();
 
@@ -128,7 +112,7 @@ public class UserValidatorTest extends AbstractSecurityTest {
     public void createWithInvalidUUID() throws Exception {
         try {
             User user = getUserManager().createUser("withInvalidUUID", "pw");
-            Tree tree = root.getTree(user.getPath());
+            Tree tree = root.getTree(userPath);
             tree.setProperty(JcrConstants.JCR_UUID, UUID.randomUUID().toString());
             root.commit();
 
@@ -143,7 +127,7 @@ public class UserValidatorTest extends AbstractSecurityTest {
     @Test
     public void changeUUID() throws Exception {
         try {
-            Tree userTree = root.getTree(user.getPath());
+            Tree userTree = root.getTree(userPath);
             userTree.setProperty(JcrConstants.JCR_UUID, UUID.randomUUID().toString());
             root.commit();
             fail("changing jcr:uuid should fail if it the uuid valid is invalid");
@@ -157,7 +141,7 @@ public class UserValidatorTest extends AbstractSecurityTest {
     @Test
     public void changePrincipalName() throws Exception {
         try {
-            Tree userTree = root.getTree(user.getPath());
+            Tree userTree = root.getTree(userPath);
             userTree.setProperty(UserConstants.REP_PRINCIPAL_NAME, "another");
             root.commit();
             fail("changing the principal name should fail");
@@ -171,7 +155,7 @@ public class UserValidatorTest extends AbstractSecurityTest {
     @Test
     public void changeAuthorizableId() throws Exception {
         try {
-            Tree userTree = root.getTree(user.getPath());
+            Tree userTree = root.getTree(userPath);
             userTree.setProperty(UserConstants.REP_AUTHORIZABLE_ID, "modified");
             root.commit();
             fail("changing the authorizable id should fail");
@@ -185,7 +169,7 @@ public class UserValidatorTest extends AbstractSecurityTest {
     @Test
     public void changePasswordToPlainText() throws Exception {
         try {
-            Tree userTree = root.getTree(user.getPath());
+            Tree userTree = root.getTree(userPath);
             userTree.setProperty(UserConstants.REP_PASSWORD, "plaintext");
             root.commit();
             fail("storing a plaintext password should fail");
@@ -243,12 +227,12 @@ public class UserValidatorTest extends AbstractSecurityTest {
         List<String> invalid = new ArrayList<String>();
         invalid.add("/");
         invalid.add("/jcr:system");
-        String groupPath = getConfig().getConfigValue(UserConstants.PARAM_GROUP_PATH, UserConstants.DEFAULT_GROUP_PATH);
-        invalid.add(groupPath);
-        String userPath = getConfig().getConfigValue(UserConstants.PARAM_USER_PATH, UserConstants.DEFAULT_USER_PATH);
-        invalid.add(Text.getRelativeParent(userPath, 1));
-        invalid.add(user.getPath());
-        invalid.add(user.getPath() + "/folder");
+        String groupRoot = getConfig().getConfigValue(UserConstants.PARAM_GROUP_PATH, UserConstants.DEFAULT_GROUP_PATH);
+        invalid.add(groupRoot);
+        String userRoot = getConfig().getConfigValue(UserConstants.PARAM_USER_PATH, UserConstants.DEFAULT_USER_PATH);
+        invalid.add(Text.getRelativeParent(userRoot, 1));
+        invalid.add(userPath);
+        invalid.add(userPath + "/folder");
 
         for (String path : invalid) {
             try {

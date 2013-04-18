@@ -19,13 +19,10 @@ package org.apache.jackrabbit.oak.security.authorization.evaluation;
 import java.security.Principal;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import javax.jcr.SimpleCredentials;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.AccessControlPolicy;
 
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
-import org.apache.jackrabbit.api.security.user.Authorizable;
-import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -43,10 +40,7 @@ import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
  */
 public abstract class AbstractOakCoreTest extends AbstractSecurityTest {
 
-    protected static final String TEST_USER_ID = "test";
-
 	protected Principal testPrincipal;
-
     private ContentSession testSession;
 
     @Before
@@ -54,8 +48,7 @@ public abstract class AbstractOakCoreTest extends AbstractSecurityTest {
     public void before() throws Exception {
         super.before();
 
-        User user = getUserManager().createUser(TEST_USER_ID, TEST_USER_ID);
-        testPrincipal = user.getPrincipal();
+        testPrincipal = getTestUser().getPrincipal();
 
         NodeUtil rootNode = new NodeUtil(root.getTree("/"));
         NodeUtil a = rootNode.addChild("a", NT_UNSTRUCTURED);
@@ -76,12 +69,6 @@ public abstract class AbstractOakCoreTest extends AbstractSecurityTest {
     @Override
     public void after() throws Exception {
         try {
-            // remove the test user
-            Authorizable testUser = getUserManager().getAuthorizable(TEST_USER_ID);
-            if (testUser != null) {
-                testUser.remove();
-            }
-
             // clean up policies at the root node
             AccessControlManager acMgr = getAccessControlManager(root);
             AccessControlPolicy[] policies = acMgr.getPolicies("/");
@@ -105,7 +92,7 @@ public abstract class AbstractOakCoreTest extends AbstractSecurityTest {
     @Nonnull
     protected ContentSession getTestSession() throws Exception {
         if (testSession == null) {
-            testSession = login(new SimpleCredentials(TEST_USER_ID, TEST_USER_ID.toCharArray()));
+            testSession = createTestSession();
         }
         return testSession;
     }
@@ -119,6 +106,7 @@ public abstract class AbstractOakCoreTest extends AbstractSecurityTest {
      * Setup simple allow/deny permissions (without restrictions).
      *
      * @param path
+     * @param principal
      * @param isAllow
      * @param privilegeNames
      * @throws Exception

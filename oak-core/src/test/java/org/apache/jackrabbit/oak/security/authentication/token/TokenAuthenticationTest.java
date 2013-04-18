@@ -26,14 +26,10 @@ import javax.jcr.SimpleCredentials;
 import javax.security.auth.login.LoginException;
 
 import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
-import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
-import org.apache.jackrabbit.oak.security.authentication.token.TokenAuthentication;
-import org.apache.jackrabbit.oak.security.authentication.token.TokenProviderImpl;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.Authentication;
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenInfo;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -55,29 +51,13 @@ public class TokenAuthenticationTest extends AbstractSecurityTest {
     @Before
     public void before() throws Exception {
         super.before();
-
-        root = adminSession.getLatestRoot();
         tokenProvider = new TokenProviderImpl(root,
                 ConfigurationParameters.EMPTY,
                 getUserConfiguration());
 
-        userId = "testUser";
-        getUserManager().createUser(userId, "pw");
         root.commit();
         authentication = new TokenAuthentication(tokenProvider);
-    }
-
-    @After
-    public void after() throws Exception {
-        try {
-            Authorizable a = getUserManager().getAuthorizable(userId);
-            if (a != null) {
-                a.remove();
-                root.commit();
-            }
-        } finally {
-            super.after();
-        }
+        userId = getTestUser().getID();
     }
 
     @Test

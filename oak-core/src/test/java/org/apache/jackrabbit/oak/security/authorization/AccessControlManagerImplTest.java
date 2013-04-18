@@ -29,7 +29,6 @@ import javax.jcr.AccessDeniedException;
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
-import javax.jcr.SimpleCredentials;
 import javax.jcr.Value;
 import javax.jcr.ValueFactory;
 import javax.jcr.security.AccessControlEntry;
@@ -44,8 +43,6 @@ import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
-import org.apache.jackrabbit.api.security.user.Authorizable;
-import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.TestNameMapper;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
@@ -81,7 +78,6 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
 
     private final String testName = TestNameMapper.TEST_PREFIX + ":testRoot";
     private final String testPath = '/' + testName;
-    private final String testUserId = "test";
 
     private Principal testPrincipal;
     private Privilege[] testPrivileges;
@@ -107,12 +103,10 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
 
         NodeUtil rootNode = new NodeUtil(root.getTree("/"), npMapper);
         rootNode.addChild(testName, JcrConstants.NT_UNSTRUCTURED);
-
-        User user = getUserManager().createUser(testUserId, testUserId);
-        testPrincipal = user.getPrincipal();
-        testPrivileges = privilegesFromNames(Privilege.JCR_ADD_CHILD_NODES, Privilege.JCR_READ);
-
         root.commit();
+
+        testPrivileges = privilegesFromNames(Privilege.JCR_ADD_CHILD_NODES, Privilege.JCR_READ);
+        testPrincipal = getTestPrincipal();
     }
 
     @After
@@ -120,11 +114,6 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         try {
             root.refresh();
             root.getTree(testPath).remove();
-
-            Authorizable testUser = getUserManager().getAuthorizable(testUserId);
-            if (testUser != null) {
-                testUser.remove();
-            }
             root.commit();
 
             if (testRoot != null) {
@@ -147,7 +136,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
 
     private Root getTestRoot() throws Exception {
         if (testRoot == null) {
-            testRoot = login(new SimpleCredentials(testUserId, testUserId.toCharArray())).getLatestRoot();
+            testRoot = createTestSession().getLatestRoot();
         }
         return testRoot;
     }

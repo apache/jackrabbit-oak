@@ -28,7 +28,7 @@ import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 
 /**
- * JackrabbitTest... TODO
+ * Test login with {@link ConfigurationUtil#getJackrabbit2Configuration(org.apache.jackrabbit.oak.spi.security.ConfigurationParameters)}
  */
 public class Jackrabbit2ConfigurationTest extends TokenDefaultLoginModuleTest {
 

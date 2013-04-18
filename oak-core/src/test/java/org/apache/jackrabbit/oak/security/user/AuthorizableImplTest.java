@@ -45,7 +45,7 @@ public class AuthorizableImplTest extends AbstractSecurityTest {
         super.before();
 
         userMgr = getUserManager();
-        testUser = userMgr.createUser("testUser", "pw");
+        testUser = getTestUser();
         testGroup = userMgr.createGroup("testGroup");
         root.commit();
     }
@@ -53,9 +53,6 @@ public class AuthorizableImplTest extends AbstractSecurityTest {
     @Override
     public void after() throws Exception {
         try {
-            if (testUser != null) {
-                testUser.remove();
-            }
             if (testGroup != null) {
                 testGroup.remove();
             }
