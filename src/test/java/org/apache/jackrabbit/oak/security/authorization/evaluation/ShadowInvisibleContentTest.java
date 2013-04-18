@@ -18,17 +18,18 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.evaluation;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeConstants;
 import org.junit.Ignore;
 import org.junit.Test;
-
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 
 public class ShadowInvisibleContentTest extends AbstractOakCoreTest {
      
@@ -51,6 +52,7 @@ public class ShadowInvisibleContentTest extends AbstractOakCoreTest {
 
         try {
             testRoot.commit();
+            fail();
         } catch (CommitFailedException e) {
             assertTrue(e.isAccessViolation());
         }
@@ -74,6 +76,7 @@ public class ShadowInvisibleContentTest extends AbstractOakCoreTest {
 
         try {
             testRoot.commit();
+            fail();
         } catch (CommitFailedException e) {
             assertTrue(e.isAccessViolation());
         }
@@ -97,6 +100,7 @@ public class ShadowInvisibleContentTest extends AbstractOakCoreTest {
 
         try {
             testRoot.commit();
+            fail();
         } catch (CommitFailedException e) {
             assertTrue(e.isAccessViolation());
         }
