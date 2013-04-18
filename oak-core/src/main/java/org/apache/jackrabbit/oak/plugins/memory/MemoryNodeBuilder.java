@@ -191,7 +191,8 @@ public class MemoryNodeBuilder implements NodeBuilder {
      * Determine whether this child exists at its direct parent.
      * @return {@code true} iff this child exists at its direct parent.
      */
-    private boolean exists() {
+    @Override // TODO: Check that the implementation matches NodeBuilder.exists()
+    public boolean exists() {
         if (isRoot()) {
             return true;
         } else if (parent.writeState == null) {
@@ -500,6 +501,18 @@ public class MemoryNodeBuilder implements NodeBuilder {
             builder.write(root.revision + 1, true);
         }
         return builder;
+    }
+
+    @Override @Nonnull
+    public NodeBuilder getChild(@Nonnull String name) {
+        throw new UnsupportedOperationException(); // TODO
+    }
+
+    @Override @Nonnull
+    public NodeBuilder addChild(@Nonnull String name) {
+        // TODO: better implementation?
+        setNode(name, EMPTY_NODE);
+        return child(name);
     }
 
     /**
