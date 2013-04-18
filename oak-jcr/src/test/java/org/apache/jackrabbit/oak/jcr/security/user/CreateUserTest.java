@@ -225,7 +225,9 @@ public class CreateUserTest extends AbstractUserTest {
         }
     }
 
-    // TODO: RepositoryException is thrown instead of AuthorizableExistsException
+    /**
+     * @since OAK 1.0 : RepositoryException is thrown instead of AuthorizableExistsException
+     */
     public void testCreateTwiceWithSamePrincipal() throws RepositoryException, NotExecutableException {
         Principal p = getTestPrincipal();
         String uid = p.getName();

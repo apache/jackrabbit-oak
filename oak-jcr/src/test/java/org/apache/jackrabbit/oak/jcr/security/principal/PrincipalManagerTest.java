@@ -59,7 +59,6 @@ public class PrincipalManagerTest extends AbstractJCRTest {
     }
 
     private Principal[] getPrincipals(Credentials credentials) throws Exception {
-        // TODO: improve
         Set<Principal> principals = new HashSet<Principal>();
         if (credentials instanceof SimpleCredentials) {
             Principal p = principalMgr.getPrincipal(((SimpleCredentials) credentials).getUserID());
