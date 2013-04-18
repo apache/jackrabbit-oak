@@ -23,7 +23,6 @@ import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState.with;
 import static org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState.withNodes;
 import static org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState.withProperties;
@@ -506,12 +505,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
 
     @Override @Nonnull
     public NodeBuilder getChild(@Nonnull String name) {
-        NodeBuilder child = child(name);
-        if (child.exists()) {
-            return child;
-        } else {
-            return new MemoryNodeBuilder(MISSING_NODE);
-        }
+        throw new UnsupportedOperationException(); // TODO
     }
 
     @Override @Nonnull
