@@ -261,10 +261,10 @@ public class MemoryNodeBuilderTest {
         c = b.getChildNode("c");
 
         assertTrue(a.exists());
-        assertFalse(b.exists());  // FIXME fails
+        assertTrue(b.exists());  // shadowed by above child("b")
         assertTrue(c.exists());
 
-        assertTrue(c.hasProperty("c"));
+        assertFalse(c.hasProperty("c"));  // shadowed by subtree b
         assertTrue(c.hasProperty("c2"));
     }
 
