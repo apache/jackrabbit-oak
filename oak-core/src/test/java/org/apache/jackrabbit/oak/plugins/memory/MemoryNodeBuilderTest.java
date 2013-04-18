@@ -199,7 +199,7 @@ public class MemoryNodeBuilderTest {
 
     @Test
     public void setNodeTest() {
-        MemoryNodeBuilder rootBuilder = new MemoryNodeBuilder(EmptyNodeState.EMPTY_NODE);
+        NodeBuilder rootBuilder = EMPTY_NODE.builder();
         rootBuilder.setNode("a", createBC(true));
 
         NodeState b = rootBuilder.getNodeState().getChildNode("a").getChildNode("c");
@@ -214,7 +214,7 @@ public class MemoryNodeBuilderTest {
 
     @Test
     public void assertion_OAK781() {
-        MemoryNodeBuilder rootBuilder = new MemoryNodeBuilder(EmptyNodeState.EMPTY_NODE);
+        NodeBuilder rootBuilder = EMPTY_NODE.builder();
         rootBuilder.child("a").setNode("b", createBC(false));
 
         NodeState r = rootBuilder.getNodeState();
@@ -238,7 +238,7 @@ public class MemoryNodeBuilderTest {
     @Test
     @Ignore("OAK-781")
     public void modifyChildNodeOfNonExistingNode() {
-        MemoryNodeBuilder rootBuilder = new MemoryNodeBuilder(EmptyNodeState.EMPTY_NODE);
+        NodeBuilder rootBuilder = EMPTY_NODE.builder();
 
         // +"/a":{"b":{"c":{"c":"cValue"}}} where b.exists() == false
         rootBuilder.child("a").setNode("b", createBC(false));
@@ -271,7 +271,7 @@ public class MemoryNodeBuilderTest {
 
     @Test
     public void shadowNonExistingNode1() {
-        MemoryNodeBuilder rootBuilder = new MemoryNodeBuilder(EmptyNodeState.EMPTY_NODE);
+        NodeBuilder rootBuilder = EMPTY_NODE.builder();
 
         // +"/a":{"b":{"c":{"c":"cValue"}}} where b.exists() == false
         rootBuilder.child("a").setNode("b", createBC(false));
@@ -305,7 +305,7 @@ public class MemoryNodeBuilderTest {
     @Test
     @Ignore("OAK-781")
     public void shadowNonExistingNode2() {
-        MemoryNodeBuilder rootBuilder = new MemoryNodeBuilder(EmptyNodeState.EMPTY_NODE);
+        NodeBuilder rootBuilder = EMPTY_NODE.builder();
 
         // +"/a":{"b":{"c":{"c":"cValue"}}} where b.exists() == false
         rootBuilder.child("a").setNode("b", createBC(false));
