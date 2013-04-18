@@ -38,7 +38,8 @@ import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restrict
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 
 /**
- * AbstractAccessControlList... TODO
+ * Abstract base implementation of the {@code JackrabbitAccessControlList}
+ * interface.
  */
 public abstract class AbstractAccessControlList implements JackrabbitAccessControlList {
 
