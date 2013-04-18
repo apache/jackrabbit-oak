@@ -253,6 +253,73 @@ public class MemoryNodeBuilderTest {
         assertTrue(c.exists());
         assertTrue(c.hasProperty("c"));
 
+        rootBuilder.child("a").getChild("b").child("c").setProperty("c2", "c2Value");
+
+        r = rootBuilder.getNodeState();
+        a = r.getChildNode("a");
+        b = a.getChildNode("b");
+        c = b.getChildNode("c");
+
+        assertTrue(a.exists());
+        assertFalse(b.exists());
+        assertTrue(c.exists());
+
+        // Node c is modified
+        assertTrue(c.hasProperty("c"));
+        assertTrue(c.hasProperty("c2"));
+    }
+
+    @Test
+    public void shadowNonExistingNode1() {
+        MemoryNodeBuilder rootBuilder = new MemoryNodeBuilder(EmptyNodeState.EMPTY_NODE);
+
+        // +"/a":{"b":{"c":{"c":"cValue"}}} where b.exists() == false
+        rootBuilder.child("a").setNode("b", createBC(false));
+
+        NodeState r = rootBuilder.getNodeState();
+        NodeState a = r.getChildNode("a");
+        NodeState b = a.getChildNode("b");
+        NodeState c = b.getChildNode("c");
+
+        assertTrue(a.exists());
+        assertFalse(b.exists());
+        assertTrue(c.exists());
+        assertTrue(c.hasProperty("c"));
+
+        rootBuilder.child("a").addChild("b").child("c").setProperty("c2", "c2Value");
+
+        r = rootBuilder.getNodeState();
+        a = r.getChildNode("a");
+        b = a.getChildNode("b");
+        c = b.getChildNode("c");
+
+        assertTrue(a.exists());
+        assertTrue(b.exists());    // node b is shadowed by above child("b")
+        assertTrue(c.exists());
+
+        // node c is shadowed by subtree b
+        assertFalse(c.hasProperty("c"));
+        assertTrue(c.hasProperty("c2"));
+    }
+
+    @Test
+    @Ignore("OAK-781")
+    public void shadowNonExistingNode2() {
+        MemoryNodeBuilder rootBuilder = new MemoryNodeBuilder(EmptyNodeState.EMPTY_NODE);
+
+        // +"/a":{"b":{"c":{"c":"cValue"}}} where b.exists() == false
+        rootBuilder.child("a").setNode("b", createBC(false));
+
+        NodeState r = rootBuilder.getNodeState();
+        NodeState a = r.getChildNode("a");
+        NodeState b = a.getChildNode("b");
+        NodeState c = b.getChildNode("c");
+
+        assertTrue(a.exists());
+        assertFalse(b.exists());
+        assertTrue(c.exists());
+        assertTrue(c.hasProperty("c"));
+
         rootBuilder.child("a").child("b").child("c").setProperty("c2", "c2Value");
 
         r = rootBuilder.getNodeState();
@@ -261,10 +328,11 @@ public class MemoryNodeBuilderTest {
         c = b.getChildNode("c");
 
         assertTrue(a.exists());
-        assertTrue(b.exists());  // shadowed by above child("b")
+        assertTrue(b.exists());  // node b is shadowed by above child("b")
         assertTrue(c.exists());
 
-        assertFalse(c.hasProperty("c"));  // shadowed by subtree b
+        // node c is shadowed by subtree b
+        assertFalse(c.hasProperty("c"));
         assertTrue(c.hasProperty("c2"));
     }
 
