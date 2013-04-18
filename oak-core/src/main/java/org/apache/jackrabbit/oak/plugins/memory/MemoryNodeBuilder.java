@@ -506,7 +506,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
      * so it's not a problem that we intentionally break the immutability
      * assumption of the {@link NodeState} interface.
      */
-    private class MutableNodeState extends AbstractNodeState {
+    private static class MutableNodeState extends AbstractNodeState {
 
         /**
          * The immutable base state.
@@ -584,7 +584,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
             for (Entry<String, MutableNodeState> entry : nodes.entrySet()) {
                 builder.append(separator);
                 separator = ", ";
-                builder.append(entry);
+                builder.append(entry.getKey()).append(" : ").append(entry.getValue());
             }
             builder.append(" }");
             return builder.toString();
