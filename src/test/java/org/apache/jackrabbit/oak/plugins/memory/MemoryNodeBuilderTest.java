@@ -198,7 +198,6 @@ public class MemoryNodeBuilderTest {
     }
 
     @Test
-    @Ignore("OAK-782")
     public void setNodeTest() {
         MemoryNodeBuilder rootBuilder = new MemoryNodeBuilder(EmptyNodeState.EMPTY_NODE);
         rootBuilder.setNode("a", createBC(true));
