@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization;
 
+import java.security.Principal;
 import javax.jcr.NamespaceRegistry;
 
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
@@ -51,5 +52,9 @@ public abstract class AbstractAccessControlTest extends AbstractSecurityTest {
             restrictionProvider = getSecurityProvider().getAccessControlConfiguration().getRestrictionProvider(getNamePathMapper());
         }
         return restrictionProvider;
+    }
+
+    protected Principal getTestPrincipal() throws Exception {
+        return getTestUser().getPrincipal();
     }
 }

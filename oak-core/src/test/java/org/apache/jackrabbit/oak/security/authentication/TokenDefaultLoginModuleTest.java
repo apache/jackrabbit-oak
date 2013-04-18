@@ -38,7 +38,14 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 
 /**
- * TokenDefaultLoginModuleTest...
+ * Test login behavior with the following configuration:
+ *
+ * <pre>
+ *     jackrabbit.oak {
+ *            org.apache.jackrabbit.oak.spi.security.authentication.token.TokenLoginModule sufficient;
+ *            org.apache.jackrabbit.oak.security.authentication.user.LoginModuleImpl required;
+ *     };
+ * </pre>
  */
 public class TokenDefaultLoginModuleTest extends AbstractSecurityTest {
 

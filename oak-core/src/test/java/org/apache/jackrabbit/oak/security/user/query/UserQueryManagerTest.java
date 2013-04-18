@@ -50,9 +50,7 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
         super.before();
 
         UserManager userMgr = getUserManager();
-        user = userMgr.createUser("testUser", "pw");
-        root.commit();
-
+        user = getTestUser();
         queryMgr = new UserQueryManager(userMgr, namePathMapper, getUserConfiguration().getConfigurationParameters(), root);
 
         valueFactory = new ValueFactoryImpl(root.getBlobFactory(), namePathMapper);
