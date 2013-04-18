@@ -27,12 +27,9 @@ import javax.jcr.SimpleCredentials;
 import javax.security.auth.login.LoginException;
 
 import org.apache.jackrabbit.api.security.authentication.token.TokenCredentials;
-import org.apache.jackrabbit.api.security.user.Authorizable;
-import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.AuthInfo;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -45,45 +42,26 @@ import static org.junit.Assert.fail;
  */
 public class UserAuthenticationTest extends AbstractSecurityTest {
 
-    private final String userId = "testUser";
+    private String userId;
     private UserAuthentication authentication;
 
     @Before
     public void before() throws Exception {
         super.before();
-
-        root = adminSession.getLatestRoot();
-
-        UserManager userManager = getUserManager();
-        userManager.createUser(userId, "pw");
-        root.commit();
-
-        authentication = new UserAuthentication(userId, userManager);
-    }
-
-    @After
-    public void after() throws Exception {
-        try {
-            Authorizable a = getUserManager().getAuthorizable(userId);
-            if (a != null) {
-                a.remove();
-                root.commit();
-            }
-        } finally {
-            super.after();
-        }
+        userId = getTestUser().getID();
+        authentication = new UserAuthentication(userId, getUserManager());
     }
 
     @Test
     public void testAuthenticateWithoutUserManager() throws Exception {
         UserAuthentication authentication = new UserAuthentication(userId, null);
-        assertFalse(authentication.authenticate(new SimpleCredentials(userId, "pw".toCharArray())));
+        assertFalse(authentication.authenticate(new SimpleCredentials(userId, userId.toCharArray())));
     }
 
     @Test
     public void testAuthenticateWithoutUserId() throws Exception {
         UserAuthentication authentication = new UserAuthentication(null, getUserManager());
-        assertFalse(authentication.authenticate(new SimpleCredentials(userId, "pw".toCharArray())));
+        assertFalse(authentication.authenticate(new SimpleCredentials(userId, userId.toCharArray())));
     }
 
     @Test
@@ -116,7 +94,7 @@ public class UserAuthenticationTest extends AbstractSecurityTest {
 
     @Test
     public void testAuthenticateSimpleCredentials() throws Exception {
-       assertTrue(authentication.authenticate(new SimpleCredentials(userId, "pw".toCharArray())));
+       assertTrue(authentication.authenticate(new SimpleCredentials(userId, userId.toCharArray())));
     }
 
     @Test

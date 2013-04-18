@@ -16,10 +16,8 @@
  */
 package org.apache.jackrabbit.oak.security.authentication.token;
 
-import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
-import org.junit.After;
 import org.junit.Before;
 
 /**
@@ -28,7 +26,6 @@ import org.junit.Before;
 public abstract class AbstractTokenTest extends AbstractSecurityTest {
 
     TokenProviderImpl tokenProvider;
-    String userId;
 
     @Before
     public void before() throws Exception {
@@ -38,22 +35,6 @@ public abstract class AbstractTokenTest extends AbstractSecurityTest {
         tokenProvider = new TokenProviderImpl(root,
                 ConfigurationParameters.EMPTY,
                 getUserConfiguration());
-
-        userId = "testUser";
-        getUserManager().createUser(userId, "pw");
         root.commit();
-    }
-
-    @After
-    public void after() throws Exception {
-        try {
-            Authorizable a = getUserManager().getAuthorizable(userId);
-            if (a != null) {
-                a.remove();
-                root.commit();
-            }
-        } finally {
-            super.after();
-        }
     }
 }

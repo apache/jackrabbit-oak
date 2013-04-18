@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak;
 
+import java.util.UUID;
 import javax.annotation.Nullable;
 import javax.jcr.Credentials;
 import javax.jcr.NoSuchWorkspaceException;
@@ -29,6 +30,7 @@ import javax.security.auth.login.LoginException;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
+import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -54,6 +56,7 @@ public abstract class AbstractSecurityTest {
 
     private ContentRepository contentRepository;
     private UserManager userManager;
+    private User testUser;
     private PrivilegeManager privMgr;
 
     protected NamePathMapper namePathMapper = NamePathMapper.DEFAULT;
@@ -79,8 +82,15 @@ public abstract class AbstractSecurityTest {
 
     @After
     public void after() throws Exception {
-        adminSession.close();
-        Configuration.setConfiguration(null);
+        try {
+            if (testUser != null) {
+                testUser.remove();
+                root.commit();
+            }
+        } finally {
+            adminSession.close();
+            Configuration.setConfiguration(null);
+        }
     }
 
     protected SecurityProvider getSecurityProvider() {
@@ -145,5 +155,19 @@ public abstract class AbstractSecurityTest {
             privMgr = getSecurityProvider().getPrivilegeConfiguration().getPrivilegeManager(root, getNamePathMapper());
         }
         return privMgr;
+    }
+
+    protected User getTestUser() throws Exception {
+        if (testUser == null) {
+            String uid = "testUser" + UUID.randomUUID();
+            testUser = getUserManager().createUser(uid, uid);
+            root.commit();
+        }
+        return testUser;
+    }
+
+    protected ContentSession createTestSession() throws Exception {
+        String uid = getTestUser().getID();
+        return login(new SimpleCredentials(uid, uid.toCharArray()));
     }
 }
