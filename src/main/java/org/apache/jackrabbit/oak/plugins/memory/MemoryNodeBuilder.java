@@ -592,7 +592,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
                 MutableNodeState node = entry.getValue();
                 NodeState before = base.getChildNode(name);
                 if (node == null) {
-                    if (before != null) {
+                    if (before.exists()) {
                         nodes.put(name, null);
                     }
                 } else {
