@@ -47,6 +47,13 @@ public interface NodeBuilder {
     NodeState getBaseState();
 
     /**
+     * Checks whether this builder represents a node that exists.
+     *
+     * @return {@code true} if the node exists, {@code false} otherwise
+     */
+    boolean exists();
+
+    /**
      * Check whether this builder represents a new node, which is not present in the base state.
      * @return  {@code true} for a new node
      */
@@ -276,5 +283,29 @@ public interface NodeBuilder {
      */
     @Nonnull
     NodeBuilder child(@Nonnull String name);
+
+    /**
+     * Returns a builder for constructing changes to the named child node.
+     * If the named child node does not already exist, the returned builder
+     * will refer to a non-existent node and trying to modify it will cause
+     * {@link IllegalStateException}s to be thrown.
+     *
+     * @since Oak 0.7
+     * @param name name of the child node
+     * @return child builder, possibly non-existent
+     */
+    @Nonnull
+    NodeBuilder getChild(@Nonnull String name);
+
+    /**
+     * Adds the named child node and returns a builder for modifying it.
+     * Possible previous content in the named subtree is removed.
+     *
+     * @since Oak 0.7
+     * @param name name of the child node
+     * @return child builder
+     */
+    @Nonnull
+    NodeBuilder addChild(@Nonnull String name);
 
 }

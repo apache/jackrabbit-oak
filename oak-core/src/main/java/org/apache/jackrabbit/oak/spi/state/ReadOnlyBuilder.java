@@ -39,6 +39,11 @@ public class ReadOnlyBuilder implements NodeBuilder {
     }
 
     @Override
+    public boolean exists() {
+        return state.exists();
+    }
+
+    @Override
     public boolean isNew() {
         return false;
     }
@@ -156,6 +161,16 @@ public class ReadOnlyBuilder implements NodeBuilder {
         } else {
             throw unsupported();
         }
+    }
+
+    @Override @Nonnull
+    public NodeBuilder getChild(@Nonnull String name) {
+        return new ReadOnlyBuilder(state.getChildNode(name));
+    }
+
+    @Override @Nonnull
+    public NodeBuilder addChild(@Nonnull String name) {
+        throw unsupported();
     }
 
 }
