@@ -202,10 +202,6 @@ public class MemoryNodeBuilderTest {
         MemoryNodeBuilder rootBuilder = new MemoryNodeBuilder(EmptyNodeState.EMPTY_NODE);
         rootBuilder.setNode("a", createBC(true));
 
-// Note: using the following way to construct the initial state makes the test pass
-//        rootBuilder = new MemoryNodeBuilder(EmptyNodeState.EMPTY_NODE);
-//        rootBuilder.child("a").child("c").setProperty("c", "cValue");
-
         NodeState b = rootBuilder.getNodeState().getChildNode("a").getChildNode("c");
         assertTrue(b.hasProperty("c"));
 
