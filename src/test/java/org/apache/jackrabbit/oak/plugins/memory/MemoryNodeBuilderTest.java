@@ -373,11 +373,6 @@ public class MemoryNodeBuilderTest {
                 }
             }
 
-            @Nonnull
-            @Override
-            public NodeBuilder builder() {
-                return new MemoryNodeBuilder(this);
-            }
         };
     }
 
