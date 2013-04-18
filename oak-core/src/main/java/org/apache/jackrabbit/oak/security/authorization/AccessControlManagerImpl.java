@@ -38,6 +38,7 @@ import javax.jcr.security.AccessControlPolicyIterator;
 import javax.jcr.security.Privilege;
 
 import com.google.common.base.Objects;
+import com.google.common.collect.Lists;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
@@ -216,12 +217,15 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
             PrincipalACL existing = (plcs.length == 0) ? null : (PrincipalACL) plcs[0];
 
             // TODO: handle re-ordered entries...
-            // write new entries
-            List<JackrabbitAccessControlEntry> entries = principalAcl.getEntries();
+            List<JackrabbitAccessControlEntry> toAdd = Lists.newArrayList(principalAcl.getEntries());
+            List<JackrabbitAccessControlEntry> toRemove = Collections.emptyList();
             if (existing != null) {
-                entries.removeAll(existing.getEntries());
+                toAdd.removeAll(existing.getEntries());
+                toRemove = existing.getEntries();
+                toRemove.removeAll(principalAcl.getEntries());
             }
-            for (JackrabbitAccessControlEntry ace : entries) {
+            // add new entries
+            for (JackrabbitAccessControlEntry ace : toAdd) {
                 String path = getOakPath(ace.getRestriction(REP_NODE_PATH).getString());
                 Tree tree = getTree(path, Permissions.MODIFY_ACCESS_CONTROL);
                 NodeUtil aclNode = getAclNode(path, tree);
@@ -233,18 +237,14 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
             }
 
             // remove entries that are not longer present in the acl to write
-            if (existing != null) {
-                List<JackrabbitAccessControlEntry> toRemove = existing.getEntries();
-                toRemove.removeAll(principalAcl.getEntries());
-                for (JackrabbitAccessControlEntry ace : toRemove) {
-                    String path = getOakPath(ace.getRestriction(REP_NODE_PATH).getString());
-                    NodeUtil aclNode = checkNotNull(getAclNode(path, getTree(path, Permissions.MODIFY_ACCESS_CONTROL)));
-                    Iterator<Tree> children = aclNode.getTree().getChildren().iterator();
-                    while (children.hasNext()) {
-                        Tree child = children.next();
-                        if (ace.equals(createACE(path, child, principalAcl.rProvider))) {
-                            child.remove();
-                        }
+            for (JackrabbitAccessControlEntry ace : toRemove) {
+                String path = getOakPath(ace.getRestriction(REP_NODE_PATH).getString());
+                NodeUtil aclNode = checkNotNull(getAclNode(path, getTree(path, Permissions.MODIFY_ACCESS_CONTROL)));
+                Iterator<Tree> children = aclNode.getTree().getChildren().iterator();
+                while (children.hasNext()) {
+                    Tree child = children.next();
+                    if (ace.equals(createACE(path, child, principalAcl.rProvider))) {
+                        child.remove();
                     }
                 }
             }
@@ -352,11 +352,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
             return hasPrivileges(absPath, privileges);
         } else {
             PermissionProvider provider = acConfig.getPermissionProvider(root, principals);
-            try {
-                return hasPrivileges(absPath, privileges, provider, Permissions.READ_ACCESS_CONTROL);
-            } finally {
-                provider = null;
-            }
+            return hasPrivileges(absPath, privileges, provider, Permissions.READ_ACCESS_CONTROL);
         }
     }
 
@@ -366,11 +362,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
             return getPrivileges(absPath);
         } else {
             PermissionProvider provider = acConfig.getPermissionProvider(root, principals);
-            try {
-                return getPrivileges(absPath, provider, Permissions.READ_ACCESS_CONTROL);
-            } finally {
-                provider = null;
-            }
+            return getPrivileges(absPath, provider, Permissions.READ_ACCESS_CONTROL);
         }
     }
 
