@@ -48,6 +48,7 @@ class PermissionValidator extends DefaultValidator {
     /* TODO
      * - OAK-710: Renaming nodes or Move with same parent are reflected as remove+add -> needs special handling
      * - OAK-711: Proper handling of jcr:nodeTypeManagement privilege.
+     * - OAK-785: compatibility mode for user-mgt permission
      */
 
     private final Tree parentBefore;
