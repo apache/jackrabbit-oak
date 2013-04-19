@@ -35,7 +35,7 @@ import org.apache.jackrabbit.test.NotExecutableException;
 import org.junit.Test;
 
 /**
- * FindAuthorizablesTest...
+ * Tests for the query API exposed by {@link UserManager}.
  */
 public class FindAuthorizablesTest extends AbstractUserTest {
 

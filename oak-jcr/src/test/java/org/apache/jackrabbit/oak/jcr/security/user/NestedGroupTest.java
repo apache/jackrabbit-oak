@@ -28,7 +28,7 @@ import org.apache.jackrabbit.test.NotExecutableException;
 import org.junit.Test;
 
 /**
- * NestedGroupTest...
+ * Tests for the {@link Group} implementation specific for nested group membership.
  */
 public class NestedGroupTest extends AbstractUserTest {
 

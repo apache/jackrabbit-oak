@@ -36,6 +36,10 @@ import org.apache.jackrabbit.api.security.user.QueryBuilder;
 import org.apache.jackrabbit.api.security.user.User;
 import org.junit.Test;
 
+/**
+ * Tests for the {@link Query} interface and
+ * {@link org.apache.jackrabbit.api.security.user.UserManager#findAuthorizables(Query)}.
+ */
 public class UserQueryTest extends AbstractUserTest {
 
     private User kangaroo;

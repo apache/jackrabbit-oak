@@ -31,7 +31,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * CreateUserTest...
+ * Tests for {@code User} creation.
  */
 public class CreateUserTest extends AbstractUserTest {
 

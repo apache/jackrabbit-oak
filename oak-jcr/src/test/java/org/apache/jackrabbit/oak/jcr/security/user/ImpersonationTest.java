@@ -29,7 +29,7 @@ import org.apache.jackrabbit.test.NotExecutableException;
 import org.junit.Test;
 
 /**
- * ImpersonationTest...
+ * Tests for the {@link Impersonation} implementation.
  */
 public class ImpersonationTest extends AbstractUserTest {
 

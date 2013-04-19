@@ -34,7 +34,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 /**
- * GroupTest...
+ * Tests for the {@link Group} implementation.
  */
 public class GroupTest extends AbstractUserTest {
 
