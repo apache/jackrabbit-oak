@@ -129,6 +129,11 @@ public class ModifiedNodeState extends AbstractNodeState {
     //---------------------------------------------------------< NodeState >--
 
     @Override
+    public NodeBuilder builder() {
+        return new MemoryNodeBuilder(this);
+    }
+
+    @Override
     public boolean exists() {
         return true;
     }
