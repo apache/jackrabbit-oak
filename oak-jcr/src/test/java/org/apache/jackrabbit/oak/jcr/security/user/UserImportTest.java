@@ -34,18 +34,15 @@ import javax.jcr.Session;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.security.auth.Subject;
 
+import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.Impersonation;
 import org.apache.jackrabbit.api.security.user.User;
-import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.jcr.SessionImpl;
-import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
-import org.apache.jackrabbit.oak.spi.security.user.action.AuthorizableAction;
 import org.apache.jackrabbit.test.NotExecutableException;
 import org.junit.Test;
 import org.xml.sax.SAXException;
@@ -58,7 +55,7 @@ public class UserImportTest extends AbstractUserTest {
     private static final String USERPATH = "/rep:security/rep:authorizables/rep:users";
     private static final String GROUPPATH = "/rep:security/rep:authorizables/rep:groups";
 
-    private SessionImpl sImpl;
+    private JackrabbitSession jrSession;
 
     @Override
     protected void setUp() throws Exception {
@@ -74,7 +71,7 @@ public class UserImportTest extends AbstractUserTest {
             superuser.getNode(path).remove();
         }
         superuser.save();
-        sImpl = (SessionImpl)superuser;
+        jrSession = (JackrabbitSession) superuser;
     }
 
     @Override
@@ -133,6 +130,7 @@ public class UserImportTest extends AbstractUserTest {
         }
     }
 
+    @Test
     public void testImportGroup() throws RepositoryException, IOException, SAXException  {
         String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
                 "<sv:node sv:name=\"g\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
@@ -174,6 +172,7 @@ public class UserImportTest extends AbstractUserTest {
         }
     }
 
+    @Test
     public void testImportGroupIntoUsersTree() throws RepositoryException, IOException, SAXException, NotExecutableException {
         String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
                 "<sv:node sv:name=\"g\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
@@ -220,6 +219,7 @@ public class UserImportTest extends AbstractUserTest {
         }
     }
 
+    @Test
     public void testImportAuthorizableId() throws IOException, RepositoryException, SAXException, NotExecutableException {
         // importing an authorizable with an jcr:uuid that doesn't match the
         // hash of the given ID -> getAuthorizable(String id) will not find the
@@ -257,9 +257,10 @@ public class UserImportTest extends AbstractUserTest {
 
     }
 
+    @Test
     public void testExistingPrincipal() throws RepositoryException, NotExecutableException, IOException, SAXException {
         Principal existing = null;
-        PrincipalIterator principalIterator = sImpl.getPrincipalManager().getPrincipals(PrincipalManager.SEARCH_TYPE_ALL);
+        PrincipalIterator principalIterator = jrSession.getPrincipalManager().getPrincipals(PrincipalManager.SEARCH_TYPE_ALL);
         while (principalIterator.hasNext()) {
             Principal p = principalIterator.nextPrincipal();
             if (userMgr.getAuthorizable(p) != null) {
@@ -286,10 +287,11 @@ public class UserImportTest extends AbstractUserTest {
         } catch (SAXException e) {
             // success
         } finally {
-            sImpl.refresh(false);
+            jrSession.refresh(false);
         }
     }
 
+    @Test
     public void testConflictingPrincipalsWithinImport() throws IOException, RepositoryException, NotExecutableException {
         String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
                 "<sv:node sv:name=\"gFolder\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
@@ -315,10 +317,11 @@ public class UserImportTest extends AbstractUserTest {
         } catch (SAXException e) {
             // success
         } finally {
-            sImpl.refresh(false);
+            jrSession.refresh(false);
         }
     }
 
+    @Test
     public void testMultiValuedPrincipalName() throws RepositoryException, IOException, SAXException, NotExecutableException {
         String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
                 "<sv:node sv:name=\"g\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
@@ -338,7 +341,7 @@ public class UserImportTest extends AbstractUserTest {
             doImport(GROUPPATH, xml);
 
             assertTrue(target.isModified());
-            assertTrue(sImpl.hasPendingChanges());
+            assertTrue(jrSession.hasPendingChanges());
 
             Authorizable newGroup = userMgr.getAuthorizable("g");
             assertNotNull(newGroup);
@@ -349,21 +352,22 @@ public class UserImportTest extends AbstractUserTest {
 
             // saving changes of the import -> must fail as mandatory prop is missing
             try {
-                sImpl.save();
+                jrSession.save();
                 fail("Import must be incomplete. Saving changes must fail.");
             } catch (ConstraintViolationException e) {
                 // success
             }
 
         } finally {
-            sImpl.refresh(false);
+            jrSession.refresh(false);
             if (target.hasNode("g")) {
                 target.getNode("g").remove();
-                sImpl.save();
+                jrSession.save();
             }
         }
     }
 
+    @Test
     public void testPlainTextPassword() throws RepositoryException, IOException, SAXException, NotExecutableException {
         String plainPw = "myPassword";
         String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
@@ -379,7 +383,7 @@ public class UserImportTest extends AbstractUserTest {
             doImport(USERPATH, xml);
 
             assertTrue(target.isModified());
-            assertTrue(sImpl.hasPendingChanges());
+            assertTrue(jrSession.hasPendingChanges());
 
             Authorizable newUser = userMgr.getAuthorizable("t");
             Node n = superuser.getNode(newUser.getPath());
@@ -389,10 +393,11 @@ public class UserImportTest extends AbstractUserTest {
             assertTrue(pwValue.toLowerCase().startsWith("{sha"));
 
         } finally {
-            sImpl.refresh(false);
+            jrSession.refresh(false);
         }
     }
 
+    @Test
     public void testMultiValuedPassword() throws RepositoryException, IOException, SAXException, NotExecutableException {
         String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
                 "<sv:node sv:name=\"t\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
@@ -413,7 +418,7 @@ public class UserImportTest extends AbstractUserTest {
             doImport(USERPATH, xml);
 
             assertTrue(target.isModified());
-            assertTrue(sImpl.hasPendingChanges());
+            assertTrue(jrSession.hasPendingChanges());
 
             Authorizable newUser = userMgr.getAuthorizable("t");
             assertNotNull(newUser);
@@ -424,21 +429,22 @@ public class UserImportTest extends AbstractUserTest {
 
             // saving changes of the import -> must fail as mandatory prop is missing
             try {
-                sImpl.save();
+                jrSession.save();
                 fail("Import must be incomplete. Saving changes must fail.");
             } catch (ConstraintViolationException e) {
                 // success
             }
 
         } finally {
-            sImpl.refresh(false);
+            jrSession.refresh(false);
             if (target.hasNode("t")) {
                 target.getNode("t").remove();
-                sImpl.save();
+                jrSession.save();
             }
         }
     }
 
+    @Test
     public void testIncompleteUser() throws RepositoryException, IOException, SAXException, NotExecutableException {
         List<String> incompleteXml = new ArrayList<String>();
         incompleteXml.add("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
@@ -460,21 +466,22 @@ public class UserImportTest extends AbstractUserTest {
                 doImport(USERPATH, xml);
                 // saving changes of the import -> must fail as mandatory prop is missing
                 try {
-                    sImpl.save();
+                    jrSession.save();
                     fail("Import must be incomplete. Saving changes must fail.");
                 } catch (ConstraintViolationException e) {
                     // success
                 }
             } finally {
-                sImpl.refresh(false);
+                jrSession.refresh(false);
                 if (target.hasNode("t")) {
                     target.getNode("t").remove();
-                    sImpl.save();
+                    jrSession.save();
                 }
             }
         }
     }
 
+    @Test
     public void testIncompleteGroup() throws IOException, RepositoryException, SAXException, NotExecutableException {
         String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
                 "<sv:node sv:name=\"g\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
@@ -491,21 +498,22 @@ public class UserImportTest extends AbstractUserTest {
             doImport(GROUPPATH, xml);
             // saving changes of the import -> must fail as mandatory prop is missing
             try {
-                sImpl.save();
+                jrSession.save();
                 fail("Import must be incomplete. Saving changes must fail.");
             } catch (ConstraintViolationException e) {
                 // success
             }
 
         } finally {
-            sImpl.refresh(false);
+            jrSession.refresh(false);
             if (target.hasNode("g")) {
                 target.getNode("g").remove();
-                sImpl.save();
+                jrSession.save();
             }
         }
     }
 
+    @Test
     public void testImportWithIntermediatePath() throws IOException, RepositoryException, SAXException, NotExecutableException {
         String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
                 "<sv:node sv:name=\"some\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
@@ -532,7 +540,7 @@ public class UserImportTest extends AbstractUserTest {
             doImport(USERPATH, xml);
 
             assertTrue(target.isModified());
-            assertTrue(sImpl.hasPendingChanges());
+            assertTrue(jrSession.hasPendingChanges());
 
             Authorizable newUser = userMgr.getAuthorizable("t3");
             assertNotNull(newUser);
@@ -552,10 +560,11 @@ public class UserImportTest extends AbstractUserTest {
             assertTrue(target.hasNode("some/intermediate/path"));
 
         } finally {
-            sImpl.refresh(false);
+            jrSession.refresh(false);
         }
     }
 
+    @Test
     public void testImportNewMembers() throws IOException, RepositoryException, SAXException, NotExecutableException {
         String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
                 "<sv:node sv:name=\"gFolder\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
@@ -584,23 +593,24 @@ public class UserImportTest extends AbstractUserTest {
             Group g1 = (Group) userMgr.getAuthorizable("g1");
             assertNotNull(g1);
 
-            Node n = sImpl.getNode(g1.getPath());
+            Node n = jrSession.getNode(g1.getPath());
             assertTrue(n.hasProperty(UserConstants.REP_MEMBERS) || n.hasNode(UserConstants.NT_REP_MEMBERS));
 
             // getWeakReferences only works upon save.
-            sImpl.save();
+            jrSession.save();
 
             assertTrue(g1.isMember(g));
 
         } finally {
-            sImpl.refresh(false);
+            jrSession.refresh(false);
             if (target.hasNode("gFolder")) {
                 target.getNode("gFolder").remove();
             }
-            sImpl.save();
+            jrSession.save();
         }
     }
 
+    @Test
     public void testImportNewMembersReverseOrder() throws IOException, RepositoryException, SAXException, NotExecutableException {
         // group is imported before the member
         String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
@@ -628,23 +638,24 @@ public class UserImportTest extends AbstractUserTest {
             Group g1 = (Group) userMgr.getAuthorizable("g1");
             assertNotNull(g1);
 
-            Node n = sImpl.getNode(g1.getPath());
+            Node n = jrSession.getNode(g1.getPath());
             assertTrue(n.hasProperty(UserConstants.REP_MEMBERS) || n.hasNode(UserConstants.NT_REP_MEMBERS));
 
             // getWeakReferences only works upon save.
-            sImpl.save();
+            jrSession.save();
 
             assertTrue(g1.isMember(g));
 
         } finally {
-            sImpl.refresh(false);
+            jrSession.refresh(false);
             if (target.hasNode("gFolder")) {
                 target.getNode("gFolder").remove();
             }
-            sImpl.save();
+            jrSession.save();
         }
     }
 
+    @Test
     public void testImportMembers() throws RepositoryException, IOException, SAXException, NotExecutableException {
         Authorizable admin = userMgr.getAuthorizable("admin");
         if (admin == null) {
@@ -671,7 +682,7 @@ public class UserImportTest extends AbstractUserTest {
             assertNotNull(g1);
 
             // getWeakReferences only works upon save.
-            sImpl.save();
+            jrSession.save();
 
             assertTrue(g1.isMember(admin));
 
@@ -682,12 +693,13 @@ public class UserImportTest extends AbstractUserTest {
             assertTrue(found);
 
         } finally {
-            sImpl.refresh(false);
+            jrSession.refresh(false);
             target.getNode("gFolder").remove();
-            sImpl.save();
+            jrSession.save();
         }
     }
 
+    @Test
     public void testImportNonExistingMemberIgnore() throws IOException, RepositoryException, SAXException, NotExecutableException {
         Node n = testRootNode.addNode(nodeName1, ntUnstructured);
         n.addMixin(mixReferenceable);
@@ -718,7 +730,7 @@ public class UserImportTest extends AbstractUserTest {
                     fail("'g1' was not imported as Group.");
                 }
             } finally {
-                sImpl.refresh(false);
+                jrSession.refresh(false);
             }
         }
     }
@@ -878,6 +890,7 @@ public class UserImportTest extends AbstractUserTest {
 //        }
 //    }
 
+    @Test
     public void testImportSelfAsGroupIgnore() throws Exception {
 
         String invalidId = "0120a4f9-196a-3f9e-b9f5-23f31f914da7"; // uuid of the group itself
@@ -901,7 +914,7 @@ public class UserImportTest extends AbstractUserTest {
                 fail("'g1' was not imported as Group.");
             }
         } finally {
-            sImpl.refresh(false);
+            jrSession.refresh(false);
         }
     }
 
@@ -929,6 +942,7 @@ public class UserImportTest extends AbstractUserTest {
 //        }
 //    }
 
+    @Test
     public void testImportImpersonation() throws IOException, RepositoryException, SAXException, NotExecutableException {
         String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
                 "<sv:node sv:name=\"uFolder\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
@@ -963,10 +977,11 @@ public class UserImportTest extends AbstractUserTest {
             assertTrue(imp.allows(subj));
 
         } finally {
-            sImpl.refresh(false);
+            jrSession.refresh(false);
         }
     }
 
+    @Test
     public void testImportInvalidImpersonationIgnore() throws IOException, RepositoryException, SAXException, NotExecutableException {
         List<String> invalid = new ArrayList<String>();
         invalid.add("anybody"); // an non-existing princ-name
@@ -1002,7 +1017,7 @@ public class UserImportTest extends AbstractUserTest {
                     fail("Importing 't' didn't create a User.");
                 }
             } finally {
-                sImpl.refresh(false);
+                jrSession.refresh(false);
             }
         }
     }
@@ -1037,6 +1052,7 @@ public class UserImportTest extends AbstractUserTest {
 //        }
 //    }
 
+    @Test
     public void testImportUuidCollisionRemoveExisting() throws RepositoryException, IOException, SAXException {
         String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
                 "<sv:node sv:name=\"t\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
@@ -1056,13 +1072,13 @@ public class UserImportTest extends AbstractUserTest {
 
             // saving changes of the import -> must succeed. add mandatory
             // props should have been created.
-            sImpl.save();
+            jrSession.save();
 
         } finally {
-            sImpl.refresh(false);
+            jrSession.refresh(false);
             if (target.hasNode("t")) {
                 target.getNode("t").remove();
-                sImpl.save();
+                jrSession.save();
             }
         }
     }
@@ -1075,7 +1091,7 @@ public class UserImportTest extends AbstractUserTest {
      * @throws IOException
      * @throws SAXException
      */
-
+    @Test
     public void testImportUuidCollisionRemoveExisting2() throws RepositoryException, IOException, SAXException {
         String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
                 "<sv:node sv:name=\"t\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
@@ -1088,7 +1104,7 @@ public class UserImportTest extends AbstractUserTest {
         Node target = superuser.getNode(USERPATH);
         try {
             doImport(USERPATH, xml);
-            sImpl.save();
+            jrSession.save();
 
             //TODO different IgnoreBehavior needed?
             // re-import should succeed if UUID-behavior is set accordingly
@@ -1096,17 +1112,18 @@ public class UserImportTest extends AbstractUserTest {
 
             // saving changes of the import -> must succeed. add mandatory
             // props should have been created.
-            sImpl.save();
+            jrSession.save();
 
         } finally {
-            sImpl.refresh(false);
+            jrSession.refresh(false);
             if (target.hasNode("t")) {
                 target.getNode("t").remove();
-                sImpl.save();
+                jrSession.save();
             }
         }
     }
 
+    @Test
     public void testImportUuidCollisionThrow() throws RepositoryException, IOException, SAXException {
         String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
                 "<sv:node sv:name=\"t\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
@@ -1129,14 +1146,15 @@ public class UserImportTest extends AbstractUserTest {
         } catch (ItemExistsException e) {
             // success.
         } finally {
-            sImpl.refresh(false);
+            jrSession.refresh(false);
             if (target.hasNode("t")) {
                 target.getNode("t").remove();
-                sImpl.save();
+                jrSession.save();
             }
         }
     }
 
+    @Test
     public void testImportGroupMembersFromNodes() throws RepositoryException, IOException, SAXException {
         String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><sv:node sv:name=\"s\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:sling=\"http://sling.apache.org/jcr/sling/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\"><sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>rep:AuthorizableFolder</sv:value></sv:property><sv:property sv:name=\"jcr:created\" sv:type=\"Date\"><sv:value>2010-08-17T18:22:20.086+02:00</sv:value></sv:property><sv:property sv:name=\"jcr:createdBy\" sv:type=\"String\"><sv:value>admin</sv:value></sv:property><sv:node sv:name=\"sh\"><sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>rep:AuthorizableFolder</sv:value></sv:property><sv:property sv:name=\"jcr:created\" sv:type=\"Date\"><sv:value>2010-08-17T18:22:20.086+02:00</sv:value></sv:property><sv:property sv:name=\"jcr:createdBy\" sv:type=\"String\"><sv:value>admin</sv:value></sv:property><sv:node sv:name=\"shrimps\"><sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>rep:Group</sv:value></sv:property><sv:property sv:name=\"jcr:uuid\" sv:type=\"String\"><sv:value>08429aec-6f09-30db-8c83-1a2a57fc760c</sv:value></sv:property><sv:property sv:name=\"jcr:created\" sv:type=\"Date\">" +
                      "<sv:value>2010-08-17T18:22:20.086+02:00</sv:value></sv:property><sv:property sv:name=\"jcr:createdBy\" sv:type=\"String\"><sv:value>admin</sv:value></sv:property><sv:property sv:name=\"rep:principalName\" sv:type=\"String\"><sv:value>shrimps</sv:value></sv:property><sv:node sv:name=\"rep:members\"><sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>rep:Members</sv:value></sv:property><sv:node sv:name=\"adi\"><sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>rep:Members</sv:value></sv:property><sv:node sv:name=\"adi\"><sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>rep:Members</sv:value></sv:property><sv:property sv:name=\"adi\" sv:type=\"WeakReference\"><sv:value>c46335eb-267e-3e1c-9e5b-017acb4cd799</sv:value></sv:property><sv:property sv:name=\"admin\" sv:type=\"WeakReference\"><sv:value>21232f29-7a57-35a7-8389-4a0e4a801fc3</sv:value></sv:property></sv:node><sv:node sv:name=\"angi\"><sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>rep:Members</sv:value></sv:property><sv:property sv:name=\"angi\" sv:type=\"WeakReference\"><sv:value>a468b64f-b1df-377c-b325-20d97aaa1ad9</sv:value></sv:property><sv:property sv:name=\"anonymous\" sv:type=\"WeakReference\"><sv:value>294de355-7d9d-30b3-92d8-a1e6aab028cf</sv:value></sv:property><sv:property sv:name=\"cati\" sv:type=\"WeakReference\"><sv:value>f08910b6-41c8-3cb9-a648-1dddd14b132d</sv:value></sv:property></sv:node></sv:node><sv:n" +
@@ -1156,12 +1174,12 @@ public class UserImportTest extends AbstractUserTest {
                 }
             }
             if (!userMgr.isAutoSave()) {
-                sImpl.save();
+                jrSession.save();
             }
 
             doImport(GROUPPATH, xml);
             if (!userMgr.isAutoSave()) {
-                sImpl.save();
+                jrSession.save();
             }
 
             Authorizable aShrimps = userMgr.getAuthorizable("shrimps");
@@ -1175,7 +1193,7 @@ public class UserImportTest extends AbstractUserTest {
 
 
         } finally {
-            sImpl.refresh(false);
+            jrSession.refresh(false);
             for (String user : createdUsers) {
                 Authorizable a = userMgr.getAuthorizable(user);
                 if (a != null && !a.isGroup()) {
@@ -1183,13 +1201,13 @@ public class UserImportTest extends AbstractUserTest {
                 }
             }
             if (!userMgr.isAutoSave()) {
-                sImpl.save();
+                jrSession.save();
             }
             for (NodeIterator it = target.getNodes(); it.hasNext(); ) {
                 it.nextNode().remove();
             }
             if (!userMgr.isAutoSave()) {
-                sImpl.save();
+                jrSession.save();
             }
         }
     }
@@ -1252,164 +1270,6 @@ public class UserImportTest extends AbstractUserTest {
 //        }
 //    }
 
-    //TODO clarify how to test AuthorizableActions in Oak
-//    public void testActionExecutionForUser() throws Exception {
-//        TestAction testAction = new TestAction();
-//
-//        userMgr.setAuthorizableActions(new AuthorizableAction[] {testAction});
-//
-//        // import user
-//        String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
-//                "<sv:node sv:name=\"t\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
-//                "   <sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>rep:User</sv:value></sv:property>" +
-//                "   <sv:property sv:name=\"jcr:uuid\" sv:type=\"String\"><sv:value>e358efa4-89f5-3062-b10d-d7316b65649e</sv:value></sv:property>" +
-//                "   <sv:property sv:name=\"rep:password\" sv:type=\"String\"><sv:value>pw</sv:value></sv:property>" +
-//                "   <sv:property sv:name=\"rep:principalName\" sv:type=\"String\"><sv:value>tPrincipal</sv:value></sv:property>" +
-//                "</sv:node>";
-//
-//        NodeImpl target = (NodeImpl) sImpl.getNode(umgr.getUsersPath());
-//        try {
-//            doImport(target, xml);
-//            assertEquals(testAction.id, "t");
-//            assertEquals(testAction.pw, "pw");
-//        } finally {
-//            sImpl.refresh(false);
-//        }
-//    }
-//
-//    public void testActionExecutionForGroup() throws Exception {
-//        TestAction testAction = new TestAction();
-//
-//        umgr.setAuthorizableActions(new AuthorizableAction[] {testAction});
-//
-//        // import group
-//        String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
-//                "<sv:node sv:name=\"g\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
-//                "   <sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>rep:Group</sv:value></sv:property>" +
-//                "   <sv:property sv:name=\"jcr:uuid\" sv:type=\"String\"><sv:value>b2f5ff47-4366-31b6-a533-d8dc3614845d</sv:value></sv:property>" +
-//                "   <sv:property sv:name=\"rep:principalName\" sv:type=\"String\"><sv:value>gPrincipal</sv:value></sv:property>" +
-//                "</sv:node>";
-//
-//        NodeImpl target = (NodeImpl) sImpl.getNode(umgr.getGroupsPath());
-//        try {
-//            doImport(target, xml);
-//            assertEquals(testAction.id, "g");
-//            assertNull(testAction.pw);
-//        } finally {
-//            sImpl.refresh(false);
-//        }
-//    }
-//
-//    public void testAccessControlActionExecutionForUser() throws Exception {
-//        AccessControlAction a1 = new AccessControlAction();
-//        a1.setUserPrivilegeNames(Privilege.JCR_ALL);
-//
-//        umgr.setAuthorizableActions(new AuthorizableAction[] {a1});
-//
-//        String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
-//                "<sv:node sv:name=\"t\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
-//                "   <sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>rep:User</sv:value></sv:property>" +
-//                "   <sv:property sv:name=\"jcr:uuid\" sv:type=\"String\"><sv:value>e358efa4-89f5-3062-b10d-d7316b65649e</sv:value></sv:property>" +
-//                "   <sv:property sv:name=\"rep:password\" sv:type=\"String\"><sv:value>{sha1}8efd86fb78a56a5145ed7739dcb00c78581c5375</sv:value></sv:property>" +
-//                "   <sv:property sv:name=\"rep:principalName\" sv:type=\"String\"><sv:value>tPrincipal</sv:value></sv:property>" +
-//                "</sv:node>";
-//
-//        NodeImpl target = (NodeImpl) sImpl.getNode(umgr.getUsersPath());
-//        try {
-//            doImport(target, xml);
-//
-//            Authorizable a = umgr.getAuthorizable("t");
-//            assertNotNull(a);
-//            assertFalse(a.isGroup());
-//
-//            AccessControlManager acMgr = sImpl.getAccessControlManager();
-//            AccessControlPolicy[] policies = acMgr.getPolicies(a.getPath());
-//            assertNotNull(policies);
-//            assertEquals(1, policies.length);
-//            assertTrue(policies[0] instanceof AccessControlList);
-//
-//            AccessControlEntry[] aces = ((AccessControlList) policies[0]).getAccessControlEntries();
-//            assertEquals(1, aces.length);
-//            assertEquals("tPrincipal", aces[0].getPrincipal().getName());
-//
-//        } finally {
-//            sImpl.refresh(false);
-//        }
-//    }
-//
-//    public void testAccessControlActionExecutionForUser2() throws Exception {
-//        AccessControlAction a1 = new AccessControlAction();
-//        a1.setUserPrivilegeNames(Privilege.JCR_ALL);
-//
-//        umgr.setAuthorizableActions(new AuthorizableAction[] {a1});
-//
-//        String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
-//                "<sv:node sv:name=\"t\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
-//                "   <sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>rep:User</sv:value></sv:property>" +
-//                "   <sv:property sv:name=\"jcr:uuid\" sv:type=\"String\"><sv:value>e358efa4-89f5-3062-b10d-d7316b65649e</sv:value></sv:property>" +
-//                "   <sv:property sv:name=\"rep:principalName\" sv:type=\"String\"><sv:value>tPrincipal</sv:value></sv:property>" +
-//                "   <sv:property sv:name=\"rep:password\" sv:type=\"String\"><sv:value>{sha1}8efd86fb78a56a5145ed7739dcb00c78581c5375</sv:value></sv:property>" +
-//                "</sv:node>";
-//
-//        NodeImpl target = (NodeImpl) sImpl.getNode(umgr.getUsersPath());
-//        try {
-//            doImport(target, xml);
-//
-//            Authorizable a = umgr.getAuthorizable("t");
-//            assertNotNull(a);
-//            assertFalse(a.isGroup());
-//
-//            AccessControlManager acMgr = sImpl.getAccessControlManager();
-//            AccessControlPolicy[] policies = acMgr.getPolicies(a.getPath());
-//            assertNotNull(policies);
-//            assertEquals(1, policies.length);
-//            assertTrue(policies[0] instanceof AccessControlList);
-//
-//            AccessControlEntry[] aces = ((AccessControlList) policies[0]).getAccessControlEntries();
-//            assertEquals(1, aces.length);
-//            assertEquals("tPrincipal", aces[0].getPrincipal().getName());
-//
-//        } finally {
-//            sImpl.refresh(false);
-//        }
-//    }
-//
-//    public void testAccessControlActionExecutionForGroup() throws Exception {
-//        AccessControlAction a1 = new AccessControlAction();
-//        a1.setGroupPrivilegeNames(Privilege.JCR_READ);
-//
-//        umgr.setAuthorizableActions(new AuthorizableAction[] {a1});
-//
-//        String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
-//                "<sv:node sv:name=\"g\" xmlns:mix=\"http://www.jcp.org/jcr/mix/1.0\" xmlns:nt=\"http://www.jcp.org/jcr/nt/1.0\" xmlns:fn_old=\"http://www.w3.org/2004/10/xpath-functions\" xmlns:fn=\"http://www.w3.org/2005/xpath-functions\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:sv=\"http://www.jcp.org/jcr/sv/1.0\" xmlns:rep=\"internal\" xmlns:jcr=\"http://www.jcp.org/jcr/1.0\">" +
-//                "   <sv:property sv:name=\"jcr:primaryType\" sv:type=\"Name\"><sv:value>rep:Group</sv:value></sv:property>" +
-//                "   <sv:property sv:name=\"jcr:uuid\" sv:type=\"String\"><sv:value>b2f5ff47-4366-31b6-a533-d8dc3614845d</sv:value></sv:property>" +
-//                "   <sv:property sv:name=\"rep:principalName\" sv:type=\"String\"><sv:value>gPrincipal</sv:value></sv:property>" +
-//                "</sv:node>";
-//
-//        NodeImpl target = (NodeImpl) sImpl.getNode(umgr.getGroupsPath());
-//        try {
-//            doImport(target, xml);
-//
-//            Authorizable a = umgr.getAuthorizable("g");
-//            assertNotNull(a);
-//            assertTrue(a.isGroup());
-//
-//            AccessControlManager acMgr = sImpl.getAccessControlManager();
-//            AccessControlPolicy[] policies = acMgr.getPolicies(a.getPath());
-//            assertNotNull(policies);
-//            assertEquals(1, policies.length);
-//            assertTrue(policies[0] instanceof AccessControlList);
-//
-//            AccessControlEntry[] aces = ((AccessControlList) policies[0]).getAccessControlEntries();
-//            assertEquals(1, aces.length);
-//            assertEquals("gPrincipal", aces[0].getPrincipal().getName());
-//
-//        } finally {
-//            sImpl.refresh(false);
-//        }
-//    }
-
     private void doImport(String parentPath, String xml) throws IOException, SAXException, RepositoryException {
         InputStream in = new ByteArrayInputStream(xml.getBytes("UTF-8"));
         superuser.importXML(parentPath, in, ImportUUIDBehavior.IMPORT_UUID_COLLISION_THROW);
@@ -1426,32 +1286,6 @@ public class UserImportTest extends AbstractUserTest {
         while (it.hasNext()) {
             Authorizable member = it.next();
             assertFalse(potentialID.equals(session.getNode(member.getPath()).getIdentifier()));
-        }
-    }
-
-    private final class TestAction implements AuthorizableAction {
-        private String id;
-        private String pw;
-
-        @Override
-        public void onCreate(Group group, Root root, NamePathMapper namePathMapper) throws RepositoryException {
-            id = group.getID();
-        }
-
-        @Override
-        public void onCreate(User user, String password, Root root, NamePathMapper namePathMapper) throws RepositoryException {
-            id = user.getID();
-            pw = password;
-        }
-
-        @Override
-        public void onRemove(Authorizable authorizable, Root root, NamePathMapper namePathMapper) throws RepositoryException {
-            // ignore
-        }
-
-        @Override
-        public void onPasswordChange(User user, String newPassword, Root root, NamePathMapper namePathMapper) throws RepositoryException {
-            pw = newPassword;
         }
     }
 }
