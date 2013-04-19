@@ -25,7 +25,8 @@ import org.apache.jackrabbit.oak.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.ReadStatus;
 
 /**
- * AllPermissions... TODO
+ * Implementation of the {@code CompiledPermissions} interface that grants full
+ * permission everywhere.
  */
 public final class AllPermissions implements CompiledPermissions {
 
