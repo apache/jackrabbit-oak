@@ -123,6 +123,11 @@ class SegmentNodeState extends AbstractNodeState {
         return getTemplate().getChildNodeEntries(store, recordId);
     }
 
+    @Override @Nonnull
+    public NodeBuilder builder() {
+        return new MemoryNodeBuilder(this);
+    }
+
     @Override
     public void compareAgainstBaseState(NodeState base, NodeStateDiff diff) {
         if (base == this) {
