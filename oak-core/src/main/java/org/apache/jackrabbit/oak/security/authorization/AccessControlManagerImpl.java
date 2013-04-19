@@ -30,7 +30,9 @@ import javax.annotation.Nullable;
 import javax.jcr.AccessDeniedException;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
+import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.query.Query;
+import javax.jcr.security.AccessControlEntry;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.AccessControlList;
 import javax.jcr.security.AccessControlPolicy;
@@ -216,7 +218,6 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
             AccessControlPolicy[] plcs = getPolicies(principalAcl.principal);
             PrincipalACL existing = (plcs.length == 0) ? null : (PrincipalACL) plcs[0];
 
-            // TODO: handle re-ordered entries...
             List<JackrabbitAccessControlEntry> toAdd = Lists.newArrayList(principalAcl.getEntries());
             List<JackrabbitAccessControlEntry> toRemove = Collections.emptyList();
             if (existing != null) {
@@ -747,7 +748,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
         }
     }
 
-    private final class PrincipalACL extends NodeACL {
+    private final class PrincipalACL extends ACL {
 
         private final Principal principal;
         private final RestrictionProvider rProvider;
@@ -755,7 +756,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
         private PrincipalACL(String oakPath, Principal principal,
                              List<JackrabbitAccessControlEntry> entries,
                              RestrictionProvider restrictionProvider) {
-            super(oakPath, entries);
+            super(oakPath, entries, namePathMapper);
             this.principal = principal;
             rProvider = restrictionProvider;
         }
@@ -764,6 +765,26 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
         @Override
         public RestrictionProvider getRestrictionProvider() {
             return rProvider;
+        }
+
+        @Override
+        PrincipalManager getPrincipalManager() {
+            return principalManager;
+        }
+
+        @Override
+        PrivilegeManager getPrivilegeManager() {
+            return privilegeManager;
+        }
+
+        @Override
+        PrivilegeBitsProvider getPrivilegeBitsProvider() {
+            return new PrivilegeBitsProvider(root);
+        }
+
+        @Override
+        public void orderBefore(AccessControlEntry srcEntry, AccessControlEntry destEntry) throws RepositoryException {
+            throw new UnsupportedRepositoryOperationException("reordering is not supported");
         }
 
         @Override
