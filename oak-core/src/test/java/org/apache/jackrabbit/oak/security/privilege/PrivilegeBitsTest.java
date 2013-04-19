@@ -31,9 +31,6 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-/**
- * PrivilegeBitsTest... TODO
- */
 public class PrivilegeBitsTest implements PrivilegeConstants {
 
     private static final long NO_PRIVILEGE = 0;
