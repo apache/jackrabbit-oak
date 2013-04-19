@@ -18,9 +18,6 @@ package org.apache.jackrabbit.oak.security.privilege;
 
 import org.junit.Test;
 
-/**
- * PrivilegeDefinitionWriterTest... TODO
- */
 public class PrivilegeDefinitionWriterTest {
 
     @Test
