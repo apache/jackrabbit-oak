@@ -26,7 +26,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 /**
- * AdministratorTest...
+ * Test for the administrator user.
  */
 public class AdministratorTest extends AbstractUserTest {
 

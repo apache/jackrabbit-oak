@@ -38,6 +38,9 @@ import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.test.NotExecutableException;
 import org.junit.Test;
 
+/**
+ * Tests for the {@link UserManager} implementation.
+ */
 public class UserManagerTest extends AbstractUserTest {
 
     @Test

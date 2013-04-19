@@ -31,7 +31,7 @@ import org.apache.jackrabbit.test.NotExecutableException;
 import org.junit.Test;
 
 /**
- * AuthorizableTest...
+ * Tests for the {@link Authorizable} implementation.
  */
 public class AuthorizableTest extends AbstractUserTest {
 

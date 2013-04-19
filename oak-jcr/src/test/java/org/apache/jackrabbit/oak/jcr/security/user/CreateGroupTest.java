@@ -28,7 +28,7 @@ import org.apache.jackrabbit.test.NotExecutableException;
 import org.junit.Test;
 
 /**
- * CreateGroupTest...
+ * Tests for {@code Group} creation.
  */
 public class CreateGroupTest extends AbstractUserTest {
 

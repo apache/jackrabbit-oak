@@ -39,7 +39,7 @@ import org.apache.jackrabbit.value.StringValue;
 import org.junit.Test;
 
 /**
- * AuthorizablePropertyTest...
+ * Tests for user property specific API.
  */
 public class AuthorizablePropertyTest extends AbstractUserTest {
 
