@@ -37,12 +37,13 @@ public class AccessControlInitializer implements WorkspaceInitializer, AccessCon
     @Override
     public NodeState initialize(NodeState workspaceRoot, String workspaceName, QueryIndexProvider indexProvider, CommitHook commitHook) {
         NodeBuilder root = workspaceRoot.builder();
+
         // property index for rep:principalName stored in ACEs
         NodeBuilder index = IndexUtils.getOrCreateOakIndex(root);
         if (!index.hasChildNode("acPrincipalName")) {
             IndexUtils.createIndexDefinition(index, "acPrincipalName", true, false,
                     ImmutableList.<String>of(REP_PRINCIPAL_NAME),
-                    ImmutableList.<String>of(NT_REP_DENY_ACE, NT_REP_GRANT_ACE));
+                    ImmutableList.<String>of(NT_REP_DENY_ACE, NT_REP_GRANT_ACE, NT_REP_ACE));
         }
         return root.getNodeState();
     }
