@@ -39,7 +39,7 @@ public class PrivilegeManagementTest extends AbstractEvaluationTest {
         super.setUp();
 
         // test user must not be allowed
-        assertHasPrivilege(null, REP_PRIVILEGE_MANAGEMENT, false);
+        assertHasRepoPrivilege(REP_PRIVILEGE_MANAGEMENT, false);
     }
 
     @Override
@@ -86,10 +86,10 @@ public class PrivilegeManagementTest extends AbstractEvaluationTest {
     @Test
     public void testModifyPrivilegeMgtPrivilege() throws Exception {
         modify(null, REP_PRIVILEGE_MANAGEMENT, true);
-        assertHasPrivilege(null, REP_PRIVILEGE_MANAGEMENT, true);
+        assertHasRepoPrivilege(REP_PRIVILEGE_MANAGEMENT, true);
 
         modify(null, REP_PRIVILEGE_MANAGEMENT, false);
-        assertHasPrivilege(null, REP_PRIVILEGE_MANAGEMENT, false);
+        assertHasRepoPrivilege(REP_PRIVILEGE_MANAGEMENT, false);
     }
 
     @Test

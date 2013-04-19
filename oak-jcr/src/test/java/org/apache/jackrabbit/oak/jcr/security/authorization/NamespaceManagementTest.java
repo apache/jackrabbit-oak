@@ -41,7 +41,7 @@ public class NamespaceManagementTest extends AbstractEvaluationTest {
     protected void setUp() throws Exception {
         super.setUp();
 
-        assertHasPrivilege(null, JCR_NAMESPACE_MANAGEMENT, false);
+        assertHasRepoPrivilege(JCR_NAMESPACE_MANAGEMENT, false);
     }
 
     @Override
@@ -93,10 +93,10 @@ public class NamespaceManagementTest extends AbstractEvaluationTest {
     @Test
     public void testModifyNamespaceWithPrivilege() throws Exception {
         modify(null, JCR_NAMESPACE_MANAGEMENT.toString(), true);
-        assertHasPrivilege(null, JCR_NAMESPACE_MANAGEMENT, true);
+        assertHasRepoPrivilege(JCR_NAMESPACE_MANAGEMENT, true);
 
         modify(null, JCR_NAMESPACE_MANAGEMENT.toString(), false);
-        assertHasPrivilege(null, JCR_NAMESPACE_MANAGEMENT, false);
+        assertHasRepoPrivilege(JCR_NAMESPACE_MANAGEMENT, false);
     }
 
     @Test
