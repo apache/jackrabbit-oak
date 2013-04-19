@@ -61,7 +61,8 @@ import static org.junit.Assert.assertSame;
  * CompiledPermissionImplTest... TODO
  */
 @Ignore("work in progress")
-public class CompiledPermissionImplTest extends AbstractSecurityTest implements PermissionConstants {
+public class CompiledPermissionImplTest extends AbstractSecurityTest 
+        implements PermissionConstants, PrivilegeConstants {
 
     private Principal userPrincipal;
     private Principal group1;
@@ -130,107 +131,106 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest implements 
 
     @Test
     public void testGetReadStatus() throws Exception {
-        setupPermission(userPrincipal, "/", true, 0, PrivilegeConstants.JCR_READ);
+        allow(userPrincipal, "/", 0, JCR_READ);
 
         CompiledPermissionImpl cp = createPermissions(ImmutableSet.of(userPrincipal));
-        assertReadStatus(ReadStatus.ALLOW_ALL, cp, allPaths);
+        assertReadStatus(ReadStatus.ALLOW_ALL_REGULAR, cp, allPaths);
     }
 
     @Test
     public void testGetReadStatus1() throws Exception {
-        setupPermission(group1, node2Path, true, 0, PrivilegeConstants.JCR_READ);
+        allow(group1, node2Path, 0, JCR_READ);
 
         CompiledPermissionImpl cp = createPermissions(ImmutableSet.of(group1));
 
         assertReadStatus(ReadStatus.DENY_THIS, cp, ImmutableList.of("/", node1Path, UserConstants.DEFAULT_USER_PATH));
-        assertReadStatus(ReadStatus.ALLOW_ALL, cp, Collections.singletonList(node2Path));
+        assertReadStatus(ReadStatus.ALLOW_ALL_REGULAR, cp, node2Path);
     }
 
     @Test
     public void testGetReadStatus2() throws Exception {
-        setupPermission(userPrincipal, "/", true, 0, PrivilegeConstants.JCR_READ);
-        setupPermission(group1, "/", false, 0, PrivilegeConstants.JCR_READ, Collections.<Restriction>emptySet());
+        allow(userPrincipal, "/", 0, JCR_READ);
+        deny(group1, "/", 0, JCR_READ);
 
         CompiledPermissionImpl cp = createPermissions(ImmutableSet.of(userPrincipal));
-        assertReadStatus(ReadStatus.ALLOW_ALL, cp, allPaths);
+        assertReadStatus(ReadStatus.ALLOW_ALL_REGULAR, cp, allPaths);
     }
 
     @Test
     public void testGetReadStatus3() throws Exception {
-        setupPermission(group1, "/", true, 0, PrivilegeConstants.JCR_READ);
-        setupPermission(group2, "/", false, 1, PrivilegeConstants.JCR_READ);
+        allow(group1, "/", 0, JCR_READ);
+        deny(group2, "/", 1, JCR_READ);
 
         CompiledPermissionImpl cp = createPermissions(ImmutableSet.of(group1, group2));
-        assertReadStatus(ReadStatus.DENY_ALL, cp, allPaths);
+        assertReadStatus(ReadStatus.DENY_ALL_REGULAR, cp, allPaths);
     }
 
     @Test
     public void testGetReadStatus4() throws Exception {
-        setupPermission(group1, "/", true, 0, PrivilegeConstants.JCR_READ);
-        setupPermission(group2, node2Path, true, 1, PrivilegeConstants.JCR_READ);
+        allow(group1, "/", 0, JCR_READ);
+        allow(group2, node2Path, 1, JCR_READ);
 
         CompiledPermissionImpl cp = createPermissions(ImmutableSet.of(group1, group2));
-        assertReadStatus(ReadStatus.ALLOW_ALL, cp, allPaths);
+        assertReadStatus(ReadStatus.ALLOW_ALL_REGULAR, cp, allPaths);
     }
 
     @Test
     public void testGetReadStatus5() throws Exception {
-        setupPermission(userPrincipal, "/", true, 0, PrivilegeConstants.JCR_READ);
-        setupPermission(group2, node1Path, false, 1, PrivilegeConstants.JCR_READ);
+        allow(userPrincipal, "/", 0, JCR_READ);
+        deny(group2, node1Path, 1, JCR_READ);
 
         CompiledPermissionImpl cp = createPermissions(ImmutableSet.of(userPrincipal, group2));
-        assertReadStatus(ReadStatus.ALLOW_ALL, cp, allPaths);
+        assertReadStatus(ReadStatus.ALLOW_ALL_REGULAR, cp, allPaths);
     }
 
     @Test
     public void testGetReadStatus6() throws Exception {
-        setupPermission(group2, "/", true, 0, PrivilegeConstants.JCR_READ);
-        setupPermission(userPrincipal, node1Path, false, 0, PrivilegeConstants.JCR_READ);
+        allow(group2, "/", 0, JCR_READ);
+        deny(userPrincipal, node1Path, 0, JCR_READ);
 
         CompiledPermissionImpl cp = createPermissions(ImmutableSet.of(userPrincipal, group2));
 
         assertReadStatus(ReadStatus.ALLOW_THIS, cp, rootAndUsers);
-        assertReadStatus(ReadStatus.DENY_ALL, cp, nodePaths);
+        assertReadStatus(ReadStatus.DENY_ALL_REGULAR, cp, nodePaths);
     }
 
     @Test
     public void testGetReadStatus7() throws Exception {
-        setupPermission(group2, "/", true, 0, PrivilegeConstants.REP_READ_PROPERTIES);
-        setupPermission(userPrincipal, node1Path, true, 0, PrivilegeConstants.REP_READ_NODES);
+        allow(group2, "/", 0, REP_READ_PROPERTIES);
+        allow(userPrincipal, node1Path, 0, REP_READ_NODES);
 
         CompiledPermissionImpl cp = createPermissions(ImmutableSet.of(userPrincipal, group2));
 
         assertReadStatus(ReadStatus.ALLOW_PROPERTIES, cp, rootAndUsers);
-        assertReadStatus(ReadStatus.ALLOW_ALL, cp, nodePaths);
+        assertReadStatus(ReadStatus.ALLOW_ALL_REGULAR, cp, nodePaths);
     }
 
     @Test
     public void testGetReadStatus8() throws Exception {
-        setupPermission(userPrincipal, "/", true, 0, PrivilegeConstants.REP_READ_PROPERTIES);
-        setupPermission(group2, node1Path, true, 0, PrivilegeConstants.REP_READ_NODES);
+        allow(userPrincipal, "/", 0, REP_READ_PROPERTIES);
+        allow(group2, node1Path, 0, REP_READ_NODES);
 
         CompiledPermissionImpl cp = createPermissions(ImmutableSet.of(userPrincipal, group2));
 
-        // TODO
-        assertReadStatus(ReadStatus.DENY_THIS, ReadStatus.ALLOW_THIS, cp, rootAndUsers);
-        assertReadStatus(ReadStatus.ALLOW_ALL, ReadStatus.ALLOW_THIS, cp, nodePaths);
+        assertReadStatus(ReadStatus.ALLOW_PROPERTIES, cp, rootAndUsers);
+        assertReadStatus(ReadStatus.ALLOW_ALL_REGULAR, cp, nodePaths);
     }
 
     @Test
     public void testGetReadStatus9() throws Exception {
-        setupPermission(group2, "/", true, 0, PrivilegeConstants.REP_READ_PROPERTIES);
-        setupPermission(group1, node1Path, true, 0, PrivilegeConstants.REP_READ_NODES);
+        allow(group2, "/", 0, REP_READ_PROPERTIES);
+        allow(group1, node1Path, 0, REP_READ_NODES);
 
         CompiledPermissionImpl cp = createPermissions(ImmutableSet.of(group1, group2));
 
         assertReadStatus(ReadStatus.ALLOW_PROPERTIES, cp, rootAndUsers);
-        assertReadStatus(ReadStatus.ALLOW_ALL, cp, nodePaths);
+        assertReadStatus(ReadStatus.ALLOW_ALL_REGULAR, cp, nodePaths);
     }
 
     @Test
     public void testGetReadStatus10() throws Exception {
-        setupPermission(group2, "/", false, 0, PrivilegeConstants.JCR_READ);
-        setupPermission(group1, node1Path, true, 0, PrivilegeConstants.REP_READ_NODES);
+        deny(group2, "/", 0, JCR_READ);
+        allow(group1, node1Path, 0, REP_READ_NODES);
 
         CompiledPermissionImpl cp = createPermissions(ImmutableSet.of(group1, group2));
 
@@ -240,22 +240,22 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest implements 
 
     @Test
     public void testGetReadStatus11() throws Exception {
-        setupPermission(group2, "/", false, 0, PrivilegeConstants.JCR_READ);
-        setupPermission(group2, node1Path, false, 0, PrivilegeConstants.JCR_READ);
-        setupPermission(group1, node2Path, true, 0, PrivilegeConstants.REP_READ_NODES);
+        deny(group2, "/", 0, JCR_READ);
+        deny(group2, node1Path, 0, JCR_READ);
+        allow(group1, node2Path, 0, REP_READ_NODES);
 
         CompiledPermissionImpl cp = createPermissions(ImmutableSet.of(group1, group2));
 
         List<String> treePaths = ImmutableList.of("/", UserConstants.DEFAULT_USER_PATH, node1Path);
         assertReadStatus(ReadStatus.DENY_THIS, cp, treePaths);
-        assertReadStatus(ReadStatus.ALLOW_NODES, cp, Collections.singletonList(node2Path));
+        assertReadStatus(ReadStatus.ALLOW_NODES, cp, node2Path);
     }
 
     @Test
     public void testGetReadStatus12() throws Exception {
-        setupPermission(group1, "/", true, 0, PrivilegeConstants.JCR_READ);
-        setupPermission(group1, node1Path, false, 0, PrivilegeConstants.REP_READ_PROPERTIES);
-        setupPermission(group1, node2Path, true, 0, PrivilegeConstants.REP_READ_NODES);
+        allow(group1, "/", 0, JCR_READ);
+        deny(group1, node1Path, 0, REP_READ_PROPERTIES);
+        allow(group1, node2Path, 0, REP_READ_NODES);
 
         CompiledPermissionImpl cp = createPermissions(ImmutableSet.of(group1));
 
@@ -265,41 +265,70 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest implements 
 
     @Test
     public void testGetReadStatus13() throws Exception {
-        setupPermission(group1, "/", true, 0, PrivilegeConstants.JCR_READ);
-        setupPermission(group1, node1Path, false, 0, PrivilegeConstants.REP_READ_PROPERTIES);
-        setupPermission(group1, node2Path, true, 0, PrivilegeConstants.JCR_READ);
+        allow(group1, "/", 0, JCR_READ);
+        deny(group1, node1Path, 0, REP_READ_PROPERTIES);
+        allow(group1, node2Path, 0, JCR_READ);
 
         CompiledPermissionImpl cp = createPermissions(ImmutableSet.of(group1));
 
         assertReadStatus(ReadStatus.ALLOW_THIS, cp, rootAndUsers);
-        assertReadStatus(ReadStatus.ALLOW_NODES, cp, Collections.singletonList(node1Path));
-        assertReadStatus(ReadStatus.ALLOW_ALL, cp, nodePaths);
+        assertReadStatus(ReadStatus.ALLOW_NODES, cp, node1Path);
+        assertReadStatus(ReadStatus.ALLOW_ALL_REGULAR, cp, nodePaths);
     }
 
     @Test
     public void testGetReadStatus14() throws Exception {
-        setupPermission(group1, "/", true, 0, PrivilegeConstants.REP_READ_NODES);
-        setupPermission(group1, node1Path, false, 0, PrivilegeConstants.REP_READ_PROPERTIES);
-        setupPermission(group1, node2Path, true, 0, PrivilegeConstants.REP_READ_PROPERTIES);
+        allow(group1, "/", 0, REP_READ_NODES);
+        deny(group1, node1Path, 0, REP_READ_PROPERTIES);
+        allow(group1, node2Path, 0, REP_READ_PROPERTIES);
 
         CompiledPermissionImpl cp = createPermissions(ImmutableSet.of(group1));
 
         assertReadStatus(ReadStatus.ALLOW_NODES, cp, rootAndUsers);
-        assertReadStatus(ReadStatus.ALLOW_NODES, cp, Collections.singletonList(node1Path));
-        assertReadStatus(ReadStatus.ALLOW_ALL, cp, nodePaths);
+        assertReadStatus(ReadStatus.ALLOW_NODES, cp, node1Path);
+        assertReadStatus(ReadStatus.ALLOW_ALL_REGULAR, cp, nodePaths);
     }
 
     @Test
     public void testGetReadStatus15() throws Exception {
-        setupPermission(group1, "/", true, 0, PrivilegeConstants.REP_READ_NODES);
-        setupPermission(group1, node1Path, false, 0, PrivilegeConstants.JCR_READ);
-        setupPermission(group1, node2Path, true, 0, PrivilegeConstants.REP_READ_PROPERTIES);
+        allow(group1, "/", 0, REP_READ_NODES);
+        deny(group1, node1Path, 0, JCR_READ);
+        allow(group1, node2Path, 0, REP_READ_PROPERTIES);
 
         CompiledPermissionImpl cp = createPermissions(ImmutableSet.of(group1));
 
-        assertReadStatus(ReadStatus.ALLOW_NODES, cp, rootAndUsers);
-        assertReadStatus(ReadStatus.DENY_THIS, cp, Collections.singletonList(node1Path));
-        assertReadStatus(ReadStatus.ALLOW_PROPERTIES, cp, nodePaths);
+        assertReadStatus(ReadStatus.ALLOW_THIS, cp, "/");
+        assertReadStatus(ReadStatus.ALLOW_NODES, cp, UserConstants.DEFAULT_USER_PATH);
+        assertReadStatus(ReadStatus.DENY_THIS, cp, node1Path);
+        assertReadStatus(ReadStatus.ALLOW_PROPERTIES, cp, node2Path);
+    }
+
+    @Test
+    public void testGetReadStatus16() throws Exception {
+        allow(group1, "/", 0, JCR_READ, JCR_READ_ACCESS_CONTROL);
+
+        CompiledPermissionImpl cp = createPermissions(ImmutableSet.of(group1));
+        assertReadStatus(ReadStatus.ALLOW_ALL, cp, allPaths);
+    }
+
+    @Test
+    public void testGetReadStatus17() throws Exception {
+        allow(group1, node1Path, 0, JCR_READ, JCR_READ_ACCESS_CONTROL);
+        deny(group1, node2Path, 0, JCR_READ_ACCESS_CONTROL);
+
+        CompiledPermissionImpl cp = createPermissions(ImmutableSet.of(group1));
+        assertReadStatus(ReadStatus.ALLOW_THIS, cp, node1Path);
+        assertReadStatus(ReadStatus.ALLOW_NODES, cp, node2Path);
+    }
+
+    @Test
+    public void testGetReadStatus18() throws Exception {
+        allow(group1, node1Path, 0, JCR_READ);
+        allow(group2, node2Path, 0, JCR_READ_ACCESS_CONTROL);
+
+        CompiledPermissionImpl cp = createPermissions(ImmutableSet.of(group1));
+        assertReadStatus(ReadStatus.ALLOW_ALL_REGULAR, cp, node1Path);
+        assertReadStatus(ReadStatus.ALLOW_ALL, cp, node2Path);
     }
 
     // TODO: tests with restrictions
@@ -313,13 +342,16 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest implements 
         return new CompiledPermissionImpl(principals, permissionsTree, pbp, rp);
     }
 
-    private void setupPermission(Principal principal, String path, boolean isAllow,
-                                 int index, String privilegeName) throws CommitFailedException {
-        setupPermission(principal, path, isAllow, index, privilegeName, Collections.<Restriction>emptySet());
+    private void allow(Principal principal, String path, int index, String... privilegeNames) throws CommitFailedException {
+        setupPermission(principal, path, true, index, privilegeNames, Collections.<Restriction>emptySet());
+    }
+
+    private void deny(Principal principal, String path, int index, String... privilegeNames) throws CommitFailedException {
+        setupPermission(principal, path, false, index, privilegeNames, Collections.<Restriction>emptySet());
     }
 
     private void setupPermission(Principal principal, String path, boolean isAllow,
-                                 int index, String privilegeName, Set<Restriction> restrictions) throws CommitFailedException {
+                                 int index, String[] privilegeName, Set<Restriction> restrictions) throws CommitFailedException {
         PrivilegeBits pb = pbp.getBits(privilegeName);
         String name = ((isAllow) ? PREFIX_ALLOW : PREFIX_DENY) + "-" + Objects.hashCode(path, principal, index, pb, isAllow, restrictions);
         Tree principalRoot = root.getTree(PERMISSIONS_STORE_PATH + '/' + principal.getName());
@@ -332,6 +364,12 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest implements 
             entry.setProperty(restriction.getProperty());
         }
         root.commit();
+    }
+
+    private void assertReadStatus(ReadStatus expectedTrees,
+                                  CompiledPermissions cp,
+                                  String treePath) {
+        assertReadStatus(expectedTrees, expectedTrees, cp, Collections.singletonList(treePath));
     }
 
     private void assertReadStatus(ReadStatus expectedTrees,

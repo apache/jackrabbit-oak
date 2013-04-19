@@ -89,13 +89,22 @@ public class ReadStatus {
                 return null; // recalculate for child items
             case STATUS_CHILDREN:
             case STATUS_NODES:
-                return (hasAcChildren) ? null : parentStatus;
+                if (hasAcChildren) {
+                    return null;
+                } else {
+                    return (parentStatus.isAllow) ? ALLOW_NODES : DENY_NODES;
+                }
             case STATUS_PROPERTIES:
             case STATUS_THIS_PROPERTIES:
+                // TODO
                 return null; // recalculate for properties of child node
             case STATUS_CHILDITEMS:
             case STATUS_ALL_REGULAR:
-                return (hasAcChildren) ? null : parentStatus;
+                if (hasAcChildren) {
+                    return null;
+                } else {
+                    return (parentStatus.isAllow) ? ALLOW_ALL_REGULAR : DENY_ALL_REGULAR;
+                }
             case STATUS_ACCESS_CONTROL:
                 // TODO
                 return null; // recalculate
