@@ -26,7 +26,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.ReadStatus;
 
 /**
- * NoPermissions... TODO
+ * Implementation of the {@code CompiledPermission} interface that denies all permissions.
  */
 public final class NoPermissions implements CompiledPermissions {
 
