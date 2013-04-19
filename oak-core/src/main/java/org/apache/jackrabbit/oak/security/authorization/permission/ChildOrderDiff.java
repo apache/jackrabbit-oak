@@ -16,25 +16,20 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
+import java.util.ArrayList;
 import java.util.List;
 import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 
 import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Helper class to handle modifications to the hidden
  * {@link org.apache.jackrabbit.oak.core.TreeImpl#OAK_CHILD_ORDER} property.
  */
 class ChildOrderDiff {
-
-    /**
-     * logger instance
-     */
-    private static final Logger log = LoggerFactory.getLogger(ChildOrderDiff.class);
 
     private final PropertyState before;
     private final PropertyState after;
@@ -67,5 +62,28 @@ class ChildOrderDiff {
             }
         }
         return null;
+    }
+
+    /**
+     * Returns the names of all reordered nodes present in the 'after' property.
+     *
+     * @return
+     */
+    @Nonnull
+    List<String> getReordered() {
+        List<String> beforeNames = Lists.newArrayList(before.getValue(Type.NAMES));
+        List<String> afterNames = Lists.newArrayList(after.getValue(Type.NAMES));
+        // remove elements from before that have been deleted
+        beforeNames.retainAll(afterNames);
+
+        List<String> reordered = new ArrayList<String>();
+        for (int i = 0; i < afterNames.size(); i++) {
+            String aName = afterNames.get(i);
+            int index = beforeNames.indexOf(aName);
+            if (index != -1 && index != i) {
+                reordered.add(aName);
+            }
+        }
+        return reordered;
     }
 }
