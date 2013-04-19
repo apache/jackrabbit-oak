@@ -32,9 +32,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
-/**
- * PrivilegeValidatorTest... TODO
- */
 public class PrivilegeValidatorTest extends AbstractSecurityTest implements PrivilegeConstants {
 
     PrivilegeBitsProvider store;

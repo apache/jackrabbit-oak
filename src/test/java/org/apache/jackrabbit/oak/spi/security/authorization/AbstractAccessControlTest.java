@@ -25,9 +25,6 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.name.ReadWriteNamespaceRegistry;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 
-/**
- * AbstractAccessControlTest... TODO
- */
 public abstract class AbstractAccessControlTest extends AbstractSecurityTest {
 
     private RestrictionProvider restrictionProvider;
