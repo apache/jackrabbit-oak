@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.jcr.AccessDeniedException;
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.PathNotFoundException;
@@ -55,6 +56,7 @@ import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.AbstractAccessControlTest;
+import org.apache.jackrabbit.oak.spi.security.authorization.TestACL;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.util.NodeUtil;
@@ -150,7 +152,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         return new NamePathMapperImpl(remapped);
     }
 
-    private ACL getApplicablePolicy(String path) throws RepositoryException {
+    private ACL getApplicablePolicy(@Nullable String path) throws RepositoryException {
         AccessControlPolicyIterator itr = acMgr.getApplicablePolicies(path);
         if (itr.hasNext()) {
             return (ACL) itr.nextAccessControlPolicy();
@@ -159,7 +161,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         }
     }
 
-    private ACL createPolicy(String path) {
+    private ACL createPolicy(@Nullable String path) {
         final PrincipalManager pm = getPrincipalManager();
         final RestrictionProvider rp = getRestrictionProvider();
         return new ACL(path, getNamePathMapper()) {
@@ -186,7 +188,8 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         };
     }
 
-    private void setupPolicy(String path) throws RepositoryException {
+    @Nonnull
+    private ACL setupPolicy(@Nullable String path) throws RepositoryException {
         ACL policy = getApplicablePolicy(path);
         if (path == null) {
             policy.addAccessControlEntry(testPrincipal, testPrivileges);
@@ -194,9 +197,10 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
             policy.addEntry(testPrincipal, testPrivileges, true, getGlobRestriction("*"));
         }
         acMgr.setPolicy(path, policy);
+        return policy;
     }
 
-    private Map<String, Value> getGlobRestriction(String value) {
+    private Map<String, Value> getGlobRestriction(@Nonnull String value) {
         return ImmutableMap.of(REP_GLOB, valueFactory.createValue(value));
     }
 
@@ -1050,6 +1054,20 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
     }
 
     @Test
+    public void testSetRepoPolicy() throws Exception {
+        ACL acl = getApplicablePolicy(null);
+        acl.addAccessControlEntry(testPrincipal, privilegesFromNames(PrivilegeConstants.JCR_NAMESPACE_MANAGEMENT));
+
+        acMgr.setPolicy(null, acl);
+        root.commit();
+
+        Root root2 = adminSession.getLatestRoot();
+        AccessControlPolicy[] policies = getAccessControlManager(root2).getPolicies((String) null);
+        assertEquals(1, policies.length);
+        assertArrayEquals(acl.getAccessControlEntries(), ((ACL) policies[0]).getAccessControlEntries());
+    }
+
+    @Test
     public void testSetPolicyWritesAcContent() throws Exception {
         ACL acl = getApplicablePolicy(testPath);
         acl.addAccessControlEntry(testPrincipal, testPrivileges);
@@ -1127,12 +1145,35 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
 
     @Test
     public void testSetInvalidPolicy() throws Exception {
-        // TODO
-    }
+        try {
+            acMgr.setPolicy(testPath, new TestACL(testPath, getRestrictionProvider()));
+            fail("Setting invalid policy must fail");
+        } catch (AccessControlException e) {
+            // success
+        }
 
-    @Test
-    public void testSetRepoPolicy() throws Exception {
-        // TODO
+        ACL acl = setupPolicy(testPath);
+        try {
+            acMgr.setPolicy(testPath, new TestACL(testPath, getRestrictionProvider()));
+            fail("Setting invalid policy must fail");
+        } catch (AccessControlException e) {
+            // success
+        }
+
+        ACL repoAcl = setupPolicy(null);
+        try {
+            acMgr.setPolicy(testPath, repoAcl);
+            fail("Setting invalid policy must fail");
+        } catch (AccessControlException e) {
+            // success
+        }
+
+        try {
+            acMgr.setPolicy(null, acl);
+            fail("Setting invalid policy must fail");
+        } catch (AccessControlException e) {
+            // success
+        }
     }
 
     @Test
@@ -1185,20 +1226,62 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         }
     }
 
+    @Test
+    public void testSetPolicyAtDifferentPath() throws Exception {
+        try {
+            ACL acl = getApplicablePolicy(testPath);
+            acMgr.setPolicy("/", acl);
+            fail("Setting access control policy at a different node path must fail");
+        } catch (AccessControlException e) {
+            // success
+        }
+    }
+
     //--------------------------< removePolicy(String, AccessControlPolicy) >---
     @Test
     public void testRemovePolicy() throws Exception {
-        // TODO
-    }
+        ACL acl = setupPolicy(testPath);
 
-    @Test
-    public void testRemoveInvalidPolicy() throws Exception {
-        // TODO
+        acMgr.removePolicy(testPath, acl);
+
+        assertEquals(0, acMgr.getPolicies(testPath).length);
+        assertTrue(acMgr.getApplicablePolicies(testPath).hasNext());
     }
 
     @Test
     public void testRemoveRepoPolicy() throws Exception {
-        // TODO
+        ACL acl = setupPolicy(null);
+
+        acMgr.removePolicy(null, acl);
+
+        assertEquals(0, acMgr.getPolicies((String) null).length);
+        assertTrue(acMgr.getApplicablePolicies((String) null).hasNext());
+    }
+
+    @Test
+    public void testRemoveInvalidPolicy() throws Exception {
+        ACL acl = setupPolicy(testPath);
+        try {
+            acMgr.removePolicy(testPath, new TestACL(testPath, getRestrictionProvider()));
+            fail("Invalid policy -> removal must fail");
+        } catch (AccessControlException e) {
+            // success
+        }
+
+        ACL repoAcl = setupPolicy(null);
+        try {
+            acMgr.removePolicy(testPath, repoAcl);
+            fail("Setting invalid policy must fail");
+        } catch (AccessControlException e) {
+            // success
+        }
+
+        try {
+            acMgr.removePolicy(null, acl);
+            fail("Setting invalid policy must fail");
+        } catch (AccessControlException e) {
+            // success
+        }
     }
 
     @Test
@@ -1251,6 +1334,18 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         }
     }
 
+    @Test
+    public void testRemovePolicyAtDifferentPath() throws Exception {
+        try {
+            setupPolicy(testPath);
+            ACL acl = getApplicablePolicy("/");
+            acMgr.removePolicy(testPath, acl);
+            fail("Removing access control policy at a different node path must fail");
+        } catch (AccessControlException e) {
+            // success
+        }
+    }
+
     //-----------------------------------< getApplicablePolicies(Principal) >---
     // TODO
 
@@ -1258,5 +1353,11 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
     // TODO
 
     //------------------------------------< getEffectivePolicies(Principal) >---
+    // TODO
+
+    //-----------------------------------------------< setPrincipalPolicy() >---
+    // TODO
+
+    //--------------------------------------------< removePrincipalPolicy() >---
     // TODO
 }

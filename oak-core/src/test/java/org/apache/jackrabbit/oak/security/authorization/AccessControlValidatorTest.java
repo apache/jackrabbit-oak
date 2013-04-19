@@ -22,7 +22,6 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.AbstractAccessControlTest;
 import org.apache.jackrabbit.oak.util.NodeUtil;
@@ -34,9 +33,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-/**
- * AccessControlValidatorTest... TODO
- */
 public class AccessControlValidatorTest extends AbstractAccessControlTest implements AccessControlConstants {
 
     private final String testName = "testRoot";
@@ -44,7 +40,6 @@ public class AccessControlValidatorTest extends AbstractAccessControlTest implem
     private final String aceName = "validAce";
 
     private Principal testPrincipal;
-    private Principal testPrincipal2;
 
     @Before
     public void before() throws Exception {
@@ -55,9 +50,7 @@ public class AccessControlValidatorTest extends AbstractAccessControlTest implem
 
         root.commit();
 
-        // TODO
-        testPrincipal = new PrincipalImpl("testPrincipal");
-        testPrincipal2 = new PrincipalImpl("anotherPrincipal");
+        testPrincipal = getTestPrincipal();
     }
 
     @After
@@ -282,7 +275,7 @@ public class AccessControlValidatorTest extends AbstractAccessControlTest implem
         NodeUtil acl = createAcl();
 
         String privName = "invalidPrivilegeName";
-        createACE(acl, "invalid", NT_REP_GRANT_ACE, testPrincipal2.getName(), privName);
+        createACE(acl, "invalid", NT_REP_GRANT_ACE, testPrincipal.getName(), privName);
         try {
             root.commit();
             fail("Creating an ACE with invalid privilege should fail.");
@@ -298,7 +291,7 @@ public class AccessControlValidatorTest extends AbstractAccessControlTest implem
         pMgr.registerPrivilege("abstractPrivilege", true, new String[0]);
 
         NodeUtil acl = createAcl();
-        createACE(acl, "invalid", NT_REP_GRANT_ACE, testPrincipal2.getName(), "abstractPrivilege");
+        createACE(acl, "invalid", NT_REP_GRANT_ACE, testPrincipal.getName(), "abstractPrivilege");
         try {
             root.commit();
             fail("Creating an ACE with an abstract privilege should fail.");
