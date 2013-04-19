@@ -31,7 +31,6 @@ import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 
 /**
  * Abstract base class for {@link NodeState} implementations.
@@ -146,12 +145,6 @@ public abstract class AbstractNodeState implements NodeState {
                 diff.childNodeAdded(name, afterChild.getNodeState());
             }
         }
-    }
-
-    @Nonnull
-    @Override
-    public NodeBuilder builder() {
-        return new MemoryNodeBuilder(this);
     }
 
     /**

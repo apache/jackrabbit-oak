@@ -27,8 +27,10 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
@@ -149,6 +151,11 @@ class SecureNodeState extends AbstractNodeState {
             Iterable<ChildNodeEntry> readable = transform(state.getChildNodeEntries(), wrapChildNodeEntry);
             return filter(readable, isIterableNode);
         }
+    }
+
+    @Override @Nonnull
+    public NodeBuilder builder() {
+        return new MemoryNodeBuilder(this);
     }
 
     //-------------------------------------------------------------< Object >---
