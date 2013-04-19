@@ -256,8 +256,6 @@
       org.apache.jackrabbit.oak.jcr.security.authorization.ReadTest#testReadDenied                           <!-- OAK-766 -->
       org.apache.jackrabbit.oak.jcr.security.authorization.WriteTest#testWriteIfReadingParentIsDenied        <!-- OAK-766 -->
       org.apache.jackrabbit.oak.jcr.security.authorization.WriteTest#testRemoveNodeWithInvisibleNonRemovableChild   <!-- OAK-51 -->
-      org.apache.jackrabbit.oak.jcr.security.authorization.InheritanceTest#testReorderGroupPermissions       <!-- OAK-526 -->
-
     </known.issues>
   </properties>
 

@@ -214,7 +214,6 @@ public class InheritanceTest extends AbstractEvaluationTest {
         assertTrue(testAcMgr.hasPrivileges(path, modPropPrivileges));
     }
 
-    @Ignore("OAK-526 : missing handling for reorder in PermissionHook")
     @Test
     public void testReorderGroupPermissions() throws Exception {
         /* add privileges for the Group the test-user is member of */

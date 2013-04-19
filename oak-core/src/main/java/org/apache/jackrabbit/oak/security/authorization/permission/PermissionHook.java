@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -46,6 +48,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.apache.jackrabbit.util.Text;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
@@ -58,6 +62,8 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE
  * with access control related data stored in the repository.
  */
 public class PermissionHook implements PostValidationHook, AccessControlConstants, PermissionConstants {
+
+    private static final Logger log = LoggerFactory.getLogger(PermissionHook.class);
 
     private final RestrictionProvider restrictionProvider;
     private final String workspaceName;
@@ -135,6 +141,8 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
         private final Node parentBefore;
         private final AfterNode parentAfter;
 
+        private final List<String> processed = new ArrayList<String>();
+
         private Diff(@Nonnull Node parentBefore, @Nonnull AfterNode parentAfter) {
             this.parentBefore = parentBefore;
             this.parentAfter = parentAfter;
@@ -148,7 +156,15 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
         @Override
         public void propertyChanged(PropertyState before, PropertyState after) {
             if (isACL(parentAfter) && TreeImpl.OAK_CHILD_ORDER.equals(before.getName())) {
-                // TODO: update if order has changed without child-node modifications
+                List<String> reordered = new ChildOrderDiff(before, after).getReordered();
+                for (String name : reordered) {
+                    NodeState beforeNode = parentBefore.getNodeState().getChildNode(name);
+                    NodeState afterNode = parentAfter.getNodeState().getChildNode(name);
+                    updateEntry(name, beforeNode, afterNode);
+
+                    log.debug("Processed reordered child node " + name);
+                    processed.add(name);
+                }
             }
         }
 
@@ -219,6 +235,10 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
         }
 
         private void updateEntry(String name, NodeState before, NodeState after) {
+            if (processed.contains(name)) {
+                log.debug("ACE entry already processed -> skip updateEntry.");
+                return;
+            }
             removeEntry(name, before);
             addEntry(name, after);
         }
