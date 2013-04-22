@@ -157,56 +157,39 @@ are already present in the `NodeState` interface, the `NodeBuilder`
 interface contains the following key methods:
 
   * The `setProperty` and `removeProperty` methods for modifying properties
-  * The `removeNode` method for removing a subtree
-  * The `setNode` method for adding or replacing a subtree
-  * The `child` method for creating or modifying a subtree with
-    a connected child builder
+  * The `getChild` method for accessing or modifying an existing subtree
+  * The `addNode`, `setNode` and `removeNode` methods for adding, replacing
+    or removing a subtree
+  * The `exists` method for checking whether the node represented by
+    a builder exists or is accessible
   * The `getNodeState` method for getting a frozen snapshot of the modified
     content tree
 
-The concept of _connected builders_ is designed to make it easy to manage
-complex content changes. Since individual node states are always immutable,
-modifying a particular node at a path like `/foo/bar` using the `setNode`
-method would require the following overly verbose code:
+All the builders acquired from the same root builder instance are connected
+so that changes made through one instance automatically become visible in the
+other builders. For example:
 
-    NodeState root = …;
-    NodeState foo = root.getChildNode("foo")
-    NodeState bar = foo.getChildNode("bar");
-    NodeBuilder barBuilder = bar.builder();
-    barBuilder.setProperty("test", …);
-    NodeBuilder fooBuilder = foo.builder();
-    fooBuilder.setNode("bar", barBuilder.getNodeState());
-    NodeBuilder rootBuilder = root.builder();
-    rootBuilder.setNode("foo", fooBuilder.getNodeState());
-    root = rootBuilder.getNodeState();
+```java
+NodeBuilder rootBuilder = root.builder();
+NodeBuilder fooBuilder = rootBuilder.getChild("foo");
+NodeBuilder barBuilder = fooBuilder.getChild("bar");
 
-The complexity here is caused by the need to explicitly construct and
-re-connect each modified node state along the path from the root to the
-modified content in `/foo/bar`. This is because each `NodeBuilder` instance
-created by the `getBuilder` method is independent and can only be used to
-affect other builders in the manner shown above. In contrast the
-`child` method returns a builder instance that is "connected" to
-the parent builder in a way that any changes recorded in the child builder
-will automatically show up also in the node states created by the parent
-builder. With connected builders the above code can be simplified to:
+assert !barBuilder.getBoolean("x");
+fooBuilder.getChild("bar").setProperty("x", Boolean.TRUE);
+assert barBuilder.getBoolean("x");
 
-    NodeState root = …;
-    NodeBuilder rootBuilder = root.builder();
-    rootBuilder
-        .child("foo")
-        .child("bar")
-        .setProperty("test", …);
-    root = rootBuilder.getNodeState();
+assert barBuilder.exists();
+fooBuilder.removeNode("bar");
+assert !barBuilder.exists();
+```
 
-Typically the only case where the `setNode` method is preferable over
-`child` is when moving or copying subtrees from one location
-to another. For example, the following code copies the `/orig` subtree
-to `/copy`:
-
-    NodeState root = …;
-    NodeBuilder rootBuilder = root.builder();
-    rootBuilder.setNode("copy", root.getChildNode("orig"));
-    root = rootBuilder.getNodeState();
+The `getNodeState` method returns a frozen, immutable snapshot of the current
+state of the builder. Providing such a snapshot can be somewhat expensive
+especially if there are many changes in the builder, so the method should
+generally only be used as the last step after all intended changes have
+been made. Meanwhile the accessors in the `NodeBuilder` interface can be
+used to provide efficient read access to the current state of the tree
+being modified.
 
 The node states constructed by a builder often retain an internal reference
 to the base state used by the builder. This allows common node state
