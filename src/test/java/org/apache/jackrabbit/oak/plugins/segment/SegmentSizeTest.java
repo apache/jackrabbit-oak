@@ -26,7 +26,6 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.util.ISO8601;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
@@ -155,14 +154,14 @@ public class SegmentSizeTest {
         SegmentNodeState state = writer.writeNode(builder.getNodeState());
         writer.flush();
         Segment segment = store.readSegment(state.getRecordId().getSegmentId());
-        assertEquals(26788, segment.getData().length);
+        assertEquals(26788, segment.size());
 
         builder = state.builder();
         builder.child("child1000");
         state = writer.writeNode(builder.getNodeState());
         writer.flush();
         segment = store.readSegment(state.getRecordId().getSegmentId());
-        assertEquals(256, segment.getData().length);
+        assertEquals(256, segment.size());
     }
 
     private int getSize(NodeBuilder builder) {
@@ -171,7 +170,7 @@ public class SegmentSizeTest {
         RecordId id = writer.writeNode(builder.getNodeState()).getRecordId();
         writer.flush();
         Segment segment = store.readSegment(id.getSegmentId());
-        return segment.getData().length;
+        return segment.size();
     }
 
     private int getAmortizedSize(NodeBuilder builder) {
@@ -180,12 +179,12 @@ public class SegmentSizeTest {
         NodeState state = builder.getNodeState();
         RecordId id = writer.writeNode(state).getRecordId();
         writer.flush();
-        int base = store.readSegment(id.getSegmentId()).getData().length;
+        int base = store.readSegment(id.getSegmentId()).size();
         writer.writeNode(state);
         id = writer.writeNode(state).getRecordId();
         writer.flush();
         Segment segment = store.readSegment(id.getSegmentId());
-        return segment.getData().length - base;
+        return segment.size() - base;
     }
 
 }
