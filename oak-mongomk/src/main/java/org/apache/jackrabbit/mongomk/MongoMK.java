@@ -276,7 +276,7 @@ public class MongoMK implements MicroKernel {
         clusterNodeInfo.renewLease(asyncDelay);
     }
     
-    private void backgroundRead() {
+    void backgroundRead() {
         String id = Utils.getIdFromPath("/");
         Map<String, Object> map = store.find(DocumentStore.Collection.NODES, id, asyncDelay);
         @SuppressWarnings("unchecked")
@@ -302,7 +302,7 @@ public class MongoMK implements MicroKernel {
         }
     }
     
-    private void backgroundWrite() {
+    void backgroundWrite() {
         if (unsavedLastRevisions.size() == 0) {
             return;
         }
@@ -1047,6 +1047,7 @@ public class MongoMK implements MicroKernel {
      * @param onlyCommitted whether only committed changes should be considered
      * @return the revision, or null if deleted
      */
+    @SuppressWarnings("unchecked")
     @Nullable Revision getNewestRevision(Map<String, Object> nodeMap,
                                          Revision before, boolean onlyCommitted) {
         if (nodeMap == null) {
@@ -1054,10 +1055,8 @@ public class MongoMK implements MicroKernel {
         }
         Map<String, String> revisions = Maps.newHashMap();
         if (nodeMap.containsKey(UpdateOp.REVISIONS)) {
-            //noinspection unchecked
             revisions.putAll((Map<String, String>) nodeMap.get(UpdateOp.REVISIONS));
         }
-        @SuppressWarnings("unchecked")
         Map<String, String> deletedMap = (Map<String, String>) nodeMap
                 .get(UpdateOp.DELETED);
         if (deletedMap != null) {
