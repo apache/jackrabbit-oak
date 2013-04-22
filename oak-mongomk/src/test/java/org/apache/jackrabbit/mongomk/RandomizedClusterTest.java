@@ -136,9 +136,10 @@ public class RandomizedClusterTest {
                 } else {
                     maskFail |= 1 << op;
                 }
-int todo;                
-//                get(node);
-//                get(node2);
+                log("get " + node);
+                get(node);
+                log("get " + node2);
+                get(node2);
                 MongoMK mk = mkList[mkId];
                 MicroKernelImpl mkGold = mkListGold[mkId];
                 ClusterRev cr = new ClusterRev();
@@ -150,8 +151,7 @@ int todo;
                 int revId = i - r.nextInt(maxBackRev);
                 cr = revs.get(revId);
                 if (cr != null) {
-int todo2;                
-//                    get(node, cr.revGold, cr.rev);
+                    get(node, cr.revGold, cr.rev);
                 }
             }
             if (Integer.bitCount(maskOk) != opCount) {
@@ -180,7 +180,13 @@ int todo2;
     
     private void get(String node) {
         String headGold = mkListGold[mkId].getHeadRevision();
-        String head = mkList[mkId].getHeadRevision();
+        for (int i = 0; i < mkList.length; i++) {
+            MongoMK mk = mkList[i];
+            mk.backgroundWrite();
+        }
+        MongoMK mk = mkList[mkId];
+        mk.backgroundRead();
+        String head = mk.getHeadRevision();
         get(node, headGold, head);
     }
         
@@ -192,7 +198,9 @@ int todo2;
             assertFalse(mk.nodeExists(p, head));
             return;
         }
-        assertTrue("path: " + p, mk.nodeExists(p, head));
+        if (!mk.nodeExists(p, head)) {
+            assertTrue("path: " + p, mk.nodeExists(p, head));
+        }
         String resultGold = mkGold.getNodes(p, headGold, 0, 0, Integer.MAX_VALUE, null);
         String result = mk.getNodes(p, head, 0, 0, Integer.MAX_VALUE, null);
         resultGold = normalize(resultGold);
@@ -248,7 +256,7 @@ int todo2;
             }
             builder.setDocumentStore(ds).setBlobStore(bs);
         }
-        return builder.setClusterId(clusterId).open();
+        return builder.setClusterId(clusterId + 1).open();
     }
     
     /**

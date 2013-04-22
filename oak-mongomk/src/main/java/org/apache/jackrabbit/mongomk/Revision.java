@@ -113,27 +113,32 @@ public class Revision {
         if (!rev.startsWith("r")) {
             throw new IllegalArgumentException(rev);
         }
-        String t = rev.substring(1, 8);
-        long timestamp = Long.parseLong(t, 16);
-        int idx = rev.indexOf('-');
-        int c = 0;
-        if (idx > 8) {
-            t = rev.substring(8, 11);
-            c = Integer.parseInt(t, 16);
+        int idxCount = rev.indexOf('-');
+        if (idxCount < 0) {
+            throw new IllegalArgumentException(rev);
         }
-        t = rev.substring(idx + 1);
+        int idxClusterId = rev.indexOf('-', idxCount + 1);
+        if (idxClusterId < 0) {
+            throw new IllegalArgumentException(rev);
+        }
+        String t = rev.substring(1, idxCount);
+        long timestamp = Long.parseLong(t, 16);
+        t = rev.substring(idxCount + 1, idxClusterId);
+        int c = Integer.parseInt(t, 16);
+        t = rev.substring(idxClusterId + 1);
         int clusterId = Integer.parseInt(t, 16);
         Revision r = new Revision(timestamp, c, clusterId);
         return r;
     }
     
     public String toString() {
-        StringBuilder buff = new StringBuilder("r");
-        buff.append(Long.toHexString(0x10000000L + timestamp).substring(1));
-        buff.append(Integer.toHexString(0x1000 + counter).substring(1));
-        buff.append('-');
-        buff.append(Integer.toHexString(clusterId));
-        return buff.toString();
+        return new StringBuilder("r").
+                append(Long.toHexString(timestamp)).
+                append('-').
+                append(Integer.toHexString(counter)).
+                append('-').
+                append(Integer.toHexString(clusterId)).
+                toString();
     }
     
     public long getTimestamp() {

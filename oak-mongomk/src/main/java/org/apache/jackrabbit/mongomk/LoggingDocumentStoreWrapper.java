@@ -149,7 +149,7 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
         }
     }
 
-    private void logMethod(String methodName, Object... args) {
+    private static void logMethod(String methodName, Object... args) {
         StringBuilder buff = new StringBuilder("ds");
         buff.append('.').append(methodName).append('(');
         for (int i = 0; i < args.length; i++) {

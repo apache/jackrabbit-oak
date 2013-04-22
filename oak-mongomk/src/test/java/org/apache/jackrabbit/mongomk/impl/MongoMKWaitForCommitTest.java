@@ -127,6 +127,7 @@ public class MongoMKWaitForCommitTest extends AbstractMongoConnectionTest {
 
     private ScheduledFuture<String> scheduleCommit(long delay, final String revisionId) {
         ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
+        final MicroKernel mk = this.mk;
         ScheduledFuture<String> future = executorService.schedule(new Callable<String>(){
             @Override
             public String call() throws Exception {
