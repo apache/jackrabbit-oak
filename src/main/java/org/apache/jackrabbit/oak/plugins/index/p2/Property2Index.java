@@ -23,6 +23,7 @@ import java.util.List;
 
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Cursors;
 import org.apache.jackrabbit.oak.spi.query.Filter;
@@ -110,16 +111,17 @@ class Property2Index implements QueryIndex {
     public double getCost(Filter filter, NodeState root) {
         Property2IndexLookup lookup = new Property2IndexLookup(root);
         for (PropertyRestriction pr : filter.getPropertyRestrictions()) {
+            String propertyName = PathUtils.getName(pr.propertyName);
             // TODO support indexes on a path
             // currently, only indexes on the root node are supported
-            if (lookup.isIndexed(pr.propertyName, "/", filter)) {
+            if (lookup.isIndexed(propertyName, "/", filter)) {
                 if (pr.firstIncluding && pr.lastIncluding
                     && pr.first != null && pr.first.equals(pr.last)) {
                     // "[property] = $value"
-                    return lookup.getCost(filter, pr.propertyName, pr.first);
+                    return lookup.getCost(filter, propertyName, pr.first);
                 } else if (pr.first == null && pr.last == null) {
                     // "[property] is not null"
-                    return lookup.getCost(filter, pr.propertyName, null);
+                    return lookup.getCost(filter, propertyName, null);
                 }
             }
         }
@@ -132,19 +134,22 @@ class Property2Index implements QueryIndex {
         Iterable<String> paths = null;
 
         Property2IndexLookup lookup = new Property2IndexLookup(root);
+        int depth = 1;
         for (PropertyRestriction pr : filter.getPropertyRestrictions()) {
+            String propertyName = PathUtils.getName(pr.propertyName);
+            depth = PathUtils.getDepth(pr.propertyName);
             // TODO support indexes on a path
             // currently, only indexes on the root node are supported
-            if (lookup.isIndexed(pr.propertyName, "/", filter)) {
+            if (lookup.isIndexed(propertyName, "/", filter)) {
                 // equality
                 if (pr.firstIncluding && pr.lastIncluding
                     && pr.first != null && pr.first.equals(pr.last)) {
                     // "[property] = $value"
-                    paths = lookup.query(filter, pr.propertyName, pr.first);
+                    paths = lookup.query(filter, propertyName, pr.first);
                     break;
                 } else if (pr.first == null && pr.last == null) {
                     // "[property] is not null"
-                    paths = lookup.query(filter, pr.propertyName, null);
+                    paths = lookup.query(filter, propertyName, null);
                     break;
                 }
             }
@@ -152,7 +157,11 @@ class Property2Index implements QueryIndex {
         if (paths == null) {
             throw new IllegalStateException("Property index is used even when no index is available for filter " + filter);
         }
-        return Cursors.newPathCursor(paths);
+        Cursor c = Cursors.newPathCursor(paths);
+        if (depth > 1) {
+            c = Cursors.newAncestorCursor(c, depth - 1);
+        }
+        return c;
     }
     
     @Override
@@ -160,14 +169,15 @@ class Property2Index implements QueryIndex {
         StringBuilder buff = new StringBuilder("p2");
         Property2IndexLookup lookup = new Property2IndexLookup(root);
         for (PropertyRestriction pr : filter.getPropertyRestrictions()) {
+            String propertyName = PathUtils.getName(pr.propertyName);
             // TODO support indexes on a path
             // currently, only indexes on the root node are supported
-            if (lookup.isIndexed(pr.propertyName, "/", filter)) {
+            if (lookup.isIndexed(propertyName, "/", filter)) {
                 if (pr.firstIncluding && pr.lastIncluding
                     && pr.first != null && pr.first.equals(pr.last)) {
-                    buff.append(' ').append(pr.propertyName).append('=').append(pr.first);
+                    buff.append(' ').append(propertyName).append('=').append(pr.first);
                 } else if (pr.first == null && pr.last == null) {
-                    buff.append(' ').append(pr.propertyName);
+                    buff.append(' ').append(propertyName);
                 }
             }
         }
