@@ -33,10 +33,13 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Queues;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.commons.PathUtils.isAbsolute;
 
 /**
@@ -55,7 +58,7 @@ public class Cursors {
      * @return the Cursor.
      */
     public static Cursor newPathCursor(Iterable<String> paths) {
-        return new PathCursor(paths, true);
+        return new PathCursor(paths.iterator(), true);
     }
     
     /**
@@ -66,7 +69,7 @@ public class Cursors {
      * @return the Cursor.
      */
     public static Cursor newPathCursorDistinct(Iterable<String> paths) {
-        return new PathCursor(paths, true);
+        return new PathCursor(paths.iterator(), true);
     }
 
     /**
@@ -81,7 +84,24 @@ public class Cursors {
                                              NodeState rootState) {
         return new TraversingCursor(filter, rootState);
     }
-    
+
+    /**
+     * Returns a cursor wrapper, which returns the ancestor rows at the given
+     * <code>level</code> of the wrapped cursor <code>c</code>. With
+     * <code>level</code> e.g. set to <code>1</code>, the returned cursor
+     * iterates over the parent rows of the passed cursor <code>c</code>. The
+     * returned cursor guarantees distinct rows.
+     *
+     * @param c the cursor to wrap.
+     * @param level the ancestor level. Must be >= 1.
+     * @return cursor over the ancestors of <code>c</code> at <code>level</code>.
+     */
+    public static Cursor newAncestorCursor(Cursor c, int level) {
+        checkNotNull(c);
+        checkArgument(level >= 1);
+        return new AncestorCursor(c, level);
+    }
+
     /**
      * A Cursor implementation where the remove method throws an
      * UnsupportedOperationException.
@@ -95,6 +115,36 @@ public class Cursors {
         
     }
 
+    private static class AncestorCursor extends PathCursor {
+
+        public AncestorCursor(Cursor cursor, int level) {
+            super(transform(cursor, level), true);
+        }
+
+        private static Iterator<String> transform(Cursor cursor, final int level) {
+            Iterator<String> unfiltered = Iterators.transform(cursor,
+                    new Function<IndexRow, String>() {
+                @Override
+                public String apply(@Nullable IndexRow input) {
+                    return input != null ? input.getPath() : null;
+                }
+            });
+            Iterator<String> filtered = Iterators.filter(unfiltered,
+                    new Predicate<String>() {
+                @Override
+                public boolean apply(@Nullable String input) {
+                    return input != null && PathUtils.getDepth(input) >= level;
+                }
+            });
+            return Iterators.transform(filtered, new Function<String, String>() {
+                @Override
+                public String apply(String input) {
+                    return PathUtils.getAncestorPath(input, level);
+                }
+            });
+        }
+    }
+
     /**
      * <code>PathCursor</code> implements a simple {@link Cursor} that iterates
      * over a {@link String} based path {@link Iterable}.
@@ -103,8 +153,8 @@ public class Cursors {
 
         private final Iterator<String> iterator;
 
-        public PathCursor(Iterable<String> paths, boolean distinct) {
-            Iterator<String> it = paths.iterator();
+        public PathCursor(Iterator<String> paths, boolean distinct) {
+            Iterator<String> it = paths;
             if (distinct) {
                 it = Iterators.filter(it, new Predicate<String>() {
                     
