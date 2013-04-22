@@ -46,6 +46,17 @@ in it will go through a series of different states. A _node state_  then is
 an _immutable_ snapshot of a specific state of a node and the subtree beneath
 it.
 
+As an example, the following diagram shows two revisions of a content tree,
+the first revision consists of five nodes, and in the second revision a
+sixth node is added in one of the subtrees. Note how unmodified subtrees
+can be shared across revisions, while only the modified nodes and their
+ancestors up to the root (shown in yellow) need to be updated to reflect
+the change. This way both revisions remain readable at all times without
+the implementation having to make a separate copy of the entire repository
+for each revision.
+
+![two revisions of a content tree](nodestate-r1.png?raw=true)
+
 To avoid making a special case of the root node and therefore to make it
 easy to write algorithms that can recursively process each subtree as a
 standalone content tree, a node state is _unnamed_ and does not contain
@@ -67,6 +78,7 @@ interface consists of three sets of methods:
 
   * Methods for accessing properties
   * Methods for accessing child nodes
+  * The `exists` method for checking whether the node exists or is accessible
   * The `builder` method for building modified states
   * The `compareAgainstBaseState` method for comparing states
 
@@ -82,9 +94,55 @@ will return the items in the same order as before, but the specific ordering
 is not defined nor does it necessarily remain the same across different
 instances.
 
-The last two methods, `builder` and `compareAgainstBaseState`, are
-covered in the next two sections. See also the `NodeState` javadocs for
+The last three methods, `exists`, `builder` and `compareAgainstBaseState`,
+are covered in the next sections. See also the `NodeState` javadocs for
 more details about this interface and all its methods.
+
+## Existence and iterability of node states
+
+The `exists` method makes it possible to always traverse any path regardless
+of whether the named content exists or not. The `getChildNode` method returns
+a child `NodeState` instance for any given name, and the caller is expected
+to use the `exists` method to check whether the named node actually does exist.
+The purpose of this feature is to allow paths like `/foo/bar` to be traversed
+even if the current user only has read access to the `bar` node but not its
+parent `foo`. As a consequence it's even possible to access content like a
+fictional `/bar` subtree that doesn't exist at all. A piece of code for
+accessing such content could look like this:
+
+```java
+NodeState root = ...;
+
+NodeState foo = root.getChildNode("foo");
+assert !foo.exists();
+NodeState bar = foo.getChildNode("bar");
+assert bar.exists();
+
+NodeState baz = root.getChildNode("baz");
+assert !baz.exists();
+```
+
+The following diagram illustrates such a content tree, both as the raw
+content that simply exists and as an access controlled view of that tree:
+
+![content tree with and without access control](nodestate-r2.png?raw=true)
+
+If a node is missing, i.e. its `exists` method returns `false` and thus it
+either does not exist at all or is read-protected, one can't list any of
+its properties or child nodes. And on the other hand, a non-readable node or
+property will only show up when listing the child nodes or properties of its
+parent. In other words, a node or a property is _iterable_ only if both it
+and its parent are readable. For example, attempts to list properties or
+child nodes of the node `foo` will show up empty:
+
+```java
+assert !foo.getProperties().iterator().hasNext();
+assert !foo.getChildNodeEntries().iterator().hasNext();
+```
+
+Note that without some external knowledge about the accessibility of a child
+node like `bar` there's no way for a piece of code to distinguish between
+the existing but non-readable node `foo` and the non-existing node `baz`.
 
 ## Building new node states
 
