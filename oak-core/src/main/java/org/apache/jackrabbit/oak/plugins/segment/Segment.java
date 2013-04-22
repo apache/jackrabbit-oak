@@ -20,6 +20,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkPositionIndexes;
 import static org.apache.jackrabbit.oak.plugins.segment.SegmentWriter.BLOCK_SIZE;
 
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
@@ -94,7 +95,7 @@ class Segment {
 
     private final UUID uuid;
 
-    private final byte[] data;
+    private final ByteBuffer data;
 
     private final UUID[] uuids;
 
@@ -103,7 +104,7 @@ class Segment {
     private final OffsetCache<Template> templates;
 
     Segment(SegmentStore store,
-            UUID uuid, byte[] data, Collection<UUID> uuids) {
+            UUID uuid, ByteBuffer data, Collection<UUID> uuids) {
         this.store = checkNotNull(store);
         this.uuid = checkNotNull(uuid);
         this.data = checkNotNull(data);
@@ -127,7 +128,7 @@ class Segment {
             Map<String, RecordId> strings, Map<Template, RecordId> templates) {
         this.store = store;
         this.uuid = uuid;
-        this.data = data;
+        this.data = ByteBuffer.wrap(data);
         this.uuids = uuids.toArray(new UUID[uuids.size()]);
         this.strings = new OffsetCache<String>(strings) {
             @Override
@@ -153,8 +154,8 @@ class Segment {
      * @return position within the data array
      */
     private int pos(int offset, int length) {
-        int pos = offset - (MAX_SEGMENT_SIZE - data.length);
-        checkPositionIndexes(pos, pos + length, data.length);
+        int pos = offset - (MAX_SEGMENT_SIZE - size());
+        checkPositionIndexes(pos, pos + length, size());
         return pos;
     }
 
@@ -162,7 +163,7 @@ class Segment {
         return uuid;
     }
 
-    public byte[] getData() {
+    public ByteBuffer getData() {
         return data;
     }
 
@@ -171,11 +172,11 @@ class Segment {
     }
 
     public int size() {
-        return data.length;
+        return data.limit();
     }
 
     byte readByte(int offset) {
-        return data[pos(offset, 1)];
+        return data.get(pos(offset, 1));
     }
 
     /**
@@ -190,7 +191,9 @@ class Segment {
      void readBytes(int position, byte[] buffer, int offset, int length) {
         checkNotNull(buffer);
         checkPositionIndexes(offset, offset + length, buffer.length);
-        System.arraycopy(data, pos(position, length), buffer, offset, length);
+        ByteBuffer d = data.duplicate();
+        d.position(pos(position, length));
+        d.get(buffer, offset, length);
     }
 
     RecordId readRecordId(int offset) {
@@ -200,17 +203,17 @@ class Segment {
 
     private RecordId internalReadRecordId(int pos) {
         return new RecordId(
-                uuids[data[pos] & 0xff],
-                (data[pos + 1] & 0xff) << (8 + Segment.RECORD_ALIGN_BITS)
-                | (data[pos + 2] & 0xff) << Segment.RECORD_ALIGN_BITS);
+                uuids[data.get(pos) & 0xff],
+                (data.get(pos + 1) & 0xff) << (8 + Segment.RECORD_ALIGN_BITS)
+                | (data.get(pos + 2) & 0xff) << Segment.RECORD_ALIGN_BITS);
     }
 
     int readInt(int offset) {
         int pos = pos(offset, 4);
-        return (data[pos] & 0xff) << 24
-                | (data[pos + 1] & 0xff) << 16
-                | (data[pos + 2] & 0xff) << 8
-                | (data[pos + 3] & 0xff);
+        return (data.get(pos) & 0xff) << 24
+                | (data.get(pos + 1) & 0xff) << 16
+                | (data.get(pos + 2) & 0xff) << 8
+                | (data.get(pos + 3) & 0xff);
     }
 
     String readString(int offset) {
@@ -230,9 +233,17 @@ class Segment {
         int pos = pos(offset, 1);
         long length = internalReadLength(pos);
         if (length < SMALL_LIMIT) {
-            return new String(data, pos + 1, (int) length, Charsets.UTF_8);
+            byte[] bytes = new byte[(int) length];
+            ByteBuffer buffer = data.duplicate();
+            buffer.position(pos + 1);
+            buffer.get(bytes);
+            return new String(bytes, Charsets.UTF_8);
         } else if (length < MEDIUM_LIMIT) {
-            return new String(data, pos + 2, (int) length, Charsets.UTF_8);
+            byte[] bytes = new byte[(int) length];
+            ByteBuffer buffer = data.duplicate();
+            buffer.position(pos + 2);
+            buffer.get(bytes);
+            return new String(bytes, Charsets.UTF_8);
         } else if (length < Integer.MAX_VALUE) {
             int size = (int) ((length + BLOCK_SIZE - 1) / BLOCK_SIZE);
             ListRecord list =
@@ -321,22 +332,22 @@ class Segment {
     }
 
     private long internalReadLength(int pos) {
-        int length = data[pos++] & 0xff;
+        int length = data.get(pos++) & 0xff;
         if ((length & 0x80) == 0) {
             return length;
         } else if ((length & 0x40) == 0) {
             return ((length & 0x3f) << 8
-                    | data[pos++] & 0xff)
+                    | data.get(pos++) & 0xff)
                     + SMALL_LIMIT;
         } else {
             return (((long) length & 0x3f) << 56
-                    | ((long) (data[pos++] & 0xff)) << 48
-                    | ((long) (data[pos++] & 0xff)) << 40
-                    | ((long) (data[pos++] & 0xff)) << 32
-                    | ((long) (data[pos++] & 0xff)) << 24
-                    | ((long) (data[pos++] & 0xff)) << 16
-                    | ((long) (data[pos++] & 0xff)) << 8
-                    | ((long) (data[pos++] & 0xff)))
+                    | ((long) (data.get(pos++) & 0xff)) << 48
+                    | ((long) (data.get(pos++) & 0xff)) << 40
+                    | ((long) (data.get(pos++) & 0xff)) << 32
+                    | ((long) (data.get(pos++) & 0xff)) << 24
+                    | ((long) (data.get(pos++) & 0xff)) << 16
+                    | ((long) (data.get(pos++) & 0xff)) << 8
+                    | ((long) (data.get(pos++) & 0xff)))
                     + MEDIUM_LIMIT;
         }
     }
@@ -347,11 +358,13 @@ class Segment {
         long length = internalReadLength(pos);
         if (length < Segment.MEDIUM_LIMIT) {
             byte[] inline = new byte[(int) length];
+            ByteBuffer buffer = data.duplicate();
             if (length < Segment.SMALL_LIMIT) {
-                System.arraycopy(data, pos + 1, inline, 0, inline.length);
+                buffer.position(pos + 1);
             } else {
-                System.arraycopy(data, pos + 2, inline, 0, inline.length);
+                buffer.position(pos + 2);
             }
+            buffer.get(inline);
             return new SegmentStream(id, inline);
         } else {
             int size = (int) ((length + BLOCK_SIZE - 1) / BLOCK_SIZE);
