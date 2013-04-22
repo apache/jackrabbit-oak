@@ -21,6 +21,7 @@ import java.util.HashMap;
 import java.util.Map;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -51,8 +52,10 @@ class PrivilegeDefinitionReader implements PrivilegeConstants {
         } else {
             Map<String, PrivilegeDefinition> definitions = new HashMap<String, PrivilegeDefinition>();
             for (Tree child : privilegesTree.getChildren()) {
-                PrivilegeDefinition def = readDefinition(child);
-                definitions.put(def.getName(), def);
+                if (isPrivilegeDefinition(child)) {
+                    PrivilegeDefinition def = readDefinition(child);
+                    definitions.put(def.getName(), def);
+                }
             }
             return definitions;
         }
@@ -71,7 +74,7 @@ class PrivilegeDefinitionReader implements PrivilegeConstants {
             return null;
         } else {
             Tree definitionTree = privilegesTree.getChild(privilegeName);
-            return (definitionTree == null) ? null : readDefinition(definitionTree);
+            return (isPrivilegeDefinition(definitionTree)) ? readDefinition(definitionTree) : null;
         }
     }
 
@@ -86,5 +89,9 @@ class PrivilegeDefinitionReader implements PrivilegeConstants {
         String[] declAggrNames = TreeUtil.getStrings(definitionTree, REP_AGGREGATES);
 
         return new PrivilegeDefinitionImpl(name, isAbstract, declAggrNames);
+    }
+
+    private static boolean isPrivilegeDefinition(@Nullable Tree tree) {
+        return tree != null && NT_REP_PRIVILEGE.equals(TreeUtil.getPrimaryTypeName(tree));
     }
 }
