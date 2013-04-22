@@ -38,7 +38,7 @@ import org.junit.Test;
 import static org.junit.Assert.fail;
 
 /**
- * UserValidatorTest
+ * @since OAK 1.0
  */
 public class UserValidatorTest extends AbstractSecurityTest {
 

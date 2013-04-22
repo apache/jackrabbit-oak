@@ -58,7 +58,7 @@ public class UserQueryManagerTest extends AbstractSecurityTest {
     }
 
     /**
-     * @since oak
+     * @since OAK 1.0
      */
     @Test
     public void testFindNodesExact() throws Exception {

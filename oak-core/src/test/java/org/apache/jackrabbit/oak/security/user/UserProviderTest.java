@@ -40,7 +40,7 @@ import static junit.framework.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 /**
- * UserProviderImplTest...
+ * @since OAK 1.0
  */
 public class UserProviderTest {
 
