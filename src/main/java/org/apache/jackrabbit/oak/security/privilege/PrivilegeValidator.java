@@ -31,8 +31,10 @@ import org.apache.jackrabbit.oak.spi.commit.DefaultValidator;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeDefinition;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.util.TreeUtil;
+import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.util.Text;
+
+import static org.apache.jackrabbit.oak.api.CommitFailedException.CONSTRAINT;
 
 /**
  * Validator implementation that is responsible for validating any modifications
@@ -61,68 +63,67 @@ class PrivilegeValidator extends DefaultValidator implements PrivilegeConstants 
         if (REP_NEXT.equals(before.getName())) {
             validateNext(PrivilegeBits.getInstance(getPrivilegesTree(rootBefore).getProperty(REP_NEXT)));
         } else {
-            throw new CommitFailedException(
-                    "Constraint", 45,
-                    "Attempt to modify existing privilege definition.");
+            throw new CommitFailedException(CONSTRAINT, 45, "Attempt to modify existing privilege definition.");
         }
     }
 
     @Override
     public void propertyDeleted(PropertyState before) throws CommitFailedException {
-        throw new CommitFailedException(
-                "Constraint", 46,
-                "Attempt to modify existing privilege definition.");
+        throw new CommitFailedException(CONSTRAINT, 46, "Attempt to modify existing privilege definition.");
     }
 
     @Override
     public Validator childNodeAdded(String name, NodeState after) throws CommitFailedException {
-        // make sure privileges have been initialized before
-        getPrivilegesTree(rootBefore);
+        if (isPrivilegeDefinition(after)) {
+            // make sure privileges have been initialized before
+            getPrivilegesTree(rootBefore);
 
-        // the following characteristics are expected to be validated elsewhere:
-        // - permission to allow privilege registration -> permission validator.
-        // - name collisions (-> delegated to NodeTypeValidator since sms are not allowed)
-        // - name must be valid (-> delegated to NameValidator)
+            // the following characteristics are expected to be validated elsewhere:
+            // - permission to allow privilege registration -> permission validator.
+            // - name collisions (-> delegated to NodeTypeValidator since sms are not allowed)
+            // - name must be valid (-> delegated to NameValidator)
 
-        // name may not contain reserved namespace prefix
-        if (NamespaceConstants.RESERVED_PREFIXES.contains(Text.getNamespacePrefix(name))) {
-            String msg = "Failed to register custom privilege: Definition uses reserved namespace: " + name;
-            throw new CommitFailedException("Privilege", 1, msg);
+            // name may not contain reserved namespace prefix
+            if (NamespaceConstants.RESERVED_PREFIXES.contains(Text.getNamespacePrefix(name))) {
+                String msg = "Failed to register custom privilege: Definition uses reserved namespace: " + name;
+                throw new CommitFailedException("Privilege", 1, msg);
+            }
+
+            // validate the definition
+            Tree tree = new ImmutableTree(ImmutableTree.ParentProvider.UNSUPPORTED, name, after);
+            validateDefinition(tree);
         }
 
-        // primary node type name must be rep:privilege
-        Tree tree = new ImmutableTree(ImmutableTree.ParentProvider.UNSUPPORTED, name, after);
-        if (!NT_REP_PRIVILEGE.equals(TreeUtil.getPrimaryTypeName(tree))) {
-            throw new CommitFailedException("Privilege", 2, "Privilege definition must have primary node type set to rep:privilege");
-        }
-
-        // additional validation of the definition
-        validateDefinition(tree);
-
-        // privilege definitions may not have child nodes.
+        // privilege definitions may not have child nodes (or another type of nodes
+        // that is not handled by this validator anyway).
         return null;
     }
 
     @Override
     public Validator childNodeChanged(String name, NodeState before, NodeState after) throws CommitFailedException {
-        throw new CommitFailedException(
-                "Constraint", 41,
-                "Attempt to modify existing privilege definition " + name);
+        if (isPrivilegeDefinition(before)) {
+            throw new CommitFailedException(CONSTRAINT, 41, "Attempt to modify existing privilege definition " + name);
+        } else {
+            // not handled by this validator
+            return null;
+        }
     }
 
     @Override
     public Validator childNodeDeleted(String name, NodeState before) throws CommitFailedException {
-        throw new CommitFailedException(
-                "Constraint", 42,
-                "Attempt to un-register privilege " + name);
+        if (isPrivilegeDefinition(before)) {
+            throw new CommitFailedException(CONSTRAINT, 42, "Attempt to un-register privilege " + name);
+        }  else {
+            // not handled by this validator
+            return null;
+        }
     }
 
     //------------------------------------------------------------< private >---
     private void validateNext(PrivilegeBits bits) throws CommitFailedException {
         PrivilegeBits next = PrivilegeBits.getInstance(getPrivilegesTree(rootAfter).getProperty(REP_NEXT));
         if (!next.equals(bits.nextBits())) {
-            throw new CommitFailedException(
-                    "Constraint", 43, "Next bits not updated");
+            throw new CommitFailedException(CONSTRAINT, 43, "Next bits not updated");
         }
     }
 
@@ -130,8 +131,7 @@ class PrivilegeValidator extends DefaultValidator implements PrivilegeConstants 
     private Tree getPrivilegesTree(Root root) throws CommitFailedException {
         Tree privilegesTree = root.getTree(PRIVILEGES_PATH);
         if (privilegesTree == null) {
-            throw new CommitFailedException(
-                    "Constraint", 44, "Privilege store not initialized.");
+            throw new CommitFailedException(CONSTRAINT, 44, "Privilege store not initialized.");
         }
         return privilegesTree;
     }
@@ -153,8 +153,7 @@ class PrivilegeValidator extends DefaultValidator implements PrivilegeConstants 
     private void validateDefinition(Tree definitionTree) throws CommitFailedException {
         PrivilegeBits newBits = PrivilegeBits.getInstance(definitionTree);
         if (newBits.isEmpty()) {
-            throw new CommitFailedException(
-                    "Constraint", 48, "PrivilegeBits are missing.");
+            throw new CommitFailedException(CONSTRAINT, 48, "PrivilegeBits are missing.");
         }
 
         Set<String> privNames = bitsProvider.getPrivilegeNames(newBits);
@@ -164,8 +163,7 @@ class PrivilegeValidator extends DefaultValidator implements PrivilegeConstants 
         // non-aggregate privilege
         if (declaredNames.isEmpty()) {
             if (!privNames.isEmpty()) {
-                throw new CommitFailedException(
-                        "Constraint", 49, "PrivilegeBits already in used.");
+                throw new CommitFailedException(CONSTRAINT, 49, "PrivilegeBits already in used.");
             }
             validateNext(newBits);
             return;
@@ -173,8 +171,7 @@ class PrivilegeValidator extends DefaultValidator implements PrivilegeConstants 
 
         // aggregation of a single privilege
         if (declaredNames.size() == 1) {
-            throw new CommitFailedException(
-                    "Constraint", 50, "Singular aggregation is equivalent to existing privilege.");
+            throw new CommitFailedException(CONSTRAINT, 50, "Singular aggregation is equivalent to existing privilege.");
         }
 
         // aggregation of >1 privileges
@@ -182,14 +179,13 @@ class PrivilegeValidator extends DefaultValidator implements PrivilegeConstants 
         for (String aggrName : declaredNames) {
             // aggregated privilege not registered
             if (!definitions.containsKey(aggrName)) {
-                throw new CommitFailedException(
-                        "Constraint", 51, "Declared aggregate '" + aggrName + "' is not a registered privilege.");
+                throw new CommitFailedException(CONSTRAINT, 51, "Declared aggregate '" + aggrName + "' is not a registered privilege.");
             }
 
             // check for circular aggregation
             if (isCircularAggregation(definition.getName(), aggrName, definitions)) {
                 String msg = "Detected circular aggregation within custom privilege caused by " + aggrName;
-                throw new CommitFailedException("Constraint", 52, msg);
+                throw new CommitFailedException(CONSTRAINT, 52, msg);
             }
         }
 
@@ -203,15 +199,13 @@ class PrivilegeValidator extends DefaultValidator implements PrivilegeConstants 
             // test for exact same aggregation or aggregation with the same net effect
             if (declaredNames.equals(existingDeclared) || aggregateNames.equals(resolveAggregates(existingDeclared, definitions))) {
                 String msg = "Custom aggregate privilege '" + definition.getName() + "' is already covered by '" + existing.getName() + '\'';
-                throw new CommitFailedException("Constraint", 53, msg);
+                throw new CommitFailedException(CONSTRAINT, 53, msg);
             }
         }
 
         PrivilegeBits aggrBits = bitsProvider.getBits(declaredNames.toArray(new String[declaredNames.size()]));
         if (!newBits.equals(aggrBits)) {
-            throw new CommitFailedException(
-                    "Constraint", 53,
-                    "Invalid privilege bits for aggregated privilege definition.");
+            throw new CommitFailedException(CONSTRAINT, 53, "Invalid privilege bits for aggregated privilege definition.");
         }
     }
 
@@ -243,9 +237,7 @@ class PrivilegeValidator extends DefaultValidator implements PrivilegeConstants 
         for (String name : declared) {
             PrivilegeDefinition d = definitions.get(name);
             if (d == null) {
-                throw new CommitFailedException(
-                        "Constraint", 47,
-                        "Invalid declared aggregate name " + name + ": Unknown privilege.");
+                throw new CommitFailedException(CONSTRAINT, 47, "Invalid declared aggregate name " + name + ": Unknown privilege.");
             }
 
             Set<String> names = d.getDeclaredAggregateNames();
@@ -256,5 +248,9 @@ class PrivilegeValidator extends DefaultValidator implements PrivilegeConstants 
             }
         }
         return aggregateNames;
+    }
+
+    private static boolean isPrivilegeDefinition(@Nonnull NodeState state) {
+        return NT_REP_PRIVILEGE.equals(NodeStateUtils.getPrimaryTypeName(state));
     }
 }
