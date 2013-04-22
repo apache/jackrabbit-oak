@@ -36,6 +36,9 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+/**
+ * @since OAK 1.0
+ */
 public class UserInitializerTest extends AbstractSecurityTest {
 
     private UserManager userMgr;
