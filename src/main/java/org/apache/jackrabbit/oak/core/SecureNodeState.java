@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.core;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Iterables.transform;
+import static java.util.Collections.emptyList;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -51,28 +52,6 @@ class SecureNodeState extends AbstractNodeState {
      */
     private final SecurityContext context;
 
-    /**
-     * Predicate for testing whether a given property is readable.
-     */
-    private final Predicate<PropertyState> isPropertyReadable = new ReadablePropertyPredicate();
-
-    /**
-     * Predicate for testing whether the node state in a child node entry
-     * is iterable.
-     */
-    private final Predicate<ChildNodeEntry> isIterableNode = new IterableNodePredicate();
-
-   /**
-    * Function that that adds a security wrapper to node states from
-    * in child node entries. The {@link #isIterableNode} predicate should be
-    * used on the result to filter out non-existing/iterable child nodes.
-    * <p>
-    * Note that the SecureNodeState wrapper is needed only when the child
-    * or any of its descendants has read access restrictions. Otherwise
-    * we can optimize access by skipping the security wrapper entirely.
-    */
-    private final WrapChildEntryFunction wrapChildNodeEntry = new WrapChildEntryFunction();
-
     private long childNodeCount = -1;
 
     private long propertyCount = -1;
@@ -104,7 +83,9 @@ class SecureNodeState extends AbstractNodeState {
             if (context.canReadAll()) {
                 propertyCount = state.getPropertyCount();
             } else {
-                propertyCount = count(filter(state.getProperties(), isPropertyReadable));
+                propertyCount = count(filter(
+                        state.getProperties(),
+                        new ReadablePropertyPredicate()));
             }
         }
         return propertyCount;
@@ -114,8 +95,12 @@ class SecureNodeState extends AbstractNodeState {
     public Iterable<? extends PropertyState> getProperties() {
         if (context.canReadAll()) {
             return state.getProperties();
+        } else if (context.canReadThisNode()) { // TODO: check DENY_PROPERTIES?
+            return filter(
+                    state.getProperties(),
+                    new ReadablePropertyPredicate());
         } else {
-            return filter(state.getProperties(), isPropertyReadable);
+            return emptyList();
         }
     }
 
@@ -124,7 +109,7 @@ class SecureNodeState extends AbstractNodeState {
         NodeState child = state.getChildNode(checkNotNull(name));
         if (child.exists() && !context.canReadAll()) {
             ChildNodeEntry entry = new MemoryChildNodeEntry(name, child);
-            return wrapChildNodeEntry.apply(entry).getNodeState();
+            return new WrapChildEntryFunction().apply(entry).getNodeState();
         } else {
             return child;
         }
@@ -147,10 +132,14 @@ class SecureNodeState extends AbstractNodeState {
         if (context.canReadAll()) {
             // everything is readable including ac-content -> no secure wrapper needed
             return state.getChildNodeEntries();
+        } else if (context.canReadThisNode()) {// TODO: check DENY_CHILDREN?
+            Iterable<ChildNodeEntry> readable = transform(
+                    state.getChildNodeEntries(),
+                    new WrapChildEntryFunction());
+            return filter(readable, new IterableNodePredicate());
         } else {
-            Iterable<ChildNodeEntry> readable = transform(state.getChildNodeEntries(), wrapChildNodeEntry);
-            return filter(readable, isIterableNode);
-        }
+            return emptyList();
+       }
     }
 
     @Override @Nonnull
@@ -177,8 +166,8 @@ class SecureNodeState extends AbstractNodeState {
         return super.equals(object);
     }
 
-
     //------------------------------------------------------< inner classes >---
+
     /**
      * Predicate for testing whether a given property is readable.
      */
@@ -200,14 +189,14 @@ class SecureNodeState extends AbstractNodeState {
     }
 
     /**
-    * Function that that adds a security wrapper to node states from
-    * in child node entries. The {@link IterableNodePredicate} predicate should be
-    * used on the result to filter out non-existing/iterable child nodes.
-    * <p>
-    * Note that the SecureNodeState wrapper is needed only when the child
-    * or any of its descendants has read access restrictions. Otherwise
-    * we can optimize access by skipping the security wrapper entirely.
-    */
+     * Function that that adds a security wrapper to node states from
+     * in child node entries. The {@link IterableNodePredicate} predicate should be
+     * used on the result to filter out non-existing/iterable child nodes.
+     * <p>
+     * Note that the SecureNodeState wrapper is needed only when the child
+     * or any of its descendants has read access restrictions. Otherwise
+     * we can optimize access by skipping the security wrapper entirely.
+     */
     private class WrapChildEntryFunction implements Function<ChildNodeEntry, ChildNodeEntry> {
         @Nonnull
         @Override
