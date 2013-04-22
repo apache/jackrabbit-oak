@@ -37,6 +37,7 @@ import javax.jcr.security.AccessControlException;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.AccessControlPolicyIterator;
+import javax.jcr.security.NamedAccessControlPolicy;
 import javax.jcr.security.Privilege;
 
 import com.google.common.collect.ImmutableMap;
@@ -63,6 +64,7 @@ import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.assertArrayEquals;
@@ -638,10 +640,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
 
     }
 
-    /**
-     * // TODO review again
-     * @since OAK 1.0 : access to privileges needs read access to the corresponding tree.
-     */
+    @Ignore("OAK-787") // FIXME
     @Test
     public void testTestSessionGetPrivileges() throws Exception {
         setupPolicy(testPath);
@@ -650,42 +649,14 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         AccessControlManagerImpl testAcMgr = getTestAccessControlManager();
         Set<Principal> testPrincipals = getPrincipals(getTestRoot().getContentSession());
 
-        // TODO: check again...
-        try {
-            testAcMgr.getPrivileges(testPath);
-            fail("no read access to the privilege store.");
-        } catch (AccessControlException e) {
-            // success
-        }
-        try {
-            getTestAccessControlManager().getPrivileges(testPath, testPrincipals);
-            fail("no read access to the privilege store.");
-        } catch (AccessControlException e) {
-            // success
-        }
+        assertArrayEquals(new Privilege[0], testAcMgr.getPrivileges(null));
+        assertArrayEquals(new Privilege[0], testAcMgr.getPrivileges(null, testPrincipals));
 
-        // ensure readability of the privileges
-        try {
-            setupPolicy("/jcr:system");
-            root.commit();
+        Privilege[] privs = testAcMgr.getPrivileges(testPath);
+        assertEquals(ImmutableSet.copyOf(testPrivileges), ImmutableSet.copyOf(privs));
 
-            getTestRoot().refresh();
-
-            assertArrayEquals(new Privilege[0], testAcMgr.getPrivileges(null));
-            assertArrayEquals(new Privilege[0], testAcMgr.getPrivileges(null, testPrincipals));
-
-            Privilege[] privs = testAcMgr.getPrivileges(testPath);
-            assertEquals(ImmutableSet.copyOf(testPrivileges), ImmutableSet.copyOf(privs));
-
-            privs = testAcMgr.getPrivileges(testPath, testPrincipals);
-            assertEquals(ImmutableSet.copyOf(testPrivileges), ImmutableSet.copyOf(privs));
-
-        } finally {
-            for (AccessControlPolicy policy : acMgr.getPolicies("/jcr:system")) {
-                acMgr.removePolicy("/jcr:system", policy);
-            }
-            root.commit();
-        }
+        privs = testAcMgr.getPrivileges(testPath, testPrincipals);
+        assertEquals(ImmutableSet.copyOf(testPrivileges), ImmutableSet.copyOf(privs));
 
         // but for 'admin' the test-session doesn't have sufficient privileges
         try {
@@ -918,14 +889,14 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
 
         AccessControlPolicy[] policies = acMgr.getPolicies(path);
         assertNotNull(policies);
-        assertEquals(0, policies.length);
+        assertEquals(1, policies.length);
 
         acMgr.setPolicy(null, acMgr.getApplicablePolicies(path).nextAccessControlPolicy());
         assertFalse(acMgr.getApplicablePolicies(path).hasNext());
 
         policies = acMgr.getPolicies(path);
         assertNotNull(policies);
-        assertEquals(1, policies.length);
+        assertEquals(2, policies.length);
 
         assertTrue(policies[0] instanceof ACL);
         ACL acl = (ACL) policies[0];
@@ -934,8 +905,11 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         assertNull(acl.getOakPath());
         assertFalse(acMgr.getApplicablePolicies(path).hasNext());
 
+        assertTrue(policies[1] instanceof NamedAccessControlPolicy);
+
         acMgr.removePolicy(path, acl);
-        assertEquals(0, acMgr.getPolicies(path).length);
+        assertEquals(1, acMgr.getPolicies(path).length);
+        assertTrue(acMgr.getPolicies(path)[0] instanceof NamedAccessControlPolicy);
         assertTrue(acMgr.getApplicablePolicies(path).hasNext());
     }
 
@@ -1063,7 +1037,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
 
         Root root2 = adminSession.getLatestRoot();
         AccessControlPolicy[] policies = getAccessControlManager(root2).getPolicies((String) null);
-        assertEquals(1, policies.length);
+        assertEquals(2, policies.length);
         assertArrayEquals(acl.getAccessControlEntries(), ((ACL) policies[0]).getAccessControlEntries());
     }
 
@@ -1254,7 +1228,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
 
         acMgr.removePolicy(null, acl);
 
-        assertEquals(0, acMgr.getPolicies((String) null).length);
+        assertEquals(1, acMgr.getPolicies((String) null).length);
         assertTrue(acMgr.getApplicablePolicies((String) null).hasNext());
     }
 
