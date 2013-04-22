@@ -37,7 +37,6 @@ import javax.jcr.security.AccessControlException;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.AccessControlPolicyIterator;
-import javax.jcr.security.NamedAccessControlPolicy;
 import javax.jcr.security.Privilege;
 
 import com.google.common.collect.ImmutableMap;
@@ -889,14 +888,14 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
 
         AccessControlPolicy[] policies = acMgr.getPolicies(path);
         assertNotNull(policies);
-        assertEquals(1, policies.length);
+        assertEquals(0, policies.length);
 
         acMgr.setPolicy(null, acMgr.getApplicablePolicies(path).nextAccessControlPolicy());
         assertFalse(acMgr.getApplicablePolicies(path).hasNext());
 
         policies = acMgr.getPolicies(path);
         assertNotNull(policies);
-        assertEquals(2, policies.length);
+        assertEquals(1, policies.length);
 
         assertTrue(policies[0] instanceof ACL);
         ACL acl = (ACL) policies[0];
@@ -905,11 +904,8 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         assertNull(acl.getOakPath());
         assertFalse(acMgr.getApplicablePolicies(path).hasNext());
 
-        assertTrue(policies[1] instanceof NamedAccessControlPolicy);
-
         acMgr.removePolicy(path, acl);
-        assertEquals(1, acMgr.getPolicies(path).length);
-        assertTrue(acMgr.getPolicies(path)[0] instanceof NamedAccessControlPolicy);
+        assertEquals(0, acMgr.getPolicies(path).length);
         assertTrue(acMgr.getApplicablePolicies(path).hasNext());
     }
 
@@ -1037,7 +1033,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
 
         Root root2 = adminSession.getLatestRoot();
         AccessControlPolicy[] policies = getAccessControlManager(root2).getPolicies((String) null);
-        assertEquals(2, policies.length);
+        assertEquals(1, policies.length);
         assertArrayEquals(acl.getAccessControlEntries(), ((ACL) policies[0]).getAccessControlEntries());
     }
 
@@ -1228,7 +1224,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
 
         acMgr.removePolicy(null, acl);
 
-        assertEquals(1, acMgr.getPolicies((String) null).length);
+        assertEquals(0, acMgr.getPolicies((String) null).length);
         assertTrue(acMgr.getApplicablePolicies((String) null).hasNext());
     }
 
