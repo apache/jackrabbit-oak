@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.segment;
 
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
+import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.Map;
 import java.util.UUID;
@@ -76,7 +77,9 @@ public class MemoryStore implements SegmentStore {
             UUID segmentId, byte[] data, int offset, int length) {
         byte[] segment = new byte[length];
         System.arraycopy(data, offset, segment, 0, length);
-        createSegment(new Segment(this, segmentId, segment, Collections.<UUID>emptySet()));
+        createSegment(new Segment(
+                this, segmentId, ByteBuffer.wrap(segment),
+                Collections.<UUID>emptySet()));
     }
 
     @Override
