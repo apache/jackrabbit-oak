@@ -44,7 +44,6 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissio
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.ReadStatus;
 import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.SystemPrincipal;
-import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,6 +55,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * <p/>
  * FIXME: define read/write access patterns on version-store content
  * FIXME: proper access permissions on activity-store and configuration-store
+ * FIXME: decide on where to filter out hidden items (OAK-753)
  */
 public class PermissionProviderImpl implements PermissionProvider, AccessControlConstants, PermissionConstants {
 
@@ -106,16 +106,18 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
 
     @Override
     public ReadStatus getReadStatus(@Nonnull Tree tree, @Nullable PropertyState property) {
-        // TODO: OAK-753 decide on where to filter out hidden items.
-        if (isHidden(tree, property)) {
-            return ReadStatus.DENY_ALL;
-        } else if (isAccessControlContent(tree)) {
-            // TODO: review if read-ac permission is never fine-granular
-            return canReadAccessControlContent(tree, null) ? ReadStatus.ALLOW_ALL : ReadStatus.DENY_ALL;
-        } else if (isVersionContent(tree)) {
-            return getVersionContentReadStatus(tree, property);
-        } else {
-            return compiledPermissions.getReadStatus(tree, property);
+        int type = getType(tree, property);
+        switch (type) {
+            case TreeTypeProvider.TYPE_HIDDEN:
+                // TODO: OAK-753 decide on where to filter out hidden items.
+                return ReadStatus.DENY_ALL;
+            case TreeTypeProvider.TYPE_AC:
+                // TODO: review if read-ac permission is never fine-granular
+                return canReadAccessControlContent(tree, null) ? ReadStatus.ALLOW_ALL : ReadStatus.DENY_ALL;
+            case TreeTypeProvider.TYPE_VERSION:
+                return getVersionContentReadStatus(tree, property);
+            default:
+                return compiledPermissions.getReadStatus(tree, property);
         }
     }
 
@@ -126,22 +128,25 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
 
     @Override
     public boolean isGranted(@Nonnull Tree tree, @Nullable PropertyState property, long permissions) {
-        if (isHidden(tree, property)) {
-            return false;
-        } else if (isVersionContent(tree)) {
-            TreeLocation location = getVersionableLocation(tree, property);
-            if (location == null) {
-                // TODO: review permission evaluation on hierarchy nodes within the different version stores.
+        int type = getType(tree, property);
+        switch (type) {
+            case TreeTypeProvider.TYPE_HIDDEN:
+                // TODO: OAK-753 decide on where to filter out hidden items.
+                return false;
+            case TreeTypeProvider.TYPE_VERSION:
+                TreeLocation location = getVersionableLocation(tree, property);
+                if (location == null) {
+                    // TODO: review permission evaluation on hierarchy nodes within the different version stores.
+                    return compiledPermissions.isGranted(tree, property, permissions);
+                }
+                Tree versionableTree = (property == null) ? location.getTree() : location.getParent().getTree();
+                if (versionableTree != null) {
+                    return compiledPermissions.isGranted(versionableTree, property, permissions);
+                } else {
+                    return compiledPermissions.isGranted(location.getPath(), permissions);
+                }
+            default:
                 return compiledPermissions.isGranted(tree, property, permissions);
-            }
-            Tree versionableTree = (property == null) ? location.getTree() : location.getParent().getTree();
-            if (versionableTree != null) {
-                return compiledPermissions.isGranted(versionableTree, property, permissions);
-            } else {
-                return compiledPermissions.isGranted(location.getPath(), permissions);
-            }
-        } else {
-            return compiledPermissions.isGranted(tree, property, permissions);
         }
     }
 
@@ -150,19 +155,19 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
         TreeLocation location = getImmutableRoot().getLocation(oakPath);
         boolean isAcContent = acConfig.getContext().definesLocation(location);
         long permissions = Permissions.getPermissions(jcrActions, location, isAcContent);
+
+        boolean isGranted = false;
         if (!location.exists()) {
             // TODO: deal with version content
-            return compiledPermissions.isGranted(oakPath, permissions);
-        }
-
-        PropertyState property = location.getProperty();
-        if (property != null) {
-            Tree parent = location.getParent().getTree();
-            return parent != null && isGranted(parent, property, permissions);
+            isGranted = compiledPermissions.isGranted(oakPath, permissions);
         } else {
-            Tree tree = location.getTree();
-            return tree != null && isGranted(tree, null, permissions);
+            PropertyState property = location.getProperty();
+            Tree tree = (property == null) ? location.getTree() : location.getParent().getTree();
+            if (tree != null) {
+                isGranted = isGranted(tree, property, permissions);
+            }
         }
+        return isGranted;
     }
 
     //--------------------------------------------------------------------------
@@ -196,21 +201,14 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
         return new PrivilegeBitsProvider(getImmutableRoot());
     }
 
-    private static boolean isHidden(@Nonnull Tree tree, @Nullable PropertyState propertyState) {
-        return TreeTypeProvider.TYPE_HIDDEN == ImmutableTree.getType(tree)
-                && (propertyState != null && NodeStateUtils.isHidden(propertyState.getName()));
-    }
-
-    private static boolean isAccessControlContent(@Nonnull Tree tree) {
-        return TreeTypeProvider.TYPE_AC == ImmutableTree.getType(tree);
+    private static int getType(@Nonnull Tree tree, @Nullable PropertyState property) {
+        // TODO: OAK-753 decide on where to filter out hidden items.
+        // TODO: deal with hidden properties
+        return ImmutableTree.getType(tree);
     }
 
     private boolean canReadAccessControlContent(@Nonnull Tree acTree, @Nullable PropertyState acProperty) {
         return compiledPermissions.isGranted(acTree, acProperty, Permissions.READ_ACCESS_CONTROL);
-    }
-
-    private static boolean isVersionContent(@Nonnull Tree tree) {
-        return TreeTypeProvider.TYPE_VERSION == ImmutableTree.getType(tree);
     }
 
     private ReadStatus getVersionContentReadStatus(@Nonnull Tree versionStoreTree, @Nullable PropertyState property) {
