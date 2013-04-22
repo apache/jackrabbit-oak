@@ -39,18 +39,19 @@ import org.slf4j.LoggerFactory;
  * {@code PrivilegeManager} implementation reading from and storing privileges
  * into the repository.
  */
-public class PrivilegeManagerImpl implements PrivilegeManager {
+class PrivilegeManagerImpl implements PrivilegeManager {
 
     private static final Logger log = LoggerFactory.getLogger(PrivilegeManagerImpl.class);
 
     private final Root root;
     private final NamePathMapper namePathMapper;
 
-    public PrivilegeManagerImpl(Root root, NamePathMapper namePathMapper) {
+    PrivilegeManagerImpl(Root root, NamePathMapper namePathMapper) {
         this.root = root;
         this.namePathMapper = namePathMapper;
     }
 
+    //---------------------------------------------------< PrivilegeManager >---
     @Override
     public Privilege[] getRegisteredPrivileges() throws RepositoryException {
         Set<Privilege> privileges = new HashSet<Privilege>();
