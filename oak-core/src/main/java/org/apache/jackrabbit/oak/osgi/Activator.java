@@ -28,7 +28,6 @@ import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.osgi.OsgiRepositoryInitializer.RepositoryInitializerObserver;
-import org.apache.jackrabbit.oak.plugins.nodetype.DefaultTypeEditor;
 import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.spi.lifecycle.OakInitializer;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
@@ -104,8 +103,6 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer, Rep
             Oak oak = new Oak(store)
                 // FIXME: proper osgi setup for security provider (see OAK-17 and sub-tasks)
                 .with(new SecurityProviderImpl())
-                // TODO: DefaultTypeEditor is JCR specific and does not belong here
-                .with(new DefaultTypeEditor())
                 .with(validatorProvider)
                 .with(indexProvider)
                 .with(indexHookProvider);
