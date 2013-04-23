@@ -306,20 +306,28 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
     @Nonnull
     @Override
     public JackrabbitAccessControlPolicy[] getApplicablePolicies(@Nonnull Principal principal) throws RepositoryException {
-        Result aceResult = searchAces(Collections.<Principal>singleton(principal));
-        if (aceResult.getSize() > 0) {
+        checkValidPrincipal(principal);
+
+        String oakPath = (principal instanceof ItemBasedPrincipal) ? ((ItemBasedPrincipal) principal).getPath() : null;
+        JackrabbitAccessControlPolicy policy = createPrincipalACL(oakPath, principal);
+
+        if (policy != null) {
             return new JackrabbitAccessControlPolicy[0];
         } else {
-            return new JackrabbitAccessControlPolicy[]{createPrincipalACL(principal, null)};
+            return new JackrabbitAccessControlPolicy[]{new PrincipalACL(oakPath, principal)};
         }
     }
 
     @Nonnull
     @Override
     public JackrabbitAccessControlPolicy[] getPolicies(@Nonnull Principal principal) throws RepositoryException {
-        Result aceResult = searchAces(Collections.<Principal>singleton(principal));
-        if (aceResult.getSize() > 0) {
-            return new JackrabbitAccessControlPolicy[]{createPrincipalACL(principal, aceResult)};
+        checkValidPrincipal(principal);
+
+        String oakPath = (principal instanceof ItemBasedPrincipal) ? ((ItemBasedPrincipal) principal).getPath() : null;
+        JackrabbitAccessControlPolicy policy = createPrincipalACL(oakPath, principal);
+
+        if (policy != null) {
+            return new JackrabbitAccessControlPolicy[]{policy};
         } else {
             return new JackrabbitAccessControlPolicy[0];
         }
@@ -328,6 +336,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
     @Nonnull
     @Override
     public AccessControlPolicy[] getEffectivePolicies(@Nonnull Set<Principal> principals) throws RepositoryException {
+        checkValidPrincipals(principals);
         Result aceResult = searchAces(principals);
         List<AccessControlPolicy> effective = new ArrayList<AccessControlPolicy>();
         for (ResultRow row : aceResult.getRows()) {
@@ -424,6 +433,22 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
         }
     }
 
+    private void checkValidPrincipals(@Nullable Set<Principal> principals) throws AccessControlException {
+        if (principals == null) {
+            throw new AccessControlException("Valid principals expected. Found null.");
+        }
+        for (Principal principal : principals) {
+            checkValidPrincipal(principal);
+        }
+    }
+
+    private void checkValidPrincipal(@Nullable Principal principal) throws AccessControlException {
+        String name = (principal == null) ? null : principal.getName();
+        if (name == null || !principalManager.hasPrincipal(name)) {
+            throw new AccessControlException("Unknown principal " + name);
+        }
+    }
+
     private boolean isAccessControlled(@Nonnull Tree tree, @Nonnull String nodeTypeName) {
         return ntMgr.isNodeType(tree, nodeTypeName);
     }
@@ -481,33 +506,31 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
         return acl;
     }
 
-    @Nonnull
-    private JackrabbitAccessControlList createPrincipalACL(@Nonnull Principal principal,
-                                                           @Nullable Result aceResult) throws RepositoryException {
-        if (!(principal instanceof ItemBasedPrincipal)) {
-            throw new IllegalArgumentException("Item based principal expected");
-        }
-        String principalPath = ((ItemBasedPrincipal) principal).getPath();
+    @Nullable
+    private JackrabbitAccessControlList createPrincipalACL(@Nullable String oakPath,
+                                                           @Nonnull Principal principal) throws RepositoryException {
+        Result aceResult = searchAces(Collections.<Principal>singleton(principal));
         RestrictionProvider restrProvider = new PrincipalRestrictionProvider(restrictionProvider, namePathMapper);
-
-        List<JackrabbitAccessControlEntry> entries = null;
-        if (aceResult != null) {
-            entries = new ArrayList();
-            for (ResultRow row : aceResult.getRows()) {
-                Tree aceTree = root.getTree(row.getPath());
-                if (isACE(aceTree)) {
-                    String aclPath = Text.getRelativeParent(aceTree.getPath(), 1);
-                    String path;
-                    if (aclPath.endsWith(REP_REPO_POLICY)) {
-                        path = null;
-                    } else {
-                        path = Text.getRelativeParent(aclPath, 1);
-                    }
-                    entries.add(createACE(path, aceTree, restrProvider));
+        List<JackrabbitAccessControlEntry> entries = new ArrayList<JackrabbitAccessControlEntry>();
+        for (ResultRow row : aceResult.getRows()) {
+            Tree aceTree = root.getTree(row.getPath());
+            if (isACE(aceTree)) {
+                String aclPath = Text.getRelativeParent(aceTree.getPath(), 1);
+                String path;
+                if (aclPath.endsWith(REP_REPO_POLICY)) {
+                    path = null;
+                } else {
+                    path = Text.getRelativeParent(aclPath, 1);
                 }
+                entries.add(createACE(path, aceTree, restrProvider));
             }
         }
-        return new PrincipalACL(principalPath, principal, entries, restrProvider);
+        if (entries.isEmpty()) {
+            // nothing found
+            return null;
+        } else {
+            return new PrincipalACL(oakPath, principal, entries, restrProvider);
+        }
     }
 
     @Nonnull
@@ -524,7 +547,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
         // TODO: specify sort order
         StringBuilder stmt = new StringBuilder("/jcr:root");
         stmt.append("//element(*,");
-        stmt.append(namePathMapper.getJcrName(NT_REP_ACE));
+        stmt.append(NT_REP_ACE);
         stmt.append(")[");
         int i = 0;
         for (Principal principal : principals) {
@@ -532,7 +555,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
                 stmt.append(" or ");
             }
             stmt.append('@');
-            stmt.append(ISO9075.encode(namePathMapper.getJcrName(REP_PRINCIPAL_NAME)));
+            stmt.append(ISO9075.encode(REP_PRINCIPAL_NAME));
             stmt.append("='");
             stmt.append(principal.getName().replaceAll("'", "''"));
             stmt.append('\'');
@@ -702,11 +725,11 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
     // TODO review again
     private class NodeACL extends ACL {
 
-        NodeACL(String oakPath) {
+        NodeACL(@Nullable String oakPath) {
             super(oakPath, namePathMapper);
         }
 
-        NodeACL(String oakPath, List<JackrabbitAccessControlEntry> entries) {
+        NodeACL(@Nullable String oakPath, @Nullable List<JackrabbitAccessControlEntry> entries) {
             super(oakPath, entries, namePathMapper);
         }
 
@@ -755,9 +778,13 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
         private final Principal principal;
         private final RestrictionProvider rProvider;
 
-        private PrincipalACL(String oakPath, Principal principal,
-                             List<JackrabbitAccessControlEntry> entries,
-                             RestrictionProvider restrictionProvider) {
+        private PrincipalACL(@Nullable String oakPath, @Nonnull Principal principal) {
+            this(oakPath, principal, null, new PrincipalRestrictionProvider(restrictionProvider, namePathMapper));
+        }
+
+        private PrincipalACL(@Nullable String oakPath, @Nonnull Principal principal,
+                             @Nullable List<JackrabbitAccessControlEntry> entries,
+                             @Nonnull RestrictionProvider restrictionProvider) {
             super(oakPath, entries, namePathMapper);
             this.principal = principal;
             rProvider = restrictionProvider;

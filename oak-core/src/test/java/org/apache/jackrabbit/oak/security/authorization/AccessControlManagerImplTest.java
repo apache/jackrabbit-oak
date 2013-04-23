@@ -20,6 +20,7 @@ import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -39,9 +40,11 @@ import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.AccessControlPolicyIterator;
 import javax.jcr.security.Privilege;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.TestNameMapper;
@@ -53,6 +56,7 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
 import org.apache.jackrabbit.oak.plugins.name.Namespaces;
 import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
+import org.apache.jackrabbit.oak.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.AbstractAccessControlTest;
@@ -1317,13 +1321,247 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
     }
 
     //-----------------------------------< getApplicablePolicies(Principal) >---
-    // TODO
+    @Test
+    public void testGetApplicablePoliciesNullPrincipal() throws Exception {
+        try {
+            acMgr.getApplicablePolicies((Principal) null);
+            fail("Null is not a valid principal");
+        } catch (AccessControlException e) {
+            // success
+        }
+    }
+
+    @Test
+    public void testGetApplicablePoliciesInvalidPrincipal() throws Exception {
+        Principal unknown = getPrincipalManager().getPrincipal("unknown");
+        int i = 0;
+        while (unknown != null) {
+            unknown = getPrincipalManager().getPrincipal("unknown"+i);
+        }
+        unknown = new PrincipalImpl("unknown" + i);
+        try {
+            acMgr.getApplicablePolicies(unknown);
+            fail("Unknown principal should be detected.");
+        } catch (AccessControlException e) {
+            // success
+        }
+    }
+
+    @Test
+    public void testGetApplicablePoliciesByPrincipal() throws Exception {
+        List<Principal> principals = ImmutableList.of(testPrincipal, EveryonePrincipal.getInstance());
+        for (Principal principal : principals) {
+            AccessControlPolicy[] applicable = acMgr.getApplicablePolicies(principal);
+
+            assertNotNull(applicable);
+            assertEquals(1, applicable.length);
+            assertTrue(applicable[0] instanceof ACL);
+        }
+    }
+
+    @Test
+    public void testGetApplicablePoliciesByPrincipal2() throws Exception {
+        setupPolicy(testPath);
+
+        // changes not yet persisted -> no existing policies found for user
+        AccessControlPolicy[] applicable = acMgr.getApplicablePolicies(testPrincipal);
+        assertNotNull(applicable);
+        assertEquals(1, applicable.length);
+        assertTrue(applicable[0] instanceof ACL);
+
+        // after persisting changes -> no applicable policies present any more.
+        root.commit();
+        applicable = acMgr.getApplicablePolicies(testPrincipal);
+        assertNotNull(applicable);
+        assertEquals(0, applicable.length);
+    }
+
+    @Test
+    public void testTestSessionGetApplicablePolicies() throws Exception {
+        setupPolicy(testPath);
+        root.commit();
+
+        Root testRoot = getTestRoot();
+        testRoot.refresh();
+        JackrabbitAccessControlManager testAcMgr = getTestAccessControlManager();
+        PrincipalManager testPrincipalMgr = getSecurityProvider().getPrincipalConfiguration().getPrincipalManager(testRoot, getNamePathMapper());
+
+        List<Principal> principals = ImmutableList.of(testPrincipal, EveryonePrincipal.getInstance());
+        for (Principal principal : principals) {
+            if (testPrincipalMgr.hasPrincipal(principal.getName())) {
+                // testRoot can't read access control content -> doesn't see
+                // the existing policies and creates a new applicable policy.
+                AccessControlPolicy[] applicable = testAcMgr.getApplicablePolicies(principal);
+                assertNotNull(applicable);
+                assertEquals(1, applicable.length);
+                assertTrue(applicable[0] instanceof ACL);
+            } else {
+                // testRoot can't read principal -> exception expected
+                try {
+                    testAcMgr.getApplicablePolicies(principal);
+                    fail();
+                } catch (AccessControlException e) {
+                    // success
+                }
+            }
+        }
+    }
 
     //---------------------------------------------< getPolicies(Principal) >---
-    // TODO
+    @Test
+    public void testGetPoliciesNullPrincipal() throws Exception {
+        try {
+            acMgr.getPolicies((Principal) null);
+            fail("Null is not a valid principal");
+        } catch (AccessControlException e) {
+            // success
+        }
+    }
 
-    //------------------------------------< getEffectivePolicies(Principal) >---
-    // TODO
+    @Test
+    public void testGetPoliciesInvalidPrincipal() throws Exception {
+        Principal unknown = getPrincipalManager().getPrincipal("unknown");
+        int i = 0;
+        while (unknown != null) {
+            unknown = getPrincipalManager().getPrincipal("unknown"+i);
+        }
+        unknown = new PrincipalImpl("unknown" + i);
+        try {
+            acMgr.getPolicies(unknown);
+            fail("Unknown principal should be detected.");
+        } catch (AccessControlException e) {
+            // success
+        }
+    }
+
+    @Test
+    public void testGetPoliciesByPrincipal() throws Exception {
+        List<Principal> principals = ImmutableList.of(testPrincipal, EveryonePrincipal.getInstance());
+        for (Principal principal : principals) {
+            AccessControlPolicy[] policies = acMgr.getPolicies(principal);
+
+            assertNotNull(policies);
+            assertEquals(0, policies.length);
+        }
+    }
+
+    @Test
+    public void testGetPoliciesByPrincipal2() throws Exception {
+        setupPolicy(testPath);
+
+        // changes not yet persisted -> no existing policies found for user
+        AccessControlPolicy[] policies = acMgr.getPolicies(testPrincipal);
+        assertNotNull(policies);
+        assertEquals(0, policies.length);
+
+        // after persisting changes -> policies must be found
+        root.commit();
+        policies = acMgr.getPolicies(testPrincipal);
+        assertNotNull(policies);
+        assertEquals(1, policies.length);
+    }
+
+    @Test
+    public void testTestSessionGetPolicies() throws Exception {
+        setupPolicy(testPath);
+        root.commit();
+
+        Root testRoot = getTestRoot();
+        testRoot.refresh();
+        JackrabbitAccessControlManager testAcMgr = getTestAccessControlManager();
+        PrincipalManager testPrincipalMgr = getSecurityProvider().getPrincipalConfiguration().getPrincipalManager(testRoot, getNamePathMapper());
+
+        List<Principal> principals = ImmutableList.of(testPrincipal, EveryonePrincipal.getInstance());
+        for (Principal principal : principals) {
+            if (testPrincipalMgr.hasPrincipal(principal.getName())) {
+                // testRoot can't read access control content -> doesn't see
+                // the existing policies and creates a new applicable policy.
+                AccessControlPolicy[] policies = testAcMgr.getPolicies(principal);
+                assertNotNull(policies);
+                assertEquals(0, policies.length);
+            } else {
+                // testRoot can't read principal -> exception expected
+                try {
+                    testAcMgr.getApplicablePolicies(principal);
+                    fail();
+                } catch (AccessControlException e) {
+                    // success
+                }
+            }
+        }
+    }
+
+    //-------------------------------< getEffectivePolicies(Set<Principal>) >---
+    @Test
+    public void testGetEffectivePoliciesNullPrincipal() throws Exception {
+        try {
+            acMgr.getEffectivePolicies((Set) null);
+            fail("Null principal set not allowed");
+        } catch (AccessControlException e) {
+            // success
+        }
+
+        try {
+            acMgr.getEffectivePolicies(new HashSet<Principal>(Arrays.asList(EveryonePrincipal.getInstance(), null, testPrincipal)));
+            fail("Null principal set not allowed");
+        } catch (AccessControlException e) {
+            // success
+        }
+    }
+
+    @Test
+    public void testGetEffectivePoliciesInvalidPrincipals() throws Exception {
+        Principal unknown = getPrincipalManager().getPrincipal("unknown");
+        int i = 0;
+        while (unknown != null) {
+            unknown = getPrincipalManager().getPrincipal("unknown"+i);
+        }
+        unknown = new PrincipalImpl("unknown" + i);
+        try {
+            acMgr.getEffectivePolicies(Collections.singleton(unknown));
+            fail("Unknown principal should be detected.");
+        } catch (AccessControlException e) {
+            // success
+        }
+        try {
+            acMgr.getEffectivePolicies(ImmutableSet.of(unknown, EveryonePrincipal.getInstance(), testPrincipal));
+            fail("Unknown principal should be detected.");
+        } catch (AccessControlException e) {
+            // success
+        }
+    }
+
+    @Test
+    public void testGetEffectivePoliciesByPrincipal() throws Exception {
+        // no ACLs containing entries for the specified principals
+        // -> no effective policies expected
+        Set<Set<Principal>> principalSets = new HashSet<Set<Principal>>();
+        principalSets.add(Collections.singleton(getTestPrincipal()));
+        principalSets.add(Collections.<Principal>singleton(EveryonePrincipal.getInstance()));
+        principalSets.add(ImmutableSet.of(testPrincipal, EveryonePrincipal.getInstance()));
+
+        for (Set<Principal> principals : principalSets) {
+            AccessControlPolicy[] policies = acMgr.getEffectivePolicies(principals);
+            assertNotNull(policies);
+            assertEquals(0, policies.length);
+        }
+    }
+
+    @Test
+    public void testGetEffectivePoliciesByPrincipal2() throws Exception {
+        setupPolicy(testPath);
+
+        // changes not yet persisted -> no effecitve policies found for testprincipal
+        AccessControlPolicy[] policies = acMgr.getEffectivePolicies(ImmutableSet.of(testPrincipal));
+        assertNotNull(policies);
+        assertEquals(0, policies.length);
+
+        // after persisting changes -> the policy must be found
+        root.commit();
+        policies = acMgr.getEffectivePolicies(ImmutableSet.of(testPrincipal));
+        assertNotNull(policies);
+        assertEquals(1, policies.length);
+    }
 
     //-----------------------------------------------< setPrincipalPolicy() >---
     // TODO
