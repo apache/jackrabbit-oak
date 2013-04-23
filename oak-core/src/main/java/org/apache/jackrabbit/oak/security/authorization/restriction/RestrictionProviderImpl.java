@@ -74,13 +74,13 @@ public class RestrictionProviderImpl implements RestrictionProvider, AccessContr
     @Override
     public Restriction createRestriction(String oakPath, String jcrName, Value value) throws RepositoryException {
         if (isUnsupportedPath(oakPath)) {
-            throw new AccessControlException("Unsupported restriction: " + oakPath);
+            throw new AccessControlException("Unsupported restriction at " + oakPath);
         }
 
         String oakName = namePathMapper.getOakName(jcrName);
         RestrictionDefinition definition = supported.get(oakName);
         if (definition == null) {
-            throw new AccessControlException("Unsupported restriction: " + oakPath);
+            throw new AccessControlException("Unsupported restriction: " + oakName);
         }
         int requiredType = definition.getRequiredType();
         if (requiredType != PropertyType.UNDEFINED && requiredType != value.getType()) {
