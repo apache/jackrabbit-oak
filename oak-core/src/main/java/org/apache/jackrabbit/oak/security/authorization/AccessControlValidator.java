@@ -217,8 +217,7 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
         try {
             restrictionProvider.validateRestrictions(path, aceTree);
         } catch (AccessControlException e) {
-            throw new CommitFailedException(
-                    ACCESS, 1, "Access control violation", e);
+            throw new CommitFailedException(ACCESS, 1, "Access control violation", e);
         }
     }
 
