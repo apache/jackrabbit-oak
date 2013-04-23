@@ -22,6 +22,7 @@ import javax.jcr.Credentials;
 import javax.jcr.NoSuchWorkspaceException;
 import javax.jcr.RepositoryException;
 import javax.jcr.SimpleCredentials;
+import javax.jcr.ValueFactory;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.Privilege;
 import javax.security.auth.login.Configuration;
@@ -40,6 +41,7 @@ import org.apache.jackrabbit.oak.plugins.index.p2.Property2IndexHookProvider;
 import org.apache.jackrabbit.oak.plugins.index.p2.Property2IndexProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.RegistrationEditorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
+import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
@@ -155,6 +157,10 @@ public abstract class AbstractSecurityTest {
             privMgr = getSecurityProvider().getPrivilegeConfiguration().getPrivilegeManager(root, getNamePathMapper());
         }
         return privMgr;
+    }
+
+    protected ValueFactory getValueFactory() {
+        return new ValueFactoryImpl(root.getBlobFactory(), getNamePathMapper());
     }
 
     protected User getTestUser() throws Exception {

@@ -40,6 +40,7 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
 import org.apache.jackrabbit.oak.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionDefinition;
+import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -73,9 +74,16 @@ public abstract class AbstractAccessControlListTest extends AbstractAccessContro
         return createACL(jcrPath, Lists.newArrayList(entries), namePathMapper);
     }
 
+    protected AbstractAccessControlList createACL(@Nullable String jcrPath,
+                                                           @Nonnull List<JackrabbitAccessControlEntry> entries,
+                                                           @Nonnull NamePathMapper namePathMapper) {
+        return createACL(jcrPath, entries, namePathMapper, getRestrictionProvider());
+    }
+
     protected abstract AbstractAccessControlList createACL(@Nullable String jcrPath,
                                                            @Nonnull List<JackrabbitAccessControlEntry> entries,
-                                                           @Nonnull NamePathMapper namePathMapper);
+                                                           @Nonnull NamePathMapper namePathMapper,
+                                                           @Nonnull RestrictionProvider restrictionProvider);
 
     protected List<JackrabbitAccessControlEntry> createTestEntries() throws RepositoryException {
         List<JackrabbitAccessControlEntry> entries = new ArrayList<JackrabbitAccessControlEntry>(3);
