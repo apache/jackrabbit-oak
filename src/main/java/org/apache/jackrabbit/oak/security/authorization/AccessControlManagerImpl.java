@@ -20,9 +20,11 @@ import java.security.Principal;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -31,10 +33,10 @@ import javax.jcr.AccessDeniedException;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
+import javax.jcr.Value;
 import javax.jcr.query.Query;
 import javax.jcr.security.AccessControlEntry;
 import javax.jcr.security.AccessControlException;
-import javax.jcr.security.AccessControlList;
 import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.AccessControlPolicyIterator;
 import javax.jcr.security.Privilege;
@@ -216,58 +218,69 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
         checkValidPolicy(oakPath, policy);
 
         if (policy instanceof PrincipalACL) {
-            PrincipalACL principalAcl = (PrincipalACL) policy;
-            AccessControlPolicy[] plcs = getPolicies(principalAcl.principal);
-            PrincipalACL existing = (plcs.length == 0) ? null : (PrincipalACL) plcs[0];
-
-            List<JackrabbitAccessControlEntry> toAdd = Lists.newArrayList(principalAcl.getEntries());
-            List<JackrabbitAccessControlEntry> toRemove = Collections.emptyList();
-            if (existing != null) {
-                toAdd.removeAll(existing.getEntries());
-                toRemove = existing.getEntries();
-                toRemove.removeAll(principalAcl.getEntries());
-            }
-            // add new entries
-            for (JackrabbitAccessControlEntry ace : toAdd) {
-                String path = getOakPath(ace.getRestriction(REP_NODE_PATH).getString());
-                Tree tree = getTree(path, Permissions.MODIFY_ACCESS_CONTROL);
-                NodeUtil aclNode = getAclNode(path, tree);
-                if (aclNode == null) {
-                    aclNode = createAclNode(path, tree);
-                }
-                aclNode.getTree().setOrderableChildren(true);
-                writeACE(path, aclNode, ace, principalAcl.rProvider);
-            }
-
-            // remove entries that are not longer present in the acl to write
-            for (JackrabbitAccessControlEntry ace : toRemove) {
-                String path = getOakPath(ace.getRestriction(REP_NODE_PATH).getString());
-                NodeUtil aclNode = checkNotNull(getAclNode(path, getTree(path, Permissions.MODIFY_ACCESS_CONTROL)));
-                Iterator<Tree> children = aclNode.getTree().getChildren().iterator();
-                while (children.hasNext()) {
-                    Tree child = children.next();
-                    if (ace.equals(createACE(path, child, principalAcl.rProvider))) {
-                        child.remove();
-                    }
-                }
-            }
+            setPrincipalBasedAcl((PrincipalACL) policy);
         } else {
             Tree tree = getTree(oakPath, Permissions.MODIFY_ACCESS_CONTROL);
-            NodeUtil aclNode = getAclNode(oakPath, tree);
-            if (aclNode != null) {
-                // remove all existing aces
-                for (Tree aceTree : aclNode.getTree().getChildren()) {
-                    aceTree.remove();
-                }
-            } else {
-                aclNode = createAclNode(oakPath, tree);
-            }
-            aclNode.getTree().setOrderableChildren(true);
+            setNodeBasedAcl(oakPath, tree, (ACL) policy);
+        }
+    }
 
-            ACL acl = (ACL) policy;
-            for (JackrabbitAccessControlEntry ace : acl.getEntries()) {
-                writeACE(oakPath, aclNode, ace, restrictionProvider);
+    private void setPrincipalBasedAcl(PrincipalACL principalAcl) throws RepositoryException {
+        AccessControlPolicy[] plcs = getPolicies(principalAcl.principal);
+        PrincipalACL existing = (plcs.length == 0) ? null : (PrincipalACL) plcs[0];
+
+        List<JackrabbitAccessControlEntry> toAdd = Lists.newArrayList(principalAcl.getEntries());
+        List<JackrabbitAccessControlEntry> toRemove = Collections.emptyList();
+        if (existing != null) {
+            toAdd.removeAll(existing.getEntries());
+            toRemove = existing.getEntries();
+            toRemove.removeAll(principalAcl.getEntries());
+        }
+        // add new entries
+        for (JackrabbitAccessControlEntry ace : toAdd) {
+            String path = getOakPath(ace.getRestriction(REP_NODE_PATH).getString());
+            Tree tree = getTree(path, Permissions.MODIFY_ACCESS_CONTROL);
+
+            ACL acl = (ACL) createACL(path, tree, false);
+            if (acl == null) {
+                acl = new NodeACL(path);
             }
+
+            Map<String, Value> restrictions = new HashMap();
+            for (String name : ace.getRestrictionNames()) {
+                if (!REP_NODE_PATH.equals(name)) {
+                    restrictions.put(name, ace.getRestriction(name));
+                }
+            }
+            acl.addEntry(ace.getPrincipal(), ace.getPrivileges(), ace.isAllow(), restrictions);
+            setNodeBasedAcl(path, tree, acl);
+        }
+
+        // remove entries that are not longer present in the acl to write
+        for (JackrabbitAccessControlEntry ace : toRemove) {
+            String path = getOakPath(ace.getRestriction(REP_NODE_PATH).getString());
+            Tree tree = getTree(path, Permissions.MODIFY_ACCESS_CONTROL);
+
+            ACL acl = (ACL) createACL(path, tree, false);
+            acl.removeAccessControlEntry(ace);
+            setNodeBasedAcl(path, tree, acl);
+        }
+    }
+
+    private void setNodeBasedAcl(@Nullable String oakPath, @Nonnull Tree tree,
+                                 @Nonnull ACL acl) throws RepositoryException {
+        NodeUtil aclNode = getAclNode(oakPath, tree);
+        if (aclNode != null) {
+            // remove all existing aces
+            for (Tree aceTree : aclNode.getTree().getChildren()) {
+                aceTree.remove();
+            }
+        } else {
+            aclNode = createAclNode(oakPath, tree);
+        }
+        aclNode.getTree().setOrderableChildren(true);
+        for (JackrabbitAccessControlEntry ace : acl.getEntries()) {
+            writeACE(oakPath, aclNode, ace, restrictionProvider);
         }
     }
 
@@ -280,15 +293,20 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
             PrincipalACL principalAcl = (PrincipalACL) policy;
             for (JackrabbitAccessControlEntry ace : principalAcl.getEntries()) {
                 String path = getOakPath(ace.getRestriction(REP_NODE_PATH).getString());
-                Tree tree = getTree(path, Permissions.MODIFY_ACCESS_CONTROL);
-                NodeUtil aclNode = checkNotNull(getAclNode(oakPath, tree));
-
-                Iterator<Tree> children = aclNode.getTree().getChildren().iterator();
+                NodeUtil aclNode = getAclNode(path, getTree(path, Permissions.MODIFY_ACCESS_CONTROL));
+                if (aclNode == null) {
+                    throw new AccessControlException("Unable to retrieve policy node at " + path);
+                }
+                Tree aclTree = aclNode.getTree();
+                Iterator<Tree> children = aclTree.getChildren().iterator();
                 while (children.hasNext()) {
                     Tree child = children.next();
                     if (ace.equals(createACE(path, child, principalAcl.rProvider))) {
                         child.remove();
                     }
+                }
+                if (!aclTree.getChildren().iterator().hasNext()) {
+                    aclTree.remove();
                 }
             }
         } else {
@@ -480,10 +498,10 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
     }
 
     @CheckForNull
-    private AccessControlList createACL(@Nullable String oakPath,
-                                        @Nullable Tree accessControlledTree,
-                                        boolean isReadOnly) throws RepositoryException {
-        AccessControlList acl = null;
+    private JackrabbitAccessControlList createACL(@Nullable String oakPath,
+                                                  @Nullable Tree accessControlledTree,
+                                                  boolean isReadOnly) throws RepositoryException {
+        JackrabbitAccessControlList acl = null;
         String aclName = getAclName(oakPath);
         String mixinName = getMixinName(oakPath);
 
