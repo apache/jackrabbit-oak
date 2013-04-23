@@ -26,6 +26,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.security.AccessControlException;
 
+import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
@@ -63,7 +64,12 @@ public class PrincipalRestrictionProvider implements RestrictionProvider, Access
     @Nonnull
     @Override
     public Restriction createRestriction(@Nullable String oakPath, @Nonnull String jcrName, @Nonnull Value value) throws RepositoryException {
-        return base.createRestriction(oakPath, jcrName, value);
+        String oakName = namePathMapper.getOakName(jcrName);
+        if (REP_NODE_PATH.equals(oakName) && PropertyType.PATH == value.getType()) {
+            return new RestrictionImpl(PropertyStates.createProperty(oakName, value), true, namePathMapper);
+        } else {
+            return base.createRestriction(oakPath, jcrName, value);
+        }
     }
 
     @Override
@@ -77,7 +83,7 @@ public class PrincipalRestrictionProvider implements RestrictionProvider, Access
 
     @Override
     public void writeRestrictions(String oakPath, Tree aceTree, Set<Restriction> restrictions) throws AccessControlException {
-        Iterator<Restriction> it = restrictions.iterator();
+        Iterator<Restriction> it = Sets.newHashSet(restrictions).iterator();
         while (it.hasNext()) {
             Restriction r = it.next();
             if (REP_NODE_PATH.equals(r.getName())) {
