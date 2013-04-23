@@ -16,14 +16,35 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
+import java.security.PrivilegedExceptionAction;
+import java.util.HashMap;
+import java.util.Map;
+import javax.jcr.SimpleCredentials;
+import javax.security.auth.Subject;
+import javax.security.auth.login.LoginException;
+
+import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.apache.jackrabbit.oak.Oak;
+import org.apache.jackrabbit.oak.api.ContentRepository;
+import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.p2.Property2IndexHookProvider;
+import org.apache.jackrabbit.oak.plugins.index.p2.Property2IndexProvider;
+import org.apache.jackrabbit.oak.plugins.nodetype.RegistrationEditorProvider;
+import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
+import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
+import org.apache.jackrabbit.oak.security.authentication.SystemSubject;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
+import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtility;
 import org.apache.jackrabbit.oak.util.TreeUtil;
@@ -34,7 +55,9 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * @since OAK 1.0
@@ -107,6 +130,54 @@ public class UserInitializerTest extends AbstractSecurityTest {
 
         Tree members = oakIndex.getChild("members");
         assertIndexDefinition(members, UserConstants.REP_MEMBERS, false);
+    }
+
+    @Test
+    public void testAdminConfiguration() throws Exception {
+        Map<String,String> userParams = new HashMap();
+        userParams.put(UserConstants.PARAM_ADMIN_ID, "admin");
+        userParams.put(UserConstants.PARAM_ADMIN_PW, null);
+
+        ConfigurationParameters params = new ConfigurationParameters(ImmutableMap.of(UserConfiguration.PARAM_USER_OPTIONS, new ConfigurationParameters(userParams)));
+        SecurityProvider sp = new SecurityProviderImpl(params);
+        final ContentRepository repo = new Oak().with(new InitialContent())
+                .with(new Property2IndexHookProvider())
+                .with(new Property2IndexProvider())
+                .with(new RegistrationEditorProvider())
+                .with(sp)
+                .createContentRepository();
+
+        ContentSession cs = Subject.doAs(SystemSubject.INSTANCE, new PrivilegedExceptionAction<ContentSession>() {
+            @Override
+            public ContentSession run() throws Exception {
+                return repo.login(null, null);
+            }
+        });
+        try {
+            Root root = cs.getLatestRoot();
+            UserManager umgr = sp.getUserConfiguration().getUserManager(root, NamePathMapper.DEFAULT);
+            Authorizable adminUser = umgr.getAuthorizable("admin");
+            assertNotNull(adminUser);
+
+            Tree adminTree = root.getTree(adminUser.getPath());
+            assertNotNull(adminTree);
+            assertNull(adminTree.getProperty(UserConstants.REP_PASSWORD));
+        } finally {
+            cs.close();
+        }
+
+        // login as admin should fail
+        ContentSession adminSession = null;
+        try {
+            adminSession = repo.login(new SimpleCredentials("admin", new char[0]), null);
+            fail();
+        } catch (LoginException e) {
+            //success
+        } finally {
+            if (adminSession != null) {
+                adminSession.close();
+            }
+        }
     }
 
     private static void assertIndexDefinition(Tree tree, String propName, boolean isUnique) {

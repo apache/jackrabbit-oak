@@ -33,6 +33,7 @@ import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.lifecycle.WorkspaceInitializer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
@@ -119,12 +120,12 @@ public class UserInitializer implements WorkspaceInitializer, UserConstants {
                 IndexUtils.createIndexDefinition(index, "members", false, new String[]{UserConstants.REP_MEMBERS}, null);
             }
 
-            String adminId = userConfiguration.getConfigurationParameters().getConfigValue(PARAM_ADMIN_ID, DEFAULT_ADMIN_ID);
+            ConfigurationParameters params = userConfiguration.getConfigurationParameters();
+            String adminId = params.getConfigValue(PARAM_ADMIN_ID, DEFAULT_ADMIN_ID);
             if (userManager.getAuthorizable(adminId) == null) {
-                // TODO: init admin with null password and force application to set it.
-                userManager.createUser(adminId, adminId);
+                userManager.createUser(adminId, params.getConfigValue(PARAM_ADMIN_PW, adminId));
             }
-            String anonymousId = userConfiguration.getConfigurationParameters().getConfigValue(PARAM_ANONYMOUS_ID, DEFAULT_ANONYMOUS_ID);
+            String anonymousId = params.getConfigValue(PARAM_ANONYMOUS_ID, DEFAULT_ANONYMOUS_ID);
             if (userManager.getAuthorizable(anonymousId) == null) {
                 userManager.createUser(anonymousId, null);
             }
