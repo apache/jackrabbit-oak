@@ -61,6 +61,11 @@ public interface UserConstants {
     String PARAM_ADMIN_ID = "adminId";
 
     /**
+     * Configuration option defining the ID of the administrator user.
+     */
+    String PARAM_ADMIN_PW = "adminPw";
+
+    /**
      * Default value for {@link #PARAM_ADMIN_ID}
      */
     String DEFAULT_ADMIN_ID = "admin";

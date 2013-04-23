@@ -41,6 +41,16 @@ public class ConfigurationParametersTest {
     public void tearDown() {}
 
     @Test
+    public void testGetConfigValue() {
+        Map<String, String> map = new HashMap<String, String>();
+        map.put("o1", "v");
+        ConfigurationParameters options = new ConfigurationParameters(map);
+
+        assertEquals("v", options.getConfigValue("o1", null));
+        assertEquals("v", options.getConfigValue("o1", "v2"));
+    }
+
+    @Test
     public void testDefaultValue() {
         TestObject testObject = new TestObject("t");
         Integer int1000 = new Integer(1000);
@@ -108,12 +118,9 @@ public class ConfigurationParametersTest {
         ConfigurationParameters options = new ConfigurationParameters(Collections.singletonMap("test", null));
 
         assertNull(options.getConfigValue("test", null));
-        assertEquals("value", options.getConfigValue("test", "value"));
-        TestObject testObject = new TestObject("t");
-        assertEquals(testObject, options.getConfigValue("test", testObject));
+        assertNull(options.getConfigValue("test", "value"));
+        assertNull(options.getConfigValue("test", new TestObject("t")));
     }
-
-
 
     private class TestObject {
 

@@ -56,7 +56,7 @@ public class ConfigurationParameters {
     @SuppressWarnings("unchecked")
     private static <T> T convert(Object configProperty, T defaultValue) {
         if (configProperty == null) {
-            return defaultValue;
+            return null;
         }
 
         T value;
