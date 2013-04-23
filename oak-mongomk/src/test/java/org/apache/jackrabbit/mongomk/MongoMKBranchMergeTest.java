@@ -25,8 +25,6 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 /**
@@ -302,14 +300,13 @@ public class MongoMKBranchMergeTest extends BaseMongoMKTest {
     }
 
     @Test
-    @Ignore
     public void addExistingRootInBranch() {
         addNodes(null, "/root");
         assertNodesExist(null, "/root");
 
         String branchRev = mk.branch(null);
         try {
-            branchRev = addNodes(branchRev, "/root");
+            addNodes(branchRev, "/root");
             fail("Should not be able to add the same root node twice");
         } catch (Exception expected) {
             // expected
@@ -317,7 +314,6 @@ public class MongoMKBranchMergeTest extends BaseMongoMKTest {
     }
 
     @Test
-    @Ignore
     public void addExistingChildInBranch() {
         addNodes(null, "/root", "/root/child1");
         assertNodesExist(null, "/root", "/root/child1");
@@ -327,27 +323,11 @@ public class MongoMKBranchMergeTest extends BaseMongoMKTest {
         assertNodesExist(branchRev, "/root/child1", "/root/child2");
 
         try {
-            branchRev = addNodes(branchRev, "/root/child1");
+            addNodes(branchRev, "/root/child1");
             fail("Should not be able to add the same root node twice");
         } catch (Exception expected) {
             // expected
         }
-    }
-
-    @Test
-    @Ignore("Implementation specific behavior")
-    public void emptyMergeCausesNoChange() {
-        String rev1 = mk.commit("", "+\"/child1\":{}", null, "");
-
-        String branchRev = mk.branch(null);
-        branchRev = mk.commit("", "+\"/child2\":{}", branchRev, "");
-        branchRev = mk.commit("", "-\"/child2\"", branchRev, "");
-
-        String rev2 = mk.merge(branchRev, "");
-
-        assertTrue(mk.nodeExists("/child1", null));
-        assertFalse(mk.nodeExists("/child2", null));
-        assertEquals(rev1, rev2);
     }
 
     @Test
