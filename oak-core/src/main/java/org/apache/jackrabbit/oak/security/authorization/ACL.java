@@ -44,6 +44,7 @@ import org.apache.jackrabbit.oak.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.ACE;
 import org.apache.jackrabbit.oak.spi.security.authorization.AbstractAccessControlList;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
+import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionDefinition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -108,6 +109,12 @@ abstract class ACL extends AbstractAccessControlList {
             throw new AccessControlException(msg);
         }
 
+        for (RestrictionDefinition def : getRestrictionProvider().getSupportedRestrictions(getOakPath())) {
+            if (def.isMandatory() && (restrictions == null || !restrictions.containsKey(def.getJcrName()))) {
+                throw new AccessControlException("Mandatory restriction " +def.getJcrName()+ " is missing.");
+            }
+        }
+
         Set<Restriction> rs;
         if (restrictions == null) {
             rs = Collections.emptySet();
@@ -117,6 +124,7 @@ abstract class ACL extends AbstractAccessControlList {
                 rs.add(getRestrictionProvider().createRestriction(getOakPath(), name, restrictions.get(name)));
             }
         }
+
         ACE entry = new ACE(principal, privileges, isAllow, rs);
         if (entries.contains(entry)) {
             log.debug("Entry is already contained in policy -> no modification.");
