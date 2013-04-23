@@ -132,6 +132,10 @@ public class UserInitializerTest extends AbstractSecurityTest {
         assertIndexDefinition(members, UserConstants.REP_MEMBERS, false);
     }
 
+    /**
+     * @since OAK 1.0 The configuration defines if and how the password of the
+     * admin user is being set.
+     */
     @Test
     public void testAdminConfiguration() throws Exception {
         Map<String,String> userParams = new HashMap();
