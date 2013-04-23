@@ -57,9 +57,10 @@ public class ImmutableACLTest extends AbstractAccessControlListTest {
     }
 
     @Override
-    protected ImmutableACL createACL(String jcrPath, List<JackrabbitAccessControlEntry> entries, NamePathMapper namePathMapper) {
+    protected ImmutableACL createACL(String jcrPath, List<JackrabbitAccessControlEntry> entries,
+                                     NamePathMapper namePathMapper, RestrictionProvider restrictionProvider) {
         String oakPath = (jcrPath == null) ? null : namePathMapper.getOakPathKeepIndex(jcrPath);
-        return new ImmutableACL(oakPath, entries, getRestrictionProvider(), namePathMapper);
+        return new ImmutableACL(oakPath, entries, restrictionProvider, namePathMapper);
     }
 
     private void assertImmutable(JackrabbitAccessControlList acl) throws Exception {
