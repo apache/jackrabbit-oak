@@ -58,13 +58,13 @@ public class CreateUserTest extends AbstractUserTest {
         super.tearDown();
     }
 
-    private User createUser(String uid, String pw) throws RepositoryException, NotExecutableException {
+    private User createUser(String uid, String pw) throws RepositoryException {
         User u = userMgr.createUser(uid, pw);
         superuser.save();
         return u;
     }
 
-    private User createUser(String uid, String pw, Principal p, String iPath) throws RepositoryException, NotExecutableException {
+    private User createUser(String uid, String pw, Principal p, String iPath) throws RepositoryException {
         User u = userMgr.createUser(uid, pw, p, iPath);
         superuser.save();
         return u;
