@@ -71,7 +71,7 @@ class TypeEditor extends DefaultEditor {
     private final List<String> typeNames = newArrayList();
 
     private EffectiveType effective = null;
-    
+
     private final NodeBuilder node;
 
     // TODO: Calculate default type from the node definition
@@ -131,7 +131,7 @@ class TypeEditor extends DefaultEditor {
         // TODO: add any auto-created items that are still missing
 
         // verify the presence of all mandatory items
-        Set<String> missing = effective.findMissingMandatoryItems(after);
+        Set<String> missing = effective.findMissingMandatoryItems(node.getNodeState());
         if (!missing.isEmpty()) {
             throw constraintViolation(
                     2, "Missing mandatory items " + Joiner.on(", ").join(missing));
