@@ -20,10 +20,12 @@ import java.security.Principal;
 import java.util.ArrayList;
 import java.util.List;
 import javax.jcr.RepositoryException;
+import javax.jcr.nodetype.ConstraintViolationException;
 
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.AuthorizableExistsException;
 import org.apache.jackrabbit.api.security.user.User;
+import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.test.NotExecutableException;
 import org.junit.After;
 import org.junit.Test;
@@ -79,27 +81,46 @@ public class CreateUserTest extends AbstractUserTest {
         assertEquals(p.getName(), user.getPrincipal().getName());
     }
 
-    // TODO: check again.
-//    @Test
-//    public void testCreateUserWithPath() throws RepositoryException, NotExecutableException {
-//        Principal p = getTestPrincipal();
-//        String uid = p.getName();
-//        User user = createUser(uid, "pw", p, "/any/path/to/the/new/user");
-//        createdUsers.add(user);
-//
-//        assertNotNull(user.getID());
-//        assertEquals(p.getName(), user.getPrincipal().getName());
-//    }
+    /**
+     * @since OAK 1.0 In contrast to Jackrabbit core the intermediate path may
+     * not be an absolute path in OAK.
+     */
+    @Test
+    public void testCreateUserWithAbsolutePath() throws RepositoryException, NotExecutableException {
+        Principal p = getTestPrincipal();
+        String uid = p.getName();
+
+        try {
+            User user = createUser(uid, "pw", p, "/any/path/to/the/new/user");
+            createdUsers.add(user);
+            fail("ConstraintViolationException expected");
+        } catch (ConstraintViolationException e) {
+            // success
+        }
+    }
 
     @Test
-    public void testCreateUserWithPath2() throws RepositoryException, NotExecutableException {
+    public void testCreateGroupWithAbsolutePath2() throws RepositoryException, NotExecutableException {
+        Principal p = getTestPrincipal();
+        String uid = p.getName();
+
+        String userRoot = UserConstants.DEFAULT_USER_PATH;
+        String path = userRoot + "/any/path/to/the/new/user";
+        User user = createUser(uid, "pw", p, path);
+        createdUsers.add(user);
+
+        assertTrue(user.getPath().startsWith(path));
+    }
+
+    @Test
+    public void testCreateUserWithRelativePath() throws RepositoryException, NotExecutableException {
         Principal p = getTestPrincipal();
         String uid = p.getName();
         User user = createUser(uid, "pw", p, "any/path");
         createdUsers.add(user);
 
         assertNotNull(user.getID());
-        assertEquals(p.getName(), user.getPrincipal().getName());
+        assertTrue(user.getPath().contains("any/path"));
     }
 
     @Test

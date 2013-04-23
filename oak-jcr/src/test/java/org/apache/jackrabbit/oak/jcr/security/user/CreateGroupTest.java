@@ -20,10 +20,12 @@ import java.security.Principal;
 import java.util.ArrayList;
 import java.util.List;
 import javax.jcr.RepositoryException;
+import javax.jcr.nodetype.ConstraintViolationException;
 
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.AuthorizableExistsException;
 import org.apache.jackrabbit.api.security.user.Group;
+import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.test.NotExecutableException;
 import org.junit.Test;
 
@@ -70,17 +72,43 @@ public class CreateGroupTest extends AbstractUserTest {
         assertFalse("A new group must not have members.",gr.getMembers().hasNext());
     }
 
-    // TODO: check again.
-//    @Test
-//    public void testCreateGroupWithPath() throws RepositoryException, NotExecutableException {
-//        Principal p = getTestPrincipal();
-//        Group gr = createGroup(p, "/any/path/to/the/new/group");
-//        createdGroups.add(gr);
-//
-//        assertNotNull(gr.getID());
-//        assertEquals(p.getName(), gr.getPrincipal().getName());
-//        assertFalse("A new group must not have members.",gr.getMembers().hasNext());
-//    }
+    /**
+     * @since OAK 1.0 In contrast to Jackrabbit core the intermediate path may
+     * not be an absolute path in OAK.
+     */
+    @Test
+    public void testCreateGroupWithAbsolutePath() throws RepositoryException, NotExecutableException {
+        Principal p = getTestPrincipal();
+        try {
+            Group gr = createGroup(p, "/any/path/to/the/new/group");
+            createdGroups.add(gr);
+            fail("ConstraintViolationException expected.");
+        } catch (ConstraintViolationException e) {
+            // success
+        }
+    }
+
+    @Test
+    public void testCreateGroupWithAbsolutePath2() throws RepositoryException, NotExecutableException {
+        Principal p = getTestPrincipal();
+
+        String groupRoot = UserConstants.DEFAULT_GROUP_PATH;
+        String path = groupRoot + "/any/path/to/the/new/group";
+        Group gr = createGroup(p, path);
+        createdGroups.add(gr);
+
+        assertTrue(gr.getPath().startsWith(path));
+    }
+
+    @Test
+    public void testCreateGroupWithRelativePath() throws RepositoryException, NotExecutableException {
+        Principal p = getTestPrincipal();
+        Group gr = createGroup(p, "any/path");
+        createdGroups.add(gr);
+
+        assertNotNull(gr.getID());
+        assertTrue(gr.getPath().contains("any/path"));
+    }
 
     @Test
     public void testCreateGroupWithNullPrincipal() throws RepositoryException {
