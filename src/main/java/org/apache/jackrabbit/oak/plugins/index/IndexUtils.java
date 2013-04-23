@@ -35,8 +35,8 @@ import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
 import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
+import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
-import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DECLARING_NODE_TYPES;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
@@ -89,9 +89,9 @@ public class IndexUtils {
         if (unique) {
             entry.setProperty(UNIQUE_PROPERTY_NAME, unique);
         }
-        entry.setProperty(PropertyStates.createProperty(PROPERTY_NAMES, propertyNames, STRINGS));
+        entry.setProperty(PropertyStates.createProperty(PROPERTY_NAMES, propertyNames, NAMES));
         if (declaringNodeTypeNames != null && !declaringNodeTypeNames.isEmpty()) {
-            entry.setProperty(PropertyStates.createProperty(DECLARING_NODE_TYPES, declaringNodeTypeNames, STRINGS));
+            entry.setProperty(PropertyStates.createProperty(DECLARING_NODE_TYPES, declaringNodeTypeNames, NAMES));
         }
         return entry;
     }
@@ -119,7 +119,7 @@ public class IndexUtils {
         if (declaringNodeTypeNames != null && declaringNodeTypeNames.length > 0) {
             entry.setStrings(DECLARING_NODE_TYPES, declaringNodeTypeNames);
         }
-        entry.setStrings(PROPERTY_NAMES, propertyNames);
+        entry.setNames(PROPERTY_NAMES, propertyNames);
     }
 
     /**

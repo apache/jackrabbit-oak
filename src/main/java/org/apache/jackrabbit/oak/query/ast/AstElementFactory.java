@@ -13,9 +13,8 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
-import java.util.Set;
-
 import org.apache.jackrabbit.oak.api.PropertyValue;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
  * A factory for syntax tree elements.
@@ -130,10 +129,8 @@ public class AstElementFactory {
         return new SameNodeJoinConditionImpl(selector1Name, selector2Name, selector2Path);
     }
 
-    public SelectorImpl selector(
-            String nodeTypeName, String selectorName,
-            Set<String> matchingTypes) {
-        return new SelectorImpl(nodeTypeName, selectorName, matchingTypes);
+    public SelectorImpl selector(NodeState type, String selectorName) {
+        return new SelectorImpl(type, selectorName);
     }
 
     public UpperCaseImpl upperCase(DynamicOperandImpl operand) {

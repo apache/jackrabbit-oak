@@ -57,7 +57,7 @@ class NodeTypeIndex implements QueryIndex, JcrConstants {
         }
         NodeTypeIndexLookup lookup = new NodeTypeIndexLookup(root);
         if (lookup.isIndexed(filter.getPath())) {
-            return lookup.getCost(resolveNodeType(root, filter.getNodeType()));
+            return lookup.getCost(filter);
         } else {
             return Double.POSITIVE_INFINITY;
         }
@@ -70,13 +70,12 @@ class NodeTypeIndex implements QueryIndex, JcrConstants {
             throw new IllegalStateException(
                     "NodeType index is used even when no index is available for filter " + filter);
         }
-        return Cursors.newPathCursorDistinct(lookup.query(
-                filter, resolveNodeType(root, filter.getNodeType())));
+        return Cursors.newPathCursorDistinct(lookup.query(filter));
     }
     
     @Override
     public String getPlan(Filter filter, NodeState root) {
-        return "nodeType " + filter.getNodeType() + " path " + filter.getPath();
+        return filter.toString();
     }
 
     @Override
@@ -87,43 +86,7 @@ class NodeTypeIndex implements QueryIndex, JcrConstants {
     //----------------------------< internal >----------------------------------
 
     private static boolean hasNodeTypeRestriction(Filter filter) {
-        return filter.getNodeType() != null
-                && !filter.getNodeType().equals(NT_BASE);
+        return !filter.matchesAllTypes();
     }
 
-    private static Iterable<String> resolveNodeType(NodeState root, String nodeType) {
-        ReadOnlyNodeTypeManager ntMgr = new NTManager(root);
-        Set<String> ntNames = Sets.newHashSet();
-        try {
-            NodeType nt = ntMgr.getNodeType(nodeType);
-            for (NodeTypeIterator types = nt.getSubtypes(); types.hasNext();) {
-                ntNames.add(types.nextNodeType().getName());
-            }
-            ntNames.add(nodeType);
-        } catch (RepositoryException e) {
-            // unknown node type
-        }
-        return ntNames;
-    }
-
-    private static final class NTManager extends ReadOnlyNodeTypeManager {
-
-        private final NodeState root;
-
-        NTManager(NodeState root) {
-            this.root = root;
-        }
-
-        @Override
-        protected Tree getTypes() {
-            Tree t = new ReadOnlyTree(root);
-            for (String name : PathUtils.elements(NodeTypeConstants.NODE_TYPES_PATH)) {
-                t = t.getChild(name);
-                if (t == null) {
-                    break;
-                }
-            }
-            return t;
-        }
-    }
 }

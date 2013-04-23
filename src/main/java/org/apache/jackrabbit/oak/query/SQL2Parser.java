@@ -18,12 +18,7 @@ package org.apache.jackrabbit.oak.query;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Maps.newHashMap;
-import static org.apache.jackrabbit.JcrConstants.NT_BASE;
-import static org.apache.jackrabbit.oak.api.Type.NAMES;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_NAMED_SINGLE_VALUED_PROPERTIES;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_SUBTYPES;
 
-import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -47,8 +42,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.ImmutableSet;
-
 import javax.jcr.PropertyType;
 import java.math.BigDecimal;
 import java.text.ParseException;
@@ -56,7 +49,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * The SQL2 parser can convert a JCR-SQL2 query to a query. The 'old' SQL query
@@ -194,31 +186,17 @@ public class SQL2Parser {
 
     private SelectorImpl parseSelector() throws ParseException {
         String nodeTypeName = readName();
-
-        Set<String> matchingTypes = null;
-        if (!NT_BASE.equals(nodeTypeName)) {
-            ImmutableSet.Builder<String> builder = ImmutableSet.builder();
-            NodeState type = types.getChildNode(nodeTypeName);
-            if (type.exists()) {
-                builder.add(nodeTypeName);
-                PropertyState subtypes = type.getProperty(OAK_SUBTYPES);
-                if (subtypes != null) {
-                    for (String subname : subtypes.getValue(NAMES)) {
-                        builder.add(subname);
-                    }
-                }
-            } else {
-                throw getSyntaxError("unknown node type");
-            }
-            matchingTypes = builder.build();
+        NodeState type = types.getChildNode(nodeTypeName);
+        if (!type.exists()) {
+            throw getSyntaxError("unknown node type");
         }
 
+        String selectorName = nodeTypeName;
         if (readIf("AS")) {
-            String selectorName = readName();
-            return factory.selector(nodeTypeName, selectorName, matchingTypes);
-        } else {
-            return factory.selector(nodeTypeName, nodeTypeName, matchingTypes);
+            selectorName = readName();
         }
+
+        return factory.selector(type, selectorName);
     }
 
     private String readName() throws ParseException {
@@ -816,19 +794,13 @@ public class SQL2Parser {
     private void addWildcardColumns(
             Collection<ColumnImpl> columns, SelectorImpl selector,
             boolean includeSelectorName) {
-        String name = selector.getNodeTypeName();
-
-        PropertyState properties = types.getChildNode(name).getProperty(
-                OAK_NAMED_SINGLE_VALUED_PROPERTIES);
-        if (properties != null) {
-            String selectorName = selector.getSelectorName();
-            for (String property : properties.getValue(NAMES)) {
-                String columnName = property;
-                if (includeSelectorName) {
-                    columnName = selectorName + "." + property;
-                }
-                columns.add(factory.column(selectorName, property, columnName));
+        String selectorName = selector.getSelectorName();
+        for (String property : selector.getWildcardColumns()) {
+            String columnName = property;
+            if (includeSelectorName) {
+                columnName = selectorName + "." + property;
             }
+            columns.add(factory.column(selectorName, property, columnName));
         }
     }
 

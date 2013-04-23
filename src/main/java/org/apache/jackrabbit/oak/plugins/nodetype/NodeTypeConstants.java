@@ -61,7 +61,8 @@ public interface NodeTypeConstants extends JcrConstants {
 
     // Precompiled Oak type information fields
     String OAK_SUPERTYPES = "oak:supertypes";
-    String OAK_SUBTYPES = "oak:subtypes";
+    String OAK_PRIMARY_SUBTYPES = "oak:primarySubtypes";
+    String OAK_MIXIN_SUBTYPES = "oak:mixinSubtypes";
     String OAK_MANDATORY_PROPERTIES = "oak:mandatoryProperties";
     String OAK_MANDATORY_CHILD_NODES = "oak:mandatoryChildNodes";
     String OAK_NAMED_SINGLE_VALUED_PROPERTIES =
