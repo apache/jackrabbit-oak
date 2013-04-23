@@ -16,9 +16,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
+import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
+import static org.apache.jackrabbit.JcrConstants.NT_BASE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.createIndexDefinition;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -30,7 +33,11 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.p2.Property2IndexHookProvider;
 import org.apache.jackrabbit.oak.plugins.index.p2.Property2IndexLookup;
+import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
+import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
+import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
+import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -40,6 +47,10 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
 public class IndexHookManagerTest {
+
+    private NodeState root = new InitialContent().initialize(EMPTY_NODE);
+
+    private NodeBuilder builder = root.builder();
 
     /**
      * Simple Test
@@ -52,10 +63,6 @@ public class IndexHookManagerTest {
      */
     @Test
     public void test() throws Exception {
-        NodeState root = EMPTY_NODE;
-
-        NodeBuilder builder = root.builder();
-
         createIndexDefinition(builder.child("oak:index"), "rootIndex", true,
                 false, ImmutableSet.of("foo"), null);
         createIndexDefinition(
@@ -92,12 +99,6 @@ public class IndexHookManagerTest {
 
     }
 
-    private static Set<String> find(Property2IndexLookup lookup, String name,
-            String value) {
-        return Sets.newHashSet(lookup.query(null, name,
-                PropertyValues.newString(value)));
-    }
-
     /**
      * Reindex Test
      * <ul>
@@ -108,10 +109,6 @@ public class IndexHookManagerTest {
      */
     @Test
     public void testReindex() throws Exception {
-        NodeState root = EMPTY_NODE;
-
-        NodeBuilder builder = root.builder();
-
         builder.child("testRoot").setProperty("foo", "abc");
         NodeState before = builder.getNodeState();
         createIndexDefinition(builder.child("oak:index"), "rootIndex", true,
@@ -146,10 +143,6 @@ public class IndexHookManagerTest {
      */
     @Test
     public void testReindex2() throws Exception {
-        NodeState root = EMPTY_NODE;
-
-        NodeBuilder builder = root.builder();
-
         builder.child("testRoot").setProperty("foo", "abc");
         NodeState before = builder.getNodeState();
 
@@ -185,9 +178,6 @@ public class IndexHookManagerTest {
      */
     @Test
     public void testReindex3() throws Exception {
-        NodeState root = EMPTY_NODE;
-
-        NodeBuilder builder = root.builder();
         builder.child("testRoot").setProperty("foo", "abc");
 
         createIndexDefinition(builder.child("oak:index"), "rootIndex", true,
@@ -217,9 +207,6 @@ public class IndexHookManagerTest {
 
     @Test
     public void testIndexDefinitions() throws Exception {
-        NodeState root = EMPTY_NODE;
-
-        NodeBuilder builder = root.builder();
         createIndexDefinition(builder.child("oak:index"), "existing", true,
                 false, ImmutableSet.of("foo"), null);
 
@@ -241,6 +228,17 @@ public class IndexHookManagerTest {
         checkPathExists(indexed, "oak:index", "existing", ":index");
         checkPathExists(indexed, "test", "other", "oak:index", "index2",
                 ":index");
+    }
+
+    private Set<String> find(Property2IndexLookup lookup, String name,
+            String value) {
+        NodeState system = root.getChildNode(JCR_SYSTEM);
+        NodeState types = system.getChildNode(JCR_NODE_TYPES);
+        NodeState type = types.getChildNode(NT_BASE);
+        SelectorImpl selector = new SelectorImpl(type, NT_BASE);
+        Filter filter = new FilterImpl(selector, "SELECT * FROM [nt:base]");
+        return Sets.newHashSet(lookup.query(filter, name,
+                PropertyValues.newString(value)));
     }
 
     private static NodeState checkPathExists(NodeState state, String... verify) {

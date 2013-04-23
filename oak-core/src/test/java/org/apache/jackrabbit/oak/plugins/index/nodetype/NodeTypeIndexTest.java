@@ -33,6 +33,7 @@ import org.apache.jackrabbit.oak.plugins.index.IndexHookManager;
 import org.apache.jackrabbit.oak.plugins.index.IndexHookProvider;
 import org.apache.jackrabbit.oak.plugins.index.p2.Property2IndexHookProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
+import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.lifecycle.OakInitializer;
@@ -46,6 +47,8 @@ import org.junit.Test;
 
 import com.google.common.collect.Sets;
 
+import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
 import static org.junit.Assert.assertEquals;
 
 /**
@@ -81,21 +84,27 @@ public class NodeTypeIndexTest {
 
         NodeState rootState = store.getRoot();
         NodeTypeIndex index = new NodeTypeIndex();
-        FilterImpl filter = new FilterImpl(null, null);
+        FilterImpl filter;
 
-        filter.setNodeType(JcrConstants.NT_FOLDER);
-        // note on cost: this is currently twice the number of matches
-        // because jcr:primaryType and jcr:mixinTypes are indexed together
-        assertEquals(4.0, index.getCost(filter, rootState), 0.0);
+        filter = createFilter(rootState, JcrConstants.NT_FOLDER);
+        assertEquals(2.0, index.getCost(filter, rootState), 0.0);
         checkCursor(index.query(filter, rootState), "/folder-1", "/folder-2");
 
-        filter.setNodeType(JcrConstants.NT_FILE);
-        assertEquals(2.0, index.getCost(filter, rootState), 0.0);
+        filter = createFilter(rootState, JcrConstants.NT_FILE);
+        assertEquals(1.0, index.getCost(filter, rootState), 0.0);
         checkCursor(index.query(filter, rootState), "/file-1");
 
-        filter.setNodeType(JcrConstants.NT_HIERARCHYNODE);
-        assertEquals(6.0, index.getCost(filter, rootState), 0.0);
+        filter = createFilter(rootState, JcrConstants.NT_HIERARCHYNODE);
+        assertEquals(3.0, index.getCost(filter, rootState), 0.0);
         checkCursor(index.query(filter, rootState), "/folder-1", "/folder-2", "/file-1");
+    }
+
+    private static FilterImpl createFilter(NodeState root, String nodeTypeName) {
+        NodeState system = root.getChildNode(JCR_SYSTEM);
+        NodeState types = system.getChildNode(JCR_NODE_TYPES);
+        NodeState type = types.getChildNode(nodeTypeName);
+        SelectorImpl selector = new SelectorImpl(type, nodeTypeName);
+        return new FilterImpl(selector, "SELECT * FROM [" + nodeTypeName + "]");
     }
 
     private void checkCursor(Cursor cursor, String... matches) {

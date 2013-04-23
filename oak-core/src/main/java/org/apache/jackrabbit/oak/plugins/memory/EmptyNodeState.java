@@ -18,8 +18,7 @@ package org.apache.jackrabbit.oak.plugins.memory;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
-
-import java.util.Collections;
+import static java.util.Collections.emptyList;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -76,14 +75,14 @@ public final class EmptyNodeState implements NodeState {
         return null;
     }
 
-    @Override @CheckForNull
+    @Override @Nonnull
     public Iterable<String> getNames(@Nonnull String name) {
-        return null;
+        return emptyList();
     }
 
     @Override @Nonnull
     public Iterable<? extends PropertyState> getProperties() {
-        return Collections.emptyList();
+        return emptyList();
     }
 
     @Override
@@ -105,12 +104,12 @@ public final class EmptyNodeState implements NodeState {
 
     @Override
     public Iterable<String> getChildNodeNames() {
-        return Collections.emptyList();
+        return emptyList();
     }
 
     @Override @Nonnull
     public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
-        return Collections.emptyList();
+        return emptyList();
     }
 
     @Override @Nonnull

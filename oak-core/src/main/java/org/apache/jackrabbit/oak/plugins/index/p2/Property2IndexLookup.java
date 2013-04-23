@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.p2;
 
+import static com.google.common.collect.Iterables.contains;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DECLARING_NODE_TYPES;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.PROPERTY_NAMES;
@@ -24,6 +25,7 @@ import static org.apache.jackrabbit.oak.plugins.index.p2.Property2IndexHookProvi
 
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 import javax.annotation.Nullable;
 
@@ -76,13 +78,19 @@ public class Property2IndexLookup {
      * @return true if the property is indexed
      */
     public boolean isIndexed(String propertyName, String path, Filter filter) {
-        if (PathUtils.denotesRoot(path)) {
-            return getIndexDataNode(root, propertyName, filter) != null;
+        Set<String> supertypes = null;
+        if (filter != null && !filter.matchesAllTypes()) {
+            supertypes = filter.getSupertypes();
         }
+
+        if (PathUtils.denotesRoot(path)) {
+            return getIndexDataNode(root, propertyName, supertypes) != null;
+        }
+
         NodeState node = root;
         Iterator<String> it = PathUtils.elements(path).iterator();
         while (it.hasNext()) {
-            if (getIndexDataNode(node, propertyName, filter) != null) {
+            if (getIndexDataNode(node, propertyName, supertypes) != null) {
                 return true;
             }
             node = node.getChildNode(it.next());
@@ -91,7 +99,12 @@ public class Property2IndexLookup {
     }
 
     public Iterable<String> query(Filter filter, String propertyName, PropertyValue value) {
-        NodeState state = getIndexDataNode(root, propertyName, filter);
+        Set<String> supertypes = null;
+        if (filter != null && !filter.matchesAllTypes()) {
+            supertypes = filter.getSupertypes();
+        }
+
+        NodeState state = getIndexDataNode(root, propertyName, supertypes);
         if (state == null) {
             throw new IllegalArgumentException("No index for " + propertyName);
         }
@@ -100,7 +113,12 @@ public class Property2IndexLookup {
     }
 
     public double getCost(Filter filter, String name, PropertyValue value) {
-        NodeState state = getIndexDataNode(root, name, filter);
+        Set<String> supertypes = null;
+        if (filter != null && !filter.matchesAllTypes()) {
+            supertypes = filter.getSupertypes();
+        }
+
+        NodeState state = getIndexDataNode(root, name, supertypes);
         if (state == null) {
             return Double.POSITIVE_INFINITY;
         }
@@ -113,54 +131,41 @@ public class Property2IndexLookup {
      * applicable index with data.
      * 
      * @param propertyName the property name
-     * @param filter for the node type restriction (null if no node type restriction)
+     * @param supertypes the filter node type and all its supertypes,
+     *                   or {@code null} if the filter matches all types
      * @return the node where the index data is stored, or null if no index
      *         definition or index data node was found
      */
     @Nullable
-    private static NodeState getIndexDataNode(NodeState node, String propertyName, Filter filter) {
-        NodeState state = node.getChildNode(INDEX_DEFINITIONS_NAME);
-        if (!state.exists()) {
-            return null;
-        }
-        String filterNodeType = null;
-        if (filter != null) {
-            filterNodeType = filter.getNodeType();
-        }
+    private NodeState getIndexDataNode(
+            NodeState node, String propertyName, Set<String> supertypes) {
         //keep a fallback to a matching index def that has *no* node type constraints
         NodeState fallback = null;
+
+        NodeState state = node.getChildNode(INDEX_DEFINITIONS_NAME);
         for (ChildNodeEntry entry : state.getChildNodeEntries()) {
             NodeState ns = entry.getNodeState();
             PropertyState type = ns.getProperty(TYPE_PROPERTY_NAME);
             if (type == null || type.isArray() || !TYPE.equals(type.getValue(Type.STRING))) {
                 continue;
             }
-            if (containsValue(ns.getProperty(PROPERTY_NAMES), propertyName)) {
-                if (filterNodeType == null
-                        || containsValue(ns.getProperty(DECLARING_NODE_TYPES),
-                                filterNodeType)) {
-                    return ns.getChildNode(":index");
-                }
-                if (ns.getProperty(DECLARING_NODE_TYPES) == null) {
-                    fallback = ns.getChildNode(":index");
+            if (contains(ns.getNames(PROPERTY_NAMES), propertyName)) {
+                NodeState index = ns.getChildNode(":index");
+                if (ns.hasProperty(DECLARING_NODE_TYPES) && supertypes != null) {
+                    for (String typeName : ns.getNames(DECLARING_NODE_TYPES)) {
+                        if (supertypes.contains(typeName)) {
+                            // TODO: prefer the most specific type restriction
+                            return index;
+                        }
+                    }
+                } else if (supertypes == null) {
+                    return index;
+                } else if (fallback == null) {
+                    fallback = index;
                 }
             }
         }
         return fallback;
     }
 
-    private static boolean containsValue(PropertyState values, String lookup) {
-        if (values == null) {
-            return false;
-        }
-        if (values.isArray()) {
-            for (String v : values.getValue(Type.STRINGS)) {
-                if (lookup.equals(v)) {
-                    return true;
-                }
-            }
-            return false;
-        }
-        return lookup.equals(values.getValue(Type.STRING));
-    }
 }

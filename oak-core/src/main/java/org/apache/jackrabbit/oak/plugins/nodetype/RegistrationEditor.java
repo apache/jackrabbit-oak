@@ -46,13 +46,14 @@ import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_N
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_CHILD_NODE_DEFINITIONS;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_MANDATORY_CHILD_NODES;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_MANDATORY_PROPERTIES;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_MIXIN_SUBTYPES;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_NAMED_CHILD_NODE_DEFINITIONS;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_NAMED_SINGLE_VALUED_PROPERTIES;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_NAMED_PROPERTY_DEFINITIONS;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_PROPERTY_DEFINITIONS;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_RESIDUAL_CHILD_NODE_DEFINITIONS;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_RESIDUAL_PROPERTY_DEFINITIONS;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_SUBTYPES;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_PRIMARY_SUBTYPES;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_SUPERTYPES;
 
 import java.util.Collections;
@@ -220,7 +221,7 @@ class RegistrationEditor extends DefaultEditor {
         Iterable<String> empty = emptyList();
         type.setProperty(JCR_PRIMARYTYPE, "oak:nodeType", NAME);
         type.removeProperty(OAK_SUPERTYPES);
-        type.setProperty(OAK_SUBTYPES, empty, NAMES);
+        type.setProperty(OAK_PRIMARY_SUBTYPES, empty, NAMES);
         type.setProperty(OAK_MANDATORY_PROPERTIES, empty, NAMES);
         type.setProperty(OAK_MANDATORY_CHILD_NODES, empty, NAMES);
         type.setProperty(OAK_NAMED_SINGLE_VALUED_PROPERTIES, empty, NAMES);
@@ -363,8 +364,12 @@ class RegistrationEditor extends DefaultEditor {
             }
             for (String name : types.getChildNodeNames()) {
                 NodeBuilder type = types.child(name);
+                String listName = OAK_PRIMARY_SUBTYPES;
+                if (type.getBoolean(JCR_ISMIXIN)) {
+                    listName = OAK_MIXIN_SUBTYPES;
+                }
                 for (String supername : getNames(type, OAK_SUPERTYPES)) {
-                    addNameToList(types.child(supername), OAK_SUBTYPES, name);
+                    addNameToList(types.child(supername), listName, name);
                 }
             }
 

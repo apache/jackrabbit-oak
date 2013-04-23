@@ -21,19 +21,10 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import javax.annotation.CheckForNull;
-import javax.jcr.RepositoryException;
-import javax.jcr.nodetype.NodeType;
-import javax.jcr.nodetype.NodeTypeIterator;
-import javax.jcr.nodetype.NodeTypeManager;
 
-import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.core.ReadOnlyTree;
 import org.apache.jackrabbit.oak.plugins.index.IndexDefinition;
-import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
-import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Cursors;
 import org.apache.jackrabbit.oak.spi.query.Filter;
@@ -61,11 +52,14 @@ import org.apache.lucene.store.Directory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames.PATH;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldNames.PATH_SELECTOR;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newPathTerm;
 import static org.apache.jackrabbit.oak.query.Query.JCR_PATH;
+import static org.apache.lucene.search.BooleanClause.Occur.SHOULD;
 
 /**
  * Provides a QueryIndex that does lookups against a Lucene-based index
@@ -181,11 +175,8 @@ public class LuceneIndex implements QueryIndex, LuceneIndexConstants {
     private static Query getQuery(Filter filter, NodeState root, IndexReader reader) {
         List<Query> qs = new ArrayList<Query>();
 
-        try {
-            addNodeTypeConstraints(qs, filter.getNodeType(), root);
-        } catch (RepositoryException e) {
-            throw new RuntimeException(
-                    "Unable to process node type constraints", e);
+        if (!filter.matchesAllTypes()) {
+            addNodeTypeConstraints(qs, filter);
         }
 
         String path = filter.getPath();
@@ -215,6 +206,8 @@ public class LuceneIndex implements QueryIndex, LuceneIndexConstants {
                 return null;
             }
             qs.add(new TermQuery(newPathTerm(PathUtils.getParentPath(path))));
+            break;
+        case NO_RESTRICTION:
             break;
         }
 
@@ -314,43 +307,15 @@ public class LuceneIndex implements QueryIndex, LuceneIndexConstants {
         qs.add(bq);
     }
 
-    private static void addNodeTypeConstraints(
-            List<Query> qs, String name, NodeState root)
-            throws RepositoryException {
-        // TODO remove empty name check once OAK-359 is done
-        if (NodeTypeConstants.NT_BASE.equals(name) || "".equals(name)) {
-            return; // shortcut
-        }
-        NodeState system = root.getChildNode(NodeTypeConstants.JCR_SYSTEM);
-        final NodeState types =
-                system.getChildNode(NodeTypeConstants.JCR_NODE_TYPES);
-        if (!types.exists()) {
-            return;
-        }
-
-        NodeTypeManager manager = new ReadOnlyNodeTypeManager() {
-            @Override @CheckForNull
-            protected Tree getTypes() {
-                return new ReadOnlyTree(types);
-            }
-        };
-
+    private static void addNodeTypeConstraints(List<Query> qs, Filter filter) {
         BooleanQuery bq = new BooleanQuery();
-        NodeType type = manager.getNodeType(name);
-        bq.add(createNodeTypeQuery(type), Occur.SHOULD);
-        NodeTypeIterator iterator = type.getSubtypes();
-        while (iterator.hasNext()) {
-            bq.add(createNodeTypeQuery(iterator.nextNodeType()), Occur.SHOULD);
+        for (String type : filter.getPrimaryTypes()) {
+            bq.add(new TermQuery(new Term(JCR_PRIMARYTYPE, type)), SHOULD);
+        }
+        for (String type : filter.getMixinTypes()) {
+            bq.add(new TermQuery(new Term(JCR_MIXINTYPES, type)), SHOULD);
         }
         qs.add(bq);
-    }
-
-    private static Query createNodeTypeQuery(NodeType type) {
-        String name = NodeTypeConstants.JCR_PRIMARYTYPE;
-        if (type.isMixin()) {
-            name = NodeTypeConstants.JCR_MIXINTYPES;
-        }
-        return new TermQuery(new Term(name, type.getName()));
     }
 
     @Override
