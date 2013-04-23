@@ -110,7 +110,7 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
         switch (type) {
             case TreeTypeProvider.TYPE_HIDDEN:
                 // TODO: OAK-753 decide on where to filter out hidden items.
-                return ReadStatus.DENY_ALL;
+                return ReadStatus.ALLOW_ALL;
             case TreeTypeProvider.TYPE_AC:
                 // TODO: review if read-ac permission is never fine-granular
                 return canReadAccessControlContent(tree, null) ? ReadStatus.ALLOW_ALL : ReadStatus.DENY_ALL;
@@ -132,7 +132,7 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
         switch (type) {
             case TreeTypeProvider.TYPE_HIDDEN:
                 // TODO: OAK-753 decide on where to filter out hidden items.
-                return false;
+                return true;
             case TreeTypeProvider.TYPE_VERSION:
                 TreeLocation location = getVersionableLocation(tree, property);
                 if (location == null) {
