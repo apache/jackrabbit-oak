@@ -37,7 +37,7 @@ public class TypeEditorProvider implements EditorProvider {
         NodeState system = after.getChildNode(JCR_SYSTEM);
         NodeState types = system.getChildNode(JCR_NODE_TYPES);
         if (types.exists()) {
-            return new VisibleEditor(new TypeEditor(types));
+            return new VisibleEditor(new TypeEditor(types, builder));
         } else {
             return null;
         }

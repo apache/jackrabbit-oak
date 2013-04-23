@@ -23,6 +23,7 @@ import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_REQUIREDTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_VALUECONSTRAINTS;
+import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.CONSTRAINT;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
@@ -39,9 +40,11 @@ import javax.jcr.Value;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.spi.commit.DefaultEditor;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import com.google.common.base.Joiner;
@@ -68,17 +71,28 @@ class TypeEditor extends DefaultEditor {
     private final List<String> typeNames = newArrayList();
 
     private EffectiveType effective = null;
+    
+    private final NodeBuilder node;
 
-    TypeEditor(NodeState types) {
+    // TODO: Calculate default type from the node definition
+    private final String defaultType = NT_UNSTRUCTURED;
+
+    TypeEditor(NodeState types, NodeBuilder node) {
         this.parent = null;
         this.nodeName = null;
         this.types = checkNotNull(types);
+        this.node = node;
     }
 
     private TypeEditor(TypeEditor parent, String name) {
         this.parent = checkNotNull(parent);
         this.nodeName = checkNotNull(name);
         this.types = parent.types;
+        if (parent != null && parent.node != null) {
+            this.node = parent.node.child(name);
+        } else {
+            this.node = null;
+        }
     }
 
     private String getPath() {
@@ -97,6 +111,9 @@ class TypeEditor extends DefaultEditor {
     @Override
     public void enter(NodeState before, NodeState after)
             throws CommitFailedException {
+        if (after.getProperty(JCR_PRIMARYTYPE) == null && node != null) {
+            node.setProperty(JCR_PRIMARYTYPE, defaultType, Type.NAME);
+        }
         computeEffectiveType(after);
 
         // find matching entry in the parent node's effective type
