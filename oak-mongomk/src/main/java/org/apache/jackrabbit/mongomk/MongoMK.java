@@ -147,7 +147,7 @@ public class MongoMK implements MicroKernel {
     /**
      * The last known head revision. This is the last-known revision.
      */
-    private Revision headRevision;
+    private volatile Revision headRevision;
     
     private Thread backgroundThread;
     
@@ -459,6 +459,10 @@ public class MongoMK implements MicroKernel {
         if (isCommitted(rev, readRevision, revisions)) {
             validRevisions.add(rev);
             return true;
+        } else if (revisions != null && revisions.containsKey(rev.toString())) {
+            // rev is in revisions map of this node, but not committed
+            // no need to check _commitRoot field
+            return false;
         }
         // check commit root
         @SuppressWarnings("unchecked")
@@ -749,7 +753,7 @@ public class MongoMK implements MicroKernel {
     }
 
     @Override
-    public synchronized boolean nodeExists(String path, String revisionId)
+    public boolean nodeExists(String path, String revisionId)
             throws MicroKernelException {
         revisionId = revisionId != null ? revisionId : headRevision.toString();
         Revision rev = Revision.fromString(stripBranchRevMarker(revisionId));
@@ -765,7 +769,7 @@ public class MongoMK implements MicroKernel {
     }
 
     @Override
-    public synchronized String getNodes(String path, String revisionId, int depth,
+    public String getNodes(String path, String revisionId, int depth,
             long offset, int maxChildNodes, String filter)
             throws MicroKernelException {
         if (depth != 0) {
