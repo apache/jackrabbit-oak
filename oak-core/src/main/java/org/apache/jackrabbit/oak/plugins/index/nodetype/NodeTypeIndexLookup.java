@@ -16,11 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.nodetype;
 
+import static org.apache.jackrabbit.oak.spi.query.PropertyValues.newName;
+
 import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.plugins.index.p2.Property2IndexLookup;
 import org.apache.jackrabbit.oak.spi.query.Filter;
-import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import com.google.common.collect.Iterables;
@@ -65,11 +65,10 @@ class NodeTypeIndexLookup implements JcrConstants {
                 path.substring(slash));
     }
 
-    public double getCost(Iterable<String> nodeTypes) {
-        PropertyValue ntNames = PropertyValues.newName(nodeTypes);
+    public double getCost(Filter filter) {
         Property2IndexLookup lookup = new Property2IndexLookup(root);
-        return lookup.getCost(null, JCR_PRIMARYTYPE, ntNames)
-                + lookup.getCost(null, JCR_MIXINTYPES, ntNames);
+        return lookup.getCost(null, JCR_PRIMARYTYPE, newName(filter.getPrimaryTypes()))
+                + lookup.getCost(null, JCR_MIXINTYPES, newName(filter.getMixinTypes()));
     }
 
     /**
@@ -79,12 +78,11 @@ class NodeTypeIndexLookup implements JcrConstants {
      * @param nodeTypes the names of the node types to match.
      * @return the matched paths (the result might contain duplicate entries)
      */
-    public Iterable<String> query(Filter filter, Iterable<String> nodeTypes) {
-        final PropertyValue ntNames = PropertyValues.newName(nodeTypes);
+    public Iterable<String> query(Filter filter) {
         Property2IndexLookup lookup = new Property2IndexLookup(root);
         return Iterables.concat(
-                lookup.query(filter, JCR_PRIMARYTYPE, ntNames),
-                lookup.query(filter, JCR_MIXINTYPES, ntNames));
+                lookup.query(filter, JCR_PRIMARYTYPE, newName(filter.getPrimaryTypes())),
+                lookup.query(filter, JCR_MIXINTYPES, newName(filter.getMixinTypes())));
     }
 
 }

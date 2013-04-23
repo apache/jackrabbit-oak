@@ -24,8 +24,9 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.Set;
 
-import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.PropertyType;
 
@@ -58,11 +59,6 @@ public class FilterImpl implements Filter {
     private String path = "/";
 
     private PathRestriction pathRestriction = PathRestriction.NO_RESTRICTION;
-
-    /**
-     *  The node type, or null if not set.
-     */
-    private String nodeType;
 
     /**
      * The fulltext search conditions, if any.
@@ -116,16 +112,6 @@ public class FilterImpl implements Filter {
         this.path = path;
     }
 
-    @Override
-    @CheckForNull
-    public String getNodeType() {
-        return nodeType;
-    }
-
-    public void setNodeType(String nodeType) {
-        this.nodeType = nodeType;
-    }
-
     public boolean isDistinct() {
         return distinct;
     }
@@ -136,7 +122,6 @@ public class FilterImpl implements Filter {
 
     public void setAlwaysFalse() {
         propertyRestrictions.clear();
-        nodeType = "";
         path = "/";
         pathRestriction = PathRestriction.EXACT;
         alwaysFalse = true;
@@ -149,6 +134,26 @@ public class FilterImpl implements Filter {
 
     public SelectorImpl getSelector() {
         return selector;
+    }
+
+    @Override
+    public boolean matchesAllTypes() {
+        return selector.matchesAllTypes();
+    }
+
+    @Override @Nonnull
+    public Set<String> getSupertypes() {
+        return selector.getSupertypes();
+    }
+
+    @Override @Nonnull
+    public Set<String> getPrimaryTypes() {
+        return selector.getPrimaryTypes();
+    }
+
+    @Override @Nonnull
+    public Set<String> getMixinTypes() {
+        return selector.getMixinTypes();
     }
 
     @Override

@@ -128,7 +128,7 @@ public class ReadOnlyBuilder implements NodeBuilder {
         return state.getName(name);
     }
 
-    @Override @CheckForNull
+    @Override @Nonnull
     public Iterable<String> getNames(@Nonnull String name) {
         return state.getNames(name);
     }

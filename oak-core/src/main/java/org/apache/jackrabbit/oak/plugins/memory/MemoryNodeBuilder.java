@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.memory;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Maps.newHashMap;
+import static java.util.Collections.emptyList;
 import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
@@ -447,13 +448,13 @@ public class MemoryNodeBuilder implements NodeBuilder {
         }
     }
 
-    @Override @CheckForNull
+    @Override @Nonnull
     public Iterable<String> getNames(@Nonnull String name) {
         PropertyState property = getProperty(name);
         if (property != null && property.getType() == NAMES) {
             return property.getValue(NAMES);
         } else {
-            return null;
+            return emptyList();
         }
     }
 

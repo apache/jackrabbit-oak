@@ -19,8 +19,9 @@
 package org.apache.jackrabbit.oak.spi.query;
 
 import java.util.Collection;
+import java.util.Set;
 
-import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.PropertyType;
 
@@ -76,13 +77,44 @@ public interface Filter {
     String getPath();
 
     /**
+     * Checks whether nodes of all types can match this filter.
+     *
+     * @return {@code true} iff there are no type restrictions
+     */
+    boolean matchesAllTypes();
+
+    /**
+     * Returns the names of the filter node type and all its supertypes.
+     *
+     * @return supertype name
+     */
+    @Nonnull
+    Set<String> getSupertypes();
+
+    /**
+     * Returns the names of all matching primary node types.
+     *
+     * @return primary node type names
+     */
+    @Nonnull
+    Set<String> getPrimaryTypes();
+
+    /**
+     * Returns the names of all matching mixin node types.
+     *
+     * @return mixin node type names
+     */
+    @Nonnull
+    Set<String> getMixinTypes();
+
+    /**
      * Get the node type.
      * 
      * @return the node type restriction or <code>null</code> if none is set.
      */
-    @CheckForNull
-    String getNodeType();
-    
+//    @CheckForNull
+//    String getNodeType();
+
     /**
      * Get the complete query statement. The statement should only be used for
      * logging purposes.

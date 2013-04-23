@@ -427,7 +427,8 @@
 
 [oak:nodeType] > nt:nodeType
   - oak:supertypes (NAME) protected multiple autocreated
-  - oak:subtypes (NAME) protected multiple autocreated
+  - oak:primarySubtypes (NAME) protected multiple autocreated
+  - oak:mixinSubtypes (NAME) protected multiple autocreated
   - oak:mandatoryProperties (NAME) protected multiple autocreated
   - oak:mandatoryChildNodes (NAME) protected multiple autocreated
   - oak:namedSingleValuedProperties (NAME) protected multiple autocreated

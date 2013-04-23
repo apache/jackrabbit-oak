@@ -18,14 +18,11 @@ package org.apache.jackrabbit.oak.plugins.commit;
 
 import java.util.List;
 
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.commit.ConflictHandler;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
-import static com.google.common.collect.Iterables.addAll;
 import static com.google.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
@@ -120,19 +117,8 @@ public class AnnotatingConflictHandler implements ConflictHandler {
     }
 
     private static NodeBuilder addConflictMarker(NodeBuilder parent) {
-        List<String> mixins = newArrayList();;
-        boolean hasConflictType = false;
-        Iterable<String> types = parent.getNames(JCR_MIXINTYPES);
-        if (types != null) {
-            for (String type : types) {
-                mixins.add(type);
-                if (MIX_REP_MERGE_CONFLICT.equals(type)) {
-                    hasConflictType = true;
-                }
-            }
-        }
-        if (!hasConflictType) {
-            mixins.add(MIX_REP_MERGE_CONFLICT);
+        List<String> mixins = newArrayList(parent.getNames(JCR_MIXINTYPES));
+        if (mixins.add(MIX_REP_MERGE_CONFLICT)) {
             parent.setProperty(JCR_MIXINTYPES, mixins, NAMES);
         }
         return parent.child(REP_OURS);

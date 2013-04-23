@@ -19,14 +19,23 @@
 package org.apache.jackrabbit.oak.query.ast;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.JcrConstants.JCR_ISMIXIN;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
+import static org.apache.jackrabbit.JcrConstants.JCR_NODETYPENAME;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.JcrConstants.NT_BASE;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_MIXIN_SUBTYPES;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_NAMED_SINGLE_VALUED_PROPERTIES;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_PRIMARY_SUBTYPES;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_SUPERTYPES;
 
 import java.util.Set;
 
-import org.apache.jackrabbit.JcrConstants;
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -48,14 +57,19 @@ public class SelectorImpl extends SourceImpl {
     // TODO possibly support using multiple indexes (using index intersection / index merge)
     protected QueryIndex index;
 
-    private final String nodeTypeName;
+    private final NodeState nodeType;
 
     private final String selectorName;
 
-    /**
-     * Names of matching node types, or {@code null} if all types match.
-     */
-    private final Set<String> matchingTypes;
+    private final String nodeTypeName;
+
+    private final boolean matchesAllTypes;
+
+    private final Set<String> supertypes;
+
+    private final Set<String> primaryTypes;
+
+    private final Set<String> mixinTypes;
 
     private Cursor cursor;
     private IndexRow currentRow;
@@ -70,20 +84,50 @@ public class SelectorImpl extends SourceImpl {
      */
     private ConstraintImpl selectorCondition;
 
-    public SelectorImpl(
-            String nodeTypeName, String selectorName,
-            Set<String> matchingTypes) {
-        this.nodeTypeName = checkNotNull(nodeTypeName);
+    public SelectorImpl(NodeState nodeType, String selectorName) {
+        this.nodeType = checkNotNull(nodeType);
         this.selectorName = checkNotNull(selectorName);
-        this.matchingTypes = matchingTypes;
-    }
 
-    public String getNodeTypeName() {
-        return nodeTypeName;
+        this.nodeTypeName = nodeType.getName(JCR_NODETYPENAME);
+        this.matchesAllTypes = NT_BASE.equals(nodeTypeName);
+
+        this.supertypes = newHashSet(nodeType.getNames(OAK_SUPERTYPES));
+        supertypes.add(nodeTypeName);
+
+        this.primaryTypes = newHashSet(nodeType.getNames(OAK_PRIMARY_SUBTYPES));
+        this.mixinTypes = newHashSet(nodeType.getNames(OAK_MIXIN_SUBTYPES));
+        if (nodeType.getBoolean(JCR_ISMIXIN)) {
+            mixinTypes.add(nodeTypeName);
+        } else {
+            primaryTypes.add(nodeTypeName);
+        }
     }
 
     public String getSelectorName() {
         return selectorName;
+    }
+
+    public boolean matchesAllTypes() {
+        return matchesAllTypes;
+    }
+
+    @Nonnull
+    public Set<String> getSupertypes() {
+        return supertypes;
+    }
+
+    @Nonnull
+    public Set<String> getPrimaryTypes() {
+        return primaryTypes;
+    }
+
+    @Nonnull
+    public Set<String> getMixinTypes() {
+        return mixinTypes;
+    }
+
+    public Iterable<String> getWildcardColumns() {
+        return nodeType.getNames(OAK_NAMED_SINGLE_VALUED_PROPERTIES);
     }
 
     @Override
@@ -93,6 +137,7 @@ public class SelectorImpl extends SourceImpl {
 
     @Override
     public String toString() {
+        String nodeTypeName = nodeType.getName(JCR_NODETYPENAME);
         return quote(nodeTypeName) + " as " + quote(selectorName);
     }
 
@@ -139,7 +184,6 @@ public class SelectorImpl extends SourceImpl {
     private Filter createFilter(boolean preparing) {
         FilterImpl f = new FilterImpl(this, query.getStatement());
         f.setPreparing(preparing);
-        f.setNodeType(nodeTypeName);
         if (joinCondition != null) {
             joinCondition.restrict(f);
         }
@@ -169,9 +213,7 @@ public class SelectorImpl extends SourceImpl {
             if (tree == null) {
                 continue;
             }
-            if (nodeTypeName != null
-                    && !nodeTypeName.equals(JcrConstants.NT_BASE)
-                    && !evaluateTypeMatch(tree)) {
+            if (!matchesAllTypes && !evaluateTypeMatch(tree)) {
                 continue;
             }
             if (selectorCondition != null && !selectorCondition.evaluate()) {
@@ -188,14 +230,10 @@ public class SelectorImpl extends SourceImpl {
     }
 
     private boolean evaluateTypeMatch(Tree tree) {
-        if (matchingTypes == null) {
-            return true; // shortcut for a common case
-        }
-
         PropertyState primary = tree.getProperty(JCR_PRIMARYTYPE);
         if (primary != null && primary.getType() == NAME) {
             String name = primary.getValue(NAME);
-            if (matchingTypes.contains(name)) {
+            if (primaryTypes.contains(name)) {
                 return true;
             }
         }
@@ -203,7 +241,7 @@ public class SelectorImpl extends SourceImpl {
         PropertyState mixins = tree.getProperty(JCR_MIXINTYPES);
         if (mixins != null && mixins.getType() == NAMES) {
             for (String name : mixins.getValue(NAMES)) {
-                if (matchingTypes.contains(name)) {
+                if (mixinTypes.contains(name)) {
                     return true;
                 }
             }

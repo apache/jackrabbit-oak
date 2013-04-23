@@ -211,14 +211,14 @@ public interface NodeBuilder {
      * if (property != null && property.getType() == Type.NAMES) {
      *     return property.getValue(Type.NAMES);
      * } else {
-     *     return null;
+     *     return Collections.emptyList();
      * }
      * </pre>
      *
      * @param name property name
-     * @return name values of the named property, or {@code null}
+     * @return name values of the named property, or an empty collection
      */
-    @CheckForNull
+    @Nonnull
     Iterable<String> getNames(@Nonnull String name);
 
     /**
