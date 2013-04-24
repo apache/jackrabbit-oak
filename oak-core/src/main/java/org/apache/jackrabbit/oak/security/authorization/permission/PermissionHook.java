@@ -230,7 +230,7 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
             PermissionEntry entry = createPermissionEntry(name, ace, parentBefore);
             NodeBuilder principalRoot = getPrincipalRoot(entry.principalName);
             if (principalRoot != null) {
-                principalRoot.removeNode(entry.nodeName);
+                principalRoot.removeChildNode(entry.nodeName);
             }
         }
 

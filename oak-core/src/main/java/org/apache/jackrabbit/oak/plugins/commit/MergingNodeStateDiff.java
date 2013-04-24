@@ -81,7 +81,7 @@ public final class MergingNodeStateDiff extends DefaultNodeStateDiff {
                 resolveConflict(conflict.getName(), conflict.getNodeState());
             }
 
-            target.removeNode(CONFLICT);
+            target.removeChildNode(CONFLICT);
         }
     }
 
@@ -148,7 +148,7 @@ public final class MergingNodeStateDiff extends DefaultNodeStateDiff {
                 addChild(target, name, ours);
             }
         }
-        conflictMarker.removeNode(name);
+        conflictMarker.removeChildNode(name);
     }
 
     private NodeBuilder getConflictMarker(String conflictName) {
@@ -231,7 +231,7 @@ public final class MergingNodeStateDiff extends DefaultNodeStateDiff {
     );
 
     private static void addChild(NodeBuilder target, String name, NodeState state) {
-        target.setNode(name, state);
+        target.setChildNode(name, state);
         PropertyState childOrder = target.getProperty(TreeImpl.OAK_CHILD_ORDER);
         if (childOrder != null) {
             PropertyBuilder<String> builder = MemoryPropertyBuilder.copy(Type.STRING, childOrder);
@@ -241,7 +241,7 @@ public final class MergingNodeStateDiff extends DefaultNodeStateDiff {
     }
 
     private static void removeChild(NodeBuilder target, String name) {
-        target.removeNode(name);
+        target.removeChildNode(name);
         PropertyState childOrder = target.getProperty(TreeImpl.OAK_CHILD_ORDER);
         if (childOrder != null) {
             PropertyBuilder<String> builder = MemoryPropertyBuilder.copy(Type.STRING, childOrder);

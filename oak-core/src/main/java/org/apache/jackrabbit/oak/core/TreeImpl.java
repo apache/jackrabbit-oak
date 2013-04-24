@@ -212,7 +212,7 @@ public class TreeImpl implements Tree {
             else {
                 // make this builder disconnected from its new parent
                 nodeBuilder = parent.nodeBuilder.child(name);
-                parent.nodeBuilder.removeNode(name);
+                parent.nodeBuilder.removeChildNode(name);
             }
         }
         return nodeBuilder.isConnected();
@@ -305,7 +305,7 @@ public class TreeImpl implements Tree {
 
         if (!isRoot() && parent.hasChild(name)) {
             NodeBuilder parentBuilder = parent.nodeBuilder;
-            parentBuilder.removeNode(name);
+            parentBuilder.removeChildNode(name);
             if (parent.hasOrderableChildren()) {
                 parentBuilder.setProperty(
                         MemoryPropertyBuilder.copy(Type.STRING, parent.internalGetProperty(OAK_CHILD_ORDER))

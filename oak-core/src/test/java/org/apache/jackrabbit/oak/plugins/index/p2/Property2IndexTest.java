@@ -382,7 +382,7 @@ public class Property2IndexTest {
                 .setProperty("foo", "abc");
         NodeState before = builder.getNodeState();
         builder = before.builder();
-        builder.removeNode("b");
+        builder.removeChildNode("b");
         NodeState after = builder.getNodeState();
 
         CommitFailedException unexpected = EditorDiff.process(

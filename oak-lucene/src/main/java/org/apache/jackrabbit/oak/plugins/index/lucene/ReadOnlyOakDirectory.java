@@ -60,7 +60,7 @@ class ReadOnlyOakDirectory extends Directory {
 
     @Override
     public void deleteFile(String name) throws IOException {
-        directoryBuilder.removeNode(name);
+        directoryBuilder.removeChildNode(name);
     }
 
     @Override

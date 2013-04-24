@@ -89,12 +89,12 @@ public class ReadOnlyBuilder implements NodeBuilder {
     }
 
     @Override @Nonnull
-    public NodeBuilder setNode(String name, NodeState nodeState) {
+    public NodeBuilder setChildNode(String name, NodeState nodeState) {
         throw unsupported();
     }
 
     @Override @Nonnull
-    public NodeBuilder removeNode(String name) {
+    public NodeBuilder removeChildNode(String name) {
         throw unsupported();
     }
 
@@ -164,12 +164,12 @@ public class ReadOnlyBuilder implements NodeBuilder {
     }
 
     @Override @Nonnull
-    public NodeBuilder getChild(@Nonnull String name) {
+    public NodeBuilder getChildNode(@Nonnull String name) {
         return new ReadOnlyBuilder(state.getChildNode(name));
     }
 
     @Override @Nonnull
-    public NodeBuilder addChild(@Nonnull String name) {
+    public NodeBuilder setChildNode(@Nonnull String name) {
         throw unsupported();
     }
 

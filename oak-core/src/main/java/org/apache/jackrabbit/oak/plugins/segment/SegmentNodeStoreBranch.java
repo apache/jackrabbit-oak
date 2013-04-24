@@ -162,8 +162,8 @@ class SegmentNodeStoreBranch extends AbstractNodeStoreBranch {
         }
 
         NodeState sourceState = sourceBuilder.child(sourceName).getNodeState();
-        targetBuilder.setNode(targetName, sourceState);
-        sourceBuilder.removeNode(sourceName);
+        targetBuilder.setChildNode(targetName, sourceState);
+        sourceBuilder.removeChildNode(sourceName);
 
         setRoot(builder.getNodeState());
         return true;
@@ -202,7 +202,7 @@ class SegmentNodeStoreBranch extends AbstractNodeStoreBranch {
         }
 
         NodeState sourceState = sourceBuilder.child(sourceName).getNodeState();
-        targetBuilder.setNode(targetName, sourceState);
+        targetBuilder.setChildNode(targetName, sourceState);
 
         setRoot(builder.getNodeState());
         return true;

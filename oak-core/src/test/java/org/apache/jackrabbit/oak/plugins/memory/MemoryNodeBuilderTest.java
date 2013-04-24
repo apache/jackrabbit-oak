@@ -32,7 +32,6 @@ import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class MemoryNodeBuilderTest {
@@ -112,7 +111,7 @@ public class MemoryNodeBuilderTest {
             NodeBuilder root = base.builder();
             NodeBuilder child = root.child(name);
 
-            root.removeNode(name);
+            root.removeChildNode(name);
             try {
                 child.getChildNodeCount();
                 fail();
@@ -131,7 +130,7 @@ public class MemoryNodeBuilderTest {
             NodeBuilder root = base.builder();
             NodeBuilder child = root.child(name);
 
-            root.removeNode(name);
+            root.removeChildNode(name);
             try {
                 child.setProperty("q", "w");
                 fail();
@@ -148,7 +147,7 @@ public class MemoryNodeBuilderTest {
     public void testAddRemovedNodeAgain() {
         NodeBuilder root = base.builder();
 
-        root.removeNode("x");
+        root.removeChildNode("x");
         NodeBuilder x = root.child("x");
 
         x.child("q");
@@ -193,12 +192,11 @@ public class MemoryNodeBuilderTest {
         NodeBuilder m = root.child("m");
         NodeBuilder n = m.child("n");
 
-        root.removeNode("m");
+        root.removeChildNode("m");
         n.hasChildNode("any");
     }
 
     @Test
-    @Ignore("OAK-781")
     public void testExistingStatus() {
         NodeBuilder root = base.builder();
         NodeBuilder x = root.child("x");
@@ -220,11 +218,10 @@ public class MemoryNodeBuilderTest {
     }
 
     @Test
-    @Ignore("OAK-781")
     public void testRemovedStatus() {
         NodeBuilder root = base.builder();
         NodeBuilder x = root.child("x");
-        root.removeNode("x");
+        root.removeChildNode("x");
         assertFalse(x.isConnected());
         try {
             assertTrue(x.exists());
@@ -251,27 +248,24 @@ public class MemoryNodeBuilderTest {
     }
 
     @Test
-    @Ignore("OAK-781")
     public void getExistingChildTest() {
         NodeBuilder rootBuilder = base.builder();
-        NodeBuilder x = rootBuilder.getChild("x");
+        NodeBuilder x = rootBuilder.getChildNode("x");
         assertTrue(x.exists());
         assertTrue(x.getNodeState().exists());
     }
 
     @Test
-    @Ignore("OAK-781")
     public void getNonExistingChildTest() {
         NodeBuilder rootBuilder = base.builder();
-        NodeBuilder any = rootBuilder.getChild("any");
-        assertFalse(any.exists());
-        assertFalse(any.getNodeState().exists());
+        NodeBuilder any = rootBuilder.getChildNode("any");
+        assertFalse(any.isConnected());
     }
 
     @Test
     public void addExistingChildTest() {
         NodeBuilder rootBuilder = base.builder();
-        NodeBuilder x = rootBuilder.addChild("x");
+        NodeBuilder x = rootBuilder.setChildNode("x");
         assertTrue(x.exists());
         assertTrue(x.getBaseState().exists());
     }
@@ -279,7 +273,7 @@ public class MemoryNodeBuilderTest {
     @Test
     public void addNewChildTest() {
         NodeBuilder rootBuilder = base.builder();
-        NodeBuilder x = rootBuilder.addChild("any");
+        NodeBuilder x = rootBuilder.setChildNode("any");
         assertTrue(x.exists());
         assertTrue(x.getNodeState().exists());
     }
@@ -305,7 +299,7 @@ public class MemoryNodeBuilderTest {
         NodeBuilder rootBuilder = EMPTY_NODE.builder();
 
         // +"/a":{"c":{"c"="cValue"}}
-        rootBuilder.setNode("a", createBC(true));
+        rootBuilder.setChildNode("a", createBC(true));
 
         NodeState c = rootBuilder.getNodeState().getChildNode("a").getChildNode("c");
         assertTrue(c.hasProperty("c"));
@@ -320,7 +314,7 @@ public class MemoryNodeBuilderTest {
     @Test
     public void assertion_OAK781() {
         NodeBuilder rootBuilder = EMPTY_NODE.builder();
-        rootBuilder.child("a").setNode("b", createBC(false));
+        rootBuilder.child("a").setChildNode("b", createBC(false));
 
         NodeState r = rootBuilder.getNodeState();
         NodeState a = r.getChildNode("a");
@@ -341,12 +335,11 @@ public class MemoryNodeBuilderTest {
     }
 
     @Test
-    @Ignore("OAK-781")
     public void modifyChildNodeOfNonExistingNode() {
         NodeBuilder rootBuilder = EMPTY_NODE.builder();
 
         // +"/a":{"b":{"c":{"c"="cValue"}}} where b.exists() == false
-        rootBuilder.child("a").setNode("b", createBC(false));
+        rootBuilder.child("a").setChildNode("b", createBC(false));
 
         NodeState r = rootBuilder.getNodeState();
         NodeState a = r.getChildNode("a");
@@ -358,7 +351,7 @@ public class MemoryNodeBuilderTest {
         assertTrue(c.exists());
         assertTrue(c.hasProperty("c"));
 
-        rootBuilder.child("a").getChild("b").child("c").setProperty("c2", "c2Value");
+        rootBuilder.child("a").getChildNode("b").child("c").setProperty("c2", "c2Value");
 
         r = rootBuilder.getNodeState();
         a = r.getChildNode("a");
@@ -379,7 +372,7 @@ public class MemoryNodeBuilderTest {
         NodeBuilder rootBuilder = EMPTY_NODE.builder();
 
         // +"/a":{"b":{"c":{"c"="cValue"}}} where b.exists() == false
-        rootBuilder.child("a").setNode("b", createBC(false));
+        rootBuilder.child("a").setChildNode("b", createBC(false));
 
         NodeState r = rootBuilder.getNodeState();
         NodeState a = r.getChildNode("a");
@@ -391,7 +384,7 @@ public class MemoryNodeBuilderTest {
         assertTrue(c.exists());
         assertTrue(c.hasProperty("c"));
 
-        rootBuilder.child("a").addChild("b").child("c").setProperty("c2", "c2Value");
+        rootBuilder.child("a").setChildNode("b").child("c").setProperty("c2", "c2Value");
 
         r = rootBuilder.getNodeState();
         a = r.getChildNode("a");
@@ -408,12 +401,11 @@ public class MemoryNodeBuilderTest {
     }
 
     @Test
-    @Ignore("OAK-781")
     public void shadowNonExistingNode2() {
         NodeBuilder rootBuilder = EMPTY_NODE.builder();
 
         // +"/a":{"b":{"c":{"c":"cValue"}}} where b.exists() == false
-        rootBuilder.child("a").setNode("b", createBC(false));
+        rootBuilder.child("a").setChildNode("b", createBC(false));
 
         NodeState r = rootBuilder.getNodeState();
         NodeState a = r.getChildNode("a");
