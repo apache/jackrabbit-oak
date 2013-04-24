@@ -29,6 +29,7 @@ import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.json.JsopBuilder;
 import org.apache.jackrabbit.mongomk.DocumentStore.Collection;
 import org.apache.jackrabbit.mongomk.Node.Children;
+import org.apache.jackrabbit.mongomk.util.Utils;
 import org.junit.Test;
 
 import com.google.common.collect.Lists;

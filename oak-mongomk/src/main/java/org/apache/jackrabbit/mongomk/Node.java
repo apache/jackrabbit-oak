@@ -22,6 +22,7 @@ import java.util.Set;
 import java.util.Map.Entry;
 
 import org.apache.jackrabbit.mk.json.JsopWriter;
+import org.apache.jackrabbit.mongomk.util.Utils;
 
 /**
  * Represents a node held in memory (in the cache for example).

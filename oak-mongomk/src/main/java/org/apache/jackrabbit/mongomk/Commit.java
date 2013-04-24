@@ -28,6 +28,7 @@ import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.json.JsopStream;
 import org.apache.jackrabbit.mk.json.JsopWriter;
 import org.apache.jackrabbit.mongomk.DocumentStore.Collection;
+import org.apache.jackrabbit.mongomk.util.Utils;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

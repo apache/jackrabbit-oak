@@ -29,6 +29,7 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mongomk.UpdateOp.Operation;
+import org.apache.jackrabbit.mongomk.util.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

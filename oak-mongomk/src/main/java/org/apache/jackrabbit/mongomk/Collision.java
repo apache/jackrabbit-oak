@@ -20,6 +20,7 @@ import java.util.Map;
 
 import javax.annotation.Nonnull;
 
+import org.apache.jackrabbit.mongomk.util.Utils;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 
 import static com.google.common.base.Preconditions.checkNotNull;
