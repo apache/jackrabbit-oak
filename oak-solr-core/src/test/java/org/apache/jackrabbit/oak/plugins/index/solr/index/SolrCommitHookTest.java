@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.index;
 
+import static org.junit.Assert.assertEquals;
+
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
@@ -24,8 +26,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
-
 /**
  * Testcase for {@link org.apache.jackrabbit.oak.plugins.index.solr.index.SolrCommitHook}
  */
@@ -33,6 +33,7 @@ public class SolrCommitHookTest extends SolrBaseTest {
 
     private KernelNodeStore store;
 
+    @Override
     @Before
     public void setUp() throws Exception {
         super.setUp();
