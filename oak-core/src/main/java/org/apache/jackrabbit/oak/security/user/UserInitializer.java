@@ -70,7 +70,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * <li>{@link UserConstants#REP_MEMBERS}</li>
  * </ul>
  */
-public class UserInitializer implements WorkspaceInitializer, UserConstants {
+class UserInitializer implements WorkspaceInitializer, UserConstants {
 
     /**
      * logger instance
