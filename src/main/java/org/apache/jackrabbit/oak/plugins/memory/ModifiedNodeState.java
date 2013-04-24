@@ -18,19 +18,21 @@ package org.apache.jackrabbit.oak.plugins.memory;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Predicates.in;
-import static com.google.common.base.Predicates.not;
 import static com.google.common.base.Predicates.notNull;
 import static com.google.common.collect.Collections2.filter;
 import static com.google.common.collect.Iterables.concat;
 import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Maps.filterValues;
+import static java.util.Collections.emptyList;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry.iterable;
 
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
@@ -47,7 +49,6 @@ import com.google.common.collect.Maps;
  * Immutable snapshot of a mutable node state.
  */
 public class ModifiedNodeState extends AbstractNodeState {
-    // FIXME implement correct contract wrt. existence and iterability
 
     static NodeState withProperties(
             NodeState base, Map<String, ? extends PropertyState> properties) {
@@ -113,6 +114,27 @@ public class ModifiedNodeState extends AbstractNodeState {
      */
     private final Map<String, ? extends NodeState> nodes;
 
+    private final Predicate<PropertyState> unmodifiedProperties = new Predicate<PropertyState>() {
+        @Override
+        public boolean apply(PropertyState input) {
+            return !properties.containsKey(input.getName());
+        }
+    };
+
+    private final Predicate<ChildNodeEntry> unmodifiedNodes = new Predicate<ChildNodeEntry>() {
+        @Override
+        public boolean apply(ChildNodeEntry input) {
+            return !nodes.containsKey(input.getName());
+        }
+    };
+
+    private final Predicate<NodeState> existingNodes = new Predicate<NodeState>() {
+        @Override
+        public boolean apply(@Nullable NodeState node) {
+            return node != null && node.exists();
+        }
+    };
+
     private ModifiedNodeState(
             @Nonnull NodeState base,
             @Nonnull Map<String, ? extends PropertyState> properties,
@@ -141,6 +163,9 @@ public class ModifiedNodeState extends AbstractNodeState {
 
     @Override
     public long getPropertyCount() {
+        if (!exists()) {
+            return 0;
+        }
         long count = base.getPropertyCount();
 
         for (Map.Entry<String, ? extends PropertyState> entry : properties.entrySet()) {
@@ -153,18 +178,6 @@ public class ModifiedNodeState extends AbstractNodeState {
         }
 
         return count;
-    }
-
-    @Override
-    public boolean hasProperty(String name) {
-        PropertyState property = properties.get(name);
-        if (property != null) {
-            return true;
-        } else if (properties.containsKey(name)) {
-            return false; // removed
-        } else {
-            return base.hasProperty(name);
-        }
     }
 
     @Override
@@ -181,30 +194,30 @@ public class ModifiedNodeState extends AbstractNodeState {
 
     @Override
     public Iterable<? extends PropertyState> getProperties() {
+        if (!exists()) {
+            return emptyList();
+        }
         if (properties.isEmpty()) {
             return base.getProperties(); // shortcut
         } else {
-            Predicate<PropertyState> filter = new Predicate<PropertyState>() {
-                @Override
-                public boolean apply(PropertyState input) {
-                    return !properties.containsKey(input.getName());
-                }
-            };
             return concat(
-                    filter(base.getProperties(), filter),
+                    filter(base.getProperties(), unmodifiedProperties),
                     filter(properties.values(), notNull()));
         }
     }
 
     @Override
     public long getChildNodeCount() {
+        if (!exists()) {
+            return 0;
+        }
         long count = base.getChildNodeCount();
 
         for (Map.Entry<String, ? extends NodeState> entry : nodes.entrySet()) {
             if (base.getChildNode(entry.getKey()).exists()) {
                 count--;
             }
-            if (entry.getValue() != null) {
+            if (entry.getValue() != null && entry.getValue().exists()) {
                 count++;
             }
         }
@@ -213,21 +226,8 @@ public class ModifiedNodeState extends AbstractNodeState {
     }
 
     @Override
-    public boolean hasChildNode(String name) {
-        // checkArgument(!checkNotNull(name).isEmpty()); // TODO: should be caught earlier
-        NodeState child = nodes.get(name);
-        if (child != null) {
-            return child.exists();
-        } else if (nodes.containsKey(name)) {
-            return false;
-        } else {
-            return base.hasChildNode(name);
-        }
-    }
-
-    @Override
     public NodeState getChildNode(String name) {
-        checkArgument(!checkNotNull(name).isEmpty());
+        // checkArgument(!checkNotNull(name).isEmpty());  // TODO: should be caught earlier
         NodeState child = nodes.get(name);
         if (child != null) {
             return child;
@@ -240,30 +240,24 @@ public class ModifiedNodeState extends AbstractNodeState {
 
     @Override
     public Iterable<String> getChildNodeNames() {
-        if (nodes.isEmpty()) {
-            return base.getChildNodeNames(); // shortcut
+        if (!exists()) {
+            return emptyList();
         } else {
-            return concat(
-                    filter(base.getChildNodeNames(), not(in(nodes.keySet()))),
-                    filterValues(nodes, notNull()).keySet());
+            return super.getChildNodeNames();
         }
     }
 
     @Override
     public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
+        if (!exists()) {
+            return emptyList();
+        }
         if (nodes.isEmpty()) {
             return base.getChildNodeEntries(); // shortcut
-        } else {
-            Predicate<ChildNodeEntry> filter = new Predicate<ChildNodeEntry>() {
-                @Override
-                public boolean apply(ChildNodeEntry input) {
-                    return !nodes.containsKey(input.getName());
-                }
-            };
-            return concat(
-                    filter(base.getChildNodeEntries(), filter),
-                    iterable(filterValues(nodes, notNull()).entrySet()));
         }
+        return concat(
+                filter(base.getChildNodeEntries(), unmodifiedNodes),
+                iterable(filterValues(nodes, existingNodes).entrySet()));
     }
 
     /**
