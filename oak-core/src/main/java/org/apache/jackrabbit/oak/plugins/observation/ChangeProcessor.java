@@ -31,10 +31,10 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.commons.iterator.EventIteratorAdapter;
-import org.apache.jackrabbit.oak.spi.observation.ChangeExtractor;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.spi.observation.ChangeExtractor;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
@@ -296,7 +296,13 @@ class ChangeProcessor implements Runnable {
 
         private Iterator<Iterator<Event>> generateChildEvents(final int eventType, final String parentPath, NodeState node) {
             return Iterators.transform(
-                    node.getChildNodeEntries().iterator(),
+                    Iterators.filter(node.getChildNodeEntries().iterator(),
+                        new Predicate<ChildNodeEntry>() {
+                            @Override
+                            public boolean apply(ChildNodeEntry entry) {
+                                return !NodeStateUtils.isHidden(entry.getName());
+                            }
+                    }),
                     new Function<ChildNodeEntry, Iterator<Event>>() {
                         @Override
                         public Iterator<Event> apply(ChildNodeEntry entry) {
