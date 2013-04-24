@@ -251,9 +251,14 @@ class MutableNodeState extends AbstractNodeState {
      */
     @Nonnull
     MutableNodeState setChildNode(String name, NodeState state) {
-        // FIXME better implementation, which doesn't set the base state twice
-        MutableNodeState child = getChildNode(name, true);
-        child.reset(state);
+        assert base != null;
+        MutableNodeState child = nodes.get(name);
+        if (child == null) {
+            child = new MutableNodeState(state);
+            nodes.put(name, child);
+        } else {
+            child.reset(state);
+        }
         return child;
     }
 
