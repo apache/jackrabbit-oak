@@ -257,8 +257,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
     public NodeBuilder child(String name) {
         if (hasChildNode(name)) {
             return getChildNode(name);
-        }
-        else {
+        } else {
             return setChildNode(name);
         }
     }
