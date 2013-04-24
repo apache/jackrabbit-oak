@@ -101,31 +101,36 @@ class Property2IndexHook implements IndexHook, Closeable {
     private final Map<String, List<Property2IndexHookUpdate>> indexMap;
 
     /**
+     * The root node state.
+     */
+    private final NodeState root;
+
+    /**
      * The {@code /jcr:system/jcr:nodeTypes} subtree.
      */
     private final NodeState types;
 
     public Property2IndexHook(NodeBuilder builder, NodeState root) {
         this(null, builder, null, "/",
-                new HashMap<String, List<Property2IndexHookUpdate>>(),
-                root.getChildNode(JCR_SYSTEM).getChildNode(JCR_NODE_TYPES));
+                new HashMap<String, List<Property2IndexHookUpdate>>(), root);
     }
 
     private Property2IndexHook(Property2IndexHook parent, String nodeName) {
         this(parent, getChildNode(parent.node, nodeName), nodeName, null,
-                parent.indexMap, parent.types);
+                parent.indexMap, parent.root);
     }
 
     private Property2IndexHook(Property2IndexHook parent, NodeBuilder node,
             String nodeName, String path,
             Map<String, List<Property2IndexHookUpdate>> indexMap,
-            NodeState types) {
+            NodeState root) {
         this.parent = parent;
         this.node = node;
         this.nodeName = nodeName;
         this.path = path;
         this.indexMap = indexMap;
-        this.types = types;
+        this.root = root;
+        this.types = root.getChildNode(JCR_SYSTEM).getChildNode(JCR_NODE_TYPES);
     }
 
     private static NodeBuilder getChildNode(NodeBuilder node, String name) {
@@ -303,7 +308,7 @@ class Property2IndexHook implements IndexHook, Closeable {
             }
         }
         if (reindex) {
-            return new Property2IndexHook(node, types);
+            return new Property2IndexHook(node, root);
         }
         return null;
     }
