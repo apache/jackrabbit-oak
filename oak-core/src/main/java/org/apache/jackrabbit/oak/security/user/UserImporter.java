@@ -47,7 +47,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.core.IdentifierManager;
-import org.apache.jackrabbit.oak.security.principal.PrincipalImpl;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.xml.NodeInfo;
@@ -116,7 +116,7 @@ import static org.apache.jackrabbit.oak.api.Type.STRINGS;
  * </li>
  * </ul>
  */
-public class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, UserConstants {
+class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, UserConstants {
 
     private static final Logger log = LoggerFactory.getLogger(UserImporter.class);
 

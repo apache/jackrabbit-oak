@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.security.user;
 import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.PathMapper;
-import org.apache.jackrabbit.oak.security.principal.PrincipalImpl;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 
 /**
  * TreeBasedPrincipal...

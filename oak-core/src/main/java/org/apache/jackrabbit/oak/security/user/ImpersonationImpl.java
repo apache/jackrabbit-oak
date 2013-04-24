@@ -31,7 +31,7 @@ import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.security.principal.PrincipalImpl;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.principal.AdminPrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalIteratorAdapter;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
@@ -45,9 +45,6 @@ import static org.apache.jackrabbit.oak.api.Type.STRINGS;
  */
 class ImpersonationImpl implements Impersonation, UserConstants {
 
-    /**
-     * logger instance
-     */
     private static final Logger log = LoggerFactory.getLogger(ImpersonationImpl.class);
 
     private final UserImpl user;
