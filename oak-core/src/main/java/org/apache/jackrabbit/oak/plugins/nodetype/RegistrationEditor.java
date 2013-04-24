@@ -104,7 +104,7 @@ class RegistrationEditor extends DefaultEditor {
      * having to traverse up the type hierarchy.
      *
      * @param types
-     * @param name
+     * @param type
      * @return
      * @throws CommitFailedException
      */
