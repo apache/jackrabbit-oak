@@ -40,7 +40,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.api.CommitFailedException.ACCESS;
 
 /**
- * AccessControlValidator... TODO
+ * Validation for access control information changed by regular JCR (and Jackrabbit)
+ * access control management API.
  */
 class AccessControlValidator extends DefaultValidator implements AccessControlConstants {
 
