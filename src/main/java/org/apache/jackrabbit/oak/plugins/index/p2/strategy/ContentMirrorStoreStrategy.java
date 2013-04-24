@@ -45,11 +45,11 @@ import com.google.common.collect.Sets;
  * This should minimize the chance that concurrent updates overlap on the same
  * content node.<br>
  * <br>
- * For example for a node that is under <code>/test/node</code>, the index
- * structure will be <code>/oak:index/index/test/node</code>:
- * 
+ * For example for a node that is under {@code /test/node}, the index
+ * structure will be {@code /oak:index/index/test/node}:
+ *
  * <pre>
- * <code>
+ * {@code
  * /
  *   test
  *     node
@@ -57,9 +57,9 @@ import com.google.common.collect.Sets;
  *     index
  *       test
  *         node
- * </code>
+ * }
  * </pre>
- * 
+ *
  */
 public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
 
