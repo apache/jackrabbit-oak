@@ -157,8 +157,8 @@ are already present in the `NodeState` interface, the `NodeBuilder`
 interface contains the following key methods:
 
   * The `setProperty` and `removeProperty` methods for modifying properties
-  * The `getChild` method for accessing or modifying an existing subtree
-  * The `addNode`, `setNode` and `removeNode` methods for adding, replacing
+  * The `getChildNode` method for accessing or modifying an existing subtree
+  * The `setChildNode` and `removeChildNode` methods for adding, replacing
     or removing a subtree
   * The `exists` method for checking whether the node represented by
     a builder exists or is accessible
@@ -171,15 +171,15 @@ other builders. For example:
 
 ```java
 NodeBuilder rootBuilder = root.builder();
-NodeBuilder fooBuilder = rootBuilder.getChild("foo");
-NodeBuilder barBuilder = fooBuilder.getChild("bar");
+NodeBuilder fooBuilder = rootBuilder.getChildNode("foo");
+NodeBuilder barBuilder = fooBuilder.getChildNode("bar");
 
 assert !barBuilder.getBoolean("x");
-fooBuilder.getChild("bar").setProperty("x", Boolean.TRUE);
+fooBuilder.getNodeChild("bar").setProperty("x", Boolean.TRUE);
 assert barBuilder.getBoolean("x");
 
 assert barBuilder.exists();
-fooBuilder.removeNode("bar");
+fooBuilder.removeChildNode("bar");
 assert !barBuilder.exists();
 ```
 
