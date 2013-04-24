@@ -55,7 +55,7 @@ class MergeDiff implements NodeStateDiff {
     @Override
     public void childNodeAdded(String name, NodeState after) {
         if (!builder.hasChildNode(name)) {
-            builder.setNode(name, after);
+            builder.setChildNode(name, after);
         }
     }
 
@@ -72,7 +72,7 @@ class MergeDiff implements NodeStateDiff {
     public void childNodeDeleted(String name, NodeState before) {
         if (builder.hasChildNode(name)
                 && before.equals(builder.child(name).getNodeState())) {
-            builder.removeNode(name);
+            builder.removeChildNode(name);
         }
     }
 

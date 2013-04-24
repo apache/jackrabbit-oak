@@ -96,7 +96,7 @@ class SecuredNodeRebaseDiff extends AbstractRebaseDiff {
         // FIXME (OAK-709) after might be a secured node instead of the underlying non secured node.
         // Pushing this on the non secured builder is wrong.
         // AFAICS this is only relevant when the after node state has been moved here
-        builder.setNode(name, after);
+        builder.setChildNode(name, after);
     }
 
     @Override

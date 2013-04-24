@@ -16,13 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.commit;
 
-import java.util.List;
-
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.spi.commit.ConflictHandler;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
-
 import static com.google.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
@@ -33,6 +26,13 @@ import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.DELET
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.DELETE_DELETED;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.MIX_REP_MERGE_CONFLICT;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.REP_OURS;
+
+import java.util.List;
+
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.spi.commit.ConflictHandler;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
  * This {@link ConflictHandler} implementation resolves conflicts to
@@ -91,14 +91,14 @@ public class AnnotatingConflictHandler implements ConflictHandler {
     @Override
     public Resolution addExistingNode(NodeBuilder parent, String name, NodeState ours, NodeState theirs) {
         NodeBuilder marker = addConflictMarker(parent);
-        marker.child(ADD_EXISTING).setNode(name, ours);
+        marker.child(ADD_EXISTING).setChildNode(name, ours);
         return Resolution.THEIRS;
     }
 
     @Override
     public Resolution changeDeletedNode(NodeBuilder parent, String name, NodeState ours) {
         NodeBuilder marker = addConflictMarker(parent);
-        marker.child(CHANGE_DELETED).setNode(name, ours);
+        marker.child(CHANGE_DELETED).setChildNode(name, ours);
         return Resolution.THEIRS;
     }
 

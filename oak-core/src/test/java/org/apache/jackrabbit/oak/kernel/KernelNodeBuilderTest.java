@@ -65,7 +65,7 @@ public class KernelNodeBuilderTest {
         assertTrue("child node x/y/z should be present", builder.child("x")
                 .child("y").hasChildNode("z"));
 
-        builder.removeNode("x");
+        builder.removeChildNode("x");
         assertFalse("child node x not should be present",
                 builder.hasChildNode("x"));
         assertFalse("child node x/y not should be present", builder.child("x")

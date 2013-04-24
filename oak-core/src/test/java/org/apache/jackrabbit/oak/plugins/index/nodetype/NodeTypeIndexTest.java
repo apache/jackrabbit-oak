@@ -73,7 +73,7 @@ public class NodeTypeIndexTest {
         NodeStoreBranch branch = store.branch();
         NodeBuilder root = branch.getHead().builder();
 
-        root.removeNode("rep:security"); // interferes with tests
+        root.removeChildNode("rep:security"); // interferes with tests
         addFolder(root, "folder-1");
         addFolder(root, "folder-2");
         addFile(root, "file-1");

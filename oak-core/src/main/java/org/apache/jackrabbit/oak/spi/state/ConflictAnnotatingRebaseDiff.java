@@ -73,22 +73,22 @@ public class ConflictAnnotatingRebaseDiff extends AbstractRebaseDiff {
 
     @Override
     protected void addExistingNode(NodeBuilder builder, String name, NodeState before, NodeState after) {
-        conflictMarker(builder, ADD_EXISTING_NODE).setNode(name, after);
+        conflictMarker(builder, ADD_EXISTING_NODE).setChildNode(name, after);
     }
 
     @Override
     protected void changeDeletedNode(NodeBuilder builder, String name, NodeState after) {
-        conflictMarker(builder, CHANGE_DELETED_NODE).setNode(name, after);
+        conflictMarker(builder, CHANGE_DELETED_NODE).setChildNode(name, after);
     }
 
     @Override
     protected void deleteDeletedNode(NodeBuilder builder, String name, NodeState before) {
-        conflictMarker(builder, DELETE_DELETED_NODE).setNode(name, before);
+        conflictMarker(builder, DELETE_DELETED_NODE).setChildNode(name, before);
     }
 
     @Override
     protected void deleteChangedNode(NodeBuilder builder, String name, NodeState before) {
-        conflictMarker(builder, DELETE_CHANGED_NODE).setNode(name, before);
+        conflictMarker(builder, DELETE_CHANGED_NODE).setChildNode(name, before);
     }
 
     private static NodeBuilder conflictMarker(NodeBuilder builder, String name) {

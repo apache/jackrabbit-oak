@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.plugins.index.solr.index;
 import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
-import org.apache.jackrabbit.oak.plugins.index.solr.index.SolrCommitHook;
 import org.apache.jackrabbit.oak.plugins.index.solr.SolrBaseTest;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Before;
@@ -63,7 +62,7 @@ public class SolrCommitHookTest extends SolrBaseTest {
     public void testRemoveNode() throws Exception {
         SolrCommitHook solrCommitHook = new SolrCommitHook(server);
         NodeState before = store.getRoot().builder().child("somechild").getNodeState();
-        NodeState after = before.builder().removeNode("somechild").getNodeState();
+        NodeState after = before.builder().removeChildNode("somechild").getNodeState();
         NodeState changedState = solrCommitHook.processCommit(before, after);
         assertEquals(after, changedState);
     }

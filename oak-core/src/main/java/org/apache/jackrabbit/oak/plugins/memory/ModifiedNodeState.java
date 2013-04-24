@@ -47,6 +47,7 @@ import com.google.common.collect.Maps;
  * Immutable snapshot of a mutable node state.
  */
 public class ModifiedNodeState extends AbstractNodeState {
+    // FIXME implement correct contract wrt. existence and iterability
 
     static NodeState withProperties(
             NodeState base, Map<String, ? extends PropertyState> properties) {
@@ -135,7 +136,7 @@ public class ModifiedNodeState extends AbstractNodeState {
 
     @Override
     public boolean exists() {
-        return true;
+        return base.exists();
     }
 
     @Override
@@ -216,7 +217,7 @@ public class ModifiedNodeState extends AbstractNodeState {
         // checkArgument(!checkNotNull(name).isEmpty()); // TODO: should be caught earlier
         NodeState child = nodes.get(name);
         if (child != null) {
-            return true;
+            return child.exists();
         } else if (nodes.containsKey(name)) {
             return false;
         } else {
