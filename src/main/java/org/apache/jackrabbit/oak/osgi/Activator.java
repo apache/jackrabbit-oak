@@ -45,7 +45,8 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer, Rep
 
     private ServiceTracker microKernelTracker;
 
-    private ServiceTracker nodeStoreTracker;
+    // see OAK-795 for a reason why the nodeStore tracker is disabled 
+    // private ServiceTracker nodeStoreTracker;
 
     private final OsgiIndexProvider indexProvider = new OsgiIndexProvider();
 
@@ -71,14 +72,14 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer, Rep
         microKernelTracker = new ServiceTracker(
                 context, MicroKernel.class.getName(), this);
         microKernelTracker.open();
-        nodeStoreTracker = new ServiceTracker(
-                context, NodeStore.class.getName(), this);
-        nodeStoreTracker.open();
+        // nodeStoreTracker = new ServiceTracker(
+        // context, NodeStore.class.getName(), this);
+        // nodeStoreTracker.open();
     }
 
     @Override
     public void stop(BundleContext bundleContext) throws Exception {
-        nodeStoreTracker.close();
+        // nodeStoreTracker.close();
         microKernelTracker.close();
         indexProvider.stop();
         indexHookProvider.stop();
