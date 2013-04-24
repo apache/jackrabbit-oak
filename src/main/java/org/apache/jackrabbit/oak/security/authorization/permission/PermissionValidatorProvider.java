@@ -22,8 +22,10 @@ import javax.security.auth.Subject;
 
 import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.core.TreeTypeProviderImpl;
+import org.apache.jackrabbit.oak.security.authorization.AccessControlConstants;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
@@ -35,12 +37,16 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 public class PermissionValidatorProvider extends ValidatorProvider {
 
     private final SecurityProvider securityProvider;
+    private final boolean jr2Permissions;
 
     private Context acCtx;
     private Context userCtx;
 
     public PermissionValidatorProvider(SecurityProvider securityProvider) {
         this.securityProvider = securityProvider;
+
+        ConfigurationParameters params = securityProvider.getAccessControlConfiguration().getConfigurationParameters();
+        jr2Permissions = params.getConfigValue(AccessControlConstants.PARAM_PERMISSIONS_JR2, false);
     }
 
     //--------------------------------------------------< ValidatorProvider >---
@@ -65,6 +71,10 @@ public class PermissionValidatorProvider extends ValidatorProvider {
             userCtx = securityProvider.getUserConfiguration().getContext();
         }
         return userCtx;
+    }
+
+    boolean jr2Permissions() {
+        return jr2Permissions;
     }
 
     private ImmutableTree createTree(NodeState root) {

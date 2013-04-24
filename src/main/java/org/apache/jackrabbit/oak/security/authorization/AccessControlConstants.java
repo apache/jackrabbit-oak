@@ -36,7 +36,6 @@ public interface AccessControlConstants {
      */
     String REP_RESTRICTIONS = "rep:restrictions";
 
-
     String MIX_REP_ACCESS_CONTROLLABLE = "rep:AccessControllable";
     String MIX_REP_REPO_ACCESS_CONTROLLABLE = "rep:RepoAccessControllable";
     String NT_REP_POLICY = "rep:Policy";
@@ -55,4 +54,16 @@ public interface AccessControlConstants {
     Collection<String> ACE_PROPERTY_NAMES = ImmutableSet.of(REP_PRINCIPAL_NAME, REP_PRIVILEGES);
 
     Collection<String> AC_NODETYPE_NAMES = ImmutableSet.of(NT_REP_POLICY, NT_REP_ACL, NT_REP_ACE, NT_REP_DENY_ACE, NT_REP_GRANT_ACE, NT_REP_RESTRICTIONS);
+
+    /**
+     * Configuration parameter to enforce backwards compatible permission
+     * validation with respect to user/group creation, modification and removal.
+     * As of OAK 1.0 those actions require
+     * {@link org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions#USER_MANAGEMENT USER_MANAGEMENT}
+     * permissions while in Jackrabbit 2.0 they were covered by regular item
+     * write permissions.
+     *
+     * @since OAK 1.0
+     */
+    String PARAM_PERMISSIONS_JR2 = "permissionsJr2";
 }
