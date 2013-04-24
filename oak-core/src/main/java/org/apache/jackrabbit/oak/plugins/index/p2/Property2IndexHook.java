@@ -16,22 +16,29 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.p2;
 
+import static com.google.common.collect.Iterables.addAll;
 import static com.google.common.collect.Lists.newArrayList;
+import static com.google.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.JcrConstants.JCR_ISMIXIN;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.p2.Property2IndexHookProvider.TYPE;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_MIXIN_SUBTYPES;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_PRIMARY_SUBTYPES;
 
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -93,24 +100,32 @@ class Property2IndexHook implements IndexHook, Closeable {
      */
     private final Map<String, List<Property2IndexHookUpdate>> indexMap;
 
-    public Property2IndexHook(NodeBuilder root) {
-        this(null, root, null, "/",
-                new HashMap<String, List<Property2IndexHookUpdate>>());
+    /**
+     * The {@code /jcr:system/jcr:nodeTypes} subtree.
+     */
+    private final NodeState types;
+
+    public Property2IndexHook(NodeBuilder builder, NodeState root) {
+        this(null, builder, null, "/",
+                new HashMap<String, List<Property2IndexHookUpdate>>(),
+                root.getChildNode(JCR_SYSTEM).getChildNode(JCR_NODE_TYPES));
     }
 
     private Property2IndexHook(Property2IndexHook parent, String nodeName) {
         this(parent, getChildNode(parent.node, nodeName), nodeName, null,
-                parent.indexMap);
+                parent.indexMap, parent.types);
     }
 
     private Property2IndexHook(Property2IndexHook parent, NodeBuilder node,
             String nodeName, String path,
-            Map<String, List<Property2IndexHookUpdate>> indexMap) {
+            Map<String, List<Property2IndexHookUpdate>> indexMap,
+            NodeState types) {
         this.parent = parent;
         this.node = node;
         this.nodeName = nodeName;
         this.path = path;
         this.indexMap = indexMap;
+        this.types = types;
     }
 
     private static NodeBuilder getChildNode(NodeBuilder node, String name) {
@@ -143,21 +158,8 @@ class Property2IndexHook implements IndexHook, Closeable {
         }
         List<Property2IndexHookUpdate> filtered = new ArrayList<Property2IndexHookUpdate>();
         for (Property2IndexHookUpdate pi : indexes) {
-            if (node == null || pi.getNodeTypeNames() == null
-                    || pi.getNodeTypeNames().isEmpty()) {
+            if (node == null || pi.matchesNodeType(node)) {
                 filtered.add(pi);
-                continue;
-            }
-            PropertyState ps = node.getProperty(JCR_PRIMARYTYPE);
-            String type = ps != null && !ps.isArray() ? ps
-                    .getValue(Type.STRING) : null;
-            if (type != null) {
-                for (String typeName : pi.getNodeTypeNames()) {
-                    if (typeName.equals(type)) {
-                        filtered.add(pi);
-                        break;
-                    }
-                }
             }
         }
         return filtered;
@@ -173,15 +175,21 @@ class Property2IndexHook implements IndexHook, Closeable {
      *            the name of the index
      */
     private void addIndexes(NodeState state, String indexName) {
-        List<String> typeNames = ImmutableList.of();
-        PropertyState appliesTo = state.getProperty(declaringNodeTypes);
-        if (appliesTo != null) {
-            typeNames = newArrayList(appliesTo.getValue(Type.STRINGS));
-            Collections.sort(typeNames);
+        Set<String> primaryTypes = newHashSet();
+        Set<String> mixinTypes = newHashSet();
+        for (String typeName : state.getNames(declaringNodeTypes)) {
+            NodeState type = types.getChildNode(typeName);
+            if (type.getBoolean(JCR_ISMIXIN)) {
+                mixinTypes.add(typeName);
+            } else {
+                primaryTypes.add(typeName);
+            }
+            addAll(primaryTypes, type.getNames(OAK_PRIMARY_SUBTYPES));
+            addAll(mixinTypes, type.getNames(OAK_MIXIN_SUBTYPES));
         }
-        PropertyState ps = state.getProperty(propertyNames);
 
-        Iterable<String> propertyNames = ps != null ? ps.getValue(Type.STRINGS)
+        PropertyState ps = state.getProperty(propertyNames);
+        Iterable<String> propertyNames = ps != null ? ps.getValue(Type.NAMES)
                 : ImmutableList.of(indexName);
         for (String pname : propertyNames) {
             List<Property2IndexHookUpdate> list = this.indexMap.get(pname);
@@ -192,8 +200,7 @@ class Property2IndexHook implements IndexHook, Closeable {
             boolean exists = false;
             String localPath = getPath();
             for (Property2IndexHookUpdate piu : list) {
-                if (localPath.equals(piu.getPath())
-                        && typeNames.equals(piu.getNodeTypeNames())) {
+                if (piu.matches(localPath, primaryTypes, mixinTypes)) {
                     exists = true;
                     break;
                 }
@@ -201,7 +208,7 @@ class Property2IndexHook implements IndexHook, Closeable {
             if (!exists) {
                 Property2IndexHookUpdate update = new Property2IndexHookUpdate(
                         getPath(), node.child(INDEX_DEFINITIONS_NAME).child(indexName),
-                        store, typeNames);
+                        store, primaryTypes, mixinTypes);
                 list.add(update);
                 updates.add(update);
             }
@@ -296,7 +303,7 @@ class Property2IndexHook implements IndexHook, Closeable {
             }
         }
         if (reindex) {
-            return new Property2IndexHook(node);
+            return new Property2IndexHook(node, types);
         }
         return null;
     }

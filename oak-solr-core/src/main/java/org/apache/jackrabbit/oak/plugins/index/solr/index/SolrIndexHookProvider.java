@@ -30,6 +30,7 @@ import org.apache.jackrabbit.oak.plugins.index.solr.OakSolrConfigurationProvider
 import org.apache.jackrabbit.oak.plugins.index.solr.SolrServerProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.query.SolrQueryIndex;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,8 +63,8 @@ public class SolrIndexHookProvider implements IndexHookProvider {
 
     @Override
     @Nonnull
-    public List<? extends IndexHook> getIndexHooks(String type, NodeBuilder builder) {
-
+    public List<? extends IndexHook> getIndexHooks(
+            String type, NodeBuilder builder, NodeState root) {
         if (SolrQueryIndex.TYPE.equals(type) && solrServerProvider != null && oakSolrConfigurationProvider != null) {
             try {
                 if (log.isDebugEnabled()) {

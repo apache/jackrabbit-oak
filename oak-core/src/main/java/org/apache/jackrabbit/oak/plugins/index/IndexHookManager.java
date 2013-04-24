@@ -45,6 +45,6 @@ public class IndexHookManager implements EditorProvider {
     @Override
     public Editor getRootEditor(NodeState before, NodeState after,
             NodeBuilder builder) {
-        return VisibleEditor.wrap(new IndexHookManagerDiff(provider, builder));
+        return VisibleEditor.wrap(new IndexHookManagerDiff(provider, builder, after));
     }
 }

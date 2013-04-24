@@ -151,11 +151,13 @@ public class Property2IndexLookup {
             }
             if (contains(ns.getNames(PROPERTY_NAMES), propertyName)) {
                 NodeState index = ns.getChildNode(":index");
-                if (ns.hasProperty(DECLARING_NODE_TYPES) && supertypes != null) {
-                    for (String typeName : ns.getNames(DECLARING_NODE_TYPES)) {
-                        if (supertypes.contains(typeName)) {
-                            // TODO: prefer the most specific type restriction
-                            return index;
+                if (ns.hasProperty(DECLARING_NODE_TYPES)) {
+                    if (supertypes != null) {
+                        for (String typeName : ns.getNames(DECLARING_NODE_TYPES)) {
+                            if (supertypes.contains(typeName)) {
+                                // TODO: prefer the most specific type restriction
+                                return index;
+                            }
                         }
                     }
                 } else if (supertypes == null) {
