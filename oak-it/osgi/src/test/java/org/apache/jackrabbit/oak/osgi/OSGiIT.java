@@ -94,6 +94,7 @@ public class OSGiIT {
     private ContentRepository oakRepository;
 
     @Test
+    @Ignore("OAK-795")
     public void testOakRepository() {
         assertNotNull(oakRepository);
         // TODO: try something with oakRepository
@@ -103,6 +104,7 @@ public class OSGiIT {
     private Repository jcrRepository;
 
     @Test
+    @Ignore("OAK-795")
     public void testJcrRepository() {
         assertNotNull(jcrRepository);
         // TODO: try something with jcrRepository
