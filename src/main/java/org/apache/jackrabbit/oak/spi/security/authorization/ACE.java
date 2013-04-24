@@ -35,7 +35,9 @@ import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
 
 /**
- * ACE... TODO
+ * Default implementation of the {@code JackrabbitAccessControlEntry} interface.
+ * It asserts that the basic contract is fulfilled but does perform any additional
+ * validation on the principal, the privileges or the specified restrictions.
  */
 public class ACE implements JackrabbitAccessControlEntry {
 
