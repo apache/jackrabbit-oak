@@ -18,30 +18,29 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.Map;
 import java.util.Map.Entry;
 
+import com.google.common.base.Function;
+import com.google.common.collect.Iterables;
 import org.apache.jackrabbit.oak.spi.state.AbstractChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-
-import com.google.common.base.Function;
-import com.google.common.collect.Iterables;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Basic JavaBean implementation of a child node entry.
  */
 public class MemoryChildNodeEntry extends AbstractChildNodeEntry {
 
-    public static <T extends NodeState> Iterable<ChildNodeEntry> iterable(
-            Iterable<Entry<String, T>> set) {
+    public static <E extends Entry<String, ? extends NodeState>> Iterable<ChildNodeEntry> iterable(
+            Iterable<E> set) {
         return Iterables.transform(
                 set,
-                new Function<Entry<String, T>, ChildNodeEntry>() {
+                new Function<Entry<String, ? extends NodeState>, ChildNodeEntry>() {
                     @Override
-                    public ChildNodeEntry apply(Entry<String, T> input) {
+                    public ChildNodeEntry apply(Entry<String, ? extends NodeState> input) {
                         return new MemoryChildNodeEntry(input);
                     }
                 });
