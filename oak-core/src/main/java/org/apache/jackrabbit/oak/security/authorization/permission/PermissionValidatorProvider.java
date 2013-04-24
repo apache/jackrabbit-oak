@@ -32,7 +32,8 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissio
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
- * PermissionValidatorProvider... TODO
+ * {@code ValidatorProvider} implementation for permission evaluation associated
+ * with write operations.
  */
 public class PermissionValidatorProvider extends ValidatorProvider {
 
