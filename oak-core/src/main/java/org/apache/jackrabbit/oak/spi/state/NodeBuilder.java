@@ -24,6 +24,48 @@ import org.apache.jackrabbit.oak.api.Type;
 
 /**
  * Builder interface for constructing new {@link NodeState node states}.
+ * <p>
+ * A node builder can be thought of as a mutable version of a node state.
+ * In addition to property and child node access methods like the ones that
+ * are already present in the NodeState interface, the {@code NodeBuilder}
+ * interface contains the following key methods:
+ * <ul>
+ * <li>The {@code setProperty} and {@code removeProperty} methods for
+ *     modifying properties</li>
+ * <li>The {@code getChildNode} method for accessing or modifying an existing
+ *     subtree</li>
+ * <li>The {@code setChildNode} and {@code removeChildNode} methods for adding,
+ *     replacing or removing a subtree</li>
+ * <li>The {@code exists} method for checking whether the node represented by
+ *     a builder exists or is accessible</li>
+ * <li>The {@code getNodeState} method for getting a frozen snapshot of the
+ *     modified content tree</li>
+ * </ul>
+ * All the builders acquired from the same root builder instance are linked so
+ * that changes made through one instance automatically become visible in the other
+ * builders. For example:
+ * <pre>
+ *     NodeBuilder rootBuilder = root.builder();
+ *     NodeBuilder fooBuilder = rootBuilder.getChildNode("foo");
+ *     NodeBuilder barBuilder = fooBuilder.getChildNode("bar");
+ *
+ *     assert !barBuilder.getBoolean("x");
+ *     fooBuilder.getChildNode("bar").setProperty("x", Boolean.TRUE);
+ *     assert barBuilder.getBoolean("x");
+ *
+ *     assert barBuilder.exists();
+ *     fooBuilder.removeChildNode("bar");
+ *     assert !barBuilder.exists();
+ * </pre>
+ * The {@code getNodeState} method returns a frozen, immutable snapshot of the current
+ * state of the builder. Providing such a snapshot can be somewhat expensive especially
+ * if there are many changes in the builder, so the method should generally only be used
+ * as the last step after all intended changes have been made. Meanwhile the accessors
+ * in the {@code NodeBuilder} interface can be used to provide efficient read access to
+ * the current state of the tree being modified.
+ * <p>
+ * The node states constructed by a builder often retain an internal reference to the base
+ * state used by the builder. This allows common node state comparisons to perform really.
  */
 public interface NodeBuilder {
 
