@@ -29,7 +29,7 @@ import org.bson.types.ObjectId;
  */
 public class Utils {
     
-    static int pathDepth(String path) {
+    public static int pathDepth(String path) {
         if (path.equals("/")) {
             return 0;
         }
@@ -42,11 +42,11 @@ public class Utils {
         return depth;
     }
     
-    static <K, V> Map<K, V> newMap() {
+    public static <K, V> Map<K, V> newMap() {
         return new TreeMap<K, V>();
     }
 
-    static <E> Set<E> newSet() {
+    public static <E> Set<E> newSet() {
         return new HashSet<E>();
     }
 
