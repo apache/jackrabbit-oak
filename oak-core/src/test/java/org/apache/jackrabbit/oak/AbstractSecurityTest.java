@@ -97,13 +97,17 @@ public abstract class AbstractSecurityTest {
 
     protected SecurityProvider getSecurityProvider() {
         if (securityProvider == null) {
-            securityProvider = new SecurityProviderImpl();
+            securityProvider = new SecurityProviderImpl(getSecurityConfigParameters());
         }
         return securityProvider;
     }
 
+    protected ConfigurationParameters getSecurityConfigParameters() {
+        return ConfigurationParameters.EMPTY;
+    }
+
     protected Configuration getConfiguration() {
-        return ConfigurationUtil.getDefaultConfiguration(ConfigurationParameters.EMPTY);
+        return ConfigurationUtil.getDefaultConfiguration(getSecurityConfigParameters());
     }
 
     protected ContentSession login(@Nullable Credentials credentials)
