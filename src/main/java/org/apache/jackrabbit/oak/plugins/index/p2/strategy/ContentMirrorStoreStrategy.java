@@ -96,7 +96,7 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
                     NodeBuilder childEntry = indexEntry.child(name);
                     childEntry.removeProperty("match");
                     if (childEntry.getChildNodeCount() == 0) {
-                        indexEntry.removeNode(name);
+                        indexEntry.removeChildNode(name);
                     }
                 }
             }
@@ -114,7 +114,7 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
         pruneNode(child);
         if (child.getChildNodeCount() == 0
                 && !child.hasProperty("match")) {
-            index.removeNode(key);
+            index.removeChildNode(key);
         }
     }
 
@@ -126,7 +126,7 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
             NodeBuilder segment = parent.child(name);
             if (segment.getChildNodeCount() == 0
                     && !segment.hasProperty("match")) {
-                parent.removeNode(name);
+                parent.removeChildNode(name);
             }
         }
     }

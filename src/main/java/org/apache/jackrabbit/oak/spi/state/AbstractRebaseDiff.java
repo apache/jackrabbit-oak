@@ -204,7 +204,7 @@ public abstract class AbstractRebaseDiff implements NodeStateDiff {
             NodeState other = builder.child(name).getNodeState();
             addExistingNode(builder, name, other, after);
         } else {
-            builder.setNode(name, after);
+            builder.setChildNode(name, after);
         }
     }
 
@@ -223,7 +223,7 @@ public abstract class AbstractRebaseDiff implements NodeStateDiff {
         if (!builder.hasChildNode(name)) {
             deleteDeletedNode(builder, name, before);
         } else if (before.equals(builder.child(name).getNodeState())) {
-            builder.removeNode(name);
+            builder.removeChildNode(name);
         } else {
             deleteChangedNode(builder, name, before);
         }

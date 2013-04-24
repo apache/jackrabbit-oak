@@ -187,7 +187,7 @@ class RegistrationEditor extends DefaultEditor {
         NodeState subtree = state.getChildNode(name);
         if (subtree.exists()) {
             if (!builder.hasChildNode(name)) {
-                builder.setNode(name, subtree);
+                builder.setChildNode(name, subtree);
             } else if (depth > 0) {
                 NodeBuilder subbuilder = builder.child(name);
                 for (String subname : subtree.getChildNodeNames()) {
@@ -225,10 +225,10 @@ class RegistrationEditor extends DefaultEditor {
         type.setProperty(OAK_MANDATORY_PROPERTIES, empty, NAMES);
         type.setProperty(OAK_MANDATORY_CHILD_NODES, empty, NAMES);
         type.setProperty(OAK_NAMED_SINGLE_VALUED_PROPERTIES, empty, NAMES);
-        type.removeNode(OAK_NAMED_PROPERTY_DEFINITIONS);
-        type.removeNode(OAK_RESIDUAL_PROPERTY_DEFINITIONS);
-        type.removeNode(OAK_NAMED_CHILD_NODE_DEFINITIONS);
-        type.removeNode(OAK_RESIDUAL_CHILD_NODE_DEFINITIONS);
+        type.removeChildNode(OAK_NAMED_PROPERTY_DEFINITIONS);
+        type.removeChildNode(OAK_RESIDUAL_PROPERTY_DEFINITIONS);
+        type.removeChildNode(OAK_NAMED_CHILD_NODE_DEFINITIONS);
+        type.removeChildNode(OAK_RESIDUAL_CHILD_NODE_DEFINITIONS);
 
         // + jcr:propertyDefinition (nt:propertyDefinition)
         //   = nt:propertyDefinition protected sns
@@ -306,7 +306,7 @@ class RegistrationEditor extends DefaultEditor {
             addNameToList(type, OAK_NAMED_SINGLE_VALUED_PROPERTIES, propertyName);
         }
 
-        definitions.setNode(key, definition);
+        definitions.setChildNode(key, definition);
     }
 
     private void validateAndCompileChildNodeDefinition(
@@ -343,7 +343,7 @@ class RegistrationEditor extends DefaultEditor {
                             "Constraint", 33,
                             "Unknown required primary type " + key);
                 } else if (!definitions.hasChildNode(key)) {
-                    definitions.setNode(key, definition);
+                    definitions.setChildNode(key, definition);
                 }
             }
         }

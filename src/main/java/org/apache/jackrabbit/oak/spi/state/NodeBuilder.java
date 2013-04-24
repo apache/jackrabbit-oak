@@ -98,6 +98,14 @@ public interface NodeBuilder {
     long getChildNodeCount();
 
     /**
+     * Returns the names of current child nodes.
+     *
+     * @return child node names
+     */
+    @Nonnull
+    Iterable<String> getChildNodeNames();
+
+    /**
      * Checks whether the named child node currently exists.
      *
      * @param name child node name
@@ -107,12 +115,52 @@ public interface NodeBuilder {
     boolean hasChildNode(@Nonnull String name);
 
     /**
-     * Returns the names of current child nodes.
+     * Returns a builder for constructing changes to the named child node.
+     * If the named child node does not already exist, a new empty child
+     * node is automatically created as the base state of the returned
+     * child builder. Otherwise the existing child node state is used
+     * as the base state of the returned builder.
+     * <p>
+     * All updates to the returned child builder will implicitly affect
+     * also this builder, as if a
+     * {@code setNode(name, childBuilder.getNodeState())} method call
+     * had been made after each update. Repeated calls to this method with
+     * the same name will return the same child builder instance until an
+     * explicit {@link #setChildNode(String, NodeState)} or
+     * {@link #removeChildNode(String)} call is made, at which point the link
+     * between this builder and a previously returned child builder for
+     * that child node name will get broken.
      *
-     * @return child node names
+     * @since Oak 0.6
+     * @param name name of the child node
+     * @return child builder
      */
     @Nonnull
-    Iterable<String> getChildNodeNames();
+    NodeBuilder child(@Nonnull String name);
+
+    /**
+     * Returns a builder for constructing changes to the named child node.
+     * If the named child node does not already exist, the returned builder
+     * will refer to a non-existent node and trying to modify it will cause
+     * {@link IllegalStateException}s to be thrown.
+     *
+     * @since Oak 0.7
+     * @param name name of the child node
+     * @return child builder, possibly non-existent
+     */
+    @Nonnull
+    NodeBuilder getChildNode(@Nonnull String name);
+
+    /**
+     * Adds the named child node and returns a builder for modifying it.
+     * Possible previous content in the named subtree is removed.
+     *
+     * @since Oak 0.7
+     * @param name name of the child node
+     * @return child builder
+     */
+    @Nonnull
+    NodeBuilder setChildNode(@Nonnull String name);
 
     /**
      * Adds or replaces a subtree.
@@ -122,7 +170,7 @@ public interface NodeBuilder {
      * @return this builder
      */
     @Nonnull
-    NodeBuilder setNode(String name, @Nonnull NodeState nodeState);
+    NodeBuilder setChildNode(String name, @Nonnull NodeState nodeState);
 
     /**
      * Remove a child node. This method has no effect if a
@@ -132,7 +180,7 @@ public interface NodeBuilder {
      * @return this builder
      */
     @Nonnull
-    NodeBuilder removeNode(String name);
+    NodeBuilder removeChildNode(String name);
 
     /**
      * Returns the current number of properties.
@@ -259,53 +307,5 @@ public interface NodeBuilder {
     */
     @Nonnull
     NodeBuilder removeProperty(String name);
-
-    /**
-     * Returns a builder for constructing changes to the named child node.
-     * If the named child node does not already exist, a new empty child
-     * node is automatically created as the base state of the returned
-     * child builder. Otherwise the existing child node state is used
-     * as the base state of the returned builder.
-     * <p>
-     * All updates to the returned child builder will implicitly affect
-     * also this builder, as if a
-     * {@code setNode(name, childBuilder.getNodeState())} method call
-     * had been made after each update. Repeated calls to this method with
-     * the same name will return the same child builder instance until an
-     * explicit {@link #setNode(String, NodeState)} or
-     * {@link #removeNode(String)} call is made, at which point the link
-     * between this builder and a previously returned child builder for
-     * that child node name will get broken.
-     *
-     * @since Oak 0.6
-     * @param name name of the child node
-     * @return child builder
-     */
-    @Nonnull
-    NodeBuilder child(@Nonnull String name);
-
-    /**
-     * Returns a builder for constructing changes to the named child node.
-     * If the named child node does not already exist, the returned builder
-     * will refer to a non-existent node and trying to modify it will cause
-     * {@link IllegalStateException}s to be thrown.
-     *
-     * @since Oak 0.7
-     * @param name name of the child node
-     * @return child builder, possibly non-existent
-     */
-    @Nonnull
-    NodeBuilder getChild(@Nonnull String name);
-
-    /**
-     * Adds the named child node and returns a builder for modifying it.
-     * Possible previous content in the named subtree is removed.
-     *
-     * @since Oak 0.7
-     * @param name name of the child node
-     * @return child builder
-     */
-    @Nonnull
-    NodeBuilder addChild(@Nonnull String name);
 
 }

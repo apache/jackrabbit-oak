@@ -48,7 +48,7 @@ public class TypeEditorTest {
         hook.processCommit(before, after);
 
         before = after;
-        builder.removeNode(":hidden");
+        builder.removeChildNode(":hidden");
         after = builder.getNodeState();
         hook.processCommit(before, after);
     }

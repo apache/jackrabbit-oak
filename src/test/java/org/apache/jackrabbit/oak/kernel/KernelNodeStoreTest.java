@@ -83,7 +83,7 @@ public class KernelNodeStoreTest {
         NodeBuilder testBuilder = rootBuilder.child("test");
         NodeBuilder newNodeBuilder = testBuilder.child("newNode");
 
-        testBuilder.removeNode("x");
+        testBuilder.removeChildNode("x");
 
         newNodeBuilder.setProperty("n", 42);
 
@@ -138,7 +138,7 @@ public class KernelNodeStoreTest {
 
         newNodeBuilder.setProperty("n", 42);
 
-        testBuilder.removeNode("a");
+        testBuilder.removeChildNode("a");
 
         NodeState newRoot = rootBuilder.getNodeState();
 
@@ -168,7 +168,7 @@ public class KernelNodeStoreTest {
 
         newNodeBuilder.setProperty("n", 42);
 
-        testBuilder.removeNode("a");
+        testBuilder.removeChildNode("a");
 
         NodeState newRoot = rootBuilder.getNodeState();
 
@@ -273,7 +273,7 @@ public class KernelNodeStoreTest {
         branch = store.branch();
         root = branch.getHead().builder();
         parent = root.child("parent");
-        parent.removeNode("child-moved");
+        parent.removeChildNode("child-moved");
         branch.setRoot(root.getNodeState());
         branch.merge(EmptyHook.INSTANCE);
 
