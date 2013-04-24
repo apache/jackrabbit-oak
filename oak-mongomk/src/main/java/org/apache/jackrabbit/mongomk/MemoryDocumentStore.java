@@ -28,6 +28,7 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mongomk.UpdateOp.Operation;
+import org.apache.jackrabbit.mongomk.util.Utils;
 
 /**
  * Emulates a MongoDB store (possibly consisting of multiple shards and
