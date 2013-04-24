@@ -16,9 +16,15 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
+import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
@@ -50,11 +56,6 @@ import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
-import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 /**
  * {@code CommitHook} implementation that processes any modification made to
@@ -256,7 +257,7 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
         }
     }
 
-    private static abstract class Node {
+    private abstract static class Node {
 
         private final String path;
 
