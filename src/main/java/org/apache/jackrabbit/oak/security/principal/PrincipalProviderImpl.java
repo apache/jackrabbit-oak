@@ -39,6 +39,7 @@ import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
@@ -59,9 +60,9 @@ public class PrincipalProviderImpl implements PrincipalProvider {
 
     private final UserManager userManager;
 
-    public PrincipalProviderImpl(Root root,
-                                 UserConfiguration userConfiguration,
-                                 NamePathMapper namePathMapper) {
+    public PrincipalProviderImpl(@Nonnull Root root,
+                                 @Nonnull UserConfiguration userConfiguration,
+                                 @Nonnull NamePathMapper namePathMapper) {
         this.userManager = userConfiguration.getUserManager(root, namePathMapper);
     }
 

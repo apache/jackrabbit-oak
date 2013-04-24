@@ -26,7 +26,7 @@ import javax.jcr.Credentials;
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.login.LoginException;
 
-import org.apache.jackrabbit.oak.security.principal.PrincipalImpl;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 
 /**
  * ExternalLoginModuleImpl... TODO

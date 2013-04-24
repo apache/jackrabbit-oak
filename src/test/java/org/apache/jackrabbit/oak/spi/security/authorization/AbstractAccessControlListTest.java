@@ -37,7 +37,7 @@ import org.apache.jackrabbit.oak.namepath.GlobalNameMapper;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
-import org.apache.jackrabbit.oak.security.principal.PrincipalImpl;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionDefinition;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;

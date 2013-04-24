@@ -37,7 +37,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
-import org.apache.jackrabbit.oak.security.principal.PrincipalImpl;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfiguration;
 import org.apache.jackrabbit.oak.spi.xml.NodeInfo;
@@ -63,7 +63,6 @@ class AccessControlImporter implements ProtectedNodeImporter, AccessControlConst
 
     private final SecurityProvider securityProvider;
 
-    private NamePathMapper namePathMapper;
     private AccessControlManager acMgr;
     private PrincipalManager principalManager;
     private ReadOnlyNodeTypeManager ntMgr;
@@ -88,7 +87,6 @@ class AccessControlImporter implements ProtectedNodeImporter, AccessControlConst
             throw new IllegalStateException("Already initialized");
         }
         try {
-            this.namePathMapper = namePathMapper;
             AccessControlConfiguration config = securityProvider.getAccessControlConfiguration();
             if (isWorkspaceImport) {
                 acMgr = config.getAccessControlManager(root, namePathMapper);
