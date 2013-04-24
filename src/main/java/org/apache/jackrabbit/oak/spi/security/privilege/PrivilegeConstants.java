@@ -26,6 +26,7 @@ import org.apache.jackrabbit.JcrConstants;
  */
 public interface PrivilegeConstants {
 
+    //--------------------------------< Constants for Privilege Definitions >---
     /**
      * Internal (oak) name for the root node of the privilege store.
      */
@@ -73,6 +74,7 @@ public interface PrivilegeConstants {
      */
     String REP_BITS = "rep:bits";
 
+    //----------------------------------------------------< Privilege Names >---
     /**
      * Internal (oak) name of the {@link javax.jcr.security.Privilege#JCR_READ} privilege
      */
