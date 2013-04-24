@@ -19,8 +19,10 @@ package org.apache.jackrabbit.mongomk;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.jackrabbit.mk.api.MicroKernelException;
 import org.apache.jackrabbit.mk.json.JsopStream;
@@ -251,7 +253,7 @@ public class Commit {
 
     /**
      * Try to create or update the node. If there was a conflict, this method
-     * throws an exception, even thought the change is still applied.
+     * throws an exception, even though the change is still applied.
      * 
      * @param store the store
      * @param op the operation
@@ -259,7 +261,17 @@ public class Commit {
     private void createOrUpdateNode(DocumentStore store, UpdateOp op) {
         Map<String, Object> map = store.createOrUpdate(Collection.NODES, op);
         if (baseRevision != null) {
-            Revision newestRev = mk.getNewestRevision(map, revision, true);
+            final AtomicReference<List<Revision>> collisions = new AtomicReference<List<Revision>>();
+            Revision newestRev = mk.getNewestRevision(map, revision, true,
+                    new CollisionHandler() {
+                @Override
+                void uncommittedModification(Revision uncommitted) {
+                    if (collisions.get() == null) {
+                        collisions.set(new ArrayList<Revision>());
+                    }
+                    collisions.get().add(uncommitted);
+                }
+            });
             if (newestRev == null) {
                 if (op.isDelete || !op.isNew) {
                     throw new MicroKernelException("The node " + 
@@ -278,6 +290,19 @@ public class Commit {
                             op.path + " was changed in revision " + newestRev +
                             ", which was applied after the base revision " + 
                             baseRevision + "; before " + revision + "; document " + map);
+                }
+            }
+            // if we get here the modification was successful
+            // -> check for collisions and conflict (concurrent updates
+            // on a node are possible if property updates do not overlap)
+            if (collisions.get() != null && isConflicting(map, op)) {
+                for (Revision r : collisions.get()) {
+                    // mark collisions on commit root
+                    Collision c = new Collision(map, r);
+                    boolean success = c.mark(store);
+                    if (!success) {
+                        // TODO: fail this commit
+                    }
                 }
             }
         }

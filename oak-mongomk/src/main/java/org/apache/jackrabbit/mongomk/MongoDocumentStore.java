@@ -24,6 +24,7 @@ import java.util.Map.Entry;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.mk.api.MicroKernelException;
@@ -148,7 +149,7 @@ public class MongoDocumentStore implements DocumentStore {
         DBCollection dbCollection = getDBCollection(collection);
         long start = start();
         try {
-            DBObject doc = dbCollection.findOne(getByKeyQuery(key));
+            DBObject doc = dbCollection.findOne(getByKeyQuery(key).get());
             if (doc == null) {
                 return null;
             }
@@ -196,7 +197,7 @@ public class MongoDocumentStore implements DocumentStore {
             if (collection == Collection.NODES) {
                 nodesCache.invalidate(key);
             }
-            WriteResult writeResult = dbCollection.remove(getByKeyQuery(key), WriteConcern.SAFE);
+            WriteResult writeResult = dbCollection.remove(getByKeyQuery(key).get(), WriteConcern.SAFE);
             if (writeResult.getError() != null) {
                 throw new MicroKernelException("Remove failed: " + writeResult.getError());
             }
@@ -205,11 +206,12 @@ public class MongoDocumentStore implements DocumentStore {
         }
     }
 
-    @Nonnull
-    @Override
-    public Map<String, Object> createOrUpdate(Collection collection, UpdateOp updateOp) {
-        log("createOrUpdate", updateOp);        
+    @CheckForNull
+    private Map<String, Object> internalCreateOrUpdate(Collection collection,
+                                                       UpdateOp updateOp,
+                                                       boolean checkConditions) {
         DBCollection dbCollection = getDBCollection(collection);
+        QueryBuilder query = getByKeyQuery(updateOp.key);
 
         BasicDBObject setUpdates = new BasicDBObject();
         BasicDBObject incUpdates = new BasicDBObject();
@@ -246,10 +248,15 @@ public class MongoDocumentStore implements DocumentStore {
                     setUpdates.append(kv[0], sub);
                     break;
                 }
+                case CONTAINS_MAP_ENTRY: {
+                    if (checkConditions) {
+                        query.and(k).exists(op.value);
+                    }
+                    break;
+                }
             }
         }
 
-        DBObject query = getByKeyQuery(updateOp.key);
         BasicDBObject update = new BasicDBObject();
         if (!setUpdates.isEmpty()) {
             update.append("$set", setUpdates);
@@ -267,9 +274,12 @@ public class MongoDocumentStore implements DocumentStore {
 
         long start = start();
         try {
-            DBObject oldNode = dbCollection.findAndModify(query, null /*fields*/,
+            DBObject oldNode = dbCollection.findAndModify(query.get(), null /*fields*/,
                     null /*sort*/, false /*remove*/, update, false /*returnNew*/,
                     true /*upsert*/);
+            if (checkConditions && oldNode == null) {
+                return null;
+            }
             Map<String, Object> map = convertFromDBObject(oldNode);
             
             // cache the new document
@@ -281,13 +291,33 @@ public class MongoDocumentStore implements DocumentStore {
                 nodesCache.put(key, new CachedDocument(newMap));
             }
             
-            log("createOrUpdate returns ", map);
             return map;
         } catch (Exception e) {
             throw new MicroKernelException(e);
         } finally {
             end(start);
         }
+    }
+
+    @Nonnull
+    @Override
+    public Map<String, Object> createOrUpdate(Collection collection,
+                                              UpdateOp update)
+            throws MicroKernelException {
+        log("createOrUpdate", update);
+        Map<String, Object> map = internalCreateOrUpdate(collection, update, false);
+        log("createOrUpdate returns ", map);
+        return map;
+    }
+
+    @Override
+    public Map<String, Object> findAndUpdate(Collection collection,
+                                             UpdateOp update)
+            throws MicroKernelException {
+        log("findAndUpdate", update);
+        Map<String, Object> map = internalCreateOrUpdate(collection, update, true);
+        log("findAndUpdate returns ", map);
+        return map;
     }
 
     @Override
@@ -306,10 +336,7 @@ public class MongoDocumentStore implements DocumentStore {
                 String k = entry.getKey();
                 Operation op = entry.getValue();
                 switch (op.type) {
-                    case SET: {
-                        inserts[i].put(k, op.value);
-                        break;
-                    }
+                    case SET:
                     case INCREMENT: {
                         inserts[i].put(k, op.value);
                         break;
@@ -379,8 +406,8 @@ public class MongoDocumentStore implements DocumentStore {
         }
     }
 
-    private static DBObject getByKeyQuery(String key) {
-        return QueryBuilder.start(UpdateOp.ID).is(key).get();
+    private static QueryBuilder getByKeyQuery(String key) {
+        return QueryBuilder.start(UpdateOp.ID).is(key);
     }
     
     @Override

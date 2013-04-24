@@ -50,14 +50,13 @@ public class MongoUtils {
             return null;
         }
         MongoConnection mongoConnection = null;
-        if (mongoConnection == null) {
-            try {
-                mongoConnection = new MongoConnection(HOST, PORT, DB);
-                mongoConnection.getDB().command(new BasicDBObject("ping", 1));
-                // dropCollections(mongoConnection.getDB());
-            } catch (Exception e) {
-                exception = e;
-            }
+        try {
+            mongoConnection = new MongoConnection(HOST, PORT, DB);
+            mongoConnection.getDB().command(new BasicDBObject("ping", 1));
+            // dropCollections(mongoConnection.getDB());
+        } catch (Exception e) {
+            exception = e;
+            mongoConnection = null;
         }
         return mongoConnection;
     }

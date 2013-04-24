@@ -23,6 +23,7 @@ import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.mk.api.MicroKernelException;
@@ -102,8 +103,10 @@ public class MemoryDocumentStore implements DocumentStore {
         }
     }
 
-    @Nonnull
-    public Map<String, Object> createOrUpdate(Collection collection, UpdateOp update) {
+    @CheckForNull
+    private Map<String, Object> internalCreateOrUpdate(Collection collection,
+                                                       UpdateOp update,
+                                                       boolean checkConditions) {
         ConcurrentSkipListMap<String, Map<String, Object>> map = getMap(collection);
         Map<String, Object> n;
         Map<String, Object> oldNode;
@@ -124,6 +127,9 @@ public class MemoryDocumentStore implements DocumentStore {
             }
         }
         synchronized (n) {
+            if (checkConditions && !checkConditions(n, update)) {
+                return null;
+            }
             if (oldNode != null) {
                 // clone the old node
                 // (document level operations are synchronized)
@@ -138,7 +144,56 @@ public class MemoryDocumentStore implements DocumentStore {
         }
         return oldNode;
     }
-    
+
+    @Nonnull
+    @Override
+    public Map<String, Object> createOrUpdate(Collection collection,
+                                              UpdateOp update)
+            throws MicroKernelException {
+        return internalCreateOrUpdate(collection, update, false);
+    }
+
+    @Override
+    public Map<String, Object> findAndUpdate(Collection collection,
+                                             UpdateOp update)
+            throws MicroKernelException {
+        return internalCreateOrUpdate(collection, update, true);
+    }
+
+    private static boolean checkConditions(Map<String, Object> target,
+                                           UpdateOp update) {
+        for (Map.Entry<String, Operation> change : update.changes.entrySet()) {
+            Operation op = change.getValue();
+            if (op.type == Operation.Type.CONTAINS_MAP_ENTRY) {
+                String k = change.getKey();
+                String[] kv = k.split("\\.");
+                Object value = target.get(kv[0]);
+                if (value == null) {
+                    if (Boolean.TRUE.equals(op.value)) {
+                        return false;
+                    }
+                } else {
+                    if (value instanceof java.util.Collection) {
+                        java.util.Collection col = (java.util.Collection) value;
+                        if (Boolean.TRUE.equals(op.value)) {
+                            if (!col.contains(kv[1])) {
+                                return false;
+                            }
+                        } else {
+                            if (col.contains(kv[1])) {
+                                return false;
+                            }
+                        }
+                    } else {
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
+
     /**
      * Apply the changes to the in-memory map.
      * 
@@ -194,7 +249,7 @@ public class MemoryDocumentStore implements DocumentStore {
                 }
                 m.put(kv[1], op.value);
                 break;
-                
+
             }
             }
         }
