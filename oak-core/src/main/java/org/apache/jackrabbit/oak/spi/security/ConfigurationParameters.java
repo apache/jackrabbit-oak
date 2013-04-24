@@ -18,6 +18,9 @@ package org.apache.jackrabbit.oak.spi.security;
 
 import java.util.Collections;
 import java.util.Map;
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,11 +43,45 @@ public class ConfigurationParameters {
         this(null);
     }
 
-    public ConfigurationParameters(Map<String, ?> options) {
+    public ConfigurationParameters(@Nullable Map<String, ?> options) {
         this.options = (options == null) ? Collections.<String, Object>emptyMap() : Collections.unmodifiableMap(options);
     }
 
-    public <T> T getConfigValue(String key, T defaultValue) {
+    /**
+     * Returns {@code true} if this instance contains a configuration entry with
+     * the specified key irrespective of the defined value; {@code false} otherwise.
+     *
+     * @param key The key to be tested.
+     * @return {@code true} if this instance contains a configuration entry with
+     * the specified key irrespective of the defined value; {@code false} otherwise.
+     */
+    public boolean contains(@Nonnull String key) {
+        return options.containsKey(key);
+    }
+
+    /**
+     * Returns the value of the configuration entry with the given {@code key}
+     * applying the following rules:
+     *
+     * <ul>
+     *     <li>If this instance doesn't contain a configuration entry with that
+     *     key the specified {@code defaultValue} will be returned.</li>
+     *     <li>If {@code defaultValue} is {@code null} the original value will
+     *     be returned.</li>
+     *     <li>If the configured value is {@code null} this method will always
+     *     return {@code null}.</li>
+     *     <li>If neither {@code defaultValue} nor the configured value is
+     *     {@code null} an attempt is made to convert the configured value to
+     *     match the type of the default value.</li>
+     * </ul>
+     *
+     * @param key The name of the configuration option.
+     * @param defaultValue The default value to return if no such entry exists
+     * or to use for conversion.
+     * @return The original or converted configuration value or {@code null}.
+     */
+    @CheckForNull
+    public <T> T getConfigValue(@Nonnull String key, @Nullable T defaultValue) {
         if (options != null && options.containsKey(key)) {
             return convert(options.get(key), defaultValue);
         } else {
@@ -54,7 +91,8 @@ public class ConfigurationParameters {
 
     //--------------------------------------------------------< private >---
     @SuppressWarnings("unchecked")
-    private static <T> T convert(Object configProperty, T defaultValue) {
+    @CheckForNull
+    private static <T> T convert(@Nullable Object configProperty, @Nullable T defaultValue) {
         if (configProperty == null) {
             return null;
         }

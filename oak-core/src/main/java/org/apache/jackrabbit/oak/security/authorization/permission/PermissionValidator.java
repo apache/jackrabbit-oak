@@ -161,7 +161,7 @@ class PermissionValidator extends DefaultValidator {
             if (!permissionProvider.isGranted(tree, null, toTest)) {
                 throw new CommitFailedException(ACCESS, 0, "Access denied");
             }
-            if (noTraverse(toTest)) {
+            if (noTraverse(toTest, defaultPermission)) {
                 return null;
             } else {
                 return (isBefore) ?
@@ -207,7 +207,8 @@ class PermissionValidator extends DefaultValidator {
         long perm;
         if (provider.getAccessControlContext().definesTree(tree)) {
             perm = Permissions.MODIFY_ACCESS_CONTROL;
-        } else if (provider.getUserContext().definesTree(tree)) {
+        } else if (provider.getUserContext().definesTree(tree)
+                && !provider.jr2Permissions()) {
             perm = Permissions.USER_MANAGEMENT;
         } else {
             // FIXME: OAK-710 (identify renaming/move of nodes that only required MODIFY_CHILD_NODE_COLLECTION permission)
@@ -232,7 +233,8 @@ class PermissionValidator extends DefaultValidator {
             perm = Permissions.VERSION_MANAGEMENT;
         } else if (provider.getAccessControlContext().definesProperty(parent, propertyState)) {
             perm = Permissions.MODIFY_ACCESS_CONTROL;
-        } else if (provider.getUserContext().definesProperty(parent, propertyState)) {
+        } else if (provider.getUserContext().definesProperty(parent, propertyState)
+                 && !provider.jr2Permissions()) {
             perm = Permissions.USER_MANAGEMENT;
         } else {
             perm = defaultPermission;
@@ -245,10 +247,11 @@ class PermissionValidator extends DefaultValidator {
     }
 
     // TODO
-    public static boolean noTraverse(long permission) {
+    public static boolean noTraverse(long permission, long defaultPermission) {
         return permission == Permissions.MODIFY_ACCESS_CONTROL ||
                 permission == Permissions.VERSION_MANAGEMENT ||
-                permission == Permissions.REMOVE_NODE;
+                permission == Permissions.REMOVE_NODE ||
+                defaultPermission == Permissions.REMOVE_NODE;
     }
 
     // TODO

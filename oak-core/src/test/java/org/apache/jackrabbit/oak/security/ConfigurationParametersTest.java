@@ -26,8 +26,10 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertNotNull;
 import static junit.framework.Assert.assertNull;
+import static junit.framework.Assert.assertTrue;
 
 /**
  * ConfigurationParametersTest...
@@ -39,6 +41,22 @@ public class ConfigurationParametersTest {
 
     @After
     public void tearDown() {}
+
+    @Test
+    public void testContains() {
+        ConfigurationParameters params = ConfigurationParameters.EMPTY;
+        assertFalse(params.contains("some"));
+        assertFalse(params.contains(""));
+
+        Map<String, String> map = new HashMap<String, String>();
+        map.put("key1", "v");
+        map.put("key2", "v");
+        params = new ConfigurationParameters(map);
+        assertTrue(params.contains("key1"));
+        assertTrue(params.contains("key2"));
+        assertFalse(params.contains("another"));
+        assertFalse(params.contains(""));
+    }
 
     @Test
     public void testGetConfigValue() {
@@ -120,6 +138,7 @@ public class ConfigurationParametersTest {
         assertNull(options.getConfigValue("test", null));
         assertNull(options.getConfigValue("test", "value"));
         assertNull(options.getConfigValue("test", new TestObject("t")));
+        assertNull(options.getConfigValue("test", false));
     }
 
     private class TestObject {

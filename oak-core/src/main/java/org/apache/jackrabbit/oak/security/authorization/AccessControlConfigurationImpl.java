@@ -35,6 +35,7 @@ import org.apache.jackrabbit.oak.security.authorization.restriction.RestrictionP
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.lifecycle.WorkspaceInitializer;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.Context;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
@@ -49,9 +50,11 @@ import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
 public class AccessControlConfigurationImpl extends SecurityConfiguration.Default implements AccessControlConfiguration {
 
     private final SecurityProvider securityProvider;
+    private final ConfigurationParameters config;
 
     public AccessControlConfigurationImpl(SecurityProvider securityProvider) {
         this.securityProvider = securityProvider;
+        config = securityProvider.getConfiguration(PARAM_ACCESS_CONTROL_OPTIONS);
     }
 
     //----------------------------------------------< SecurityConfiguration >---
@@ -59,6 +62,12 @@ public class AccessControlConfigurationImpl extends SecurityConfiguration.Defaul
     @Override
     public Context getContext() {
         return AccessControlContext.getInstance();
+    }
+
+    @Nonnull
+    @Override
+    public ConfigurationParameters getConfigurationParameters() {
+        return config;
     }
 
     @Nonnull

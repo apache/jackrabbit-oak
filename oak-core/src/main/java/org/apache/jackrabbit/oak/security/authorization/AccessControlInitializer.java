@@ -31,7 +31,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * a property index definitions for {@link #REP_PRINCIPAL_NAME rep:principalName}
  * properties defined with ACE nodes.
  */
-public class AccessControlInitializer implements WorkspaceInitializer, AccessControlConstants {
+class AccessControlInitializer implements WorkspaceInitializer, AccessControlConstants {
 
     @Nonnull
     @Override
