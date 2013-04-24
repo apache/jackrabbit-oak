@@ -199,6 +199,59 @@ public class MemoryNodeBuilderTest {
 
     @Test
     @Ignore("OAK-781")
+    public void testExistingStatus() {
+        NodeBuilder root = base.builder();
+        NodeBuilder x = root.child("x");
+        assertTrue(x.isConnected());
+        assertTrue(x.exists());
+        assertFalse(x.isNew());
+        assertFalse(x.isModified());
+    }
+
+    @Test
+    public void testModifiedStatus() {
+        NodeBuilder root = base.builder();
+        NodeBuilder x = root.child("x");
+        x.setProperty("p", "pValue");
+        assertTrue(x.isConnected());
+        assertTrue(x.exists());
+        assertFalse(x.isNew());
+        assertTrue(x.isModified());
+    }
+
+    @Test
+    @Ignore("OAK-781")
+    public void testRemovedStatus() {
+        NodeBuilder root = base.builder();
+        NodeBuilder x = root.child("x");
+        root.removeNode("x");
+        assertFalse(x.isConnected());
+        try {
+            assertTrue(x.exists());
+            fail();
+        } catch (IllegalStateException expected) {}
+        try {
+            assertFalse(x.isNew());
+            fail();
+        } catch (IllegalStateException expected) {}
+        try {
+            assertFalse(x.isModified());
+            fail();
+        } catch (IllegalStateException expected) {}
+    }
+
+    @Test
+    public void testNewStatus() {
+        NodeBuilder root = base.builder();
+        NodeBuilder n = root.child("n");
+        assertTrue(n.isConnected());
+        assertTrue(n.exists());
+        assertTrue(n.isNew());
+        assertFalse(n.isModified());
+    }
+
+    @Test
+    @Ignore("OAK-781")
     public void getExistingChildTest() {
         NodeBuilder rootBuilder = base.builder();
         NodeBuilder x = rootBuilder.getChild("x");
