@@ -64,7 +64,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * </pre>
  * </p>
  */
-public final class GlobPattern implements RestrictionPattern {
+final class GlobPattern implements RestrictionPattern {
 
     private static final char WILDCARD_CHAR = '*';
 
@@ -98,7 +98,7 @@ public final class GlobPattern implements RestrictionPattern {
         }
     }
 
-    public static GlobPattern create(@Nonnull String nodePath, @Nonnull String restrictions) {
+    static GlobPattern create(@Nonnull String nodePath, @Nonnull String restrictions) {
         return new GlobPattern(nodePath, restrictions);
     }
 
