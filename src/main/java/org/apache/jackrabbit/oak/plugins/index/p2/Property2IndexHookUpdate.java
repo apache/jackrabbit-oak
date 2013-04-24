@@ -16,11 +16,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.p2;
 
+import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.p2.Property2Index.encode;
 
 import java.util.Collections;
-import java.util.List;
 import java.util.Set;
 
 import javax.jcr.PropertyType;
@@ -50,11 +51,16 @@ class Property2IndexHookUpdate {
     private final String path;
 
     /**
-     * The node types that this index applies to. If <code>null</code> or
-     * <code>empty</code> then the node type of the indexed node is ignored
-     * 
+     * Primary node types that this index applies to. If <code>null</code>
+     * then the node type of the indexed node is ignored
      */
-    private final List<String> nodeTypeNames;
+    private final Set<String> primaryTypes;
+
+    /**
+     * Mixin node types that this index applies to. If <code>null</code>
+     * then the node type of the indexed node is ignored
+     */
+    private final Set<String> mixinTypes;
 
     /**
      * The node where the index definition is stored.
@@ -70,12 +76,21 @@ class Property2IndexHookUpdate {
 
     private final Set<String> modifiedKeys = Sets.newHashSet();
 
-    public Property2IndexHookUpdate(String path, NodeBuilder node,
-            IndexStoreStrategy store, List<String> nodeTypeNames) {
+    public Property2IndexHookUpdate(
+            String path, NodeBuilder node, IndexStoreStrategy store,
+            Set<String> primaryTypes, Set<String> mixinTypes) {
         this.path = path;
         this.node = node;
         this.store = store;
-        this.nodeTypeNames = nodeTypeNames;
+
+        if (primaryTypes.isEmpty() && mixinTypes.isEmpty()) {
+            this.primaryTypes = null;
+            this.mixinTypes = null;
+        } else {
+            this.primaryTypes = primaryTypes;
+            this.mixinTypes = mixinTypes;
+        }
+
         index = this.node.child(":index");
         PropertyState uniquePS = node.getProperty("unique");
         unique = uniquePS != null && !uniquePS.isArray()
@@ -84,10 +99,6 @@ class Property2IndexHookUpdate {
 
     String getPath() {
         return path;
-    }
-
-    List<String> getNodeTypeNames() {
-        return nodeTypeNames;
     }
 
     /**
@@ -156,6 +167,34 @@ class Property2IndexHookUpdate {
                 || (reindexPS != null && reindexPS.getValue(Type.BOOLEAN));
         node.setProperty(REINDEX_PROPERTY_NAME, false);
         return reindex;
+    }
+
+    public boolean matches(
+            String path, Set<String> primaryTypes, Set<String> mixinTypes) {
+        if (this.primaryTypes == null) {
+            return this.path.equals(path)
+                    && primaryTypes.isEmpty()
+                    && mixinTypes.isEmpty();
+        } else {
+            return this.path.equals(path)
+                    && this.primaryTypes.equals(primaryTypes)
+                    && this.mixinTypes.equals(mixinTypes);
+        }
+    }
+
+    public boolean matchesNodeType(NodeBuilder node) {
+        if (primaryTypes == null
+                || primaryTypes.contains(node.getName(JCR_PRIMARYTYPE))) {
+            return true;
+        }
+        if (!mixinTypes.isEmpty()) {
+            for (String mixinName : node.getNames(JCR_MIXINTYPES)) {
+                if (mixinTypes.contains(mixinName)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
 }

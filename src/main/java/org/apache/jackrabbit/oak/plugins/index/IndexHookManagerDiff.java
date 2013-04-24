@@ -54,11 +54,15 @@ class IndexHookManagerDiff implements Editor {
 
     private final NodeBuilder node;
 
+    private final NodeState root;
+
     private Editor inner = new DefaultEditor();
 
-    public IndexHookManagerDiff(IndexHookProvider provider, NodeBuilder node) {
+    public IndexHookManagerDiff(
+            IndexHookProvider provider, NodeBuilder node, NodeState root) {
         this.provider = provider;
         this.node = node;
+        this.root = root;
     }
 
     @Override
@@ -100,9 +104,9 @@ class IndexHookManagerDiff implements Editor {
         List<IndexHook> reindex = Lists.newArrayList();
         for (String type : allTypes) {
             if (reindexTypes.contains(type)) {
-                reindex.addAll(provider.getIndexHooks(type, node));
+                reindex.addAll(provider.getIndexHooks(type, node, ref));
             } else {
-                hooks.addAll(provider.getIndexHooks(type, node));
+                hooks.addAll(provider.getIndexHooks(type, node, ref));
             }
         }
         reindex(reindex, ref);

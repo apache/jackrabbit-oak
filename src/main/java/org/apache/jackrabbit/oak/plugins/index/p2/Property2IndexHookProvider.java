@@ -23,6 +23,7 @@ import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.plugins.index.IndexHook;
 import org.apache.jackrabbit.oak.plugins.index.IndexHookProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import com.google.common.collect.ImmutableList;
 
@@ -40,10 +41,10 @@ public class Property2IndexHookProvider implements IndexHookProvider {
     public static final String TYPE = "p2";
 
     @Override
-    public List<? extends IndexHook> getIndexHooks(String type,
-            NodeBuilder builder) {
+    public List<? extends IndexHook> getIndexHooks(
+            String type, NodeBuilder builder, NodeState root) {
         if (TYPE.equals(type)) {
-            return ImmutableList.of(new Property2IndexHook(builder));
+            return ImmutableList.of(new Property2IndexHook(builder, root));
         }
         return ImmutableList.of();
     }

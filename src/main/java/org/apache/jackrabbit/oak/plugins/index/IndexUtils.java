@@ -117,7 +117,7 @@ public class IndexUtils {
             entry.setBoolean(UNIQUE_PROPERTY_NAME, true);
         }
         if (declaringNodeTypeNames != null && declaringNodeTypeNames.length > 0) {
-            entry.setStrings(DECLARING_NODE_TYPES, declaringNodeTypeNames);
+            entry.setNames(DECLARING_NODE_TYPES, declaringNodeTypeNames);
         }
         entry.setNames(PROPERTY_NAMES, propertyNames);
     }
