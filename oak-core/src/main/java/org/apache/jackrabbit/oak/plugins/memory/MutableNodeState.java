@@ -65,11 +65,11 @@ class MutableNodeState extends AbstractNodeState {
      */
     private final Map<String, MutableNodeState> nodes = newHashMap();
 
-    public MutableNodeState(boolean exists) {
+    private MutableNodeState(boolean exists) {
         this.base = exists ? EMPTY_NODE : MISSING_NODE;
     }
 
-    public MutableNodeState(@Nonnull NodeState base) {
+    MutableNodeState(@Nonnull NodeState base) {
         if (checkNotNull(base) instanceof ModifiedNodeState) {
             ModifiedNodeState modified = (ModifiedNodeState) base;
             this.base = modified.getBaseState();
@@ -106,7 +106,7 @@ class MutableNodeState extends AbstractNodeState {
         }
     }
 
-    public NodeState snapshot() {
+    NodeState snapshot() {
         assert base != null;
 
         Map<String, NodeState> nodes = newHashMap();
@@ -206,14 +206,14 @@ class MutableNodeState extends AbstractNodeState {
         }
     }
 
-    public boolean isConnected(String name) {
+    boolean isConnected(String name) {
         assert base != null;
 
         return nodes.get(name) != null ||
                 !nodes.containsKey(name) && base.getChildNode(name).exists();
     }
 
-    public MutableNodeState getChildNode(String name, boolean connect) {
+    MutableNodeState getChildNode(String name, boolean connect) {
         assert base != null;
 
         MutableNodeState child = nodes.get(name);
@@ -235,14 +235,14 @@ class MutableNodeState extends AbstractNodeState {
     }
 
     @Nonnull
-    public MutableNodeState setChildNode(String name, NodeState state) {
+    MutableNodeState setChildNode(String name, NodeState state) {
         // FIXME better implementation, which doesn't set the base state twice
         MutableNodeState child = getChildNode(name, true);
         child.reset(state);
         return child;
     }
 
-    public boolean isModified(NodeState before) {
+    boolean isModified(NodeState before) {
         if (nodes.isEmpty() && properties.isEmpty()) {
             return false;
         }
@@ -268,7 +268,7 @@ class MutableNodeState extends AbstractNodeState {
 
     }
 
-    public boolean removeChildNode(String name) {
+    boolean removeChildNode(String name) {
         assert base != null;
 
         if (base.getChildNode(name).exists()) {
@@ -279,7 +279,7 @@ class MutableNodeState extends AbstractNodeState {
         }
     }
 
-    public boolean removeProperty(String name) {
+    boolean removeProperty(String name) {
         assert base != null;
 
         if (base.hasProperty(name)) {
@@ -290,7 +290,7 @@ class MutableNodeState extends AbstractNodeState {
         }
     }
 
-    public void setProperty(PropertyState property) {
+    void setProperty(PropertyState property) {
         properties.put(property.getName(), property);
     }
 
