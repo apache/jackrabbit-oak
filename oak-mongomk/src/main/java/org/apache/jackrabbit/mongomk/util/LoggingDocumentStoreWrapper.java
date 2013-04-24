@@ -119,6 +119,19 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
     }
 
     @Override
+    public Map<String, Object> findAndUpdate(Collection collection,
+                                             UpdateOp update)
+            throws MicroKernelException {
+        try {
+            logMethod("findAndUpdate", collection, update);
+            return logResult(store.findAndUpdate(collection, update));
+        } catch (Exception e) {
+            logException(e);
+            throw convert(e);
+        }
+    }
+
+    @Override
     public void invalidateCache() {
         try {
             logMethod("invalidateCache");

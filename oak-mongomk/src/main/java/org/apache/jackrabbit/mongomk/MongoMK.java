@@ -51,7 +51,6 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Maps;
 import com.mongodb.DB;
 
 /**
@@ -1049,31 +1048,38 @@ public class MongoMK implements MicroKernel {
      * @param nodeMap the document
      * @param before the returned value is guaranteed to be older than this revision
      * @param onlyCommitted whether only committed changes should be considered
+     * @param handler the conflict handler, which is called for un-committed revisions
+     *                preceding <code>before</code>.
      * @return the revision, or null if deleted
      */
     @SuppressWarnings("unchecked")
     @Nullable Revision getNewestRevision(Map<String, Object> nodeMap,
-                                         Revision before, boolean onlyCommitted) {
+                                         Revision before, boolean onlyCommitted,
+                                         CollisionHandler handler) {
         if (nodeMap == null) {
             return null;
         }
-        Map<String, String> revisions = Maps.newHashMap();
+        Set<String> revisions = Utils.newSet();
         if (nodeMap.containsKey(UpdateOp.REVISIONS)) {
-            revisions.putAll((Map<String, String>) nodeMap.get(UpdateOp.REVISIONS));
+            revisions.addAll(((Map<String, String>) nodeMap.get(UpdateOp.REVISIONS)).keySet());
+        }
+        if (nodeMap.containsKey(UpdateOp.COMMIT_ROOT)) {
+            revisions.addAll(((Map<String, Integer>) nodeMap.get(UpdateOp.COMMIT_ROOT)).keySet());
         }
         Map<String, String> deletedMap = (Map<String, String>) nodeMap
                 .get(UpdateOp.DELETED);
         if (deletedMap != null) {
-            revisions.putAll(deletedMap);
+            revisions.addAll(deletedMap.keySet());
         }
         Revision newestRev = null;
-        for (String r : revisions.keySet()) {
+        for (String r : revisions) {
             Revision propRev = Revision.fromString(r);
             if (newestRev == null || isRevisionNewer(propRev, newestRev)) {
                 if (isRevisionNewer(before, propRev)) {
-                    if (!onlyCommitted
-                            || isValidRevision(propRev, before,
-                                nodeMap, new HashSet<Revision>())) {
+                    if (onlyCommitted && !isValidRevision(
+                            propRev, before, nodeMap, new HashSet<Revision>())) {
+                        handler.uncommittedModification(propRev);
+                    } else {
                         newestRev = propRev;
                     }
                 }
@@ -1143,15 +1149,19 @@ public class MongoMK implements MicroKernel {
         while (baseRevId != null) {
             branchRevisions.add(baseRevId);
             op.setMapEntry(UpdateOp.REVISIONS, baseRevId.toString(), "true");
+            op.containsMapEntry(UpdateOp.COLLISIONS, baseRevId.toString(), false);
             baseRevId = branchCommits.get(baseRevId);
         }
-        store.createOrUpdate(DocumentStore.Collection.NODES, op);
-        // remove from branchCommits map after successful update
-        for (Revision r : branchRevisions) {
-            branchCommits.remove(r);
+        if (store.findAndUpdate(DocumentStore.Collection.NODES, op) != null) {
+            // remove from branchCommits map after successful update
+            for (Revision r : branchRevisions) {
+                branchCommits.remove(r);
+            }
+            headRevision = newRevision();
+            return headRevision.toString();
+        } else {
+            throw new MicroKernelException("Conflicting concurrent change");
         }
-        headRevision = newRevision();
-        return headRevision.toString();
     }
 
     @Override

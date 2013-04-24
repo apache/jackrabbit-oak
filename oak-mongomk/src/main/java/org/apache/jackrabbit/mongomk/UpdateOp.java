@@ -38,7 +38,8 @@ public class UpdateOp {
     
     /**
      * The list of recent revisions for this node, where this node is the
-     * root of the commit. Key: revision, value: true.
+     * root of the commit. Key: revision, value: true or the base revision of an
+     * un-merged branch commit.
      */
     static final String REVISIONS = "_revisions";
 
@@ -60,7 +61,14 @@ public class UpdateOp {
      * Whether this node is deleted. Key: revision, value: true/false.
      */
     static final String DELETED = "_deleted";
-    
+
+    /**
+     * Revision collision markers set by commits with modifications, which
+     * overlap with un-merged branch commits.
+     * Key: revision, value:
+     */
+    static final String COLLISIONS = "_collisions";
+
     /**
      * The modified time (5 second resolution).
      */
@@ -147,7 +155,7 @@ public class UpdateOp {
         op.value = value;
         changes.put(property + "." + subName, op);
     }
-    
+
     /**
      * Set the property to the given value.
      * 
@@ -179,6 +187,23 @@ public class UpdateOp {
      */
     void unsetMapEntry(String property, String subName) {
         changes.remove(property + "." + subName);
+    }
+
+    /**
+     * Checks if the named key exists or is absent in the MongoDB document. This
+     * method can be used to make a conditional update.
+     *
+     * @param property the property name
+     * @param subName the entry name
+     */
+    void containsMapEntry(String property, String subName, boolean exists) {
+        if (isNew) {
+            throw new IllegalStateException("Cannot use containsMapEntry() on new document");
+        }
+        Operation op = new Operation();
+        op.type = Operation.Type.CONTAINS_MAP_ENTRY;
+        op.value = exists;
+        changes.put(property + "." + subName, op);
     }
 
     /**
@@ -246,20 +271,25 @@ public class UpdateOp {
              * Add the sub-key / value pair.
              * The value in the stored node is a map.
              */ 
-             SET_MAP_ENTRY, 
+            SET_MAP_ENTRY,
              
-             /**
-              * Remove the sub-key / value pair.
-              * The value in the stored node is a map.
-              */ 
-             REMOVE_MAP_ENTRY,
+            /**
+             * Remove the sub-key / value pair.
+             * The value in the stored node is a map.
+             */
+            REMOVE_MAP_ENTRY,
+
+            /**
+             * Checks if the sub-key is present in a map or not.
+             */
+            CONTAINS_MAP_ENTRY,
              
-             /**
-              * Set the sub-key / value pair.
-              * The value in the stored node is a map.
-              */
-             SET_MAP,
-             
+            /**
+             * Set the sub-key / value pair.
+             * The value in the stored node is a map.
+             */
+            SET_MAP,
+
          }
              
         

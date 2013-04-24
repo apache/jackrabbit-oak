@@ -16,8 +16,10 @@
  */
 package org.apache.jackrabbit.mongomk;
 
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.TreeMap;
 
 import org.bson.types.ObjectId;
@@ -42,6 +44,10 @@ public class Utils {
     
     static <K, V> Map<K, V> newMap() {
         return new TreeMap<K, V>();
+    }
+
+    static <E> Set<E> newSet() {
+        return new HashSet<E>();
     }
 
     @SuppressWarnings("unchecked")
@@ -175,5 +181,5 @@ public class Utils {
             target.put(e.getKey(), value);
         }
     }
-    
+
 }
