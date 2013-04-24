@@ -21,6 +21,7 @@ import java.util.Set;
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.oak.AbstractSecurityTest;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
