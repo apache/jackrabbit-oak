@@ -165,7 +165,7 @@ interface contains the following key methods:
   * The `getNodeState` method for getting a frozen snapshot of the modified
     content tree
 
-All the builders acquired from the same root builder instance are connected
+All the builders acquired from the same root builder instance are linked
 so that changes made through one instance automatically become visible in the
 other builders. For example:
 
