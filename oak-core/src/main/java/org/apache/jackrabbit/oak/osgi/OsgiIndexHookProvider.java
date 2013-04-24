@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.plugins.index.CompositeIndexHookProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexHook;
 import org.apache.jackrabbit.oak.plugins.index.IndexHookProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
  * This IndexHook provider combines all index hooks of all available OSGi
@@ -40,9 +41,10 @@ public class OsgiIndexHookProvider extends
 
     @Override
     @Nonnull
-    public List<? extends IndexHook> getIndexHooks(String type, NodeBuilder builder) {
+    public List<? extends IndexHook> getIndexHooks(
+            String type, NodeBuilder builder, NodeState root) {
         IndexHookProvider composite = CompositeIndexHookProvider.compose(getServices());
-        return composite.getIndexHooks(type, builder);
+        return composite.getIndexHooks(type, builder, root);
     }
 
 }

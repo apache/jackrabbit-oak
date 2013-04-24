@@ -75,7 +75,7 @@ public class Property2IndexTest {
         }
         NodeState after = builder.getNodeState();
 
-        EditorDiff.process(new Property2IndexHook(builder), before, after);
+        EditorDiff.process(new Property2IndexHook(builder, after), before, after);
         NodeState indexed = builder.getNodeState();
 
         FilterImpl f = createFilter(indexed, NT_BASE);
@@ -129,7 +129,7 @@ public class Property2IndexTest {
         NodeState after = builder.getNodeState();
 
         // Add an index
-        EditorDiff.process(new Property2IndexHook(builder), before, after);
+        EditorDiff.process(new Property2IndexHook(builder, after), before, after);
         NodeState indexed = builder.getNodeState();
 
         FilterImpl f = createFilter(indexed, NT_BASE);
@@ -190,7 +190,7 @@ public class Property2IndexTest {
                 .setProperty("foo", Arrays.asList("abc", "def"), Type.STRINGS);
         NodeState after = builder.getNodeState();
 
-        EditorDiff.process(new Property2IndexHook(builder), before, after);
+        EditorDiff.process(new Property2IndexHook(builder, after), before, after);
         NodeState indexed = builder.getNodeState();
 
         FilterImpl f = createFilter(indexed, "nt:unstructured");
@@ -256,7 +256,7 @@ public class Property2IndexTest {
         NodeState after = builder.getNodeState();
 
         // Add an index
-        EditorDiff.process(new Property2IndexHook(builder), before, after);
+        EditorDiff.process(new Property2IndexHook(builder, after), before, after);
         NodeState indexed = builder.getNodeState();
 
         FilterImpl f = createFilter(after, "nt:unstructured");
@@ -298,7 +298,7 @@ public class Property2IndexTest {
         NodeState after = builder.getNodeState();
 
         CommitFailedException expected =
-                EditorDiff.process(new Property2IndexHook(builder), before, after);
+                EditorDiff.process(new Property2IndexHook(builder, after), before, after);
         assertNotNull("Unique constraint should be respected", expected);
     }
 
@@ -327,7 +327,7 @@ public class Property2IndexTest {
         NodeState after = builder.getNodeState();
 
         CommitFailedException unexpected = EditorDiff.process(
-                new Property2IndexHook(builder), before, after);
+                new Property2IndexHook(builder, after), before, after);
         assertNull(unexpected);
     }
 
@@ -355,8 +355,8 @@ public class Property2IndexTest {
                 .setProperty("foo", "abc");
         NodeState after = builder.getNodeState();
 
-        CommitFailedException expected =
-                EditorDiff.process(new Property2IndexHook(builder), before, after);
+        CommitFailedException expected = EditorDiff.process(
+                new Property2IndexHook(builder, after), before, after);
         assertNotNull("Unique constraint should be respected", expected);
     }
 
@@ -386,7 +386,7 @@ public class Property2IndexTest {
         NodeState after = builder.getNodeState();
 
         CommitFailedException unexpected = EditorDiff.process(
-                new Property2IndexHook(builder), before, after);
+                new Property2IndexHook(builder, after), before, after);
         assertNull(unexpected);
     }
 

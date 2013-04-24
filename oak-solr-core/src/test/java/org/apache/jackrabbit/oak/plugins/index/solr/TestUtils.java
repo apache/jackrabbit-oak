@@ -71,7 +71,8 @@ public class TestUtils {
         return new IndexHookProvider() {
             @Nonnull
             @Override
-            public List<? extends IndexHook> getIndexHooks(String s, NodeBuilder nodeBuilder) {
+            public List<? extends IndexHook> getIndexHooks(
+                    String s, NodeBuilder nodeBuilder, NodeState root) {
                 if (SolrQueryIndex.TYPE.equals(s)) {
                     try {
                         IndexHook indexHook = new SolrIndexDiff(nodeBuilder, solrServer, configuration);

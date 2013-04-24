@@ -25,6 +25,7 @@ import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.plugins.index.IndexHook;
 import org.apache.jackrabbit.oak.plugins.index.IndexHookProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import com.google.common.collect.ImmutableList;
 
@@ -40,8 +41,8 @@ import com.google.common.collect.ImmutableList;
 public class LuceneIndexHookProvider implements IndexHookProvider {
 
     @Override
-    public List<? extends IndexHook> getIndexHooks(String type,
-            NodeBuilder builder) {
+    public List<? extends IndexHook> getIndexHooks(
+            String type, NodeBuilder builder, NodeState root) {
         if (TYPE_LUCENE.equals(type)) {
             return ImmutableList.of(new LuceneIndexDiff(builder));
         }

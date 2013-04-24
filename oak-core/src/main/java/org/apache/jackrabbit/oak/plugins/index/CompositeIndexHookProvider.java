@@ -23,6 +23,7 @@ import java.util.List;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -38,8 +39,8 @@ public class CompositeIndexHookProvider implements IndexHookProvider {
         if (providers.isEmpty()) {
             return new IndexHookProvider() {
                 @Override
-                public List<? extends IndexHook> getIndexHooks(String type,
-                        NodeBuilder builder) {
+                public List<? extends IndexHook> getIndexHooks(
+                        String type, NodeBuilder builder, NodeState root) {
                     return ImmutableList.of();
                 }
             };
@@ -63,11 +64,11 @@ public class CompositeIndexHookProvider implements IndexHookProvider {
 
     @Override
     @Nonnull
-    public List<? extends IndexHook> getIndexHooks(String type,
-            NodeBuilder builder) {
+    public List<? extends IndexHook> getIndexHooks(
+            String type, NodeBuilder builder, NodeState root) {
         List<IndexHook> indexes = Lists.newArrayList();
         for (IndexHookProvider provider : providers) {
-            indexes.addAll(provider.getIndexHooks(type, builder));
+            indexes.addAll(provider.getIndexHooks(type, builder, root));
         }
         return indexes;
     }

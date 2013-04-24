@@ -21,6 +21,7 @@ import java.util.List;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
  * Extension point for plugging in different kinds of IndexHook providers.
@@ -47,9 +48,12 @@ public interface IndexHookProvider {
      * @param builder
      *            the node state builder of the content node that will be used
      *            for updates
+     * @param root
+     *            root node state
      * @return a list of index hooks of the given type
      */
     @Nonnull
-    List<? extends IndexHook> getIndexHooks(String type, NodeBuilder builder);
+    List<? extends IndexHook> getIndexHooks(
+            String type, NodeBuilder builder, NodeState root);
 
 }
