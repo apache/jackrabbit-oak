@@ -27,6 +27,7 @@ import javax.annotation.Nonnull;
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
