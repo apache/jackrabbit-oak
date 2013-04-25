@@ -234,7 +234,7 @@ class PermissionValidator extends DefaultValidator {
         } else if (JcrConstants.JCR_MIXINTYPES.equals(name)) {
             perm = Permissions.NODE_TYPE_MANAGEMENT;
         } else if (JcrConstants.JCR_UUID.equals(name)) {
-            // TODO : jcr:uuid is never set using a method on JCR API -> omit permission check
+            // TODO OAK-796: jcr:uuid is never set using a method on JCR API -> omit permission check
             perm = Permissions.NO_PERMISSION;
         } else if (isLockProperty(name)) {
             perm = Permissions.LOCK_MANAGEMENT;
