@@ -32,15 +32,45 @@ import static com.google.common.base.Preconditions.checkNotNull;
 class Collision {
 
     private final Map<String, Object> document;
-    private final String revision;
+    private final String theirRev;
+    private final UpdateOp ourOp;
+    private final String ourRev;
 
     Collision(@Nonnull Map<String, Object> document,
-              @Nonnull Revision revision) {
+              @Nonnull Revision theirRev,
+              @Nonnull UpdateOp ourOp,
+              @Nonnull Revision ourRev) {
         this.document = checkNotNull(document);
-        this.revision = checkNotNull(revision).toString();
+        this.theirRev = checkNotNull(theirRev).toString();
+        this.ourOp = checkNotNull(ourOp);
+        this.ourRev = checkNotNull(ourRev).toString();
     }
 
     boolean mark(DocumentStore store) {
+        if (markCommitRoot(document, theirRev, store)) {
+            return true;
+        }
+        @SuppressWarnings("unchecked")
+        Map<String, String> revisions = (Map<String, String>) document.get(UpdateOp.REVISIONS);
+        if (revisions.containsKey(theirRev)) {
+            String value = revisions.get(theirRev);
+            if ("true".equals(value)) {
+                // their commit wins, we have to mark ourRev
+                Map<String, Object> newDoc = Utils.newMap();
+                Utils.deepCopyMap(document, newDoc);
+                MemoryDocumentStore.applyChanges(newDoc, ourOp);
+                if (markCommitRoot(newDoc, ourRev, store)) {
+                    return true;
+                }
+            }
+        }
+        // TODO: detect concurrent commit of previously un-merged changes
+        return true;
+    }
+
+    private static boolean markCommitRoot(@Nonnull Map<String, Object> document,
+                                          @Nonnull String revision,
+                                          @Nonnull DocumentStore store) {
         @SuppressWarnings("unchecked")
         Map<String, Integer> commitRoots = (Map<String, Integer>) document.get(UpdateOp.COMMIT_ROOT);
         if (commitRoots != null) {
@@ -52,9 +82,9 @@ class Collision {
                         Utils.getIdFromPath(commitRootPath), false);
                 op.setMapEntry(UpdateOp.COLLISIONS, revision, true);
                 store.createOrUpdate(DocumentStore.Collection.NODES, op);
+                return true;
             }
         }
-        // TODO: detect concurrent commit of previously un-merged changes
-        return true;
+        return false;
     }
 }

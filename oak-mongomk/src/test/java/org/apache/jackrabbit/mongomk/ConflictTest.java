@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.mongomk;
 
 import org.apache.jackrabbit.mk.api.MicroKernelException;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.fail;
@@ -41,12 +42,106 @@ public class ConflictTest extends BaseMongoMKTest {
     }
 
     @Test
+    public void addExistingPropertyBranchWins() {
+        String rev = mk.commit("/", "+\"foo\":{}", null, null);
+        String branchRev = mk.branch(rev);
+        branchRev = mk.commit("/foo", "^\"prop\":\"value\"", branchRev, null);
+        mk.merge(branchRev, null);
+
+        try {
+            mk.commit("/foo", "^\"prop\":\"value\"", rev, null);
+            fail("Must fail with conflict for addExistingProperty");
+        } catch (MicroKernelException e) {
+            // expected
+        }
+    }
+
+    @Test
+    public void addExistingPropertyBranchLoses1() {
+        String rev = mk.commit("/", "+\"foo\":{}", null, null);
+        String branchRev = mk.branch(rev);
+        // branch commit happens before trunk commit
+        branchRev = mk.commit("/foo", "^\"prop\":\"value\"", branchRev, null);
+        mk.commit("/foo", "^\"prop\":\"value\"", rev, null);
+
+        try {
+            mk.merge(branchRev, null);
+            fail("Must fail with conflict for addExistingProperty");
+        } catch (MicroKernelException e) {
+            // expected
+        }
+    }
+
+    @Test
+    public void addExistingPropertyBranchLoses2() {
+        String rev = mk.commit("/", "+\"foo\":{}", null, null);
+        String branchRev = mk.branch(rev);
+        mk.commit("/foo", "^\"prop\":\"value\"", rev, null);
+        // branch commit happens after trunk commit
+        branchRev = mk.commit("/foo", "^\"prop\":\"value\"", branchRev, null);
+
+        try {
+            mk.merge(branchRev, null);
+            fail("Must fail with conflict for addExistingProperty");
+        } catch (MicroKernelException e) {
+            // expected
+        }
+    }
+
+    @Test
     public void removeRemovedProperty() {
         String rev = mk.commit("/", "+\"foo\":{\"prop\":\"value\"}", null, null);
         mk.commit("/foo", "^\"prop\":null", rev, null);
 
         try {
             mk.commit("/foo", "^\"prop\":null", rev, null);
+            fail("Must fail with conflict for removeRemovedProperty");
+        } catch (MicroKernelException e) {
+            // expected
+        }
+    }
+
+    @Test
+    public void removeRemovedPropertyBranchWins() {
+        String rev = mk.commit("/", "+\"foo\":{\"prop\":\"value\"}", null, null);
+        String branchRev = mk.branch(rev);
+        branchRev = mk.commit("/foo", "^\"prop\":null", branchRev, null);
+        mk.merge(branchRev, null);
+
+        try {
+            mk.commit("/foo", "^\"prop\":null", rev, null);
+            fail("Must fail with conflict for removeRemovedProperty");
+        } catch (MicroKernelException e) {
+            // expected
+        }
+    }
+
+    @Test
+    public void removeRemovedPropertyBranchLoses1() {
+        String rev = mk.commit("/", "+\"foo\":{\"prop\":\"value\"}", null, null);
+        String branchRev = mk.branch(rev);
+        // branch commit happens before trunk commit
+        branchRev = mk.commit("/foo", "^\"prop\":null", branchRev, null);
+        mk.commit("/foo", "^\"prop\":null", rev, null);
+
+        try {
+            mk.merge(branchRev, null);
+            fail("Must fail with conflict for removeRemovedProperty");
+        } catch (MicroKernelException e) {
+            // expected
+        }
+    }
+
+    @Test
+    public void removeRemovedPropertyBranchLoses2() {
+        String rev = mk.commit("/", "+\"foo\":{\"prop\":\"value\"}", null, null);
+        String branchRev = mk.branch(rev);
+        mk.commit("/foo", "^\"prop\":null", rev, null);
+        // branch commit happens after trunk commit
+        branchRev = mk.commit("/foo", "^\"prop\":null", branchRev, null);
+
+        try {
+            mk.merge(branchRev, null);
             fail("Must fail with conflict for removeRemovedProperty");
         } catch (MicroKernelException e) {
             // expected
@@ -67,12 +162,106 @@ public class ConflictTest extends BaseMongoMKTest {
     }
 
     @Test
+    public void removeChangedPropertyBranchWins() {
+        String rev = mk.commit("/", "+\"foo\":{\"prop\":\"value\"}", null, null);
+        String branchRev = mk.branch(rev);
+        branchRev = mk.commit("/foo", "^\"prop\":\"bar\"", branchRev, null);
+        mk.merge(branchRev, null);
+
+        try {
+            mk.commit("/foo", "^\"prop\":null", rev, null);
+            fail("Must fail with conflict for removeChangedProperty");
+        } catch (MicroKernelException e) {
+            // expected
+        }
+    }
+
+    @Test
+    public void removeChangedPropertyBranchLoses1() {
+        String rev = mk.commit("/", "+\"foo\":{\"prop\":\"value\"}", null, null);
+        String branchRev = mk.branch(rev);
+        // branch commit happens before trunk commit
+        branchRev = mk.commit("/foo", "^\"prop\":\"bar\"", branchRev, null);
+        mk.commit("/foo", "^\"prop\":null", rev, null);
+
+        try {
+            mk.merge(branchRev, null);
+            fail("Must fail with conflict for removeChangedProperty");
+        } catch (MicroKernelException e) {
+            // expected
+        }
+    }
+
+    @Test
+    public void removeChangedPropertyBranchLoses2() {
+        String rev = mk.commit("/", "+\"foo\":{\"prop\":\"value\"}", null, null);
+        String branchRev = mk.branch(rev);
+        mk.commit("/foo", "^\"prop\":null", rev, null);
+        // branch commit happens after trunk commit
+        branchRev = mk.commit("/foo", "^\"prop\":\"bar\"", branchRev, null);
+
+        try {
+            mk.merge(branchRev, null);
+            fail("Must fail with conflict for removeChangedProperty");
+        } catch (MicroKernelException e) {
+            // expected
+        }
+    }
+
+    @Test
     public void changeRemovedProperty() {
         String rev = mk.commit("/", "+\"foo\":{\"prop\":\"value\"}", null, null);
         mk.commit("/foo", "^\"prop\":null", rev, null);
 
         try {
             mk.commit("/foo", "^\"prop\":\"bar\"", rev, null);
+            fail("Must fail with conflict for changeRemovedProperty");
+        } catch (MicroKernelException e) {
+            // expected
+        }
+    }
+
+    @Test
+    public void changeRemovedPropertyBranchWins() {
+        String rev = mk.commit("/", "+\"foo\":{\"prop\":\"value\"}", null, null);
+        String branchRev = mk.branch(rev);
+        branchRev = mk.commit("/foo", "^\"prop\":null", branchRev, null);
+        mk.merge(branchRev, null);
+
+        try {
+            mk.commit("/foo", "^\"prop\":\"bar\"", rev, null);
+            fail("Must fail with conflict for changeRemovedProperty");
+        } catch (MicroKernelException e) {
+            // expected
+        }
+    }
+
+    @Test
+    public void changeRemovedPropertyBranchLoses1() {
+        String rev = mk.commit("/", "+\"foo\":{\"prop\":\"value\"}", null, null);
+        String branchRev = mk.branch(rev);
+        // branch commit happens before trunk commit
+        branchRev = mk.commit("/foo", "^\"prop\":null", branchRev, null);
+        mk.commit("/foo", "^\"prop\":\"bar\"", rev, null);
+
+        try {
+            mk.merge(branchRev, null);
+            fail("Must fail with conflict for changeRemovedProperty");
+        } catch (MicroKernelException e) {
+            // expected
+        }
+    }
+
+    @Test
+    public void changeRemovedPropertyBranchLoses2() {
+        String rev = mk.commit("/", "+\"foo\":{\"prop\":\"value\"}", null, null);
+        String branchRev = mk.branch(rev);
+        mk.commit("/foo", "^\"prop\":\"bar\"", rev, null);
+        // branch commit happens after trunk commit
+        branchRev = mk.commit("/foo", "^\"prop\":null", branchRev, null);
+
+        try {
+            mk.merge(branchRev, null);
             fail("Must fail with conflict for changeRemovedProperty");
         } catch (MicroKernelException e) {
             // expected
@@ -93,12 +282,108 @@ public class ConflictTest extends BaseMongoMKTest {
     }
 
     @Test
+    public void changeChangedPropertyBranchWins() {
+        String rev = mk.commit("/", "+\"foo\":{\"prop\":\"value\"}", null, null);
+        String branchRev = mk.branch(rev);
+        branchRev = mk.commit("/foo", "^\"prop\":\"bar\"", branchRev, null);
+        mk.merge(branchRev, null);
+
+        try {
+            mk.commit("/foo", "^\"prop\":\"baz\"", rev, null);
+            fail("Must fail with conflict for changeChangedProperty");
+        } catch (MicroKernelException e) {
+            // expected
+        }
+    }
+
+    @Test
+    public void changeChangedPropertyBranchLoses1() {
+        String rev = mk.commit("/", "+\"foo\":{\"prop\":\"value\"}", null, null);
+        String branchRev = mk.branch(rev);
+        // branch commit happens before trunk commit
+        branchRev = mk.commit("/foo", "^\"prop\":\"bar\"", branchRev, null);
+        mk.commit("/foo", "^\"prop\":\"baz\"", rev, null);
+
+        try {
+            mk.merge(branchRev, null);
+            fail("Must fail with conflict for changeChangedProperty");
+        } catch (MicroKernelException e) {
+            // expected
+        }
+    }
+
+    @Test
+    public void changeChangedPropertyBranchLoses2() {
+        String rev = mk.commit("/", "+\"foo\":{\"prop\":\"value\"}", null, null);
+        String branchRev = mk.branch(rev);
+        mk.commit("/foo", "^\"prop\":\"baz\"", rev, null);
+        // branch commit happens after trunk commit
+        branchRev = mk.commit("/foo", "^\"prop\":\"bar\"", branchRev, null);
+
+        try {
+            mk.merge(branchRev, null);
+            fail("Must fail with conflict for changeChangedProperty");
+        } catch (MicroKernelException e) {
+            // expected
+        }
+    }
+
+    @Test
     public void addExistingNode() {
         String rev = mk.commit("/", "+\"foo\":{}", null, null);
         mk.commit("/foo", "+\"bar\":{}", rev, null);
 
         try {
             mk.commit("/foo", "+\"bar\":{}", rev, null);
+            fail("Must fail with conflict for addExistingNode");
+        } catch (MicroKernelException e) {
+            // expected
+        }
+    }
+
+    @Test
+    public void addExistingNodeBranchWins() {
+        String rev = mk.commit("/", "+\"foo\":{}", null, null);
+        String branchRev = mk.branch(rev);
+        branchRev = mk.commit("/foo", "+\"bar\":{}", branchRev, null);
+        mk.merge(branchRev, null);
+
+        try {
+            mk.commit("/foo", "+\"bar\":{}", rev, null);
+            fail("Must fail with conflict for addExistingNode");
+        } catch (MicroKernelException e) {
+            // expected
+        }
+    }
+
+    @Test
+    @Ignore
+    public void addExistingNodeBranchLoses1() {
+        String rev = mk.commit("/", "+\"foo\":{}", null, null);
+        String branchRev = mk.branch(rev);
+        // branch commit happens before trunk commit
+        branchRev = mk.commit("/foo", "+\"bar\":{}", branchRev, null);
+        mk.commit("/foo", "+\"bar\":{}", rev, null);
+
+        try {
+            mk.merge(branchRev, null);
+            fail("Must fail with conflict for addExistingNode");
+        } catch (MicroKernelException e) {
+            // expected
+        }
+    }
+
+    @Test
+    @Ignore
+    public void addExistingNodeBranchLoses2() {
+        String rev = mk.commit("/", "+\"foo\":{}", null, null);
+        String branchRev = mk.branch(rev);
+        mk.commit("/foo", "+\"bar\":{}", rev, null);
+        // branch commit happens after trunk commit
+        branchRev = mk.commit("/foo", "+\"bar\":{}", branchRev, null);
+
+        try {
+            mk.merge(branchRev, null);
             fail("Must fail with conflict for addExistingNode");
         } catch (MicroKernelException e) {
             // expected
@@ -119,12 +404,110 @@ public class ConflictTest extends BaseMongoMKTest {
     }
 
     @Test
+    public void removeRemovedNodeBranchWins() {
+        String rev = mk.commit("/", "+\"foo\":{}", null, null);
+        String branchRev = mk.branch(rev);
+        branchRev = mk.commit("/", "-\"foo\"", branchRev, null);
+        mk.merge(branchRev, null);
+
+        try {
+            mk.commit("/", "-\"foo\"", rev, null);
+            fail("Must fail with conflict for removeRemovedNode");
+        } catch (MicroKernelException e) {
+            // expected
+        }
+    }
+
+    @Test
+    @Ignore
+    public void removeRemovedNodeBranchLoses1() {
+        String rev = mk.commit("/", "+\"foo\":{}", null, null);
+        String branchRev = mk.branch(rev);
+        // branch commit happens before trunk commit
+        branchRev = mk.commit("/", "-\"foo\"", branchRev, null);
+        mk.commit("/", "-\"foo\"", rev, null);
+
+        try {
+            mk.merge(branchRev, null);
+            fail("Must fail with conflict for removeRemovedNode");
+        } catch (MicroKernelException e) {
+            // expected
+        }
+    }
+
+    @Test
+    @Ignore
+    public void removeRemovedNodeBranchLoses2() {
+        String rev = mk.commit("/", "+\"foo\":{}", null, null);
+        String branchRev = mk.branch(rev);
+        mk.commit("/", "-\"foo\"", rev, null);
+        // branch commit happens after trunk commit
+        branchRev = mk.commit("/", "-\"foo\"", branchRev, null);
+
+        try {
+            mk.merge(branchRev, null);
+            fail("Must fail with conflict for removeRemovedNode");
+        } catch (MicroKernelException e) {
+            // expected
+        }
+    }
+
+    @Test
     public void removeChangedNode() {
         String rev = mk.commit("/", "+\"foo\":{}", null, null);
         mk.commit("/foo", "^\"prop\":\"value\"", rev, null);
 
         try {
             mk.commit("/", "-\"foo\"", rev, null);
+            fail("Must fail with conflict for removeChangedNode");
+        } catch (MicroKernelException e) {
+            // expected
+        }
+    }
+
+    @Test
+    public void removeChangedNodeBranchWins() {
+        String rev = mk.commit("/", "+\"foo\":{}", null, null);
+        String branchRev = mk.branch(rev);
+        branchRev = mk.commit("/foo", "^\"prop\":\"value\"", branchRev, null);
+        mk.merge(branchRev, null);
+
+        try {
+            mk.commit("/", "-\"foo\"", rev, null);
+            fail("Must fail with conflict for removeChangedNode");
+        } catch (MicroKernelException e) {
+            // expected
+        }
+    }
+
+    @Test
+    @Ignore
+    public void removeChangedNodeBranchLoses1() {
+        String rev = mk.commit("/", "+\"foo\":{}", null, null);
+        String branchRev = mk.branch(rev);
+        // branch commit happens before trunk commit
+        branchRev = mk.commit("/foo", "^\"prop\":\"value\"", branchRev, null);
+        mk.commit("/", "-\"foo\"", rev, null);
+
+        try {
+            mk.merge(branchRev, null);
+            fail("Must fail with conflict for removeChangedNode");
+        } catch (MicroKernelException e) {
+            // expected
+        }
+    }
+
+    @Test
+    @Ignore
+    public void removeChangedNodeBranchLoses2() {
+        String rev = mk.commit("/", "+\"foo\":{}", null, null);
+        String branchRev = mk.branch(rev);
+        mk.commit("/", "-\"foo\"", rev, null);
+        // branch commit happens after trunk commit
+        branchRev = mk.commit("/foo", "^\"prop\":\"value\"", branchRev, null);
+
+        try {
+            mk.merge(branchRev, null);
             fail("Must fail with conflict for removeChangedNode");
         } catch (MicroKernelException e) {
             // expected
@@ -145,10 +528,79 @@ public class ConflictTest extends BaseMongoMKTest {
     }
 
     @Test
+    public void changeRemovedNodeBranchWins() {
+        String rev = mk.commit("/", "+\"foo\":{}", null, null);
+        String branchRev = mk.branch(rev);
+        branchRev = mk.commit("/", "-\"foo\"", branchRev, null);
+        mk.merge(branchRev, null);
+
+        try {
+            mk.commit("/foo", "^\"prop\":\"value\"", rev, null);
+            fail("Must fail with conflict for changeRemovedNode");
+        } catch (MicroKernelException e) {
+            // expected
+        }
+    }
+
+    @Test
+    @Ignore
+    public void changeRemovedNodeBranchLoses1() {
+        String rev = mk.commit("/", "+\"foo\":{}", null, null);
+        String branchRev = mk.branch(rev);
+        // branch commit happens before trunk commit
+        branchRev = mk.commit("/", "-\"foo\"", branchRev, null);
+        mk.commit("/foo", "^\"prop\":\"value\"", rev, null);
+
+        try {
+            mk.merge(branchRev, null);
+            fail("Must fail with conflict for changeRemovedNode");
+        } catch (MicroKernelException e) {
+            // expected
+        }
+    }
+
+    @Test
+    @Ignore
+    public void changeRemovedNodeBranchLoses2() {
+        String rev = mk.commit("/", "+\"foo\":{}", null, null);
+        String branchRev = mk.branch(rev);
+        mk.commit("/foo", "^\"prop\":\"value\"", rev, null);
+        // branch commit happens after trunk commit
+        branchRev = mk.commit("/", "-\"foo\"", branchRev, null);
+
+        try {
+            mk.merge(branchRev, null);
+            fail("Must fail with conflict for changeRemovedNode");
+        } catch (MicroKernelException e) {
+            // expected
+        }
+    }
+
+    @Test
     public void nonConflictingChangeProperty() {
         String rev = mk.commit("/", "+\"foo\":{\"prop1\":\"value\", \"prop2\":\"value\"}", null, null);
         mk.commit("/foo", "^\"prop1\":\"bar\"", rev, null);
         mk.commit("/foo", "^\"prop2\":\"baz\"", rev, null);
+    }
+
+    @Test
+    public void nonConflictingChangePropertyWithBranch1() {
+        String rev = mk.commit("/", "+\"foo\":{\"prop1\":\"value\", \"prop2\":\"value\"}", null, null);
+        String branchRev = mk.branch(rev);
+        // branch commit happens before trunk commit
+        branchRev = mk.commit("/foo", "^\"prop1\":\"bar\"", branchRev, null);
+        mk.commit("/foo", "^\"prop2\":\"baz\"", rev, null);
+        mk.merge(branchRev, null);
+    }
+
+    @Test
+    public void nonConflictingChangePropertyWithBranch2() {
+        String rev = mk.commit("/", "+\"foo\":{\"prop1\":\"value\", \"prop2\":\"value\"}", null, null);
+        String branchRev = mk.branch(rev);
+        mk.commit("/foo", "^\"prop2\":\"baz\"", rev, null);
+        // branch commit happens after trunk commit
+        branchRev = mk.commit("/foo", "^\"prop1\":\"bar\"", branchRev, null);
+        mk.merge(branchRev, null);
     }
 
     @Test
@@ -159,9 +611,49 @@ public class ConflictTest extends BaseMongoMKTest {
     }
 
     @Test
+    public void nonConflictingAddPropertyWithBranch1() {
+        String rev = mk.commit("/", "+\"foo\":{\"prop1\":\"value\"}", null, null);
+        String branchRev = mk.branch(rev);
+        // branch commit happens before trunk commit
+        branchRev = mk.commit("/foo", "^\"prop1\":\"bar\"", branchRev, null);
+        mk.commit("/foo", "^\"prop2\":\"baz\"", rev, null);
+        mk.merge(branchRev, null);
+    }
+
+    @Test
+    public void nonConflictingAddPropertyWithBranch2() {
+        String rev = mk.commit("/", "+\"foo\":{\"prop1\":\"value\"}", null, null);
+        String branchRev = mk.branch(rev);
+        mk.commit("/foo", "^\"prop2\":\"baz\"", rev, null);
+        // branch commit happens after trunk commit
+        branchRev = mk.commit("/foo", "^\"prop1\":\"bar\"", branchRev, null);
+        mk.merge(branchRev, null);
+    }
+
+    @Test
     public void nonConflictingRemoveProperty() {
         String rev = mk.commit("/", "+\"foo\":{\"prop1\":\"value\", \"prop2\":\"value\"}", null, null);
         mk.commit("/foo", "^\"prop1\":\"bar\"", rev, null);
         mk.commit("/foo", "^\"prop2\":null", rev, null);
+    }
+
+    @Test
+    public void nonConflictingRemovePropertyWithBranch1() {
+        String rev = mk.commit("/", "+\"foo\":{\"prop1\":\"value\", \"prop2\":\"value\"}", null, null);
+        String branchRev = mk.branch(rev);
+        // branch commit happens before trunk commit
+        branchRev = mk.commit("/foo", "^\"prop1\":\"bar\"", branchRev, null);
+        mk.commit("/foo", "^\"prop2\":null", rev, null);
+        mk.merge(branchRev, null);
+    }
+
+    @Test
+    public void nonConflictingRemovePropertyWithBranch2() {
+        String rev = mk.commit("/", "+\"foo\":{\"prop1\":\"value\", \"prop2\":\"value\"}", null, null);
+        String branchRev = mk.branch(rev);
+        mk.commit("/foo", "^\"prop2\":null", rev, null);
+        // branch commit happens after trunk commit
+        branchRev = mk.commit("/foo", "^\"prop1\":\"bar\"", branchRev, null);
+        mk.merge(branchRev, null);
     }
 }

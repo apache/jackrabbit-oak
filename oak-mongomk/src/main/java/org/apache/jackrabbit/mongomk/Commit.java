@@ -299,7 +299,7 @@ public class Commit {
             if (collisions.get() != null && isConflicting(map, op)) {
                 for (Revision r : collisions.get()) {
                     // mark collisions on commit root
-                    Collision c = new Collision(map, r);
+                    Collision c = new Collision(map, r, op, revision);
                     boolean success = c.mark(store);
                     if (!success) {
                         // TODO: fail this commit
