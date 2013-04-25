@@ -27,8 +27,8 @@ import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.commit.JcrConflictHandler;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
-import org.apache.jackrabbit.oak.plugins.index.p2.Property2IndexHookProvider;
-import org.apache.jackrabbit.oak.plugins.index.p2.Property2IndexProvider;
+import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexProvider;
 import org.apache.jackrabbit.oak.plugins.name.NameValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.RegistrationEditorProvider;
@@ -69,9 +69,9 @@ public class Jcr {
         with(new RegistrationEditorProvider());
         with(new ConflictValidatorProvider());
 
-        with(new Property2IndexHookProvider());
+        with(new PropertyIndexEditorProvider());
 
-        with(new Property2IndexProvider());
+        with(new PropertyIndexProvider());
         with(new NodeTypeIndexProvider());
     }
 

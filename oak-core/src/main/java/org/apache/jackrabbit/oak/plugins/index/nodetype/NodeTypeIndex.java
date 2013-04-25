@@ -19,7 +19,7 @@
 package org.apache.jackrabbit.oak.plugins.index.nodetype;
 
 import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.oak.plugins.index.p2.Property2IndexLookup;
+import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexLookup;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Cursors;
 import org.apache.jackrabbit.oak.spi.query.Filter;
@@ -28,10 +28,10 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
  * <code>NodeTypeIndex</code> implements a {@link QueryIndex} using
- * {@link Property2IndexLookup}s on <code>jcr:primaryType</code> and
+ * {@link PropertyIndexLookup}s on <code>jcr:primaryType</code> and
  * <code>jcr:mixinTypes</code> to evaluate a node type restriction on
  * {@link Filter}. The cost for this index is the sum of the costs of the
- * {@link Property2IndexLookup} for queries on <code>jcr:primaryType</code> and
+ * {@link PropertyIndexLookup} for queries on <code>jcr:primaryType</code> and
  * <code>jcr:mixinTypes</code>.
  */
 class NodeTypeIndex implements QueryIndex, JcrConstants {
