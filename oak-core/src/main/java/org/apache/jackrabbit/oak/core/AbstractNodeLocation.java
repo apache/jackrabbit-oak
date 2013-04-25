@@ -57,14 +57,14 @@ abstract class AbstractNodeLocation<T extends Tree> extends AbstractTreeLocation
 
     @Override
     public TreeLocation getChild(String name) {
-        T child = getChildTree(name);
-        if (child != null) {
-            return createNodeLocation(child);
-        }
-
         PropertyState prop = getPropertyState(name);
         if (prop != null) {
             return createPropertyLocation(this, name);
+        }
+
+        T child = getChildTree(name);
+        if (child != null) {
+            return createNodeLocation(child);
         }
         return new NullLocation(this, name);
     }
