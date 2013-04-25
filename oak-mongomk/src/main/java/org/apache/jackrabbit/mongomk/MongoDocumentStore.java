@@ -208,9 +208,10 @@ public class MongoDocumentStore implements DocumentStore {
     }
 
     @CheckForNull
-    private Map<String, Object> internalCreateOrUpdate(Collection collection,
-                                                       UpdateOp updateOp,
-                                                       boolean checkConditions) {
+    private Map<String, Object> findAndModifiy(Collection collection,
+                                               UpdateOp updateOp,
+                                               boolean upsert,
+                                               boolean checkConditions) {
         DBCollection dbCollection = getDBCollection(collection);
         QueryBuilder query = getByKeyQuery(updateOp.key);
 
@@ -277,7 +278,7 @@ public class MongoDocumentStore implements DocumentStore {
         try {
             DBObject oldNode = dbCollection.findAndModify(query.get(), null /*fields*/,
                     null /*sort*/, false /*remove*/, update, false /*returnNew*/,
-                    true /*upsert*/);
+                    upsert /*upsert*/);
             if (checkConditions && oldNode == null) {
                 return null;
             }
@@ -306,7 +307,7 @@ public class MongoDocumentStore implements DocumentStore {
                                               UpdateOp update)
             throws MicroKernelException {
         log("createOrUpdate", update);
-        Map<String, Object> map = internalCreateOrUpdate(collection, update, false);
+        Map<String, Object> map = findAndModifiy(collection, update, true, false);
         log("createOrUpdate returns ", map);
         return map;
     }
@@ -316,7 +317,7 @@ public class MongoDocumentStore implements DocumentStore {
                                              UpdateOp update)
             throws MicroKernelException {
         log("findAndUpdate", update);
-        Map<String, Object> map = internalCreateOrUpdate(collection, update, true);
+        Map<String, Object> map = findAndModifiy(collection, update, false, true);
         log("findAndUpdate returns ", map);
         return map;
     }
