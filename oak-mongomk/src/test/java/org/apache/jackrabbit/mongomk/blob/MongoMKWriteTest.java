@@ -26,8 +26,6 @@ import org.apache.jackrabbit.mk.util.MicroKernelInputStream;
 import org.apache.jackrabbit.mongomk.AbstractMongoConnectionTest;
 import org.junit.Test;
 
-import com.mongodb.DB;
-
 /**
  * Tests for {@code MongoMicroKernel#write(java.io.InputStream)}
  */

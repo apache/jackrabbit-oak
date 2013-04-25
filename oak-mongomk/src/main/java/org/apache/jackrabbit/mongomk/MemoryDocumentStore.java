@@ -175,7 +175,7 @@ public class MemoryDocumentStore implements DocumentStore {
                     }
                 } else {
                     if (value instanceof java.util.Collection) {
-                        java.util.Collection col = (java.util.Collection) value;
+                        java.util.Collection<?> col = (java.util.Collection<?>) value;
                         if (Boolean.TRUE.equals(op.value)) {
                             if (!col.contains(kv[1])) {
                                 return false;
@@ -250,8 +250,10 @@ public class MemoryDocumentStore implements DocumentStore {
                 }
                 m.put(kv[1], op.value);
                 break;
-
             }
+            case CONTAINS_MAP_ENTRY:
+                // no effect
+                break;
             }
         }
     }
