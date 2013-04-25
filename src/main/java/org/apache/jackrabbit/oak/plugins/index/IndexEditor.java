@@ -14,33 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.index.p2;
+package org.apache.jackrabbit.oak.plugins.index;
 
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Service;
-import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 
 /**
- * Service that provides PropertyIndex based IndexHooks.
- * 
- * @see Property2IndexHook
- * @see IndexEditorProvider
- * 
+ * Represents the content of a QueryIndex as well as a mechanism for keeping
+ * this content up to date. <br>
+ * An IndexEditor listens for changes to the content and updates the index data
+ * accordingly.
  */
-@Component
-@Service(IndexEditorProvider.class)
-public class Property2IndexHookProvider implements IndexEditorProvider {
-
-    public static final String TYPE = "p2";
-
-    @Override
-    public Editor getIndexEditor(String type, NodeBuilder builder) {
-        if (TYPE.equals(type)) {
-            return new Property2IndexHook(builder);
-        }
-        return null;
-    }
+public interface IndexEditor extends Editor {
 
 }

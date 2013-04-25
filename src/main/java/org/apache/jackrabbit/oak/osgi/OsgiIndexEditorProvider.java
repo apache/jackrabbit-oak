@@ -18,33 +18,30 @@
  */
 package org.apache.jackrabbit.oak.osgi;
 
-import java.util.List;
-
-import javax.annotation.Nonnull;
-
-import org.apache.jackrabbit.oak.plugins.index.CompositeIndexHookProvider;
-import org.apache.jackrabbit.oak.plugins.index.IndexHook;
-import org.apache.jackrabbit.oak.plugins.index.IndexHookProvider;
+import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
+import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
- * This IndexHook provider combines all index hooks of all available OSGi
- * IndexHook providers.
+ * This IndexEditor provider combines all index editors of all available OSGi
+ * IndexEditor providers.
  */
-public class OsgiIndexHookProvider extends
-        AbstractServiceTracker<IndexHookProvider> implements IndexHookProvider {
+public class OsgiIndexEditorProvider extends
+        AbstractServiceTracker<IndexEditorProvider> implements IndexEditorProvider {
 
-    public OsgiIndexHookProvider() {
-        super(IndexHookProvider.class);
+    public OsgiIndexEditorProvider() {
+        super(IndexEditorProvider.class);
     }
 
     @Override
-    @Nonnull
-    public List<? extends IndexHook> getIndexHooks(
-            String type, NodeBuilder builder, NodeState root) {
-        IndexHookProvider composite = CompositeIndexHookProvider.compose(getServices());
-        return composite.getIndexHooks(type, builder, root);
+    public Editor getIndexEditor(String type, NodeBuilder builder) {
+        IndexEditorProvider composite = CompositeIndexEditorProvider
+                .compose(getServices());
+        if (composite == null) {
+            return null;
+        }
+        return composite.getIndexEditor(type, builder);
     }
 
 }

@@ -21,8 +21,8 @@ package org.apache.jackrabbit.oak.spi.lifecycle;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.plugins.index.IndexHookManager;
-import org.apache.jackrabbit.oak.plugins.index.IndexHookProvider;
+import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
+import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
@@ -37,12 +37,12 @@ public final class OakInitializer {
 
     public static void initialize(@Nonnull NodeStore store,
                                   @Nonnull RepositoryInitializer initializer,
-                                  @Nonnull IndexHookProvider indexHook) {
+                                  @Nonnull IndexEditorProvider indexHook) {
         NodeStoreBranch branch = store.branch();
         NodeState before = branch.getHead();
         branch.setRoot(initializer.initialize(before));
         try {
-            branch.merge(new EditorHook(IndexHookManager.of(indexHook)));
+            branch.merge(new EditorHook(new IndexUpdateProvider(indexHook)));
         } catch (CommitFailedException e) {
             throw new RuntimeException(e);
         }
@@ -51,7 +51,7 @@ public final class OakInitializer {
     public static void initialize(@Nonnull Iterable<WorkspaceInitializer> initializer,
                                   @Nonnull NodeStore store,
                                   @Nonnull String workspaceName,
-                                  @Nonnull IndexHookProvider indexHook,
+                                  @Nonnull IndexEditorProvider indexHook,
                                   @Nonnull QueryIndexProvider indexProvider,
                                   @Nonnull CommitHook commitHook) {
         NodeStoreBranch branch = store.branch();
@@ -61,7 +61,7 @@ public final class OakInitializer {
         }
         branch.setRoot(root);
         try {
-            branch.merge(new EditorHook(IndexHookManager.of(indexHook)));
+            branch.merge(new EditorHook(new IndexUpdateProvider(indexHook)));
         } catch (CommitFailedException e) {
             throw new RuntimeException(e);
         }
