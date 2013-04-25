@@ -211,7 +211,8 @@ class MutableNodeState extends AbstractNodeState {
     boolean isConnected(String name) {
         assert base != null;
 
-        return nodes.get(name) != null ||
+        MutableNodeState node = nodes.get(name);
+        return node != null && node.exists() ||
                 !nodes.containsKey(name) && base.getChildNode(name).exists();
     }
 
