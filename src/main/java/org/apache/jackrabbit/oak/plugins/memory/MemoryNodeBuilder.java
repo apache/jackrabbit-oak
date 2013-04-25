@@ -134,7 +134,7 @@ public class MemoryNodeBuilder implements NodeBuilder {
 
     private void checkConnected() {
         if (!isConnected()) {
-            throw new IllegalStateException("This builder is not connected");
+            throw new IllegalStateException("This builder is not connected: " + name);
         }
     }
 
