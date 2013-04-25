@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.commit.DefaultValidator;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
+import org.apache.jackrabbit.oak.spi.commit.VisibleValidator;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtility;
@@ -138,7 +139,7 @@ class UserValidator extends DefaultValidator implements UserConstants {
                 throw constraintViolation(26, "Mandatory property rep:principalName missing.");
             }
         }
-        return new UserValidator(null, tree, provider);
+        return new VisibleValidator(new UserValidator(null, tree, provider), true, true);
     }
 
     @Override

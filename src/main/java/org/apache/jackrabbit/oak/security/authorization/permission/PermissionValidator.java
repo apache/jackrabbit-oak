@@ -24,12 +24,11 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.core.ImmutableTree;
 import org.apache.jackrabbit.oak.core.TreeImpl;
-import org.apache.jackrabbit.oak.core.TreeTypeProvider;
 import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
 import org.apache.jackrabbit.oak.spi.commit.DefaultValidator;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
+import org.apache.jackrabbit.oak.spi.commit.VisibleValidator;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -140,15 +139,12 @@ class PermissionValidator extends DefaultValidator {
 
     //------------------------------------------------------------< private >---
     private Validator nextValidator(@Nullable Tree parentBefore, @Nullable Tree parentAfter) {
-        return new PermissionValidator(parentBefore, parentAfter, permissionProvider, provider, permission);
+        Validator validator = new PermissionValidator(parentBefore, parentAfter, permissionProvider, provider, permission);
+        return new VisibleValidator(validator, true, false);
     }
 
     private Validator checkPermissions(@Nonnull Tree tree, boolean isBefore,
                                        long defaultPermission) throws CommitFailedException {
-        if (ImmutableTree.getType(tree) == TreeTypeProvider.TYPE_HIDDEN) {
-            // ignore everything below a hidden tree
-            return null;
-        }
         long toTest = getPermission(tree, defaultPermission);
         if (Permissions.isRepositoryPermission(toTest)) {
             if (!permissionProvider.isGranted(toTest)) {
@@ -176,7 +172,6 @@ class PermissionValidator extends DefaultValidator {
             // been covered in "propertyChanged"
             return;
         }
-
         long toTest = getPermission(parent, property, defaultPermission);
         if (Permissions.isRepositoryPermission(toTest)) {
             if (!permissionProvider.isGranted(toTest)) {
