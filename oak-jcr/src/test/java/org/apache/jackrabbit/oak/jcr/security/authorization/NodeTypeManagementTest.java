@@ -32,7 +32,6 @@ import org.junit.Test;
 /**
  * Permission evaluation tests related to {@link Privilege#JCR_NODE_TYPE_MANAGEMENT} privilege.
  */
-@Ignore("OAK-711 : permission validator doesn't detect changes to mixin/primary type")
 public class NodeTypeManagementTest extends AbstractEvaluationTest {
 
     private Node childNode;
@@ -68,18 +67,37 @@ public class NodeTypeManagementTest extends AbstractEvaluationTest {
     }
 
     @Test
-    public void testAddMixin() throws Exception {
+    public void testAddMixinWithoutPermission() throws Exception {
         try {
             childNode.addMixin(mixinName);
-            superuser.save();
+            testSession.save();
             fail("TestSession does not have sufficient privileges to add a mixin type.");
         } catch (AccessDeniedException e) {
             // success
         }
+    }
 
+    @Test
+    public void testAddMixin() throws Exception {
         modify(childNode.getPath(), Privilege.JCR_NODE_TYPE_MANAGEMENT, true);
         childNode.addMixin(mixinName);
+        testSession.save();
+    }
+
+    @Ignore("OAK-767 : Implement Node#removeMixin")
+    @Test
+    public void testRemoveMixinWithoutPermission() throws Exception {
+        ((Node) superuser.getItem(childNode.getPath())).addMixin(mixinName);
         superuser.save();
+        testSession.refresh(false);
+
+        try {
+            childNode.removeMixin(mixinName);
+            testSession.save();
+            fail("TestSession does not have sufficient privileges to remove a mixin type.");
+        } catch (AccessDeniedException e) {
+            // success
+        }
     }
 
     @Ignore("OAK-767 : Implement Node#removeMixin")
@@ -87,18 +105,11 @@ public class NodeTypeManagementTest extends AbstractEvaluationTest {
     public void testRemoveMixin() throws Exception {
         ((Node) superuser.getItem(childNode.getPath())).addMixin(mixinName);
         superuser.save();
-
-        try {
-            childNode.removeMixin(mixinName);
-            superuser.save();
-            fail("TestSession does not have sufficient privileges to remove a mixin type.");
-        } catch (AccessDeniedException e) {
-            // success
-        }
+        testSession.refresh(false);
 
         modify(childNode.getPath(), Privilege.JCR_NODE_TYPE_MANAGEMENT, true);
         childNode.removeMixin(mixinName);
-        superuser.save();
+        testSession.save();
     }
 
     @Test
@@ -108,7 +119,7 @@ public class NodeTypeManagementTest extends AbstractEvaluationTest {
 
         try {
             childNode.setPrimaryType("nt:folder");
-            superuser.save();
+            testSession.save();
             fail("TestSession does not have sufficient privileges to change the primary type.");
         } catch (AccessDeniedException e) {
             // success
@@ -128,11 +139,11 @@ public class NodeTypeManagementTest extends AbstractEvaluationTest {
 
         String changedNtName = "nt:folder";
         child.setPrimaryType(changedNtName);
-        superuser.save();
+        testSession.save();
 
         modify(childNode.getPath(), Privilege.JCR_NODE_TYPE_MANAGEMENT, true);
         childNode.setPrimaryType(ntName);
-        superuser.save();
+        testSession.save();
     }
 
     /**
@@ -172,6 +183,7 @@ public class NodeTypeManagementTest extends AbstractEvaluationTest {
         }
     }
 
+    @Ignore("OAK-711") // FIXME
     @Test
     public void testCopy() throws Exception {
         Workspace wsp = testSession.getWorkspace();
@@ -200,6 +212,7 @@ public class NodeTypeManagementTest extends AbstractEvaluationTest {
         wsp.copy(srcPath, destPath);
     }
 
+    @Ignore("OAK-711") // FIXME
     @Test
     public void testWorkspaceMove() throws Exception {
         Workspace wsp = testSession.getWorkspace();
@@ -228,6 +241,7 @@ public class NodeTypeManagementTest extends AbstractEvaluationTest {
         wsp.move(srcPath, destPath);
     }
 
+    @Ignore("OAK-711") // FIXME
     @Test
     public void testSessionMove() throws Exception {
         String parentPath = childNode.getParent().getPath();
