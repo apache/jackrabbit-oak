@@ -38,9 +38,9 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.core.ContentRepositoryImpl;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictHook;
-import org.apache.jackrabbit.oak.plugins.index.CompositeIndexHookProvider;
-import org.apache.jackrabbit.oak.plugins.index.IndexHookManager;
-import org.apache.jackrabbit.oak.plugins.index.IndexHookProvider;
+import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
+import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.observation2.EventQueueWriterProvider;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
@@ -82,7 +82,7 @@ public class Oak {
 
     private final List<QueryIndexProvider> queryIndexProviders = newArrayList();
 
-    private final List<IndexHookProvider> indexHookProviders = newArrayList();
+    private final List<IndexEditorProvider> indexHookProviders = newArrayList();
 
     private final List<CommitHook> commitHooks = newArrayList();
 
@@ -147,7 +147,7 @@ public class Oak {
      * @return this builder
      */
     @Nonnull
-    public Oak with(@Nonnull IndexHookProvider provider) {
+    public Oak with(@Nonnull IndexEditorProvider provider) {
         indexHookProviders.add(provider);
         return this;
     }
@@ -243,7 +243,7 @@ public class Oak {
     }
 
     public ContentRepository createContentRepository() {
-        IndexHookProvider indexHooks = CompositeIndexHookProvider.compose(indexHookProviders);
+        IndexEditorProvider indexHooks = CompositeIndexEditorProvider.compose(indexHookProviders);
         OakInitializer.initialize(store, new CompositeInitializer(initializers), indexHooks);
 
         QueryIndexProvider indexProvider = CompositeQueryIndexProvider.compose(queryIndexProviders);
@@ -267,7 +267,7 @@ public class Oak {
                 CompositeHook.compose(initHooks));
 
         // add index hooks later to prevent the OakInitializer to do excessive indexing
-        with(IndexHookManager.of(indexHooks));
+        with(new IndexUpdateProvider(indexHooks));
         with(new EventQueueWriterProvider());
         withEditorHook();
         CommitHook commitHook = CompositeHook.compose(commitHooks);

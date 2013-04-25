@@ -46,7 +46,7 @@ import org.junit.Test;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
-public class IndexHookManagerTest {
+public class IndexUpdateTest {
 
     private NodeState root = new InitialContent().initialize(EMPTY_NODE);
 
@@ -78,9 +78,9 @@ public class IndexHookManagerTest {
 
         NodeState after = builder.getNodeState();
 
-        IndexHookManager im = IndexHookManager
-                .of(new Property2IndexHookProvider());
-        EditorHook hook = new EditorHook(im);
+        IndexUpdateProvider p = new IndexUpdateProvider(
+                new Property2IndexHookProvider());
+        EditorHook hook = new EditorHook(p);
         NodeState indexed = hook.processCommit(before, after);
 
         // first check that the index content nodes exist
@@ -116,44 +116,9 @@ public class IndexHookManagerTest {
 
         NodeState after = builder.getNodeState();
 
-        IndexHookManager im = IndexHookManager
-                .of(new Property2IndexHookProvider());
-        EditorHook hook = new EditorHook(im);
-        NodeState indexed = hook.processCommit(before, after);
-
-        // first check that the index content nodes exist
-        NodeState ns = checkPathExists(indexed, "oak:index", "rootIndex");
-        checkPathExists(ns, ":index");
-        PropertyState ps = ns.getProperty(REINDEX_PROPERTY_NAME);
-        assertNotNull(ps);
-        assertFalse(ps.getValue(Type.BOOLEAN));
-
-        // next, lookup
-        Property2IndexLookup lookup = new Property2IndexLookup(indexed);
-        assertEquals(ImmutableSet.of("testRoot"), find(lookup, "foo", "abc"));
-    }
-
-    /**
-     * Reindex Test
-     * <ul>
-     * <li>Add some content</li>
-     * <li>Add an index definition with no reindex flag</li>
-     * <li>Search & verify</li>
-     * </ul>
-     */
-    @Test
-    public void testReindex2() throws Exception {
-        builder.child("testRoot").setProperty("foo", "abc");
-        NodeState before = builder.getNodeState();
-
-        createIndexDefinition(builder.child("oak:index"), "rootIndex", true,
-                false, ImmutableSet.of("foo"), null).removeProperty("reindex");
-
-        NodeState after = builder.getNodeState();
-
-        IndexHookManager im = IndexHookManager
-                .of(new Property2IndexHookProvider());
-        EditorHook hook = new EditorHook(im);
+        IndexUpdateProvider p = new IndexUpdateProvider(
+                new Property2IndexHookProvider());
+        EditorHook hook = new EditorHook(p);
         NodeState indexed = hook.processCommit(before, after);
 
         // first check that the index content nodes exist
@@ -177,7 +142,7 @@ public class IndexHookManagerTest {
      * </ul>
      */
     @Test
-    public void testReindex3() throws Exception {
+    public void testReindex2() throws Exception {
         builder.child("testRoot").setProperty("foo", "abc");
 
         createIndexDefinition(builder.child("oak:index"), "rootIndex", true,
@@ -188,9 +153,9 @@ public class IndexHookManagerTest {
                 .setProperty(REINDEX_PROPERTY_NAME, true);
         NodeState after = builder.getNodeState();
 
-        IndexHookManager im = IndexHookManager
-                .of(new Property2IndexHookProvider());
-        EditorHook hook = new EditorHook(im);
+        IndexUpdateProvider p = new IndexUpdateProvider(
+                new Property2IndexHookProvider());
+        EditorHook hook = new EditorHook(p);
         NodeState indexed = hook.processCommit(before, after);
 
         // first check that the index content nodes exist
@@ -219,9 +184,9 @@ public class IndexHookManagerTest {
                 "index2", true, false, ImmutableSet.of("foo"), null);
         NodeState after = builder.getNodeState();
 
-        IndexHookManager im = IndexHookManager
-                .of(new Property2IndexHookProvider());
-        EditorHook hook = new EditorHook(im);
+        IndexUpdateProvider p = new IndexUpdateProvider(
+                new Property2IndexHookProvider());
+        EditorHook hook = new EditorHook(p);
         NodeState indexed = hook.processCommit(before, after);
 
         // check that the index content nodes exist

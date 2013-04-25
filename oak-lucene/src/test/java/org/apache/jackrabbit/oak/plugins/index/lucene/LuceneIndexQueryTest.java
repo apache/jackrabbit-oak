@@ -50,7 +50,7 @@ public class LuceneIndexQueryTest extends AbstractQueryTest {
         return new Oak().with(new InitialContent())
             .with(new OpenSecurityProvider())
             .with(new LowCostLuceneIndexProvider())
-            .with(new LuceneIndexHookProvider())
+            .with(new LuceneIndexEditorProvider())
             .createContentRepository();
     }
 

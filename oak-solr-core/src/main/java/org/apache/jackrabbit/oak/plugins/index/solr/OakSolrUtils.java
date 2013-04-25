@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.plugins.index.solr;
 import java.io.IOException;
 import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.oak.plugins.index.IndexHookProvider;
+import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.index.SolrIndexHookProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.query.SolrQueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
@@ -47,19 +47,19 @@ public class OakSolrUtils {
     }
 
     /**
-     * adapts the OSGi Solr {@link IndexHookProvider} service
+     * adapts the OSGi Solr {@link IndexEditorProvider} service
      *
      * @return a {@link SolrIndexHookProvider}
      */
-    public static IndexHookProvider adaptOsgiIndexHookProvider() {
-        IndexHookProvider indexHookProvider = null;
+    public static IndexEditorProvider adaptOsgiIndexHookProvider() {
+        IndexEditorProvider indexHookProvider = null;
         try {
             BundleContext ctx = BundleReference.class.cast(SolrIndexHookProvider.class
                     .getClassLoader()).getBundle().getBundleContext();
 
-            ServiceReference serviceReference = ctx.getServiceReference(IndexHookProvider.class.getName());
+            ServiceReference serviceReference = ctx.getServiceReference(IndexEditorProvider.class.getName());
             if (serviceReference != null) {
-                indexHookProvider = IndexHookProvider.class.cast(ctx.getService(serviceReference));
+                indexHookProvider = IndexEditorProvider.class.cast(ctx.getService(serviceReference));
             }
         } catch (Throwable e) {
             // do nothing

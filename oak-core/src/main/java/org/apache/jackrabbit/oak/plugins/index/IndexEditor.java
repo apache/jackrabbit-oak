@@ -14,27 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.jcr;
+package org.apache.jackrabbit.oak.plugins.index;
 
-import java.util.Properties;
+import org.apache.jackrabbit.oak.spi.commit.Editor;
 
-import javax.jcr.RepositoryException;
+/**
+ * Represents the content of a QueryIndex as well as a mechanism for keeping
+ * this content up to date. <br>
+ * An IndexEditor listens for changes to the content and updates the index data
+ * accordingly.
+ */
+public interface IndexEditor extends Editor {
 
-import org.apache.jackrabbit.oak.plugins.index.lucene.LowCostLuceneIndexProvider;
-import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
-import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneInitializerHelper;
-
-public class LuceneOakRepositoryStub extends OakRepositoryStubBase {
-
-    public LuceneOakRepositoryStub(Properties settings)
-            throws RepositoryException {
-        super(settings);
-    }
-
-    @Override
-    protected void preCreateRepository(Jcr jcr) {
-        jcr.with(new LuceneInitializerHelper("/oak:index/luceneGlobal"))
-                .with(new LowCostLuceneIndexProvider())
-                .with(new LuceneIndexEditorProvider());
-    }
 }

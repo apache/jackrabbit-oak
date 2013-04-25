@@ -6,7 +6,7 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,35 +16,32 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
+import javax.annotation.CheckForNull;
+
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
-import org.apache.jackrabbit.oak.spi.commit.VisibleEditor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
-/**
- * Keeps existing IndexHooks updated. <br>
- * The existing index list is obtained via the IndexHookProvider.
- * 
- * @see IndexHook
- * @see IndexHookProvider
- * 
- */
-public class IndexHookManager implements EditorProvider {
+public class IndexUpdateProvider implements EditorProvider {
 
-    public static final IndexHookManager of(IndexHookProvider provider) {
-        return new IndexHookManager(provider);
+    private final IndexEditorProvider provider;
+
+    private final boolean async;
+
+    public IndexUpdateProvider(IndexEditorProvider provider) {
+        this(provider, false);
     }
 
-    private final IndexHookProvider provider;
-
-    protected IndexHookManager(IndexHookProvider provider) {
+    public IndexUpdateProvider(IndexEditorProvider provider, boolean async) {
         this.provider = provider;
+        this.async = async;
     }
 
-    @Override
-    public Editor getRootEditor(NodeState before, NodeState after,
-            NodeBuilder builder) {
-        return VisibleEditor.wrap(new IndexHookManagerDiff(provider, builder, after));
+    @Override @CheckForNull
+    public Editor getRootEditor(
+            NodeState before, NodeState after, NodeBuilder builder) {
+        return new IndexUpdate(provider, async, after, builder);
     }
+
 }

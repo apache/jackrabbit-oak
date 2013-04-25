@@ -28,9 +28,9 @@ import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
-import org.apache.jackrabbit.oak.plugins.index.CompositeIndexHookProvider;
-import org.apache.jackrabbit.oak.plugins.index.IndexHookManager;
-import org.apache.jackrabbit.oak.plugins.index.IndexHookProvider;
+import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
+import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.p2.Property2IndexHookProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
@@ -64,8 +64,8 @@ public class NodeTypeIndexTest {
         store = new KernelNodeStore(mk);
         // initialize node types & index definitions
         OakInitializer.initialize(store, new InitialContent(),
-                CompositeIndexHookProvider
-                        .compose(new ArrayList<IndexHookProvider>()));
+                CompositeIndexEditorProvider
+                        .compose(new ArrayList<IndexEditorProvider>()));
     }
 
     @Test
@@ -79,8 +79,8 @@ public class NodeTypeIndexTest {
         addFile(root, "file-1");
 
         branch.setRoot(root.getNodeState());
-        branch.merge(new EditorHook(IndexHookManager
-                .of(new Property2IndexHookProvider())));
+        branch.merge(new EditorHook(new IndexUpdateProvider(
+                new Property2IndexHookProvider())));
 
         NodeState rootState = store.getRoot();
         NodeTypeIndex index = new NodeTypeIndex();

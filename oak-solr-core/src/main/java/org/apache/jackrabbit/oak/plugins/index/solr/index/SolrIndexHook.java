@@ -26,7 +26,7 @@ import javax.annotation.Nonnull;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.index.IndexHook;
+import org.apache.jackrabbit.oak.plugins.index.IndexEditor;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -39,7 +39,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * {@link IndexHook} implementation that is responsible for keeping the
+ * {@link IndexEditor} implementation that is responsible for keeping the
  * {@link org.apache.jackrabbit.oak.plugins.index.solr.query.SolrQueryIndex} up to date
  * <p/>
  * This handles the status of the index update inside a flat list of {@link SolrInputDocument}s
@@ -51,7 +51,7 @@ import org.slf4j.LoggerFactory;
  * @see org.apache.jackrabbit.oak.plugins.index.solr.query.SolrQueryIndex
  * @see SolrIndexDiff
  */
-public class SolrIndexHook implements IndexHook, Closeable {
+public class SolrIndexHook implements IndexEditor, Closeable {
 
     private static final Logger log = LoggerFactory.getLogger(SolrNodeStateDiff.class);
 
@@ -232,19 +232,6 @@ public class SolrIndexHook implements IndexHook, Closeable {
             }
             throw new CommitFailedException("Solr", 1, "Index failure", e);
         }
-    }
-
-    @Override
-    public Editor reindex(NodeState state) throws CommitFailedException {
-        try {
-            close();
-            deleteByIdQueryBuilder.append(getPath()).append("*");
-            solrInputDocuments.addAll(docsFromState(getPath(), state));
-            apply();
-        } catch (IOException e) {
-            throw new CommitFailedException("Solr", 2, "Re-index failure", e);
-        }
-        return null;
     }
 
     @Override

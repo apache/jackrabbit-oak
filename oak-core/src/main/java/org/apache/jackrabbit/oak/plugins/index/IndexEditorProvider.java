@@ -16,44 +16,36 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
-import java.util.List;
+import javax.annotation.CheckForNull;
 
-import javax.annotation.Nonnull;
-
+import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 /**
- * Extension point for plugging in different kinds of IndexHook providers.
+ * Extension point for plugging in different kinds of IndexEditor providers.
  * 
- * @see IndexHook
+ * @see IndexEditor
  */
-public interface IndexHookProvider {
+public interface IndexEditorProvider {
 
     /**
      * 
      * Each provider knows how to produce a certain type of index. If the
      * <code>type</code> param is of an unknown value, the provider is expected
-     * to return an empty list.
+     * to return {@code null}.
      * 
      * <p>
-     * The <code>builder</code> must point to the repository content node, not
-     * the index content node. Each <code>IndexHook</code> implementation will
-     * have to drill down to its specific index content, and possibly deal with
-     * multiple indexes of the same type.
+     * The <code>builder</code> must points to the index definition node
+     * under which the indexer is expected to store the index content.
      * </p>
      * 
      * @param type
      *            the index type
      * @param builder
-     *            the node state builder of the content node that will be used
-     *            for updates
-     * @param root
-     *            root node state
-     * @return a list of index hooks of the given type
+     *            the node state builder of the index definition node that
+     *            will be used for updates
+     * @return index update editor, or {@code null} if type is unknown
      */
-    @Nonnull
-    List<? extends IndexHook> getIndexHooks(
-            String type, NodeBuilder builder, NodeState root);
-
+    @CheckForNull
+    Editor getIndexEditor(String type, NodeBuilder builder);
 }

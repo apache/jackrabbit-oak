@@ -25,7 +25,7 @@ import org.apache.jackrabbit.mk.api.MicroKernel;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.commit.JcrConflictHandler;
-import org.apache.jackrabbit.oak.plugins.index.IndexHookProvider;
+import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.p2.Property2IndexHookProvider;
 import org.apache.jackrabbit.oak.plugins.index.p2.Property2IndexProvider;
@@ -96,7 +96,7 @@ public class Jcr {
     }
 
     @Nonnull
-    public final Jcr with(@Nonnull IndexHookProvider indexHookProvider) {
+    public final Jcr with(@Nonnull IndexEditorProvider indexHookProvider) {
         oak.with(checkNotNull(indexHookProvider));
         return this;
     }

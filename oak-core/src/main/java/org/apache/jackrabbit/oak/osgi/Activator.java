@@ -50,7 +50,7 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer, Rep
 
     private final OsgiIndexProvider indexProvider = new OsgiIndexProvider();
 
-    private final OsgiIndexHookProvider indexHookProvider = new OsgiIndexHookProvider();
+    private final OsgiIndexEditorProvider indexEditorProvider = new OsgiIndexEditorProvider();
 
     private final OsgiEditorProvider validatorProvider = new OsgiEditorProvider();
 
@@ -65,7 +65,7 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer, Rep
         context = bundleContext;
 
         indexProvider.start(bundleContext);
-        indexHookProvider.start(bundleContext);
+        indexEditorProvider.start(bundleContext);
         validatorProvider.start(bundleContext);
         repositoryInitializerTracker.setObserver(this);
         repositoryInitializerTracker.start(bundleContext);
@@ -82,7 +82,7 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer, Rep
         // nodeStoreTracker.close();
         microKernelTracker.close();
         indexProvider.stop();
-        indexHookProvider.stop();
+        indexEditorProvider.stop();
         validatorProvider.stop();
         repositoryInitializerTracker.stop();
     }
@@ -100,13 +100,13 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer, Rep
                     new Properties()));
         } else if (service instanceof NodeStore) {
             NodeStore store = (NodeStore) service;
-            OakInitializer.initialize(store, repositoryInitializerTracker, indexHookProvider);
+            OakInitializer.initialize(store, repositoryInitializerTracker, indexEditorProvider);
             Oak oak = new Oak(store)
                 // FIXME: proper osgi setup for security provider (see OAK-17 and sub-tasks)
                 .with(new SecurityProviderImpl())
                 .with(validatorProvider)
                 .with(indexProvider)
-                .with(indexHookProvider);
+                .with(indexEditorProvider);
             services.put(reference, context.registerService(
                     ContentRepository.class.getName(),
                     oak.createContentRepository(),
@@ -136,7 +136,7 @@ public class Activator implements BundleActivator, ServiceTrackerCustomizer, Rep
             if (service instanceof ContentRepositoryImpl) {
                 ContentRepositoryImpl repository = (ContentRepositoryImpl) service;
                 OakInitializer.initialize(repository.getNodeStore(), ri,
-                        indexHookProvider);
+                        indexEditorProvider);
             }
         }
     }

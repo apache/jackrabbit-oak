@@ -16,37 +16,31 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.p2;
 
-import java.util.List;
-
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Service;
-import org.apache.jackrabbit.oak.plugins.index.IndexHook;
-import org.apache.jackrabbit.oak.plugins.index.IndexHookProvider;
+import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
+import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
-
-import com.google.common.collect.ImmutableList;
 
 /**
  * Service that provides PropertyIndex based IndexHooks.
  * 
  * @see Property2IndexHook
- * @see IndexHookProvider
+ * @see IndexEditorProvider
  * 
  */
 @Component
-@Service(IndexHookProvider.class)
-public class Property2IndexHookProvider implements IndexHookProvider {
+@Service(IndexEditorProvider.class)
+public class Property2IndexHookProvider implements IndexEditorProvider {
 
     public static final String TYPE = "p2";
 
     @Override
-    public List<? extends IndexHook> getIndexHooks(
-            String type, NodeBuilder builder, NodeState root) {
+    public Editor getIndexEditor(String type, NodeBuilder builder) {
         if (TYPE.equals(type)) {
-            return ImmutableList.of(new Property2IndexHook(builder, root));
+            return new Property2IndexHook(builder);
         }
-        return ImmutableList.of();
+        return null;
     }
 
 }
