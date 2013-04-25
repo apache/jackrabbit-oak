@@ -208,7 +208,7 @@ public class MongoDocumentStore implements DocumentStore {
     }
 
     @CheckForNull
-    private Map<String, Object> findAndModifiy(Collection collection,
+    private Map<String, Object> findAndModify(Collection collection,
                                                UpdateOp updateOp,
                                                boolean upsert,
                                                boolean checkConditions) {
@@ -307,7 +307,7 @@ public class MongoDocumentStore implements DocumentStore {
                                               UpdateOp update)
             throws MicroKernelException {
         log("createOrUpdate", update);
-        Map<String, Object> map = findAndModifiy(collection, update, true, false);
+        Map<String, Object> map = findAndModify(collection, update, true, false);
         log("createOrUpdate returns ", map);
         return map;
     }
@@ -317,7 +317,7 @@ public class MongoDocumentStore implements DocumentStore {
                                              UpdateOp update)
             throws MicroKernelException {
         log("findAndUpdate", update);
-        Map<String, Object> map = findAndModifiy(collection, update, false, true);
+        Map<String, Object> map = findAndModify(collection, update, false, true);
         log("findAndUpdate returns ", map);
         return map;
     }
@@ -350,9 +350,12 @@ public class MongoDocumentStore implements DocumentStore {
                         inserts[i].put(kv[0], value);
                         break;
                     }
-                    case REMOVE_MAP_ENTRY: {
+                    case REMOVE_MAP_ENTRY:
                         // nothing to do for new entries
-                    }
+                        break;
+                    case CONTAINS_MAP_ENTRY:
+                        // no effect
+                        break;
                 }
             }
         }

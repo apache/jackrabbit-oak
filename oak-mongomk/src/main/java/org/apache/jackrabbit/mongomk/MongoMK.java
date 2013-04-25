@@ -46,6 +46,7 @@ import org.apache.jackrabbit.mk.json.JsopTokenizer;
 import org.apache.jackrabbit.mk.json.JsopWriter;
 import org.apache.jackrabbit.mongomk.DocumentStore.Collection;
 import org.apache.jackrabbit.mongomk.Node.Children;
+import org.apache.jackrabbit.mongomk.Revision.RevisionComparator;
 import org.apache.jackrabbit.mongomk.blob.MongoBlobStore;
 import org.apache.jackrabbit.mongomk.util.Utils;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -105,7 +106,7 @@ public class MongoMK implements MicroKernel {
     private final BlobStore blobStore;
     
     /**
-     * The cluster node info.
+     * The cluster instance info.
      */
     private final ClusterNodeInfo clusterNodeInfo;
 
@@ -129,7 +130,11 @@ public class MongoMK implements MicroKernel {
     private final Cache<String, Node.Children> nodeChildrenCache;
 
     /**
-     * The unsaved last revisions.
+     * The unsaved last revisions. This contains the parents of all changed
+     * nodes, once those nodes are committed but the parent node itself wasn't
+     * committed yet. The parents are not immediately persisted as this would
+     * cause each commit to change all parents (including the root node), which
+     * would limit write scalability.
      * 
      * Key: path, value: revision.
      */
@@ -137,7 +142,7 @@ public class MongoMK implements MicroKernel {
             new ConcurrentHashMap<String, Revision>();
     
     /**
-     * The last known revision for each cluster node.
+     * The last known revision for each cluster instance.
      * 
      * Key: the machine id, value: revision.
      */
@@ -160,6 +165,11 @@ public class MongoMK implements MicroKernel {
     // need to be garbage collected (in-memory and on disk)
     private final Map<Revision, Revision> branchCommits
             = new ConcurrentHashMap<Revision, Revision>();
+    
+    /**
+     * The comparator for revisions.
+     */
+    private final RevisionComparator revisionComparator = new RevisionComparator();
     
     MongoMK(Builder builder) {
         this.store = builder.getDocumentStore();
@@ -290,7 +300,7 @@ public class MongoMK implements MicroKernel {
             Revision r = Revision.fromString(e.getValue());
             Revision last = lastKnownRevision.get(machineId);
             
-            if (last == null || last.compareRevisionTime(r) != 0) {
+            if (last == null || r.compareRevisionTime(last) > 0) {
                 // TODO invalidating the whole cache is not really needed,
                 // instead only those children that are cached could be checked
                 
@@ -415,17 +425,24 @@ public class MongoMK implements MicroKernel {
         }
         if (x.getClusterId() == this.clusterId && 
                 requestRevision.getClusterId() == this.clusterId) {
-            // both revisions were created by this cluster node: 
-            // compare timestamps only
+            // both revisions were created by this cluster instance: 
+            // compare timestamps and counters
             return requestRevision.compareRevisionTime(x) >= 0;
         }
         // TODO currently we only compare the timestamps
         return requestRevision.compareRevisionTime(x) >= 0;
     }
     
+    /**
+     * Checks that revision x is newer than another revision.
+     * 
+     * @param x the revision to check
+     * @param previous the presumed earlier revision
+     * @return true if x is newer
+     */
     boolean isRevisionNewer(@Nonnull Revision x, @Nonnull Revision previous) {
         // TODO currently we only compare the timestamps
-        return x.compareRevisionTime(previous) > 0;
+        return revisionComparator.compare(x, previous) > 0;
     }
 
     /**
@@ -1160,9 +1177,8 @@ public class MongoMK implements MicroKernel {
             }
             headRevision = newRevision();
             return headRevision.toString();
-        } else {
-            throw new MicroKernelException("Conflicting concurrent change");
         }
+        throw new MicroKernelException("Conflicting concurrent change");
     }
 
     @Override

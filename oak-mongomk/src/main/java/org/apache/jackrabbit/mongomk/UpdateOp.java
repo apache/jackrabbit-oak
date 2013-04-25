@@ -248,12 +248,12 @@ public class UpdateOp {
     /**
      * A MongoDB operation for a given key within a document. 
      */
-    static class Operation {
+    public static class Operation {
         
         /**
          * The MongoDB operation type.
          */
-        enum Type { 
+        public enum Type { 
             
             /**
              * Set the value. 
@@ -318,6 +318,7 @@ public class UpdateOp {
             case SET:
             case REMOVE_MAP_ENTRY:
             case SET_MAP:
+            case CONTAINS_MAP_ENTRY:
                 // nothing to do
                 break;
             case SET_MAP_ENTRY:
