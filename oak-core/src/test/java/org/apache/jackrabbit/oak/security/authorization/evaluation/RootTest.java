@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.evaluation;
 
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+
 import java.util.List;
 
 import com.google.common.collect.ImmutableList;
@@ -24,11 +27,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
-import org.junit.Ignore;
 import org.junit.Test;
-
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 
 /**
  * Testing {@link Root} with access control restrictions in place.
@@ -53,7 +52,6 @@ public class RootTest extends AbstractOakCoreTest {
         assertNull(testRoot.getTree("/a/bb"));
     }
 
-    @Ignore("OAK-766") // FIXME
     @Test
     public void testGetTree2() throws Exception {
         setupPermission("/a", testPrincipal, true, PrivilegeConstants.JCR_READ);
@@ -93,7 +91,6 @@ public class RootTest extends AbstractOakCoreTest {
         assertNull(location.getTree());
     }
 
-    @Ignore("OAK-766") // FIXME
     @Test
     public void testGetNodeLocation2() throws Exception {
         setupPermission("/a", testPrincipal, true, PrivilegeConstants.REP_READ_NODES);
@@ -154,7 +151,6 @@ public class RootTest extends AbstractOakCoreTest {
         }
     }
 
-    @Ignore("OAK-766") // FIXME
     @Test
     public void testGetPropertyLocation2() throws Exception {
         setupPermission("/", testPrincipal, true, PrivilegeConstants.REP_READ_PROPERTIES);
@@ -177,7 +173,6 @@ public class RootTest extends AbstractOakCoreTest {
         }
     }
 
-    @Ignore("OAK-766") // FIXME
     @Test
     public void testGetPropertyLocation3() throws Exception {
         setupPermission("/a", testPrincipal, true, PrivilegeConstants.REP_READ_PROPERTIES);
