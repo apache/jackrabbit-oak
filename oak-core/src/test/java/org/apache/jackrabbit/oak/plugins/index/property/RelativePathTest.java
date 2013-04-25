@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.index.p2;
+package org.apache.jackrabbit.oak.plugins.index.property;
 
 import java.util.List;
 
@@ -24,6 +24,8 @@ import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
+import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
@@ -56,8 +58,8 @@ public class RelativePathTest extends AbstractQueryTest {
                     }
                 })
                 .with(new OpenSecurityProvider())
-                .with(new Property2IndexProvider())
-                .with(new Property2IndexHookProvider())
+                .with(new PropertyIndexProvider())
+                .with(new PropertyIndexEditorProvider())
                 .createContentRepository();
     }
 

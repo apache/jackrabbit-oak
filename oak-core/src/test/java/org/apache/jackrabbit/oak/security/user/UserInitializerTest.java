@@ -35,8 +35,8 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
-import org.apache.jackrabbit.oak.plugins.index.p2.Property2IndexHookProvider;
-import org.apache.jackrabbit.oak.plugins.index.p2.Property2IndexProvider;
+import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.RegistrationEditorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
@@ -145,8 +145,8 @@ public class UserInitializerTest extends AbstractSecurityTest {
         ConfigurationParameters params = new ConfigurationParameters(ImmutableMap.of(UserConfiguration.PARAM_USER_OPTIONS, new ConfigurationParameters(userParams)));
         SecurityProvider sp = new SecurityProviderImpl(params);
         final ContentRepository repo = new Oak().with(new InitialContent())
-                .with(new Property2IndexHookProvider())
-                .with(new Property2IndexProvider())
+                .with(new PropertyIndexEditorProvider())
+                .with(new PropertyIndexProvider())
                 .with(new RegistrationEditorProvider())
                 .with(sp)
                 .createContentRepository();

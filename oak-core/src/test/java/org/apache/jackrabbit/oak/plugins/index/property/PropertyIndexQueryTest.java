@@ -14,10 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.index.p2;
+package org.apache.jackrabbit.oak.plugins.index.property;
 
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
+import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
@@ -26,16 +28,16 @@ import org.junit.Test;
 
 /**
  * Tests the query engine using the default index implementation: the
- * {@link Property2IndexProvider}
+ * {@link PropertyIndexProvider}
  */
-public class Property2IndexQueryTest extends AbstractQueryTest {
+public class PropertyIndexQueryTest extends AbstractQueryTest {
 
     @Override
     protected ContentRepository createRepository() {
         return new Oak().with(new InitialContent())
                 .with(new OpenSecurityProvider())
-                .with(new Property2IndexProvider())
-                .with(new Property2IndexHookProvider())
+                .with(new PropertyIndexProvider())
+                .with(new PropertyIndexEditorProvider())
                 .createContentRepository();
     }
 

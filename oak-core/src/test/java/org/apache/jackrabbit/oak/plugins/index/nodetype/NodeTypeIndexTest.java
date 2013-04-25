@@ -31,7 +31,7 @@ import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
-import org.apache.jackrabbit.oak.plugins.index.p2.Property2IndexHookProvider;
+import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
@@ -80,7 +80,7 @@ public class NodeTypeIndexTest {
 
         branch.setRoot(root.getNodeState());
         branch.merge(new EditorHook(new IndexUpdateProvider(
-                new Property2IndexHookProvider())));
+                new PropertyIndexEditorProvider())));
 
         NodeState rootState = store.getRoot();
         NodeTypeIndex index = new NodeTypeIndex();

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.index.p2;
+package org.apache.jackrabbit.oak.plugins.index.property;
 
 import static junit.framework.Assert.assertNotNull;
 import static junit.framework.Assert.assertNull;
@@ -31,6 +31,8 @@ import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditor;
+import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexLookup;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
@@ -47,7 +49,7 @@ import com.google.common.collect.Sets;
 /**
  * Test the Property2 index mechanism.
  */
-public class Property2IndexTest {
+public class PropertyIndexTest {
 
     private static final int MANY = 100;
 
@@ -75,13 +77,13 @@ public class Property2IndexTest {
         }
         NodeState after = builder.getNodeState();
 
-        EditorDiff.process(new Property2IndexHook(builder), before, after);
+        EditorDiff.process(new PropertyIndexEditor(builder), before, after);
         NodeState indexed = builder.getNodeState();
 
         FilterImpl f = createFilter(indexed, NT_BASE);
 
         // Query the index
-        Property2IndexLookup lookup = new Property2IndexLookup(indexed);
+        PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
         assertEquals(ImmutableSet.of("a", "b"), find(lookup, "foo", "abc", f));
         assertEquals(ImmutableSet.of("b"), find(lookup, "foo", "def", f));
         assertEquals(ImmutableSet.of(), find(lookup, "foo", "ghi", f));
@@ -95,7 +97,7 @@ public class Property2IndexTest {
         assertTrue("cost: " + cost, cost >= MANY);
     }
 
-    private static Set<String> find(Property2IndexLookup lookup, String name,
+    private static Set<String> find(PropertyIndexLookup lookup, String name,
             String value, Filter filter) {
         return Sets.newHashSet(lookup.query(filter, name, value == null ? null
                 : PropertyValues.newString(value)));
@@ -129,13 +131,13 @@ public class Property2IndexTest {
         NodeState after = builder.getNodeState();
 
         // Add an index
-        EditorDiff.process(new Property2IndexHook(builder), before, after);
+        EditorDiff.process(new PropertyIndexEditor(builder), before, after);
         NodeState indexed = builder.getNodeState();
 
         FilterImpl f = createFilter(indexed, NT_BASE);
 
         // Query the index
-        Property2IndexLookup lookup = new Property2IndexLookup(indexed);
+        PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
         assertEquals(ImmutableSet.of("a", "b"), find(lookup, "foo", "abc", f));
         assertEquals(ImmutableSet.of("b"), find(lookup, "foo", "def", f));
         assertEquals(ImmutableSet.of(), find(lookup, "foo", "ghi", f));
@@ -190,13 +192,13 @@ public class Property2IndexTest {
                 .setProperty("foo", Arrays.asList("abc", "def"), Type.STRINGS);
         NodeState after = builder.getNodeState();
 
-        EditorDiff.process(new Property2IndexHook(builder), before, after);
+        EditorDiff.process(new PropertyIndexEditor(builder), before, after);
         NodeState indexed = builder.getNodeState();
 
         FilterImpl f = createFilter(indexed, "nt:unstructured");
 
         // Query the index
-        Property2IndexLookup lookup = new Property2IndexLookup(indexed);
+        PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
         assertEquals(ImmutableSet.of("a", "b"), find(lookup, "foo", "abc", f));
         assertEquals(ImmutableSet.of("b"), find(lookup, "foo", "def", f));
         assertEquals(ImmutableSet.of(), find(lookup, "foo", "ghi", f));
@@ -256,13 +258,13 @@ public class Property2IndexTest {
         NodeState after = builder.getNodeState();
 
         // Add an index
-        EditorDiff.process(new Property2IndexHook(builder), before, after);
+        EditorDiff.process(new PropertyIndexEditor(builder), before, after);
         NodeState indexed = builder.getNodeState();
 
         FilterImpl f = createFilter(after, "nt:unstructured");
 
         // Query the index
-        Property2IndexLookup lookup = new Property2IndexLookup(indexed);
+        PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
         assertEquals(ImmutableSet.of("a", "b"), find(lookup, "foo", "abc", f));
         assertEquals(ImmutableSet.of("b"), find(lookup, "foo", "def", f));
         assertEquals(ImmutableSet.of(), find(lookup, "foo", "ghi", f));
@@ -298,7 +300,7 @@ public class Property2IndexTest {
         NodeState after = builder.getNodeState();
 
         CommitFailedException expected =
-                EditorDiff.process(new Property2IndexHook(builder), before, after);
+                EditorDiff.process(new PropertyIndexEditor(builder), before, after);
         assertNotNull("Unique constraint should be respected", expected);
     }
 
@@ -316,7 +318,7 @@ public class Property2IndexTest {
                 .setProperty("unique", "true")
                 .setProperty("propertyNames", Arrays.asList("foo"),
                         Type.NAMES)
-                .setProperty(Property2IndexHook.declaringNodeTypes,
+                .setProperty(PropertyIndexEditor.declaringNodeTypes,
                         Arrays.asList("typeFoo"), Type.NAMES);
         NodeState before = builder.getNodeState();
         builder = before.builder();
@@ -327,7 +329,7 @@ public class Property2IndexTest {
         NodeState after = builder.getNodeState();
 
         CommitFailedException unexpected = EditorDiff.process(
-                new Property2IndexHook(builder), before, after);
+                new PropertyIndexEditor(builder), before, after);
         assertNull(unexpected);
     }
 
@@ -345,7 +347,7 @@ public class Property2IndexTest {
                 .setProperty("unique", "true")
                 .setProperty("propertyNames", Arrays.asList("foo"),
                         Type.NAMES)
-                .setProperty(Property2IndexHook.declaringNodeTypes,
+                .setProperty(PropertyIndexEditor.declaringNodeTypes,
                         Arrays.asList("typeFoo"), Type.NAMES);
         NodeState before = builder.getNodeState();
         builder = before.builder();
@@ -356,7 +358,7 @@ public class Property2IndexTest {
         NodeState after = builder.getNodeState();
 
         CommitFailedException expected = EditorDiff.process(
-                new Property2IndexHook(builder), before, after);
+                new PropertyIndexEditor(builder), before, after);
         assertNotNull("Unique constraint should be respected", expected);
     }
 
@@ -374,7 +376,7 @@ public class Property2IndexTest {
                 .setProperty("unique", "true")
                 .setProperty("propertyNames", Arrays.asList("foo"),
                         Type.NAMES)
-                .setProperty(Property2IndexHook.declaringNodeTypes,
+                .setProperty(PropertyIndexEditor.declaringNodeTypes,
                         Arrays.asList("typeFoo"), Type.NAMES);
         builder.child("a").setProperty("jcr:primaryType", "typeFoo", Type.NAME)
                 .setProperty("foo", "abc");
@@ -386,7 +388,7 @@ public class Property2IndexTest {
         NodeState after = builder.getNodeState();
 
         CommitFailedException unexpected = EditorDiff.process(
-                new Property2IndexHook(builder), before, after);
+                new PropertyIndexEditor(builder), before, after);
         assertNull(unexpected);
     }
 
