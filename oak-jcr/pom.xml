@@ -257,6 +257,12 @@
       org.apache.jackrabbit.oak.jcr.security.authorization.ReadTest#testReadDenied                           <!-- OAK-766 -->
       org.apache.jackrabbit.oak.jcr.security.authorization.WriteTest#testWriteIfReadingParentIsDenied        <!-- OAK-766 -->
       org.apache.jackrabbit.oak.jcr.security.authorization.WriteTest#testRemoveNodeWithInvisibleNonRemovableChild   <!-- OAK-51 -->
+      org.apache.jackrabbit.oak.jcr.security.authorization.NodeTypeManagementTest#testRemoveMixin                   <!-- OAK-767 -->
+      org.apache.jackrabbit.oak.jcr.security.authorization.NodeTypeManagementTest#testRemoveMixinWithoutPermission  <!-- OAK-767 -->
+      org.apache.jackrabbit.oak.jcr.security.authorization.NodeTypeManagementTest#testCopy                          <!-- OAK-711 -->
+      org.apache.jackrabbit.oak.jcr.security.authorization.NodeTypeManagementTest#testWorkspaceMove                 <!-- OAK-711 -->
+      org.apache.jackrabbit.oak.jcr.security.authorization.NodeTypeManagementTest#testSessionMove                   <!-- OAK-711 -->
+      org.apache.jackrabbit.oak.jcr.security.authorization.NodeTypeManagementTest#testWorkspaceImportXML            <!-- OAK-773 -->
     </known.issues>
   </properties>
 

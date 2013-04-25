@@ -47,8 +47,6 @@ class PermissionValidator extends DefaultValidator {
 
     /* TODO
      * - OAK-710: Renaming nodes or Move with same parent are reflected as remove+add -> needs special handling
-     * - OAK-711: Proper handling of jcr:nodeTypeManagement privilege.
-     * - OAK-785: compatibility mode for user-mgt permission
      */
 
     private final Tree parentBefore;
@@ -223,10 +221,21 @@ class PermissionValidator extends DefaultValidator {
         }
         String name = propertyState.getName();
         long perm;
-        if (JcrConstants.JCR_PRIMARYTYPE.equals(name) || JcrConstants.JCR_MIXINTYPES.equals(name)) {
-            // FIXME: OAK-711 (distinguish between autocreated and user-supplied modification (?))
-            // perm = Permissions.NODE_TYPE_MANAGEMENT;
-            perm = defaultPermission;
+        if (JcrConstants.JCR_PRIMARYTYPE.equals(name)) {
+            if (defaultPermission == Permissions.MODIFY_PROPERTY) {
+                perm = Permissions.NODE_TYPE_MANAGEMENT;
+            } else {
+                // can't determine if this was  a user supplied modification of
+                // the primary type -> omit permission check.
+                // Node#addNode(String, String) and related methods need to
+                // perform the permission check (as it used to be in jackrabbit 2.x).
+                perm = Permissions.NO_PERMISSION;
+            }
+        } else if (JcrConstants.JCR_MIXINTYPES.equals(name)) {
+            perm = Permissions.NODE_TYPE_MANAGEMENT;
+        } else if (JcrConstants.JCR_UUID.equals(name)) {
+            // TODO : jcr:uuid is never set using a method on JCR API -> omit permission check
+            perm = Permissions.NO_PERMISSION;
         } else if (isLockProperty(name)) {
             perm = Permissions.LOCK_MANAGEMENT;
         } else if (VersionConstants.VERSION_PROPERTY_NAMES.contains(name)) {

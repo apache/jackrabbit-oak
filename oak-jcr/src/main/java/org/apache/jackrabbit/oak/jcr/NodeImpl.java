@@ -70,6 +70,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Tree.Status;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.IdentifierManager;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
@@ -79,6 +80,7 @@ import org.apache.jackrabbit.oak.plugins.nodetype.DefinitionProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.EffectiveNodeType;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.util.TODO;
 import org.apache.jackrabbit.value.ValueHelper;
 import org.slf4j.Logger;
@@ -244,6 +246,13 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                     if (ntName == null) {
                         throw new ConstraintViolationException(
                                 "no matching child node definition found for " + relPath);
+                    }
+                } else {
+                    // check for NODE_TYPE_MANAGEMENT permission here as we cannot
+                    // distinguish between user-supplied and system-generated
+                    // modification of that property in the PermissionValidator
+                    if (!hasNtMgtPermission(JcrConstants.JCR_PRIMARYTYPE, ntName)) {
+                        throw new AccessDeniedException("Access denied.");
                     }
                 }
 
@@ -914,8 +923,10 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         perform(new ItemWriteOperation<Void>() {
             @Override
             public Void perform() throws RepositoryException {
-                if (!isNodeType(mixinName)) {
-                    throw new NoSuchNodeTypeException();
+                PropertyDelegate propDlg = dlg.getPropertyOrNull(JcrConstants.JCR_MIXINTYPES);
+                String oakName = getOakName(mixinName);
+                if (propDlg == null || !ImmutableSet.copyOf(propDlg.getPropertyState().getValue(Type.NAMES)).contains(oakName)) {
+                    throw new NoSuchNodeTypeException("Mixin " + mixinName +" not contained in " + this);
                 }
 
                 // TODO: implement #removeMixin (OAK-767)
@@ -929,9 +940,17 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         return perform(new ItemReadOperation<Boolean>() {
             @Override
             public Boolean perform() throws RepositoryException {
+
                 // TODO: figure out the right place for this check
-                getNodeTypeManager().getNodeType(mixinName); // throws on not found
+                NodeType nt = getNodeTypeManager().getNodeType(mixinName); // throws on not found
+                if (!nt.isMixin()) {
+                    return false;
+                }
                 // TODO: END
+
+                if (!hasNtMgtPermission(JcrConstants.JCR_MIXINTYPES, mixinName)) {
+                    return false;
+                }
 
                 return getEffectiveNodeType().supportsMixin(mixinName);
             }
@@ -1496,6 +1515,16 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                 }
             }
         });
+    }
+
+    private boolean hasNtMgtPermission(String propertyName, String ntName) throws RepositoryException {
+        PropertyState property;
+        if (JcrConstants.JCR_MIXINTYPES.equals(propertyName)) {
+            property = PropertyStates.createProperty(propertyName, Collections.singleton(getOakName(ntName)), Type.NAMES);
+        } else {
+            property = PropertyStates.createProperty(propertyName, getOakName(ntName), Type.NAME);
+        }
+        return sessionContext.getPermissionProvider().isGranted(dlg.getTree(), property, Permissions.NODE_TYPE_MANAGEMENT);
     }
 
 }
