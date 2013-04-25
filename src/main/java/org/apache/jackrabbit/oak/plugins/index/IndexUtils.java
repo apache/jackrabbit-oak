@@ -24,7 +24,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.plugins.index.p2.Property2IndexHookProvider;
+import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -84,7 +84,7 @@ public class IndexUtils {
                                              @Nullable Collection<String> declaringNodeTypeNames) {
         NodeBuilder entry = index.child(indexDefName)
                 .setProperty(JCR_PRIMARYTYPE, INDEX_DEFINITIONS_NODE_TYPE, NAME)
-                .setProperty(TYPE_PROPERTY_NAME, Property2IndexHookProvider.TYPE)
+                .setProperty(TYPE_PROPERTY_NAME, PropertyIndexEditorProvider.TYPE)
                 .setProperty(REINDEX_PROPERTY_NAME, reindex);
         if (unique) {
             entry.setProperty(UNIQUE_PROPERTY_NAME, unique);
@@ -111,7 +111,7 @@ public class IndexUtils {
                                              @Nonnull String[] propertyNames,
                                              @Nullable String[] declaringNodeTypeNames) {
         NodeUtil entry = indexNode.getOrAddChild(indexDefName, INDEX_DEFINITIONS_NODE_TYPE);
-        entry.setString(TYPE_PROPERTY_NAME, Property2IndexHookProvider.TYPE);
+        entry.setString(TYPE_PROPERTY_NAME, PropertyIndexEditorProvider.TYPE);
         entry.setBoolean(REINDEX_PROPERTY_NAME, true);
         if (unique) {
             entry.setBoolean(UNIQUE_PROPERTY_NAME, true);

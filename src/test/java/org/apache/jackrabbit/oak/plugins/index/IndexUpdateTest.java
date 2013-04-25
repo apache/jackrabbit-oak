@@ -31,8 +31,8 @@ import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.index.p2.Property2IndexHookProvider;
-import org.apache.jackrabbit.oak.plugins.index.p2.Property2IndexLookup;
+import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexLookup;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
@@ -79,7 +79,7 @@ public class IndexUpdateTest {
         NodeState after = builder.getNodeState();
 
         IndexUpdateProvider p = new IndexUpdateProvider(
-                new Property2IndexHookProvider());
+                new PropertyIndexEditorProvider());
         EditorHook hook = new EditorHook(p);
         NodeState indexed = hook.processCommit(before, after);
 
@@ -88,10 +88,10 @@ public class IndexUpdateTest {
         checkPathExists(indexed, "newchild", "other", "oak:index", "subIndex",
                 ":index");
 
-        Property2IndexLookup lookup = new Property2IndexLookup(indexed);
+        PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
         assertEquals(ImmutableSet.of("testRoot"), find(lookup, "foo", "abc"));
 
-        Property2IndexLookup lookupChild = new Property2IndexLookup(indexed
+        PropertyIndexLookup lookupChild = new PropertyIndexLookup(indexed
                 .getChildNode("newchild").getChildNode("other"));
         assertEquals(ImmutableSet.of("testChild"),
                 find(lookupChild, "foo", "xyz"));
@@ -117,7 +117,7 @@ public class IndexUpdateTest {
         NodeState after = builder.getNodeState();
 
         IndexUpdateProvider p = new IndexUpdateProvider(
-                new Property2IndexHookProvider());
+                new PropertyIndexEditorProvider());
         EditorHook hook = new EditorHook(p);
         NodeState indexed = hook.processCommit(before, after);
 
@@ -129,7 +129,7 @@ public class IndexUpdateTest {
         assertFalse(ps.getValue(Type.BOOLEAN));
 
         // next, lookup
-        Property2IndexLookup lookup = new Property2IndexLookup(indexed);
+        PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
         assertEquals(ImmutableSet.of("testRoot"), find(lookup, "foo", "abc"));
     }
 
@@ -154,7 +154,7 @@ public class IndexUpdateTest {
         NodeState after = builder.getNodeState();
 
         IndexUpdateProvider p = new IndexUpdateProvider(
-                new Property2IndexHookProvider());
+                new PropertyIndexEditorProvider());
         EditorHook hook = new EditorHook(p);
         NodeState indexed = hook.processCommit(before, after);
 
@@ -166,7 +166,7 @@ public class IndexUpdateTest {
         assertFalse(ps.getValue(Type.BOOLEAN));
 
         // next, lookup
-        Property2IndexLookup lookup = new Property2IndexLookup(indexed);
+        PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
         assertEquals(ImmutableSet.of("testRoot"), find(lookup, "foo", "abc"));
     }
 
@@ -185,7 +185,7 @@ public class IndexUpdateTest {
         NodeState after = builder.getNodeState();
 
         IndexUpdateProvider p = new IndexUpdateProvider(
-                new Property2IndexHookProvider());
+                new PropertyIndexEditorProvider());
         EditorHook hook = new EditorHook(p);
         NodeState indexed = hook.processCommit(before, after);
 
@@ -195,7 +195,7 @@ public class IndexUpdateTest {
                 ":index");
     }
 
-    private Set<String> find(Property2IndexLookup lookup, String name,
+    private Set<String> find(PropertyIndexLookup lookup, String name,
             String value) {
         NodeState system = root.getChildNode(JCR_SYSTEM);
         NodeState types = system.getChildNode(JCR_NODE_TYPES);

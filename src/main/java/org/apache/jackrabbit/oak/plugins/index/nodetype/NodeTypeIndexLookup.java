@@ -19,14 +19,14 @@ package org.apache.jackrabbit.oak.plugins.index.nodetype;
 import static org.apache.jackrabbit.oak.spi.query.PropertyValues.newName;
 
 import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.oak.plugins.index.p2.Property2IndexLookup;
+import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexLookup;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import com.google.common.collect.Iterables;
 
 /**
- * <code>NodeTypeIndexLookup</code> uses {@link Property2IndexLookup} internally
+ * <code>NodeTypeIndexLookup</code> uses {@link PropertyIndexLookup} internally
  * for cost calculation and queries.
  */
 class NodeTypeIndexLookup implements JcrConstants {
@@ -46,7 +46,7 @@ class NodeTypeIndexLookup implements JcrConstants {
      *         otherwise.
      */
     public boolean isIndexed(String path) {
-        Property2IndexLookup lookup = new Property2IndexLookup(root);
+        PropertyIndexLookup lookup = new PropertyIndexLookup(root);
         if (lookup.isIndexed(JCR_PRIMARYTYPE, path, null)
                 && lookup.isIndexed(JCR_MIXINTYPES, path, null)) {
             return true;
@@ -66,7 +66,7 @@ class NodeTypeIndexLookup implements JcrConstants {
     }
 
     public double getCost(Filter filter) {
-        Property2IndexLookup lookup = new Property2IndexLookup(root);
+        PropertyIndexLookup lookup = new PropertyIndexLookup(root);
         return lookup.getCost(null, JCR_PRIMARYTYPE, newName(filter.getPrimaryTypes()))
                 + lookup.getCost(null, JCR_MIXINTYPES, newName(filter.getMixinTypes()));
     }
@@ -79,7 +79,7 @@ class NodeTypeIndexLookup implements JcrConstants {
      * @return the matched paths (the result might contain duplicate entries)
      */
     public Iterable<String> query(Filter filter) {
-        Property2IndexLookup lookup = new Property2IndexLookup(root);
+        PropertyIndexLookup lookup = new PropertyIndexLookup(root);
         return Iterables.concat(
                 lookup.query(filter, JCR_PRIMARYTYPE, newName(filter.getPrimaryTypes())),
                 lookup.query(filter, JCR_MIXINTYPES, newName(filter.getMixinTypes())));

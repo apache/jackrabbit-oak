@@ -37,8 +37,8 @@ import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.plugins.index.p2.Property2IndexHookProvider;
-import org.apache.jackrabbit.oak.plugins.index.p2.Property2IndexProvider;
+import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.RegistrationEditorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
@@ -70,8 +70,8 @@ public abstract class AbstractSecurityTest {
     public void before() throws Exception {
         contentRepository = new Oak()
                 .with(new InitialContent())
-                .with(new Property2IndexHookProvider())
-                .with(new Property2IndexProvider())
+                .with(new PropertyIndexEditorProvider())
+                .with(new PropertyIndexProvider())
                 .with(new RegistrationEditorProvider())
                 .with(getSecurityProvider())
                 .createContentRepository();
