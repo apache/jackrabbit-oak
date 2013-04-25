@@ -115,6 +115,16 @@ public class UserManagementTest extends AbstractEvaluationTest {
     @Test
     public void testCreateUser() throws Exception {
         UserManager testUserMgr = getUserManager(testSession);
+        modify("/", PrivilegeConstants.REP_USER_MANAGEMENT, true);
+
+        // creating user should succeed
+        testUserMgr.createUser(userId, "pw");
+        testSession.save();
+    }
+
+    @Test
+    public void testCreateUser2() throws Exception {
+        UserManager testUserMgr = getUserManager(testSession);
         Privilege[] privs = privilegesFromNames(new String[] {PrivilegeConstants.REP_USER_MANAGEMENT, PrivilegeConstants.REP_WRITE});
         allow("/", privs);
 
@@ -125,6 +135,16 @@ public class UserManagementTest extends AbstractEvaluationTest {
 
     @Test
     public void testCreateGroup() throws Exception {
+        UserManager testUserMgr = getUserManager(testSession);
+        modify("/", PrivilegeConstants.REP_USER_MANAGEMENT, true);
+
+        // creating group should succeed
+        Group gr = testUserMgr.createGroup(groupId);
+        testSession.save();
+    }
+
+    @Test
+    public void testCreateGroup2() throws Exception {
         UserManager testUserMgr = getUserManager(testSession);
         Privilege[] privs = privilegesFromNames(new String[] {PrivilegeConstants.REP_USER_MANAGEMENT, PrivilegeConstants.REP_WRITE});
         allow("/", privs);
