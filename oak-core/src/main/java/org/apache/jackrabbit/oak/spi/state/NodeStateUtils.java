@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.spi.state;
 
 import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -37,8 +38,8 @@ public final class NodeStateUtils {
      * @param name the node or property name
      * @return true if the item is hidden
      */
-    public static boolean isHidden(String name) {
-        return name.startsWith(":");
+    public static boolean isHidden(@Nonnull String name) {
+        return !name.isEmpty() && name.charAt(0) == ':';
     }
 
     @CheckForNull
