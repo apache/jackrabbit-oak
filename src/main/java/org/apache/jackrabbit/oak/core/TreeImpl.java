@@ -197,7 +197,7 @@ public class TreeImpl implements Tree {
     @Override
     public boolean isConnected() {
         enterNoStateCheck();
-        if (parent == null || nodeBuilder.isConnected()) {
+        if (parent == null || nodeBuilder.exists()) {
             return true;
         }
 
@@ -206,16 +206,9 @@ public class TreeImpl implements Tree {
 
     private boolean reconnect() {
         if (parent != null && parent.reconnect()) {
-            if (parent.nodeBuilder.hasChildNode(name)) {
-                nodeBuilder = parent.nodeBuilder.child(name);
-            }
-            else {
-                // make this builder disconnected from its new parent
-                nodeBuilder = parent.nodeBuilder.child(name);
-                parent.nodeBuilder.removeChildNode(name);
-            }
+            nodeBuilder = parent.nodeBuilder.getChildNode(name);
         }
-        return nodeBuilder.isConnected();
+        return nodeBuilder.exists();
     }
 
     @Override
@@ -401,11 +394,7 @@ public class TreeImpl implements Tree {
 
     @Override
     public String toString() {
-        if (nodeBuilder.isConnected()) {
-            return getPathInternal() + ": " + getNodeState();
-        } else {
-            return "disconnected";
-        }
+        return getPathInternal() + ": " + getNodeState();
     }
 
     //-----------------------------------------------------------< internal >---

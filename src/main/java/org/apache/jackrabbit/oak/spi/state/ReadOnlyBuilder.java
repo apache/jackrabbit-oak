@@ -49,11 +49,6 @@ public class ReadOnlyBuilder implements NodeBuilder {
     }
 
     @Override
-    public boolean isConnected() {
-        return true;
-    }
-
-    @Override
     public boolean isModified() {
         return false;
     }

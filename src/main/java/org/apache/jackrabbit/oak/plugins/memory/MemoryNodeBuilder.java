@@ -132,12 +132,6 @@ public class MemoryNodeBuilder implements NodeBuilder {
         return this == root;
     }
 
-    private void checkConnected() {
-        if (!isConnected()) {
-            throw new IllegalStateException("This builder is not connected: " + name);
-        }
-    }
-
     /**
      * Update the base state of this builder by recursively retrieving it
      * from the parent builder.
@@ -176,6 +170,10 @@ public class MemoryNodeBuilder implements NodeBuilder {
      */
     @Nonnull
     private MutableNodeState write() {
+        // TODO avoid traversing the parent hierarchy twice: once for exist and once for write
+        if (!exists()) {
+            throw new IllegalStateException("This builder does not exist: " + name);
+        }
         return write(root.headRevision + 1);
     }
 
@@ -217,7 +215,6 @@ public class MemoryNodeBuilder implements NodeBuilder {
 
     @Override
     public NodeState getNodeState() {
-        checkConnected();
         return read().snapshot();
     }
 
@@ -228,24 +225,16 @@ public class MemoryNodeBuilder implements NodeBuilder {
 
     @Override
     public boolean exists() {
-        checkConnected();
         return read().exists();
     }
 
     @Override
     public boolean isNew() {
-        checkConnected();
         return !isRoot() && !parent.base().hasChildNode(name) && parent.hasChildNode(name);
     }
 
     @Override
-    public boolean isConnected() {
-        return isRoot() || parent.read().isConnected(name);
-    }
-
-    @Override
     public boolean isModified() {
-        checkConnected();
         return read().isModified(base());
     }
 
@@ -260,19 +249,16 @@ public class MemoryNodeBuilder implements NodeBuilder {
 
     @Override
     public long getChildNodeCount() {
-        checkConnected();
         return read().getChildNodeCount();
     }
 
     @Override
     public Iterable<String> getChildNodeNames() {
-        checkConnected();
         return read().getChildNodeNames();
     }
 
     @Override
     public boolean hasChildNode(String name) {
-        checkConnected();
         return read().hasChildNode(checkNotNull(name));
     }
 
@@ -287,7 +273,6 @@ public class MemoryNodeBuilder implements NodeBuilder {
 
     @Override
     public NodeBuilder getChildNode(String name) {
-        checkConnected();
         return createChildBuilder(checkNotNull(name));
     }
 
@@ -298,7 +283,6 @@ public class MemoryNodeBuilder implements NodeBuilder {
 
     @Override
     public NodeBuilder setChildNode(String name, NodeState state) {
-        checkConnected();
         write().setChildNode(checkNotNull(name), checkNotNull(state));
         MemoryNodeBuilder builder = createChildBuilder(name);
         updated();
@@ -307,7 +291,6 @@ public class MemoryNodeBuilder implements NodeBuilder {
 
     @Override
     public NodeBuilder removeChildNode(String name) {
-        checkConnected();
         if (write().removeChildNode(checkNotNull(name))) {
             updated();
         }
@@ -316,25 +299,21 @@ public class MemoryNodeBuilder implements NodeBuilder {
 
     @Override
     public long getPropertyCount() {
-        checkConnected();
         return read().getPropertyCount();
     }
 
     @Override
     public Iterable<? extends PropertyState> getProperties() {
-        checkConnected();
         return read().getProperties();
     }
 
     @Override
     public boolean hasProperty(String name) {
-        checkConnected();
         return read().hasProperty(checkNotNull(name));
     }
 
     @Override
     public PropertyState getProperty(String name) {
-        checkConnected();
         return read().getProperty(checkNotNull(name));
     }
 
@@ -368,7 +347,6 @@ public class MemoryNodeBuilder implements NodeBuilder {
 
     @Override
     public NodeBuilder setProperty(PropertyState property) {
-        checkConnected();
         write().setProperty(checkNotNull(property));
         updated();
         return this;
@@ -388,7 +366,6 @@ public class MemoryNodeBuilder implements NodeBuilder {
 
     @Override
     public NodeBuilder removeProperty(String name) {
-        checkConnected();
         if (write().removeProperty(checkNotNull(name))) {
             updated();
         }

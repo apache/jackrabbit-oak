@@ -32,7 +32,6 @@ import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class MemoryNodeBuilderTest {
@@ -107,25 +106,6 @@ public class MemoryNodeBuilderTest {
     }
 
     @Test
-    public void testReadOnRemoveNode() {
-        for (String name : new String[] {"x", "new"}) {
-            NodeBuilder root = base.builder();
-            NodeBuilder child = root.child(name);
-
-            root.removeChildNode(name);
-            try {
-                child.getChildNodeCount();
-                fail();
-            } catch (IllegalStateException e) {
-                // expected
-            }
-
-            root.child(name);
-            assertEquals(0, child.getChildNodeCount()); // reconnect!
-        }
-    }
-
-    @Test
     public void testWriteOnRemoveNode() {
         for (String name : new String[] {"x", "new"}) {
             NodeBuilder root = base.builder();
@@ -187,21 +167,24 @@ public class MemoryNodeBuilderTest {
         assertEquals(x.getBaseState(), x.getNodeState());
     }
 
-    @Test(expected = IllegalStateException.class)
-    public void testReadOnRemovedNode() {
+    @Test
+    public void transitiveRemove() {
         NodeBuilder root = base.builder();
-        NodeBuilder m = root.child("m");
-        NodeBuilder n = m.child("n");
+        NodeBuilder x = root.getChildNode("x");
+        NodeBuilder q = x.getChildNode("q");
 
-        root.removeChildNode("m");
-        n.hasChildNode("any");
+        assertTrue(x.exists());
+        assertTrue(q.exists());
+
+        root.removeChildNode("x");
+        assertFalse(q.exists());
+        assertFalse(x.exists());
     }
 
     @Test
     public void testExistingStatus() {
         NodeBuilder root = base.builder();
         NodeBuilder x = root.child("x");
-        assertTrue(x.isConnected());
         assertTrue(x.exists());
         assertFalse(x.isNew());
         assertFalse(x.isModified());
@@ -212,7 +195,6 @@ public class MemoryNodeBuilderTest {
         NodeBuilder root = base.builder();
         NodeBuilder x = root.child("x");
         x.setProperty("p", "pValue");
-        assertTrue(x.isConnected());
         assertTrue(x.exists());
         assertFalse(x.isNew());
         assertTrue(x.isModified());
@@ -223,26 +205,15 @@ public class MemoryNodeBuilderTest {
         NodeBuilder root = base.builder();
         NodeBuilder x = root.child("x");
         root.removeChildNode("x");
-        assertFalse(x.isConnected());
-        try {
-            assertTrue(x.exists());
-            fail();
-        } catch (IllegalStateException expected) {}
-        try {
-            assertFalse(x.isNew());
-            fail();
-        } catch (IllegalStateException expected) {}
-        try {
-            assertFalse(x.isModified());
-            fail();
-        } catch (IllegalStateException expected) {}
+        assertFalse(x.exists());
+        assertFalse(x.isNew());
+        assertFalse(x.isModified());
     }
 
     @Test
     public void testNewStatus() {
         NodeBuilder root = base.builder();
         NodeBuilder n = root.child("n");
-        assertTrue(n.isConnected());
         assertTrue(n.exists());
         assertTrue(n.isNew());
         assertFalse(n.isModified());
@@ -260,15 +231,8 @@ public class MemoryNodeBuilderTest {
     public void getNonExistingChildTest() {
         NodeBuilder rootBuilder = base.builder();
         NodeBuilder any = rootBuilder.getChildNode("any");
-        assertFalse(any.isConnected());
-        try {
-            any.getChildNode("any");
-            fail();
-        } catch (IllegalStateException expected) {}
-        try {
-            any.exists();
-            fail();
-        } catch (IllegalStateException expected) {}
+        assertFalse(any.getChildNode("other").exists());
+        assertFalse(any.exists());
         try {
             any.setChildNode("any");
             fail();
@@ -348,7 +312,6 @@ public class MemoryNodeBuilderTest {
     }
 
     @Test
-    @Ignore("OAK-781")
     public void modifyChildNodeOfNonExistingNode() {
         NodeBuilder rootBuilder = EMPTY_NODE.builder();
 
@@ -448,7 +411,6 @@ public class MemoryNodeBuilderTest {
     }
 
     @Test
-    @Ignore("OAK-781")
     public void navigateNonExistingNode() {
         NodeBuilder rootBuilder = EMPTY_NODE.builder();
 
@@ -470,7 +432,6 @@ public class MemoryNodeBuilderTest {
         NodeBuilder cBuilder = bBuilder.getChildNode("c");
 
         assertTrue(aBuilder.exists());
-        assertFalse(bBuilder.isConnected());
         assertTrue(cBuilder.exists());
 
         cBuilder.setProperty("c2", "c2Value");
