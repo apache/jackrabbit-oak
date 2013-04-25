@@ -769,7 +769,7 @@ public class MongoMK implements MicroKernel {
     }
 
     @Override
-    public String getNodes(String path, String revisionId, int depth,
+    public synchronized String getNodes(String path, String revisionId, int depth,
             long offset, int maxChildNodes, String filter)
             throws MicroKernelException {
         if (depth != 0) {
@@ -1135,7 +1135,7 @@ public class MongoMK implements MicroKernel {
     }
 
     @Override
-    public String merge(String branchRevisionId, String message)
+    public synchronized String merge(String branchRevisionId, String message)
             throws MicroKernelException {
         // TODO improve implementation if needed
         if (!branchRevisionId.startsWith("b")) {
