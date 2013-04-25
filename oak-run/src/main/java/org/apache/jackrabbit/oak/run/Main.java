@@ -30,7 +30,7 @@ import org.apache.jackrabbit.oak.http.OakServlet;
 import org.apache.jackrabbit.oak.jcr.RepositoryImpl;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.commit.JcrConflictHandler;
-import org.apache.jackrabbit.oak.plugins.index.p2.Property2IndexHookProvider;
+import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.name.NameValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceValidatorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.RegistrationEditorProvider;
@@ -167,7 +167,7 @@ public class Main {
                 .with(new NamespaceValidatorProvider())
                 .with(new TypeEditorProvider())
                 .with(new RegistrationEditorProvider())
-                .with(new Property2IndexHookProvider())
+                .with(new PropertyIndexEditorProvider())
                 .with(securityProvider)
                 .with(new InitialContent())
                 .createContentRepository();
