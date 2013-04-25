@@ -32,7 +32,7 @@ import java.util.Map;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.index.IndexHook;
+import org.apache.jackrabbit.oak.plugins.index.IndexEditor;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -43,13 +43,13 @@ import org.apache.tika.parser.AutoDetectParser;
 import org.apache.tika.parser.Parser;
 
 /**
- * {@link IndexHook} implementation that is responsible for keeping the
+ * {@link IndexEditor} implementation that is responsible for keeping the
  * {@link LuceneIndex} up to date
  * 
  * @see LuceneIndex
  * 
  */
-public class LuceneIndexDiff implements IndexHook, Closeable {
+public class LuceneIndexDiff implements IndexEditor, Closeable {
 
     private final LuceneIndexDiff parent;
 
@@ -199,20 +199,6 @@ public class LuceneIndexDiff implements IndexHook, Closeable {
         }
         for (LuceneIndexUpdate update : updates.values()) {
             update.remove(concat(getPath(), name));
-        }
-        return null;
-    }
-
-    @Override
-    public Editor reindex(NodeState state) {
-        boolean reindex = false;
-        for (LuceneIndexUpdate update : updates.values()) {
-            if (update.getAndResetReindexFlag()) {
-                reindex = true;
-            }
-        }
-        if (reindex) {
-            return new LuceneIndexDiff(node);
         }
         return null;
     }

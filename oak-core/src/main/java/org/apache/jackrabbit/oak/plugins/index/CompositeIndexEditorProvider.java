@@ -22,54 +22,56 @@ import java.util.List;
 
 import javax.annotation.Nonnull;
 
+import org.apache.jackrabbit.oak.spi.commit.CompositeEditor;
+import org.apache.jackrabbit.oak.spi.commit.Editor;
+import org.apache.jackrabbit.oak.spi.commit.VisibleEditor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 /**
- * TODO document
+ * Aggregation of a list of editor providers into a single provider.
  */
-public class CompositeIndexHookProvider implements IndexHookProvider {
+public class CompositeIndexEditorProvider implements IndexEditorProvider {
 
     @Nonnull
-    public static IndexHookProvider compose(
-            @Nonnull Collection<IndexHookProvider> providers) {
+    public static IndexEditorProvider compose(
+            @Nonnull Collection<IndexEditorProvider> providers) {
         if (providers.isEmpty()) {
-            return new IndexHookProvider() {
+            return new IndexEditorProvider() {
                 @Override
-                public List<? extends IndexHook> getIndexHooks(
-                        String type, NodeBuilder builder, NodeState root) {
-                    return ImmutableList.of();
+                public Editor getIndexEditor(String type, NodeBuilder builder) {
+                    return null;
                 }
             };
         } else if (providers.size() == 1) {
             return providers.iterator().next();
         } else {
-            return new CompositeIndexHookProvider(
+            return new CompositeIndexEditorProvider(
                     ImmutableList.copyOf(providers));
         }
     }
 
-    private final List<IndexHookProvider> providers;
+    private final List<IndexEditorProvider> providers;
 
-    private CompositeIndexHookProvider(List<IndexHookProvider> providers) {
+    private CompositeIndexEditorProvider(List<IndexEditorProvider> providers) {
         this.providers = providers;
     }
 
-    public CompositeIndexHookProvider(IndexHookProvider... providers) {
+    public CompositeIndexEditorProvider(IndexEditorProvider... providers) {
         this(Arrays.asList(providers));
     }
 
     @Override
-    @Nonnull
-    public List<? extends IndexHook> getIndexHooks(
-            String type, NodeBuilder builder, NodeState root) {
-        List<IndexHook> indexes = Lists.newArrayList();
-        for (IndexHookProvider provider : providers) {
-            indexes.addAll(provider.getIndexHooks(type, builder, root));
+    public Editor getIndexEditor(String type, NodeBuilder builder) {
+        List<Editor> indexes = Lists.newArrayList();
+        for (IndexEditorProvider provider : providers) {
+            Editor e = provider.getIndexEditor(type, builder);
+            if (e != null) {
+                indexes.add(e);
+            }
         }
-        return indexes;
+        return VisibleEditor.wrap(CompositeEditor.compose(indexes));
     }
 }

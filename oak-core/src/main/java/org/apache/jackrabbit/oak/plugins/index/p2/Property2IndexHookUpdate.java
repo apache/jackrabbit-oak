@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.plugins.index.p2;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
-import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.p2.Property2Index.encode;
 
 import java.util.Collections;
@@ -159,14 +158,6 @@ class Property2IndexHookUpdate {
             return "/";
         }
         return path;
-    }
-
-    boolean getAndResetReindexFlag() {
-        PropertyState reindexPS = node.getProperty(REINDEX_PROPERTY_NAME);
-        boolean reindex = reindexPS == null
-                || (reindexPS != null && reindexPS.getValue(Type.BOOLEAN));
-        node.setProperty(REINDEX_PROPERTY_NAME, false);
-        return reindex;
     }
 
     public boolean matches(

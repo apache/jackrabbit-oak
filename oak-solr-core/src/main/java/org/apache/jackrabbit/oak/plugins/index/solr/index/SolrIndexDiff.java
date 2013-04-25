@@ -24,7 +24,7 @@ import java.util.Map;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.index.IndexHook;
+import org.apache.jackrabbit.oak.plugins.index.IndexEditor;
 import org.apache.jackrabbit.oak.plugins.index.solr.OakSolrConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.query.SolrQueryIndex;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
@@ -39,7 +39,7 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 /**
- * {@link IndexHook} implementation that is responsible for keeping the
+ * {@link IndexEditor} implementation that is responsible for keeping the
  * {@link org.apache.jackrabbit.oak.plugins.index.solr.query.SolrQueryIndex} up to date
  * <p/>
  * This handles index updates by keeping a {@link Map} of <code>String</code>
@@ -48,7 +48,7 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE
  * @see org.apache.jackrabbit.oak.plugins.index.solr.query.SolrQueryIndex
  * @see SolrIndexHook
  */
-public class SolrIndexDiff implements IndexHook, Closeable {
+public class SolrIndexDiff implements IndexEditor, Closeable {
 
     private final SolrIndexDiff parent;
 
@@ -199,20 +199,6 @@ public class SolrIndexDiff implements IndexHook, Closeable {
         for (SolrIndexUpdate update : updates.values()) {
             update.apply(solrServer);
         }
-    }
-
-    @Override
-    public Editor reindex(NodeState state) {
-        boolean reindex = false;
-        for (SolrIndexUpdate update : updates.values()) {
-            if (update.getAndResetReindexFlag()) {
-                reindex = true;
-            }
-        }
-        if (reindex) {
-            return new SolrIndexDiff(node, solrServer, configuration);
-        }
-        return null;
     }
 
     @Override

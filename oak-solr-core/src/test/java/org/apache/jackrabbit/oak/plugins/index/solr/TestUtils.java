@@ -19,14 +19,16 @@ package org.apache.jackrabbit.oak.plugins.index.solr;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexDefinition;
-import org.apache.jackrabbit.oak.plugins.index.IndexHook;
-import org.apache.jackrabbit.oak.plugins.index.IndexHookProvider;
+import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.index.SolrIndexDiff;
 import org.apache.jackrabbit.oak.plugins.index.solr.query.SolrQueryIndex;
+import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
@@ -35,8 +37,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.embedded.EmbeddedSolrServer;
 import org.apache.solr.core.CoreContainer;
-
-import com.google.common.collect.ImmutableList;
 
 import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.buildIndexDefinitions;
 
@@ -67,21 +67,18 @@ public class TestUtils {
         };
     }
 
-    public static IndexHookProvider getTestIndexHookProvider(final SolrServer solrServer, final OakSolrConfiguration configuration) {
-        return new IndexHookProvider() {
-            @Nonnull
-            @Override
-            public List<? extends IndexHook> getIndexHooks(
-                    String s, NodeBuilder nodeBuilder, NodeState root) {
-                if (SolrQueryIndex.TYPE.equals(s)) {
+    public static IndexEditorProvider getTestIndexHookProvider(final SolrServer solrServer, final OakSolrConfiguration configuration) {
+        return new IndexEditorProvider() {
+            @Override @CheckForNull
+            public Editor getIndexEditor(String type, NodeBuilder builder) {
+                if (SolrQueryIndex.TYPE.equals(type)) {
                     try {
-                        IndexHook indexHook = new SolrIndexDiff(nodeBuilder, solrServer, configuration);
-                        return ImmutableList.of(indexHook);
+                        return new SolrIndexDiff(builder, solrServer, configuration);
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     }
                 }
-                return ImmutableList.of();
+                return null;
             }
         };
 

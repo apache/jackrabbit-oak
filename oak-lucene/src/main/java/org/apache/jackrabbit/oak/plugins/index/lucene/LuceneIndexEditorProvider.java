@@ -18,35 +18,30 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
 
-import java.util.List;
-
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Service;
-import org.apache.jackrabbit.oak.plugins.index.IndexHook;
-import org.apache.jackrabbit.oak.plugins.index.IndexHookProvider;
+import org.apache.jackrabbit.oak.plugins.index.IndexEditor;
+import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
+import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
-
-import com.google.common.collect.ImmutableList;
 
 /**
- * Service that provides Lucene based {@link IndexHook}s
+ * Service that provides Lucene based {@link IndexEditor}s
  * 
  * @see LuceneIndexDiff
- * @see IndexHookProvider
+ * @see IndexEditorProvider
  * 
  */
 @Component
-@Service(IndexHookProvider.class)
-public class LuceneIndexHookProvider implements IndexHookProvider {
+@Service(IndexEditorProvider.class)
+public class LuceneIndexEditorProvider implements IndexEditorProvider {
 
     @Override
-    public List<? extends IndexHook> getIndexHooks(
-            String type, NodeBuilder builder, NodeState root) {
+    public Editor getIndexEditor(String type, NodeBuilder builder) {
         if (TYPE_LUCENE.equals(type)) {
-            return ImmutableList.of(new LuceneIndexDiff(builder));
+            return new LuceneIndexDiff(builder);
         }
-        return ImmutableList.of();
+        return null;
     }
 
 }

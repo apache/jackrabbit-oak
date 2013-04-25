@@ -43,9 +43,10 @@ import java.util.Set;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.index.IndexHook;
+import org.apache.jackrabbit.oak.plugins.index.IndexEditor;
 import org.apache.jackrabbit.oak.plugins.index.p2.strategy.ContentMirrorStoreStrategy;
 import org.apache.jackrabbit.oak.plugins.index.p2.strategy.IndexStoreStrategy;
+import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -54,7 +55,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 /**
- * {@link IndexHook} implementation that is responsible for keeping the
+ * {@link IndexEditor} implementation that is responsible for keeping the
  * {@link Property2Index} up to date.
  * <br>
  * There is a tree of PropertyIndexDiff objects, each object represents the
@@ -63,7 +64,7 @@ import com.google.common.collect.Lists;
  * @see Property2Index
  * @see Property2IndexLookup
  */
-class Property2IndexHook implements IndexHook, Closeable {
+class Property2IndexHook implements IndexEditor, Closeable {
 
     protected static String propertyNames = "propertyNames";
 
@@ -77,7 +78,7 @@ class Property2IndexHook implements IndexHook, Closeable {
     private final Property2IndexHook parent;
 
     /**
-     * The node (never null).
+     * The node (can be null in the case of a deleted node).
      */
     private final NodeBuilder node;
 
@@ -101,36 +102,38 @@ class Property2IndexHook implements IndexHook, Closeable {
     private final Map<String, List<Property2IndexHookUpdate>> indexMap;
 
     /**
-     * The root node state.
-     */
-    private final NodeState root;
-
-    /**
      * The {@code /jcr:system/jcr:nodeTypes} subtree.
      */
     private final NodeState types;
 
-    public Property2IndexHook(NodeBuilder builder, NodeState root) {
-        this(null, builder, null, "/",
-                new HashMap<String, List<Property2IndexHookUpdate>>(), root);
+    public Property2IndexHook(NodeBuilder builder) {
+        this(null, builder, null, "/");
     }
 
     private Property2IndexHook(Property2IndexHook parent, String nodeName) {
-        this(parent, getChildNode(parent.node, nodeName), nodeName, null,
-                parent.indexMap, parent.root);
+        this(parent, getChildNode(parent.node, nodeName), nodeName, null);
     }
 
     private Property2IndexHook(Property2IndexHook parent, NodeBuilder node,
-            String nodeName, String path,
-            Map<String, List<Property2IndexHookUpdate>> indexMap,
-            NodeState root) {
+            String nodeName, String path) {
         this.parent = parent;
         this.node = node;
         this.nodeName = nodeName;
         this.path = path;
-        this.indexMap = indexMap;
-        this.root = root;
-        this.types = root.getChildNode(JCR_SYSTEM).getChildNode(JCR_NODE_TYPES);
+
+        if (parent == null) {
+            this.indexMap = new HashMap<String, List<Property2IndexHookUpdate>>();
+            if (node.hasChildNode(JCR_SYSTEM)) {
+                NodeBuilder typeNB = node.getChildNode(JCR_SYSTEM)
+                        .getChildNode(JCR_NODE_TYPES);
+                this.types = typeNB.getNodeState();
+            } else {
+                this.types = EmptyNodeState.MISSING_NODE;
+            }
+        } else {
+            this.indexMap = parent.indexMap;
+            this.types = parent.types;
+        }
     }
 
     private static NodeBuilder getChildNode(NodeBuilder node, String name) {
@@ -295,22 +298,6 @@ class Property2IndexHook implements IndexHook, Closeable {
     public Editor childNodeDeleted(String name, NodeState before)
             throws CommitFailedException {
         return childNodeChanged(name, before, EMPTY_NODE);
-    }
-
-    @Override
-    public Editor reindex(NodeState state) {
-        boolean reindex = false;
-        for (List<Property2IndexHookUpdate> updateList : indexMap.values()) {
-            for (Property2IndexHookUpdate update : updateList) {
-                if (update.getAndResetReindexFlag()) {
-                    reindex = true;
-                }
-            }
-        }
-        if (reindex) {
-            return new Property2IndexHook(node, root);
-        }
-        return null;
     }
 
     // -----------------------------------------------------< Closeable >--

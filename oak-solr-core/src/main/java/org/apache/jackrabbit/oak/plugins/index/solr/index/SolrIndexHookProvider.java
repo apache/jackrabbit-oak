@@ -16,34 +16,32 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.index;
 
-import java.util.List;
-import javax.annotation.Nonnull;
+
+import javax.annotation.CheckForNull;
 
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.ReferencePolicy;
 import org.apache.felix.scr.annotations.ReferencePolicyOption;
 import org.apache.felix.scr.annotations.Service;
-import org.apache.jackrabbit.oak.plugins.index.IndexHook;
-import org.apache.jackrabbit.oak.plugins.index.IndexHookProvider;
+import org.apache.jackrabbit.oak.plugins.index.IndexEditor;
+import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.OakSolrConfigurationProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.SolrServerProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.query.SolrQueryIndex;
+import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.ImmutableList;
-
 /**
- * Service that provides {@link SolrIndexHookProvider} based {@link IndexHook}s.
+ * Service that provides {@link SolrIndexHookProvider} based {@link IndexEditor}s.
  *
- * @see org.apache.jackrabbit.oak.plugins.index.IndexHookProvider
+ * @see org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider
  */
 @Component
-@Service(IndexHookProvider.class)
-public class SolrIndexHookProvider implements IndexHookProvider {
+@Service(IndexEditorProvider.class)
+public class SolrIndexHookProvider implements IndexEditorProvider {
 
     private final Logger log = LoggerFactory.getLogger(SolrIndexHookProvider.class);
 
@@ -61,22 +59,20 @@ public class SolrIndexHookProvider implements IndexHookProvider {
         this.oakSolrConfigurationProvider = oakSolrConfigurationProvider;
     }
 
-    @Override
-    @Nonnull
-    public List<? extends IndexHook> getIndexHooks(
-            String type, NodeBuilder builder, NodeState root) {
+    @Override @CheckForNull
+    public Editor getIndexEditor(String type, NodeBuilder builder) {
         if (SolrQueryIndex.TYPE.equals(type) && solrServerProvider != null && oakSolrConfigurationProvider != null) {
             try {
                 if (log.isDebugEnabled()) {
                     log.debug("Creating a Solr index hook");
                 }
-                IndexHook indexHook = new SolrIndexDiff(builder, solrServerProvider.getSolrServer(), oakSolrConfigurationProvider.getConfiguration());
-                return ImmutableList.of(indexHook);
+                IndexEditor indexHook = new SolrIndexDiff(builder, solrServerProvider.getSolrServer(), oakSolrConfigurationProvider.getConfiguration());
+                return indexHook;
             } catch (Exception e) {
                 log.error("unable to create Solr IndexHook ", e);
             }
         }
-        return ImmutableList.of();
+        return null;
     }
 
 }
