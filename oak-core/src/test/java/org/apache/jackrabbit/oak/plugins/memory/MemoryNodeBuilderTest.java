@@ -32,6 +32,7 @@ import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class MemoryNodeBuilderTest {
@@ -260,6 +261,18 @@ public class MemoryNodeBuilderTest {
         NodeBuilder rootBuilder = base.builder();
         NodeBuilder any = rootBuilder.getChildNode("any");
         assertFalse(any.isConnected());
+        try {
+            any.getChildNode("any");
+            fail();
+        } catch (IllegalStateException expected) {}
+        try {
+            any.exists();
+            fail();
+        } catch (IllegalStateException expected) {}
+        try {
+            any.setChildNode("any");
+            fail();
+        } catch (IllegalStateException expected) {}
     }
 
     @Test
@@ -335,6 +348,7 @@ public class MemoryNodeBuilderTest {
     }
 
     @Test
+    @Ignore("OAK-781")
     public void modifyChildNodeOfNonExistingNode() {
         NodeBuilder rootBuilder = EMPTY_NODE.builder();
 
@@ -430,6 +444,45 @@ public class MemoryNodeBuilderTest {
 
         // node c is shadowed by subtree b
         assertFalse(c.hasProperty("c"));
+        assertTrue(c.hasProperty("c2"));
+    }
+
+    @Test
+    @Ignore("OAK-781")
+    public void navigateNonExistingNode() {
+        NodeBuilder rootBuilder = EMPTY_NODE.builder();
+
+        // +"/a":{"b":{"c":{"c":"cValue"}}} where b.exists() == false
+        rootBuilder.child("a").setChildNode("b", createBC(false));
+
+        NodeState r = rootBuilder.getNodeState();
+        NodeState a = r.getChildNode("a");
+        NodeState b = a.getChildNode("b");
+        NodeState c = b.getChildNode("c");
+
+        assertTrue(a.exists());
+        assertFalse(b.exists());
+        assertTrue(c.exists());
+        assertTrue(c.hasProperty("c"));
+
+        NodeBuilder aBuilder = rootBuilder.getChildNode("a");
+        NodeBuilder bBuilder = aBuilder.getChildNode("b");
+        NodeBuilder cBuilder = bBuilder.getChildNode("c");
+
+        assertTrue(aBuilder.exists());
+        assertFalse(bBuilder.isConnected());
+        assertTrue(cBuilder.exists());
+
+        cBuilder.setProperty("c2", "c2Value");
+        r = rootBuilder.getNodeState();
+        a = r.getChildNode("a");
+        b = a.getChildNode("b");
+        c = b.getChildNode("c");
+
+        assertTrue(a.exists());
+        assertFalse(b.exists());
+        assertTrue(c.exists());
+        assertTrue(c.hasProperty("c"));
         assertTrue(c.hasProperty("c2"));
     }
 
