@@ -252,19 +252,13 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                         !hasNtMgtPermission(JCR_PRIMARYTYPE, oakTypeName)) {
                     throw new AccessDeniedException("Access denied.");
                 }
-                String ntName = dlg.getDefaultChildType(oakName, oakTypeName);
 
-                NodeDelegate added = parent.addChild(oakName);
+                NodeDelegate added = parent.addChild(oakName, oakTypeName);
                 if (added == null) {
                     throw new ItemExistsException();
                 }
 
-                if (getPrimaryNodeType().hasOrderableChildNodes()) {
-                    dlg.setOrderableChildren(true);
-                }
-
                 NodeImpl<?> childNode = new NodeImpl<NodeDelegate>(added, sessionContext);
-                childNode.internalSetPrimaryType(ntName);
                 childNode.autoCreateItems();
                 return childNode;
             }

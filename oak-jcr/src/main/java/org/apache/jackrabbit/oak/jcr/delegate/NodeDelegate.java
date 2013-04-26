@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.jcr.delegate;
 import static com.google.common.collect.Lists.newArrayList;
 import static java.util.Collections.emptyList;
 import static org.apache.jackrabbit.JcrConstants.JCR_DEFAULTPRIMARYTYPE;
+import static org.apache.jackrabbit.JcrConstants.JCR_HASORDERABLECHILDNODES;
 import static org.apache.jackrabbit.JcrConstants.JCR_ISMIXIN;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
@@ -232,15 +233,47 @@ public class NodeDelegate extends ItemDelegate {
     /**
      * Add a child node
      *
-     * @param name oak name
+     * @param name Oak name of the new child node
+     * @param typeName Oak name of the type of the new child node,
+     *                 or {@code null} if a default type should be used
      * @return the added node or {@code null} if such a node already exists
      */
     @CheckForNull
-    public NodeDelegate addChild(String name) throws InvalidItemStateException {
+    public NodeDelegate addChild(String name, String typeName)
+            throws InvalidItemStateException, ConstraintViolationException,
+            NoSuchNodeTypeException {
         Tree tree = getTree();
-        return tree.hasChild(name)
-                ? null
-                : new NodeDelegate(sessionDelegate, tree.addChild(name));
+        if (tree.hasChild(name)) {
+            return null;
+        }
+
+        Tree typeRoot = sessionDelegate.getRoot().getTree(NODE_TYPES_PATH);
+        if (typeName == null) {
+            typeName = getDefaultChildType(typeRoot, tree, name);
+            if (typeName == null) {
+                throw new ConstraintViolationException(
+                        "No default node type available for child node " + name);
+            }
+        }
+        Tree type = typeRoot.getChild(typeName);
+        if (type == null) {
+            throw new NoSuchNodeTypeException(
+                    "Node type " + typeName + " does not exist");
+        } else if (getBoolean(type, JCR_IS_ABSTRACT)) {
+            throw new ConstraintViolationException(
+                    "Node type " + typeName + " is abstract");
+        } else if (getBoolean(type, JCR_ISMIXIN)) {
+            throw new ConstraintViolationException(
+                    "Node type " + typeName + " is a mixin type");
+        }
+
+        Tree child = tree.addChild(name);
+        child.setProperty(JCR_PRIMARYTYPE, typeName, NAME);
+        if (getBoolean(type, JCR_HASORDERABLECHILDNODES)) {
+            child.setOrderableChildren(true);
+        }
+
+        return new NodeDelegate(sessionDelegate, child);
     }
 
     /**
@@ -260,61 +293,40 @@ public class NodeDelegate extends ItemDelegate {
         getTree().setOrderableChildren(enable);
     }
 
-    public String getDefaultChildType(String childName, String typeName)
-            throws NoSuchNodeTypeException, ConstraintViolationException,
-            InvalidItemStateException {
-        Tree typeRoot = sessionDelegate.getRoot().getTree(NODE_TYPES_PATH);
-        if (typeName != null) {
-            Tree type = typeRoot.getChild(typeName);
-            if (type == null) {
-                throw new NoSuchNodeTypeException(
-                        "Node type " + typeName + " does not exist");
-            } else if (getBoolean(type, JCR_IS_ABSTRACT)) {
-                throw new ConstraintViolationException(
-                        "Node type " + typeName + " is abstract");
-            } else if (getBoolean(type, JCR_ISMIXIN)) {
-                throw new ConstraintViolationException(
-                        "Node type " + typeName + " is a mixin type");
-            } else {
-                return typeName;
-            }
-        } else {
-            List<Tree> types = newArrayList();
-            Tree parent = getTree();
+    //------------------------------------------------------------< internal >---
 
-            String primary = getName(parent, JCR_PRIMARYTYPE);
-            if (primary != null) {
-                Tree type = typeRoot.getChild(primary);
-                if (type != null) {
-                    types.add(type);
-                }
-            }
+    /**
+     * Finds the default primary type for a new child node with the given name.
+     *
+     * @param typeRoot root of the {@code /jcr:system/jcr:nodeTypes} tree
+     * @param parent parent node
+     * @param childName name of the new child node
+     * @return name of the default type, or {@code null} if not available
+     */
+    private String getDefaultChildType(
+            Tree typeRoot, Tree parent, String childName) {
+        List<Tree> types = newArrayList();
 
-            for (String mixin : getNames(parent, JCR_MIXINTYPES)) {
-                Tree type = typeRoot.getChild(mixin);
-                if (type != null) {
-                    types.add(type);
-                }
+        String primary = getName(parent, JCR_PRIMARYTYPE);
+        if (primary != null) {
+            Tree type = typeRoot.getChild(primary);
+            if (type != null) {
+                types.add(type);
             }
+        }
 
-            // first look for named node definitions
-            for (Tree type : types) {
-                Tree named = type.getChild(OAK_NAMED_CHILD_NODE_DEFINITIONS);
-                if (named != null) {
-                    Tree definitions = named.getChild(childName);
-                    if (definitions != null) {
-                        String defaultName =
-                                findDefaultPrimaryType(typeRoot, definitions);
-                        if (defaultName != null) {
-                            return defaultName;
-                        }
-                    }
-                }
+        for (String mixin : getNames(parent, JCR_MIXINTYPES)) {
+            Tree type = typeRoot.getChild(mixin);
+            if (type != null) {
+                types.add(type);
             }
+        }
 
-            // then check residual definitions
-            for (Tree type : types) {
-                Tree definitions = type.getChild(OAK_RESIDUAL_CHILD_NODE_DEFINITIONS);
+        // first look for named node definitions
+        for (Tree type : types) {
+            Tree named = type.getChild(OAK_NAMED_CHILD_NODE_DEFINITIONS);
+            if (named != null) {
+                Tree definitions = named.getChild(childName);
                 if (definitions != null) {
                     String defaultName =
                             findDefaultPrimaryType(typeRoot, definitions);
@@ -323,11 +335,22 @@ public class NodeDelegate extends ItemDelegate {
                     }
                 }
             }
-
-            // no matching child node definition found
-            throw new ConstraintViolationException(
-                    "No default node type available for child node " + childName);
         }
+
+        // then check residual definitions
+        for (Tree type : types) {
+            Tree definitions = type.getChild(OAK_RESIDUAL_CHILD_NODE_DEFINITIONS);
+            if (definitions != null) {
+                String defaultName =
+                        findDefaultPrimaryType(typeRoot, definitions);
+                if (defaultName != null) {
+                    return defaultName;
+                }
+            }
+        }
+
+        // no matching child node definition found
+        return null;
     }
 
     private String findDefaultPrimaryType(Tree typeRoot, Tree definitions) {
@@ -339,8 +362,6 @@ public class NodeDelegate extends ItemDelegate {
         }
         return null;
     }
-
-    //------------------------------------------------------------< internal >---
 
     @Nonnull // FIXME this should be package private. OAK-672
     public Tree getTree() throws InvalidItemStateException {
