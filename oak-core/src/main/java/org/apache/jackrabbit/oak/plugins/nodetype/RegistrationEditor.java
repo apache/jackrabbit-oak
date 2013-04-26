@@ -31,6 +31,7 @@ import static org.apache.jackrabbit.JcrConstants.JCR_NAME;
 import static org.apache.jackrabbit.JcrConstants.JCR_NODETYPENAME;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_PROPERTYDEFINITION;
+import static org.apache.jackrabbit.JcrConstants.JCR_PROTECTED;
 import static org.apache.jackrabbit.JcrConstants.JCR_REQUIREDPRIMARYTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_REQUIREDTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_SUPERTYPES;
@@ -44,6 +45,8 @@ import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_CHILD_NODE_DEFINITIONS;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_HAS_PROTECTED_RESIDUAL_CHILD_NODES;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_HAS_PROTECTED_RESIDUAL_PROPERTIES;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_MANDATORY_CHILD_NODES;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_MANDATORY_PROPERTIES;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_MIXIN_SUBTYPES;
@@ -51,6 +54,8 @@ import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_N
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_NAMED_SINGLE_VALUED_PROPERTIES;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_NAMED_PROPERTY_DEFINITIONS;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_PROPERTY_DEFINITIONS;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_PROTECTED_CHILD_NODES;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_PROTECTED_PROPERTIES;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_RESIDUAL_CHILD_NODE_DEFINITIONS;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_RESIDUAL_PROPERTY_DEFINITIONS;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_PRIMARY_SUBTYPES;
@@ -167,6 +172,14 @@ class RegistrationEditor extends DefaultEditor {
         mergeNameList(type, supertype, OAK_SUPERTYPES);
         mergeNameList(type, supertype, OAK_MANDATORY_PROPERTIES);
         mergeNameList(type, supertype, OAK_MANDATORY_CHILD_NODES);
+        mergeNameList(type, supertype, OAK_PROTECTED_PROPERTIES);
+        mergeNameList(type, supertype, OAK_PROTECTED_CHILD_NODES);
+        if (supertype.getBoolean(OAK_HAS_PROTECTED_RESIDUAL_PROPERTIES)) {
+            type.setProperty(OAK_HAS_PROTECTED_RESIDUAL_PROPERTIES, true);
+        }
+        if (supertype.getBoolean(OAK_HAS_PROTECTED_RESIDUAL_CHILD_NODES)) {
+            type.setProperty(OAK_HAS_PROTECTED_RESIDUAL_CHILD_NODES, true);
+        }
         mergeNameList(type, supertype, OAK_NAMED_SINGLE_VALUED_PROPERTIES);
         mergeSubtree(type, supertype, OAK_NAMED_PROPERTY_DEFINITIONS, 2);
         mergeSubtree(type, supertype, OAK_RESIDUAL_PROPERTY_DEFINITIONS, 1);
@@ -224,6 +237,11 @@ class RegistrationEditor extends DefaultEditor {
         type.setProperty(OAK_PRIMARY_SUBTYPES, empty, NAMES);
         type.setProperty(OAK_MANDATORY_PROPERTIES, empty, NAMES);
         type.setProperty(OAK_MANDATORY_CHILD_NODES, empty, NAMES);
+        type.setProperty(OAK_PROTECTED_PROPERTIES, empty, NAMES);
+        type.setProperty(OAK_PROTECTED_CHILD_NODES, empty, NAMES);
+        type.setProperty(OAK_HAS_PROTECTED_RESIDUAL_PROPERTIES, false, BOOLEAN);
+        type.setProperty(OAK_HAS_PROTECTED_RESIDUAL_CHILD_NODES, false, BOOLEAN);
+        type.setProperty(OAK_PROTECTED_CHILD_NODES, false, BOOLEAN);
         type.setProperty(OAK_NAMED_SINGLE_VALUED_PROPERTIES, empty, NAMES);
         type.removeChildNode(OAK_NAMED_PROPERTY_DEFINITIONS);
         type.removeChildNode(OAK_RESIDUAL_PROPERTY_DEFINITIONS);
@@ -279,8 +297,17 @@ class RegistrationEditor extends DefaultEditor {
             if (definition.getBoolean(JCR_MANDATORY)) {
                 addNameToList(type, OAK_MANDATORY_PROPERTIES, propertyName);
             }
+            // - jcr:protected (BOOLEAN) protected mandatory
+            if (definition.getBoolean(JCR_PROTECTED)) {
+                addNameToList(type, OAK_PROTECTED_PROPERTIES, propertyName);
+            }
         } else {
             definitions = type.child(OAK_RESIDUAL_PROPERTY_DEFINITIONS);
+
+            // - jcr:protected (BOOLEAN) protected mandatory
+            if (definition.getBoolean(JCR_PROTECTED)) {
+                type.setProperty(OAK_HAS_PROTECTED_RESIDUAL_PROPERTIES, true);
+            }
         }
         definitions.setProperty(
                 JCR_PRIMARYTYPE, OAK_PROPERTY_DEFINITIONS, NAME);
@@ -326,8 +353,17 @@ class RegistrationEditor extends DefaultEditor {
             if (definition.getBoolean(JCR_MANDATORY)) {
                 addNameToList(type, OAK_MANDATORY_CHILD_NODES, childNodeName);
             }
+            // - jcr:protected (BOOLEAN) protected mandatory
+            if (definition.getBoolean(JCR_PROTECTED)) {
+                addNameToList(type, OAK_PROTECTED_CHILD_NODES, childNodeName);
+            }
         } else {
             definitions = type.child(OAK_RESIDUAL_CHILD_NODE_DEFINITIONS);
+
+            // - jcr:protected (BOOLEAN) protected mandatory
+            if (definition.getBoolean(JCR_PROTECTED)) {
+                type.setProperty(OAK_HAS_PROTECTED_RESIDUAL_CHILD_NODES, true);
+            }
         }
         definitions.setProperty(
                 JCR_PRIMARYTYPE, OAK_CHILD_NODE_DEFINITIONS, NAME);

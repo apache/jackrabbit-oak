@@ -431,6 +431,10 @@
   - oak:mixinSubtypes (NAME) protected multiple autocreated
   - oak:mandatoryProperties (NAME) protected multiple autocreated
   - oak:mandatoryChildNodes (NAME) protected multiple autocreated
+  - oak:protectedProperties (NAME) protected multiple autocreated
+  - oak:protectedChildNodes (NAME) protected multiple autocreated
+  - oak:hasProtectedResidualProperties (BOOLEAN) protected autocreated
+  - oak:hasProtectedResidualChildNodes (BOOLEAN) protected autocreated
   - oak:namedSingleValuedProperties (NAME) protected multiple autocreated
   + oak:namedPropertyDefinitions (oak:namedPropertyDefinitions) = oak:namedPropertyDefinitions protected mandatory
   + oak:residualPropertyDefinitions (oak:propertyDefinitions) = oak:propertyDefinitions protected mandatory

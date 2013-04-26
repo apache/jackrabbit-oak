@@ -36,6 +36,11 @@ public class PropertyDelegate extends ItemDelegate {
         super(sessionDelegate, location);
     }
 
+    @Override
+    public boolean isProtected() throws InvalidItemStateException {
+        return getParent().isProtected(getName());
+    }
+
     @Nonnull
     public PropertyState getPropertyState() throws InvalidItemStateException {
         PropertyState p = getLocation().getProperty();

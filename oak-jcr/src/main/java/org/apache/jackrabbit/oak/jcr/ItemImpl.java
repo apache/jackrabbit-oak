@@ -275,15 +275,9 @@ abstract class ItemImpl<T extends ItemDelegate> implements Item {
     protected abstract ItemDefinition internalGetDefinition() throws RepositoryException;
 
     void checkProtected() throws RepositoryException {
-        ItemDefinition definition;
-        try {
-            definition = internalGetDefinition();
-        } catch (RepositoryException ignore) {
-            // FIXME: No definition -> not protected but a different error
-            // which should be handled else where
-            return;
+        if (dlg.isProtected()) {
+            throw new ConstraintViolationException("Item is protected.");
         }
-        checkProtected(definition);
     }
 
     void checkProtected(ItemDefinition definition) throws ConstraintViolationException {
