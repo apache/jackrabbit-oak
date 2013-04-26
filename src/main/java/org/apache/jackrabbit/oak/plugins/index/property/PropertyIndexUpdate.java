@@ -18,6 +18,9 @@ package org.apache.jackrabbit.oak.plugins.index.property;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_CONTENT_NODE_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.UNIQUE_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.getBoolean;
 import static org.apache.jackrabbit.oak.plugins.index.property.PropertyIndex.encode;
 
 import java.util.Collections;
@@ -27,7 +30,6 @@ import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.property.strategy.IndexStoreStrategy;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -90,10 +92,8 @@ class PropertyIndexUpdate {
             this.mixinTypes = mixinTypes;
         }
 
-        index = this.node.child(":index");
-        PropertyState uniquePS = node.getProperty("unique");
-        unique = uniquePS != null && !uniquePS.isArray()
-                && uniquePS.getValue(Type.BOOLEAN);
+        index = this.node.child(INDEX_CONTENT_NODE_NAME);
+        unique = getBoolean(node, UNIQUE_PROPERTY_NAME);
     }
 
     String getPath() {

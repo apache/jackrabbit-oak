@@ -19,12 +19,12 @@ package org.apache.jackrabbit.oak.plugins.index;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Lists.newArrayListWithCapacity;
-import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
-import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.getBoolean;
+import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.getString;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 
 import java.util.HashMap;
@@ -72,22 +72,6 @@ class IndexUpdate implements Editor {
         this.builder = parent.builder.child(checkNotNull(name));
     }
 
-    private static String getString(NodeBuilder builder, String name) {
-        PropertyState property = builder.getProperty(name);
-        if (property != null && property.getType() == STRING) {
-            return property.getValue(STRING);
-        } else {
-            return null;
-        }
-    }
-
-    private static boolean getBoolean(NodeBuilder builder, String name) {
-        PropertyState property = builder.getProperty(name);
-        return property != null
-                && property.getType() == BOOLEAN
-                && property.getValue(BOOLEAN);
-    }
-
     @Override
     public void enter(NodeState before, NodeState after)
             throws CommitFailedException {
@@ -112,7 +96,11 @@ class IndexUpdate implements Editor {
                         definition.setProperty(REINDEX_PROPERTY_NAME, true);
                     } else if (getBoolean(definition, REINDEX_PROPERTY_NAME)) {
                         definition.setProperty(REINDEX_PROPERTY_NAME, false);
-                        definition.removeChildNode(":index");
+                        // as we don't know the index content node name
+                        // beforehand, we'll remove all child nodes
+                        for (String rm : definition.getChildNodeNames()) {
+                            definition.removeChildNode(rm);
+                        }
                         reindex.add(editor);
                     } else {
                         editors.add(VisibleEditor.wrap(editor));
