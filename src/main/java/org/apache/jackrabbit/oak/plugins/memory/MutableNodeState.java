@@ -230,7 +230,7 @@ class MutableNodeState extends AbstractNodeState {
         }
 
         if (nodes.containsKey(name)) {
-            // deleted: shadow if connect, otherwise non existing
+            // deleted: create new existing node if connect, otherwise non existing
             child = new MutableNodeState(connect);
         } else {
             child = new MutableNodeState(base.getChildNode(name));
