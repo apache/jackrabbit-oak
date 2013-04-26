@@ -82,8 +82,8 @@ public class RelativePathTest extends AbstractQueryTest {
                 "explain select [jcr:path] from [nt:base] where [n/myProp] is not null",
                 Query.JCR_SQL2);
         assertEquals(1, lines.size());
-        // make sure it used the p2 index
-        assertTrue(lines.get(0).contains("p2 myProp"));
+        // make sure it used the property index
+        assertTrue(lines.get(0).contains("property myProp"));
 
         paths = executeQuery(
                 "select [jcr:path] from [nt:base] where [n/myProp] = 'foo'",

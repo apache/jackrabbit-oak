@@ -18,6 +18,8 @@ package org.apache.jackrabbit.oak.plugins.index;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_CONTENT_NODE_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.createIndexDefinition;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
@@ -63,11 +65,12 @@ public class IndexUpdateTest {
      */
     @Test
     public void test() throws Exception {
-        createIndexDefinition(builder.child("oak:index"), "rootIndex", true,
-                false, ImmutableSet.of("foo"), null);
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "rootIndex", true, false, ImmutableSet.of("foo"), null);
         createIndexDefinition(
-                builder.child("newchild").child("other").child("oak:index"),
-                "subIndex", true, false, ImmutableSet.of("foo"), null);
+                builder.child("newchild").child("other")
+                        .child(INDEX_DEFINITIONS_NAME), "subIndex", true,
+                false, ImmutableSet.of("foo"), null);
 
         NodeState before = builder.getNodeState();
 
@@ -84,9 +87,10 @@ public class IndexUpdateTest {
         NodeState indexed = hook.processCommit(before, after);
 
         // first check that the index content nodes exist
-        checkPathExists(indexed, "oak:index", "rootIndex", ":index");
-        checkPathExists(indexed, "newchild", "other", "oak:index", "subIndex",
-                ":index");
+        checkPathExists(indexed, INDEX_DEFINITIONS_NAME, "rootIndex",
+                INDEX_CONTENT_NODE_NAME);
+        checkPathExists(indexed, "newchild", "other", INDEX_DEFINITIONS_NAME,
+                "subIndex", INDEX_CONTENT_NODE_NAME);
 
         PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
         assertEquals(ImmutableSet.of("testRoot"), find(lookup, "foo", "abc"));
@@ -111,8 +115,8 @@ public class IndexUpdateTest {
     public void testReindex() throws Exception {
         builder.child("testRoot").setProperty("foo", "abc");
         NodeState before = builder.getNodeState();
-        createIndexDefinition(builder.child("oak:index"), "rootIndex", true,
-                false, ImmutableSet.of("foo"), null);
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "rootIndex", true, false, ImmutableSet.of("foo"), null);
 
         NodeState after = builder.getNodeState();
 
@@ -122,8 +126,9 @@ public class IndexUpdateTest {
         NodeState indexed = hook.processCommit(before, after);
 
         // first check that the index content nodes exist
-        NodeState ns = checkPathExists(indexed, "oak:index", "rootIndex");
-        checkPathExists(ns, ":index");
+        NodeState ns = checkPathExists(indexed, INDEX_DEFINITIONS_NAME,
+                "rootIndex");
+        checkPathExists(ns, INDEX_CONTENT_NODE_NAME);
         PropertyState ps = ns.getProperty(REINDEX_PROPERTY_NAME);
         assertNotNull(ps);
         assertFalse(ps.getValue(Type.BOOLEAN));
@@ -145,11 +150,12 @@ public class IndexUpdateTest {
     public void testReindex2() throws Exception {
         builder.child("testRoot").setProperty("foo", "abc");
 
-        createIndexDefinition(builder.child("oak:index"), "rootIndex", true,
-                false, ImmutableSet.of("foo"), null).removeProperty("reindex");
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "rootIndex", true, false, ImmutableSet.of("foo"), null)
+                .removeProperty("reindex");
 
         NodeState before = builder.getNodeState();
-        builder.child("oak:index").child("rootIndex")
+        builder.child(INDEX_DEFINITIONS_NAME).child("rootIndex")
                 .setProperty(REINDEX_PROPERTY_NAME, true);
         NodeState after = builder.getNodeState();
 
@@ -159,8 +165,9 @@ public class IndexUpdateTest {
         NodeState indexed = hook.processCommit(before, after);
 
         // first check that the index content nodes exist
-        NodeState ns = checkPathExists(indexed, "oak:index", "rootIndex");
-        checkPathExists(ns, ":index");
+        NodeState ns = checkPathExists(indexed, INDEX_DEFINITIONS_NAME,
+                "rootIndex");
+        checkPathExists(ns, INDEX_CONTENT_NODE_NAME);
         PropertyState ps = ns.getProperty(REINDEX_PROPERTY_NAME);
         assertNotNull(ps);
         assertFalse(ps.getValue(Type.BOOLEAN));
@@ -172,16 +179,17 @@ public class IndexUpdateTest {
 
     @Test
     public void testIndexDefinitions() throws Exception {
-        createIndexDefinition(builder.child("oak:index"), "existing", true,
-                false, ImmutableSet.of("foo"), null);
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "existing", true, false, ImmutableSet.of("foo"), null);
 
         NodeState before = builder.getNodeState();
         // Add index definition
-        createIndexDefinition(builder.child("oak:index"), "foo", true, false,
-                ImmutableSet.of("foo"), null);
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
+                true, false, ImmutableSet.of("foo"), null);
         createIndexDefinition(
-                builder.child("test").child("other").child("oak:index"),
-                "index2", true, false, ImmutableSet.of("foo"), null);
+                builder.child("test").child("other")
+                        .child(INDEX_DEFINITIONS_NAME), "index2", true, false,
+                ImmutableSet.of("foo"), null);
         NodeState after = builder.getNodeState();
 
         IndexUpdateProvider p = new IndexUpdateProvider(
@@ -190,9 +198,10 @@ public class IndexUpdateTest {
         NodeState indexed = hook.processCommit(before, after);
 
         // check that the index content nodes exist
-        checkPathExists(indexed, "oak:index", "existing", ":index");
-        checkPathExists(indexed, "test", "other", "oak:index", "index2",
-                ":index");
+        checkPathExists(indexed, INDEX_DEFINITIONS_NAME, "existing",
+                INDEX_CONTENT_NODE_NAME);
+        checkPathExists(indexed, "test", "other", INDEX_DEFINITIONS_NAME,
+                "index2", INDEX_CONTENT_NODE_NAME);
     }
 
     private Set<String> find(PropertyIndexLookup lookup, String name,

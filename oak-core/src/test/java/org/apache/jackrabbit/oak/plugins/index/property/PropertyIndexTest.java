@@ -18,8 +18,13 @@ package org.apache.jackrabbit.oak.plugins.index.property;
 
 import static junit.framework.Assert.assertNotNull;
 import static junit.framework.Assert.assertNull;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
+import static org.apache.jackrabbit.JcrConstants.NT_FILE;
+import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.createIndexDefinition;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
 import static org.junit.Assert.assertEquals;
@@ -31,8 +36,6 @@ import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditor;
-import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexLookup;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
@@ -59,11 +62,8 @@ public class PropertyIndexTest {
 
         // Add index definition
         NodeBuilder builder = root.builder();
-        builder.child("oak:index")
-                .child("foo")
-                .setProperty("jcr:primaryType", "oak:queryIndexDefinition",
-                        Type.NAME).setProperty("type", "p2")
-                .setProperty("propertyNames", Arrays.asList("foo"), Type.NAMES);
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME), "foo",
+                true, false, ImmutableSet.of("foo"), null);
         NodeState before = builder.getNodeState();
 
         // Add some content and process it through the property index hook
@@ -109,13 +109,9 @@ public class PropertyIndexTest {
 
         // Add index definition
         NodeBuilder builder = root.builder();
-        builder.child("oak:index")
-                .child("fooIndex")
-                .setProperty("jcr:primaryType", "oak:queryIndexDefinition",
-                        Type.NAME)
-                .setProperty("type", "p2")
-                .setProperty("propertyNames", Arrays.asList("foo", "extrafoo"),
-                        Type.NAMES);
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "fooIndex", true, false, ImmutableSet.of("foo", "extrafoo"),
+                null);
         NodeState before = builder.getNodeState();
 
         // Add some content and process it through the property index hook
@@ -163,39 +159,28 @@ public class PropertyIndexTest {
 
         // Add index definitions
         NodeBuilder builder = root.builder();
-        NodeBuilder index = builder.child("oak:index");
-        index.child("fooIndex")
-                .setProperty("jcr:primaryType", "oak:queryIndexDefinition",
-                        Type.NAME)
-                .setProperty("type", "p2")
-                .setProperty("propertyNames", Arrays.asList("foo", "extrafoo"),
-                        Type.NAMES)
-                .setProperty("declaringNodeTypes",
-                        Arrays.asList("nt:unstructured"), Type.NAMES);
-        index.child("fooIndexFile")
-                .setProperty("jcr:primaryType", "oak:queryIndexDefinition",
-                        Type.NAME)
-                .setProperty("type", "p2")
-                .setProperty("propertyNames", Arrays.asList("foo"),
-                        Type.NAMES)
-                .setProperty("declaringNodeTypes", Arrays.asList("nt:file"),
-                        Type.NAMES);
+        NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
+        createIndexDefinition(index, "fooIndex", true, false,
+                ImmutableSet.of("foo", "extrafoo"),
+                ImmutableSet.of(NT_UNSTRUCTURED));
+        createIndexDefinition(index, "fooIndexFile", true, false,
+                ImmutableSet.of("foo"), ImmutableSet.of(NT_FILE));
         NodeState before = builder.getNodeState();
 
         // Add some content and process it through the property index hook
         builder = before.builder();
         builder.child("a")
-                .setProperty("jcr:primaryType", "nt:unstructured", Type.NAME)
+                .setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, Type.NAME)
                 .setProperty("foo", "abc");
         builder.child("b")
-                .setProperty("jcr:primaryType", "nt:unstructured", Type.NAME)
+                .setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, Type.NAME)
                 .setProperty("foo", Arrays.asList("abc", "def"), Type.STRINGS);
         NodeState after = builder.getNodeState();
 
         EditorDiff.process(new PropertyIndexEditor(builder), before, after);
         NodeState indexed = builder.getNodeState();
 
-        FilterImpl f = createFilter(indexed, "nt:unstructured");
+        FilterImpl f = createFilter(indexed, NT_UNSTRUCTURED);
 
         // Query the index
         PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
@@ -230,38 +215,28 @@ public class PropertyIndexTest {
 
         // Add index definitions
         NodeBuilder builder = root.builder();
-        NodeBuilder index = builder.child("oak:index");
-        index.child("fooIndex")
-                .setProperty("jcr:primaryType", "oak:queryIndexDefinition",
-                        Type.NAME)
-                .setProperty("type", "p2")
-                .setProperty("propertyNames", Arrays.asList("foo", "extrafoo"),
-                        Type.NAMES);
-        index.child("fooIndexFile")
-                .setProperty("jcr:primaryType", "oak:queryIndexDefinition",
-                        Type.NAME)
-                .setProperty("type", "p2")
-                .setProperty("propertyNames", Arrays.asList("foo"),
-                        Type.NAMES)
-                .setProperty("declaringNodeTypes", Arrays.asList("nt:file"),
-                        Type.NAMES);
+        NodeBuilder index = builder.child(INDEX_DEFINITIONS_NAME);
+        createIndexDefinition(index, "fooIndex", true, false,
+                ImmutableSet.of("foo", "extrafoo"), null);
+        createIndexDefinition(index, "fooIndexFile", true, false,
+                ImmutableSet.of("foo"), ImmutableSet.of(NT_FILE));
         NodeState before = builder.getNodeState();
 
         // Add some content and process it through the property index hook
         builder = before.builder();
         builder.child("a")
-            .setProperty("jcr:primaryType", "nt:unstructured", Type.NAME)
-            .setProperty("foo", "abc");
+                .setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, Type.NAME)
+                .setProperty("foo", "abc");
         builder.child("b")
-            .setProperty("jcr:primaryType", "nt:unstructured", Type.NAME)
-            .setProperty("foo", Arrays.asList("abc", "def"), Type.STRINGS);
+                .setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, Type.NAME)
+                .setProperty("foo", Arrays.asList("abc", "def"), Type.STRINGS);
         NodeState after = builder.getNodeState();
 
         // Add an index
         EditorDiff.process(new PropertyIndexEditor(builder), before, after);
         NodeState indexed = builder.getNodeState();
 
-        FilterImpl f = createFilter(after, "nt:unstructured");
+        FilterImpl f = createFilter(after, NT_UNSTRUCTURED);
 
         // Query the index
         PropertyIndexLookup lookup = new PropertyIndexLookup(indexed);
@@ -283,15 +258,8 @@ public class PropertyIndexTest {
 
         // Add index definition
         NodeBuilder builder = root.builder();
-        builder.child("oak:index")
-                .child("fooIndex")
-                .setProperty("jcr:primaryType", "oak:queryIndexDefinition",
-                        Type.NAME)
-                .setProperty("type", "p2")
-                .setProperty("unique", "true")
-                .setProperty("propertyNames", Arrays.asList("foo"),
-                        Type.NAMES);
-
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "fooIndex", true, true, ImmutableSet.of("foo"), null);
         NodeState before = builder.getNodeState();
         builder = before.builder();
         builder.child("a").setProperty("foo", "abc");
@@ -299,8 +267,8 @@ public class PropertyIndexTest {
                 Type.STRINGS);
         NodeState after = builder.getNodeState();
 
-        CommitFailedException expected =
-                EditorDiff.process(new PropertyIndexEditor(builder), before, after);
+        CommitFailedException expected = EditorDiff.process(
+                new PropertyIndexEditor(builder), before, after);
         assertNotNull("Unique constraint should be respected", expected);
     }
 
@@ -310,21 +278,14 @@ public class PropertyIndexTest {
 
         // Add index definition
         NodeBuilder builder = root.builder();
-        builder.child("oak:index")
-                .child("fooIndex")
-                .setProperty("jcr:primaryType", "oak:queryIndexDefinition",
-                        Type.NAME)
-                .setProperty("type", "p2")
-                .setProperty("unique", "true")
-                .setProperty("propertyNames", Arrays.asList("foo"),
-                        Type.NAMES)
-                .setProperty(PropertyIndexEditor.declaringNodeTypes,
-                        Arrays.asList("typeFoo"), Type.NAMES);
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "fooIndex", true, true, ImmutableSet.of("foo"),
+                ImmutableSet.of("typeFoo"));
         NodeState before = builder.getNodeState();
         builder = before.builder();
-        builder.child("a").setProperty("jcr:primaryType", "typeFoo", Type.NAME)
+        builder.child("a").setProperty(JCR_PRIMARYTYPE, "typeFoo", Type.NAME)
                 .setProperty("foo", "abc");
-        builder.child("b").setProperty("jcr:primaryType", "typeBar", Type.NAME)
+        builder.child("b").setProperty(JCR_PRIMARYTYPE, "typeBar", Type.NAME)
                 .setProperty("foo", "abc");
         NodeState after = builder.getNodeState();
 
@@ -339,21 +300,14 @@ public class PropertyIndexTest {
 
         // Add index definition
         NodeBuilder builder = root.builder();
-        builder.child("oak:index")
-                .child("fooIndex")
-                .setProperty("jcr:primaryType", "oak:queryIndexDefinition",
-                        Type.NAME)
-                .setProperty("type", "p2")
-                .setProperty("unique", "true")
-                .setProperty("propertyNames", Arrays.asList("foo"),
-                        Type.NAMES)
-                .setProperty(PropertyIndexEditor.declaringNodeTypes,
-                        Arrays.asList("typeFoo"), Type.NAMES);
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "fooIndex", true, true, ImmutableSet.of("foo"),
+                ImmutableSet.of("typeFoo"));
         NodeState before = builder.getNodeState();
         builder = before.builder();
-        builder.child("a").setProperty("jcr:primaryType", "typeFoo", Type.NAME)
+        builder.child("a").setProperty(JCR_PRIMARYTYPE, "typeFoo", Type.NAME)
                 .setProperty("foo", "abc");
-        builder.child("b").setProperty("jcr:primaryType", "typeFoo", Type.NAME)
+        builder.child("b").setProperty(JCR_PRIMARYTYPE, "typeFoo", Type.NAME)
                 .setProperty("foo", "abc");
         NodeState after = builder.getNodeState();
 
@@ -368,19 +322,12 @@ public class PropertyIndexTest {
 
         // Add index definition
         NodeBuilder builder = root.builder();
-        builder.child("oak:index")
-                .child("fooIndex")
-                .setProperty("jcr:primaryType", "oak:queryIndexDefinition",
-                        Type.NAME)
-                .setProperty("type", "p2")
-                .setProperty("unique", "true")
-                .setProperty("propertyNames", Arrays.asList("foo"),
-                        Type.NAMES)
-                .setProperty(PropertyIndexEditor.declaringNodeTypes,
-                        Arrays.asList("typeFoo"), Type.NAMES);
-        builder.child("a").setProperty("jcr:primaryType", "typeFoo", Type.NAME)
+        createIndexDefinition(builder.child(INDEX_DEFINITIONS_NAME),
+                "fooIndex", true, true, ImmutableSet.of("foo"),
+                ImmutableSet.of("typeFoo"));
+        builder.child("a").setProperty(JCR_PRIMARYTYPE, "typeFoo", Type.NAME)
                 .setProperty("foo", "abc");
-        builder.child("b").setProperty("jcr:primaryType", "typeBar", Type.NAME)
+        builder.child("b").setProperty(JCR_PRIMARYTYPE, "typeBar", Type.NAME)
                 .setProperty("foo", "abc");
         NodeState before = builder.getNodeState();
         builder = before.builder();
