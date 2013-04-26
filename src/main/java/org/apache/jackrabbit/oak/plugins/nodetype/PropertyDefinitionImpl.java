@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype;
 
+import static javax.jcr.PropertyType.UNDEFINED;
+
 import java.util.List;
 
 import javax.jcr.Value;
@@ -26,22 +28,9 @@ import javax.jcr.query.qom.QueryObjectModelConstants;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
-
-import static javax.jcr.PropertyType.BINARY;
-import static javax.jcr.PropertyType.BOOLEAN;
-import static javax.jcr.PropertyType.DATE;
-import static javax.jcr.PropertyType.DECIMAL;
-import static javax.jcr.PropertyType.DOUBLE;
-import static javax.jcr.PropertyType.LONG;
-import static javax.jcr.PropertyType.NAME;
-import static javax.jcr.PropertyType.PATH;
-import static javax.jcr.PropertyType.REFERENCE;
-import static javax.jcr.PropertyType.STRING;
-import static javax.jcr.PropertyType.UNDEFINED;
-import static javax.jcr.PropertyType.URI;
-import static javax.jcr.PropertyType.WEAKREFERENCE;
 
 /**
  * <pre>
@@ -79,35 +68,11 @@ class PropertyDefinitionImpl extends ItemDefinitionImpl implements PropertyDefin
      * @throws IllegalStateException if {@code name} is not a valid property type name.
      */
     public static int valueFromName(String name) {
-        if ("STRING".equals(name)) {
-            return STRING;
-        } else if ("BINARY".equals(name)) {
-            return BINARY;
-        } else if ("BOOLEAN".equals(name)) {
-            return BOOLEAN;
-        } else if ("LONG".equals(name)) {
-            return LONG;
-        } else if ("DOUBLE".equals(name)) {
-            return DOUBLE;
-        } else if ("DECIMAL".equals(name)) {
-            return DECIMAL;
-        } else if ("DATE".equals(name)) {
-            return DATE;
-        } else if ("NAME".equals(name)) {
-            return NAME;
-        } else if ("PATH".equals(name)) {
-            return PATH;
-        } else if ("REFERENCE".equals(name)) {
-            return REFERENCE;
-        } else if ("WEAKREFERENCE".equals(name)) {
-            return WEAKREFERENCE;
-        } else if ("URI".equals(name)) {
-            return URI;
-        } else if ("UNDEFINED".equals(name)) {
-            return UNDEFINED;
-        } else {
+        Type<?> type = Type.fromString(name);
+        if (type.isArray()) {
             throw new IllegalStateException("unknown property type: " + name);
         }
+        return type.tag();
     }
 
     //-------------------------------------------------< PropertyDefinition >---
