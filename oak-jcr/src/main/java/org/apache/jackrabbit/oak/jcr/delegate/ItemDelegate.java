@@ -43,6 +43,8 @@ public abstract class ItemDelegate {
         this.location = checkNotNull(location);
     }
 
+    public abstract boolean isProtected() throws InvalidItemStateException;
+
     /**
      * Get the name of this item
      * @return oak name of this item

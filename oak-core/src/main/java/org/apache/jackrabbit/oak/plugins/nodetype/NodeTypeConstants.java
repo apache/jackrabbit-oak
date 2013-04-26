@@ -65,6 +65,12 @@ public interface NodeTypeConstants extends JcrConstants {
     String OAK_MIXIN_SUBTYPES = "oak:mixinSubtypes";
     String OAK_MANDATORY_PROPERTIES = "oak:mandatoryProperties";
     String OAK_MANDATORY_CHILD_NODES = "oak:mandatoryChildNodes";
+    String OAK_PROTECTED_PROPERTIES = "oak:protectedProperties";
+    String OAK_PROTECTED_CHILD_NODES = "oak:protectedChildNodes";
+    String OAK_HAS_PROTECTED_RESIDUAL_PROPERTIES =
+            "oak:hasProtectedResidualProperties";
+    String OAK_HAS_PROTECTED_RESIDUAL_CHILD_NODES =
+            "oak:hasProtectedResidualChildNodes";
     String OAK_NAMED_SINGLE_VALUED_PROPERTIES =
             "oak:namedSingleValuedProperties";
     String OAK_RESIDUAL_CHILD_NODE_DEFINITIONS =
