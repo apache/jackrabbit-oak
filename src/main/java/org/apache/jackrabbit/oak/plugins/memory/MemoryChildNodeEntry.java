@@ -20,7 +20,6 @@ package org.apache.jackrabbit.oak.plugins.memory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.util.Map;
 import java.util.Map.Entry;
 
 import com.google.common.base.Function;
@@ -40,8 +39,8 @@ public class MemoryChildNodeEntry extends AbstractChildNodeEntry {
                 set,
                 new Function<Entry<String, ? extends NodeState>, ChildNodeEntry>() {
                     @Override
-                    public ChildNodeEntry apply(Entry<String, ? extends NodeState> input) {
-                        return new MemoryChildNodeEntry(input);
+                    public ChildNodeEntry apply(Entry<String, ? extends NodeState> entry) {
+                        return new MemoryChildNodeEntry(entry.getKey(), entry.getValue());
                     }
                 });
     }
@@ -60,16 +59,6 @@ public class MemoryChildNodeEntry extends AbstractChildNodeEntry {
     public MemoryChildNodeEntry(String name, NodeState node) {
         this.name = checkNotNull(name);
         this.node = checkNotNull(node);
-    }
-
-    /**
-     * Utility constructor that copies the name and referenced
-     * child node state from the given map entry.
-     *
-     * @param entry map entry
-     */
-    public MemoryChildNodeEntry(Map.Entry<String, ? extends NodeState> entry) {
-        this(entry.getKey(), entry.getValue());
     }
 
     @Override
