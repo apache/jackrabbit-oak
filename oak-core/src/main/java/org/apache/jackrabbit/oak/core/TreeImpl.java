@@ -536,7 +536,7 @@ public class TreeImpl implements Tree {
     private boolean canRead(TreeImpl tree) {
         // TODO: OAK-753 TreeImpl exposes hidden child trees
         // return tree.getNodeState().exists() && !NodeStateUtils.isHidden(tree.getName());
-        return tree.getNodeState().exists();
+        return tree.nodeBuilder.exists();
     }
 
     private boolean canRead(PropertyState property) {
