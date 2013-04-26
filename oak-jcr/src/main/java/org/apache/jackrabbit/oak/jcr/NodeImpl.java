@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.jcr;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.util.Calendar;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.Set;
 import javax.annotation.Nonnull;
@@ -82,10 +81,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Collections.singleton;
 import static javax.jcr.Property.JCR_LOCK_IS_DEEP;
 import static javax.jcr.Property.JCR_LOCK_OWNER;
 import static javax.jcr.PropertyType.UNDEFINED;
+import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.oak.api.Type.NAME;
+import static org.apache.jackrabbit.oak.api.Type.NAMES;
 
 /**
  * TODO document
@@ -860,11 +863,11 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
 
     @Override
     public void addMixin(String mixinName) throws RepositoryException {
-        final String oakMixinName = getOakName(mixinName);
+        final String oakTypeName = getOakName(checkNotNull(mixinName));
         perform(new ItemWriteOperation<Void>() {
             @Override
             public Void perform() throws RepositoryException {
-                dlg.addMixin(oakMixinName);
+                dlg.addMixin(oakTypeName);
                 return null;
             }
         });
@@ -888,23 +891,13 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     }
 
     @Override
-    public boolean canAddMixin(final String mixinName) throws RepositoryException {
+    public boolean canAddMixin(String mixinName) throws RepositoryException {
+        final String oakTypeName = getOakName(mixinName);
         return perform(new ItemReadOperation<Boolean>() {
             @Override
             public Boolean perform() throws RepositoryException {
-
-                // TODO: figure out the right place for this check
-                NodeType nt = getNodeTypeManager().getNodeType(mixinName); // throws on not found
-                if (!nt.isMixin()) {
-                    return false;
-                }
-                // TODO: END
-
-                if (!hasNtMgtPermission(JcrConstants.JCR_MIXINTYPES, mixinName)) {
-                    return false;
-                }
-
-                return getEffectiveNodeType().supportsMixin(mixinName);
+                return hasNtMgtPermission(JCR_MIXINTYPES, oakTypeName)
+                        && dlg.canAddMixin(oakTypeName);
             }
         });
     }
@@ -1387,14 +1380,20 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         });
     }
 
-    private boolean hasNtMgtPermission(String propertyName, String ntName) throws RepositoryException {
+    // TODO: Move to NodeDelegate?
+    private boolean hasNtMgtPermission(
+            String oakPropertyName, String oakTypeName)
+            throws RepositoryException {
         PropertyState property;
-        if (JcrConstants.JCR_MIXINTYPES.equals(propertyName)) {
-            property = PropertyStates.createProperty(propertyName, Collections.singleton(getOakName(ntName)), Type.NAMES);
+        if (JCR_MIXINTYPES.equals(oakPropertyName)) {
+            property = PropertyStates.createProperty(
+                    oakPropertyName, singleton(oakTypeName), NAMES);
         } else {
-            property = PropertyStates.createProperty(propertyName, getOakName(ntName), Type.NAME);
+            property = PropertyStates.createProperty(
+                    oakPropertyName, oakTypeName, NAME);
         }
-        return sessionContext.getPermissionProvider().isGranted(dlg.getTree(), property, Permissions.NODE_TYPE_MANAGEMENT);
+        return sessionContext.getPermissionProvider().isGranted(
+                dlg.getTree(), property, Permissions.NODE_TYPE_MANAGEMENT);
     }
 
 }
