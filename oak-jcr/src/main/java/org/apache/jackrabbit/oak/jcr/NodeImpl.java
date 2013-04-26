@@ -76,7 +76,6 @@ import org.apache.jackrabbit.oak.core.IdentifierManager;
 import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.PropertyDelegate;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
-import org.apache.jackrabbit.oak.plugins.nodetype.DefinitionProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.EffectiveNodeType;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
@@ -90,6 +89,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static javax.jcr.Property.JCR_LOCK_IS_DEEP;
 import static javax.jcr.Property.JCR_LOCK_OWNER;
 import static javax.jcr.PropertyType.UNDEFINED;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 
 /**
  * TODO document
@@ -203,9 +203,17 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         return addNode(relPath, null);
     }
 
-    @Override
-    @Nonnull
-    public Node addNode(final String relPath, final String primaryNodeTypeName) throws RepositoryException {
+    @Override @Nonnull
+    public Node addNode(final String relPath, String primaryNodeTypeName)
+            throws RepositoryException {
+        final String oakPath = getOakPathOrThrowNotFound(relPath);
+        final String oakTypeName;
+        if (primaryNodeTypeName != null) {
+            oakTypeName = getOakName(primaryNodeTypeName);
+        } else {
+            oakTypeName = null;
+        }
+
         return perform(new ItemWriteOperation<Node>() {
             @Override
             protected void checkPreconditions() throws RepositoryException {
@@ -215,7 +223,6 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
 
             @Override
             public Node perform() throws RepositoryException {
-                String oakPath = sessionContext.getOakPathOrThrowNotFound(relPath);
                 String oakName = PathUtils.getName(oakPath);
                 String parentPath = PathUtils.getParentPath(oakPath);
 
@@ -238,30 +245,14 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                     throw new ItemExistsException(relPath);
                 }
 
-                String ntName = primaryNodeTypeName;
-                if (ntName == null) {
-                    DefinitionProvider dp = getDefinitionProvider();
-                    NodeDefinition def = dp.getDefinition(parent.getTree(), oakName);
-                    ntName = def.getDefaultPrimaryTypeName();
-                    if (ntName == null) {
-                        throw new ConstraintViolationException(
-                                "no matching child node definition found for " + relPath);
-                    }
-                } else {
-                    // check for NODE_TYPE_MANAGEMENT permission here as we cannot
-                    // distinguish between user-supplied and system-generated
-                    // modification of that property in the PermissionValidator
-                    if (!hasNtMgtPermission(JcrConstants.JCR_PRIMARYTYPE, ntName)) {
-                        throw new AccessDeniedException("Access denied.");
-                    }
+                // check for NODE_TYPE_MANAGEMENT permission here as we cannot
+                // distinguish between user-supplied and system-generated
+                // modification of that property in the PermissionValidator
+                if (oakTypeName != null &&
+                        !hasNtMgtPermission(JCR_PRIMARYTYPE, oakTypeName)) {
+                    throw new AccessDeniedException("Access denied.");
                 }
-
-                // TODO: figure out the right place for this check
-                NodeType nt = getNodeTypeManager().getNodeType(ntName); // throws on not found
-                if (nt.isAbstract() || nt.isMixin()) {
-                    throw new ConstraintViolationException();
-                }
-                // TODO: END
+                String ntName = dlg.getDefaultChildType(oakName, oakTypeName);
 
                 NodeDelegate added = parent.addChild(oakName);
                 if (added == null) {
