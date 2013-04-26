@@ -21,7 +21,6 @@ import java.math.BigDecimal;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.jcr.AccessDeniedException;
@@ -59,7 +58,6 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
-import com.google.common.collect.Lists;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.ItemNameMatcher;
 import org.apache.jackrabbit.commons.iterator.NodeIteratorAdapter;
@@ -77,8 +75,6 @@ import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.PropertyDelegate;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.nodetype.EffectiveNodeType;
-import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
-import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.util.TODO;
 import org.apache.jackrabbit.value.ValueHelper;
@@ -863,39 +859,12 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
     }
 
     @Override
-    public void addMixin(final String mixinName) throws RepositoryException {
+    public void addMixin(String mixinName) throws RepositoryException {
+        final String oakMixinName = getOakName(mixinName);
         perform(new ItemWriteOperation<Void>() {
             @Override
             public Void perform() throws RepositoryException {
-                // TODO: figure out the right place for this check
-                getNodeTypeManager().getNodeType(mixinName); // throws on not found
-                // TODO: END
-
-                if (isNodeType(mixinName)) {
-                    return null;
-                }
-
-                PropertyDelegate mixins = dlg.getPropertyOrNull(JcrConstants.JCR_MIXINTYPES);
-                Value value = getValueFactory().createValue(mixinName, PropertyType.NAME);
-
-                boolean nodeModified = false;
-                if (mixins == null) {
-                    nodeModified = true;
-                    dlg.setProperty(PropertyStates.createProperty(
-                            JcrConstants.JCR_MIXINTYPES, Collections.singletonList(value)));
-                } else {
-                    PropertyState property = mixins.getMultiState();
-                    List<Value> values = ValueFactoryImpl.createValues(property, sessionContext);
-                    if (!values.contains(value)) {
-                        values.add(value);
-                        nodeModified = true;
-                        dlg.setProperty(PropertyStates.createProperty(JcrConstants.JCR_MIXINTYPES, values));
-                    }
-                }
-
-                if (nodeModified) {
-                    autoCreateItems();
-                }
+                dlg.addMixin(oakMixinName);
                 return null;
             }
         });
@@ -1333,88 +1302,6 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                         return new PropertyImpl(propertyDelegate, sessionContext);
                     }
                 });
-    }
-
-    private void autoCreateItems() throws RepositoryException {
-        EffectiveNodeType effective = getEffectiveNodeType();
-        for (PropertyDefinition pd : effective.getAutoCreatePropertyDefinitions()) {
-            if (dlg.getPropertyOrNull(pd.getName()) == null) {
-                if (pd.isMultiple()) {
-                    dlg.setProperty(PropertyStates.createProperty(pd.getName(), getAutoCreatedValues(pd)));
-                } else {
-                    dlg.setProperty(PropertyStates.createProperty(pd.getName(), getAutoCreatedValue(pd)));
-                }
-            }
-        }
-        for (NodeDefinition nd : effective.getAutoCreateNodeDefinitions()) {
-            if (dlg.getChild(nd.getName()) == null) {
-                autoCreateNode(nd);
-            }
-        }
-    }
-
-    private Value getAutoCreatedValue(PropertyDefinition definition)
-            throws RepositoryException {
-        String name = definition.getName();
-        String declaringNT = definition.getDeclaringNodeType().getName();
-
-        if (NodeTypeConstants.JCR_UUID.equals(name)) {
-            // jcr:uuid property of the mix:referenceable node type
-            if (NodeTypeConstants.MIX_REFERENCEABLE.equals(declaringNT)) {
-                return getValueFactory().createValue(IdentifierManager.generateUUID());
-            }
-        } else if (NodeTypeConstants.JCR_CREATED.equals(name)) {
-            // jcr:created property of a version or a mix:created
-            if (NodeTypeConstants.MIX_CREATED.equals(declaringNT)
-                    || NodeTypeConstants.NT_VERSION.equals(declaringNT)) {
-                return getValueFactory().createValue(Calendar.getInstance());
-            }
-        } else if (NodeTypeConstants.JCR_CREATEDBY.equals(name)) {
-            String userID = sessionDelegate.getAuthInfo().getUserID();
-            // jcr:createdBy property of a mix:created
-            if (userID != null
-                    && NodeTypeConstants.MIX_CREATED.equals(declaringNT)) {
-                return getValueFactory().createValue(userID);
-            }
-        } else if (NodeTypeConstants.JCR_LASTMODIFIED.equals(name)) {
-            // jcr:lastModified property of a mix:lastModified
-            if (NodeTypeConstants.MIX_LASTMODIFIED.equals(declaringNT)) {
-                return getValueFactory().createValue(Calendar.getInstance());
-            }
-        } else if (NodeTypeConstants.JCR_LASTMODIFIEDBY.equals(name)) {
-            String userID = sessionDelegate.getAuthInfo().getUserID();
-            // jcr:lastModifiedBy property of a mix:lastModified
-            if (userID != null
-                    && NodeTypeConstants.MIX_LASTMODIFIED.equals(declaringNT)) {
-                return getValueFactory().createValue(userID);
-            }
-        }
-        // does the definition have a default value?
-        if (definition.getDefaultValues() != null) {
-            Value[] values = definition.getDefaultValues();
-            if (values.length > 0) {
-                return values[0];
-            }
-        }
-        throw new RepositoryException("Unable to auto-create value for " +
-                PathUtils.concat(getPath(), name));
-    }
-
-    private Iterable<Value> getAutoCreatedValues(PropertyDefinition definition)
-            throws RepositoryException {
-        String name = definition.getName();
-
-        // default values?
-        if (definition.getDefaultValues() != null) {
-            return Lists.newArrayList(definition.getDefaultValues());
-        }
-        throw new RepositoryException("Unable to auto-create value for " +
-                PathUtils.concat(getPath(), name));
-    }
-
-    private void autoCreateNode(NodeDefinition definition)
-            throws RepositoryException {
-        addNode(definition.getName(), definition.getDefaultPrimaryTypeName());
     }
 
     private void checkValidWorkspace(String workspaceName) throws RepositoryException {

@@ -16,7 +16,9 @@
  */
 package org.apache.jackrabbit.oak.jcr.delegate;
 
+import static com.google.common.collect.Iterables.contains;
 import static com.google.common.collect.Lists.newArrayList;
+import static com.google.common.collect.Sets.newHashSet;
 import static java.util.Collections.emptyList;
 import static org.apache.jackrabbit.JcrConstants.JCR_AUTOCREATED;
 import static org.apache.jackrabbit.JcrConstants.JCR_CREATED;
@@ -38,14 +40,17 @@ import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_C
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_IS_ABSTRACT;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_LASTMODIFIEDBY;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_MIXIN_SUBTYPES;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_NAMED_CHILD_NODE_DEFINITIONS;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_NAMED_PROPERTY_DEFINITIONS;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_PRIMARY_SUBTYPES;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_RESIDUAL_CHILD_NODE_DEFINITIONS;
 
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -224,6 +229,43 @@ public class NodeDelegate extends ItemDelegate {
         }
     }
 
+    public void addMixin(String typeName) throws RepositoryException {
+        Tree typeRoot = sessionDelegate.getRoot().getTree(NODE_TYPES_PATH);
+
+        Tree type = typeRoot.getChild(typeName);
+        if (type == null) {
+            throw new NoSuchNodeTypeException(
+                    "Node type " + typeName + " does not exist");
+        } else if (getBoolean(type, JCR_IS_ABSTRACT)) {
+            throw new ConstraintViolationException(
+                    "Node type " + typeName + " is abstract");
+        } else if (!getBoolean(type, JCR_ISMIXIN)) {
+            throw new ConstraintViolationException(
+                    "Node type " + typeName + " is a not a mixin type");
+        }
+
+        Tree tree = getTree();
+        List<String> mixins = newArrayList();
+
+        String primary = getName(tree, JCR_PRIMARYTYPE);
+        if (primary != null
+                && contains(getNames(type, OAK_PRIMARY_SUBTYPES), primary)) {
+            return;
+        }
+
+        Set<String> submixins = newHashSet(getNames(type, OAK_MIXIN_SUBTYPES));
+        for (String mixin : getNames(tree, JCR_MIXINTYPES)) {
+            if (typeName.equals(mixin) || submixins.contains(mixin)) {
+                return;
+            }
+            mixins.add(mixin);
+        }
+
+        mixins.add(typeName);
+        tree.setProperty(JCR_MIXINTYPES, mixins, NAMES);
+        autoCreateItems(tree, type, typeRoot);
+    }
+
     /**
      * Set a property
      *
@@ -399,7 +441,7 @@ public class NodeDelegate extends ItemDelegate {
             if (getBoolean(definition, JCR_MULTIPLE)) {
                 return PropertyStates.createProperty(
                         name, values.getValue(type), type);
-            } else {
+            } else if (values.count() > 0) {
                 type = type.getBaseType();
                 return PropertyStates.createProperty(
                         name, values.getValue(type, 0), type);
