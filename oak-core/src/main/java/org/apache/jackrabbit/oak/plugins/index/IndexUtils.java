@@ -181,13 +181,20 @@ public class IndexUtils {
                 && ps.getValue(STRING).equals(INDEX_DEFINITIONS_NODE_TYPE);
     }
 
-    public static boolean getBoolean(NodeState state, String property, boolean def) {
-        PropertyState ps = state.getProperty(property);
-        if (ps == null) {
-            return def;
+    public static String getString(NodeBuilder builder, String name) {
+        PropertyState property = builder.getProperty(name);
+        if (property != null && property.getType() == STRING) {
+            return property.getValue(STRING);
         } else {
-            return ps.getValue(BOOLEAN);
+            return null;
         }
+    }
+
+    public static boolean getBoolean(NodeBuilder builder, String name) {
+        PropertyState property = builder.getProperty(name);
+        return property != null
+                && property.getType() == BOOLEAN
+                && property.getValue(BOOLEAN);
     }
 
 }

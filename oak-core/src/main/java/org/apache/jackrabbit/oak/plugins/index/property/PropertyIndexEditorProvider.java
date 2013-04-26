@@ -33,7 +33,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 @Service(IndexEditorProvider.class)
 public class PropertyIndexEditorProvider implements IndexEditorProvider {
 
-    public static final String TYPE = "p2";
+    public static final String TYPE = "property";
 
     @Override
     public Editor getIndexEditor(String type, NodeBuilder builder) {

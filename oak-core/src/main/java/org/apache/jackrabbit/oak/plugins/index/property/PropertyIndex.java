@@ -42,7 +42,7 @@ import com.google.common.base.Charsets;
  * Next (as a child node) follows the index definition node that:
  * <ul>
  * <li>must be of type <code>oak:queryIndexDefinition</code></li>
- * <li>must have the <code>type</code> property set to <b><code>p2</code></b></li>
+ * <li>must have the <code>type</code> property set to <b><code>property</code></b></li>
  * <li>contains the <code>propertyNames</code> property that indicates what property will be stored in the index</li>
  * </ul>
  * </p>
@@ -67,7 +67,7 @@ import com.google.common.base.Charsets;
  *     NodeBuilder index = root.child("oak:index");
  *     index.child("uuid")
  *         .setProperty("jcr:primaryType", "oak:queryIndexDefinition", Type.NAME)
- *         .setProperty("type", "p2")
+ *         .setProperty("type", "property")
  *         .setProperty("propertyNames", "jcr:uuid")
  *         .setProperty("declaringNodeTypes", "mix:referenceable")
  *         .setProperty("unique", true)
@@ -104,7 +104,7 @@ class PropertyIndex implements QueryIndex {
 
     @Override
     public String getIndexName() {
-        return "p2";
+        return "property";
     }
 
     @Override
@@ -166,7 +166,7 @@ class PropertyIndex implements QueryIndex {
     
     @Override
     public String getPlan(Filter filter, NodeState root) {
-        StringBuilder buff = new StringBuilder("p2");
+        StringBuilder buff = new StringBuilder("property");
         PropertyIndexLookup lookup = new PropertyIndexLookup(root);
         for (PropertyRestriction pr : filter.getPropertyRestrictions()) {
             String propertyName = PathUtils.getName(pr.propertyName);

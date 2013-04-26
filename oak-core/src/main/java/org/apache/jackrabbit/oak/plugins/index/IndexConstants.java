@@ -49,4 +49,6 @@ public interface IndexConstants {
      * allows to restrict a given index definition to specific node types.
      */
     String DECLARING_NODE_TYPES = "declaringNodeTypes";
+
+    String INDEX_CONTENT_NODE_NAME = ":index";
 }
