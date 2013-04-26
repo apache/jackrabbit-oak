@@ -229,6 +229,18 @@ public class NodeDelegate extends ItemDelegate {
         }
     }
 
+    public boolean canAddMixin(String typeName) throws RepositoryException {
+        Tree typeRoot = sessionDelegate.getRoot().getTree(NODE_TYPES_PATH);
+        Tree type = typeRoot.getChild(typeName);
+        if (type != null) {
+            return !getBoolean(type, JCR_IS_ABSTRACT)
+                    && getBoolean(type, JCR_ISMIXIN);
+        } else {
+            throw new NoSuchNodeTypeException(
+                    "Node type " + typeName + " does not exist");
+        }
+    }
+
     public void addMixin(String typeName) throws RepositoryException {
         Tree typeRoot = sessionDelegate.getRoot().getTree(NODE_TYPES_PATH);
 
