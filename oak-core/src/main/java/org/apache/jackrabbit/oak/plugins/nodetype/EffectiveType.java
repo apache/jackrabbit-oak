@@ -24,6 +24,8 @@ import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
+import static org.apache.jackrabbit.oak.api.Type.UNDEFINED;
+import static org.apache.jackrabbit.oak.api.Type.UNDEFINEDS;
 
 import java.util.List;
 import java.util.Set;
@@ -93,12 +95,12 @@ class EffectiveType {
             escapedName = propertyName;
         }
 
-        String definedType = getTypeKey(propertyType);
+        String definedType = propertyType.toString();
         String undefinedType;
         if (propertyType.isArray()) {
-            undefinedType = "UNDEFINEDS";
+            undefinedType = UNDEFINEDS.toString();
         } else {
-            undefinedType = "UNDEFINED";
+            undefinedType = UNDEFINED.toString();
         }
 
         // Find matching named property definition
@@ -198,62 +200,6 @@ class EffectiveType {
             Iterables.addAll(names, type.getProperty("oak:supertypes").getValue(NAMES));
         }
         return names;
-    }
-
-    //-----------------------------------------------------------< private >--
-
-    private String getTypeKey(Type<?> type) {
-        if (type == Type.BINARIES) {
-            return "BINARIES";
-        } else if (type == Type.BINARY) {
-            return "BINARY";
-        } else if (type == Type.BOOLEAN) {
-            return "BOOLEAN";
-        } else if (type == Type.BOOLEANS) {
-            return "BOOLEANS";
-        } else if (type == Type.DATE) {
-            return "DATE";
-        } else if (type == Type.DATES) {
-            return "DATES";
-        } else if (type == Type.DECIMAL) {
-            return "DECIMAL";
-        } else if (type == Type.DECIMALS) {
-            return "DECIMALS";
-        } else if (type == Type.DOUBLE) {
-            return "DOUBLE";
-        } else if (type == Type.DOUBLES) {
-            return "DOUBLES";
-        } else if (type == Type.LONG) {
-            return "LONG";
-        } else if (type == Type.LONGS) {
-            return "LONGS";
-        } else if (type == Type.NAME) {
-            return "NAME";
-        } else if (type == Type.NAMES) {
-            return "NAMES";
-        } else if (type == Type.PATH) {
-            return "PATH";
-        } else if (type == Type.PATHS) {
-            return "PATHS";
-        } else if (type == Type.REFERENCE) {
-            return "REFERENCE";
-        } else if (type == Type.REFERENCES) {
-            return "REFERENCES";
-        } else if (type == Type.STRING) {
-            return "STRING";
-        } else if (type == Type.STRINGS) {
-            return "STRINGS";
-        } else if (type == Type.URI) {
-            return "URI";
-        } else if (type == Type.URIS) {
-            return "URIS";
-        } else if (type == Type.WEAKREFERENCE) {
-            return "WEAKREFERENCE";
-        } else if (type == Type.WEAKREFERENCES) {
-            return "WEAKREFERENCES";
-        } else {
-            return "unknown";
-        }
     }
 
 }
