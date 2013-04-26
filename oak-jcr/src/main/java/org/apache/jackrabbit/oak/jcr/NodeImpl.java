@@ -258,9 +258,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                     throw new ItemExistsException();
                 }
 
-                NodeImpl<?> childNode = new NodeImpl<NodeDelegate>(added, sessionContext);
-                childNode.autoCreateItems();
-                return childNode;
+                return new NodeImpl<NodeDelegate>(added, sessionContext);
             }
         });
     }
