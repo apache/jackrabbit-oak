@@ -96,8 +96,8 @@ public class Jcr {
     }
 
     @Nonnull
-    public final Jcr with(@Nonnull IndexEditorProvider indexHookProvider) {
-        oak.with(checkNotNull(indexHookProvider));
+    public final Jcr with(@Nonnull IndexEditorProvider indexEditorProvider) {
+        oak.with(checkNotNull(indexEditorProvider));
         return this;
     }
 

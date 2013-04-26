@@ -82,7 +82,7 @@ public class Oak {
 
     private final List<QueryIndexProvider> queryIndexProviders = newArrayList();
 
-    private final List<IndexEditorProvider> indexHookProviders = newArrayList();
+    private final List<IndexEditorProvider> indexEditorProviders = newArrayList();
 
     private final List<CommitHook> commitHooks = newArrayList();
 
@@ -148,7 +148,7 @@ public class Oak {
      */
     @Nonnull
     public Oak with(@Nonnull IndexEditorProvider provider) {
-        indexHookProviders.add(provider);
+        indexEditorProviders.add(provider);
         return this;
     }
 
@@ -243,8 +243,8 @@ public class Oak {
     }
 
     public ContentRepository createContentRepository() {
-        IndexEditorProvider indexHooks = CompositeIndexEditorProvider.compose(indexHookProviders);
-        OakInitializer.initialize(store, new CompositeInitializer(initializers), indexHooks);
+        IndexEditorProvider indexEditors = CompositeIndexEditorProvider.compose(indexEditorProviders);
+        OakInitializer.initialize(store, new CompositeInitializer(initializers), indexEditors);
 
         QueryIndexProvider indexProvider = CompositeQueryIndexProvider.compose(queryIndexProviders);
 
@@ -263,11 +263,11 @@ public class Oak {
                             }
                         });
         OakInitializer.initialize(workspaceInitializers, store,
-                defaultWorkspaceName, indexHooks, indexProvider,
+                defaultWorkspaceName, indexEditors, indexProvider,
                 CompositeHook.compose(initHooks));
 
         // add index hooks later to prevent the OakInitializer to do excessive indexing
-        with(new IndexUpdateProvider(indexHooks));
+        with(new IndexUpdateProvider(indexEditors));
         with(new EventQueueWriterProvider());
         withEditorHook();
         CommitHook commitHook = CompositeHook.compose(commitHooks);
