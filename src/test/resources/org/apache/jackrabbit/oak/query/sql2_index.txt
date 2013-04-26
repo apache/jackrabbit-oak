@@ -26,16 +26,16 @@
 # property type (value prefix) index
 
 explain select * from [nt:base] where [jcr:uuid] = '123'
-[nt:base] as [nt:base] /* p2 jcr:uuid=123 where [nt:base].[jcr:uuid] = cast('123' as string) */
+[nt:base] as [nt:base] /* property jcr:uuid=123 where [nt:base].[jcr:uuid] = cast('123' as string) */
 
 explain select * from [nt:base] where [jcr:uuid] is not null
-[nt:base] as [nt:base] /* p2 jcr:uuid where [nt:base].[jcr:uuid] is not null */
+[nt:base] as [nt:base] /* property jcr:uuid where [nt:base].[jcr:uuid] is not null */
 
 explain select * from [nt:base] as a inner join [nt:base] as b on isdescendantnode(b, a) where a.[jcr:uuid] is not null and b.[jcr:uuid] is not null
-[nt:base] as [a] /* p2 jcr:uuid where [a].[jcr:uuid] is not null */ inner join [nt:base] as [b] /* p2 jcr:uuid where [b].[jcr:uuid] is not null */ on isdescendantnode([b], [a])
+[nt:base] as [a] /* property jcr:uuid where [a].[jcr:uuid] is not null */ inner join [nt:base] as [b] /* property jcr:uuid where [b].[jcr:uuid] is not null */ on isdescendantnode([b], [a])
 
 explain select * from [nt:base] as a inner join [nt:base] as b on isdescendantnode(b, a) where a.[jcr:uuid] is not null and b.[x] is not null
-[nt:base] as [a] /* p2 jcr:uuid where [a].[jcr:uuid] is not null */ inner join [nt:base] as [b] /* traverse "/path/from/the/join/selector/*" where [b].[x] is not null */ on isdescendantnode([b], [a])
+[nt:base] as [a] /* property jcr:uuid where [a].[jcr:uuid] is not null */ inner join [nt:base] as [b] /* traverse "/path/from/the/join/selector/*" where [b].[x] is not null */ on isdescendantnode([b], [a])
 
 commit / + "test": { "jcr:uuid": "xyz", "a": { "jcr:uuid": "123" } }
 
