@@ -23,8 +23,10 @@ import static org.apache.jackrabbit.JcrConstants.JCR_ISMIXIN;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DECLARING_NODE_TYPES;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.PROPERTY_NAMES;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider.TYPE;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
@@ -65,10 +67,6 @@ import com.google.common.collect.Lists;
  * @see PropertyIndexLookup
  */
 class PropertyIndexEditor implements IndexEditor, Closeable {
-
-    protected static String propertyNames = "propertyNames";
-
-    protected static String declaringNodeTypes = "declaringNodeTypes";
 
     private final IndexStoreStrategy store = new ContentMirrorStoreStrategy();
 
@@ -185,7 +183,7 @@ class PropertyIndexEditor implements IndexEditor, Closeable {
     private void addIndexes(NodeState state, String indexName) {
         Set<String> primaryTypes = newHashSet();
         Set<String> mixinTypes = newHashSet();
-        for (String typeName : state.getNames(declaringNodeTypes)) {
+        for (String typeName : state.getNames(DECLARING_NODE_TYPES)) {
             NodeState type = types.getChildNode(typeName);
             if (type.getBoolean(JCR_ISMIXIN)) {
                 mixinTypes.add(typeName);
@@ -196,7 +194,7 @@ class PropertyIndexEditor implements IndexEditor, Closeable {
             addAll(mixinTypes, type.getNames(OAK_MIXIN_SUBTYPES));
         }
 
-        PropertyState ps = state.getProperty(propertyNames);
+        PropertyState ps = state.getProperty(PROPERTY_NAMES);
         Iterable<String> propertyNames = ps != null ? ps.getValue(Type.NAMES)
                 : ImmutableList.of(indexName);
         for (String pname : propertyNames) {

@@ -21,6 +21,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.DECLARING_N
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.PROPERTY_NAMES;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_CONTENT_NODE_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider.TYPE;
 
 import java.util.Iterator;
@@ -150,7 +151,7 @@ public class PropertyIndexLookup {
                 continue;
             }
             if (contains(ns.getNames(PROPERTY_NAMES), propertyName)) {
-                NodeState index = ns.getChildNode(":index");
+                NodeState index = ns.getChildNode(INDEX_CONTENT_NODE_NAME);
                 if (ns.hasProperty(DECLARING_NODE_TYPES)) {
                     if (supertypes != null) {
                         for (String typeName : ns.getNames(DECLARING_NODE_TYPES)) {
