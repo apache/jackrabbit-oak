@@ -38,7 +38,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * relying on weak references or requiring hard references on the entire
  * accessed subtree. It does this by relying on {@code MutableNodeState}
  * instances for tracking <em>uncommitted changes</em>. A child builders
- * keeps a reference to its parent builder and knows it's name. Before
+ * keeps a reference to its parent builder and knows its own name. Before
  * each access the builder checks the mutable state of its parent for
  * relevant changes and updates its own mutable state.
  * <p>
