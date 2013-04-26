@@ -190,10 +190,24 @@ public class IndexUtils {
         }
     }
 
+    public static String getString(NodeState state, String name) {
+        PropertyState property = state.getProperty(name);
+        if (property != null && property.getType() == STRING) {
+            return property.getValue(STRING);
+        } else {
+            return null;
+        }
+    }
+
     public static boolean getBoolean(NodeBuilder builder, String name) {
         PropertyState property = builder.getProperty(name);
-        return property != null
-                && property.getType() == BOOLEAN
+        return property != null && property.getType() == BOOLEAN
+                && property.getValue(BOOLEAN);
+    }
+
+    public static boolean getBoolean(NodeState state, String name) {
+        PropertyState property = state.getProperty(name);
+        return property != null && property.getType() == BOOLEAN
                 && property.getValue(BOOLEAN);
     }
 
