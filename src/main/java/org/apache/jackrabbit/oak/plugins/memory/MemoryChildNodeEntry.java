@@ -44,7 +44,7 @@ public class MemoryChildNodeEntry extends AbstractChildNodeEntry {
                         return new MemoryChildNodeEntry(input);
                     }
                 });
-   }
+    }
 
     private final String name;
 
