@@ -16,8 +16,23 @@
  */
 package org.apache.jackrabbit.oak.jcr.delegate;
 
+import static com.google.common.collect.Lists.newArrayList;
+import static java.util.Collections.emptyList;
+import static org.apache.jackrabbit.JcrConstants.JCR_DEFAULTPRIMARYTYPE;
+import static org.apache.jackrabbit.JcrConstants.JCR_ISMIXIN;
+import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.oak.api.Type.BOOLEAN;
+import static org.apache.jackrabbit.oak.api.Type.NAME;
+import static org.apache.jackrabbit.oak.api.Type.NAMES;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_IS_ABSTRACT;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_NAMED_CHILD_NODE_DEFINITIONS;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_RESIDUAL_CHILD_NODE_DEFINITIONS;
+
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -25,10 +40,13 @@ import javax.jcr.InvalidItemStateException;
 import javax.jcr.ItemNotFoundException;
 import javax.jcr.RepositoryException;
 import javax.jcr.ValueFormatException;
+import javax.jcr.nodetype.ConstraintViolationException;
+import javax.jcr.nodetype.NoSuchNodeTypeException;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterators;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.TreeLocation;
@@ -242,6 +260,86 @@ public class NodeDelegate extends ItemDelegate {
         getTree().setOrderableChildren(enable);
     }
 
+    public String getDefaultChildType(String childName, String typeName)
+            throws NoSuchNodeTypeException, ConstraintViolationException,
+            InvalidItemStateException {
+        Tree typeRoot = sessionDelegate.getRoot().getTree(NODE_TYPES_PATH);
+        if (typeName != null) {
+            Tree type = typeRoot.getChild(typeName);
+            if (type == null) {
+                throw new NoSuchNodeTypeException(
+                        "Node type " + typeName + " does not exist");
+            } else if (getBoolean(type, JCR_IS_ABSTRACT)) {
+                throw new ConstraintViolationException(
+                        "Node type " + typeName + " is abstract");
+            } else if (getBoolean(type, JCR_ISMIXIN)) {
+                throw new ConstraintViolationException(
+                        "Node type " + typeName + " is a mixin type");
+            } else {
+                return typeName;
+            }
+        } else {
+            List<Tree> types = newArrayList();
+            Tree parent = getTree();
+
+            String primary = getName(parent, JCR_PRIMARYTYPE);
+            if (primary != null) {
+                Tree type = typeRoot.getChild(primary);
+                if (type != null) {
+                    types.add(type);
+                }
+            }
+
+            for (String mixin : getNames(parent, JCR_MIXINTYPES)) {
+                Tree type = typeRoot.getChild(mixin);
+                if (type != null) {
+                    types.add(type);
+                }
+            }
+
+            // first look for named node definitions
+            for (Tree type : types) {
+                Tree named = type.getChild(OAK_NAMED_CHILD_NODE_DEFINITIONS);
+                if (named != null) {
+                    Tree definitions = named.getChild(childName);
+                    if (definitions != null) {
+                        String defaultName =
+                                findDefaultPrimaryType(typeRoot, definitions);
+                        if (defaultName != null) {
+                            return defaultName;
+                        }
+                    }
+                }
+            }
+
+            // then check residual definitions
+            for (Tree type : types) {
+                Tree definitions = type.getChild(OAK_RESIDUAL_CHILD_NODE_DEFINITIONS);
+                if (definitions != null) {
+                    String defaultName =
+                            findDefaultPrimaryType(typeRoot, definitions);
+                    if (defaultName != null) {
+                        return defaultName;
+                    }
+                }
+            }
+
+            // no matching child node definition found
+            throw new ConstraintViolationException(
+                    "No default node type available for child node " + childName);
+        }
+    }
+
+    private String findDefaultPrimaryType(Tree typeRoot, Tree definitions) {
+        for (Tree definition : definitions.getChildren()) {
+            String defaultName = getName(definition, JCR_DEFAULTPRIMARYTYPE);
+            if (defaultName != null) {
+                return defaultName;
+            }
+        }
+        return null;
+    }
+
     //------------------------------------------------------------< internal >---
 
     @Nonnull // FIXME this should be package private. OAK-672
@@ -297,4 +395,34 @@ public class NodeDelegate extends ItemDelegate {
                     }
                 });
     }
+
+    // Generic property value accessors. TODO: add to Tree?
+
+    private static boolean getBoolean(Tree tree, String name) {
+        PropertyState property = tree.getProperty(name);
+        return property != null
+                && property.getType() == BOOLEAN
+                && property.getValue(BOOLEAN);
+    }
+
+    @CheckForNull
+    private static String getName(Tree tree, String name) {
+        PropertyState property = tree.getProperty(name);
+        if (property != null && property.getType() == NAME) {
+            return property.getValue(NAME);
+        } else {
+            return null;
+        }
+    }
+
+    @Nonnull
+    private static Iterable<String> getNames(Tree tree, String name) {
+        PropertyState property = tree.getProperty(name);
+        if (property != null && property.getType() == NAMES) {
+            return property.getValue(NAMES);
+        } else {
+            return emptyList();
+        }
+    }
+
 }

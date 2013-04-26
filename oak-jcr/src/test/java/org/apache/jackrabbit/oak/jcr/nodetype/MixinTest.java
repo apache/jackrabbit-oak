@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.jcr.nodetype;
 
+import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
+
 import javax.jcr.Node;
 import javax.jcr.nodetype.NoSuchNodeTypeException;
 
@@ -47,19 +49,26 @@ public class MixinTest extends AbstractJCRTest {
 
     @Test
     public void testRemoveMixinWithoutMixinProperty() throws Exception {
+        Node node = testRootNode.addNode(
+                "testRemoveMixinWithoutMixinProperty", NT_UNSTRUCTURED);
+        superuser.save();
         try {
-            assertFalse(testRootNode.hasProperty(JcrConstants.JCR_MIXINTYPES));
-            testRootNode.removeMixin(JcrConstants.MIX_REFERENCEABLE);
+            node.removeMixin(JcrConstants.MIX_REFERENCEABLE);
             fail();
         } catch (NoSuchNodeTypeException e) {
             // success
+        } finally {
+            node.remove();
+            superuser.save();
         }
 
     }
 
     @Test
     public void testRemoveInheritedMixin() throws Exception {
-        testRootNode.addMixin(JcrConstants.MIX_VERSIONABLE);
+        Node node = testRootNode.addNode(
+                "testRemoveInheritedMixin", NT_UNSTRUCTURED);
+        node.addMixin(JcrConstants.MIX_VERSIONABLE);
         superuser.save();
 
         try {
@@ -67,6 +76,9 @@ public class MixinTest extends AbstractJCRTest {
             fail();
         } catch (NoSuchNodeTypeException e) {
             // success
+        } finally {
+            node.remove();
+            superuser.save();
         }
     }
 
