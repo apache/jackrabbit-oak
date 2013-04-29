@@ -55,7 +55,7 @@ class BuiltInNodeTypes {
         this.ntMgr =  new ReadWriteNodeTypeManager() {
             @Override
             protected Tree getTypes() {
-                return root.getTree(NODE_TYPES_PATH);
+                return root.getTreeOrNull(NODE_TYPES_PATH);
             }
 
             @Nonnull
@@ -68,7 +68,7 @@ class BuiltInNodeTypes {
         this.nsReg = new ReadWriteNamespaceRegistry() {
             @Override
             protected Tree getReadTree() {
-                return root.getTree("/");
+                return root.getTreeOrNull("/");
             }
             @Override
             protected Root getWriteRoot() {
@@ -80,7 +80,7 @@ class BuiltInNodeTypes {
                 new GlobalNameMapper() {
                     @Override
                     protected Map<String, String> getNamespaceMap() {
-                        return Namespaces.getNamespaceMap(root.getTree("/"));
+                        return Namespaces.getNamespaceMap(root.getTreeOrNull("/"));
                     }
                 }));
     }

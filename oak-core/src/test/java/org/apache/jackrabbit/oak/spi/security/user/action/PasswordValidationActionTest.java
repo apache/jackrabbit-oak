@@ -130,7 +130,7 @@ public class PasswordValidationActionTest extends AbstractSecurityTest {
         testUser = getUserManager().createUser("testuser", hashed);
         root.commit();
 
-        String pwValue = root.getTree(testUser.getPath()).getProperty(UserConstants.REP_PASSWORD).getValue(Type.STRING);
+        String pwValue = root.getTreeOrNull(testUser.getPath()).getProperty(UserConstants.REP_PASSWORD).getValue(Type.STRING);
         assertFalse(PasswordUtility.isPlainTextPassword(pwValue));
         assertTrue(PasswordUtility.isSame(pwValue, hashed));
     }

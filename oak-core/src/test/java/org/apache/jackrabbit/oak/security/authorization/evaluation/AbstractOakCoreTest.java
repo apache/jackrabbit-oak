@@ -50,7 +50,7 @@ public abstract class AbstractOakCoreTest extends AbstractSecurityTest {
 
         testPrincipal = getTestUser().getPrincipal();
 
-        NodeUtil rootNode = new NodeUtil(root.getTree("/"));
+        NodeUtil rootNode = new NodeUtil(root.getTreeOrNull("/"));
         NodeUtil a = rootNode.addChild("a", NT_UNSTRUCTURED);
         a.setString("aProp", "aValue");
 
@@ -77,7 +77,7 @@ public abstract class AbstractOakCoreTest extends AbstractSecurityTest {
             }
 
             // remove all test content
-            root.getTree("/a").remove();
+            root.getTreeOrNull("/a").remove();
             root.commit();
 
             // release test session

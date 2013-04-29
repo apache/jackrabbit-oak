@@ -77,7 +77,7 @@ public class OakServlet extends HttpServlet {
                 // direction as some parent nodes may be read-protected.
                 String head = request.getPathInfo();
                 String tail = "";
-                Tree tree = root.getTree(head);
+                Tree tree = root.getTreeOrNull(head);
                 while (tree == null) {
                     if (head.equals("/")) {
                         response.sendError(HttpServletResponse.SC_NOT_FOUND);
@@ -89,7 +89,7 @@ public class OakServlet extends HttpServlet {
                     if (head.isEmpty()){
                     	head="/";
                     }
-                    tree = root.getTree(head);
+                    tree = root.getTreeOrNull(head);
                 }
                 request.setAttribute("tree", tree);
                 request.setAttribute("path", tail);
@@ -160,13 +160,13 @@ public class OakServlet extends HttpServlet {
                 if (tree.hasProperty(name)) {
                     tree.removeProperty(name);
                 }
-                Tree child = tree.getChild(name);
+                Tree child = tree.getChildOrNull(name);
                 if (child == null) {
                     child = tree.addChild(name);
                 }
                 post(value, child);
             } else {
-                Tree child = tree.getChild(name);
+                Tree child = tree.getChildOrNull(name);
                 if (child != null) {
                     child.remove();
                 }
@@ -194,9 +194,9 @@ public class OakServlet extends HttpServlet {
         try {
             Root root = (Root) request.getAttribute("root");
             Tree tree = (Tree) request.getAttribute("tree");
-            Tree parent = tree.getParent();
+            Tree parent = tree.getParentOrNull();
             if (parent != null) {
-                Tree child = parent.getChild(tree.getName());
+                Tree child = parent.getChildOrNull(tree.getName());
                 if (child != null) {
                     child.remove();
                 }

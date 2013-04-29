@@ -54,7 +54,7 @@ public class TreeImplTest extends OakBaseTest {
 
         // Add test content
         root = session.getLatestRoot();
-        Tree tree = root.getTree("/");
+        Tree tree = root.getTreeOrNull("/");
         tree.setProperty("a", 1);
         tree.setProperty("b", 2);
         tree.setProperty("c", 3);
@@ -74,18 +74,18 @@ public class TreeImplTest extends OakBaseTest {
 
     @Test
     public void getChild() {
-        Tree tree = root.getTree("/");
+        Tree tree = root.getTreeOrNull("/");
 
-        Tree child = tree.getChild("any");
+        Tree child = tree.getChildOrNull("any");
         assertNull(child);
 
-        child = tree.getChild("x");
+        child = tree.getChildOrNull("x");
         assertNotNull(child);
     }
 
     @Test
     public void getProperty() {
-        Tree tree = root.getTree("/");
+        Tree tree = root.getTreeOrNull("/");
 
         PropertyState propertyState = tree.getProperty("any");
         assertNull(propertyState);
@@ -99,7 +99,7 @@ public class TreeImplTest extends OakBaseTest {
 
     @Test
     public void getChildren() {
-        Tree tree = root.getTree("/");
+        Tree tree = root.getTreeOrNull("/");
 
         Iterable<Tree> children = tree.getChildren();
 
@@ -116,7 +116,7 @@ public class TreeImplTest extends OakBaseTest {
 
     @Test
     public void getProperties() {
-        Tree tree = root.getTree("/");
+        Tree tree = root.getTreeOrNull("/");
 
         Set<PropertyState> expectedProperties = Sets.newHashSet(
                 LongPropertyState.createLongProperty("a", 1L),
@@ -134,7 +134,7 @@ public class TreeImplTest extends OakBaseTest {
 
     @Test
     public void addChild() throws CommitFailedException {
-        Tree tree = root.getTree("/");
+        Tree tree = root.getTreeOrNull("/");
 
         assertFalse(tree.hasChild("new"));
         Tree added = tree.addChild("new");
@@ -146,13 +146,13 @@ public class TreeImplTest extends OakBaseTest {
 
         assertTrue(tree.hasChild("new"));
 
-        tree.getChild("new").addChild("more");
-        assertTrue(tree.getChild("new").hasChild("more"));
+        tree.getChildOrNull("new").addChild("more");
+        assertTrue(tree.getChildOrNull("new").hasChild("more"));
     }
 
     @Test
     public void addExistingChild() throws CommitFailedException {
-        Tree tree = root.getTree("/");
+        Tree tree = root.getTreeOrNull("/");
 
         assertFalse(tree.hasChild("new"));
         tree.addChild("new");
@@ -167,10 +167,10 @@ public class TreeImplTest extends OakBaseTest {
 
     @Test
     public void removeChild() throws CommitFailedException {
-        Tree tree = root.getTree("/");
+        Tree tree = root.getTreeOrNull("/");
 
         assertTrue(tree.hasChild("x"));
-        tree.getChild("x").remove();
+        tree.getChildOrNull("x").remove();
         assertFalse(tree.hasChild("x"));
 
         root.commit();
@@ -180,19 +180,19 @@ public class TreeImplTest extends OakBaseTest {
 
     @Test
     public void removeNew() {
-        Tree tree = root.getTree("/");
+        Tree tree = root.getTreeOrNull("/");
 
         Tree t = tree.addChild("new");
 
-        tree.getChild("new").remove();
+        tree.getChildOrNull("new").remove();
         assertFalse(t.exists());
 
-        assertNull(tree.getChild("new"));
+        assertNull(tree.getChildOrNull("new"));
     }
 
     @Test
     public void setProperty() throws CommitFailedException {
-        Tree tree = root.getTree("/");
+        Tree tree = root.getTreeOrNull("/");
 
         assertFalse(tree.hasProperty("new"));
         tree.setProperty("new", "value");
@@ -211,7 +211,7 @@ public class TreeImplTest extends OakBaseTest {
 
     @Test
     public void removeProperty() throws CommitFailedException {
-        Tree tree = root.getTree("/");
+        Tree tree = root.getTreeOrNull("/");
 
         assertTrue(tree.hasProperty("a"));
         tree.removeProperty("a");
@@ -224,11 +224,11 @@ public class TreeImplTest extends OakBaseTest {
 
     @Test
     public void getChildrenCount() {
-        Tree tree = root.getTree("/");
+        Tree tree = root.getTreeOrNull("/");
 
         assertEquals(3, tree.getChildrenCount());
 
-        tree.getChild("x").remove();
+        tree.getChildOrNull("x").remove();
         assertEquals(2, tree.getChildrenCount());
 
         tree.addChild("a");
@@ -240,7 +240,7 @@ public class TreeImplTest extends OakBaseTest {
 
     @Test
     public void getPropertyCount() {
-        Tree tree = root.getTree("/");
+        Tree tree = root.getTreeOrNull("/");
 
         assertEquals(3, tree.getPropertyCount());
 
@@ -259,7 +259,7 @@ public class TreeImplTest extends OakBaseTest {
 
     @Test
     public void addAndRemoveProperty() throws CommitFailedException {
-        Tree tree = root.getTree("/");
+        Tree tree = root.getTreeOrNull("/");
 
         tree.setProperty("P0", "V1");
         root.commit();
@@ -274,27 +274,27 @@ public class TreeImplTest extends OakBaseTest {
 
     @Test
     public void nodeStatus() throws CommitFailedException {
-        Tree tree = root.getTree("/");
+        Tree tree = root.getTreeOrNull("/");
 
         tree.addChild("new");
-        assertEquals(Tree.Status.NEW, tree.getChild("new").getStatus());
+        assertEquals(Tree.Status.NEW, tree.getChildOrNull("new").getStatus());
         root.commit();
 
-        assertEquals(Tree.Status.EXISTING, tree.getChild("new").getStatus());
-        Tree added = tree.getChild("new");
+        assertEquals(Tree.Status.EXISTING, tree.getChildOrNull("new").getStatus());
+        Tree added = tree.getChildOrNull("new");
         added.addChild("another");
-        assertEquals(Tree.Status.MODIFIED, tree.getChild("new").getStatus());
+        assertEquals(Tree.Status.MODIFIED, tree.getChildOrNull("new").getStatus());
         root.commit();
 
-        assertEquals(Tree.Status.EXISTING, tree.getChild("new").getStatus());
-        tree.getChild("new").getChild("another").remove();
-        assertEquals(Tree.Status.MODIFIED, tree.getChild("new").getStatus());
+        assertEquals(Tree.Status.EXISTING, tree.getChildOrNull("new").getStatus());
+        tree.getChildOrNull("new").getChildOrNull("another").remove();
+        assertEquals(Tree.Status.MODIFIED, tree.getChildOrNull("new").getStatus());
         root.commit();
 
-        assertEquals(Tree.Status.EXISTING, tree.getChild("new").getStatus());
-        assertNull(tree.getChild("new").getChild("another"));
+        assertEquals(Tree.Status.EXISTING, tree.getChildOrNull("new").getStatus());
+        assertNull(tree.getChildOrNull("new").getChildOrNull("another"));
 
-        Tree x = root.getTree("/x");
+        Tree x = root.getTreeOrNull("/x");
         Tree y = x.addChild("y");
         x.remove();
 
@@ -304,7 +304,7 @@ public class TreeImplTest extends OakBaseTest {
 
     @Test
     public void propertyStatus() throws CommitFailedException {
-        Tree tree = root.getTree("/");
+        Tree tree = root.getTreeOrNull("/");
 
         tree.setProperty("new", "value1");
         assertEquals(Tree.Status.NEW, tree.getPropertyStatus("new"));
@@ -322,25 +322,25 @@ public class TreeImplTest extends OakBaseTest {
 
         assertNull(tree.getPropertyStatus("new"));
 
-        Tree x = root.getTree("/x");
+        Tree x = root.getTreeOrNull("/x");
         x.setProperty("y", "value1");
         x.remove();
     }
 
     @Test
     public void noTransitiveModifiedStatus() throws CommitFailedException {
-        Tree tree = root.getTree("/");
+        Tree tree = root.getTreeOrNull("/");
         tree.addChild("one").addChild("two");
         root.commit();
 
-        tree.getChild("one").getChild("two").addChild("three");
-        assertEquals(Tree.Status.EXISTING, tree.getChild("one").getStatus());
-        assertEquals(Tree.Status.MODIFIED, tree.getChild("one").getChild("two").getStatus());
+        tree.getChildOrNull("one").getChildOrNull("two").addChild("three");
+        assertEquals(Tree.Status.EXISTING, tree.getChildOrNull("one").getStatus());
+        assertEquals(Tree.Status.MODIFIED, tree.getChildOrNull("one").getChildOrNull("two").getStatus());
     }
 
     @Test
     public void largeChildList() throws CommitFailedException {
-        Tree tree = root.getTree("/");
+        Tree tree = root.getTreeOrNull("/");
         Set<String> added = new HashSet<String>();
 
         Tree large = tree.addChild("large");
@@ -361,7 +361,7 @@ public class TreeImplTest extends OakBaseTest {
 
     @Test
     public void testSetOrderableChildrenSetsProperty() throws Exception {
-        Tree tree = root.getTree("/").addChild("test");
+        Tree tree = root.getTreeOrNull("/").addChild("test");
         tree.setOrderableChildren(true);
         assertTrue(((TreeImpl) tree).getNodeState().hasProperty(TreeImpl.OAK_CHILD_ORDER));
 
@@ -381,7 +381,7 @@ public class TreeImplTest extends OakBaseTest {
 
     @Test
     public void testSetOrderableChildren() throws Exception {
-        Tree tree = root.getTree("/").addChild("test2");
+        Tree tree = root.getTreeOrNull("/").addChild("test2");
         tree.setOrderableChildren(true);
 
         String[] childNames = new String[]{"a", "b", "c", "d"};
@@ -397,7 +397,7 @@ public class TreeImplTest extends OakBaseTest {
 
     @Test
     public void testDisconnectAfterRefresh() {
-        Tree x = root.getTree("/x");
+        Tree x = root.getTreeOrNull("/x");
         x.setProperty("p", "any");
         Tree xx = x.addChild("xx");
         xx.setProperty("q", "any");
@@ -416,7 +416,7 @@ public class TreeImplTest extends OakBaseTest {
 
     @Test
     public void testDisconnectAfterRemove() {
-        Tree x = root.getTree("/x");
+        Tree x = root.getTreeOrNull("/x");
         x.setProperty("p", "any");
         Tree xx = x.addChild("xx");
         xx.setProperty("q", "any");
@@ -426,7 +426,7 @@ public class TreeImplTest extends OakBaseTest {
         assertEquals(Status.NEW, xx.getStatus());
         assertEquals(Status.NEW, xx.getPropertyStatus("q"));
 
-        root.getTree("/x").remove();
+        root.getTreeOrNull("/x").remove();
 
         assertFalse(x.exists());
         assertFalse(xx.exists());

@@ -52,7 +52,7 @@ public class SolrIndexQueryTest extends AbstractQueryTest {
 
     @Override
     protected void createTestIndexNode() throws Exception {
-        Tree index = root.getTree("/");
+        Tree index = root.getTreeOrNull("/");
         createTestIndexNode(index, SolrQueryIndex.TYPE);
         root.commit();
     }

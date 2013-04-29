@@ -146,14 +146,15 @@ public class TreeImpl implements Tree {
     }
 
     @Override
-    public Tree getParentNonNull() {
+    public Tree getParent() {
         checkState(parent != null, "root tree does not have a parent");
         root.checkLive();
         return parent;
     }
 
     @Override
-    public Tree getParent() {
+    @Deprecated
+    public Tree getParentOrNull() {
         enterNoStateCheck();
         if (parent != null && parent.nodeBuilder.exists()) {
             return parent;
@@ -214,15 +215,16 @@ public class TreeImpl implements Tree {
     }
 
     @Override
-    public TreeImpl getChildNonNull(@Nonnull String name) {
+    public TreeImpl getChild(@Nonnull String name) {
         checkNotNull(name);
         enterNoStateCheck();
         return new TreeImpl(root, this, name, pendingMoves);
     }
 
     @Override
-    public TreeImpl getChild(@Nonnull String name) {
-        TreeImpl child = getChildNonNull(name);
+    @Deprecated
+    public TreeImpl getChildOrNull(@Nonnull String name) {
+        TreeImpl child = getChild(name);
         return child.nodeBuilder.exists() ? child : null;
     }
 

@@ -56,7 +56,7 @@ public class QueryTest {
     public void queryOnStableRevision() throws Exception {
         ContentSession s = repository.login(null, null);
         Root r = s.getLatestRoot();
-        Tree t = r.getTree("/").addChild("test");
+        Tree t = r.getTreeOrNull("/").addChild("test");
         t.addChild("node1").setProperty("jcr:primaryType", "nt:base");
         t.addChild("node2").setProperty("jcr:primaryType", "nt:base");
         t.addChild("node3").setProperty("jcr:primaryType", "nt:base");
@@ -65,7 +65,7 @@ public class QueryTest {
         ContentSession s2 = repository.login(null, null);
         Root r2 = s2.getLatestRoot();
 
-        r.getTree("/test").getChild("node2").remove();
+        r.getTreeOrNull("/test").getChildOrNull("node2").remove();
         r.commit();
 
         Result result = r2.getQueryEngine().executeQuery(

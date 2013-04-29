@@ -43,7 +43,7 @@ public class HiddenTreeTest extends AbstractOakCoreTest {
     public void before() throws Exception {
         super.before();
 
-        parent = root.getTree(hiddenParentPath);
+        parent = root.getTreeOrNull(hiddenParentPath);
         assertNotNull(parent);
     }
 
@@ -56,7 +56,7 @@ public class HiddenTreeTest extends AbstractOakCoreTest {
     @Ignore("OAK-753") // FIXME
     @Test
     public void testGetHiddenTree() {
-        assertNull(parent.getChild(hiddenName));
+        assertNull(parent.getChildOrNull(hiddenName));
     }
 
     @Ignore("OAK-753") // FIXME

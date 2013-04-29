@@ -52,9 +52,9 @@ public class Namespaces implements NamespaceConstants {
     public static Map<String, String> getNamespaceMap(Tree root) {
         Map<String, String> map = new HashMap<String, String>(DEFAULTS);
 
-        Tree system = root.getChild(JcrConstants.JCR_SYSTEM);
+        Tree system = root.getChildOrNull(JcrConstants.JCR_SYSTEM);
         if (system != null) {
-            Tree namespaces = system.getChild(REP_NAMESPACES);
+            Tree namespaces = system.getChildOrNull(REP_NAMESPACES);
             if (namespaces != null) {
                 for (PropertyState property : namespaces.getProperties()) {
                     String prefix = property.getName();

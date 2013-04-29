@@ -23,7 +23,6 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.core.RootImpl;
 import org.apache.jackrabbit.oak.plugins.index.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.IndexDefinitionImpl;
-import org.apache.jackrabbit.oak.plugins.index.solr.query.SolrQueryIndex;
 import org.apache.jackrabbit.oak.query.ast.Operator;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.plugins.index.solr.SolrBaseTest;
@@ -58,7 +57,7 @@ public class SolrQueryEngineIT extends SolrBaseTest {
         IndexDefinition testID = new IndexDefinitionImpl("solr-test",
                 "solr", "/");
         Root root = createRootImpl();
-        Tree tree = root.getTree("/");
+        Tree tree = root.getTreeOrNull("/");
 
         tree.addChild("somenode").setProperty("foo", "bar");
         root.commit();

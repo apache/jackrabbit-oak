@@ -76,7 +76,7 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
 
             @Override
             protected Tree getTypes() {
-                return sessionDelegate.getRoot().getTree(NODE_TYPES_PATH);
+                return sessionDelegate.getRoot().getTreeOrNull(NODE_TYPES_PATH);
             }
 
             @Nonnull
@@ -188,7 +188,7 @@ public class WorkspaceImpl implements JackrabbitWorkspace {
         return new ReadWriteNamespaceRegistry() {
             @Override
             protected Tree getReadTree() {
-                return sessionDelegate.getRoot().getTree("/");
+                return sessionDelegate.getRoot().getTreeOrNull("/");
             }
 
             @Override

@@ -42,7 +42,7 @@ public class ImmutableTreeTest extends OakBaseTest {
 
         // Add test content
         root = session.getLatestRoot();
-        Tree tree = root.getTree("/");
+        Tree tree = root.getTreeOrNull("/");
         Tree x = tree.addChild("x");
         Tree y = x.addChild("y");
         Tree z = y.addChild("z");
@@ -59,18 +59,18 @@ public class ImmutableTreeTest extends OakBaseTest {
 
     @Test
     public void testGetPath() {
-        TreeImpl tree = (TreeImpl) root.getTree("/");
+        TreeImpl tree = (TreeImpl) root.getTreeOrNull("/");
 
         ImmutableTree immutable = new ImmutableTree(tree.getNodeState());
         assertEquals("/", immutable.getPath());
 
-        immutable = immutable.getChild("x");
+        immutable = immutable.getChildOrNull("x");
         assertEquals("/x", immutable.getPath());
 
-        immutable = immutable.getChild("y");
+        immutable = immutable.getChildOrNull("y");
         assertEquals("/x/y", immutable.getPath());
 
-        immutable = immutable.getChild("z");
+        immutable = immutable.getChildOrNull("z");
         assertEquals("/x/y/z", immutable.getPath());
     }
 
@@ -89,7 +89,7 @@ public class ImmutableTreeTest extends OakBaseTest {
     public void testRoot() {
         ImmutableTree tree = ImmutableTree.createFromRoot(root, TreeTypeProvider.EMPTY);
         assertTrue(tree.isRoot());
-        assertNull(tree.getParent());
+        assertNull(tree.getParentOrNull());
         assertEquals("", tree.getName());
         assertEquals(TreeTypeProvider.TYPE_DEFAULT, tree.getType());
     }
@@ -97,15 +97,15 @@ public class ImmutableTreeTest extends OakBaseTest {
     @Test
     public void testGetParent() {
         ImmutableTree tree = ImmutableTree.createFromRoot(root, TreeTypeProvider.EMPTY);
-        assertNull(tree.getParent());
+        assertNull(tree.getParentOrNull());
 
-        ImmutableTree child = tree.getChild("x");
-        assertNotNull(child.getParent());
-        assertEquals("/", child.getParent().getPath());
+        ImmutableTree child = tree.getChildOrNull("x");
+        assertNotNull(child.getParentOrNull());
+        assertEquals("/", child.getParentOrNull().getPath());
 
         ImmutableTree disconnected = new ImmutableTree(ImmutableTree.ParentProvider.UNSUPPORTED, child.getName(), child.getNodeState(), TreeTypeProvider.EMPTY);
         try {
-            disconnected.getParent();
+            disconnected.getParentOrNull();
         } catch (UnsupportedOperationException e) {
             // success
         }

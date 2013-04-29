@@ -87,7 +87,7 @@ class PermissionValidator extends DefaultValidator {
         if (TreeImpl.OAK_CHILD_ORDER.equals(after.getName())) {
             String childName = new ChildOrderDiff(before, after).firstReordered();
             if (childName != null) {
-                Tree child = parentAfter.getChild(childName);
+                Tree child = parentAfter.getChildOrNull(childName);
                 checkPermissions(child, false, Permissions.MODIFY_CHILD_NODE_COLLECTION);
             } // else: no re-order but only internal update
         } else {
@@ -102,7 +102,7 @@ class PermissionValidator extends DefaultValidator {
 
     @Override
     public Validator childNodeAdded(String name, NodeState after) throws CommitFailedException {
-        Tree child = checkNotNull(parentAfter.getChild(name));
+        Tree child = checkNotNull(parentAfter.getChildOrNull(name));
         if (isVersionstorageTree(child)) {
             child = getVersionHistoryTree(child);
             if (child == null) {
@@ -117,8 +117,8 @@ class PermissionValidator extends DefaultValidator {
 
     @Override
     public Validator childNodeChanged(String name, NodeState before, NodeState after) throws CommitFailedException {
-        Tree childBefore = parentBefore.getChild(name);
-        Tree childAfter = parentAfter.getChild(name);
+        Tree childBefore = parentBefore.getChildOrNull(name);
+        Tree childAfter = parentAfter.getChildOrNull(name);
 
         // TODO
 
@@ -127,7 +127,7 @@ class PermissionValidator extends DefaultValidator {
 
     @Override
     public Validator childNodeDeleted(String name, NodeState before) throws CommitFailedException {
-        Tree child = checkNotNull(parentBefore.getChild(name));
+        Tree child = checkNotNull(parentBefore.getChildOrNull(name));
         if (isVersionstorageTree(child)) {
             // TODO: check again
             throw new CommitFailedException(

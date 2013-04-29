@@ -127,7 +127,7 @@ class UserValidator extends DefaultValidator implements UserConstants {
 
     @Override
     public Validator childNodeAdded(String name, NodeState after) throws CommitFailedException {
-        Tree tree = checkNotNull(parentAfter.getChild(name));
+        Tree tree = checkNotNull(parentAfter.getChildOrNull(name));
 
         AuthorizableType type = UserUtility.getType(tree);
         String authRoot = UserUtility.getAuthorizableRootPath(provider.getConfig(), type);
@@ -145,12 +145,12 @@ class UserValidator extends DefaultValidator implements UserConstants {
     @Override
     public Validator childNodeChanged(String name, NodeState before, NodeState after) throws CommitFailedException {
         // TODO: anything to do here?
-        return new UserValidator(parentBefore.getChild(name), parentAfter.getChild(name), provider);
+        return new UserValidator(parentBefore.getChildOrNull(name), parentAfter.getChildOrNull(name), provider);
     }
 
     @Override
     public Validator childNodeDeleted(String name, NodeState before) throws CommitFailedException {
-        Tree node = parentBefore.getChild(name);
+        Tree node = parentBefore.getChildOrNull(name);
         if (isAdminUser(node)) {
             String msg = "The admin user cannot be removed.";
             throw constraintViolation(27, msg);
@@ -195,13 +195,13 @@ class UserValidator extends DefaultValidator implements UserConstants {
             String msg = "Attempt to create user/group outside of configured scope " + pathConstraint;
             throw constraintViolation(28, msg);
         }
-        Tree parent = tree.getParent();
+        Tree parent = tree.getParentOrNull();
         while (parent != null && !parent.isRoot()) {
             if (!NT_REP_AUTHORIZABLE_FOLDER.equals(TreeUtil.getPrimaryTypeName(parent))) {
                 String msg = "Cannot create user/group: Intermediate folders must be of type rep:AuthorizableFolder.";
                 throw constraintViolation(29, msg);
             }
-            parent = parent.getParent();
+            parent = parent.getParentOrNull();
         }
     }
 

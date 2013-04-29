@@ -312,7 +312,7 @@ public class EffectiveNodeType {
             }
             for (NodeDefinition nd : nodeType.getChildNodeDefinitions()) {
                 String name = nd.getName();
-                if (nd.isMandatory() && !nd.isProtected() && tree.getChild(name) == null) {
+                if (nd.isMandatory() && !nd.isProtected() && tree.getChildOrNull(name) == null) {
                     throw new ConstraintViolationException(
                             "Node '" + name + "' in '" + nodeType.getName() + "' is mandatory");
                 }

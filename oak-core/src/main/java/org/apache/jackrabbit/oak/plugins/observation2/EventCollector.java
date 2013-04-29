@@ -146,7 +146,7 @@ class EventCollector implements Runnable {
     }
 
     private static Tree getOrCreate(Tree parent, String name) {
-        Tree child = parent.getChild(name);
+        Tree child = parent.getChildOrNull(name);
         if (child == null) {
             child = parent.addChild(name);
         }
@@ -155,7 +155,7 @@ class EventCollector implements Runnable {
 
     private Tree getOrCreateListenerSpec(Root root) {
         return getOrCreate(getOrCreate(getOrCreate(
-                root.getTree('/' + JCR_SYSTEM), REP_OBSERVATION), LISTENERS), getId());
+                root.getTreeOrNull('/' + JCR_SYSTEM), REP_OBSERVATION), LISTENERS), getId());
     }
 
     private Root getLatestRoot() {
@@ -180,7 +180,7 @@ class EventCollector implements Runnable {
 
     private void clearFilterSpec() throws CommitFailedException {
         Root root = getLatestRoot();
-        Tree listenerSpec = root.getTree(LISTENER_PATH + '/' + getId());
+        Tree listenerSpec = root.getTreeOrNull(LISTENER_PATH + '/' + getId());
         if  (listenerSpec != null) {
             listenerSpec.remove();
             root.commit();

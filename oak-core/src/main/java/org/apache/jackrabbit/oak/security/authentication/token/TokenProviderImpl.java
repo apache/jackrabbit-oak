@@ -163,7 +163,7 @@ public class TokenProviderImpl implements TokenProvider {
         try {
             Authorizable user = userManager.getAuthorizable(userId);
             if (user != null && !user.isGroup()) {
-                NodeUtil userNode = new NodeUtil(root.getTree(user.getPath()));
+                NodeUtil userNode = new NodeUtil(root.getTreeOrNull(user.getPath()));
                 NodeUtil tokenParent = userNode.getChild(TOKENS_NODE_NAME);
                 if (tokenParent == null) {
                     tokenParent = userNode.addChild(TOKENS_NODE_NAME, TOKENS_NT_NAME);
@@ -308,7 +308,7 @@ public class TokenProviderImpl implements TokenProvider {
     @CheckForNull
     private Tree getTokenTree(TokenInfo tokenInfo) {
         if (tokenInfo instanceof TokenInfoImpl) {
-            return root.getTree(((TokenInfoImpl) tokenInfo).tokenPath);
+            return root.getTreeOrNull(((TokenInfoImpl) tokenInfo).tokenPath);
         } else {
             return null;
         }

@@ -54,15 +54,15 @@ public class ContentSessionTest extends OakBaseTest {
         ContentSession session = repository.login(null, null);
         Root root = session.getLatestRoot();
         session.close();
-        root.getTree("/");
+        root.getTreeOrNull("/");
     }
 
     @Test(expected = IllegalStateException.class)
     public void throwOnClosedTree() throws LoginException, NoSuchWorkspaceException, IOException {
         ContentSession session = repository.login(null, null);
         Root root = session.getLatestRoot();
-        Tree tree = root.getTree("/");
+        Tree tree = root.getTreeOrNull("/");
         session.close();
-        tree.getChild("any");
+        tree.getChildOrNull("any");
     }
 }

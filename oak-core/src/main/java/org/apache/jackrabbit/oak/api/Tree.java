@@ -60,7 +60,7 @@ import javax.annotation.Nullable;
  * {@link Tree} instances may become disconnected after a call to {@link Root#refresh()},
  * {@link Root#rebase()} or {@link Root#commit()}. Any access to disconnected tree instances
  * - except for {@link Tree#getName()}, {@link Tree#isRoot()}, {@link Tree#getPath()},
- * {@link Tree#getParent()} and {@link Tree#exists()} - will cause an
+ * {@link Tree#getParentOrNull()} and {@link Tree#exists()} - will cause an
  * {@code InvalidStateException}.
  * TODO document iterability / existence (OAK-798)
  */
@@ -131,15 +131,17 @@ public interface Tree {
      * @throws IllegalStateException if called on the root tree.
      */
     @Nonnull
-    Tree getParentNonNull();
+    Tree getParent();
 
     /**
      * @return the parent of this {@code Tree} instance. This method returns
      *         {@code null} if the parent is not accessible or if no parent exists (root
      *         node).
+     * @deprecated use {@link #getParent()} and {@link #exists()} instead.
      */
     @CheckForNull
-    Tree getParent();
+    @Deprecated
+    Tree getParentOrNull();
 
     /**
      * Get a property state
@@ -195,7 +197,7 @@ public interface Tree {
      * @return The child with the given {@code name}.
      */
     @Nonnull
-    Tree getChildNonNull(@Nonnull String name);
+    Tree getChild(@Nonnull String name);
 
     /**
      * Get a child of this {@code Tree} instance.
@@ -203,9 +205,11 @@ public interface Tree {
      * @param name The name of the child to retrieve.
      * @return The child with the given {@code name} or {@code null} if no such
      *         child exists or the child is not accessible.
+     * @deprecated use {@link #getChild(String)} and {@link #exists()} instead.
      */
     @CheckForNull
-    Tree getChild(@Nonnull String name);
+    @Deprecated
+    Tree getChildOrNull(@Nonnull String name);
 
     /**
      * Determine if a child of this {@code Tree} instance exists. If no child

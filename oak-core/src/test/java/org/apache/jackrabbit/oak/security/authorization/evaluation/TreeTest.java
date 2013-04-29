@@ -51,60 +51,60 @@ public class TreeTest extends AbstractOakCoreTest {
 
     @Test
     public void testHasChild() throws Exception {
-        Tree rootTree = testRoot.getTree("/");
+        Tree rootTree = testRoot.getTreeOrNull("/");
 
         assertTrue(rootTree.hasChild("a"));
         assertFalse(rootTree.hasChild(AccessControlConstants.REP_POLICY));
 
-        Tree a = rootTree.getChild("a");
+        Tree a = rootTree.getChildOrNull("a");
         assertTrue(a.hasChild("b"));
         assertFalse(a.hasChild("bb"));
 
-        Tree b = a.getChild("b");
+        Tree b = a.getChildOrNull("b");
         assertTrue(b.hasChild("c"));
     }
 
     @Test
     public void testGetChild() throws Exception {
-        Tree rootTree = testRoot.getTree("/");
+        Tree rootTree = testRoot.getTreeOrNull("/");
         assertNotNull(rootTree);
 
-        Tree a = rootTree.getChild("a");
+        Tree a = rootTree.getChildOrNull("a");
         assertNotNull(a);
 
-        Tree b = a.getChild("b");
+        Tree b = a.getChildOrNull("b");
         assertNotNull(b);
-        assertNotNull(b.getChild("c"));
+        assertNotNull(b.getChildOrNull("c"));
 
-        assertNull(a.getChild("bb"));
+        assertNull(a.getChildOrNull("bb"));
     }
 
     @Test
     public void testPolicyChild() throws Exception {
-        assertNotNull(root.getTree('/' + AccessControlConstants.REP_POLICY));
+        assertNotNull(root.getTreeOrNull('/' + AccessControlConstants.REP_POLICY));
 
         // 'testUser' must not have access to the policy node
-        Tree rootTree = testRoot.getTree("/");
+        Tree rootTree = testRoot.getTreeOrNull("/");
 
         assertFalse(rootTree.hasChild(AccessControlConstants.REP_POLICY));
-        assertNull(rootTree.getChild(AccessControlConstants.REP_POLICY));
+        assertNull(rootTree.getChildOrNull(AccessControlConstants.REP_POLICY));
     }
 
     @Test
 	public void testGetChildrenCount() throws Exception {
-        long cntRoot = root.getTree("/").getChildrenCount();
-        long cntA = root.getTree("/a").getChildrenCount();
+        long cntRoot = root.getTreeOrNull("/").getChildrenCount();
+        long cntA = root.getTreeOrNull("/a").getChildrenCount();
 
         // 'testUser' may only see 'regular' child nodes -> count must be adjusted.
-        assertEquals(cntRoot-1, testRoot.getTree("/").getChildrenCount());
-        assertEquals(cntA - 1, testRoot.getTree("/a").getChildrenCount());
+        assertEquals(cntRoot-1, testRoot.getTreeOrNull("/").getChildrenCount());
+        assertEquals(cntA - 1, testRoot.getTreeOrNull("/a").getChildrenCount());
 
         // for the following nodes the cnt must not differ
         List<String> paths = ImmutableList.of("/a/b", "/a/b/c");
         for (String path : paths) {
             assertEquals(
-                    root.getTree(path).getChildrenCount(),
-                    testRoot.getTree(path).getChildrenCount());
+                    root.getTreeOrNull(path).getChildrenCount(),
+                    testRoot.getTreeOrNull(path).getChildrenCount());
         }
     }
 

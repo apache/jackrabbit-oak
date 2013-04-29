@@ -140,8 +140,8 @@ public class TokenProviderImplTest extends AbstractTokenTest {
 
         TokenInfo info = tokenProvider.createToken(userId, attributes);
 
-        Tree userTree = root.getTree(getUserManager().getAuthorizable(userId).getPath());
-        Tree tokens = userTree.getChild(".tokens");
+        Tree userTree = root.getTreeOrNull(getUserManager().getAuthorizable(userId).getPath());
+        Tree tokens = userTree.getChildOrNull(".tokens");
         assertNotNull(tokens);
         assertEquals(1, tokens.getChildrenCount());
 
@@ -211,12 +211,12 @@ public class TokenProviderImplTest extends AbstractTokenTest {
     public void testRemoveTokenRemovesNode() throws Exception {
         TokenInfo info = tokenProvider.createToken(userId, Collections.<String, Object>emptyMap());
 
-        Tree userTree = root.getTree(getUserManager().getAuthorizable(userId).getPath());
-        Tree tokens = userTree.getChild(".tokens");
+        Tree userTree = root.getTreeOrNull(getUserManager().getAuthorizable(userId).getPath());
+        Tree tokens = userTree.getChildOrNull(".tokens");
         String tokenNodePath = tokens.getChildren().iterator().next().getPath();
 
         tokenProvider.removeToken(info);
-        assertNull(root.getTree(tokenNodePath));
+        assertNull(root.getTreeOrNull(tokenNodePath));
     }
 
     @Test

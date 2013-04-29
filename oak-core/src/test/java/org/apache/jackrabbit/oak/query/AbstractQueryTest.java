@@ -80,7 +80,7 @@ public abstract class AbstractQueryTest {
      * {@link #createTestIndexNode(Tree, String)} for a helper method
      */
     protected void createTestIndexNode() throws Exception {
-        Tree index = root.getTree("/");
+        Tree index = root.getTreeOrNull("/");
         createTestIndexNode(index, "unknown");
         root.commit();
     }

@@ -60,7 +60,7 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
      */
     @CheckForNull
     Tree getPrivilegesTree() {
-        return root.getTree(PRIVILEGES_PATH);
+        return root.getTreeOrNull(PRIVILEGES_PATH);
     }
 
     @Nonnull
@@ -91,7 +91,7 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
         }
         PrivilegeBits bits = PrivilegeBits.getInstance();
         for (String privilegeName : privilegeNames) {
-            Tree defTree = privilegesTree.getChild(checkNotNull(privilegeName));
+            Tree defTree = privilegesTree.getChildOrNull(checkNotNull(privilegeName));
             if (defTree != null) {
                 bits.add(PrivilegeBits.getInstance(defTree));
             }
