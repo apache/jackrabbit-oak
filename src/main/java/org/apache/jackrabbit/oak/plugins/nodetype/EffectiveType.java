@@ -17,15 +17,16 @@
 package org.apache.jackrabbit.oak.plugins.nodetype;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.Iterables.addAll;
 import static com.google.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_NODETYPENAME;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
-import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.UNDEFINED;
 import static org.apache.jackrabbit.oak.api.Type.UNDEFINEDS;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.OAK_SUPERTYPES;
 
 import java.util.List;
 import java.util.Set;
@@ -38,7 +39,6 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 
 class EffectiveType {
 
@@ -196,11 +196,8 @@ class EffectiveType {
     Set<String> getTypeNames() {
         Set<String> names = newHashSet();
         for (NodeState type : types) {
-            names.add(type.getProperty(JCR_NODETYPENAME).getValue(NAME));
-            PropertyState superTypes = type.getProperty("oak:supertypes");
-            if (superTypes != null) {
-                Iterables.addAll(names, superTypes.getValue(NAMES));
-            }
+            names.add(type.getName(JCR_NODETYPENAME));
+            addAll(names, type.getNames(OAK_SUPERTYPES));
         }
         return names;
     }
