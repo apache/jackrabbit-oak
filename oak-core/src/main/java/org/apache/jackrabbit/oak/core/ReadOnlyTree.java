@@ -273,6 +273,7 @@ public class ReadOnlyTree implements Tree {
 
     //-------------------------------------------------------< TreeLocation >---
 
+    @Deprecated
     private final class NodeLocation extends AbstractNodeLocation<ReadOnlyTree> {
 
         private NodeLocation(ReadOnlyTree tree) {
@@ -315,6 +316,7 @@ public class ReadOnlyTree implements Tree {
         }
     }
 
+    @Deprecated
     private final class PropertyLocation extends AbstractPropertyLocation<ReadOnlyTree> {
 
         private PropertyLocation(AbstractNodeLocation<ReadOnlyTree> parentLocation, String name) {
