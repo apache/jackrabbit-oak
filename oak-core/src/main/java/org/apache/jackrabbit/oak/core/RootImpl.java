@@ -177,7 +177,7 @@ public class RootImpl implements Root {
     @Override
     public boolean move(String sourcePath, String destPath) {
         checkLive();
-        TreeImpl destParent = rootTree.getTree(getParentPath(destPath));
+        TreeImpl destParent = rootTree.getTreeOrNull(getParentPath(destPath));
         if (destParent == null) {
             return false;
         }
@@ -205,9 +205,15 @@ public class RootImpl implements Root {
     }
 
     @Override
-    public TreeImpl getTree(String path) {
+    public TreeImpl getTreeNonNull(@Nonnull String path) {
         checkLive();
         return rootTree.getTree(path);
+    }
+
+    @Override
+    public TreeImpl getTree(String path) {
+        checkLive();
+        return rootTree.getTreeOrNull(path);
     }
 
     @Override

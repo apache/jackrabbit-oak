@@ -16,7 +16,11 @@
  */
 package org.apache.jackrabbit.oak.core;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
+
 import java.util.Iterator;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
@@ -28,9 +32,6 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.api.Type.STRING;
 
 /**
  * Immutable implementation of the {@code Tree} interface in order to provide
@@ -165,14 +166,17 @@ public final class ImmutableTree extends ReadOnlyTree {
         return parentProvider.getParent();
     }
 
+    @Nonnull
+    @Override
+    public ImmutableTree getChildNonNull(@Nonnull String name) {
+        NodeState child = state.getChildNode(name);
+        return new ImmutableTree(this, name, child);
+    }
+
     @Override
     public ImmutableTree getChild(@Nonnull String name) {
-        NodeState child = state.getChildNode(name);
-        if (child.exists()) {
-            return new ImmutableTree(this, name, child);
-        } else {
-            return null;
-        }
+        ImmutableTree child = getChildNonNull(name);
+        return child.exists() ? child : null;
     }
 
     /**

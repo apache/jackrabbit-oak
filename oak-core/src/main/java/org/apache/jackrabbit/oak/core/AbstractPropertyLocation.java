@@ -48,13 +48,13 @@ abstract class AbstractPropertyLocation<T extends Tree> extends AbstractTreeLoca
 
     @Override
     public boolean exists() {
-        return parentLocation.tree.isConnected() && getProperty() != null;
+        return parentLocation.tree.exists() && getProperty() != null;
     }
 
     @Override
     public PropertyState getProperty() {
         PropertyState property = parentLocation.getPropertyState(name);
-        return canRead(property)
+        return property != null && canRead(property)
             ? property
             : null;
     }

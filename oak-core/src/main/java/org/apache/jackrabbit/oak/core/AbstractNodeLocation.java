@@ -71,7 +71,7 @@ abstract class AbstractNodeLocation<T extends Tree> extends AbstractTreeLocation
 
     @Override
     public boolean exists() {
-        return tree.isConnected() && getTree() != null;
+        return tree.exists() && getTree() != null;
     }
 
     @Override

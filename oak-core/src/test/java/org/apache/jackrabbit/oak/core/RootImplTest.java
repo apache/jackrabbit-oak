@@ -18,6 +18,12 @@
  */
 package org.apache.jackrabbit.oak.core;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -32,12 +38,6 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 
 public class RootImplTest extends OakBaseTest {
 
@@ -124,7 +124,7 @@ public class RootImplTest extends OakBaseTest {
         root.move("/z", "/x/z");
         root.getTree("/x/z").remove();
 
-        assertFalse(z.isConnected());
+        assertFalse(z.exists());
 
         x.addChild("z");
         assertEquals(Status.EXISTING, z.getStatus());
@@ -136,7 +136,7 @@ public class RootImplTest extends OakBaseTest {
     }
 
     @Test
-    public void moveNew() throws CommitFailedException {
+    public void moveNew() {
         Root root = session.getLatestRoot();
         Tree tree = root.getTree("/");
 
