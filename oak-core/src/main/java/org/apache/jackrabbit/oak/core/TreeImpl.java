@@ -605,6 +605,7 @@ public class TreeImpl implements Tree {
 
     //-------------------------------------------------------< TreeLocation >---
 
+    @Deprecated
     private final class NodeLocation extends AbstractNodeLocation<TreeImpl> {
 
         private NodeLocation(TreeImpl tree) {
@@ -642,6 +643,7 @@ public class TreeImpl implements Tree {
         }
     }
 
+    @Deprecated
     private static final class PropertyLocation extends AbstractPropertyLocation<TreeImpl> {
 
         private PropertyLocation(AbstractNodeLocation<TreeImpl> parentLocation, String name) {

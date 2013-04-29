@@ -29,6 +29,7 @@ import static com.google.common.base.Objects.toStringHelper;
  * This {@code TreeLocation} refers to an invalid location in a tree. That is
  * to a location where no item resides.
  */
+@Deprecated
 final class NullLocation extends AbstractTreeLocation {
     public static final NullLocation NULL = new NullLocation();
 

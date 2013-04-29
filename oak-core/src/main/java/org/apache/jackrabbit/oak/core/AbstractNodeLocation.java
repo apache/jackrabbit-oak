@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.api.TreeLocation;
 /**
  * AbstractNodeLocation... TODO
  */
+@Deprecated
 abstract class AbstractNodeLocation<T extends Tree> extends AbstractTreeLocation {
     protected final T tree;
 
