@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 /**
  * AbstractPropertyLocation... TODO
  */
+@Deprecated
 abstract class AbstractPropertyLocation<T extends Tree> extends AbstractTreeLocation {
     protected final AbstractNodeLocation<T> parentLocation;
     protected final String name;

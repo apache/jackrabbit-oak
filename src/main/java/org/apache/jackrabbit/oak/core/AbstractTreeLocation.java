@@ -22,6 +22,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.TreeLocation;
 
+@Deprecated
 abstract class AbstractTreeLocation implements TreeLocation {
 
     @Override
