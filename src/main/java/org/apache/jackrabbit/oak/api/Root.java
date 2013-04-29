@@ -34,8 +34,9 @@ import javax.annotation.Nonnull;
  * {@link Tree} instances may become disconnected after a call to {@link #refresh()},
  * {@link #rebase()} or {@link #commit()}. Any access to disconnected tree instances
  * - except for  {@link Tree#getName()}, {@link Tree#isRoot()}, {@link Tree#getPath()},
- * {@link Tree#getParent()} and {@link Tree#isConnected()} - will cause an
+ * {@link Tree#getParent()} and {@link Tree#exists()} - will cause an
  * {@code InvalidStateException}.
+ * TODO document iterability / existence (OAK-798)
  */
 public interface Root {
 
@@ -79,6 +80,16 @@ public interface Root {
      * @return  {@code true} on success, {@code false} otherwise.
      */
     boolean copy(String sourcePath, String destPath);
+
+    /**
+     * Retrieve the possible non existing {@code Tree} at the given absolute {@code path}.
+     * The path must resolve to a tree in this root.
+     *
+     * @param path absolute path to the tree
+     * @return tree at the given path.
+     */
+    @Nonnull
+    Tree getTreeNonNull(@Nonnull String path);
 
     /**
      * Retrieve the {@code Tree} at the given absolute {@code path}. The path
