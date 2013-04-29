@@ -197,7 +197,10 @@ class EffectiveType {
         Set<String> names = newHashSet();
         for (NodeState type : types) {
             names.add(type.getProperty(JCR_NODETYPENAME).getValue(NAME));
-            Iterables.addAll(names, type.getProperty("oak:supertypes").getValue(NAMES));
+            PropertyState superTypes = type.getProperty("oak:supertypes");
+            if (superTypes != null) {
+                Iterables.addAll(names, superTypes.getValue(NAMES));
+            }
         }
         return names;
     }
