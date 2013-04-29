@@ -23,7 +23,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.commit.PostValidationHook;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
-import org.apache.jackrabbit.oak.spi.state.EmptyNodeStateDiff;
+import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.PropertyBuilder;
@@ -44,7 +44,7 @@ class JcrAllCommitHook implements PostValidationHook, PrivilegeConstants {
         return builder.getNodeState();
     }
 
-    private final class PrivilegeDiff extends EmptyNodeStateDiff {
+    private final class PrivilegeDiff extends DefaultNodeStateDiff {
 
         private static final String ROOT_PATH = "";
 

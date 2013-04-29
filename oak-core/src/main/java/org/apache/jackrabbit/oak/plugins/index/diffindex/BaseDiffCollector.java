@@ -23,7 +23,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.spi.query.Filter;
-import org.apache.jackrabbit.oak.spi.state.EmptyNodeStateDiff;
+import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 
@@ -82,7 +82,7 @@ public abstract class BaseDiffCollector implements DiffCollector {
         return false;
     }
 
-    private static class DiffCollectorNodeStateDiff extends EmptyNodeStateDiff {
+    private static class DiffCollectorNodeStateDiff extends DefaultNodeStateDiff {
 
         private final BaseDiffCollector collector;
         private final Filter filter;
