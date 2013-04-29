@@ -63,7 +63,7 @@ public class EffectivePolicyTest extends AbstractAccessControlTest {
         super.before();
 
         // create some nodes below the test root in order to apply ac-stuff
-        NodeUtil rootNode = new NodeUtil(root.getTree("/"));
+        NodeUtil rootNode = new NodeUtil(root.getTreeOrNull("/"));
         NodeUtil testRootNode = rootNode.getOrAddChild("testRoot", JcrConstants.NT_UNSTRUCTURED);
         NodeUtil testNode = testRootNode.addChild("testNode", JcrConstants.NT_UNSTRUCTURED);
         NodeUtil cn1 = testNode.addChild("child1", JcrConstants.NT_UNSTRUCTURED);
@@ -93,7 +93,7 @@ public class EffectivePolicyTest extends AbstractAccessControlTest {
                 testSession.close();
             }
 
-            root.getTree(path).remove();
+            root.getTreeOrNull(path).remove();
             root.commit();
         } finally {
             super.after();

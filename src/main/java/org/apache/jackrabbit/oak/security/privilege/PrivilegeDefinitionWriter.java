@@ -96,7 +96,7 @@ class PrivilegeDefinitionWriter implements PrivilegeConstants {
     private void writeDefinitions(Iterable<PrivilegeDefinition> definitions) throws RepositoryException {
         try {
             // make sure the privileges path is defined
-            Tree privilegesTree = root.getTree(PRIVILEGES_PATH);
+            Tree privilegesTree = root.getTreeOrNull(PRIVILEGES_PATH);
             if (privilegesTree == null) {
                 throw new RepositoryException("Privilege store does not exist.");
             }

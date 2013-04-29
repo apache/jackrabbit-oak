@@ -41,12 +41,12 @@ public class UniquePropertyTest {
                 .with(new PropertyIndexEditorProvider())
                 .with(new InitialContent()).createRoot();
 
-        NodeUtil node = new NodeUtil(root.getTree("/"));
+        NodeUtil node = new NodeUtil(root.getTreeOrNull("/"));
         String uuid =  UUID.randomUUID().toString();
         node.setString(JcrConstants.JCR_UUID, uuid);
         root.commit();
 
-        NodeUtil child = new NodeUtil(root.getTree("/")).addChild("another", "rep:User");
+        NodeUtil child = new NodeUtil(root.getTreeOrNull("/")).addChild("another", "rep:User");
         child.setString(JcrConstants.JCR_UUID, uuid);
         try {
             root.commit();

@@ -34,7 +34,7 @@ import javax.annotation.Nonnull;
  * {@link Tree} instances may become disconnected after a call to {@link #refresh()},
  * {@link #rebase()} or {@link #commit()}. Any access to disconnected tree instances
  * - except for  {@link Tree#getName()}, {@link Tree#isRoot()}, {@link Tree#getPath()},
- * {@link Tree#getParent()} and {@link Tree#exists()} - will cause an
+ * {@link Tree#getParentOrNull()} and {@link Tree#exists()} - will cause an
  * {@code InvalidStateException}.
  * TODO document iterability / existence (OAK-798)
  */
@@ -89,7 +89,7 @@ public interface Root {
      * @return tree at the given path.
      */
     @Nonnull
-    Tree getTreeNonNull(@Nonnull String path);
+    Tree getTree(@Nonnull String path);
 
     /**
      * Retrieve the {@code Tree} at the given absolute {@code path}. The path
@@ -98,9 +98,11 @@ public interface Root {
      * @param path absolute path to the tree
      * @return tree at the given path or {@code null} if no such tree exists or
      *         if the tree at {@code path} is not accessible.
+     * @deprecated Use {@link #getTree(String)} and {@link Tree#exists()} instead.
      */
     @CheckForNull
-    Tree getTree(String path);
+    @Deprecated
+    Tree getTreeOrNull(String path);
 
     /**
      * Get a tree location for a given absolute {@code path}
@@ -113,13 +115,13 @@ public interface Root {
 
     /**
      * Rebase this root instance to the latest revision. After a call to this method,
-     * trees obtained through {@link #getTree(String)} may become disconnected.
+     * trees obtained through {@link #getTreeOrNull(String)} may become disconnected.
      */
     void rebase();
 
     /**
      * Reverts all changes made to this root and refreshed to the latest trunk.
-     * After a call to this method, trees obtained through {@link #getTree(String)}
+     * After a call to this method, trees obtained through {@link #getTreeOrNull(String)}
      * may become disconnected.
      */
     void refresh();
@@ -127,7 +129,7 @@ public interface Root {
     /**
      * Atomically apply all changes made to the tree beneath this root to the
      * underlying store and refreshes this root. After a call to this method,
-     * all trees obtained through {@link #getTree(String)} become invalid and fresh
+     * all trees obtained through {@link #getTreeOrNull(String)} become invalid and fresh
      * instances must be obtained.
      *
      * @throws CommitFailedException

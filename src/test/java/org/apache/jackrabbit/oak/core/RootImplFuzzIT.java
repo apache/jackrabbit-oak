@@ -87,10 +87,10 @@ public class RootImplFuzzIT {
             log.info("{}", op);
             op.apply(root1);
             op.apply(root2);
-            checkEqual(root1.getTree("/"), root2.getTree("/"));
+            checkEqual(root1.getTreeOrNull("/"), root2.getTreeOrNull("/"));
 
             root1.commit();
-            checkEqual(root1.getTree("/"), root2.getTree("/"));
+            checkEqual(root1.getTreeOrNull("/"), root2.getTreeOrNull("/"));
             if (op instanceof Save) {
                 root2.commit();
                 assertEquals("seed " + SEED, store1.getRoot(), store2.getRoot());
@@ -138,7 +138,7 @@ public class RootImplFuzzIT {
 
             @Override
             void apply(RootImpl root) {
-                root.getTree(parentPath).addChild(name);
+                root.getTreeOrNull(parentPath).addChild(name);
             }
 
             @Override
@@ -158,7 +158,7 @@ public class RootImplFuzzIT {
             void apply(RootImpl root) {
                 String parentPath = PathUtils.getParentPath(path);
                 String name = PathUtils.getName(path);
-                root.getTree(parentPath).getChild(name).remove();
+                root.getTreeOrNull(parentPath).getChildOrNull(name).remove();
             }
 
             @Override
@@ -220,7 +220,7 @@ public class RootImplFuzzIT {
 
             @Override
             void apply(RootImpl root) {
-                root.getTree(parentPath).setProperty(propertyName, propertyValue);
+                root.getTreeOrNull(parentPath).setProperty(propertyName, propertyValue);
             }
 
             @Override
@@ -241,7 +241,7 @@ public class RootImplFuzzIT {
 
             @Override
             void apply(RootImpl root) {
-                root.getTree(parentPath).removeProperty(name);
+                root.getTreeOrNull(parentPath).removeProperty(name);
             }
 
             @Override
@@ -393,7 +393,7 @@ public class RootImplFuzzIT {
     }
 
     private String chooseNode(String parentPath) {
-        Tree state = root1.getTree(parentPath);
+        Tree state = root1.getTreeOrNull(parentPath);
 
         int k = random.nextInt((int) (state.getChildrenCount() + 1));
         int c = 0;
@@ -407,7 +407,7 @@ public class RootImplFuzzIT {
     }
 
     private String chooseProperty(String parentPath) {
-        Tree state = root1.getTree(parentPath);
+        Tree state = root1.getTreeOrNull(parentPath);
         int k = random.nextInt((int) (state.getPropertyCount() + 1));
         int c = 0;
         for (PropertyState entry : state.getProperties()) {
@@ -436,7 +436,7 @@ public class RootImplFuzzIT {
         }
 
         for (Tree child1 : tree1.getChildren()) {
-            checkEqual(child1, tree2.getChild(child1.getName()));
+            checkEqual(child1, tree2.getChildOrNull(child1.getName()));
         }
     }
 

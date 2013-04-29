@@ -105,13 +105,13 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         super.before();
 
         registerNamespace(TestNameMapper.TEST_PREFIX, TestNameMapper.TEST_URI);
-        nameMapper = new TestNameMapper(Namespaces.getNamespaceMap(root.getTree("/")));
+        nameMapper = new TestNameMapper(Namespaces.getNamespaceMap(root.getTreeOrNull("/")));
         npMapper = new NamePathMapperImpl(nameMapper);
 
         acMgr = getAccessControlManager(npMapper);
         valueFactory = new ValueFactoryImpl(root.getBlobFactory(), npMapper);
 
-        NodeUtil rootNode = new NodeUtil(root.getTree("/"), npMapper);
+        NodeUtil rootNode = new NodeUtil(root.getTreeOrNull("/"), npMapper);
         rootNode.addChild(testName, JcrConstants.NT_UNSTRUCTURED);
         root.commit();
 
@@ -123,7 +123,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
     public void after() throws Exception {
         try {
             root.refresh();
-            root.getTree(testPath).remove();
+            root.getTreeOrNull(testPath).remove();
             root.commit();
 
             if (testRoot != null) {
@@ -228,7 +228,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         acMgr.setPolicy(testPath, policy);
 
         String aclPath = testPath + '/' + REP_POLICY;
-        Tree acl = root.getTree(aclPath);
+        Tree acl = root.getTreeOrNull(aclPath);
         assertNotNull(acl);
         Iterator<Tree> aces = acl.getChildren().iterator();
         assertTrue(aces.hasNext());
@@ -239,7 +239,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         acContentPath.add(aclPath);
         acContentPath.add(ace.getPath());
 
-        Tree rest = ace.getChild(REP_RESTRICTIONS);
+        Tree rest = ace.getChildOrNull(REP_RESTRICTIONS);
         if (rest != null) {
             acContentPath.add(rest.getPath());
         }
@@ -718,7 +718,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
 
     @Test
     public void testGetApplicablePoliciesOnAccessControllable() throws Exception {
-        NodeUtil node = new NodeUtil(root.getTree(testPath));
+        NodeUtil node = new NodeUtil(root.getTreeOrNull(testPath));
         node.setNames(JcrConstants.JCR_MIXINTYPES, MIX_REP_ACCESS_CONTROLLABLE);
 
         AccessControlPolicyIterator itr = acMgr.getApplicablePolicies(testPath);
@@ -747,7 +747,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
 
     @Test
     public void testGetApplicablePoliciesWithCollidingNode() throws Exception {
-        NodeUtil testTree = new NodeUtil(root.getTree(testPath));
+        NodeUtil testTree = new NodeUtil(root.getTreeOrNull(testPath));
         testTree.addChild(REP_POLICY, JcrConstants.NT_UNSTRUCTURED);
 
         AccessControlPolicyIterator itr = acMgr.getApplicablePolicies(testPath);
@@ -869,7 +869,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         policy.addEntry(testPrincipal, testPrivileges, true, getGlobRestriction("*"));
         acMgr.setPolicy(testPath, policy);
 
-        NodeUtil aclNode = new NodeUtil(root.getTree(testPath + '/' + REP_POLICY));
+        NodeUtil aclNode = new NodeUtil(root.getTreeOrNull(testPath + '/' + REP_POLICY));
         NodeUtil aceNode = aclNode.addChild("testACE", NT_REP_DENY_ACE);
         aceNode.setString(REP_PRINCIPAL_NAME, "invalidPrincipal");
         aceNode.setNames(REP_PRIVILEGES, PrivilegeConstants.JCR_READ);
@@ -1054,9 +1054,9 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         root.commit();
 
         Root root2 = adminSession.getLatestRoot();
-        Tree tree = root2.getTree(testPath);
+        Tree tree = root2.getTreeOrNull(testPath);
         assertTrue(tree.hasChild(REP_POLICY));
-        Tree policyTree = tree.getChild(REP_POLICY);
+        Tree policyTree = tree.getChildOrNull(REP_POLICY);
         assertEquals(NT_REP_ACL, TreeUtil.getPrimaryTypeName(policyTree));
         assertEquals(2, policyTree.getChildrenCount());
 

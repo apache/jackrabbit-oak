@@ -34,7 +34,9 @@ import org.apache.jackrabbit.oak.api.Tree.Status;
  * accessed. That is, if a {@code TreeLocation} points to an item which does not exist or
  * is unavailable otherwise (i.e. due to access control restrictions) accessing the tree
  * will return {@code null} at this point.
+ * @deprecated Use {@link Tree} and {@link Tree#exists()} instead.
  */
+@Deprecated
 public interface TreeLocation {
 
     /**

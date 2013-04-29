@@ -64,10 +64,10 @@ class ResultRowToAuthorizable implements Function<ResultRow, Authorizable> {
     private Authorizable getAuthorizable(String resultPath) {
         Authorizable authorizable = null;
         try {
-            Tree tree = root.getTree(resultPath);
+            Tree tree = root.getTreeOrNull(resultPath);
             AuthorizableType type = UserUtility.getType(tree);
             while (tree != null && type == null) {
-                tree = tree.getParent();
+                tree = tree.getParentOrNull();
                 type = UserUtility.getType(tree);
             }
             if (tree != null && (targetType == null || targetType == type)) {

@@ -37,7 +37,7 @@ public class ImmutableRootTest extends OakBaseTest {
 
         // Add test content
         Root root = session.getLatestRoot();
-        Tree tree = root.getTree("/");
+        Tree tree = root.getTreeOrNull("/");
         Tree x = tree.addChild("x");
         Tree y = x.addChild("y");
         Tree z = y.addChild("z");

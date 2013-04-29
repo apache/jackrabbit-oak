@@ -52,7 +52,7 @@ public class AllPermissionsTest extends AbstractSecurityTest {
     @Test
     public void testGetReadStatus() {
         for (String path : paths) {
-            Tree tree = root.getTree(path);
+            Tree tree = root.getTreeOrNull(path);
             assertNotNull(tree);
 
             assertSame(ReadStatus.ALLOW_ALL, all.getReadStatus(tree, null));
@@ -70,7 +70,7 @@ public class AllPermissionsTest extends AbstractSecurityTest {
         assertTrue(all.isGranted(Permissions.ALL));
 
         for (String path : paths) {
-            Tree tree = root.getTree(path);
+            Tree tree = root.getTreeOrNull(path);
             assertNotNull(tree);
 
             assertTrue(all.isGranted(tree, null, Permissions.ALL));

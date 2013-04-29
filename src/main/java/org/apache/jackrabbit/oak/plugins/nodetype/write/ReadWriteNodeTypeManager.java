@@ -164,11 +164,11 @@ public abstract class ReadWriteNodeTypeManager extends ReadOnlyNodeTypeManager {
     }
 
     private static Tree getOrCreateNodeTypes(Root root) {
-        Tree types = root.getTree(NODE_TYPES_PATH);
+        Tree types = root.getTreeOrNull(NODE_TYPES_PATH);
         if (types == null) {
-            Tree system = root.getTree('/' + JCR_SYSTEM);
+            Tree system = root.getTreeOrNull('/' + JCR_SYSTEM);
             if (system == null) {
-                system = root.getTree("/").addChild(JCR_SYSTEM);
+                system = root.getTreeOrNull("/").addChild(JCR_SYSTEM);
             }
             types = system.addChild(JCR_NODE_TYPES);
         }
@@ -179,9 +179,9 @@ public abstract class ReadWriteNodeTypeManager extends ReadOnlyNodeTypeManager {
     public void unregisterNodeType(String name) throws RepositoryException {
         Tree type = null;
         Root root = getWriteRoot();
-        Tree types = root.getTree(NODE_TYPES_PATH);
+        Tree types = root.getTreeOrNull(NODE_TYPES_PATH);
         if (types != null) {
-            type = types.getChild(getOakName(name));
+            type = types.getChildOrNull(getOakName(name));
         }
         if (type == null) {
             throw new NoSuchNodeTypeException("Node type " + name + " can not be unregistered.");
@@ -204,14 +204,14 @@ public abstract class ReadWriteNodeTypeManager extends ReadOnlyNodeTypeManager {
     @Override
     public void unregisterNodeTypes(String[] names) throws RepositoryException {
         Root root = getWriteRoot();
-        Tree types = root.getTree(NODE_TYPES_PATH);
+        Tree types = root.getTreeOrNull(NODE_TYPES_PATH);
         if (types == null) {
             throw new NoSuchNodeTypeException("Node types can not be unregistered.");
         }
 
         try {
             for (String name : names) {
-                Tree type = types.getChild(getOakName(name));
+                Tree type = types.getChildOrNull(getOakName(name));
                 if (type == null) {
                     throw new NoSuchNodeTypeException("Node type " + name + " can not be unregistered.");
                 }

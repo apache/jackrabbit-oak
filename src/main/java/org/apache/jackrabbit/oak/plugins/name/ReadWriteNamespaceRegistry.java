@@ -59,10 +59,10 @@ public abstract class ReadWriteNamespaceRegistry
     }
 
     private static Tree getOrCreate(Root root, String... path) {
-        Tree tree = root.getTree("/");
+        Tree tree = root.getTreeOrNull("/");
         assert tree != null;
         for (String name : path) {
-            Tree child = tree.getChild(name);
+            Tree child = tree.getChildOrNull(name);
             if (child == null) {
                 child = tree.addChild(name);
             }
@@ -115,7 +115,7 @@ public abstract class ReadWriteNamespaceRegistry
     @Override
     public void unregisterNamespace(String prefix) throws RepositoryException {
         Root root = getWriteRoot();
-        Tree namespaces = root.getTree(NAMESPACES_PATH);
+        Tree namespaces = root.getTreeOrNull(NAMESPACES_PATH);
         if (namespaces == null || !namespaces.hasProperty(prefix)) {
             throw new NamespaceException(
                     "Namespace mapping from " + prefix + " to "

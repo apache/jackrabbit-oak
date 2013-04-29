@@ -46,10 +46,10 @@ public class RootTest extends AbstractOakCoreTest {
 
         List<String> accessible = ImmutableList.of("/", "/a", "/a/b", "/a/b/c");
         for (String path : accessible) {
-            assertNotNull(testRoot.getTree(path));
+            assertNotNull(testRoot.getTreeOrNull(path));
         }
 
-        assertNull(testRoot.getTree("/a/bb"));
+        assertNull(testRoot.getTreeOrNull("/a/bb"));
     }
 
     @Test
@@ -62,12 +62,12 @@ public class RootTest extends AbstractOakCoreTest {
 
         List<String> notAccessible = ImmutableList.of("/", "/a/b");
         for (String path : notAccessible) {
-            assertNull(path, testRoot.getTree(path));
+            assertNull(path, testRoot.getTreeOrNull(path));
         }
 
         List<String> accessible = ImmutableList.of("/a", "/a/bb", "/a/b/c");
         for (String path : accessible) {
-            assertNotNull(path, testRoot.getTree(path));
+            assertNotNull(path, testRoot.getTreeOrNull(path));
         }
     }
 

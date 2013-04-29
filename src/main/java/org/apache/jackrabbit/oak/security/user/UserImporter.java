@@ -345,7 +345,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
         if (isMemberNode(protectedParent)) {
             Tree groupTree = protectedParent;
             while (isMemberNode(groupTree)) {
-                groupTree = groupTree.getParent();
+                groupTree = groupTree.getParentOrNull();
             }
             Authorizable auth = (groupTree == null) ? null : userManager.getAuthorizable(groupTree);
             if (auth == null) {
@@ -528,7 +528,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
             // handling non-existing members in case of best-effort
             if (!nonExisting.isEmpty()) {
                 log.info("ImportBehavior.BESTEFFORT: Found " + nonExisting.size() + " entries of rep:members pointing to non-existing authorizables. Adding to rep:members.");
-                Tree groupTree = root.getTree(gr.getPath());
+                Tree groupTree = root.getTreeOrNull(gr.getPath());
 
                 MembershipProvider membershipProvider = userManager.getMembershipProvider();
                 for (Membership.Member member : nonExisting) {
@@ -611,7 +611,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
             }
 
             if (!nonExisting.isEmpty()) {
-                Tree userTree = checkNotNull(root.getTree(a.getPath()));
+                Tree userTree = checkNotNull(root.getTreeOrNull(a.getPath()));
                 // copy over all existing impersonators to the nonExisting list
                 PropertyState impersonators = userTree.getProperty(REP_IMPERSONATORS);
                 if (impersonators != null) {

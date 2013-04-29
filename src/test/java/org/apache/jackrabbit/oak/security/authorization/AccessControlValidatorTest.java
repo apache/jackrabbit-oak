@@ -45,7 +45,7 @@ public class AccessControlValidatorTest extends AbstractAccessControlTest implem
     public void before() throws Exception {
         super.before();
 
-        NodeUtil rootNode = new NodeUtil(root.getTree("/"), getNamePathMapper());
+        NodeUtil rootNode = new NodeUtil(root.getTreeOrNull("/"), getNamePathMapper());
         rootNode.addChild(testName, JcrConstants.NT_UNSTRUCTURED);
 
         root.commit();
@@ -56,7 +56,7 @@ public class AccessControlValidatorTest extends AbstractAccessControlTest implem
     @After
     public void after() throws Exception {
         try {
-            Tree testRoot = root.getTree(testPath);
+            Tree testRoot = root.getTreeOrNull(testPath);
             if (testRoot != null) {
                 testRoot.remove();
                 root.commit();
@@ -67,7 +67,7 @@ public class AccessControlValidatorTest extends AbstractAccessControlTest implem
     }
 
     private NodeUtil getTestRoot() {
-        return new NodeUtil(root.getTree(testPath));
+        return new NodeUtil(root.getTreeOrNull(testPath));
     }
 
     private NodeUtil createAcl() {

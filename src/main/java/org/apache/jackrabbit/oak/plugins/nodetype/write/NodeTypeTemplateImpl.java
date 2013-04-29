@@ -127,7 +127,7 @@ class NodeTypeTemplateImpl extends NamedTemplate
     Tree writeTo(Tree parent, boolean allowUpdate) throws RepositoryException {
         String oakName = getOakName();
 
-        Tree type = parent.getChild(oakName);
+        Tree type = parent.getChildOrNull(oakName);
         if (type != null) {
             if (allowUpdate) {
                 type.remove();

@@ -96,13 +96,14 @@ public class ReadOnlyTree implements Tree {
 
     @Nonnull
     @Override
-    public Tree getParentNonNull() {
+    public Tree getParent() {
         checkState(parent != null, "root tree does not have a parent");
         return parent;
     }
 
     @Override
-    public Tree getParent() {
+    @Deprecated
+    public Tree getParentOrNull() {
         return parent;
     }
 
@@ -137,13 +138,14 @@ public class ReadOnlyTree implements Tree {
 
     @Nonnull
     @Override
-    public ReadOnlyTree getChildNonNull(@Nonnull String name) {
+    public ReadOnlyTree getChild(@Nonnull String name) {
         return new ReadOnlyTree(this, name, state.getChildNode(name));
     }
 
     @Override
-    public ReadOnlyTree getChild(@Nonnull String name) {
-        ReadOnlyTree child = getChildNonNull(name);
+    @Deprecated
+    public ReadOnlyTree getChildOrNull(@Nonnull String name) {
+        ReadOnlyTree child = getChild(name);
         return child.exists() ? child : null;
     }
 
@@ -294,7 +296,7 @@ public class ReadOnlyTree implements Tree {
 
         @Override
         protected ReadOnlyTree getChildTree(String name) {
-            return tree.getChild(name);
+            return tree.getChildOrNull(name);
         }
 
         @Override

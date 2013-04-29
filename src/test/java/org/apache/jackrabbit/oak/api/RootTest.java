@@ -54,7 +54,7 @@ public class RootTest {
         ContentSession s = repository.login(null, null);
         try {
             Root r = s.getLatestRoot();
-            Tree t = r.getTree("/");
+            Tree t = r.getTreeOrNull("/");
             Tree c = t.addChild("c");
             c.addChild("node1").orderBefore(null);
             c.addChild("node2");
@@ -75,7 +75,7 @@ public class RootTest {
         ContentSession s = repository.login(null, null);
         try {
             Root r = s.getLatestRoot();
-            Tree t = r.getTree("/");
+            Tree t = r.getTreeOrNull("/");
             Tree c = t.addChild("c");
             c.addChild("node1").orderBefore(null);
             c.addChild("node2");

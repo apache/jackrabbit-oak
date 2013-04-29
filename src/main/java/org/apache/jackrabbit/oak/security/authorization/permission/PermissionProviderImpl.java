@@ -251,7 +251,7 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
                 }
                 break;
             }
-            t = t.getParent();
+            t = t.getParentOrNull();
         }
 
         if (versionablePath == null || versionablePath.length() == 0) {

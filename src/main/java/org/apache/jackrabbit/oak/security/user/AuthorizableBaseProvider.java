@@ -56,7 +56,7 @@ abstract class AuthorizableBaseProvider implements UserConstants {
 
     @CheckForNull
     Tree getByPath(@Nonnull String authorizableOakPath) {
-        Tree tree = root.getTree(authorizableOakPath);
+        Tree tree = root.getTreeOrNull(authorizableOakPath);
         if (UserUtility.isType(tree, AuthorizableType.AUTHORIZABLE)) {
             return tree;
         } else {

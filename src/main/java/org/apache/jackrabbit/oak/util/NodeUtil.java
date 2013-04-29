@@ -25,8 +25,6 @@ import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 
 import java.util.Arrays;
-import java.util.Calendar;
-import java.util.GregorianCalendar;
 import java.util.List;
 
 import javax.annotation.CheckForNull;
@@ -46,7 +44,6 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
-import org.apache.jackrabbit.oak.plugins.value.Conversions;
 import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -88,7 +85,7 @@ public class NodeUtil {
 
     @CheckForNull
     public NodeUtil getParent() {
-        return new NodeUtil(tree.getParent(), mapper);
+        return new NodeUtil(tree.getParentOrNull(), mapper);
     }
 
     public boolean isRoot() {
@@ -96,12 +93,12 @@ public class NodeUtil {
     }
 
     public boolean hasChild(String name) {
-        return tree.getChild(name) != null;
+        return tree.getChildOrNull(name) != null;
     }
 
     @CheckForNull
     public NodeUtil getChild(String name) {
-        Tree child = tree.getChild(name);
+        Tree child = tree.getChildOrNull(name);
         return (child == null) ? null : new NodeUtil(child, mapper);
     }
 

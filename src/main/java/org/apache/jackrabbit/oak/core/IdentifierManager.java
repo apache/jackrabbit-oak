@@ -224,7 +224,7 @@ public class IdentifierManager {
                 paths = Iterables.filter(paths, new Predicate<String>() {
                     @Override
                     public boolean apply(String path) {
-                        Tree tree = root.getTree(PathUtils.getParentPath(path));
+                        Tree tree = root.getTreeOrNull(PathUtils.getParentPath(path));
                         if (tree != null) {
                             for (String ntName : nodeTypeNames) {
                                 if (nodeTypeManager.isNodeType(tree, ntName)) {

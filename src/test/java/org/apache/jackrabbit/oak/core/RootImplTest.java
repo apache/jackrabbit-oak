@@ -49,7 +49,7 @@ public class RootImplTest extends OakBaseTest {
 
         // Add test content
         Root root = session.getLatestRoot();
-        Tree tree = root.getTree("/");
+        Tree tree = root.getTreeOrNull("/");
         tree.setProperty("a", 1);
         tree.setProperty("b", 2);
         tree.setProperty("c", 3);
@@ -78,7 +78,7 @@ public class RootImplTest extends OakBaseTest {
         validPaths.add("/z");
 
         for (String treePath : validPaths) {
-            Tree tree = root.getTree(treePath);
+            Tree tree = root.getTreeOrNull(treePath);
             assertNotNull(tree);
             assertEquals(treePath, tree.getPath());
         }
@@ -88,17 +88,17 @@ public class RootImplTest extends OakBaseTest {
         invalidPaths.add("/x/any");
 
         for (String treePath : invalidPaths) {
-            assertNull(root.getTree(treePath));
+            assertNull(root.getTreeOrNull(treePath));
         }
     }
 
     @Test
     public void move() throws CommitFailedException {
         Root root = session.getLatestRoot();
-        Tree tree = root.getTree("/");
+        Tree tree = root.getTreeOrNull("/");
 
-        Tree y = tree.getChild("y");
-        Tree x = tree.getChild("x");
+        Tree y = tree.getChildOrNull("y");
+        Tree x = tree.getChildOrNull("x");
         assertNotNull(x);
 
         root.move("/x", "/y/xx");
@@ -110,26 +110,26 @@ public class RootImplTest extends OakBaseTest {
 
         assertFalse(tree.hasChild("x"));
         assertTrue(tree.hasChild("y"));
-        assertTrue(tree.getChild("y").hasChild("xx"));
+        assertTrue(tree.getChildOrNull("y").hasChild("xx"));
     }
 
     @Test
     public void moveRemoveAdd() {
         Root root = session.getLatestRoot();
 
-        Tree x = root.getTree("/x");
-        Tree z = root.getTree("/z");
+        Tree x = root.getTreeOrNull("/x");
+        Tree z = root.getTreeOrNull("/z");
         z.setProperty("p", "1");
 
         root.move("/z", "/x/z");
-        root.getTree("/x/z").remove();
+        root.getTreeOrNull("/x/z").remove();
 
         assertFalse(z.exists());
 
         x.addChild("z");
         assertEquals(Status.EXISTING, z.getStatus());
 
-        x.getChild("z").setProperty("p", "2");
+        x.getChildOrNull("z").setProperty("p", "2");
         PropertyState p = z.getProperty("p");
         assertNotNull(p);
         assertEquals("2", p.getValue(Type.STRING));
@@ -138,24 +138,24 @@ public class RootImplTest extends OakBaseTest {
     @Test
     public void moveNew() {
         Root root = session.getLatestRoot();
-        Tree tree = root.getTree("/");
+        Tree tree = root.getTreeOrNull("/");
 
         Tree t = tree.addChild("new");
 
         root.move("/new", "/y/new");
         assertEquals("/y/new", t.getPath());
 
-        assertNull(tree.getChild("new"));
+        assertNull(tree.getChildOrNull("new"));
     }
 
     @Test
     public void moveExistingParent() throws CommitFailedException {
         Root root = session.getLatestRoot();
-        root.getTree("/").addChild("parent").addChild("new");
+        root.getTreeOrNull("/").addChild("parent").addChild("new");
         root.commit();
 
-        Tree parent = root.getTree("/parent");
-        Tree n = root.getTree("/parent/new");
+        Tree parent = root.getTreeOrNull("/parent");
+        Tree n = root.getTreeOrNull("/parent/new");
 
         root.move("/parent", "/moved");
 
@@ -172,7 +172,7 @@ public class RootImplTest extends OakBaseTest {
     @Test
     public void removeMoved() throws CommitFailedException {
         Root root = session.getLatestRoot();
-        Tree r = root.getTree("/");
+        Tree r = root.getTreeOrNull("/");
         r.addChild("a");
         r.addChild("b");
 
@@ -180,7 +180,7 @@ public class RootImplTest extends OakBaseTest {
         assertFalse(r.hasChild("a"));
         assertTrue(r.hasChild("b"));
 
-        r.getChild("b").remove();
+        r.getChildOrNull("b").remove();
         assertFalse(r.hasChild("a"));
         assertFalse(r.hasChild("b"));
 
@@ -192,8 +192,8 @@ public class RootImplTest extends OakBaseTest {
     @Test
     public void rename() throws CommitFailedException {
         Root root = session.getLatestRoot();
-        Tree tree = root.getTree("/");
-        Tree x = tree.getChild("x");
+        Tree tree = root.getTreeOrNull("/");
+        Tree x = tree.getChildOrNull("x");
         assertNotNull(x);
 
         root.move("/x", "/xx");
@@ -210,10 +210,10 @@ public class RootImplTest extends OakBaseTest {
     @Test
     public void copy() throws CommitFailedException {
         Root root = session.getLatestRoot();
-        Tree tree = root.getTree("/");
+        Tree tree = root.getTreeOrNull("/");
 
-        Tree y = tree.getChild("y");
-        Tree x = tree.getChild("x");
+        Tree y = tree.getChildOrNull("y");
+        Tree x = tree.getChildOrNull("x");
         assertNotNull(x);
 
         assertTrue(tree.hasChild("x"));
@@ -225,30 +225,30 @@ public class RootImplTest extends OakBaseTest {
 
         assertTrue(tree.hasChild("x"));
         assertTrue(tree.hasChild("y"));
-        assertTrue(tree.getChild("y").hasChild("xx"));
+        assertTrue(tree.getChildOrNull("y").hasChild("xx"));
     }
 
     @Test
     public void deepCopy() throws CommitFailedException {
         Root root = session.getLatestRoot();
-        Tree tree = root.getTree("/");
+        Tree tree = root.getTreeOrNull("/");
 
-        Tree y = tree.getChild("y");
+        Tree y = tree.getChildOrNull("y");
 
-        root.getTree("/x").addChild("x1");
+        root.getTreeOrNull("/x").addChild("x1");
         root.copy("/x", "/y/xx");
         assertTrue(y.hasChild("xx"));
-        assertTrue(y.getChild("xx").hasChild("x1"));
+        assertTrue(y.getChildOrNull("xx").hasChild("x1"));
 
         root.commit();
 
         assertTrue(tree.hasChild("x"));
         assertTrue(tree.hasChild("y"));
-        assertTrue(tree.getChild("y").hasChild("xx"));
-        assertTrue(tree.getChild("y").getChild("xx").hasChild("x1"));
+        assertTrue(tree.getChildOrNull("y").hasChild("xx"));
+        assertTrue(tree.getChildOrNull("y").getChildOrNull("xx").hasChild("x1"));
 
-        Tree x = tree.getChild("x");
-        Tree xx = tree.getChild("y").getChild("xx");
+        Tree x = tree.getChildOrNull("x");
+        Tree xx = tree.getChildOrNull("y").getChildOrNull("xx");
         checkEqual(x, xx);
     }
 
@@ -257,22 +257,22 @@ public class RootImplTest extends OakBaseTest {
         Root root1 = session.getLatestRoot();
         Root root2 = session.getLatestRoot();
 
-        checkEqual(root1.getTree("/"), root2.getTree("/"));
+        checkEqual(root1.getTreeOrNull("/"), root2.getTreeOrNull("/"));
 
-        root2.getTree("/").addChild("one").addChild("two").addChild("three")
+        root2.getTreeOrNull("/").addChild("one").addChild("two").addChild("three")
                 .setProperty("p1", "V1");
         root2.commit();
 
         root1.rebase();
-        checkEqual(root1.getTree("/"), (root2.getTree("/")));
+        checkEqual(root1.getTreeOrNull("/"), (root2.getTreeOrNull("/")));
 
-        Tree one = root2.getTree("/one");
-        one.getChild("two").remove();
+        Tree one = root2.getTreeOrNull("/one");
+        one.getChildOrNull("two").remove();
         one.addChild("four");
         root2.commit();
 
         root1.rebase();
-        checkEqual(root1.getTree("/"), (root2.getTree("/")));
+        checkEqual(root1.getTreeOrNull("/"), (root2.getTreeOrNull("/")));
     }
 
     @Test
@@ -280,17 +280,17 @@ public class RootImplTest extends OakBaseTest {
         Root root1 = session.getLatestRoot();
         Root root2 = session.getLatestRoot();
 
-        checkEqual(root1.getTree("/"), root2.getTree("/"));
+        checkEqual(root1.getTreeOrNull("/"), root2.getTreeOrNull("/"));
 
-        root2.getTree("/").addChild("one").addChild("two").addChild("three")
+        root2.getTreeOrNull("/").addChild("one").addChild("two").addChild("three")
                 .setProperty("p1", "V1");
         root2.commit();
 
-        root1.getTree("/").addChild("child");
+        root1.getTreeOrNull("/").addChild("child");
         root1.rebase();
 
-        root2.getTree("/").addChild("child");
-        checkEqual(root1.getTree("/"), (root2.getTree("/")));
+        root2.getTreeOrNull("/").addChild("child");
+        checkEqual(root1.getTreeOrNull("/"), (root2.getTreeOrNull("/")));
     }
 
     @Test
@@ -298,17 +298,17 @@ public class RootImplTest extends OakBaseTest {
         Root root1 = session.getLatestRoot();
         Root root2 = session.getLatestRoot();
 
-        checkEqual(root1.getTree("/"), root2.getTree("/"));
+        checkEqual(root1.getTreeOrNull("/"), root2.getTreeOrNull("/"));
 
-        root2.getTree("/").addChild("one").addChild("two").addChild("three")
+        root2.getTreeOrNull("/").addChild("one").addChild("two").addChild("three")
                 .setProperty("p1", "V1");
         root2.commit();
 
-        root1.getTree("/").getChild("x").remove();
+        root1.getTreeOrNull("/").getChildOrNull("x").remove();
         root1.rebase();
 
-        root2.getTree("/").getChild("x").remove();
-        checkEqual(root1.getTree("/"), (root2.getTree("/")));
+        root2.getTreeOrNull("/").getChildOrNull("x").remove();
+        checkEqual(root1.getTreeOrNull("/"), (root2.getTreeOrNull("/")));
     }
 
     @Test
@@ -316,17 +316,17 @@ public class RootImplTest extends OakBaseTest {
         Root root1 = session.getLatestRoot();
         Root root2 = session.getLatestRoot();
 
-        checkEqual(root1.getTree("/"), root2.getTree("/"));
+        checkEqual(root1.getTreeOrNull("/"), root2.getTreeOrNull("/"));
 
-        root2.getTree("/").addChild("one").addChild("two").addChild("three")
+        root2.getTreeOrNull("/").addChild("one").addChild("two").addChild("three")
                 .setProperty("p1", "V1");
         root2.commit();
 
-        root1.getTree("/").setProperty("new", 42);
+        root1.getTreeOrNull("/").setProperty("new", 42);
         root1.rebase();
 
-        root2.getTree("/").setProperty("new", 42);
-        checkEqual(root1.getTree("/"), (root2.getTree("/")));
+        root2.getTreeOrNull("/").setProperty("new", 42);
+        checkEqual(root1.getTreeOrNull("/"), (root2.getTreeOrNull("/")));
     }
 
     @Test
@@ -334,17 +334,17 @@ public class RootImplTest extends OakBaseTest {
         Root root1 = session.getLatestRoot();
         Root root2 = session.getLatestRoot();
 
-        checkEqual(root1.getTree("/"), root2.getTree("/"));
+        checkEqual(root1.getTreeOrNull("/"), root2.getTreeOrNull("/"));
 
-        root2.getTree("/").addChild("one").addChild("two").addChild("three")
+        root2.getTreeOrNull("/").addChild("one").addChild("two").addChild("three")
                 .setProperty("p1", "V1");
         root2.commit();
 
-        root1.getTree("/").removeProperty("a");
+        root1.getTreeOrNull("/").removeProperty("a");
         root1.rebase();
 
-        root2.getTree("/").removeProperty("a");
-        checkEqual(root1.getTree("/"), (root2.getTree("/")));
+        root2.getTreeOrNull("/").removeProperty("a");
+        checkEqual(root1.getTreeOrNull("/"), (root2.getTreeOrNull("/")));
     }
 
     @Test
@@ -352,17 +352,17 @@ public class RootImplTest extends OakBaseTest {
         Root root1 = session.getLatestRoot();
         Root root2 = session.getLatestRoot();
 
-        checkEqual(root1.getTree("/"), root2.getTree("/"));
+        checkEqual(root1.getTreeOrNull("/"), root2.getTreeOrNull("/"));
 
-        root2.getTree("/").addChild("one").addChild("two").addChild("three")
+        root2.getTreeOrNull("/").addChild("one").addChild("two").addChild("three")
                 .setProperty("p1", "V1");
         root2.commit();
 
-        root1.getTree("/").setProperty("a", 42);
+        root1.getTreeOrNull("/").setProperty("a", 42);
         root1.rebase();
 
-        root2.getTree("/").setProperty("a", 42);
-        checkEqual(root1.getTree("/"), (root2.getTree("/")));
+        root2.getTreeOrNull("/").setProperty("a", 42);
+        checkEqual(root1.getTreeOrNull("/"), (root2.getTreeOrNull("/")));
     }
 
     @Test
@@ -370,9 +370,9 @@ public class RootImplTest extends OakBaseTest {
         Root root1 = session.getLatestRoot();
         Root root2 = session.getLatestRoot();
 
-        checkEqual(root1.getTree("/"), root2.getTree("/"));
+        checkEqual(root1.getTreeOrNull("/"), root2.getTreeOrNull("/"));
 
-        root2.getTree("/").addChild("one").addChild("two").addChild("three")
+        root2.getTreeOrNull("/").addChild("one").addChild("two").addChild("three")
                 .setProperty("p1", "V1");
         root2.commit();
 
@@ -380,7 +380,7 @@ public class RootImplTest extends OakBaseTest {
         root1.rebase();
 
         root2.move("/x", "/y/x-moved");
-        checkEqual(root1.getTree("/"), (root2.getTree("/")));
+        checkEqual(root1.getTreeOrNull("/"), (root2.getTreeOrNull("/")));
     }
 
     @Test
@@ -388,9 +388,9 @@ public class RootImplTest extends OakBaseTest {
         Root root1 = session.getLatestRoot();
         Root root2 = session.getLatestRoot();
 
-        checkEqual(root1.getTree("/"), root2.getTree("/"));
+        checkEqual(root1.getTreeOrNull("/"), root2.getTreeOrNull("/"));
 
-        root2.getTree("/").addChild("one").addChild("two").addChild("three")
+        root2.getTreeOrNull("/").addChild("one").addChild("two").addChild("three")
                 .setProperty("p1", "V1");
         root2.commit();
 
@@ -398,7 +398,7 @@ public class RootImplTest extends OakBaseTest {
         root1.rebase();
 
         root2.copy("/x", "/y/x-copied");
-        checkEqual(root1.getTree("/"), (root2.getTree("/")));
+        checkEqual(root1.getTreeOrNull("/"), (root2.getTreeOrNull("/")));
     }
 
     private static void checkEqual(Tree tree1, Tree tree2) {
@@ -410,7 +410,7 @@ public class RootImplTest extends OakBaseTest {
         }
 
         for (Tree child1 : tree1.getChildren()) {
-            checkEqual(child1, tree2.getChild(child1.getName()));
+            checkEqual(child1, tree2.getChildOrNull(child1.getName()));
         }
     }
 }

@@ -85,7 +85,7 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
         // verify initial user-content looks like expected
         Authorizable anonymous = userMgr.getAuthorizable(anonymousID);
         assertNotNull(anonymous);
-        assertFalse(root.getTree(anonymous.getPath()).hasProperty(UserConstants.REP_PASSWORD));
+        assertFalse(root.getTreeOrNull(anonymous.getPath()).hasProperty(UserConstants.REP_PASSWORD));
 
         ContentSession cs = null;
         try {

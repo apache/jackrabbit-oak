@@ -59,7 +59,7 @@ public class IdentifierManagerTest {
             .with(new InitialContent())
             .createContentSession().getLatestRoot();
 
-        Tree tree = root.getTree("/");
+        Tree tree = root.getTreeOrNull("/");
         Tree x = tree.addChild("x");
         Tree y = tree.addChild("y");
         y.setProperty(JcrConstants.JCR_UUID, UUID_Y);
@@ -74,16 +74,16 @@ public class IdentifierManagerTest {
 
     @Test
     public void getIdentifierTest() {
-        Tree rootTree = root.getTree("/");
+        Tree rootTree = root.getTreeOrNull("/");
         assertEquals(ID_ROOT, identifierManager.getIdentifier(rootTree));
 
-        Tree xx1 = root.getTree(PATH_X1);
+        Tree xx1 = root.getTreeOrNull(PATH_X1);
         assertEquals(ID_X1, identifierManager.getIdentifier(xx1));
 
-        Tree yy1 = root.getTree(PATH_Y1);
+        Tree yy1 = root.getTreeOrNull(PATH_Y1);
         assertEquals(ID_Y1, identifierManager.getIdentifier(yy1));
 
-        Tree zz1 = root.getTree(PATH_Z1);
+        Tree zz1 = root.getTreeOrNull(PATH_Z1);
         assertEquals(ID_Z1, identifierManager.getIdentifier(zz1));
     }
 

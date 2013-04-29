@@ -34,7 +34,7 @@ public class ReadWriteNamespaceRegistryTest extends OakBaseTest {
         NamespaceRegistry r = new ReadWriteNamespaceRegistry() {
             @Override
             protected Tree getReadTree() {
-                return session.getLatestRoot().getTree("/");
+                return session.getLatestRoot().getTreeOrNull("/");
             }
             @Override
             protected Root getWriteRoot() {
