@@ -60,8 +60,9 @@ import javax.annotation.Nullable;
  * {@link Tree} instances may become disconnected after a call to {@link Root#refresh()},
  * {@link Root#rebase()} or {@link Root#commit()}. Any access to disconnected tree instances
  * - except for {@link Tree#getName()}, {@link Tree#isRoot()}, {@link Tree#getPath()},
- * {@link Tree#getParent()} and {@link Tree#isConnected()} - will cause an
+ * {@link Tree#getParent()} and {@link Tree#exists()} - will cause an
  * {@code InvalidStateException}.
+ * TODO document iterability / existence (OAK-798)
  */
 public interface Tree {
 
@@ -112,17 +113,25 @@ public interface Tree {
     Status getStatus();
 
     /**
-     * Determine whether this tree has been removed or has become disconnected otherwise
-     * (e.g. caused by a refresh, rebase or commit).
-     * @return {@code false} if this tree has been disconnected and {@code true} otherwise.
+     * Determine whether this tree has been removed or does not exist otherwise (e.g. caused
+     * by a refresh, rebase or commit) or is not visible due to access control restriction
+     * or does not exist at all.
+     * @return {@code true} if this tree exists, {@code false} otherwise.
      */
-    boolean isConnected();
+    boolean exists();
 
     /**
      * @return the current location
      */
     @Nonnull
     TreeLocation getLocation();
+
+    /**
+     * @return the possibly non existent parent of this {@code Tree}.
+     * @throws IllegalStateException if called on the root tree.
+     */
+    @Nonnull
+    Tree getParentNonNull();
 
     /**
      * @return the parent of this {@code Tree} instance. This method returns
@@ -179,6 +188,14 @@ public interface Tree {
      */
     @Nonnull
     Iterable<? extends PropertyState> getProperties();
+
+    /**
+     * Get a possibly non existing child of this {@code Tree}.
+     * @param name The name of the child to retrieve.
+     * @return The child with the given {@code name}.
+     */
+    @Nonnull
+    Tree getChildNonNull(@Nonnull String name);
 
     /**
      * Get a child of this {@code Tree} instance.

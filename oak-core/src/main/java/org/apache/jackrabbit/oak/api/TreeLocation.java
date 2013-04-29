@@ -57,7 +57,7 @@ public interface TreeLocation {
      * {@link org.apache.jackrabbit.oak.api.PropertyState} for this {@code TreeLocation}
      * is available.
      * @return  {@code true} if the underlying item is available and has not been disconnected.
-     * @see org.apache.jackrabbit.oak.api.Tree#isConnected()
+     * @see org.apache.jackrabbit.oak.api.Tree#exists()
      */
     boolean exists();
 

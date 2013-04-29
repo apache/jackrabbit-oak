@@ -18,6 +18,9 @@
  */
 package org.apache.jackrabbit.oak.core;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
+
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.BlobFactory;
@@ -27,9 +30,6 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 
 /**
  * Simple implementation of the Root interface that only supports simple read
@@ -54,9 +54,23 @@ public final class ImmutableRoot implements Root {
     }
 
     //---------------------------------------------------------------< Root >---
+
+
+    @Nonnull
+    @Override
+    public ImmutableTree getTreeNonNull(@Nonnull String path) {
+        checkArgument(PathUtils.isAbsolute(path));
+        ImmutableTree child = rootTree;
+        for (String name : elements(path)) {
+            child = child.getChildNonNull(name);
+        }
+        return child;
+    }
+
     @Override
     public ImmutableTree getTree(String path) {
-        return (ImmutableTree) getLocation(path).getTree();
+        ImmutableTree tree = getTreeNonNull(path);
+        return tree.exists() ? tree : null;
     }
 
     @Nonnull

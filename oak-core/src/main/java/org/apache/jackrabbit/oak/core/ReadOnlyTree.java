@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.core;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 
 import java.util.Iterator;
@@ -93,6 +94,13 @@ public class ReadOnlyTree implements Tree {
         }
     }
 
+    @Nonnull
+    @Override
+    public Tree getParentNonNull() {
+        checkState(parent != null, "root tree does not have a parent");
+        return parent;
+    }
+
     @Override
     public Tree getParent() {
         return parent;
@@ -127,14 +135,16 @@ public class ReadOnlyTree implements Tree {
         return state.getProperties();
     }
 
+    @Nonnull
+    @Override
+    public ReadOnlyTree getChildNonNull(@Nonnull String name) {
+        return new ReadOnlyTree(this, name, state.getChildNode(name));
+    }
+
     @Override
     public ReadOnlyTree getChild(@Nonnull String name) {
-        NodeState child = state.getChildNode(name);
-        if (child.exists()) {
-            return new ReadOnlyTree(this, name, child);
-        } else {
-            return null;
-        }
+        ReadOnlyTree child = getChildNonNull(name);
+        return child.exists() ? child : null;
     }
 
     @Override
@@ -143,7 +153,7 @@ public class ReadOnlyTree implements Tree {
     }
 
     @Override
-    public boolean isConnected() {
+    public boolean exists() {
         return true;
     }
 

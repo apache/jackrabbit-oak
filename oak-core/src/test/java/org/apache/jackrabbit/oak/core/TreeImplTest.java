@@ -29,7 +29,6 @@ import java.util.HashSet;
 import java.util.Set;
 
 import com.google.common.collect.Sets;
-import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.OakBaseTest;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -180,13 +179,13 @@ public class TreeImplTest extends OakBaseTest {
     }
 
     @Test
-    public void removeNew() throws CommitFailedException {
+    public void removeNew() {
         Tree tree = root.getTree("/");
 
         Tree t = tree.addChild("new");
 
         tree.getChild("new").remove();
-        assertFalse(t.isConnected());
+        assertFalse(t.exists());
 
         assertNull(tree.getChild("new"));
     }
@@ -299,8 +298,8 @@ public class TreeImplTest extends OakBaseTest {
         Tree y = x.addChild("y");
         x.remove();
 
-        assertFalse(x.isConnected());
-        assertFalse(y.isConnected());
+        assertFalse(x.exists());
+        assertFalse(y.exists());
     }
 
     @Test
@@ -412,7 +411,7 @@ public class TreeImplTest extends OakBaseTest {
 
         assertEquals(Status.EXISTING, x.getStatus());
         assertNull(x.getPropertyStatus("p"));
-        assertFalse(xx.isConnected());
+        assertFalse(xx.exists());
     }
 
     @Test
@@ -429,8 +428,8 @@ public class TreeImplTest extends OakBaseTest {
 
         root.getTree("/x").remove();
 
-        assertFalse(x.isConnected());
-        assertFalse(xx.isConnected());
+        assertFalse(x.exists());
+        assertFalse(xx.exists());
     }
 
 }
