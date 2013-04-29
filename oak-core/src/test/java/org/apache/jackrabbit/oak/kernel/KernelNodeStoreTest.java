@@ -30,7 +30,7 @@ import org.apache.jackrabbit.oak.plugins.memory.MultiStringPropertyState;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
-import org.apache.jackrabbit.oak.spi.state.EmptyNodeStateDiff;
+import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
@@ -41,7 +41,6 @@ import static junit.framework.Assert.assertFalse;
 import static org.apache.jackrabbit.oak.api.Type.LONG;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 public class KernelNodeStoreTest {
@@ -286,7 +285,7 @@ public class KernelNodeStoreTest {
 
     }
 
-    private static class Diff extends EmptyNodeStateDiff {
+    private static class Diff extends DefaultNodeStateDiff {
 
         List<String> addedProperties = new ArrayList<String>();
         List<String> added = new ArrayList<String>();
