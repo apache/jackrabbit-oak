@@ -38,7 +38,7 @@ class PrivilegeDefinitionReader implements PrivilegeConstants {
     private final Tree privilegesTree;
 
     PrivilegeDefinitionReader(@Nonnull Root root) {
-        this.privilegesTree = root.getTree(PRIVILEGES_PATH);
+        this.privilegesTree = root.getTreeOrNull(PRIVILEGES_PATH);
     }
 
     /**
@@ -74,7 +74,7 @@ class PrivilegeDefinitionReader implements PrivilegeConstants {
         if (privilegesTree == null) {
             return null;
         } else {
-            Tree definitionTree = privilegesTree.getChild(privilegeName);
+            Tree definitionTree = privilegesTree.getChildOrNull(privilegeName);
             return (isPrivilegeDefinition(definitionTree)) ? readDefinition(definitionTree) : null;
         }
     }

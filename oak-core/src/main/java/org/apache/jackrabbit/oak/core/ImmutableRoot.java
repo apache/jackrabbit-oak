@@ -58,18 +58,19 @@ public final class ImmutableRoot implements Root {
 
     @Nonnull
     @Override
-    public ImmutableTree getTreeNonNull(@Nonnull String path) {
+    public ImmutableTree getTree(@Nonnull String path) {
         checkArgument(PathUtils.isAbsolute(path));
         ImmutableTree child = rootTree;
         for (String name : elements(path)) {
-            child = child.getChildNonNull(name);
+            child = child.getChild(name);
         }
         return child;
     }
 
     @Override
-    public ImmutableTree getTree(String path) {
-        ImmutableTree tree = getTreeNonNull(path);
+    @Deprecated
+    public ImmutableTree getTreeOrNull(String path) {
+        ImmutableTree tree = getTree(path);
         return tree.exists() ? tree : null;
     }
 

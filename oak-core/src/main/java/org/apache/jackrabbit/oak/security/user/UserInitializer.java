@@ -105,7 +105,7 @@ class UserInitializer implements WorkspaceInitializer, UserConstants {
 
         String errorMsg = "Failed to initialize user content.";
         try {
-            NodeUtil rootTree = checkNotNull(new NodeUtil(root.getTree("/")));
+            NodeUtil rootTree = checkNotNull(new NodeUtil(root.getTreeOrNull("/")));
             NodeUtil index = rootTree.getOrAddChild(IndexConstants.INDEX_DEFINITIONS_NAME, JcrConstants.NT_UNSTRUCTURED);
 
             if (!index.hasChild("authorizableId")) {

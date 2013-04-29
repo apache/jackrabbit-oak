@@ -92,7 +92,7 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest
         pbp = new PrivilegeBitsProvider(root);
         rp = new RestrictionProviderImpl(NamePathMapper.DEFAULT);
 
-        NodeUtil rootNode = new NodeUtil(root.getTree("/"));
+        NodeUtil rootNode = new NodeUtil(root.getTreeOrNull("/"));
         NodeUtil system = rootNode.getChild("jcr:system");
         NodeUtil perms = system.addChild(REP_PERMISSION_STORE, NT_REP_PERMISSION_STORE);
         perms.addChild(userPrincipal.getName(), NT_REP_PERMISSION_STORE);
@@ -112,7 +112,7 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest
 
     @Override
     public void after() throws Exception {
-        root.getTree(PERMISSIONS_STORE_PATH).remove();
+        root.getTreeOrNull(PERMISSIONS_STORE_PATH).remove();
         root.commit();
 
         super.after();
@@ -338,7 +338,7 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest
     // TODO: tests for path base evaluation
 
     private CompiledPermissionImpl createPermissions(Set<Principal> principals) {
-        ImmutableTree permissionsTree = new ImmutableRoot(root, TreeTypeProvider.EMPTY).getTree(PERMISSIONS_STORE_PATH);
+        ImmutableTree permissionsTree = new ImmutableRoot(root, TreeTypeProvider.EMPTY).getTreeOrNull(PERMISSIONS_STORE_PATH);
         return new CompiledPermissionImpl(principals, permissionsTree, pbp, rp);
     }
 
@@ -354,7 +354,7 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest
                                  int index, String[] privilegeName, Set<Restriction> restrictions) throws CommitFailedException {
         PrivilegeBits pb = pbp.getBits(privilegeName);
         String name = ((isAllow) ? PREFIX_ALLOW : PREFIX_DENY) + "-" + Objects.hashCode(path, principal, index, pb, isAllow, restrictions);
-        Tree principalRoot = root.getTree(PERMISSIONS_STORE_PATH + '/' + principal.getName());
+        Tree principalRoot = root.getTreeOrNull(PERMISSIONS_STORE_PATH + '/' + principal.getName());
         Tree entry = principalRoot.addChild(name);
         entry.setProperty(JCR_PRIMARYTYPE, NT_REP_PERMISSIONS);
         entry.setProperty(REP_ACCESS_CONTROLLED_PATH, path);
@@ -383,7 +383,7 @@ public class CompiledPermissionImplTest extends AbstractSecurityTest
                                   CompiledPermissions cp,
                                   List<String> treePaths) {
         for (String path : treePaths) {
-            Tree node = root.getTree(path);
+            Tree node = root.getTreeOrNull(path);
             assertSame("Tree " + path, expectedTrees, cp.getReadStatus(node, null));
             assertSame("Property jcr:primaryType " + path, expectedProperties, cp.getReadStatus(node, node.getProperty(JCR_PRIMARYTYPE)));
         }

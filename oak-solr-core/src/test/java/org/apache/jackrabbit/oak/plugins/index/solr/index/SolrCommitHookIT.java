@@ -20,7 +20,6 @@ import javax.security.auth.Subject;
 
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.core.RootImpl;
-import org.apache.jackrabbit.oak.plugins.index.solr.index.SolrCommitHook;
 import org.apache.jackrabbit.oak.plugins.index.solr.SolrBaseTest;
 import org.apache.jackrabbit.oak.spi.query.CompositeQueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
@@ -45,13 +44,13 @@ public class SolrCommitHookIT extends SolrBaseTest {
     @Test
     public void testAddSomeNodes() throws Exception {
         Root r = createRootImpl();
-        r.getTree("/").addChild("a").addChild("b").addChild("doc1").
+        r.getTreeOrNull("/").addChild("a").addChild("b").addChild("doc1").
                 setProperty("text", "hit that hot hat tattoo");
-        r.getTree("/").getChild("a").addChild("c").addChild("doc2").
+        r.getTreeOrNull("/").getChildOrNull("a").addChild("c").addChild("doc2").
                 setProperty("text", "it hits hot hats");
-        r.getTree("/").getChild("a").getChild("b").addChild("doc3").
+        r.getTreeOrNull("/").getChildOrNull("a").getChildOrNull("b").addChild("doc3").
                 setProperty("text", "tattoos hate hot hits");
-        r.getTree("/").getChild("a").getChild("b").addChild("doc4").
+        r.getTreeOrNull("/").getChildOrNull("a").getChildOrNull("b").addChild("doc4").
                 setProperty("text", "hats tattoos hit hot");
         r.commit();
 
@@ -71,7 +70,7 @@ public class SolrCommitHookIT extends SolrBaseTest {
 
         // remove the node in oak
         Root r = createRootImpl();
-        r.getTree("/").getChild("z").remove();
+        r.getTreeOrNull("/").getChildOrNull("z").remove();
         r.commit();
 
         // check the node is not in Solr anymore

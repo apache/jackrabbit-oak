@@ -46,7 +46,7 @@ public class RestrictionDefinitionImplTest extends AbstractAccessControlTest {
         super.before();
 
         registerNamespace(TestNameMapper.TEST_PREFIX, TestNameMapper.TEST_URI);
-        NamePathMapper npMapper = new NamePathMapperImpl(new TestNameMapper(Namespaces.getNamespaceMap(root.getTree("/")), TestNameMapper.LOCAL_MAPPING));
+        NamePathMapper npMapper = new NamePathMapperImpl(new TestNameMapper(Namespaces.getNamespaceMap(root.getTreeOrNull("/")), TestNameMapper.LOCAL_MAPPING));
 
         name = TestNameMapper.TEST_PREFIX + ":defName";
         definition = new RestrictionDefinitionImpl(name, PropertyType.NAME, true, npMapper);

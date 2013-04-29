@@ -109,26 +109,26 @@ public class UserInitializerTest extends AbstractSecurityTest {
     @Test
     public void testUserContent() throws Exception {
         Authorizable a = userMgr.getAuthorizable(UserUtility.getAdminId(config));
-        assertNotNull(root.getTree(a.getPath()));
+        assertNotNull(root.getTreeOrNull(a.getPath()));
 
         a = userMgr.getAuthorizable(UserUtility.getAnonymousId(config));
-        assertNotNull(root.getTree(a.getPath()));
+        assertNotNull(root.getTreeOrNull(a.getPath()));
     }
 
     @Test
     public void testUserIndexDefinitions() throws Exception {
-        Tree oakIndex = root.getTree('/' + IndexConstants.INDEX_DEFINITIONS_NAME);
+        Tree oakIndex = root.getTreeOrNull('/' + IndexConstants.INDEX_DEFINITIONS_NAME);
         assertNotNull(oakIndex);
 
-        Tree id = oakIndex.getChild("authorizableId");
+        Tree id = oakIndex.getChildOrNull("authorizableId");
         assertIndexDefinition(id, UserConstants.REP_AUTHORIZABLE_ID, true);
 
-        Tree princName = oakIndex.getChild("principalName");
+        Tree princName = oakIndex.getChildOrNull("principalName");
         assertIndexDefinition(princName, UserConstants.REP_PRINCIPAL_NAME, true);
         String[] declaringNtNames = TreeUtil.getStrings(princName, IndexConstants.DECLARING_NODE_TYPES);
         assertArrayEquals(new String[]{UserConstants.NT_REP_AUTHORIZABLE}, declaringNtNames);
 
-        Tree members = oakIndex.getChild("members");
+        Tree members = oakIndex.getChildOrNull("members");
         assertIndexDefinition(members, UserConstants.REP_MEMBERS, false);
     }
 
@@ -163,7 +163,7 @@ public class UserInitializerTest extends AbstractSecurityTest {
             Authorizable adminUser = umgr.getAuthorizable("admin");
             assertNotNull(adminUser);
 
-            Tree adminTree = root.getTree(adminUser.getPath());
+            Tree adminTree = root.getTreeOrNull(adminUser.getPath());
             assertNotNull(adminTree);
             assertNull(adminTree.getProperty(UserConstants.REP_PASSWORD));
         } finally {

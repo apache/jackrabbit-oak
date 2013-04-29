@@ -40,7 +40,7 @@ public class LuceneIndexQueryTest extends AbstractQueryTest {
 
     @Override
     protected void createTestIndexNode() throws Exception {
-        Tree index = root.getTree("/");
+        Tree index = root.getTreeOrNull("/");
         createTestIndexNode(index, LuceneIndexConstants.TYPE_LUCENE);
         root.commit();
     }

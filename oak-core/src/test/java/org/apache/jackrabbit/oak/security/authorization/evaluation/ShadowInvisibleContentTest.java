@@ -40,7 +40,7 @@ public class ShadowInvisibleContentTest extends AbstractOakCoreTest {
         setupPermission("/a/b/c", testPrincipal, true, PrivilegeConstants.JCR_ALL);
 
         Root testRoot = getTestRoot();
-        Tree a = testRoot.getTree("/a");
+        Tree a = testRoot.getTreeOrNull("/a");
 
         // /b not visible to this session
         assertFalse(a.hasChild("b"));
@@ -65,7 +65,7 @@ public class ShadowInvisibleContentTest extends AbstractOakCoreTest {
         setupPermission("/a", testPrincipal, false, PrivilegeConstants.REP_READ_PROPERTIES);
 
         Root testRoot = getTestRoot();
-        Tree a = testRoot.getTree("/a");
+        Tree a = testRoot.getTreeOrNull("/a");
 
         // /a/x not visible to this session
         assertNull(a.getProperty("x"));
@@ -89,7 +89,7 @@ public class ShadowInvisibleContentTest extends AbstractOakCoreTest {
         setupPermission("/a", testPrincipal, false, PrivilegeConstants.REP_READ_PROPERTIES);
 
         Root testRoot = getTestRoot();
-        Tree a = testRoot.getTree("/a");
+        Tree a = testRoot.getTreeOrNull("/a");
 
         // /a/x not visible to this session
         assertNull(a.getProperty("x"));

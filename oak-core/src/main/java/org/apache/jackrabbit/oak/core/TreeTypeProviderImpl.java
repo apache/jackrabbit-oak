@@ -36,7 +36,7 @@ public final class TreeTypeProviderImpl implements TreeTypeProvider {
 
     @Override
     public int getType(ImmutableTree tree) {
-        ImmutableTree parent = tree.getParent();
+        ImmutableTree parent = tree.getParentOrNull();
         if (parent == null) {
             return TYPE_DEFAULT;
         }

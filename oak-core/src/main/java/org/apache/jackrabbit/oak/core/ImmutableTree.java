@@ -65,7 +65,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  *     <li>{@link ParentProvider#ROOTPROVIDER}: the default parent provider for
  *     the root tree. All children will get {@link DefaultParentProvider}</li>
  *     <li>{@link ParentProvider#UNSUPPORTED}: throws {@code UnsupportedOperationException}
- *     upon hierarchy related methods like {@link #getParent()}, {@link #getPath()} and
+ *     upon hierarchy related methods like {@link #getParentOrNull()}, {@link #getPath()} and
  *     {@link #getIdentifier()}</li>
  * </ul>
  *
@@ -129,7 +129,7 @@ public final class ImmutableTree extends ReadOnlyTree {
         if (root instanceof RootImpl) {
             return new ImmutableTree(((RootImpl) root).getBaseState(), typeProvider);
         } else if (root instanceof ImmutableRoot) {
-            return ((ImmutableRoot) root).getTree("/");
+            return ((ImmutableRoot) root).getTreeOrNull("/");
         } else {
             throw new IllegalArgumentException("Unsupported Root implementation.");
         }
@@ -149,7 +149,7 @@ public final class ImmutableTree extends ReadOnlyTree {
                 path = "/";
             } else {
                 StringBuilder sb = new StringBuilder();
-                ImmutableTree parent = getParent();
+                ImmutableTree parent = getParentOrNull();
                 sb.append(parent.getPath());
                 if (!parent.isRoot()) {
                     sb.append('/');
@@ -162,20 +162,22 @@ public final class ImmutableTree extends ReadOnlyTree {
     }
 
     @Override
-    public ImmutableTree getParent() {
+    @Deprecated
+    public ImmutableTree getParentOrNull() {
         return parentProvider.getParent();
     }
 
     @Nonnull
     @Override
-    public ImmutableTree getChildNonNull(@Nonnull String name) {
+    public ImmutableTree getChild(@Nonnull String name) {
         NodeState child = state.getChildNode(name);
         return new ImmutableTree(this, name, child);
     }
 
     @Override
-    public ImmutableTree getChild(@Nonnull String name) {
-        ImmutableTree child = getChildNonNull(name);
+    @Deprecated
+    public ImmutableTree getChildOrNull(@Nonnull String name) {
+        ImmutableTree child = getChild(name);
         return child.exists() ? child : null;
     }
 
@@ -264,10 +266,10 @@ public final class ImmutableTree extends ReadOnlyTree {
         PropertyState property = state.getProperty(JcrConstants.JCR_UUID);
         if (property != null) {
             return property.getValue(STRING);
-        } else if (getParent().isRoot()) {
+        } else if (getParentOrNull().isRoot()) {
             return "/";
         } else {
-            return PathUtils.concat(getParent().getIdentifier(), getName());
+            return PathUtils.concat(getParentOrNull().getIdentifier(), getName());
         }
     }
 

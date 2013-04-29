@@ -122,10 +122,10 @@ public class NodeDelegate extends ItemDelegate {
     public boolean isProtected() throws InvalidItemStateException {
         Tree tree = getTree();
 
-        Tree parent = tree.getParent();
+        Tree parent = tree.getParentOrNull();
         if (parent != null) {
             String name = tree.getName();
-            Tree typeRoot = sessionDelegate.getRoot().getTree(NODE_TYPES_PATH);
+            Tree typeRoot = sessionDelegate.getRoot().getTreeOrNull(NODE_TYPES_PATH);
             List<Tree> types = getEffectiveType(parent, typeRoot);
 
             boolean protectedResidual = false;
@@ -149,10 +149,10 @@ public class NodeDelegate extends ItemDelegate {
                 }
 
                 for (Tree type : types) {
-                    Tree definitions = type.getChild(OAK_RESIDUAL_CHILD_NODE_DEFINITIONS);
+                    Tree definitions = type.getChildOrNull(OAK_RESIDUAL_CHILD_NODE_DEFINITIONS);
                     if (definitions != null) {
                         for (String typeName : typeNames) {
-                            Tree definition = definitions.getChild(typeName);
+                            Tree definition = definitions.getChildOrNull(typeName);
                             if (definition != null
                                     && getBoolean(definition, JCR_PROTECTED)) {
                                 return true;
@@ -168,7 +168,7 @@ public class NodeDelegate extends ItemDelegate {
 
     boolean isProtected(String property) throws InvalidItemStateException {
         Tree tree = getTree();
-        Tree typeRoot = sessionDelegate.getRoot().getTree(NODE_TYPES_PATH);
+        Tree typeRoot = sessionDelegate.getRoot().getTreeOrNull(NODE_TYPES_PATH);
         List<Tree> types = getEffectiveType(tree, typeRoot);
 
         boolean protectedResidual = false;
@@ -186,7 +186,7 @@ public class NodeDelegate extends ItemDelegate {
         // there's a matching, protected one.
         if (protectedResidual) {
             for (Tree type : types) {
-                Tree definitions = type.getChild(OAK_RESIDUAL_PROPERTY_DEFINITIONS);
+                Tree definitions = type.getChildOrNull(OAK_RESIDUAL_PROPERTY_DEFINITIONS);
                 if (definitions != null) {
                     for (Tree definition : definitions.getChildren()) {
                         // TODO: check for matching property type?
@@ -312,18 +312,18 @@ public class NodeDelegate extends ItemDelegate {
     public void orderBefore(String source, String target)
             throws ItemNotFoundException, InvalidItemStateException {
         Tree tree = getTree();
-        if (tree.getChild(source) == null) {
+        if (tree.getChildOrNull(source) == null) {
             throw new ItemNotFoundException("Not a child: " + source);
-        } else if (target != null && tree.getChild(target) == null) {
+        } else if (target != null && tree.getChildOrNull(target) == null) {
             throw new ItemNotFoundException("Not a child: " + target);
         } else {
-            tree.getChild(source).orderBefore(target);
+            tree.getChildOrNull(source).orderBefore(target);
         }
     }
 
     public boolean canAddMixin(String typeName) throws RepositoryException {
-        Tree typeRoot = sessionDelegate.getRoot().getTree(NODE_TYPES_PATH);
-        Tree type = typeRoot.getChild(typeName);
+        Tree typeRoot = sessionDelegate.getRoot().getTreeOrNull(NODE_TYPES_PATH);
+        Tree type = typeRoot.getChildOrNull(typeName);
         if (type != null) {
             return !getBoolean(type, JCR_IS_ABSTRACT)
                     && getBoolean(type, JCR_ISMIXIN);
@@ -334,9 +334,9 @@ public class NodeDelegate extends ItemDelegate {
     }
 
     public void addMixin(String typeName) throws RepositoryException {
-        Tree typeRoot = sessionDelegate.getRoot().getTree(NODE_TYPES_PATH);
+        Tree typeRoot = sessionDelegate.getRoot().getTreeOrNull(NODE_TYPES_PATH);
 
-        Tree type = typeRoot.getChild(typeName);
+        Tree type = typeRoot.getChildOrNull(typeName);
         if (type == null) {
             throw new NoSuchNodeTypeException(
                     "Node type " + typeName + " does not exist");
@@ -407,7 +407,7 @@ public class NodeDelegate extends ItemDelegate {
             return null;
         }
 
-        Tree typeRoot = sessionDelegate.getRoot().getTree(NODE_TYPES_PATH);
+        Tree typeRoot = sessionDelegate.getRoot().getTreeOrNull(NODE_TYPES_PATH);
         if (typeName == null) {
             typeName = getDefaultChildType(typeRoot, tree, name);
             if (typeName == null) {
@@ -444,7 +444,7 @@ public class NodeDelegate extends ItemDelegate {
     private Tree internalAddChild(
             Tree parent, String name, String typeName, Tree typeRoot)
             throws RepositoryException {
-        Tree type = typeRoot.getChild(typeName);
+        Tree type = typeRoot.getChildOrNull(typeName);
         if (type == null) {
             throw new NoSuchNodeTypeException(
                     "Node type " + typeName + " does not exist");
@@ -468,7 +468,7 @@ public class NodeDelegate extends ItemDelegate {
     private void autoCreateItems(Tree tree, Tree type, Tree typeRoot)
             throws RepositoryException {
         // TODO: use a separate oak:autoCreatePropertyDefinitions
-        Tree properties = type.getChild(OAK_NAMED_PROPERTY_DEFINITIONS);
+        Tree properties = type.getChildOrNull(OAK_NAMED_PROPERTY_DEFINITIONS);
         if (properties != null) {
             for (Tree definitions : properties.getChildren()) {
                 String name = definitions.getName();
@@ -498,7 +498,7 @@ public class NodeDelegate extends ItemDelegate {
         }
 
         // TODO: use a separate oak:autoCreateChildNodeDefinitions
-        Tree childNodes = type.getChild(OAK_NAMED_CHILD_NODE_DEFINITIONS);
+        Tree childNodes = type.getChildOrNull(OAK_NAMED_CHILD_NODE_DEFINITIONS);
         if (childNodes != null) {
             for (Tree definitions : childNodes.getChildren()) {
                 String name = definitions.getName();
@@ -569,9 +569,9 @@ public class NodeDelegate extends ItemDelegate {
 
         // first look for named node definitions
         for (Tree type : types) {
-            Tree named = type.getChild(OAK_NAMED_CHILD_NODE_DEFINITIONS);
+            Tree named = type.getChildOrNull(OAK_NAMED_CHILD_NODE_DEFINITIONS);
             if (named != null) {
-                Tree definitions = named.getChild(childName);
+                Tree definitions = named.getChildOrNull(childName);
                 if (definitions != null) {
                     String defaultName =
                             findDefaultPrimaryType(typeRoot, definitions);
@@ -584,7 +584,7 @@ public class NodeDelegate extends ItemDelegate {
 
         // then check residual definitions
         for (Tree type : types) {
-            Tree definitions = type.getChild(OAK_RESIDUAL_CHILD_NODE_DEFINITIONS);
+            Tree definitions = type.getChildOrNull(OAK_RESIDUAL_CHILD_NODE_DEFINITIONS);
             if (definitions != null) {
                 String defaultName =
                         findDefaultPrimaryType(typeRoot, definitions);
@@ -606,14 +606,14 @@ public class NodeDelegate extends ItemDelegate {
 
         String primary = getName(tree, JCR_PRIMARYTYPE);
         if (primary != null) {
-            Tree type = typeRoot.getChild(primary);
+            Tree type = typeRoot.getChildOrNull(primary);
             if (type != null) {
                 types.add(type);
             }
         }
 
         for (String mixin : getNames(tree, JCR_MIXINTYPES)) {
-            Tree type = typeRoot.getChild(mixin);
+            Tree type = typeRoot.getChildOrNull(mixin);
             if (type != null) {
                 types.add(type);
             }

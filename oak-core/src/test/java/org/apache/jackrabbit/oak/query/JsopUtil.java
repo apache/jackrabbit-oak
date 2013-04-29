@@ -68,7 +68,7 @@ public class JsopUtil {
             throws UnsupportedOperationException {
         int index = commit.indexOf(' ');
         String path = commit.substring(0, index).trim();
-        Tree c = root.getTree(path);
+        Tree c = root.getTreeOrNull(path);
         if (c == null) {
             // TODO create intermediary?
             throw new UnsupportedOperationException("Non existing path " + path);
@@ -92,7 +92,7 @@ public class JsopUtil {
             if (!t.hasChild(p)) {
                 return;
             }
-            t = t.getChild(p);
+            t = t.getChildOrNull(p);
         }
         t.remove();
     }

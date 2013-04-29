@@ -95,7 +95,7 @@ class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants
         if (!refresh) {
             for (Map.Entry<String, ImmutableTree> entry : trees.entrySet()) {
                 ImmutableTree t = entry.getValue();
-                ImmutableTree t2 = permissionsTree.getChild(t.getName());
+                ImmutableTree t2 = permissionsTree.getChildOrNull(t.getName());
                 if (t2 != null && !t.equals(t2)) {
                     refresh = true;
                     break;
@@ -152,7 +152,7 @@ class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants
     //------------------------------------------------------------< private >---
     @CheckForNull
     private static ImmutableTree getPrincipalRoot(ImmutableTree permissionsTree, Principal principal) {
-        return permissionsTree.getChild(Text.escapeIllegalJcrChars(principal.getName()));
+        return permissionsTree.getChildOrNull(Text.escapeIllegalJcrChars(principal.getName()));
     }
 
     private void buildEntries(@Nullable ImmutableTree permissionsTree) {
@@ -205,7 +205,7 @@ class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants
         if (respectParent) {
             parentAllowBits = PrivilegeBits.getInstance();
             parentDenyBits = PrivilegeBits.getInstance();
-            parent = (tree != null) ? tree.getParent() : null;
+            parent = (tree != null) ? tree.getParentOrNull() : null;
             parentPath = (path != null) ? Strings.emptyToNull(Text.getRelativeParent(path, 1)) : null;
         } else {
             parentAllowBits = PrivilegeBits.EMPTY;

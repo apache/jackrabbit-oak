@@ -189,7 +189,7 @@ class AccessControlImporter implements ProtectedNodeImporter, AccessControlConst
     @CheckForNull
     private JackrabbitAccessControlList getACL(Tree tree) throws RepositoryException {
         String nodeName = tree.getName();
-        Tree parent = tree.getParent();
+        Tree parent = tree.getParentOrNull();
 
         if (parent != null) {
             if (AccessControlConstants.REP_POLICY.equals(nodeName)

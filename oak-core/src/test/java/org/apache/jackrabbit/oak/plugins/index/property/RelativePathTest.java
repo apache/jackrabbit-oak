@@ -24,8 +24,6 @@ import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
-import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
-import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
@@ -65,7 +63,7 @@ public class RelativePathTest extends AbstractQueryTest {
 
     @Test
     public void query() throws Exception {
-        Tree t = root.getTree("/");
+        Tree t = root.getTreeOrNull("/");
         t.addChild("a").addChild("n").setProperty("myProp", "foo");
         t.addChild("b").addChild("n").setProperty("myProp", "bar");
         t.addChild("c").addChild("x").setProperty("myProp", "foo");

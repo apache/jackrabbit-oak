@@ -1123,7 +1123,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         String lockIsDeep = getOakPathOrThrow(JCR_LOCK_IS_DEEP);
         try {
             Root root = session.getLatestRoot();
-            Tree tree = root.getTree(dlg.getPath());
+            Tree tree = root.getTreeOrNull(dlg.getPath());
             if (tree == null) {
                 throw new ItemNotFoundException();
             }
@@ -1196,7 +1196,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         String lockIsDeep = getOakPathOrThrow(JCR_LOCK_IS_DEEP);
         try {
             Root root = sessionDelegate.getContentSession().getLatestRoot();
-            Tree tree = root.getTree(dlg.getPath());
+            Tree tree = root.getTreeOrNull(dlg.getPath());
             if (tree == null) {
                 throw new ItemNotFoundException();
             }

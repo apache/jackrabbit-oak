@@ -130,7 +130,7 @@ class PrivilegeValidator extends DefaultValidator implements PrivilegeConstants 
 
     @Nonnull
     private Tree getPrivilegesTree(Root root) throws CommitFailedException {
-        Tree privilegesTree = root.getTree(PRIVILEGES_PATH);
+        Tree privilegesTree = root.getTreeOrNull(PRIVILEGES_PATH);
         if (privilegesTree == null) {
             throw new CommitFailedException(CONSTRAINT, 44, "Privilege store not initialized.");
         }

@@ -121,7 +121,7 @@ class MembershipProvider extends AuthorizableBaseProvider {
     Iterator<String> getMembers(Tree groupTree, AuthorizableType authorizableType, boolean includeInherited) {
         Iterable memberPaths = Collections.emptySet();
         if (useMemberNode(groupTree)) {
-            Tree membersTree = groupTree.getChild(REP_MEMBERS);
+            Tree membersTree = groupTree.getChildOrNull(REP_MEMBERS);
             if (membersTree != null) {
                 throw new UnsupportedOperationException("not implemented: retrieve members from member-node hierarchy");
             }
@@ -157,7 +157,7 @@ class MembershipProvider extends AuthorizableBaseProvider {
             }
         } else {
             if (useMemberNode(groupTree)) {
-                Tree membersTree = groupTree.getChild(REP_MEMBERS);
+                Tree membersTree = groupTree.getChildOrNull(REP_MEMBERS);
                 if (membersTree != null) {
                     // FIXME: fix.. testing for property name in jr2 wasn't correct.
                     // TODO OAK-482: add implementation
@@ -204,7 +204,7 @@ class MembershipProvider extends AuthorizableBaseProvider {
 
     boolean removeMember(Tree groupTree, Tree memberTree) {
         if (useMemberNode(groupTree)) {
-            Tree membersTree = groupTree.getChild(REP_MEMBERS);
+            Tree membersTree = groupTree.getChildOrNull(REP_MEMBERS);
             if (membersTree != null) {
                 // TODO OAK-482: add implementation
                 throw new UnsupportedOperationException("not implemented: remove member from member-node hierarchy");

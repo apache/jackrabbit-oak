@@ -43,20 +43,20 @@ public class ChildOrderPropertyTest extends AbstractOakCoreTest {
     public void before() throws Exception {
         super.before();
 
-        Tree a = root.getTree("/a");
+        Tree a = root.getTreeOrNull("/a");
         a.setOrderableChildren(true);
         root.commit();
     }
 
     @Test
     public void testHasProperty() {
-        Tree a = root.getTree("/a");
+        Tree a = root.getTreeOrNull("/a");
         assertFalse(a.hasProperty(TreeImpl.OAK_CHILD_ORDER));
     }
 
     @Test
     public void testGetProperty() {
-        Tree a = root.getTree("/a");
+        Tree a = root.getTreeOrNull("/a");
         assertNull(a.getProperty(TreeImpl.OAK_CHILD_ORDER));
     }
 
@@ -64,7 +64,7 @@ public class ChildOrderPropertyTest extends AbstractOakCoreTest {
     public void testGetProperties() {
         Set<String> propertyNames = Sets.newHashSet(JcrConstants.JCR_PRIMARYTYPE, "aProp");
 
-        Tree a = root.getTree("/a");
+        Tree a = root.getTreeOrNull("/a");
         for (PropertyState prop : a.getProperties()) {
             assertTrue(propertyNames.remove(prop.getName()));
         }
@@ -73,13 +73,13 @@ public class ChildOrderPropertyTest extends AbstractOakCoreTest {
 
     @Test
     public void testGetPropertyCount() {
-        Tree a = root.getTree("/a");
+        Tree a = root.getTreeOrNull("/a");
         assertEquals(2, a.getPropertyCount());
     }
 
     @Test
     public void testGetPropertyStatus() {
-        Tree a = root.getTree("/a");
+        Tree a = root.getTreeOrNull("/a");
         assertNull(a.getPropertyStatus(TreeImpl.OAK_CHILD_ORDER));
     }
 

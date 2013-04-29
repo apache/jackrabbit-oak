@@ -33,24 +33,24 @@ public class JsopUtilTest extends OakBaseTest {
     public void test() throws Exception {
         Root root = createContentSession().getLatestRoot();
 
-        Tree t = root.getTree("/");
+        Tree t = root.getTreeOrNull("/");
         assertFalse(t.hasChild("test"));
 
         String add = "/ + \"test\": { \"a\": { \"id\": \"123\" }, \"b\": {} }";
         JsopUtil.apply(root, add);
         root.commit();
 
-        t = root.getTree("/");
+        t = root.getTreeOrNull("/");
         assertTrue(t.hasChild("test"));
 
-        t = t.getChild("test");
+        t = t.getChildOrNull("test");
         assertEquals(2, t.getChildrenCount());
         assertTrue(t.hasChild("a"));
         assertTrue(t.hasChild("b"));
 
-        assertEquals(0, t.getChild("b").getChildrenCount());
+        assertEquals(0, t.getChildOrNull("b").getChildrenCount());
 
-        t = t.getChild("a");
+        t = t.getChildOrNull("a");
         assertEquals(0, t.getChildrenCount());
         assertTrue(t.hasProperty("id"));
         assertEquals("123", t.getProperty("id").getValue(STRING));
@@ -59,7 +59,7 @@ public class JsopUtilTest extends OakBaseTest {
         JsopUtil.apply(root, rm);
         root.commit();
 
-        t = root.getTree("/");
+        t = root.getTreeOrNull("/");
         assertFalse(t.hasChild("test"));
     }
 

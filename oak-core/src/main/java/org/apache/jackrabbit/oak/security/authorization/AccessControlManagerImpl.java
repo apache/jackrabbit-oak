@@ -170,7 +170,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
         if (oakPath != null) {
             String parentPath = Text.getRelativeParent(oakPath, 1);
             while (!parentPath.isEmpty()) {
-                Tree t = root.getTree(parentPath);
+                Tree t = root.getTreeOrNull(parentPath);
                 AccessControlPolicy plc = createACL(parentPath, t, true);
                 if (plc != null) {
                     effective.add(plc);
@@ -359,7 +359,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
         for (ResultRow row : aceResult.getRows()) {
             String acePath = row.getPath();
             String aclName = Text.getName(Text.getRelativeParent(acePath, 1));
-            Tree accessControlledTree = root.getTree(Text.getRelativeParent(acePath, 2));
+            Tree accessControlledTree = root.getTreeOrNull(Text.getRelativeParent(acePath, 2));
 
             if (aclName.isEmpty() || accessControlledTree == null) {
                 log.debug("Isolated access control entry -> ignore query result at " + acePath);
@@ -411,7 +411,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
 
     @Nonnull
     private Tree getTree(@Nullable String oakPath, long permissions) throws RepositoryException {
-        Tree tree = (oakPath == null) ? root.getTree("/") : root.getTree(oakPath);
+        Tree tree = (oakPath == null) ? root.getTreeOrNull("/") : root.getTreeOrNull(oakPath);
         if (tree == null) {
             throw new PathNotFoundException("No tree at " + oakPath);
         }
@@ -477,7 +477,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
     @CheckForNull
     private Tree getAclTree(@Nullable String oakPath, @Nonnull Tree accessControlledTree) {
         if (isAccessControlled(accessControlledTree, getMixinName(oakPath))) {
-            Tree policyTree = accessControlledTree.getChild(getAclName(oakPath));
+            Tree policyTree = accessControlledTree.getChildOrNull(getAclName(oakPath));
             if (policyTree != null) {
                 return policyTree;
             }
@@ -518,7 +518,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
         String mixinName = getMixinName(oakPath);
 
         if (accessControlledTree != null && isAccessControlled(accessControlledTree, mixinName)) {
-            Tree aclTree = accessControlledTree.getChild(aclName);
+            Tree aclTree = accessControlledTree.getChildOrNull(aclName);
             if (aclTree != null) {
                 List<JackrabbitAccessControlEntry> entries = new ArrayList<JackrabbitAccessControlEntry>();
                 for (Tree child : aclTree.getChildren()) {
@@ -543,7 +543,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
         RestrictionProvider restrProvider = new PrincipalRestrictionProvider(restrictionProvider, namePathMapper);
         List<JackrabbitAccessControlEntry> entries = new ArrayList<JackrabbitAccessControlEntry>();
         for (ResultRow row : aceResult.getRows()) {
-            Tree aceTree = root.getTree(row.getPath());
+            Tree aceTree = root.getTreeOrNull(row.getPath());
             if (isACE(aceTree)) {
                 String aclPath = Text.getRelativeParent(aceTree.getPath(), 1);
                 String path;

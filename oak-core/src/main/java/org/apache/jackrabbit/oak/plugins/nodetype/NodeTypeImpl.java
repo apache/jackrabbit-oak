@@ -197,10 +197,10 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
     private void addSupertypes(Tree type, Map<String, NodeType> supertypes) {
         PropertyState property = type.getProperty(JCR_SUPERTYPES);
         if (property != null) {
-            Tree root = definition.getParent();
+            Tree root = definition.getParentOrNull();
             for (String oakName : property.getValue(Type.NAMES)) {
                 if (!supertypes.containsKey(oakName)) {
-                    Tree supertype = root.getChild(oakName);
+                    Tree supertype = root.getChildOrNull(oakName);
                     checkState(supertype != null);
                     supertypes.put(
                             oakName, new NodeTypeImpl(supertype, mapper));
@@ -216,9 +216,9 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
         String[] oakNames = getNames(JCR_SUPERTYPES);
         if (oakNames != null && oakNames.length > 0) {
             supertypes = new NodeType[oakNames.length];
-            Tree root = definition.getParent();
+            Tree root = definition.getParentOrNull();
             for (int i = 0; i < oakNames.length; i++) {
-                Tree type = root.getChild(oakNames[i]);
+                Tree type = root.getChildOrNull(oakNames[i]);
                 checkState(type != null);
                 supertypes[i] = new NodeTypeImpl(type, mapper);
             }
@@ -230,7 +230,7 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
     public NodeTypeIterator getSubtypes() {
         Map<String, Set<String>> inheritance = Maps.newHashMap();
         
-        Tree root = definition.getParent();
+        Tree root = definition.getParentOrNull();
         for (Tree child : root.getChildren()) {
             String oakName = getOakName(child);
             PropertyState supertypes = child.getProperty(JCR_SUPERTYPES);
@@ -258,7 +258,7 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
         if (subnames != null) {
             for (String subname : subnames) {
                 if (!subtypes.containsKey(subname)) {
-                    Tree tree = root.getChild(subname);
+                    Tree tree = root.getChildOrNull(subname);
                     subtypes.put(subname, new NodeTypeImpl(tree, mapper));
                 }
             }
@@ -270,7 +270,7 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
         List<NodeType> subtypes = Lists.newArrayList();
 
         String oakName = getOakName();
-        Tree root = definition.getParent();
+        Tree root = definition.getParentOrNull();
         for (Tree child : root.getChildren()) {
             PropertyState supertypes = child.getProperty(JCR_SUPERTYPES);
             if (supertypes != null) {
@@ -429,7 +429,7 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
     }
 
     private ReadOnlyNodeTypeManager getManager() {
-        final Tree types = definition.getParent();
+        final Tree types = definition.getParentOrNull();
         return new ReadOnlyNodeTypeManager() {
             @Override @CheckForNull
             protected Tree getTypes() {
@@ -471,7 +471,7 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
     }
 
     Iterable<PropertyDefinition> getDeclaredNamedPropertyDefinitions(String oakName) {
-        Tree named = definition.getChild("oak:namedPropertyDefinitions");
+        Tree named = definition.getChildOrNull("oak:namedPropertyDefinitions");
         if (named != null) {
             String escapedName;
             if (JCR_PRIMARYTYPE.equals(oakName)) {
@@ -483,7 +483,7 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
             } else {
                 escapedName = oakName;
             }
-            Tree definitions = named.getChild(escapedName);
+            Tree definitions = named.getChildOrNull(escapedName);
             if (definitions != null) {
                 return Iterables.transform(
                         definitions.getChildren(),
@@ -500,7 +500,7 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
     }
 
     Iterable<PropertyDefinition> getDeclaredResidualPropertyDefinitions() {
-        Tree definitions = definition.getChild("oak:residualPropertyDefinitions");
+        Tree definitions = definition.getChildOrNull("oak:residualPropertyDefinitions");
         if (definitions != null) {
             return Iterables.transform(
                     definitions.getChildren(),
@@ -516,9 +516,9 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
     }
 
     Iterable<NodeDefinition> getDeclaredNamedNodeDefinitions(String oakName) {
-        Tree named = definition.getChild("oak:namedChildNodeDefinitions");
+        Tree named = definition.getChildOrNull("oak:namedChildNodeDefinitions");
         if (named != null) {
-            Tree definitions = named.getChild(oakName);
+            Tree definitions = named.getChildOrNull(oakName);
             if (definitions != null) {
                 return Iterables.transform(
                         definitions.getChildren(),
@@ -535,7 +535,7 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
     }
 
     Iterable<NodeDefinition> getDeclaredResidualNodeDefinitions() {
-        Tree definitions = definition.getChild("oak:residualChildNodeDefinitions");
+        Tree definitions = definition.getChildOrNull("oak:residualChildNodeDefinitions");
         if (definitions != null) {
             return Iterables.transform(
                     definitions.getChildren(),

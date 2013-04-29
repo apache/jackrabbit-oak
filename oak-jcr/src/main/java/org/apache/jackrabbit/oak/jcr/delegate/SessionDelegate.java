@@ -260,20 +260,20 @@ public class SessionDelegate {
         Root moveRoot = transientOp ? root : contentSession.getLatestRoot();
 
         // check destination
-        Tree dest = moveRoot.getTree(destPath);
+        Tree dest = moveRoot.getTreeOrNull(destPath);
         if (dest != null) {
             throw new ItemExistsException(destPath);
         }
 
         // check parent of destination
         String destParentPath = PathUtils.getParentPath(destPath);
-        Tree destParent = moveRoot.getTree(destParentPath);
+        Tree destParent = moveRoot.getTreeOrNull(destParentPath);
         if (destParent == null) {
             throw new PathNotFoundException(PathUtils.getParentPath(destPath));
         }
 
         // check source exists
-        Tree src = moveRoot.getTree(srcPath);
+        Tree src = moveRoot.getTreeOrNull(srcPath);
         if (src == null) {
             throw new PathNotFoundException(srcPath);
         }
@@ -313,7 +313,7 @@ public class SessionDelegate {
      */
     @CheckForNull
     private Tree getTree(String path) {
-        return root.getTree(path);
+        return root.getTreeOrNull(path);
     }
 
     /**

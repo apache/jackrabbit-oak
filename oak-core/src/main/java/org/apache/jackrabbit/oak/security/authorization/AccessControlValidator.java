@@ -90,7 +90,7 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
 
     @Override
     public Validator childNodeAdded(String name, NodeState after) throws CommitFailedException {
-        Tree treeAfter = checkNotNull(parentAfter.getChild(name));
+        Tree treeAfter = checkNotNull(parentAfter.getChildOrNull(name));
 
         checkValidTree(parentAfter, treeAfter);
         return new AccessControlValidator(null, treeAfter, privileges, restrictionProvider, ntMgr);
@@ -98,8 +98,8 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
 
     @Override
     public Validator childNodeChanged(String name, NodeState before, NodeState after) throws CommitFailedException {
-        Tree treeBefore = checkNotNull(parentBefore.getChild(name));
-        Tree treeAfter = checkNotNull(parentAfter.getChild(name));
+        Tree treeBefore = checkNotNull(parentBefore.getChildOrNull(name));
+        Tree treeAfter = checkNotNull(parentAfter.getChildOrNull(name));
 
         checkValidTree(parentAfter, treeAfter);
         return new AccessControlValidator(treeBefore, treeAfter, privileges, restrictionProvider, ntMgr);
@@ -173,7 +173,7 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
     }
 
     private void checkValidAccessControlEntry(Tree aceNode) throws CommitFailedException {
-        Tree parent = aceNode.getParent();
+        Tree parent = aceNode.getParentOrNull();
         if (parent == null || !NT_REP_ACL.equals(TreeUtil.getPrimaryTypeName(parent))) {
             throw accessViolation(7, "Isolated access control entry at " + aceNode.getPath());
         }
@@ -208,7 +208,7 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
 
     private void checkValidRestrictions(Tree aceTree) throws CommitFailedException {
         String path;
-        Tree aclTree = checkNotNull(aceTree.getParent());
+        Tree aclTree = checkNotNull(aceTree.getParentOrNull());
         String aclPath = aclTree.getPath();
         if (REP_REPO_POLICY.equals(Text.getName(aclPath))) {
             path = null;

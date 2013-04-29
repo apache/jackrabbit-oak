@@ -83,7 +83,7 @@ public class UserManagerImplTest extends AbstractSecurityTest {
         pwds.add("");
         pwds.add("{sha1}pw");
 
-        Tree userTree = root.getTree(user.getPath());
+        Tree userTree = root.getTreeOrNull(user.getPath());
         for (String pw : pwds) {
             userMgr.setPassword(userTree, pw, true);
             String pwHash = userTree.getProperty(UserConstants.REP_PASSWORD).getValue(Type.STRING);
@@ -109,7 +109,7 @@ public class UserManagerImplTest extends AbstractSecurityTest {
         User user = userMgr.createUser(testUserId, null);
         root.commit();
 
-        Tree userTree = root.getTree(user.getPath());
+        Tree userTree = root.getTreeOrNull(user.getPath());
         try {
             userMgr.setPassword(userTree, null, true);
             fail("setting null password should fail");
@@ -130,7 +130,7 @@ public class UserManagerImplTest extends AbstractSecurityTest {
         User user = userMgr.createUser(testUserId, null);
         root.commit();
 
-        Tree userTree = root.getTree(user.getPath());
+        Tree userTree = root.getTreeOrNull(user.getPath());
         assertNull(userTree.getProperty(UserConstants.REP_PASSWORD));
     }
 
@@ -154,7 +154,7 @@ public class UserManagerImplTest extends AbstractSecurityTest {
         User user = userMgr.createUser(testUserId, null);
         root.commit();
 
-        NodeUtil userNode = new NodeUtil(root.getTree(user.getPath()));
+        NodeUtil userNode = new NodeUtil(root.getTreeOrNull(user.getPath()));
 
         NodeUtil folder = userNode.addChild("folder", UserConstants.NT_REP_AUTHORIZABLE_FOLDER);
         String path = folder.getTree().getPath();
@@ -217,7 +217,7 @@ public class UserManagerImplTest extends AbstractSecurityTest {
             }
         } finally {
             root.refresh();
-            Tree t = root.getTree(path);
+            Tree t = root.getTreeOrNull(path);
             if (t != null) {
                 t.remove();
                 root.commit();
