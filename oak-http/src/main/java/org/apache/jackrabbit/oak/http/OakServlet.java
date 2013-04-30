@@ -20,8 +20,10 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.Map.Entry;
 
+import javax.jcr.Credentials;
 import javax.jcr.GuestCredentials;
 import javax.jcr.NoSuchWorkspaceException;
+import javax.jcr.SimpleCredentials;
 import javax.security.auth.login.LoginException;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -38,6 +40,7 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.util.Base64;
 import org.apache.tika.mime.MediaType;
 
 public class OakServlet extends HttpServlet {
@@ -65,7 +68,18 @@ public class OakServlet extends HttpServlet {
             HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         try {
-            ContentSession session = repository.login(new GuestCredentials(), null);
+            Credentials credentials = new GuestCredentials();
+
+            String authorization = request.getHeader("Authorization");
+            if (authorization != null && authorization.startsWith("Basic ")) {
+                String[] basic =
+                        Base64.decode(authorization.substring("Basic ".length())).split(":");
+                credentials = new SimpleCredentials(basic[0], basic[1].toCharArray());
+            } else {
+                throw new LoginException();
+            }
+
+            ContentSession session = repository.login(credentials, null);
             try {
                 Root root = session.getLatestRoot();
                 request.setAttribute("root", root);
@@ -77,19 +91,14 @@ public class OakServlet extends HttpServlet {
                 // direction as some parent nodes may be read-protected.
                 String head = request.getPathInfo();
                 String tail = "";
-                Tree tree = root.getTreeOrNull(head);
-                while (tree == null) {
-                    if (head.equals("/")) {
+                Tree tree = root.getTree(head);
+                while (!tree.exists()) {
+                    if (tree.isRoot()) {
                         response.sendError(HttpServletResponse.SC_NOT_FOUND);
                         return;
                     }
-                    int slash = head.lastIndexOf('/');
-                    tail = head.substring(slash) + tail;
-                    head = head.substring(0, slash);
-                    if (head.isEmpty()){
-                    	head="/";
-                    }
-                    tree = root.getTreeOrNull(head);
+                    tail = "/" + tree.getName() + tail;
+                    tree = tree.getParent();
                 }
                 request.setAttribute("tree", tree);
                 request.setAttribute("path", tail);
@@ -101,7 +110,8 @@ public class OakServlet extends HttpServlet {
         } catch (NoSuchWorkspaceException e) {
             response.sendError(HttpServletResponse.SC_NOT_FOUND);
         } catch (LoginException e) {
-            throw new ServletException(e);
+            response.setHeader("WWW-Authenticate", "Basic realm=\"Oak\"");
+            response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
         }
     }
 
