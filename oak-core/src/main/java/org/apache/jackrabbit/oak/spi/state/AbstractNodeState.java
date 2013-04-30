@@ -124,28 +124,40 @@ public abstract class AbstractNodeState implements NodeState {
      * the entries one by one with corresponding ones (if any) in this state.
      */
     @Override
-    public void compareAgainstBaseState(NodeState base, NodeStateDiff diff) {
-        comparePropertiesAgainstBaseState(base, diff);
+    public boolean compareAgainstBaseState(NodeState base, NodeStateDiff diff) {
+        if (!comparePropertiesAgainstBaseState(base, diff)) {
+            return false;
+        }
+
         Set<String> baseChildNodes = new HashSet<String>();
         for (ChildNodeEntry beforeCNE : base.getChildNodeEntries()) {
             String name = beforeCNE.getName();
             NodeState beforeChild = beforeCNE.getNodeState();
             NodeState afterChild = getChildNode(name);
             if (!afterChild.exists()) {
-                diff.childNodeDeleted(name, beforeChild);
+                if (!diff.childNodeDeleted(name, beforeChild)) {
+                    return false;
+                }
             } else {
                 baseChildNodes.add(name);
                 if (!beforeChild.equals(afterChild)) {
-                    diff.childNodeChanged(name, beforeChild, afterChild);
+                    if (!diff.childNodeChanged(name, beforeChild, afterChild)) {
+                        return false;
+                    }
                 }
             }
         }
+
         for (ChildNodeEntry afterChild : getChildNodeEntries()) {
             String name = afterChild.getName();
             if (!baseChildNodes.contains(name)) {
-                diff.childNodeAdded(name, afterChild.getNodeState());
+                if (!diff.childNodeAdded(name, afterChild.getNodeState())) {
+                    return false;
+                }
             }
         }
+
+        return true;
     }
 
     /**
@@ -239,26 +251,35 @@ public abstract class AbstractNodeState implements NodeState {
      * @param base the base node state.
      * @param diff the node state diff.
      */
-    protected void comparePropertiesAgainstBaseState(NodeState base,
+    protected boolean comparePropertiesAgainstBaseState(NodeState base,
                                                      NodeStateDiff diff) {
         Set<String> baseProperties = new HashSet<String>();
         for (PropertyState beforeProperty : base.getProperties()) {
             String name = beforeProperty.getName();
             PropertyState afterProperty = getProperty(name);
             if (afterProperty == null) {
-                diff.propertyDeleted(beforeProperty);
+                if (!diff.propertyDeleted(beforeProperty)) {
+                    return false;
+                }
             } else {
                 baseProperties.add(name);
                 if (!beforeProperty.equals(afterProperty)) {
-                    diff.propertyChanged(beforeProperty, afterProperty);
+                    if (!diff.propertyChanged(beforeProperty, afterProperty)) {
+                        return false;
+                    }
                 }
             }
         }
+
         for (PropertyState afterProperty : getProperties()) {
             if (!baseProperties.contains(afterProperty.getName())) {
-                diff.propertyAdded(afterProperty);
+                if (!diff.propertyAdded(afterProperty)) {
+                    return false;
+                }
             }
         }
+
+        return true;
     }
 
     //-----------------------------------------------------------< private >--

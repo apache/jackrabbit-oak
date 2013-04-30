@@ -57,7 +57,7 @@ class JcrAllCommitHook implements PostValidationHook, PrivilegeConstants {
         }
 
         @Override
-        public void childNodeAdded(String name, NodeState after) {
+        public boolean childNodeAdded(String name, NodeState after) {
             if (PRIVILEGES_PATH.equals(path) && !JCR_ALL.equals(name)) {
                 // a new privilege was registered -> update the jcr:all privilege
                 NodeBuilder jcrAll = nodeBuilder.child(JCR_ALL);
@@ -82,13 +82,15 @@ class JcrAllCommitHook implements PostValidationHook, PrivilegeConstants {
                     jcrAll.setProperty(PrivilegeBits.getInstance(all).add(bits).asPropertyState(REP_BITS));
                 }
             }
+            return true;
         }
 
         @Override
-        public void childNodeChanged(String name, NodeState before, NodeState after) {
+        public boolean childNodeChanged(String name, NodeState before, NodeState after) {
             if (ROOT_PATH.equals(path) || Text.isDescendant(path, PRIVILEGES_PATH)) {
                 after.compareAgainstBaseState(before, new PrivilegeDiff(this, name, nodeBuilder.child(name)));
             }
+            return true;
         }
     }
 }

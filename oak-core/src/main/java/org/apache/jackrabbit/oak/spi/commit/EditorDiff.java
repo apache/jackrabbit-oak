@@ -89,72 +89,72 @@ public class EditorDiff implements NodeStateDiff {
     //-------------------------------------------------< NodeStateDiff >--
 
     @Override
-    public void propertyAdded(PropertyState after) {
-        if (exception == null) {
-            try {
-                editor.propertyAdded(after);
-            } catch (CommitFailedException e) {
-                exception = e;
-            }
+    public boolean propertyAdded(PropertyState after) {
+        try {
+            editor.propertyAdded(after);
+            return true;
+        } catch (CommitFailedException e) {
+            exception = e;
+            return false;
         }
     }
 
     @Override
-    public void propertyChanged(PropertyState before, PropertyState after) {
-        if (exception == null) {
-            try {
-                editor.propertyChanged(before, after);
-            } catch (CommitFailedException e) {
-                exception = e;
-            }
+    public boolean propertyChanged(PropertyState before, PropertyState after) {
+        try {
+            editor.propertyChanged(before, after);
+            return true;
+        } catch (CommitFailedException e) {
+            exception = e;
+            return false;
         }
     }
 
     @Override
-    public void propertyDeleted(PropertyState before) {
-        if (exception == null) {
-            try {
-                editor.propertyDeleted(before);
-            } catch (CommitFailedException e) {
-                exception = e;
-            }
+    public boolean propertyDeleted(PropertyState before) {
+        try {
+            editor.propertyDeleted(before);
+            return true;
+        } catch (CommitFailedException e) {
+            exception = e;
+            return false;
         }
     }
 
     @Override
-    public void childNodeAdded(String name, NodeState after) {
-        if (exception == null) {
-            try {
-                Editor e = editor.childNodeAdded(name, after);
-                exception = process(e, MISSING_NODE, after);
-            } catch (CommitFailedException e) {
-                exception = e;
-            }
+    public boolean childNodeAdded(String name, NodeState after) {
+        try {
+            Editor e = editor.childNodeAdded(name, after);
+            exception = process(e, MISSING_NODE, after);
+            return exception == null;
+        } catch (CommitFailedException e) {
+            exception = e;
+            return false;
         }
     }
 
     @Override
-    public void childNodeChanged(
+    public boolean childNodeChanged(
             String name, NodeState before, NodeState after) {
-        if (exception == null) {
-            try {
-                Editor e = editor.childNodeChanged(name, before, after);
-                exception = process(e, before, after);
-            } catch (CommitFailedException e) {
-                exception = e;
-            }
+        try {
+            Editor e = editor.childNodeChanged(name, before, after);
+            exception = process(e, before, after);
+            return exception == null;
+        } catch (CommitFailedException e) {
+            exception = e;
+            return false;
         }
     }
 
     @Override
-    public void childNodeDeleted(String name, NodeState before) {
-        if (exception == null) {
-            try {
-                Editor e = editor.childNodeDeleted(name, before);
-                exception = process(e, before, MISSING_NODE);
-            } catch (CommitFailedException e) {
-                exception = e;
-            }
+    public boolean childNodeDeleted(String name, NodeState before) {
+        try {
+            Editor e = editor.childNodeDeleted(name, before);
+            exception = process(e, before, MISSING_NODE);
+            return exception == null;
+        } catch (CommitFailedException e) {
+            exception = e;
+            return false;
         }
     }
 

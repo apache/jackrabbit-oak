@@ -70,7 +70,7 @@ public class VersionablePathHook implements CommitHook {
         }
 
         @Override
-        public void propertyAdded(PropertyState after) {
+        public boolean propertyAdded(PropertyState after) {
             if (VersionConstants.JCR_VERSIONHISTORY.equals(after.getName())
                     && nodeAfter.isVersionable(versionManager)) {
                 NodeBuilder vhBuilder = versionManager.getOrCreateVersionHistory(nodeAfter.builder);
@@ -85,17 +85,20 @@ public class VersionablePathHook implements CommitHook {
                 String versionablePath = nodeAfter.path;
                 vhBuilder.setProperty(workspaceName, versionablePath);
             }
+            return true;
         }
 
         @Override
-        public void childNodeAdded(String name, NodeState after) {
-            childNodeChanged(name, EMPTY_NODE, after);
+        public boolean childNodeAdded(String name, NodeState after) {
+            return childNodeChanged(name, EMPTY_NODE, after);
         }
 
         @Override
-        public void childNodeChanged(String name, NodeState before, NodeState after) {
+        public boolean childNodeChanged(
+                String name, NodeState before, NodeState after) {
             Node node = new Node(nodeAfter, name);
-            after.compareAgainstBaseState(before, new Diff(versionManager, node));
+            return after.compareAgainstBaseState(
+                    before, new Diff(versionManager, node));
         }
     }
 

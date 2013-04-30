@@ -331,36 +331,35 @@ public final class KernelNodeState extends AbstractNodeState {
      * @see <a href="https://issues.apache.org/jira/browse/OAK-175">OAK-175</a>
      */
     @Override
-    public void compareAgainstBaseState(NodeState base, NodeStateDiff diff) {
+    public boolean compareAgainstBaseState(NodeState base, NodeStateDiff diff) {
         if (this == base) {
-            return; // no differences
-        } else if (base == EMPTY_NODE) {
-            EmptyNodeState.compareAgainstEmptyState(this, diff); // special case
-            return;
+            return true; // no differences
+        } else if (base == EMPTY_NODE || !base.exists()) { // special case
+            return EmptyNodeState.compareAgainstEmptyState(this, diff);
         } else if (base instanceof KernelNodeState) {
             KernelNodeState kbase = (KernelNodeState) base;
             if (kernel.equals(kbase.kernel)) {
                 if (revision.equals(kbase.revision) && path.equals(kbase.path)) {
-                    return; // no differences
+                    return true; // no differences
                 } else {
                     init();
                     kbase.init();
                     if (hash != null && hash.equals(kbase.hash)) {
-                        return; // no differences
+                        return true; // no differences
                     } else if (id != null && id.equals(kbase.id)) {
-                        return; // no differences
+                        return true; // no differences
                     } else if (path.equals(kbase.path)
                             && childNodeCount > MAX_CHILD_NODE_NAMES) {
                         // use MK.diff() when there are 'many' child nodes
                         String jsonDiff = kernel.diff(kbase.getRevision(), revision, path, 0);
                         processJsonDiff(jsonDiff, kbase, diff);
-                        return;
+                        return true;
                     }
                 }
             }
         }
         // fall back to the generic node state diff algorithm
-        super.compareAgainstBaseState(base, diff);
+        return super.compareAgainstBaseState(base, diff);
     }
 
     //------------------------------------------------------------< Object >--

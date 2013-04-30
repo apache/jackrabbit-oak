@@ -84,37 +84,43 @@ class JsopDiff implements NodeStateDiff {
     //-----------------------------------------------------< NodeStateDiff >--
 
     @Override
-    public void propertyAdded(PropertyState after) {
+    public boolean propertyAdded(PropertyState after) {
         jsop.tag('^').key(buildPath(after.getName()));
         toJson(after, jsop);
+        return true;
     }
 
     @Override
-    public void propertyChanged(PropertyState before, PropertyState after) {
+    public boolean propertyChanged(PropertyState before, PropertyState after) {
         jsop.tag('^').key(buildPath(after.getName()));
         toJson(after, jsop);
+        return true;
     }
 
     @Override
-    public void propertyDeleted(PropertyState before) {
+    public boolean propertyDeleted(PropertyState before) {
         jsop.tag('^').key(buildPath(before.getName())).value(null);
+        return true;
     }
 
     @Override
-    public void childNodeAdded(String name, NodeState after) {
+    public boolean childNodeAdded(String name, NodeState after) {
         jsop.tag('+').key(buildPath(name));
         toJson(after, jsop);
+        return true;
     }
 
     @Override
-    public void childNodeDeleted(String name, NodeState before) {
+    public boolean childNodeDeleted(String name, NodeState before) {
         jsop.tag('-').value(buildPath(name));
+        return true;
     }
 
     @Override
-    public void childNodeChanged(String name, NodeState before, NodeState after) {
+    public boolean childNodeChanged(String name, NodeState before, NodeState after) {
         String path = buildPath(name);
         after.compareAgainstBaseState(before, createChildDiff(jsop, path));
+        return true;
     }
 
     //------------------------------------------------------------< Object >--

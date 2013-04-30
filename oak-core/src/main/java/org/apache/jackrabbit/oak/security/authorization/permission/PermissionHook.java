@@ -48,9 +48,9 @@ import org.apache.jackrabbit.oak.security.privilege.PrivilegeBitsProvider;
 import org.apache.jackrabbit.oak.spi.commit.PostValidationHook;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
+import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.apache.jackrabbit.util.Text;
@@ -137,7 +137,7 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
         return restrictionProvider.readRestrictions(Strings.emptyToNull(accessControlledPath), aceTree);
     }
 
-    private class Diff implements NodeStateDiff {
+    private class Diff extends DefaultNodeStateDiff {
 
         private final Node parentBefore;
         private final AfterNode parentAfter;
@@ -150,12 +150,7 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
         }
 
         @Override
-        public void propertyAdded(PropertyState after) {
-            // nothing to do
-        }
-
-        @Override
-        public void propertyChanged(PropertyState before, PropertyState after) {
+        public boolean propertyChanged(PropertyState before, PropertyState after) {
             if (isACL(parentAfter) && TreeImpl.OAK_CHILD_ORDER.equals(before.getName())) {
                 List<String> reordered = new ChildOrderDiff(before, after).getReordered();
                 for (String name : reordered) {
@@ -167,15 +162,11 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
                     processed.add(name);
                 }
             }
+            return true;
         }
 
         @Override
-        public void propertyDeleted(PropertyState before) {
-            // nothing to do
-        }
-
-        @Override
-        public void childNodeAdded(String name, NodeState after) {
+        public boolean childNodeAdded(String name, NodeState after) {
             if (NodeStateUtils.isHidden(name)) {
                 // ignore hidden nodes
             } else if (isACE(name, after)) {
@@ -185,10 +176,11 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
                 AfterNode node = new AfterNode(parentAfter, name);
                 after.compareAgainstBaseState(before.getNodeState(), new Diff(before, node));
             }
+            return true;
         }
 
         @Override
-        public void childNodeChanged(String name, final NodeState before, NodeState after) {
+        public boolean childNodeChanged(String name, final NodeState before, NodeState after) {
             if (NodeStateUtils.isHidden(name)) {
                 // ignore hidden nodes
             } else if (isACE(name, before) || isACE(name, after)) {
@@ -198,10 +190,11 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
                 AfterNode nodeAfter = new AfterNode(parentAfter, name);
                 after.compareAgainstBaseState(before, new Diff(nodeBefore, nodeAfter));
             }
+            return true;
         }
 
         @Override
-        public void childNodeDeleted(String name, NodeState before) {
+        public boolean childNodeDeleted(String name, NodeState before) {
             if (NodeStateUtils.isHidden(name)) {
                 // ignore hidden nodes
             } else if (isACE(name, before)) {
@@ -211,6 +204,7 @@ public class PermissionHook implements PostValidationHook, AccessControlConstant
                 AfterNode after = new AfterNode(parentAfter.getPath(), name, EMPTY_NODE);
                 after.getNodeState().compareAgainstBaseState(before, new Diff(nodeBefore, after));
             }
+            return true;
         }
 
         //--------------------------------------------------------< private >---
