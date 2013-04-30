@@ -24,7 +24,6 @@ import static com.google.common.collect.Maps.newHashMap;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState.with;
-import static org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState.withNodes;
 
 import java.util.Iterator;
 import java.util.Map;
@@ -396,7 +395,7 @@ class MutableNodeState extends AbstractNodeState {
     @Override
     public long getChildNodeCount() {
         assert base != null;
-        return withNodes(base, nodes).getChildNodeCount();
+        return ModifiedNodeState.getChildNodeCount(base, nodes);
     }
 
     @Override
@@ -404,7 +403,14 @@ class MutableNodeState extends AbstractNodeState {
         assert base != null;
         checkNotNull(name);
         // checkArgument(!name.isEmpty()); TODO: should be caught earlier
-        return withNodes(base, nodes).hasChildNode(name);
+        NodeState child = nodes.get(name);
+        if (child != null) {
+            return child.exists();
+        } else if (nodes.containsKey(name)) {
+            return false;
+        } else {
+            return base.hasChildNode(name);
+        }
     }
 
     @Override
@@ -415,8 +421,7 @@ class MutableNodeState extends AbstractNodeState {
     @Override @Nonnull
     public Iterable<String> getChildNodeNames() {
         assert base != null;
-        Map<String, MutableNodeState> copy = newHashMap(nodes);
-        return withNodes(base, copy).getChildNodeNames();
+        return ModifiedNodeState.getChildNodeNames(base, nodes, true);
     }
 
     @Override @Nonnull
