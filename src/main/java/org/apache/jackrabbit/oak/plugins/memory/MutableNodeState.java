@@ -63,48 +63,8 @@ class MutableNodeState extends AbstractNodeState {
     private final Map<String, MutableNodeState> nodes = newHashMap();
 
     MutableNodeState(@Nonnull NodeState base) {
-        this.base = checkNotNull(base);
-
-        // unwrap ModifiedNodeState instances
-        if (base instanceof ModifiedNodeState) {
-            ModifiedNodeState modified = (ModifiedNodeState) base;
-            this.base = modified.getBaseState();
-
-            modified.compareAgainstBaseState(new NodeStateDiff() {
-                @Override
-                public boolean propertyAdded(PropertyState after) {
-                    properties.put(after.getName(), after);
-                    return true;
-                }
-                @Override
-                public boolean propertyChanged(
-                        PropertyState before, PropertyState after) {
-                    properties.put(after.getName(), after);
-                    return true;
-                }
-                @Override
-                public boolean propertyDeleted(PropertyState before) {
-                    properties.put(before.getName(), null);
-                    return true;
-                }
-                @Override
-                public boolean childNodeAdded(String name, NodeState after) {
-                    nodes.put(name, new MutableNodeState(after));
-                    return true;
-                }
-                @Override
-                public boolean childNodeChanged(
-                        String name, NodeState before, NodeState after) {
-                    nodes.put(name, new MutableNodeState(after));
-                    return true;
-                }
-                @Override
-                public boolean childNodeDeleted(String name, NodeState before) {
-                    nodes.put(name, new MutableNodeState(MISSING_NODE));
-                    return true;
-                }
-            });
-        }
+        checkNotNull(base);
+        this.base = ModifiedNodeState.unwrap(base, properties, nodes);
     }
 
     NodeState snapshot() {
@@ -116,61 +76,10 @@ class MutableNodeState extends AbstractNodeState {
         }
     }
 
-    private void reset(NodeState newBase) {
+    void reset(NodeState newBase) {
         assert base != null;
-
-        base = newBase;
-        properties.clear();
-        for (Entry<String, MutableNodeState> entry : nodes.entrySet()) {
-            entry.getValue().reset(base.getChildNode(entry.getKey()));
-        }
-
-        // unwrap ModifiedNodeState instances
-        if (base instanceof ModifiedNodeState) {
-            ModifiedNodeState modified = (ModifiedNodeState) base;
-            base = modified.getBaseState();
-
-            modified.compareAgainstBaseState(new NodeStateDiff() {
-                @Override
-                public boolean propertyAdded(PropertyState after) {
-                    properties.put(after.getName(), after);
-                    return true;
-                }
-                @Override
-                public boolean propertyChanged(
-                        PropertyState before, PropertyState after) {
-                    properties.put(after.getName(), after);
-                    return true;
-                }
-                @Override
-                public boolean propertyDeleted(PropertyState before) {
-                    properties.put(before.getName(), null);
-                    return true;
-                }
-                @Override
-                public boolean childNodeAdded(String name, NodeState after) {
-                    if (!nodes.containsKey(name)) {
-                        nodes.put(name, new MutableNodeState(after));
-                    }
-                    return true;
-                }
-                @Override
-                public boolean childNodeChanged(
-                        String name, NodeState before, NodeState after) {
-                    if (!nodes.containsKey(name)) {
-                        nodes.put(name, new MutableNodeState(after));
-                    }
-                    return true;
-                }
-                @Override
-                public boolean childNodeDeleted(String name, NodeState before) {
-                    if (!nodes.containsKey(name)) {
-                        nodes.put(name, new MutableNodeState(MISSING_NODE));
-                    }
-                    return true;
-                }
-            });
-        }
+        checkNotNull(newBase);
+        base = ModifiedNodeState.unwrap(newBase, properties, nodes);
     }
 
     /**
