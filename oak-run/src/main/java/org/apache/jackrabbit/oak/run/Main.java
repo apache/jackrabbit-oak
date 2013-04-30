@@ -19,6 +19,8 @@ package org.apache.jackrabbit.oak.run;
 import java.io.InputStream;
 import java.util.Properties;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+
 import javax.jcr.Repository;
 
 import org.apache.jackrabbit.mk.api.MicroKernel;
@@ -27,18 +29,11 @@ import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.benchmark.BenchmarkRunner;
 import org.apache.jackrabbit.oak.http.OakServlet;
-import org.apache.jackrabbit.oak.jcr.RepositoryImpl;
-import org.apache.jackrabbit.oak.plugins.commit.ConflictValidatorProvider;
-import org.apache.jackrabbit.oak.plugins.commit.JcrConflictHandler;
-import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
-import org.apache.jackrabbit.oak.plugins.name.NameValidatorProvider;
-import org.apache.jackrabbit.oak.plugins.name.NamespaceValidatorProvider;
-import org.apache.jackrabbit.oak.plugins.nodetype.RegistrationEditorProvider;
-import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
-import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
-import org.apache.jackrabbit.oak.security.SecurityProviderImpl;
-import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
+import org.apache.jackrabbit.oak.jcr.Jcr;
+import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.webdav.jcr.JCRWebdavServerServlet;
+import org.apache.jackrabbit.webdav.server.AbstractWebdavServlet;
 import org.apache.jackrabbit.webdav.simple.SimpleWebdavServlet;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletContextHandler;
@@ -67,8 +62,7 @@ public class Main {
         } else if ("benchmark".equals(command)){
             BenchmarkRunner.main(args);
         } else if ("server".equals(command)){
-            HttpServer httpServer = new HttpServer(URI, args);
-            httpServer.start();
+            new HttpServer(URI, args);
         } else {
             System.err.println("Unknown command: " + command);
             System.exit(1);
@@ -111,26 +105,30 @@ public class Main {
 
         private final MicroKernel[] kernels;
 
-        public HttpServer(String uri, String[] args) {
+        private final ScheduledExecutorService executor;
+
+        public HttpServer(String uri, String[] args) throws Exception {
             int port = java.net.URI.create(uri).getPort();
             if (port == -1) {
                 // use default
                 port = PORT;
             }
 
-            context = new ServletContextHandler(ServletContextHandler.SECURITY);
+            context = new ServletContextHandler();
             context.setContextPath("/");
+
+            executor = Executors.newScheduledThreadPool(3);
 
             if (args.length == 0) {
                 System.out.println("Starting an in-memory repository");
                 System.out.println(uri + " -> [memory]");
                 kernels = new MicroKernel[] { new MicroKernelImpl() };
-                addServlets(kernels[0], "");
+                addServlets(new KernelNodeStore(kernels[0]), "");
             } else if (args.length == 1) {
                 System.out.println("Starting a standalone repository");
                 System.out.println(uri + " -> " + args[0]);
                 kernels = new MicroKernel[] { new MicroKernelImpl(args[0]) };
-                addServlets(kernels[0], "");
+                addServlets(new KernelNodeStore(kernels[0]), "");
             } else {
                 System.out.println("Starting a clustered repository");
                 kernels = new MicroKernel[args.length];
@@ -138,15 +136,12 @@ public class Main {
                     // FIXME: Use a clustered MicroKernel implementation
                     System.out.println(uri + "/node" + i + "/ -> " + args[i]);
                     kernels[i] = new MicroKernelImpl(args[i]);
-                    addServlets(kernels[i], "/node" + i);
+                    addServlets(new KernelNodeStore(kernels[i]), "/node" + i);
                 }
             }
 
             server = new Server(port);
             server.setHandler(context);
-        }
-
-        public void start() throws Exception {
             server.start();
         }
 
@@ -156,27 +151,20 @@ public class Main {
 
         public void stop() throws Exception {
             server.stop();
+            executor.shutdown();
         }
 
-        private void addServlets(MicroKernel kernel, String path) {
-            SecurityProvider securityProvider = new SecurityProviderImpl();
-            ContentRepository repository = new Oak(kernel)
-                .with(JcrConflictHandler.JCR_CONFLICT_HANDLER)
-                .with(new ConflictValidatorProvider())
-                .with(new NameValidatorProvider())
-                .with(new NamespaceValidatorProvider())
-                .with(new TypeEditorProvider())
-                .with(new RegistrationEditorProvider())
-                .with(new PropertyIndexEditorProvider())
-                .with(securityProvider)
-                .with(new InitialContent())
-                .createContentRepository();
+        private void addServlets(NodeStore store, String path) {
+            Oak oak = new Oak(store);
+            Jcr jcr = new Jcr(oak).with(executor);
 
-            ServletHolder oak = new ServletHolder(new OakServlet(repository));
-            context.addServlet(oak, path + "/*");
+            ContentRepository repository = oak.createContentRepository();
 
-            final Repository jcrRepository = new RepositoryImpl(
-                    repository, Executors.newScheduledThreadPool(1), securityProvider);
+            ServletHolder holder =
+                    new ServletHolder(new OakServlet(repository));
+            context.addServlet(holder, path + "/*");
+
+            final Repository jcrRepository = jcr.createRepository();
 
             ServletHolder webdav =
                     new ServletHolder(new SimpleWebdavServlet() {
@@ -189,8 +177,8 @@ public class Main {
                     SimpleWebdavServlet.INIT_PARAM_RESOURCE_PATH_PREFIX,
                     path + "/webdav");
             webdav.setInitParameter(
-                    SimpleWebdavServlet.INIT_PARAM_MISSING_AUTH_MAPPING,
-                    "admin:admin");
+                    AbstractWebdavServlet.INIT_PARAM_AUTHENTICATE_HEADER,
+                    "Basic realm=\"Oak\"");
             context.addServlet(webdav, path + "/webdav/*");
 
             ServletHolder davex =
@@ -203,9 +191,9 @@ public class Main {
             davex.setInitParameter(
                     JCRWebdavServerServlet.INIT_PARAM_RESOURCE_PATH_PREFIX,
                     path + "/davex");
-            davex.setInitParameter(
-                    JCRWebdavServerServlet.INIT_PARAM_MISSING_AUTH_MAPPING,
-                    "admin:admin");
+            webdav.setInitParameter(
+                    AbstractWebdavServlet.INIT_PARAM_AUTHENTICATE_HEADER,
+                    "Basic realm=\"Oak\"");
             context.addServlet(davex, path + "/davex/*");
         }
 

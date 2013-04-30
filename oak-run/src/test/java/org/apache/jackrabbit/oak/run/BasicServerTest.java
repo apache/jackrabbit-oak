@@ -24,7 +24,6 @@ import java.net.URL;
 import org.apache.jackrabbit.util.Base64;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 
@@ -46,7 +45,6 @@ public class BasicServerTest {
     @Before
     public void startServer() throws Exception {
         server = new Main.HttpServer(SERVER_URL, new String[0]);
-        server.start();
     }
 
     @After
@@ -54,13 +52,12 @@ public class BasicServerTest {
         server.stop();
     }
 
-    @Test @Ignore("TODO: check permissions")
+    @Test
     public void testServerOk() throws Exception {
-
         URL server = new URL(SERVER_URL);
         HttpURLConnection conn = (HttpURLConnection) server.openConnection();
-        conn.setRequestProperty("Authorization",
-                "Basic " + Base64.encode("admin:admin"));
+        conn.setRequestProperty(
+                "Authorization", "Basic " + Base64.encode("admin:admin"));
         assertEquals(200, conn.getResponseCode());
     }
 }
