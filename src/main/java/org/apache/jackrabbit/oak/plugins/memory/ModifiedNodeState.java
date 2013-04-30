@@ -17,16 +17,20 @@
 package org.apache.jackrabbit.oak.plugins.memory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Predicates.in;
+import static com.google.common.base.Predicates.not;
 import static com.google.common.base.Predicates.notNull;
 import static com.google.common.collect.Collections2.filter;
 import static com.google.common.collect.Iterables.concat;
 import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Maps.filterValues;
+import static com.google.common.collect.Maps.newHashMap;
 import static java.util.Collections.emptyList;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry.iterable;
 
 import java.util.Map;
+import java.util.Map.Entry;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -39,6 +43,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 
 import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 
@@ -47,12 +52,59 @@ import com.google.common.collect.Maps;
  */
 public class ModifiedNodeState extends AbstractNodeState {
 
-    static NodeState withProperties(
-            NodeState base, Map<String, ? extends PropertyState> properties) {
-        if (properties.isEmpty()) {
-            return base;
+    static long getPropertyCount(
+            NodeState base, Map<String, PropertyState> properties) {
+        long count = 0;
+        if (base.exists()) {
+            count = base.getPropertyCount();
+            for (Entry<String, PropertyState> entry : properties.entrySet()) {
+                if (base.hasProperty(entry.getKey())) {
+                    count--;
+                }
+                if (entry.getValue() != null) {
+                    count++;
+                }
+            }
+        }
+        return count;
+    }
+
+    static boolean hasProperty(
+            NodeState base, Map<String, PropertyState> properties,
+            String name) {
+        if (properties.containsKey(name)) {
+            return properties.get(name) != null;
         } else {
-            return new ModifiedNodeState(base, properties, ImmutableMap.<String, NodeState>of());
+            return base.hasProperty(name);
+        }
+    }
+
+    static PropertyState getProperty(
+            NodeState base, Map<String, PropertyState> properties,
+            String name) {
+        PropertyState property = properties.get(name);
+        if (property == null && !properties.containsKey(name)) {
+            property = base.getProperty(name);
+        }
+        return property;
+    }
+
+    static Iterable<? extends PropertyState> getProperties(
+            NodeState base, Map<String, PropertyState> properties,
+            boolean copy) {
+        if (!base.exists()) {
+            return emptyList();
+        } else if (properties.isEmpty()) {
+            return base.getProperties(); // shortcut
+        } else {
+            if (copy) {
+                properties = newHashMap(properties);
+            }
+            Predicate<PropertyState> predicate = Predicates.compose(
+                    not(in(properties.keySet())), PropertyState.GET_NAME);
+            return concat(
+                    filter(base.getProperties(), predicate),
+                    filter(properties.values(), notNull()));
         }
     }
 
@@ -67,7 +119,7 @@ public class ModifiedNodeState extends AbstractNodeState {
 
     static NodeState with(
             NodeState base,
-            Map<String, ? extends PropertyState> properties,
+            Map<String, PropertyState> properties,
             Map<String, ? extends NodeState> nodes) {
         if (properties.isEmpty() && nodes.isEmpty()) {
             return base;
@@ -103,20 +155,13 @@ public class ModifiedNodeState extends AbstractNodeState {
      * Set of added, modified or removed ({@code null} value)
      * property states.
      */
-    private final Map<String, ? extends PropertyState> properties;
+    private final Map<String, PropertyState> properties;
 
     /**
      * Set of added, modified or removed ({@code null} value)
      * child nodes.
      */
     private final Map<String, ? extends NodeState> nodes;
-
-    private final Predicate<PropertyState> unmodifiedProperties = new Predicate<PropertyState>() {
-        @Override
-        public boolean apply(PropertyState input) {
-            return !properties.containsKey(input.getName());
-        }
-    };
 
     private final Predicate<ChildNodeEntry> unmodifiedNodes = new Predicate<ChildNodeEntry>() {
         @Override
@@ -134,7 +179,7 @@ public class ModifiedNodeState extends AbstractNodeState {
 
     private ModifiedNodeState(
             @Nonnull NodeState base,
-            @Nonnull Map<String, ? extends PropertyState> properties,
+            @Nonnull Map<String, PropertyState> properties,
             @Nonnull Map<String, ? extends NodeState> nodes) {
         this.base = checkNotNull(base);
         this.properties = checkNotNull(properties);
@@ -160,47 +205,22 @@ public class ModifiedNodeState extends AbstractNodeState {
 
     @Override
     public long getPropertyCount() {
-        if (!exists()) {
-            return 0;
-        }
-        long count = base.getPropertyCount();
+        return getPropertyCount(base, properties);
+    }
 
-        for (Map.Entry<String, ? extends PropertyState> entry : properties.entrySet()) {
-            if (base.hasProperty(entry.getKey())) {
-                count--;
-            }
-            if (entry.getValue() != null) {
-                count++;
-            }
-        }
-
-        return count;
+    @Override
+    public boolean hasProperty(String name) {
+        return hasProperty(base, properties, name);
     }
 
     @Override
     public PropertyState getProperty(String name) {
-        PropertyState property = properties.get(name);
-        if (property != null) {
-            return property;
-        } else if (properties.containsKey(name)) {
-            return null; // removed
-        } else {
-            return base.getProperty(name);
-        }
+        return getProperty(base, properties, name);
     }
 
     @Override
     public Iterable<? extends PropertyState> getProperties() {
-        if (!exists()) {
-            return emptyList();
-        }
-        if (properties.isEmpty()) {
-            return base.getProperties(); // shortcut
-        } else {
-            return concat(
-                    filter(base.getProperties(), unmodifiedProperties),
-                    filter(properties.values(), notNull()));
-        }
+        return getProperties(base, properties, false);
     }
 
     @Override

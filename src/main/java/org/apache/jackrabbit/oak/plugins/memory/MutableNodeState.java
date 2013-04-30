@@ -25,7 +25,6 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState.with;
 import static org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState.withNodes;
-import static org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState.withProperties;
 
 import java.util.Iterator;
 import java.util.Map;
@@ -376,27 +375,22 @@ class MutableNodeState extends AbstractNodeState {
 
     @Override
     public long getPropertyCount() {
-        assert base != null;
-        return withProperties(base, properties).getPropertyCount();
+        return ModifiedNodeState.getPropertyCount(base, properties);
     }
 
     @Override
     public boolean hasProperty(String name) {
-        assert base != null;
-        return withProperties(base, properties).hasProperty(name);
+        return ModifiedNodeState.hasProperty(base, properties, name);
     }
 
     @Override
     public PropertyState getProperty(String name) {
-        assert base != null;
-        return withProperties(base, properties).getProperty(name);
+        return ModifiedNodeState.getProperty(base, properties, name);
     }
 
     @Override @Nonnull
     public Iterable<? extends PropertyState> getProperties() {
-        assert base != null;
-        Map<String, PropertyState> copy = newHashMap(properties);
-        return withProperties(base, copy).getProperties();
+        return ModifiedNodeState.getProperties(base, properties, true);
     }
 
     @Override
