@@ -52,10 +52,11 @@ public class OakServlet extends HttpServlet {
             MediaType.parse("application/x-jackson-smile");
 
     private static final Representation[] REPRESENTATIONS = {
+        new HtmlRepresentation(),
+        new TextRepresentation(),
         new JsonRepresentation(JSON, new JsonFactory()),
         new JsonRepresentation(SMILE, new SmileFactory()),
-        new PostRepresentation(),
-        new TextRepresentation() };
+        new PostRepresentation() };
 
     private final ContentRepository repository;
 
