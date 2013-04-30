@@ -81,7 +81,10 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
             if (permissionsTree == null || principals.isEmpty()) {
                 compiledPermissions = NoPermissions.getInstance();
             } else {
-                compiledPermissions = new CompiledPermissionImpl(principals, permissionsTree, getBitsProvider(), acConfig.getRestrictionProvider(NamePathMapper.DEFAULT));
+                compiledPermissions = new CompiledPermissionImpl(principals,
+                        permissionsTree, getBitsProvider(),
+                        acConfig.getRestrictionProvider(NamePathMapper.DEFAULT),
+                        acConfig.getConfigurationParameters().getConfigValue(AccessControlConstants.PARAM_READ_PATHS, AccessControlConstants.DEFAULT_READ_PATHS));
             }
         }
     }

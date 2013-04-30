@@ -39,6 +39,7 @@ import javax.jcr.security.AccessControlEntry;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.AccessControlPolicyIterator;
+import javax.jcr.security.NamedAccessControlPolicy;
 import javax.jcr.security.Privilege;
 
 import com.google.common.base.Objects;
@@ -104,6 +105,8 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
     private final RestrictionProvider restrictionProvider;
     private final ReadOnlyNodeTypeManager ntMgr;
 
+    private final Set<String> readPaths;
+
     private PermissionProvider permissionProvider;
 
     public AccessControlManagerImpl(@Nonnull Root root, @Nonnull NamePathMapper namePathMapper,
@@ -117,6 +120,8 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
         acConfig = securityProvider.getAccessControlConfiguration();
         restrictionProvider = acConfig.getRestrictionProvider(namePathMapper);
         ntMgr = ReadOnlyNodeTypeManager.getInstance(root, namePathMapper);
+
+        readPaths = acConfig.getConfigurationParameters().getConfigValue(PARAM_READ_PATHS, DEFAULT_READ_PATHS);
     }
 
     //-----------------------------------------------< AccessControlManager >---
@@ -150,11 +155,15 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
         String oakPath = getOakPath(absPath);
         Tree tree = getTree(oakPath, Permissions.READ_ACCESS_CONTROL);
         AccessControlPolicy policy = createACL(oakPath, tree, false);
+
+        List<AccessControlPolicy> policies = new ArrayList<AccessControlPolicy>(2);
         if (policy != null) {
-            return new AccessControlPolicy[]{policy};
-        } else {
-            return new AccessControlPolicy[0];
+            policies.add(policy);
         }
+        if (readPaths.contains(oakPath)) {
+            policies.add(ReadPolicy.INSTANCE);
+        }
+        return policies.toArray(new AccessControlPolicy[policies.size()]);
     }
 
     @Nonnull
@@ -162,6 +171,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
     public AccessControlPolicy[] getEffectivePolicies(@Nullable String absPath) throws RepositoryException {
         String oakPath = getOakPath(absPath);
         Tree tree = getTree(oakPath, Permissions.READ_ACCESS_CONTROL);
+
         List<AccessControlPolicy> effective = new ArrayList<AccessControlPolicy>();
         AccessControlPolicy policy = createACL(oakPath, tree, true);
         if (policy != null) {
@@ -177,6 +187,9 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
                 }
                 parentPath = (PathUtils.denotesRoot(parentPath)) ? "" : Text.getRelativeParent(parentPath, 1);
             }
+        }
+        if (readPaths.contains(oakPath)) {
+            effective.add(ReadPolicy.INSTANCE);
         }
         return effective.toArray(new AccessControlPolicy[effective.size()]);
     }
@@ -850,6 +863,18 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
         @Override
         public int hashCode() {
             return 0;
+        }
+    }
+
+    private static class ReadPolicy implements NamedAccessControlPolicy {
+
+        private static final NamedAccessControlPolicy INSTANCE = new ReadPolicy();
+
+        private ReadPolicy() {}
+
+        @Override
+        public String getName() throws RepositoryException {
+            return "Grants read access on configured trees (default: node types, namespaces and privileges).";
         }
     }
 }

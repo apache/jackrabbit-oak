@@ -46,6 +46,7 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissio
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.ReadStatus;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionPattern;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.apache.jackrabbit.util.Text;
 
@@ -61,6 +62,9 @@ class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants
     private final RestrictionProvider restrictionProvider;
     private final Map<String, ImmutableTree> trees;
 
+    // TODO: merge readPaths with readStatus structure
+    private final Set<String> readPaths;
+
     private PrivilegeBitsProvider bitsProvider;
     private Map<Key, PermissionEntry> repoEntries;
     private Map<Key, PermissionEntry> userEntries;
@@ -69,11 +73,13 @@ class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants
     CompiledPermissionImpl(@Nonnull Set<Principal> principals,
                            @Nonnull ImmutableTree permissionsTree,
                            @Nonnull PrivilegeBitsProvider bitsProvider,
-                           @Nonnull RestrictionProvider restrictionProvider) {
+                           @Nonnull RestrictionProvider restrictionProvider,
+                           @Nonnull Set<String> readPaths) {
         checkArgument(!principals.isEmpty());
         this.principals = principals;
         this.restrictionProvider = restrictionProvider;
         this.bitsProvider = bitsProvider;
+        this.readPaths = readPaths;
         this.trees = new HashMap<String, ImmutableTree>(principals.size());
         buildEntries(permissionsTree);
     }
@@ -111,6 +117,10 @@ class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants
     //------------------------------------------------< CompiledPermissions >---
     @Override
     public ReadStatus getReadStatus(@Nonnull Tree tree, @Nullable PropertyState property) {
+        // TODO merge with readstatus
+        if (isReadablePath(tree, null)) {
+            return ReadStatus.ALLOW_ALL_REGULAR;
+        }
         long permission = (property == null) ? Permissions.READ_NODE : Permissions.READ_PROPERTY;
         Iterator<PermissionEntry> it = getEntryIterator(tree, property);
         while (it.hasNext()) {
@@ -182,7 +192,9 @@ class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants
 
     private boolean hasPermissions(@Nonnull Iterator<PermissionEntry> entries,
                                    long permissions, @Nullable Tree tree, @Nullable String path) {
-        if (!entries.hasNext()) {
+        // calculate readable paths if the given permissions includes any read permission.
+        boolean isReadable = Permissions.diff(Permissions.READ, permissions) != Permissions.READ && isReadablePath(tree, path);
+        if (!entries.hasNext() && !isReadable) {
             return false;
         }
 
@@ -191,10 +203,13 @@ class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants
                 Permissions.includes(permissions, Permissions.REMOVE_NODE) ||
                 Permissions.includes(permissions, Permissions.MODIFY_CHILD_NODE_COLLECTION));
 
-        long allows = Permissions.NO_PERMISSION;
+        long allows = (isReadable) ? Permissions.READ : Permissions.NO_PERMISSION;
         long denies = Permissions.NO_PERMISSION;
 
         PrivilegeBits allowBits = PrivilegeBits.getInstance();
+        if (isReadable) {
+            allowBits.add(bitsProvider.getBits(PrivilegeConstants.JCR_READ));
+        }
         PrivilegeBits denyBits = PrivilegeBits.getInstance();
         PrivilegeBits parentAllowBits;
         PrivilegeBits parentDenyBits;
@@ -243,7 +258,8 @@ class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants
                 }
             }
         }
-        return false;
+
+        return (allows | ~permissions) == -1;
     }
 
     private PrivilegeBits getPrivilegeBits(@Nullable Tree tree) {
@@ -262,6 +278,11 @@ class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants
                 denyBits.addDifference(entry.privilegeBits, allowBits);
             }
         }
+
+        // special handling for paths that are always readable
+        if (isReadablePath(tree, null)) {
+            allowBits.add(bitsProvider.getBits(PrivilegeConstants.JCR_READ));
+        }
         return allowBits;
     }
 
@@ -271,6 +292,20 @@ class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants
 
     private Iterator<PermissionEntry> getEntryIterator(@Nonnull String path) {
         return Iterators.concat(new EntryIterator(userEntries, path), new EntryIterator(groupEntries, path));
+    }
+
+    private boolean isReadablePath(@Nullable Tree tree, @Nullable String treePath) {
+        if (!readPaths.isEmpty()) {
+            String targetPath = (tree != null) ? tree.getPath() : treePath;
+            if (targetPath != null) {
+                for (String path : readPaths) {
+                    if (Text.isDescendantOrEqual(path, targetPath)) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
 
     private static final class Key implements Comparable<Key> {
