@@ -53,13 +53,11 @@ class TextRepresentation implements Representation {
             }
             writer.print('\n');
         }
-
-        writer.print('\n');
-
         for (Tree child : tree.getChildren()) {
             writer.print(child.getName());
-            writer.print(" -> ");
+            writer.print(": <");
             writer.print(response.encodeRedirectURL(child.getName()));
+            writer.print(">\n");
         }
     }
 
