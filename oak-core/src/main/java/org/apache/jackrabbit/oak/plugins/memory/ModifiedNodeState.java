@@ -44,7 +44,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 
 /**
@@ -108,15 +107,40 @@ public class ModifiedNodeState extends AbstractNodeState {
         }
     }
 
-    static NodeState withNodes(
+    static long getChildNodeCount(
             NodeState base, Map<String, ? extends NodeState> nodes) {
-        if (nodes.isEmpty()) {
-            return base;
-        } else {
-            return new ModifiedNodeState(base, ImmutableMap.<String, PropertyState>of(), nodes);
+        long count = 0;
+        if (base.exists()) {
+            count = base.getChildNodeCount();
+            for (Map.Entry<String, ? extends NodeState> entry
+                    : nodes.entrySet()) {
+                if (base.getChildNode(entry.getKey()).exists()) {
+                    count--;
+                }
+                if (entry.getValue() != null && entry.getValue().exists()) {
+                    count++;
+                }
+            }
         }
+        return count;
     }
 
+    static Iterable<String> getChildNodeNames(
+            NodeState base, Map<String, ? extends NodeState> nodes,
+            boolean copy) {
+        if (!base.exists()) {
+            return emptyList();
+        } else if (nodes.isEmpty()) {
+            return base.getChildNodeNames(); // shortcut
+        } else {
+            if (copy) {
+                nodes = newHashMap(nodes);
+            }
+            return concat(
+                    filter(base.getChildNodeNames(), not(in(nodes.keySet()))),
+                    filterValues(nodes, notNull()).keySet());
+        }
+    }
     static NodeState with(
             NodeState base,
             Map<String, PropertyState> properties,
@@ -225,21 +249,7 @@ public class ModifiedNodeState extends AbstractNodeState {
 
     @Override
     public long getChildNodeCount() {
-        if (!exists()) {
-            return 0;
-        }
-        long count = base.getChildNodeCount();
-
-        for (Map.Entry<String, ? extends NodeState> entry : nodes.entrySet()) {
-            if (base.getChildNode(entry.getKey()).exists()) {
-                count--;
-            }
-            if (entry.getValue() != null && entry.getValue().exists()) {
-                count++;
-            }
-        }
-
-        return count;
+        return getChildNodeCount(base, nodes);
     }
 
     @Override
@@ -257,11 +267,7 @@ public class ModifiedNodeState extends AbstractNodeState {
 
     @Override
     public Iterable<String> getChildNodeNames() {
-        if (!exists()) {
-            return emptyList();
-        } else {
-            return super.getChildNodeNames();
-        }
+        return getChildNodeNames(base, nodes, false);
     }
 
     @Override
