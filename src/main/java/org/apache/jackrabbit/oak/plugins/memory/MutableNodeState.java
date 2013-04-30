@@ -21,10 +21,8 @@ package org.apache.jackrabbit.oak.plugins.memory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Maps.newHashMap;
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
 
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -59,19 +57,19 @@ class MutableNodeState extends AbstractNodeState {
     private final Map<String, PropertyState> properties = newHashMap();
 
     /**
-     * Set of added, modified or removed ({@code null} value)
+     * Set of added, modified or removed (non-existent value)
      * child nodes.
      */
     private final Map<String, MutableNodeState> nodes = newHashMap();
 
-    private MutableNodeState(boolean exists) {
-        this.base = exists ? EMPTY_NODE : MISSING_NODE;
-    }
-
     MutableNodeState(@Nonnull NodeState base) {
-        if (checkNotNull(base) instanceof ModifiedNodeState) {
+        this.base = checkNotNull(base);
+
+        // unwrap ModifiedNodeState instances
+        if (base instanceof ModifiedNodeState) {
             ModifiedNodeState modified = (ModifiedNodeState) base;
             this.base = modified.getBaseState();
+
             modified.compareAgainstBaseState(new NodeStateDiff() {
                 @Override
                 public boolean propertyAdded(PropertyState after) {
@@ -102,12 +100,10 @@ class MutableNodeState extends AbstractNodeState {
                 }
                 @Override
                 public boolean childNodeDeleted(String name, NodeState before) {
-                    nodes.put(name, null);
+                    nodes.put(name, new MutableNodeState(MISSING_NODE));
                     return true;
                 }
             });
-        } else {
-            this.base = base;
         }
     }
 
@@ -123,23 +119,16 @@ class MutableNodeState extends AbstractNodeState {
     private void reset(NodeState newBase) {
         assert base != null;
 
-        if (newBase instanceof ModifiedNodeState) {
-            ModifiedNodeState modified = (ModifiedNodeState) newBase;
-            base = modified.getBaseState();
-            properties.clear();
+        base = newBase;
+        properties.clear();
+        for (Entry<String, MutableNodeState> entry : nodes.entrySet()) {
+            entry.getValue().reset(base.getChildNode(entry.getKey()));
+        }
 
-            Iterator<Entry<String, MutableNodeState>> iterator =
-                    nodes.entrySet().iterator();
-            while (iterator.hasNext()) {
-                Entry<String, MutableNodeState> entry = iterator.next();
-                MutableNodeState cstate = entry.getValue();
-                NodeState cbase = newBase.getChildNode(entry.getKey());
-                if (!cbase.exists() || cstate == null) {
-                    iterator.remove();
-                } else {
-                    cstate.reset(cbase);
-                }
-            }
+        // unwrap ModifiedNodeState instances
+        if (base instanceof ModifiedNodeState) {
+            ModifiedNodeState modified = (ModifiedNodeState) base;
+            base = modified.getBaseState();
 
             modified.compareAgainstBaseState(new NodeStateDiff() {
                 @Override
@@ -160,10 +149,7 @@ class MutableNodeState extends AbstractNodeState {
                 }
                 @Override
                 public boolean childNodeAdded(String name, NodeState after) {
-                    MutableNodeState cstate = nodes.get(name);
-                    if (cstate != null) {
-                        cstate.reset(after);
-                    } else {
+                    if (!nodes.containsKey(name)) {
                         nodes.put(name, new MutableNodeState(after));
                     }
                     return true;
@@ -171,36 +157,19 @@ class MutableNodeState extends AbstractNodeState {
                 @Override
                 public boolean childNodeChanged(
                         String name, NodeState before, NodeState after) {
-                    MutableNodeState cstate = nodes.get(name);
-                    if (cstate != null) {
-                        cstate.reset(after);
-                    } else {
+                    if (!nodes.containsKey(name)) {
                         nodes.put(name, new MutableNodeState(after));
                     }
                     return true;
                 }
                 @Override
                 public boolean childNodeDeleted(String name, NodeState before) {
-                    nodes.put(name, null);
+                    if (!nodes.containsKey(name)) {
+                        nodes.put(name, new MutableNodeState(MISSING_NODE));
+                    }
                     return true;
                 }
             });
-        } else {
-            base = newBase;
-            properties.clear();
-
-            Iterator<Entry<String, MutableNodeState>> iterator =
-                    nodes.entrySet().iterator();
-            while (iterator.hasNext()) {
-                Entry<String, MutableNodeState> entry = iterator.next();
-                MutableNodeState cstate = entry.getValue();
-                NodeState cbase = newBase.getChildNode(entry.getKey());
-                if (!cbase.exists() || cstate == null) {
-                    iterator.remove();
-                } else {
-                    cstate.reset(cbase);
-                }
-            }
         }
     }
 
@@ -211,21 +180,12 @@ class MutableNodeState extends AbstractNodeState {
      */
     MutableNodeState getChildNode(String name, boolean connect) {
         assert base != null;
-
         MutableNodeState child = nodes.get(name);
-        if (child != null) {
-            return child;
-        }
-
-        if (nodes.containsKey(name)) {
-            // deleted: create new existing node if connect, otherwise non existing
-            child = new MutableNodeState(connect);
-        } else {
+        if (child == null) {
             child = new MutableNodeState(base.getChildNode(name));
-        }
-
-        if (connect) {
-            nodes.put(name, child);
+            if (connect) {
+                nodes.put(name, child);
+            }
         }
         return child;
     }
@@ -265,27 +225,28 @@ class MutableNodeState extends AbstractNodeState {
      * the set of child node names of {@code before}.
      */
     boolean isModified(NodeState before) {
-        if (nodes.isEmpty() && properties.isEmpty()) {
+        if (!exists()) {
+            return false;
+        } else if (nodes.isEmpty() && properties.isEmpty()) {
             return false;
         }
 
+        // was a child node added or removed?
         for (Entry<String, MutableNodeState> n : nodes.entrySet()) {
-            if (n.getValue() == null) {
-                return true;
-            }
-            if (!(before.hasChildNode(n.getKey()))) {
+            if (n.getValue().exists() != before.hasChildNode(n.getKey())) {
                 return true;
             }
         }
+
+        // was a property added, removed or modified
         for (Entry<String, PropertyState> p : properties.entrySet()) {
             PropertyState pState = p.getValue();
-            if (pState == null) {
-                return true;
-            }
-            if (!before.exists() || !pState.equals(before.getProperty(p.getKey()))) {
+            if (pState == null
+                    || !pState.equals(before.getProperty(p.getKey()))) {
                 return true;
             }
         }
+
         return false;
 
     }
@@ -297,12 +258,14 @@ class MutableNodeState extends AbstractNodeState {
      */
     boolean removeChildNode(String name) {
         assert base != null;
-
-        if (base.getChildNode(name).exists()) {
-            nodes.put(name, null);
-            return true;
+        MutableNodeState child = nodes.get(name);
+        if (child != null) {
+            boolean existed = child.exists();
+            child.reset(MISSING_NODE);
+            return existed;
         } else {
-            return nodes.remove(name) != null;
+            nodes.put(name, new MutableNodeState(MISSING_NODE));
+            return base.hasChildNode(name);
         }
     }
 
@@ -392,8 +355,6 @@ class MutableNodeState extends AbstractNodeState {
         NodeState child = nodes.get(name);
         if (child != null) {
             return child.exists();
-        } else if (nodes.containsKey(name)) {
-            return false;
         } else {
             return base.hasChildNode(name);
         }
