@@ -17,6 +17,9 @@
 package org.apache.jackrabbit.oak.api;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
+import com.google.common.base.Function;
 
 /**
  * Immutable property state. A property consists of a name and a value.
@@ -115,5 +118,20 @@ public interface PropertyState {
      * @return number of values
      */
     int count();
+
+    /**
+     * Mapping from a PropertyState instance to its name.
+     */
+    Function<PropertyState, String> GET_NAME =
+            new Function<PropertyState, String>() {
+                @Override @Nullable
+                public String apply(@Nullable PropertyState input) {
+                    if (input != null) {
+                        return input.getName();
+                    } else {
+                        return null;
+                    }
+                }
+            };
 
 }
