@@ -22,6 +22,8 @@ import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.mongomk.util.Utils;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -30,6 +32,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * also modified in a branch commit, but the branch commit is not yet merged.
  */
 class Collision {
+
+    private static final Logger log = LoggerFactory.getLogger(Collision.class);
 
     private final Map<String, Object> document;
     private final String theirRev;
@@ -64,7 +68,6 @@ class Collision {
                 }
             }
         }
-        // TODO: detect concurrent commit of previously un-merged changes
         return true;
     }
 
@@ -81,7 +84,11 @@ class Collision {
                 UpdateOp op = new UpdateOp(commitRootPath,
                         Utils.getIdFromPath(commitRootPath), false);
                 op.setMapEntry(UpdateOp.COLLISIONS, revision, true);
+                // TODO: detect concurrent commit of previously un-merged changes
+                // TODO: check _commitRoot for revision is not 'true'
                 store.createOrUpdate(DocumentStore.Collection.NODES, op);
+                log.debug("Marked collision on: {} for {} ({})",
+                        new Object[]{commitRootPath, p, revision});
                 return true;
             }
         }
