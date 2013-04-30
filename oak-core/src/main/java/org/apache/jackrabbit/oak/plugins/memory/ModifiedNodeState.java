@@ -26,7 +26,7 @@ import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Maps.filterValues;
 import static com.google.common.collect.Maps.newHashMap;
 import static java.util.Collections.emptyList;
-import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
+import static java.util.Collections.emptyMap;
 import static org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry.iterable;
 
 import java.util.Map;
@@ -48,6 +48,52 @@ import com.google.common.base.Predicates;
  * Immutable snapshot of a mutable node state.
  */
 public class ModifiedNodeState extends AbstractNodeState {
+
+    /**
+     * Unwraps the given {@code NodeState} instance into the given internals
+     * of a {@link MutableNodeState} instance that is being created or reset.
+     * <p>
+     * If the given base state is a {@code ModifiedNodeState} instance,
+     * then the contained modifications are applied to the given properties
+     * property and child node maps and the contained base state is returned
+     * for use as the base state of the {@link MutableNodeState} instance.
+     * <p>
+     * If the given base state is not a {@code ModifiedNodeState}, then
+     * the given property and child node maps are simply reset and the given
+     * base state is returned as-is for use as the base state of the
+     * {@link MutableNodeState} instance.
+     *
+     * @param base new base state
+     * @param properties {@link MutableNodeState} property map
+     * @param nodes {@link MutableNodeState} child node map
+     * @return new {@link MutableNodeState} base state
+     */
+    static NodeState unwrap(
+            @Nonnull NodeState base,
+            @Nonnull Map<String, PropertyState> properties,
+            @Nonnull Map<String, MutableNodeState> nodes) {
+        properties.clear();
+        for (Entry<String, MutableNodeState> entry : nodes.entrySet()) {
+            entry.getValue().reset(base.getChildNode(entry.getKey()));
+        }
+
+        if (base instanceof ModifiedNodeState) {
+            ModifiedNodeState modified = (ModifiedNodeState) base;
+
+            properties.putAll(modified.properties);
+            for (Entry<String, NodeState> entry : modified.nodes.entrySet()) {
+                String name = entry.getKey();
+                if (!nodes.containsKey(name)) {
+                    nodes.put(name, new MutableNodeState(entry.getValue()));
+                }
+            }
+
+            return modified.base;
+        } else {
+            return base;
+        }
+    }
+
 
     static long getPropertyCount(
             NodeState base, Map<String, PropertyState> properties) {
@@ -110,9 +156,9 @@ public class ModifiedNodeState extends AbstractNodeState {
         long count = 0;
         if (base.exists()) {
             count = base.getChildNodeCount();
-            for (Map.Entry<String, ? extends NodeState> entry
+            for (Entry<String, ? extends NodeState> entry
                     : nodes.entrySet()) {
-                if (base.getChildNode(entry.getKey()).exists()) {
+                if (base.hasChildNode(entry.getKey())) {
                     count--;
                 }
                 if (entry.getValue().exists()) {
@@ -157,21 +203,32 @@ public class ModifiedNodeState extends AbstractNodeState {
      */
     private final Map<String, NodeState> nodes;
 
+    /**
+     * Creates an immutable snapshot of the given internal state of a
+     * {@link MutableNodeState} instance.
+     *
+     * @param base base state
+     * @param properties current property modifications
+     * @param nodes current child node modifications
+     */
     ModifiedNodeState(
             @Nonnull NodeState base,
             @Nonnull Map<String, PropertyState> properties,
             @Nonnull Map<String, MutableNodeState> nodes) {
         this.base = checkNotNull(base);
-        this.properties = newHashMap(checkNotNull(properties));
-        this.nodes = newHashMap();
-        for (Entry<String, MutableNodeState> entry
-                : checkNotNull(nodes).entrySet()) {
-            String name = entry.getKey();
-            MutableNodeState child = entry.getValue();
-            if (child != null) {
-                this.nodes.put(name, child.snapshot());
-            } else {
-                this.nodes.put(name, MISSING_NODE);
+
+        if (checkNotNull(properties).isEmpty()) {
+            this.properties = emptyMap();
+        } else {
+            this.properties = newHashMap(properties);
+        }
+
+        if (checkNotNull(nodes).isEmpty()) {
+            this.nodes = emptyMap();
+        } else {
+            this.nodes = newHashMap();
+            for (Entry<String, MutableNodeState> entry : nodes.entrySet()) {
+                this.nodes.put(entry.getKey(), entry.getValue().snapshot());
             }
         }
     }
@@ -251,15 +308,50 @@ public class ModifiedNodeState extends AbstractNodeState {
     /**
      * Since we keep track of an explicit base node state for a
      * {@link ModifiedNodeState} instance, we can do this in two steps:
-     * first compare the base states to each other (often a fast operation),
-     * ignoring all changed properties and child nodes for which we have
-     * further modifications, and then compare all the modified properties
-     * and child nodes to those in the given base state.
+     * first compare all the modified properties and child nodes to those
+     * of the given base state, and then compare the base states to each
+     * other, ignoring all changed properties and child nodes that were
+     * already covered earlier.
      */
     @Override
     public boolean compareAgainstBaseState(
             NodeState base, final NodeStateDiff diff) {
-        if (!this.base.compareAgainstBaseState(base, new NodeStateDiff() {
+        for (Map.Entry<String, PropertyState> entry : properties.entrySet()) {
+            PropertyState before = base.getProperty(entry.getKey());
+            PropertyState after = entry.getValue();
+            if (after == null) {
+                if (before != null && !diff.propertyDeleted(before)) {
+                    return false;
+                }
+            } else if (before == null) {
+                if (!diff.propertyAdded(after)) {
+                    return false;
+                }
+            } else if (!before.equals(after)
+                    && !diff.propertyChanged(before, after)) {
+                return false;
+            }
+        }
+
+        for (Map.Entry<String, NodeState> entry : nodes.entrySet()) {
+            String name = entry.getKey();
+            NodeState before = base.getChildNode(name);
+            NodeState after = entry.getValue();
+            if (!after.exists()) {
+                if (before.exists() && !diff.childNodeDeleted(name, before)) {
+                    return false;
+                }
+            } else if (!before.exists()) {
+                if (!diff.childNodeAdded(name, after)) {
+                    return false;
+                }
+            } else if (!before.equals(after)
+                    && !diff.childNodeChanged(name, before, after)) {
+                return false;
+            }
+        }
+
+        return this.base.compareAgainstBaseState(base, new NodeStateDiff() {
             @Override
             public boolean propertyAdded(PropertyState after) {
                 return properties.containsKey(after.getName())
@@ -291,81 +383,7 @@ public class ModifiedNodeState extends AbstractNodeState {
                 return nodes.containsKey(name)
                         || diff.childNodeDeleted(name, before);
             }
-        })) {
-            return false;
-        }
-
-        for (Map.Entry<String, PropertyState> entry : properties.entrySet()) {
-            PropertyState before = base.getProperty(entry.getKey());
-            PropertyState after = entry.getValue();
-            if (before == null && after == null) {
-                // do nothing
-            } else if (after == null) {
-                if (!diff.propertyDeleted(before)) {
-                    return false; 
-                }
-            } else if (before == null) {
-                if (!diff.propertyAdded(after)) {
-                    return false;
-                }
-            } else if (!before.equals(after)) {
-                if (!diff.propertyChanged(before, after)) {
-                    return false;
-                }
-            }
-        }
-
-        for (Map.Entry<String, NodeState> entry : nodes.entrySet()) {
-            String name = entry.getKey();
-            NodeState before = base.getChildNode(name);
-            NodeState after = entry.getValue();
-            if (!after.exists()) {
-                if (before.exists()) {
-                    if (!diff.childNodeDeleted(name, before)) {
-                        return false;
-                    }
-                }
-            } else if (!before.exists()) {
-                if (!diff.childNodeAdded(name, after)) {
-                    return false;
-                }
-            } else if (!before.equals(after)) {
-                if (!diff.childNodeChanged(name, before, after)) {
-                    return false;
-                }
-            }
-        }
-
-        return true;
-    }
-
-    public void compareAgainstBaseState(NodeStateDiff diff) {
-        for (Entry<String, PropertyState> entry : properties.entrySet()) {
-            PropertyState before = base.getProperty(entry.getKey());
-            PropertyState after = entry.getValue();
-            if (after == null) {
-                diff.propertyDeleted(before);
-            } else if (before == null) {
-                diff.propertyAdded(after);
-            } else if (!before.equals(after)) { // TODO: can we assume this?
-                diff.propertyChanged(before, after);
-            }
-        }
-
-        for (Entry<String, NodeState> entry : nodes.entrySet()) {
-            String name = entry.getKey();
-            NodeState before = base.getChildNode(name);
-            NodeState after = entry.getValue();
-            if (!after.exists()) {
-                if (before.exists()) { // TODO: can we assume this?
-                    diff.childNodeDeleted(name, before);
-                }
-            } else if (!before.exists()) {
-                diff.childNodeAdded(name, after);
-            } else if (!before.equals(after)) { // TODO: can we assume this?
-                diff.childNodeChanged(name, before, after);
-            }
-        }
+        });
     }
 
 }
