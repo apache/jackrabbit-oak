@@ -18,8 +18,11 @@ package org.apache.jackrabbit.oak.spi.state;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
+
+import com.google.common.base.Predicate;
 
 /**
  * A node in a content tree consists of child nodes and properties, each
@@ -306,5 +309,15 @@ public interface NodeState {
      * @since 0ak 0.4, return value added in 0.7
      */
     boolean compareAgainstBaseState(NodeState base, NodeStateDiff diff);
+
+    /**
+     * Predicate that checks the existence of NodeState instances.
+     */
+    Predicate<NodeState> EXISTS = new Predicate<NodeState>() {
+        @Override
+        public boolean apply(@Nullable NodeState input) {
+            return input != null && input.exists();
+        }
+    };
 
 }

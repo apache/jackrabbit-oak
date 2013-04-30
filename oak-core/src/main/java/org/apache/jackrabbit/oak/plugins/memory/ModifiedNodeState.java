@@ -33,7 +33,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
@@ -116,7 +115,7 @@ public class ModifiedNodeState extends AbstractNodeState {
                 if (base.getChildNode(entry.getKey()).exists()) {
                     count--;
                 }
-                if (entry.getValue() != null && entry.getValue().exists()) {
+                if (entry.getValue().exists()) {
                     count++;
                 }
             }
@@ -137,7 +136,7 @@ public class ModifiedNodeState extends AbstractNodeState {
             }
             return concat(
                     filter(base.getChildNodeNames(), not(in(nodes.keySet()))),
-                    filterValues(nodes, notNull()).keySet());
+                    filterValues(nodes, NodeState.EXISTS).keySet());
         }
     }
 
@@ -153,24 +152,10 @@ public class ModifiedNodeState extends AbstractNodeState {
     private final Map<String, PropertyState> properties;
 
     /**
-     * Set of added, modified or removed ({@code null} value)
+     * Set of added, modified or removed (non-existent value)
      * child nodes.
      */
     private final Map<String, NodeState> nodes;
-
-    private final Predicate<ChildNodeEntry> unmodifiedNodes = new Predicate<ChildNodeEntry>() {
-        @Override
-        public boolean apply(ChildNodeEntry input) {
-            return !nodes.containsKey(input.getName());
-        }
-    };
-
-    private final Predicate<NodeState> existingNodes = new Predicate<NodeState>() {
-        @Override
-        public boolean apply(@Nullable NodeState node) {
-            return node != null && node.exists();
-        }
-    };
 
     ModifiedNodeState(
             @Nonnull NodeState base,
@@ -186,7 +171,7 @@ public class ModifiedNodeState extends AbstractNodeState {
             if (child != null) {
                 this.nodes.put(name, child.snapshot());
             } else {
-                this.nodes.put(name, null);
+                this.nodes.put(name, MISSING_NODE);
             }
         }
     }
@@ -237,13 +222,10 @@ public class ModifiedNodeState extends AbstractNodeState {
     public NodeState getChildNode(String name) {
         // checkArgument(!checkNotNull(name).isEmpty());  // TODO: should be caught earlier
         NodeState child = nodes.get(name);
-        if (child != null) {
-            return child;
-        } else if (nodes.containsKey(name)) {
-            return MISSING_NODE;
-        } else {
-            return base.getChildNode(name);
+        if (child == null) {
+            child = base.getChildNode(name);
         }
+        return child;
     }
 
     @Override
@@ -253,15 +235,17 @@ public class ModifiedNodeState extends AbstractNodeState {
 
     @Override
     public Iterable<? extends ChildNodeEntry> getChildNodeEntries() {
-        if (!exists()) {
+        if (!base.exists()) {
             return emptyList();
-        }
-        if (nodes.isEmpty()) {
+        } else if (nodes.isEmpty()) {
             return base.getChildNodeEntries(); // shortcut
+        } else {
+            Predicate<ChildNodeEntry> predicate = Predicates.compose(
+                    not(in(nodes.keySet())), ChildNodeEntry.GET_NAME);
+            return concat(
+                    filter(base.getChildNodeEntries(), predicate),
+                    iterable(filterValues(nodes, NodeState.EXISTS).entrySet()));
         }
-        return concat(
-                filter(base.getChildNodeEntries(), unmodifiedNodes),
-                iterable(filterValues(nodes, existingNodes).entrySet()));
     }
 
     /**
@@ -311,7 +295,7 @@ public class ModifiedNodeState extends AbstractNodeState {
             return false;
         }
 
-        for (Map.Entry<String, ? extends PropertyState> entry : properties.entrySet()) {
+        for (Map.Entry<String, PropertyState> entry : properties.entrySet()) {
             PropertyState before = base.getProperty(entry.getKey());
             PropertyState after = entry.getValue();
             if (before == null && after == null) {
@@ -331,11 +315,11 @@ public class ModifiedNodeState extends AbstractNodeState {
             }
         }
 
-        for (Map.Entry<String, ? extends NodeState> entry : nodes.entrySet()) {
+        for (Map.Entry<String, NodeState> entry : nodes.entrySet()) {
             String name = entry.getKey();
             NodeState before = base.getChildNode(name);
             NodeState after = entry.getValue();
-            if (after == null) {
+            if (!after.exists()) {
                 if (before.exists()) {
                     if (!diff.childNodeDeleted(name, before)) {
                         return false;
@@ -356,8 +340,7 @@ public class ModifiedNodeState extends AbstractNodeState {
     }
 
     public void compareAgainstBaseState(NodeStateDiff diff) {
-        for (Map.Entry<String, ? extends PropertyState> entry
-                : properties.entrySet()) {
+        for (Entry<String, PropertyState> entry : properties.entrySet()) {
             PropertyState before = base.getProperty(entry.getKey());
             PropertyState after = entry.getValue();
             if (after == null) {
@@ -369,11 +352,11 @@ public class ModifiedNodeState extends AbstractNodeState {
             }
         }
 
-        for (Map.Entry<String, ? extends NodeState> entry : nodes.entrySet()) {
+        for (Entry<String, NodeState> entry : nodes.entrySet()) {
             String name = entry.getKey();
             NodeState before = base.getChildNode(name);
             NodeState after = entry.getValue();
-            if (after == null) {
+            if (!after.exists()) {
                 if (before.exists()) { // TODO: can we assume this?
                     diff.childNodeDeleted(name, before);
                 }

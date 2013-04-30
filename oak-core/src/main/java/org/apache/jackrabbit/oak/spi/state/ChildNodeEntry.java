@@ -18,6 +18,9 @@ package org.apache.jackrabbit.oak.spi.state;
 
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
+import com.google.common.base.Function;
 
 /**
  * A {@code ChildNodeEntry} instance represents the child node states of a
@@ -46,5 +49,20 @@ public interface ChildNodeEntry {
      */
     @Nonnull
     NodeState getNodeState();
+
+    /**
+     * Mapping from a ChildNodeEntry instance to its name.
+     */
+    Function<ChildNodeEntry, String> GET_NAME =
+            new Function<ChildNodeEntry, String>() {
+                @Override @Nullable
+                public String apply(@Nullable ChildNodeEntry input) {
+                    if (input != null) {
+                        return input.getName();
+                    } else {
+                        return null;
+                    }
+                }
+            };
 
 }
