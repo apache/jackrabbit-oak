@@ -44,7 +44,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
-import com.google.common.collect.Maps;
 
 /**
  * Immutable snapshot of a mutable node state.
@@ -141,34 +140,6 @@ public class ModifiedNodeState extends AbstractNodeState {
                     filterValues(nodes, notNull()).keySet());
         }
     }
-    static NodeState with(
-            NodeState base,
-            Map<String, PropertyState> properties,
-            Map<String, ? extends NodeState> nodes) {
-        if (properties.isEmpty() && nodes.isEmpty()) {
-            return base;
-        } else {
-            // TODO: Do we need collapse() here? See OAK-778
-            return collapse(new ModifiedNodeState(base, properties, nodes));
-        }
-    }
-
-    public static ModifiedNodeState collapse(ModifiedNodeState state) {
-        NodeState base = state.getBaseState();
-        if (base instanceof ModifiedNodeState) {
-            ModifiedNodeState mbase = collapse((ModifiedNodeState) base);
-
-            Map<String, PropertyState> properties = Maps.newHashMap(mbase.properties);
-            properties.putAll(state.properties);
-
-            Map<String, NodeState> nodes = Maps.newHashMap(mbase.nodes);
-            nodes.putAll(state.nodes);
-
-            return new ModifiedNodeState(mbase.getBaseState(), properties, nodes);
-        } else {
-            return state;
-        }
-    }
 
     /**
      * The base state.
@@ -185,7 +156,7 @@ public class ModifiedNodeState extends AbstractNodeState {
      * Set of added, modified or removed ({@code null} value)
      * child nodes.
      */
-    private final Map<String, ? extends NodeState> nodes;
+    private final Map<String, NodeState> nodes;
 
     private final Predicate<ChildNodeEntry> unmodifiedNodes = new Predicate<ChildNodeEntry>() {
         @Override
@@ -201,13 +172,23 @@ public class ModifiedNodeState extends AbstractNodeState {
         }
     };
 
-    private ModifiedNodeState(
+    ModifiedNodeState(
             @Nonnull NodeState base,
             @Nonnull Map<String, PropertyState> properties,
-            @Nonnull Map<String, ? extends NodeState> nodes) {
+            @Nonnull Map<String, MutableNodeState> nodes) {
         this.base = checkNotNull(base);
-        this.properties = checkNotNull(properties);
-        this.nodes = checkNotNull(nodes);
+        this.properties = newHashMap(checkNotNull(properties));
+        this.nodes = newHashMap();
+        for (Entry<String, MutableNodeState> entry
+                : checkNotNull(nodes).entrySet()) {
+            String name = entry.getKey();
+            MutableNodeState child = entry.getValue();
+            if (child != null) {
+                this.nodes.put(name, child.snapshot());
+            } else {
+                this.nodes.put(name, null);
+            }
+        }
     }
 
     @Nonnull
