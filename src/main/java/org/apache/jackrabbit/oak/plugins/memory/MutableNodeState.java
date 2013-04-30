@@ -23,7 +23,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Maps.newHashMap;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NODE;
-import static org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState.with;
 
 import java.util.Iterator;
 import java.util.Map;
@@ -114,24 +113,11 @@ class MutableNodeState extends AbstractNodeState {
 
     NodeState snapshot() {
         assert base != null;
-
-        Map<String, NodeState> nodes = newHashMap();
-        for (Map.Entry<String, MutableNodeState> entry : this.nodes.entrySet()) {
-            String name = entry.getKey();
-            MutableNodeState node = entry.getValue();
-            NodeState before = base.getChildNode(name);
-            if (node == null) {
-                if (before.exists()) {
-                    nodes.put(name, null);
-                }
-            } else {
-                NodeState after = node.snapshot();
-                if (after != before) {
-                    nodes.put(name, after);
-                }
-            }
+        if (properties.isEmpty() && nodes.isEmpty()) {
+            return base;
+        } else {
+            return new ModifiedNodeState(base, properties, nodes);
         }
-        return with(base, newHashMap(this.properties), nodes);
     }
 
     private void reset(NodeState newBase) {

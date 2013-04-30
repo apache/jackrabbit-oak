@@ -634,7 +634,7 @@ public class SegmentWriter {
         SegmentNodeState before = null;
         ModifiedNodeState after = null;
         if (state instanceof ModifiedNodeState) {
-            after = ModifiedNodeState.collapse((ModifiedNodeState) state);
+            after = (ModifiedNodeState) state;
             NodeState base = after.getBaseState();
             if (base instanceof SegmentNodeState) {
                 before = (SegmentNodeState) base;
