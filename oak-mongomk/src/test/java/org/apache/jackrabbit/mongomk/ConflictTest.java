@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.mongomk;
 
 import org.apache.jackrabbit.mk.api.MicroKernelException;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.fail;
@@ -357,7 +356,6 @@ public class ConflictTest extends BaseMongoMKTest {
     }
 
     @Test
-    @Ignore
     public void addExistingNodeBranchLoses1() {
         String rev = mk.commit("/", "+\"foo\":{}", null, null);
         String branchRev = mk.branch(rev);
@@ -374,7 +372,6 @@ public class ConflictTest extends BaseMongoMKTest {
     }
 
     @Test
-    @Ignore
     public void addExistingNodeBranchLoses2() {
         String rev = mk.commit("/", "+\"foo\":{}", null, null);
         String branchRev = mk.branch(rev);
@@ -419,7 +416,6 @@ public class ConflictTest extends BaseMongoMKTest {
     }
 
     @Test
-    @Ignore
     public void removeRemovedNodeBranchLoses1() {
         String rev = mk.commit("/", "+\"foo\":{}", null, null);
         String branchRev = mk.branch(rev);
@@ -436,7 +432,6 @@ public class ConflictTest extends BaseMongoMKTest {
     }
 
     @Test
-    @Ignore
     public void removeRemovedNodeBranchLoses2() {
         String rev = mk.commit("/", "+\"foo\":{}", null, null);
         String branchRev = mk.branch(rev);
@@ -481,7 +476,6 @@ public class ConflictTest extends BaseMongoMKTest {
     }
 
     @Test
-    @Ignore
     public void removeChangedNodeBranchLoses1() {
         String rev = mk.commit("/", "+\"foo\":{}", null, null);
         String branchRev = mk.branch(rev);
@@ -498,7 +492,6 @@ public class ConflictTest extends BaseMongoMKTest {
     }
 
     @Test
-    @Ignore
     public void removeChangedNodeBranchLoses2() {
         String rev = mk.commit("/", "+\"foo\":{}", null, null);
         String branchRev = mk.branch(rev);
@@ -543,7 +536,6 @@ public class ConflictTest extends BaseMongoMKTest {
     }
 
     @Test
-    @Ignore
     public void changeRemovedNodeBranchLoses1() {
         String rev = mk.commit("/", "+\"foo\":{}", null, null);
         String branchRev = mk.branch(rev);
@@ -560,7 +552,6 @@ public class ConflictTest extends BaseMongoMKTest {
     }
 
     @Test
-    @Ignore
     public void changeRemovedNodeBranchLoses2() {
         String rev = mk.commit("/", "+\"foo\":{}", null, null);
         String branchRev = mk.branch(rev);

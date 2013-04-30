@@ -347,12 +347,28 @@ public class Commit {
             // no conflict is possible when there is no baseRevision
             return false;
         }
+        // did existence of node change after baseRevision?
+        @SuppressWarnings("unchecked")
+        Map<String, String> deleted = (Map<String, String>) nodeMap.get(UpdateOp.DELETED);
+        if (deleted != null) {
+            for (Map.Entry<String, String> entry : deleted.entrySet()) {
+                if (mk.isRevisionNewer(Revision.fromString(entry.getKey()), baseRevision)) {
+                    return true;
+                }
+            }
+        }
+
         for (Map.Entry<String, UpdateOp.Operation> entry : op.changes.entrySet()) {
             if (entry.getValue().type != UpdateOp.Operation.Type.SET_MAP_ENTRY) {
                 continue;
             }
             int idx = entry.getKey().indexOf('.');
             String name = entry.getKey().substring(0, idx);
+            if (UpdateOp.DELETED.equals(name)) {
+                // existence of node changed, this always conflicts with
+                // any other concurrent change
+                return true;
+            }
             if (!Utils.isPropertyName(name)) {
                 continue;
             }
