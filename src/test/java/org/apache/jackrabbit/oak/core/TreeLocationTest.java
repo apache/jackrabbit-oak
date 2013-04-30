@@ -44,7 +44,7 @@ public class TreeLocationTest extends OakBaseTest {
 
         // Add test content
         root = session.getLatestRoot();
-        Tree tree = root.getTreeOrNull("/");
+        Tree tree = root.getTree("/");
         tree.setProperty("a", 1);
         tree.setProperty("b", 2);
         tree.setProperty("c", 3);
