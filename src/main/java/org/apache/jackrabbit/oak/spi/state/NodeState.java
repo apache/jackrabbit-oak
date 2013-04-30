@@ -303,8 +303,8 @@ public interface NodeState {
      *
      * @param base base state
      * @param diff handler of node state differences
-     * @since 0ak 0.4
+     * @since 0ak 0.4, return value added in 0.7
      */
-    void compareAgainstBaseState(NodeState base, NodeStateDiff diff);
+    boolean compareAgainstBaseState(NodeState base, NodeStateDiff diff);
 
 }

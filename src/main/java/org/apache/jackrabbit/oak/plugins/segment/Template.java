@@ -346,7 +346,7 @@ class Template {
         }
     }
 
-    public void compareAgainstBaseState(
+    public boolean compareAgainstBaseState(
             SegmentStore store, RecordId afterId,
             Template beforeTemplate, RecordId beforeId,
             NodeStateDiff diff) {
@@ -357,8 +357,10 @@ class Template {
         checkNotNull(diff);
 
         // Compare type properties
-        compareProperties(beforeTemplate.primaryType, primaryType, diff);
-        compareProperties(beforeTemplate.mixinTypes, mixinTypes, diff);
+        if (!compareProperties(beforeTemplate.primaryType, primaryType, diff)
+                || !compareProperties(beforeTemplate.mixinTypes, mixinTypes, diff)) {
+            return false;
+        }
 
         // Compare other properties, leveraging the ordering
         int beforeIndex = 0;
@@ -383,22 +385,31 @@ class Template {
                 beforeProperty = beforeTemplate.getProperty(
                         store, beforeId, beforeIndex++);
             }
-            compareProperties(beforeProperty, afterProperty, diff);
+            if (!compareProperties(beforeProperty, afterProperty, diff)) {
+                return false;
+            }
         }
         while (afterIndex < properties.length) {
-            diff.propertyAdded(getProperty(store, afterId, afterIndex++));
+            if (!diff.propertyAdded(getProperty(store, afterId, afterIndex++))) {
+                return false;
+            }
         }
         while (beforeIndex < beforeTemplate.properties.length) {
-            diff.propertyDeleted(beforeTemplate.getProperty(
-                    store, beforeId, beforeIndex++));
+            PropertyState beforeProperty = beforeTemplate.getProperty(
+                    store, beforeId, beforeIndex++);
+            if (!diff.propertyDeleted(beforeProperty)) {
+                return false;
+            }
         }
 
         if (hasNoChildNodes()) {
             if (!beforeTemplate.hasNoChildNodes()) {
                 for (ChildNodeEntry entry :
                         beforeTemplate.getChildNodeEntries(store, beforeId)) {
-                    diff.childNodeDeleted(
-                            entry.getName(), entry.getNodeState());
+                    if (!diff.childNodeDeleted(
+                            entry.getName(), entry.getNodeState())) {
+                        return false;
+                    }
                 }
             }
         } else if (hasOneChildNode()) {
@@ -406,17 +417,23 @@ class Template {
             NodeState beforeNode = beforeTemplate.getChildNode(
                     childName, store, beforeId);
             if (!beforeNode.exists()) {
-                diff.childNodeAdded(childName, afterNode);
+                if (!diff.childNodeAdded(childName, afterNode)) {
+                    return false;
+                }
             } else if (!beforeNode.equals(afterNode)) {
-                diff.childNodeChanged(childName, beforeNode, afterNode);
+                if (!diff.childNodeChanged(childName, beforeNode, afterNode)) {
+                    return false;
+                }
             }
             if ((beforeTemplate.hasOneChildNode() && !beforeNode.exists())
                     || beforeTemplate.hasManyChildNodes()) {
                 for (ChildNodeEntry entry :
                     beforeTemplate.getChildNodeEntries(store, beforeId)) {
                     if (!childName.equals(entry.getName())) {
-                        diff.childNodeDeleted(
-                                entry.getName(), entry.getNodeState());
+                        if (!diff.childNodeDeleted(
+                                entry.getName(), entry.getNodeState())) {
+                            return false;
+                        }
                     }
                 }
             }
@@ -429,11 +446,15 @@ class Template {
                 NodeState beforeChild = beforeCNE.getNodeState();
                 NodeState afterChild = getChildNode(name, store, afterId);
                 if (!afterChild.exists()) {
-                    diff.childNodeDeleted(name, beforeChild);
+                    if (!diff.childNodeDeleted(name, beforeChild)) {
+                        return false;
+                    }
                 } else {
                     baseChildNodes.add(name);
                     if (!beforeChild.equals(afterChild)) {
-                        diff.childNodeChanged(name, beforeChild, afterChild);
+                        if (!diff.childNodeChanged(name, beforeChild, afterChild)) {
+                            return false;
+                        }
                     }
                 }
             }
@@ -441,22 +462,24 @@ class Template {
                     : getChildNodeEntries(store, afterId)) {
                 String name = afterChild.getName();
                 if (!baseChildNodes.contains(name)) {
-                    diff.childNodeAdded(name, afterChild.getNodeState());
+                    if (!diff.childNodeAdded(name, afterChild.getNodeState())) {
+                        return false;
+                    }
                 }
             }
         }
+
+        return true;
     }
 
-    private void compareProperties(
+    private boolean compareProperties(
             PropertyState before, PropertyState after, NodeStateDiff diff) {
         if (before == null) {
-            if (after != null) {
-                diff.propertyAdded(after);
-            }
+            return after == null || diff.propertyAdded(after);
         } else if (after == null) {
-            diff.propertyDeleted(before);
-        } else if (!before.equals(after)) {
-            diff.propertyChanged(before, after);
+            return diff.propertyDeleted(before);
+        } else {
+            return before.equals(after) || diff.propertyChanged(before, after);
         }
     }
 

@@ -168,76 +168,72 @@ class ChangeProcessor implements Runnable {
         }
 
         @Override
-        public void propertyAdded(PropertyState after) {
-            if (NodeStateUtils.isHidden(after.getName())) {
-                return;
-            }
-            if (!stopping && filterRef.get().include(Event.PROPERTY_ADDED, jcrPath(), associatedParentNode)) {
+        public boolean propertyAdded(PropertyState after) {
+            if (!NodeStateUtils.isHidden(after.getName())
+                    && filterRef.get().include(Event.PROPERTY_ADDED, jcrPath(), associatedParentNode)) {
                 Event event = generatePropertyEvent(Event.PROPERTY_ADDED, path, after);
                 events.add(Iterators.singletonIterator(event));
             }
+            return !stopping;
         }
 
         @Override
-        public void propertyChanged(PropertyState before, PropertyState after) {
-            if (NodeStateUtils.isHidden(before.getName())) {
-                return;
-            }
-            if (!stopping && filterRef.get().include(Event.PROPERTY_CHANGED, jcrPath(), associatedParentNode)) {
+        public boolean propertyChanged(PropertyState before, PropertyState after) {
+            if (!NodeStateUtils.isHidden(before.getName())
+                    && filterRef.get().include(Event.PROPERTY_CHANGED, jcrPath(), associatedParentNode)) {
                 Event event = generatePropertyEvent(Event.PROPERTY_CHANGED, path, after);
                 events.add(Iterators.singletonIterator(event));
             }
+            return !stopping;
         }
 
         @Override
-        public void propertyDeleted(PropertyState before) {
-            if (NodeStateUtils.isHidden(before.getName())) {
-                return;
-            }
-            if (!stopping && filterRef.get().include(Event.PROPERTY_REMOVED, jcrPath(), associatedParentNode)) {
+        public boolean propertyDeleted(PropertyState before) {
+            if (!NodeStateUtils.isHidden(before.getName())
+                    && filterRef.get().include(Event.PROPERTY_REMOVED, jcrPath(), associatedParentNode)) {
                 Event event = generatePropertyEvent(Event.PROPERTY_REMOVED, path, before);
                 events.add(Iterators.singletonIterator(event));
             }
+            return !stopping;
         }
 
         @Override
-        public void childNodeAdded(String name, NodeState after) {
-            if (NodeStateUtils.isHidden(name)) {
-                return;
-            }
-            if (!stopping && filterRef.get().includeChildren(jcrPath())) {
+        public boolean childNodeAdded(String name, NodeState after) {
+            if (!NodeStateUtils.isHidden(name)
+                    && filterRef.get().includeChildren(jcrPath())) {
                 Iterator<Event> events = generateNodeEvents(Event.NODE_ADDED, path, name, after);
                 this.events.add(events);
                 if (++childNodeCount > PURGE_LIMIT) {
                     sendEvents();
                 }
             }
+            return !stopping;
         }
 
         @Override
-        public void childNodeDeleted(String name, NodeState before) {
-            if (NodeStateUtils.isHidden(name)) {
-                return;
-            }
-            if (!stopping && filterRef.get().includeChildren(jcrPath())) {
+        public boolean childNodeDeleted(String name, NodeState before) {
+            if (!NodeStateUtils.isHidden(name)
+                    && filterRef.get().includeChildren(jcrPath())) {
                 Iterator<Event> events = generateNodeEvents(Event.NODE_REMOVED, path, name, before);
                 this.events.add(events);
             }
+            return !stopping;
         }
 
         @Override
-        public void childNodeChanged(String name, NodeState before, NodeState after) {
-            if (NodeStateUtils.isHidden(name)) {
-                return;
-            }
-            if (!stopping && filterRef.get().includeChildren(jcrPath())) {
+        public boolean childNodeChanged(String name, NodeState before, NodeState after) {
+            if (!NodeStateUtils.isHidden(name)
+                    && filterRef.get().includeChildren(jcrPath())) {
                 EventGeneratingNodeStateDiff diff = new EventGeneratingNodeStateDiff(
                         PathUtils.concat(path, name), events, after);
-                after.compareAgainstBaseState(before, diff);
+                if (!after.compareAgainstBaseState(before, diff)) {
+                    return false;
+                }
                 if (events.size() > PURGE_LIMIT) {
                     diff.sendEvents();
                 }
             }
+            return !stopping;
         }
 
         private Event generatePropertyEvent(int eventType, String parentPath, PropertyState property) {

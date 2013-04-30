@@ -88,68 +88,48 @@ public abstract class BaseDiffCollector implements DiffCollector {
         private final Filter filter;
         private final Set<String> results;
 
-        private final DiffCollectorNodeStateDiff parent;
         private final String path;
-        private boolean done;
 
         DiffCollectorNodeStateDiff(BaseDiffCollector collector, Filter filter) {
-            this(collector, filter, null, "", new HashSet<String>());
+            this(collector, filter, "", new HashSet<String>());
         }
 
-        private DiffCollectorNodeStateDiff(BaseDiffCollector collector,
-                Filter filter, DiffCollectorNodeStateDiff parent, String path,
+        private DiffCollectorNodeStateDiff(
+                BaseDiffCollector collector, Filter filter, String path,
                 Set<String> results) {
             this.collector = collector;
             this.filter = filter;
-            this.parent = parent;
             this.path = path;
             this.results = results;
         }
 
-        private boolean isDone() {
-            if (parent != null) {
-                return parent.isDone();
-            }
-            return done;
-        }
-
-        private void setDone() {
-            if (parent != null) {
-                parent.setDone();
-                return;
-            }
-            done = true;
+        @Override
+        public boolean childNodeAdded(String name, NodeState after) {
+            return childNodeChanged(name, EMPTY_NODE, after);
         }
 
         @Override
-        public void childNodeAdded(String name, NodeState after) {
-            childNodeChanged(name, EMPTY_NODE, after);
-        }
-
-        @Override
-        public void childNodeChanged(String name, NodeState before,
+        public boolean childNodeChanged(String name, NodeState before,
                 NodeState after) {
-            if (NodeStateUtils.isHidden(name) || isDone()) {
-                return;
+            if (NodeStateUtils.isHidden(name)) {
+                return true;
             }
-            testNodeState(after, name);
-            after.compareAgainstBaseState(before,
-                    new DiffCollectorNodeStateDiff(collector, filter, this,
-                            concat(path, name), results));
+            return testNodeState(after, name)
+                    && after.compareAgainstBaseState(
+                            before,
+                            new DiffCollectorNodeStateDiff(
+                                    collector, filter,
+                                    concat(path, name), results));
         }
 
-        private void testNodeState(NodeState nodeState, String currentPath) {
-            if (isDone()) {
-                return;
-            }
-            boolean match = collector.match(nodeState, filter);
-            if (match) {
+        private boolean testNodeState(NodeState nodeState, String currentPath) {
+            if (collector.match(nodeState, filter)) {
                 results.add(concat(path, currentPath));
                 if (collector.isUnique()) {
-                    setDone();
-                    return;
+                    return false;
                 }
             }
+            return true;
         }
 
         Set<String> getResults() {

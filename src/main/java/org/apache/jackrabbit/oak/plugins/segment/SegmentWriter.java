@@ -661,17 +661,20 @@ public class SegmentWriter {
                 base = before.getChildNodeMap();
                 after.compareAgainstBaseState(before, new DefaultNodeStateDiff() {
                     @Override
-                    public void childNodeAdded(String name, NodeState after) {
+                    public boolean childNodeAdded(String name, NodeState after) {
                         childNodes.put(name, writeNode(after).getRecordId());
+                        return true;
                     }
                     @Override
-                    public void childNodeChanged(
+                    public boolean childNodeChanged(
                             String name, NodeState before, NodeState after) {
                         childNodes.put(name, writeNode(after).getRecordId());
+                        return true;
                     }
                     @Override
-                    public void childNodeDeleted(String name, NodeState before) {
+                    public boolean childNodeDeleted(String name, NodeState before) {
                         childNodes.put(name, null);
+                        return true;
                     }
                 });
             } else {

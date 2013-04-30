@@ -77,30 +77,36 @@ class MutableNodeState extends AbstractNodeState {
             this.base = modified.getBaseState();
             modified.compareAgainstBaseState(new NodeStateDiff() {
                 @Override
-                public void propertyAdded(PropertyState after) {
+                public boolean propertyAdded(PropertyState after) {
                     properties.put(after.getName(), after);
+                    return true;
                 }
                 @Override
-                public void propertyChanged(
+                public boolean propertyChanged(
                         PropertyState before, PropertyState after) {
                     properties.put(after.getName(), after);
+                    return true;
                 }
                 @Override
-                public void propertyDeleted(PropertyState before) {
+                public boolean propertyDeleted(PropertyState before) {
                     properties.put(before.getName(), null);
+                    return true;
                 }
                 @Override
-                public void childNodeAdded(String name, NodeState after) {
+                public boolean childNodeAdded(String name, NodeState after) {
                     nodes.put(name, new MutableNodeState(after));
+                    return true;
                 }
                 @Override
-                public void childNodeChanged(
+                public boolean childNodeChanged(
                         String name, NodeState before, NodeState after) {
                     nodes.put(name, new MutableNodeState(after));
+                    return true;
                 }
                 @Override
-                public void childNodeDeleted(String name, NodeState before) {
+                public boolean childNodeDeleted(String name, NodeState before) {
                     nodes.put(name, null);
+                    return true;
                 }
             });
         } else {
@@ -153,29 +159,33 @@ class MutableNodeState extends AbstractNodeState {
 
             modified.compareAgainstBaseState(new NodeStateDiff() {
                 @Override
-                public void propertyAdded(PropertyState after) {
+                public boolean propertyAdded(PropertyState after) {
                     properties.put(after.getName(), after);
+                    return true;
                 }
                 @Override
-                public void propertyChanged(
+                public boolean propertyChanged(
                         PropertyState before, PropertyState after) {
                     properties.put(after.getName(), after);
+                    return true;
                 }
                 @Override
-                public void propertyDeleted(PropertyState before) {
+                public boolean propertyDeleted(PropertyState before) {
                     properties.put(before.getName(), null);
+                    return true;
                 }
                 @Override
-                public void childNodeAdded(String name, NodeState after) {
+                public boolean childNodeAdded(String name, NodeState after) {
                     MutableNodeState cstate = nodes.get(name);
                     if (cstate != null) {
                         cstate.reset(after);
                     } else {
                         nodes.put(name, new MutableNodeState(after));
                     }
+                    return true;
                 }
                 @Override
-                public void childNodeChanged(
+                public boolean childNodeChanged(
                         String name, NodeState before, NodeState after) {
                     MutableNodeState cstate = nodes.get(name);
                     if (cstate != null) {
@@ -183,10 +193,12 @@ class MutableNodeState extends AbstractNodeState {
                     } else {
                         nodes.put(name, new MutableNodeState(after));
                     }
+                    return true;
                 }
                 @Override
-                public void childNodeDeleted(String name, NodeState before) {
+                public boolean childNodeDeleted(String name, NodeState before) {
                     nodes.put(name, null);
+                    return true;
                 }
             });
         } else {
@@ -419,7 +431,7 @@ class MutableNodeState extends AbstractNodeState {
     }
 
     @Override
-    public void compareAgainstBaseState(NodeState base, NodeStateDiff diff) {
+    public boolean compareAgainstBaseState(NodeState base, NodeStateDiff diff) {
         throw new UnsupportedOperationException();
     }
 

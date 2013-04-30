@@ -27,36 +27,34 @@ import org.apache.jackrabbit.oak.api.PropertyState;
  */
 public class DefaultNodeStateDiff implements NodeStateDiff {
 
-    public static final NodeStateDiff INSTANCE = new DefaultNodeStateDiff();
-
     @Override
-    public void propertyAdded(PropertyState after) {
-        // do nothing
+    public boolean propertyAdded(PropertyState after) {
+        return true;
     }
 
     @Override
-    public void propertyChanged(PropertyState before, PropertyState after) {
-        // do nothing
+    public boolean propertyChanged(PropertyState before, PropertyState after) {
+        return true;
     }
 
     @Override
-    public void propertyDeleted(PropertyState before) {
-        // do nothing
+    public boolean propertyDeleted(PropertyState before) {
+        return true;
     }
 
     @Override
-    public void childNodeAdded(String name, NodeState after) {
-        // do nothing
+    public boolean childNodeAdded(String name, NodeState after) {
+        return true;
     }
 
     @Override
-    public void childNodeChanged(String name, NodeState before, NodeState after) {
-        // do nothing
+    public boolean childNodeChanged(String name, NodeState before, NodeState after) {
+        return true;
     }
 
     @Override
-    public void childNodeDeleted(String name, NodeState before) {
-        // do nothing
+    public boolean childNodeDeleted(String name, NodeState before) {
+        return true;
     }
 
 }
