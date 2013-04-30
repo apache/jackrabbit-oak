@@ -17,8 +17,12 @@
 package org.apache.jackrabbit.oak.security.authorization;
 
 import java.util.Collection;
+import java.util.Set;
 
 import com.google.common.collect.ImmutableSet;
+import org.apache.jackrabbit.oak.plugins.name.NamespaceConstants;
+import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 
 /**
  * Constants for this access control management implementation.
@@ -66,4 +70,18 @@ public interface AccessControlConstants {
      * @since OAK 1.0
      */
     String PARAM_PERMISSIONS_JR2 = "permissionsJr2";
+
+    /**
+     * Configuration parameter to enable full read access to regular nodes and
+     * properties at the specified paths.
+     */
+    String PARAM_READ_PATHS = "readPaths";
+
+    /**
+     * Default value for the {@link #PARAM_READ_PATHS} configuration parameter.
+     */
+    Set<String> DEFAULT_READ_PATHS = ImmutableSet.of(
+            NamespaceConstants.NAMESPACES_PATH,
+            NodeTypeConstants.NODE_TYPES_PATH,
+            PrivilegeConstants.PRIVILEGES_PATH);
 }
