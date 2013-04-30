@@ -118,27 +118,38 @@ public final class EmptyNodeState implements NodeState {
     }
 
     @Override
-    public void compareAgainstBaseState(NodeState base, NodeStateDiff diff) {
+    public boolean compareAgainstBaseState(NodeState base, NodeStateDiff diff) {
         if (base != EMPTY_NODE && base.exists()) {
             for (PropertyState before : base.getProperties()) {
-                diff.propertyDeleted(before);
+                if (!diff.propertyDeleted(before)) {
+                    return false;
+                }
             }
             for (ChildNodeEntry before : base.getChildNodeEntries()) {
-                diff.childNodeDeleted(before.getName(), before.getNodeState());
+                if (!diff.childNodeDeleted(
+                        before.getName(), before.getNodeState())) {
+                    return false;
+                }
             }
         }
+        return true;
     }
 
-    public static void compareAgainstEmptyState(
+    public static boolean compareAgainstEmptyState(
             NodeState state, NodeStateDiff diff) {
         if (state != EMPTY_NODE && state.exists()) {
             for (PropertyState after : state.getProperties()) {
-                diff.propertyAdded(after);
+                if (!diff.propertyAdded(after)) {
+                    return false;
+                }
             }
             for (ChildNodeEntry after : state.getChildNodeEntries()) {
-                diff.childNodeAdded(after.getName(), after.getNodeState());
+                if (!diff.childNodeAdded(after.getName(), after.getNodeState())) {
+                    return false;
+                }
             }
         }
+        return true;
     }
 
     public static boolean isEmptyState(NodeState state) {

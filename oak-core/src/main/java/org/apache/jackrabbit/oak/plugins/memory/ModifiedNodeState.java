@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.memory;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Predicates.notNull;
 import static com.google.common.collect.Collections2.filter;
@@ -28,8 +27,6 @@ import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.MISSING_NO
 import static org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry.iterable;
 
 import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -269,47 +266,43 @@ public class ModifiedNodeState extends AbstractNodeState {
      * and child nodes to those in the given base state.
      */
     @Override
-    public void compareAgainstBaseState(
+    public boolean compareAgainstBaseState(
             NodeState base, final NodeStateDiff diff) {
-        this.base.compareAgainstBaseState(base, new NodeStateDiff() {
+        if (!this.base.compareAgainstBaseState(base, new NodeStateDiff() {
             @Override
-            public void propertyAdded(PropertyState after) {
-                if (!properties.containsKey(after.getName())) {
-                    diff.propertyAdded(after);
-                }
+            public boolean propertyAdded(PropertyState after) {
+                return properties.containsKey(after.getName())
+                        || diff.propertyAdded(after);
             }
             @Override
-            public void propertyChanged(
+            public boolean propertyChanged(
                     PropertyState before, PropertyState after) {
-                if (!properties.containsKey(before.getName())) {
-                    diff.propertyChanged(before, after);
-                }
+                return properties.containsKey(before.getName())
+                        || diff.propertyChanged(before, after);
             }
             @Override
-            public void propertyDeleted(PropertyState before) {
-                if (!properties.containsKey(before.getName())) {
-                    diff.propertyDeleted(before);
-                }
+            public boolean propertyDeleted(PropertyState before) {
+                return properties.containsKey(before.getName())
+                        || diff.propertyDeleted(before);
             }
             @Override
-            public void childNodeAdded(String name, NodeState after) {
-                if (!nodes.containsKey(name)) {
-                    diff.childNodeAdded(name, after);
-                }
+            public boolean childNodeAdded(String name, NodeState after) {
+                return nodes.containsKey(name)
+                        || diff.childNodeAdded(name, after);
             }
             @Override
-            public void childNodeChanged(String name, NodeState before, NodeState after) {
-                if (!nodes.containsKey(name)) {
-                    diff.childNodeChanged(name, before, after);
-                }
+            public boolean childNodeChanged(String name, NodeState before, NodeState after) {
+                return nodes.containsKey(name)
+                        || diff.childNodeChanged(name, before, after);
             }
             @Override
-            public void childNodeDeleted(String name, NodeState before) {
-                if (!nodes.containsKey(name)) {
-                    diff.childNodeDeleted(name, before);
-                }
+            public boolean childNodeDeleted(String name, NodeState before) {
+                return nodes.containsKey(name)
+                        || diff.childNodeDeleted(name, before);
             }
-        });
+        })) {
+            return false;
+        }
 
         for (Map.Entry<String, ? extends PropertyState> entry : properties.entrySet()) {
             PropertyState before = base.getProperty(entry.getKey());
@@ -317,11 +310,17 @@ public class ModifiedNodeState extends AbstractNodeState {
             if (before == null && after == null) {
                 // do nothing
             } else if (after == null) {
-                diff.propertyDeleted(before);
+                if (!diff.propertyDeleted(before)) {
+                    return false; 
+                }
             } else if (before == null) {
-                diff.propertyAdded(after);
+                if (!diff.propertyAdded(after)) {
+                    return false;
+                }
             } else if (!before.equals(after)) {
-                diff.propertyChanged(before, after);
+                if (!diff.propertyChanged(before, after)) {
+                    return false;
+                }
             }
         }
 
@@ -331,14 +330,22 @@ public class ModifiedNodeState extends AbstractNodeState {
             NodeState after = entry.getValue();
             if (after == null) {
                 if (before.exists()) {
-                    diff.childNodeDeleted(name, before);
+                    if (!diff.childNodeDeleted(name, before)) {
+                        return false;
+                    }
                 }
             } else if (!before.exists()) {
-                diff.childNodeAdded(name, after);
+                if (!diff.childNodeAdded(name, after)) {
+                    return false;
+                }
             } else if (!before.equals(after)) {
-                diff.childNodeChanged(name, before, after);
+                if (!diff.childNodeChanged(name, before, after)) {
+                    return false;
+                }
             }
         }
+
+        return true;
     }
 
     public void compareAgainstBaseState(NodeStateDiff diff) {

@@ -17,6 +17,10 @@
 package org.apache.jackrabbit.oak.plugins.segment;
 
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.easymock.EasyMock.createMock;
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.verify;
 
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -49,10 +53,10 @@ public class CompareAgainstBaseStateTest {
     public void testSameState() {
         NodeState node = persist(builder);
 
-        EasyMock.replay(diff);
+        replay(diff);
 
         node.compareAgainstBaseState(node, diff);
-        EasyMock.verify(diff);
+        verify(diff);
     }
 
     @Test
@@ -60,10 +64,10 @@ public class CompareAgainstBaseStateTest {
         NodeState before = persist(builder);
         NodeState after = persist(builder);
 
-        EasyMock.replay(diff);
+        replay(diff);
 
         after.compareAgainstBaseState(before, diff);
-        EasyMock.verify(diff);
+        verify(diff);
     }
 
     @Test
@@ -72,11 +76,11 @@ public class CompareAgainstBaseStateTest {
         builder.setProperty("test", "test");
         NodeState after = persist(builder);
 
-        diff.propertyAdded(after.getProperty("test"));
-        EasyMock.replay(diff);
+        expect(diff.propertyAdded(after.getProperty("test"))).andReturn(true);
+        replay(diff);
 
         after.compareAgainstBaseState(before, diff);
-        EasyMock.verify(diff);
+        verify(diff);
     }
 
     @Test
@@ -85,12 +89,12 @@ public class CompareAgainstBaseStateTest {
         builder.setProperty("foo", "test");
         NodeState after = persist(builder);
 
-        diff.propertyChanged(
-                before.getProperty("foo"), after.getProperty("foo"));
-        EasyMock.replay(diff);
+        expect(diff.propertyChanged(
+                before.getProperty("foo"), after.getProperty("foo"))).andReturn(true);
+        replay(diff);
 
         after.compareAgainstBaseState(before, diff);
-        EasyMock.verify(diff);
+        verify(diff);
     }
 
     @Test
@@ -99,11 +103,11 @@ public class CompareAgainstBaseStateTest {
         builder.removeProperty("foo");
         NodeState after = persist(builder);
 
-        diff.propertyDeleted(before.getProperty("foo"));
-        EasyMock.replay(diff);
+        expect(diff.propertyDeleted(before.getProperty("foo"))).andReturn(true);
+        replay(diff);
 
         after.compareAgainstBaseState(before, diff);
-        EasyMock.verify(diff);
+        verify(diff);
     }
 
     @Test
@@ -112,11 +116,11 @@ public class CompareAgainstBaseStateTest {
         builder.child("test");
         NodeState after = persist(builder);
 
-        diff.childNodeAdded("test", after.getChildNode("test"));
-        EasyMock.replay(diff);
+        expect(diff.childNodeAdded("test", after.getChildNode("test"))).andReturn(true);
+        replay(diff);
 
         after.compareAgainstBaseState(before, diff);
-        EasyMock.verify(diff);
+        verify(diff);
     }
 
     @Test
@@ -125,12 +129,12 @@ public class CompareAgainstBaseStateTest {
         builder.child("baz").setProperty("test", "test");
         NodeState after = persist(builder);
 
-        diff.childNodeChanged(
-                "baz", before.getChildNode("baz"), after.getChildNode("baz"));
-        EasyMock.replay(diff);
+        expect(diff.childNodeChanged(
+                "baz", before.getChildNode("baz"), after.getChildNode("baz"))).andReturn(true);
+        replay(diff);
 
         after.compareAgainstBaseState(before, diff);
-        EasyMock.verify(diff);
+        verify(diff);
     }
 
     @Test
@@ -139,11 +143,11 @@ public class CompareAgainstBaseStateTest {
         builder.removeChildNode("baz");
         NodeState after = persist(builder);
 
-        diff.childNodeDeleted("baz", before.getChildNode("baz"));
-        EasyMock.replay(diff);
+        expect(diff.childNodeDeleted("baz", before.getChildNode("baz"))).andReturn(true);
+        replay(diff);
 
         after.compareAgainstBaseState(before, diff);
-        EasyMock.verify(diff);
+        verify(diff);
     }
 
     private NodeState persist(NodeBuilder builder) {

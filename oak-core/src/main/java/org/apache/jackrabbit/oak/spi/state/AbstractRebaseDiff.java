@@ -165,17 +165,18 @@ public abstract class AbstractRebaseDiff implements NodeStateDiff {
     protected abstract void deleteChangedNode(NodeBuilder builder, String name, NodeState before);
 
     @Override
-    public void propertyAdded(PropertyState after) {
+    public boolean propertyAdded(PropertyState after) {
         PropertyState other = builder.getProperty(after.getName());
         if (other == null) {
             builder.setProperty(after);
         } else if (!other.equals(after)) {
             addExistingProperty(builder, other, after);
         }
+        return true;
     }
 
     @Override
-    public void propertyChanged(PropertyState before, PropertyState after) {
+    public boolean propertyChanged(PropertyState before, PropertyState after) {
         PropertyState other = builder.getProperty(before.getName());
         if (other == null) {
             changeDeletedProperty(builder, after);
@@ -184,10 +185,11 @@ public abstract class AbstractRebaseDiff implements NodeStateDiff {
         } else if (!other.equals(after)) {
             changeChangedProperty(builder, before, after);
         }
+        return true;
     }
 
     @Override
-    public void propertyDeleted(PropertyState before) {
+    public boolean propertyDeleted(PropertyState before) {
         PropertyState other = builder.getProperty(before.getName());
         if (other == null) {
             deleteDeletedProperty(builder, before);
@@ -196,30 +198,33 @@ public abstract class AbstractRebaseDiff implements NodeStateDiff {
         } else {
             deleteChangedProperty(builder, before);
         }
+        return true;
     }
 
     @Override
-    public void childNodeAdded(String name, NodeState after) {
+    public boolean childNodeAdded(String name, NodeState after) {
         if (builder.hasChildNode(name)) {
             NodeState other = builder.child(name).getNodeState();
             addExistingNode(builder, name, other, after);
         } else {
             builder.setChildNode(name, after);
         }
+        return true;
     }
 
     @Override
-    public void childNodeChanged(
+    public boolean childNodeChanged(
             String name, NodeState before, NodeState after) {
         if (builder.hasChildNode(name)) {
             after.compareAgainstBaseState(before, createDiff(builder, name));
         } else {
             changeDeletedNode(builder, name, after);
         }
+        return true;
     }
 
     @Override
-    public void childNodeDeleted(String name, NodeState before) {
+    public boolean childNodeDeleted(String name, NodeState before) {
         if (!builder.hasChildNode(name)) {
             deleteDeletedNode(builder, name, before);
         } else if (before.equals(builder.child(name).getNodeState())) {
@@ -227,5 +232,7 @@ public abstract class AbstractRebaseDiff implements NodeStateDiff {
         } else {
             deleteChangedNode(builder, name, before);
         }
+        return true;
     }
+
 }

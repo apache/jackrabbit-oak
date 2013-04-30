@@ -22,12 +22,18 @@ import org.apache.jackrabbit.oak.api.PropertyState;
  * Handler of node state differences. The
  * {@link NodeState#compareAgainstBaseState(NodeState, NodeStateDiff)}
  * method reports detected node state differences by calling methods of
- * a handler instance that implements this interface. The compare method
- * will go through all properties and child nodes of the two states,
- * calling the relevant added, changed or deleted methods where appropriate.
- * Differences in the ordering of properties or child nodes do not affect
- * the comparison, and the order in which such differences are reported
- * is unspecified.
+ * a handler instance that implements this interface.
+ * <p>
+ * The compare method goes through all properties and child nodes of the
+ * two states, calling the relevant added, changed or deleted methods
+ * where appropriate. Differences in the ordering of properties or child
+ * nodes do not affect the comparison, and the order in which such
+ * differences are reported is unspecified.
+ * <p>
+ * The methods in this interface all return a boolean value to signify
+ * whether the comparison should continue. If a method returns {@code false},
+ * then the comparison is immediately stopped. Otherwise it continues until
+ * all changes have been reported.
  * <p>
  * Note that the
  * {@link NodeState#compareAgainstBaseState(NodeState, NodeStateDiff)}
@@ -42,8 +48,9 @@ public interface NodeStateDiff {
      * Called for all added properties.
      *
      * @param after property state after the change
+     * @return {@code true} to continue the comparison, {@code false} to stop
      */
-    void propertyAdded(PropertyState after);
+    boolean propertyAdded(PropertyState after);
 
     /**
      * Called for all changed properties. The names of the given two
@@ -51,23 +58,26 @@ public interface NodeStateDiff {
      *
      * @param before property state before the change
      * @param after property state after the change
+     * @return {@code true} to continue the comparison, {@code false} to stop
      */
-    void propertyChanged(PropertyState before, PropertyState after);
+    boolean propertyChanged(PropertyState before, PropertyState after);
 
     /**
      * Called for all deleted properties.
      *
      * @param before property state before the change
+     * @return {@code true} to continue the comparison, {@code false} to stop
      */
-    void propertyDeleted(PropertyState before);
+    boolean propertyDeleted(PropertyState before);
 
     /**
      * Called for all added child nodes.
      *
      * @param name name of the added child node
      * @param after child node state after the change
+     * @return {@code true} to continue the comparison, {@code false} to stop
      */
-    void childNodeAdded(String name, NodeState after);
+    boolean childNodeAdded(String name, NodeState after);
 
     /**
      * Called for all changed child nodes.
@@ -75,15 +85,17 @@ public interface NodeStateDiff {
      * @param name name of the changed child node
      * @param before child node state before the change
      * @param after child node state after the change
+     * @return {@code true} to continue the comparison, {@code false} to stop
      */
-    void childNodeChanged(String name, NodeState before, NodeState after);
+    boolean childNodeChanged(String name, NodeState before, NodeState after);
 
     /**
      * Called for all deleted child nodes.
      *
      * @param name name of the deleted child node
      * @param before child node state before the change
+     * @return {@code true} to continue the comparison, {@code false} to stop
      */
-    void childNodeDeleted(String name, NodeState before);
+    boolean childNodeDeleted(String name, NodeState before);
 
 }

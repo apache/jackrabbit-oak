@@ -292,25 +292,27 @@ public class KernelNodeStoreTest {
         List<String> removed = new ArrayList<String>();
 
         @Override
-        public void childNodeAdded(String name, NodeState after) {
+        public boolean childNodeAdded(String name, NodeState after) {
             added.add(name);
+            return true;
         }
 
         @Override
-        public void childNodeDeleted(String name, NodeState before) {
+        public boolean childNodeDeleted(String name, NodeState before) {
             removed.add(name);
+            return true;
         }
 
         @Override
-        public void childNodeChanged(String name,
-                                     NodeState before,
-                                     NodeState after) {
-            after.compareAgainstBaseState(before, this);
+        public boolean childNodeChanged(
+                String name, NodeState before, NodeState after) {
+            return after.compareAgainstBaseState(before, this);
         }
 
         @Override
-        public void propertyAdded(PropertyState after) {
+        public boolean propertyAdded(PropertyState after) {
             addedProperties.add(after.getName());
+            return true;
         }
     }
 

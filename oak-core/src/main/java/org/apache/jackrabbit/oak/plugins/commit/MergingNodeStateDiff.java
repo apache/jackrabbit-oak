@@ -75,7 +75,7 @@ public final class MergingNodeStateDiff extends DefaultNodeStateDiff {
     //------------------------------------------------------< NodeStateDiff >---
 
     @Override
-    public void childNodeAdded(String name, NodeState after) {
+    public boolean childNodeAdded(String name, NodeState after) {
         if (CONFLICT.equals(name)) {
             for (ChildNodeEntry conflict : after.getChildNodeEntries()) {
                 resolveConflict(conflict.getName(), conflict.getNodeState());
@@ -83,11 +83,13 @@ public final class MergingNodeStateDiff extends DefaultNodeStateDiff {
 
             target.removeChildNode(CONFLICT);
         }
+        return true;
     }
 
     @Override
-    public void childNodeChanged(String name, NodeState before, NodeState after) {
+    public boolean childNodeChanged(String name, NodeState before, NodeState after) {
         merge(before, after, target.child(name), conflictHandler);
+        return true;
     }
 
     //------------------------------------------------------------< private >---

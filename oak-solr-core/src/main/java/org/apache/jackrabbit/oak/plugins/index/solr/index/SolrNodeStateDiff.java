@@ -116,31 +116,34 @@ class SolrNodeStateDiff implements NodeStateDiff {
     }
 
     @Override
-    public void propertyAdded(PropertyState after) {
+    public boolean propertyAdded(PropertyState after) {
         // TODO implement this
+        return true;
     }
 
     @Override
-    public void propertyChanged(PropertyState before, PropertyState after) {
+    public boolean propertyChanged(PropertyState before, PropertyState after) {
         // TODO implement this
+        return true;
     }
 
     @Override
-    public void propertyDeleted(PropertyState before) {
+    public boolean propertyDeleted(PropertyState before) {
         // TODO implement this
+        return true;
     }
 
     @Override
-    public void childNodeAdded(String name, NodeState after) {
+    public boolean childNodeAdded(String name, NodeState after) {
         if (NodeStateUtils.isHidden(name)) {
-            return;
+            return true;
         }
-        if (exception == null) {
-            try {
-                addSubtree(name, after);
-            } catch (IOException e) {
-                exception = e;
-            }
+        try {
+            addSubtree(name, after);
+            return true;
+        } catch (IOException e) {
+            exception = e;
+            return false;
         }
     }
 
@@ -149,32 +152,33 @@ class SolrNodeStateDiff implements NodeStateDiff {
     }
 
     @Override
-    public void childNodeChanged(String name, NodeState before, NodeState after) {
+    public boolean childNodeChanged(
+            String name, NodeState before, NodeState after) {
         if (NodeStateUtils.isHidden(name)) {
-            return;
+            return true;
         }
-        if (exception == null) {
-            try {
-                SolrNodeStateDiff diff = new SolrNodeStateDiff(solrServer);
-                after.compareAgainstBaseState(before, diff);
-                diff.postProcess(after);
-            } catch (IOException e) {
-                exception = e;
-            }
+        try {
+            SolrNodeStateDiff diff = new SolrNodeStateDiff(solrServer);
+            after.compareAgainstBaseState(before, diff);
+            diff.postProcess(after);
+            return true;
+        } catch (IOException e) {
+            exception = e;
+            return false;
         }
     }
 
     @Override
-    public void childNodeDeleted(String name, NodeState before) {
+    public boolean childNodeDeleted(String name, NodeState before) {
         if (NodeStateUtils.isHidden(name)) {
-            return;
+            return true;
         }
-        if (exception == null) {
-            try {
-                deleteSubtree(name, before);
-            } catch (IOException e) {
-                exception = e;
-            }
+        try {
+            deleteSubtree(name, before);
+            return true;
+        } catch (IOException e) {
+            exception = e;
+            return false;
         }
     }
 

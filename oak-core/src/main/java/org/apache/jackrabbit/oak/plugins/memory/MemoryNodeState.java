@@ -121,10 +121,9 @@ class MemoryNodeState extends AbstractNodeState {
      * a generic diff against the given state.
      */
     @Override
-    public void compareAgainstBaseState(NodeState base, NodeStateDiff diff) {
+    public boolean compareAgainstBaseState(NodeState base, NodeStateDiff diff) {
         if (base == EMPTY_NODE || !base.exists()) {
-            EmptyNodeState.compareAgainstEmptyState(this, diff);
-            return;
+            return EmptyNodeState.compareAgainstEmptyState(this, diff);
         }
 
         Map<String, PropertyState> newProperties =
@@ -132,13 +131,20 @@ class MemoryNodeState extends AbstractNodeState {
         for (PropertyState before : base.getProperties()) {
             PropertyState after = newProperties.remove(before.getName());
             if (after == null) {
-                diff.propertyDeleted(before);
+                if (!diff.propertyDeleted(before)) {
+                    return false;
+                }
             } else if (!after.equals(before)) {
-                diff.propertyChanged(before, after);
+                if (!diff.propertyChanged(before, after)) {
+                    return false;
+                }
             }
         }
+
         for (PropertyState after : newProperties.values()) {
-            diff.propertyAdded(after);
+            if (!diff.propertyAdded(after)) {
+                return false;
+            }
         }
 
         Map<String, NodeState> newNodes =
@@ -148,14 +154,23 @@ class MemoryNodeState extends AbstractNodeState {
             NodeState before = entry.getNodeState();
             NodeState after = newNodes.remove(name);
             if (after == null) {
-                diff.childNodeDeleted(name, before);
+                if (!diff.childNodeDeleted(name, before)) {
+                    return false;
+                }
             } else if (!after.equals(before)) {
-                diff.childNodeChanged(name, before, after);
+                if (!diff.childNodeChanged(name, before, after)) {
+                    return false;
+                }
             }
         }
+
         for (Map.Entry<String, NodeState> entry : newNodes.entrySet()) {
-            diff.childNodeAdded(entry.getKey(), entry.getValue());
+            if (!diff.childNodeAdded(entry.getKey(), entry.getValue())) {
+                return false;
+            }
         }
+
+        return true;
     }
 
 }

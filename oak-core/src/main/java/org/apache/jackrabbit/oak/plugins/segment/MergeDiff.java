@@ -30,50 +30,56 @@ class MergeDiff implements NodeStateDiff {
     }
 
     @Override
-    public void propertyAdded(PropertyState after) {
+    public boolean propertyAdded(PropertyState after) {
         if (!builder.hasProperty(after.getName())) {
             builder.setProperty(after);
         }
+        return true;
     }
 
     @Override
-    public void propertyChanged(PropertyState before, PropertyState after) {
+    public boolean propertyChanged(PropertyState before, PropertyState after) {
         PropertyState other = builder.getProperty(before.getName());
         if (other != null && other.equals(before)) {
             builder.setProperty(after);
         }
+        return true;
     }
 
     @Override
-    public void propertyDeleted(PropertyState before) {
+    public boolean propertyDeleted(PropertyState before) {
         PropertyState other = builder.getProperty(before.getName());
         if (other != null && other.equals(before)) {
             builder.removeProperty(before.getName());
         }
+        return true;
     }
 
     @Override
-    public void childNodeAdded(String name, NodeState after) {
+    public boolean childNodeAdded(String name, NodeState after) {
         if (!builder.hasChildNode(name)) {
             builder.setChildNode(name, after);
         }
+        return true;
     }
 
     @Override
-    public void childNodeChanged(
+    public boolean childNodeChanged(
             String name, NodeState before, NodeState after) {
         if (builder.hasChildNode(name)) {
             after.compareAgainstBaseState(
                     before, new MergeDiff(builder.child(name)));
         }
+        return true;
     }
 
     @Override
-    public void childNodeDeleted(String name, NodeState before) {
+    public boolean childNodeDeleted(String name, NodeState before) {
         if (builder.hasChildNode(name)
                 && before.equals(builder.child(name).getNodeState())) {
             builder.removeChildNode(name);
         }
+        return true;
     }
 
 }

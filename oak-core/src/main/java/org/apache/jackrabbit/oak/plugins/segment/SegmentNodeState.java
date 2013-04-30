@@ -129,20 +129,19 @@ class SegmentNodeState extends AbstractNodeState {
     }
 
     @Override
-    public void compareAgainstBaseState(NodeState base, NodeStateDiff diff) {
+    public boolean compareAgainstBaseState(NodeState base, NodeStateDiff diff) {
         if (base == this) {
-             return; // no changes
-        } else if (base == EMPTY_NODE) {
-            EmptyNodeState.compareAgainstEmptyState(this, diff); // special case
+             return true; // no changes
+        } else if (base == EMPTY_NODE || !base.exists()) { // special case
+            return EmptyNodeState.compareAgainstEmptyState(this, diff);
         } else if (base instanceof SegmentNodeState) {
             SegmentNodeState that = (SegmentNodeState) base;
-            if (!recordId.equals(that.recordId)) {
-                getTemplate().compareAgainstBaseState(
+            return recordId.equals(that.recordId)
+                || getTemplate().compareAgainstBaseState(
                         store, recordId, that.getTemplate(), that.recordId,
                         diff);
-            }
         } else {
-            super.compareAgainstBaseState(base, diff); // fallback
+            return super.compareAgainstBaseState(base, diff); // fallback
         }
     }
 
