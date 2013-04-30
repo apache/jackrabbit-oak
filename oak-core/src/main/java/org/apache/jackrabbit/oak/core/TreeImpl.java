@@ -105,26 +105,25 @@ public class TreeImpl implements Tree {
 
     @Override
     public String getName() {
-        enterNoStateCheck();
+        enter();
         return name;
     }
 
     @Override
     public boolean isRoot() {
-        enterNoStateCheck();
+        enter();
         return parent == null;
     }
 
     @Override
     public String getPath() {
-        enterNoStateCheck();
+        enter();
         return getPathInternal();
     }
 
     @Override
     public Status getStatus() {
         enter();
-
         if (nodeBuilder.isNew()) {
             return NEW;
         } else if (nodeBuilder.isModified()) {
@@ -136,13 +135,13 @@ public class TreeImpl implements Tree {
 
     @Override
     public TreeLocation getLocation() {
-        enterNoStateCheck();
+        enter();
         return new NodeLocation(this);
     }
 
     @Override
     public boolean exists() {
-        return enterNoStateCheck();
+        return enter();
     }
 
     @Override
@@ -155,7 +154,7 @@ public class TreeImpl implements Tree {
     @Override
     @Deprecated
     public Tree getParentOrNull() {
-        enterNoStateCheck();
+        enter();
         if (parent != null && parent.nodeBuilder.exists()) {
             return parent;
         } else {
@@ -217,7 +216,7 @@ public class TreeImpl implements Tree {
     @Override
     public TreeImpl getChild(@Nonnull String name) {
         checkNotNull(name);
-        enterNoStateCheck();
+        enter();
         return new TreeImpl(root, this, name, pendingMoves);
     }
 
@@ -263,7 +262,7 @@ public class TreeImpl implements Tree {
 
     @Override
     public boolean remove() {
-        enter();
+        checkExists();
         if (parent != null && parent.hasChild(name)) {
             NodeBuilder parentBuilder = parent.nodeBuilder;
             parentBuilder.removeChildNode(name);
@@ -283,7 +282,7 @@ public class TreeImpl implements Tree {
 
     @Override
     public Tree addChild(String name) {
-        enter();
+        checkExists();
         if (!hasChild(name)) {
             nodeBuilder.setChildNode(name);
             if (hasOrderableChildren()) {
@@ -299,7 +298,7 @@ public class TreeImpl implements Tree {
 
     @Override
     public void setOrderableChildren(boolean enable) {
-        enter();
+        checkExists();
         if (enable) {
             ensureChildOrderProperty();
         } else {
@@ -309,7 +308,7 @@ public class TreeImpl implements Tree {
 
     @Override
     public boolean orderBefore(final String name) {
-        enter();
+        checkExists();
         if (parent == null) {
             // root does not have siblings
             return false;
@@ -356,28 +355,28 @@ public class TreeImpl implements Tree {
 
     @Override
     public void setProperty(PropertyState property) {
-        enter();
+        checkExists();
         nodeBuilder.setProperty(property);
         root.updated();
     }
 
     @Override
     public <T> void setProperty(String name, T value) {
-        enter();
+        checkExists();
         nodeBuilder.setProperty(name, value);
         root.updated();
     }
 
     @Override
     public <T> void setProperty(String name, T value, Type<T> type) {
-        enter();
+        checkExists();
         nodeBuilder.setProperty(name, value, type);
         root.updated();
     }
 
     @Override
     public void removeProperty(String name) {
-        enter();
+        checkExists();
         nodeBuilder.removeProperty(name);
         root.updated();
     }
@@ -499,11 +498,11 @@ public class TreeImpl implements Tree {
         return nodeBuilder.exists();
     }
 
-    private void enter() {
-        checkState(enterNoStateCheck(), "This tree is not connected");
+    private void checkExists() {
+        checkState(enter(), "This tree does not exist");
     }
 
-    private boolean enterNoStateCheck() {
+    private boolean enter() {
         root.checkLive();
         applyPendingMoves();
         return reconnect();
