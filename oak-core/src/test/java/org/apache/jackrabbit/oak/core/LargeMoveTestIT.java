@@ -44,7 +44,7 @@ public class LargeMoveTestIT extends OakBaseTest {
         // Add test content
         Root root = session.getLatestRoot();
 
-        Tree tree = root.getTreeOrNull("/");
+        Tree tree = root.getTree("/");
         Tree treeA = tree.addChild("tree-a");
         this.treeAPath = treeA.getPath();
         Tree treeB = tree.addChild("tree-b");
@@ -69,7 +69,7 @@ public class LargeMoveTestIT extends OakBaseTest {
 
         // Concurrent changes to trunk: enforce rebase
         Root root2 = session.getLatestRoot();
-        root2.getTreeOrNull("/").addChild("any");
+        root2.getTree("/").addChild("any");
         root2.commit();
 
         root1.move(treeAPath, PathUtils.concat(treeBPath, "tree-a-moved"));

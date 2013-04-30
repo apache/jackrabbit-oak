@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.api;
 
+import static org.junit.Assert.fail;
+
 import java.util.UUID;
 
 import org.apache.jackrabbit.JcrConstants;
@@ -25,8 +27,6 @@ import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.junit.Test;
-
-import static org.junit.Assert.fail;
 
 /**
  * UniquePropertyTest...
@@ -41,12 +41,12 @@ public class UniquePropertyTest {
                 .with(new PropertyIndexEditorProvider())
                 .with(new InitialContent()).createRoot();
 
-        NodeUtil node = new NodeUtil(root.getTreeOrNull("/"));
+        NodeUtil node = new NodeUtil(root.getTree("/"));
         String uuid =  UUID.randomUUID().toString();
         node.setString(JcrConstants.JCR_UUID, uuid);
         root.commit();
 
-        NodeUtil child = new NodeUtil(root.getTreeOrNull("/")).addChild("another", "rep:User");
+        NodeUtil child = new NodeUtil(root.getTree("/")).addChild("another", "rep:User");
         child.setString(JcrConstants.JCR_UUID, uuid);
         try {
             root.commit();

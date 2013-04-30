@@ -18,6 +18,8 @@
  */
 package org.apache.jackrabbit.oak.api;
 
+import static org.apache.jackrabbit.oak.OakAssert.assertSequence;
+
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.plugins.commit.ConflictValidator;
 import org.apache.jackrabbit.oak.plugins.commit.JcrConflictHandler;
@@ -25,8 +27,6 @@ import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import static org.apache.jackrabbit.oak.OakAssert.assertSequence;
 
 /**
  * Contains tests related to {@link Root}
@@ -54,7 +54,7 @@ public class RootTest {
         ContentSession s = repository.login(null, null);
         try {
             Root r = s.getLatestRoot();
-            Tree t = r.getTreeOrNull("/");
+            Tree t = r.getTree("/");
             Tree c = t.addChild("c");
             c.addChild("node1").orderBefore(null);
             c.addChild("node2");
@@ -75,7 +75,7 @@ public class RootTest {
         ContentSession s = repository.login(null, null);
         try {
             Root r = s.getLatestRoot();
-            Tree t = r.getTreeOrNull("/");
+            Tree t = r.getTree("/");
             Tree c = t.addChild("c");
             c.addChild("node1").orderBefore(null);
             c.addChild("node2");
