@@ -486,7 +486,6 @@ public class WriteTest extends AbstractEvaluationTest {
         assertTrue(testAcMgr.hasPrivileges(childchildPath, repWritePrivileges));
     }
 
-    @Ignore("OAK-766")
     @Test
     public void testWriteIfReadingParentIsDenied() throws Exception {
         /* deny READ/WRITE privilege for testUser at 'path' */

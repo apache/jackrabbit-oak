@@ -110,7 +110,6 @@ public class ReadTest extends AbstractEvaluationTest {
         assertFalse(testSession.nodeExists(path));
     }
 
-    @Ignore("OAK-766") // FIXME
     @Test
     public void testReadDenied() throws Exception {
         /* deny READ privilege for testUser at 'path' */
