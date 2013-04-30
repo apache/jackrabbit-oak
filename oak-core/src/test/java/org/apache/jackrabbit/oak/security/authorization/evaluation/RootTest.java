@@ -16,15 +16,18 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.evaluation;
 
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import java.util.List;
 
 import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.api.TreeLocation;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.junit.Test;
@@ -46,10 +49,10 @@ public class RootTest extends AbstractOakCoreTest {
 
         List<String> accessible = ImmutableList.of("/", "/a", "/a/b", "/a/b/c");
         for (String path : accessible) {
-            assertNotNull(testRoot.getTreeOrNull(path));
+            assertTrue(testRoot.getTree(path).exists());
         }
 
-        assertNull(testRoot.getTreeOrNull("/a/bb"));
+        assertFalse(testRoot.getTree("/a/bb").exists());
     }
 
     @Test
@@ -62,12 +65,12 @@ public class RootTest extends AbstractOakCoreTest {
 
         List<String> notAccessible = ImmutableList.of("/", "/a/b");
         for (String path : notAccessible) {
-            assertNull(path, testRoot.getTreeOrNull(path));
+            assertFalse(path, testRoot.getTree(path).exists());
         }
 
         List<String> accessible = ImmutableList.of("/a", "/a/bb", "/a/b/c");
         for (String path : accessible) {
-            assertNotNull(path, testRoot.getTreeOrNull(path));
+            assertTrue(path, testRoot.getTree(path).exists());
         }
     }
 
@@ -81,14 +84,14 @@ public class RootTest extends AbstractOakCoreTest {
 
         List<String> accessible = ImmutableList.of("/", "/a", "/a/b", "/a/b/c");
         for (String path : accessible) {
-            TreeLocation location = testRoot.getLocation(path);
-            assertNotNull(location);
-            assertNotNull(location.getTree());
+            Tree tree = testRoot.getTree(path);
+            assertNotNull(tree);
+            assertTrue(tree.exists());
         }
 
-        TreeLocation location = testRoot.getLocation("/a/bb");
-        assertNotNull(location);
-        assertNull(location.getTree());
+        Tree tree = testRoot.getTree("/a/bb");
+        assertNotNull(tree);
+        assertFalse(tree.exists());
     }
 
     @Test
@@ -101,16 +104,16 @@ public class RootTest extends AbstractOakCoreTest {
 
         List<String> notAccessible = ImmutableList.of("/", "/a/b");
         for (String path : notAccessible) {
-            TreeLocation location = testRoot.getLocation(path);
-            assertNotNull(path, location);
-            assertNull(location.getTree());
+            Tree tree = testRoot.getTree(path);
+            assertNotNull(path, tree);
+            assertFalse(tree.exists());
         }
 
         List<String> accessible = ImmutableList.of("/a", "/a/bb", "/a/b/c");
         for (String path : accessible) {
-            TreeLocation location = testRoot.getLocation(path);
-            assertNotNull(path, location);
-            assertNotNull(path, location.getTree());
+            Tree tree = testRoot.getTree(path);
+            assertNotNull(path, tree);
+            assertTrue(tree.exists());
         }
     }
 
@@ -123,9 +126,9 @@ public class RootTest extends AbstractOakCoreTest {
 
         List<String> notAccessible = ImmutableList.of("/", "/a", "/a/b", "/a/bb", "/a/b/c");
         for (String path : notAccessible) {
-            TreeLocation location = testRoot.getLocation(path);
-            assertNotNull(path, location);
-            assertNull(location.getTree());
+            Tree tree = testRoot.getTree(path);
+            assertNotNull(path, tree);
+            assertFalse(tree.exists());
         }
     }
 
@@ -138,16 +141,14 @@ public class RootTest extends AbstractOakCoreTest {
         List<String> accessible = ImmutableList.of("/", "/a", "/a/b", "/a/bb", "/a/b/c");
         for (String path : accessible) {
             String propertyPath = PathUtils.concat(path, JcrConstants.JCR_PRIMARYTYPE);
-            TreeLocation location = testRoot.getLocation(propertyPath);
-            assertNotNull(propertyPath, location);
-            assertNotNull(propertyPath, location.getProperty());
+            PropertyState property = testRoot.getTree(path).getProperty(JcrConstants.JCR_PRIMARYTYPE);
+            assertNotNull(propertyPath, property);
         }
 
         List<String> propPaths = ImmutableList.of("/a/aProp", "/a/b/bProp", "/a/bb/bbProp", "/a/b/c/cProp");
         for (String path : propPaths) {
-            TreeLocation location = testRoot.getLocation(path);
-            assertNotNull(path, location);
-            assertNotNull(path, location.getProperty());
+            PropertyState property = testRoot.getTree(PathUtils.getParentPath(path)).getProperty(PathUtils.getName(path));
+            assertNotNull(path, property);
         }
     }
 
@@ -160,16 +161,14 @@ public class RootTest extends AbstractOakCoreTest {
         List<String> accessible = ImmutableList.of("/", "/a", "/a/b", "/a/bb", "/a/b/c");
         for (String path : accessible) {
             String propertyPath = PathUtils.concat(path, JcrConstants.JCR_PRIMARYTYPE);
-            TreeLocation location = testRoot.getLocation(propertyPath);
-            assertNotNull(propertyPath, location);
-            assertNotNull(propertyPath, location.getProperty());
+            PropertyState property = testRoot.getTree(path).getProperty(JcrConstants.JCR_PRIMARYTYPE);
+            assertNotNull(propertyPath, property);
         }
 
         List<String> propPaths = ImmutableList.of("/a/aProp", "/a/b/bProp", "/a/bb/bbProp", "/a/b/c/cProp");
         for (String path : propPaths) {
-            TreeLocation location = testRoot.getLocation(path);
-            assertNotNull(path, location);
-            assertNotNull(path, location.getProperty());
+            PropertyState property = testRoot.getTree(PathUtils.getParentPath(path)).getProperty(PathUtils.getName(path));
+            assertNotNull(path, property);
         }
     }
 
@@ -183,16 +182,14 @@ public class RootTest extends AbstractOakCoreTest {
 
         List<String> accessible = ImmutableList.of("/a/aProp", "/a/bb/bbProp", "/a/b/c/cProp");
         for (String path : accessible) {
-            TreeLocation location = testRoot.getLocation(path);
-            assertNotNull(path, location);
-            assertNotNull(path, location.getProperty());
+            PropertyState property = testRoot.getTree(PathUtils.getParentPath(path)).getProperty(PathUtils.getName(path));
+            assertNotNull(path, property);
         }
 
         List<String> notAccessible = ImmutableList.of("/jcr:primaryType", "/a/b/bProp");
         for (String path : notAccessible) {
-            TreeLocation location = testRoot.getLocation(path);
-            assertNotNull(path, location);
-            assertNull(path, location.getProperty());
+            PropertyState property = testRoot.getTree(PathUtils.getParentPath(path)).getProperty(PathUtils.getName(path));
+            assertNull(path, property);
         }
     }
 }
