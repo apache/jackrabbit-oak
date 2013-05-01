@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
+import java.util.Collection;
+import java.util.Map;
 import java.util.UUID;
 
 public interface SegmentStore {
@@ -24,9 +26,10 @@ public interface SegmentStore {
 
     Segment readSegment(UUID segmentId);
 
-    void createSegment(Segment segment);
-
-    void createSegment(UUID segmentId, byte[] bytes, int offset, int len);
+    void createSegment(
+            UUID segmentId, byte[] bytes, int offset, int length,
+            Collection<UUID> referencedSegmentIds,
+            Map<String, RecordId> strings, Map<Template, RecordId> templates);
 
     void deleteSegment(UUID segmentId);
 

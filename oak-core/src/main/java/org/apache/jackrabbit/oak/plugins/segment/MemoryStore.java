@@ -16,11 +16,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
-
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 import java.nio.ByteBuffer;
-import java.util.Collections;
+import java.util.Collection;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentMap;
@@ -65,21 +64,19 @@ public class MemoryStore implements SegmentStore {
     }
 
     @Override
-    public void createSegment(Segment segment) {
+    public void createSegment(
+            UUID segmentId, byte[] data, int offset, int length,
+            Collection<UUID> referencedSegmentIds,
+            Map<String, RecordId> strings, Map<Template, RecordId> templates) {
+        byte[] buffer = new byte[length];
+        System.arraycopy(data, offset, buffer, 0, length);
+        Segment segment = new Segment(
+                this, segmentId, ByteBuffer.wrap(buffer),
+                referencedSegmentIds, strings, templates);
         if (segments.putIfAbsent(segment.getSegmentId(), segment) != null) {
             throw new IllegalStateException(
                     "Segment override: " + segment.getSegmentId());
         }
-    }
-
-    @Override
-    public void createSegment(
-            UUID segmentId, byte[] data, int offset, int length) {
-        byte[] segment = new byte[length];
-        System.arraycopy(data, offset, segment, 0, length);
-        createSegment(new Segment(
-                this, segmentId, ByteBuffer.wrap(segment),
-                Collections.<UUID>emptySet()));
     }
 
     @Override
