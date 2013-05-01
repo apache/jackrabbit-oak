@@ -134,6 +134,7 @@ public class TreeImpl implements Tree {
     }
 
     @Override
+    @Deprecated
     public TreeLocation getLocation() {
         enter();
         return new NodeLocation(this);

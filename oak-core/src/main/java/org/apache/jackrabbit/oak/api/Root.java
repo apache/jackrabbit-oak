@@ -111,6 +111,7 @@ public interface Root {
      * @return the tree location for {@code path}
      */
     @Nonnull
+    @Deprecated
     TreeLocation getLocation(String path);
 
     /**
