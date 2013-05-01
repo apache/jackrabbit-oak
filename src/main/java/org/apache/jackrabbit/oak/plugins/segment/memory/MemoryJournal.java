@@ -14,14 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.segment;
+package org.apache.jackrabbit.oak.plugins.segment.memory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import org.apache.jackrabbit.oak.plugins.segment.Journal;
+import org.apache.jackrabbit.oak.plugins.segment.MergeDiff;
+import org.apache.jackrabbit.oak.plugins.segment.RecordId;
+import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeState;
+import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
+import org.apache.jackrabbit.oak.plugins.segment.SegmentWriter;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
-final class MemoryJournal implements Journal {
+public final class MemoryJournal implements Journal {
 
     private final SegmentStore store;
 
@@ -31,7 +37,7 @@ final class MemoryJournal implements Journal {
 
     private RecordId head;
 
-    MemoryJournal(SegmentStore store, NodeState root) {
+    public MemoryJournal(SegmentStore store, NodeState root) {
         this.store = checkNotNull(store);
         this.parent = null;
 
@@ -43,7 +49,7 @@ final class MemoryJournal implements Journal {
         this.head = id;
     }
 
-    MemoryJournal(SegmentStore store, String parent) {
+    public MemoryJournal(SegmentStore store, String parent) {
         this.store = checkNotNull(store);
         this.parent = store.getJournal(checkNotNull(parent));
         this.base = this.parent.getHead();

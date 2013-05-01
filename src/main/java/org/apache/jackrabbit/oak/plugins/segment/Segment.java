@@ -33,7 +33,7 @@ import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import com.google.common.base.Charsets;
 import com.google.common.cache.Weigher;
 
-class Segment {
+public class Segment {
 
     /**
      * Number of bytes used for storing a record identifier. One byte
@@ -103,7 +103,7 @@ class Segment {
 
     private final OffsetCache<Template> templates;
 
-    Segment(SegmentStore store,
+    public Segment(SegmentStore store,
             UUID uuid, ByteBuffer data, Collection<UUID> uuids,
             Map<String, RecordId> strings, Map<Template, RecordId> templates) {
         this.store = checkNotNull(store);
