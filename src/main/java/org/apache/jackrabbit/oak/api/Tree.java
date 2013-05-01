@@ -124,6 +124,7 @@ public interface Tree {
      * @return the current location
      */
     @Nonnull
+    @Deprecated
     TreeLocation getLocation();
 
     /**

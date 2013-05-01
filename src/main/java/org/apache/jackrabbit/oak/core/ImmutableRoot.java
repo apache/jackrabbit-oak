@@ -76,6 +76,7 @@ public final class ImmutableRoot implements Root {
 
     @Nonnull
     @Override
+    @Deprecated
     public TreeLocation getLocation(String path) {
         checkArgument(PathUtils.isAbsolute(path));
         TreeLocation child = rootTree.getLocation();
