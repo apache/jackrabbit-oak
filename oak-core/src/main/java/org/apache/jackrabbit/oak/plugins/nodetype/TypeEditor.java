@@ -120,8 +120,10 @@ class TypeEditor extends DefaultEditor {
         // TODO: this should be in childNodeAdded()
         if (parent != null && parent.effective.getDefinition(
                 nodeName, effective.getTypeNames()) == null) {
+            Set<String> parentTypes = parent.effective.getTypeNames();
             throw constraintViolation(
-                    1, "Incorrect node type of child node " + nodeName);
+                    1, "No matching child node definition found for child node "
+                    + nodeName + " in any of the parent types " + parentTypes);
         }
     }
 
@@ -140,7 +142,7 @@ class TypeEditor extends DefaultEditor {
 
     private CommitFailedException constraintViolation(int code, String message) {
         return new CommitFailedException(
-                CONSTRAINT, code, getPath() + ": " + message + " " + typeNames);
+                CONSTRAINT, code, getPath() + typeNames + ": " + message);
     }
 
     @Override
