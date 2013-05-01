@@ -156,7 +156,7 @@ public class ReadOnlyTree implements Tree {
 
     @Override
     public boolean exists() {
-        return true;
+        return state.exists();
     }
 
     @Override
