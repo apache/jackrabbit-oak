@@ -82,6 +82,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.IdentifierManager;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.util.TreeUtil;
 
 /**
@@ -287,7 +288,8 @@ public class NodeDelegate extends ItemDelegate {
         return transform(filter(getTree().getProperties().iterator(), new Predicate<PropertyState>() {
                 @Override
                 public boolean apply(PropertyState property) {
-                    return !property.getName().startsWith(":");
+                    // FIXME clarify handling of hidden items (OAK-753)
+                    return !NodeStateUtils.isHidden(property.getName());
                 }
                 }),
                 new Function<PropertyState, PropertyDelegate>() {
