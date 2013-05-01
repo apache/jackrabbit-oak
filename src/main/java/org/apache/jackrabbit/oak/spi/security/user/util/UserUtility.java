@@ -61,8 +61,8 @@ public final class UserUtility implements UserConstants {
     }
 
     @CheckForNull
-    public static AuthorizableType getType(@Nullable Tree authorizableNode) {
-        String ntName = (authorizableNode == null) ? null : TreeUtil.getPrimaryTypeName(authorizableNode);
+    public static AuthorizableType getType(@Nonnull Tree authorizableNode) {
+        String ntName = TreeUtil.getPrimaryTypeName(authorizableNode);
         if (ntName != null) {
             if (UserConstants.NT_REP_GROUP.equals(ntName)) {
                 return AuthorizableType.GROUP;

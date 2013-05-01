@@ -16,11 +16,14 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.io.UnsupportedEncodingException;
 import java.security.NoSuchAlgorithmException;
 import java.security.Principal;
 import java.util.Iterator;
 import java.util.List;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -51,8 +54,6 @@ import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtility;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtility;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * UserManagerImpl...
@@ -281,7 +282,7 @@ public class UserManagerImpl implements UserManager {
     //--------------------------------------------------------------------------
     @CheckForNull
     Authorizable getAuthorizable(Tree tree) throws RepositoryException {
-        if (tree == null) {
+        if (tree == null || !tree.exists()) {
             return null;
         }
         return getAuthorizable(userProvider.getAuthorizableId(tree), tree);

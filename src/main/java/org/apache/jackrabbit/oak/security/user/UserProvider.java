@@ -16,10 +16,14 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
+
 import java.security.Principal;
 import java.text.ParseException;
 import java.util.Collections;
 import java.util.Iterator;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
@@ -43,9 +47,6 @@ import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.api.Type.STRING;
 
 /**
  * User provider implementation and manager for group memberships with the
@@ -145,7 +146,7 @@ import static org.apache.jackrabbit.oak.api.Type.STRING;
  *
  * <h3>By Path</h3>
  * Access by path consists of a simple lookup by path such as exposed by
- * {@link Root#getTreeOrNull(String)}. The resulting tree is validated to really
+ * {@link Root#getTree(String)}. The resulting tree is validated to really
  * represent a user/group tree.
  *
  * <h3>By Principal</h3>
@@ -198,7 +199,7 @@ class UserProvider extends AuthorizableBaseProvider {
     @CheckForNull
     Tree getAuthorizableByPrincipal(Principal principal) {
         if (principal instanceof TreeBasedPrincipal) {
-            return root.getTreeOrNull(((TreeBasedPrincipal) principal).getOakPath());
+            return root.getTree(((TreeBasedPrincipal) principal).getOakPath());
         }
 
         // NOTE: in contrast to JR2 the extra shortcut for ID==principalName
@@ -217,7 +218,7 @@ class UserProvider extends AuthorizableBaseProvider {
             Iterator<? extends ResultRow> rows = result.getRows().iterator();
             if (rows.hasNext()) {
                 String path = rows.next().getPath();
-                return root.getTreeOrNull(path);
+                return root.getTree(path);
             }
         } catch (ParseException ex) {
             log.error("Failed to retrieve authorizable by principal", ex);
@@ -273,9 +274,9 @@ class UserProvider extends AuthorizableBaseProvider {
                                        boolean isGroup, String intermediatePath) throws RepositoryException {
         String authRoot = (isGroup) ? groupPath : userPath;
         NodeUtil folder;
-        Tree authTree = root.getTreeOrNull(authRoot);
-        if (authTree == null) {
-            folder = new NodeUtil(root.getTreeOrNull("/"));
+        Tree authTree = root.getTree(authRoot);
+        if (!authTree.exists()) {
+            folder = new NodeUtil(root.getTree("/"));
             for (String name : Text.explode(authRoot, '/', false)) {
                 folder = folder.getOrAddChild(name, NT_REP_AUTHORIZABLE_FOLDER);
             }

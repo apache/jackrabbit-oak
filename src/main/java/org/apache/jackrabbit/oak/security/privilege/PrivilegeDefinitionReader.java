@@ -16,9 +16,9 @@
  */
 package org.apache.jackrabbit.oak.security.privilege;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -38,7 +38,7 @@ class PrivilegeDefinitionReader implements PrivilegeConstants {
     private final Tree privilegesTree;
 
     PrivilegeDefinitionReader(@Nonnull Root root) {
-        this.privilegesTree = root.getTreeOrNull(PRIVILEGES_PATH);
+        this.privilegesTree = root.getTree(PRIVILEGES_PATH);
     }
 
     /**
@@ -48,18 +48,14 @@ class PrivilegeDefinitionReader implements PrivilegeConstants {
      */
     @Nonnull
     Map<String, PrivilegeDefinition> readDefinitions() {
-        if (privilegesTree == null) {
-            return Collections.emptyMap();
-        } else {
-            Map<String, PrivilegeDefinition> definitions = new HashMap<String, PrivilegeDefinition>();
-            for (Tree child : privilegesTree.getChildren()) {
-                if (isPrivilegeDefinition(child)) {
-                    PrivilegeDefinition def = readDefinition(child);
-                    definitions.put(def.getName(), def);
-                }
+        Map<String, PrivilegeDefinition> definitions = new HashMap<String, PrivilegeDefinition>();
+        for (Tree child : privilegesTree.getChildren()) {
+            if (isPrivilegeDefinition(child)) {
+                PrivilegeDefinition def = readDefinition(child);
+                definitions.put(def.getName(), def);
             }
-            return definitions;
         }
+        return definitions;
     }
 
     /**

@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.security.authorization;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.security.Principal;
 import java.text.ParseException;
 import java.util.ArrayList;
@@ -26,6 +28,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -84,8 +87,6 @@ import org.apache.jackrabbit.util.ISO9075;
 import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Default implementation of the {@code JackrabbitAccessControlManager} interface.
@@ -180,7 +181,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
         if (oakPath != null) {
             String parentPath = Text.getRelativeParent(oakPath, 1);
             while (!parentPath.isEmpty()) {
-                Tree t = root.getTreeOrNull(parentPath);
+                Tree t = root.getTree(parentPath);
                 AccessControlPolicy plc = createACL(parentPath, t, true);
                 if (plc != null) {
                     effective.add(plc);
@@ -259,7 +260,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
                 acl = new NodeACL(path);
             }
 
-            Map<String, Value> restrictions = new HashMap();
+            Map<String, Value> restrictions = new HashMap<String, Value>();
             for (String name : ace.getRestrictionNames()) {
                 if (!REP_NODE_PATH.equals(name)) {
                     restrictions.put(name, ace.getRestriction(name));
@@ -372,9 +373,9 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
         for (ResultRow row : aceResult.getRows()) {
             String acePath = row.getPath();
             String aclName = Text.getName(Text.getRelativeParent(acePath, 1));
-            Tree accessControlledTree = root.getTreeOrNull(Text.getRelativeParent(acePath, 2));
+            Tree accessControlledTree = root.getTree(Text.getRelativeParent(acePath, 2));
 
-            if (aclName.isEmpty() || accessControlledTree == null) {
+            if (aclName.isEmpty() || !accessControlledTree.exists()) {
                 log.debug("Isolated access control entry -> ignore query result at " + acePath);
                 continue;
             }
@@ -424,8 +425,8 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
 
     @Nonnull
     private Tree getTree(@Nullable String oakPath, long permissions) throws RepositoryException {
-        Tree tree = (oakPath == null) ? root.getTreeOrNull("/") : root.getTreeOrNull(oakPath);
-        if (tree == null) {
+        Tree tree = (oakPath == null) ? root.getTree("/") : root.getTree(oakPath);
+        if (!tree.exists()) {
             throw new PathNotFoundException("No tree at " + oakPath);
         }
         if (permissions != Permissions.NO_PERMISSION) {
@@ -483,15 +484,15 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
         return ntMgr.isNodeType(tree, nodeTypeName);
     }
 
-    private boolean isACE(@Nullable Tree tree) {
-        return tree != null && ntMgr.isNodeType(tree, NT_REP_ACE);
+    private boolean isACE(@Nonnull Tree tree) {
+        return tree.exists() && ntMgr.isNodeType(tree, NT_REP_ACE);
     }
 
     @CheckForNull
     private Tree getAclTree(@Nullable String oakPath, @Nonnull Tree accessControlledTree) {
         if (isAccessControlled(accessControlledTree, getMixinName(oakPath))) {
-            Tree policyTree = accessControlledTree.getChildOrNull(getAclName(oakPath));
-            if (policyTree != null) {
+            Tree policyTree = accessControlledTree.getChild(getAclName(oakPath));
+            if (policyTree.exists()) {
                 return policyTree;
             }
         }
@@ -524,13 +525,13 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
 
     @CheckForNull
     private JackrabbitAccessControlList createACL(@Nullable String oakPath,
-                                                  @Nullable Tree accessControlledTree,
+                                                  @Nonnull Tree accessControlledTree,
                                                   boolean isReadOnly) throws RepositoryException {
         JackrabbitAccessControlList acl = null;
         String aclName = getAclName(oakPath);
         String mixinName = getMixinName(oakPath);
 
-        if (accessControlledTree != null && isAccessControlled(accessControlledTree, mixinName)) {
+        if (accessControlledTree.exists() && isAccessControlled(accessControlledTree, mixinName)) {
             Tree aclTree = accessControlledTree.getChildOrNull(aclName);
             if (aclTree != null) {
                 List<JackrabbitAccessControlEntry> entries = new ArrayList<JackrabbitAccessControlEntry>();
@@ -556,7 +557,7 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
         RestrictionProvider restrProvider = new PrincipalRestrictionProvider(restrictionProvider, namePathMapper);
         List<JackrabbitAccessControlEntry> entries = new ArrayList<JackrabbitAccessControlEntry>();
         for (ResultRow row : aceResult.getRows()) {
-            Tree aceTree = root.getTreeOrNull(row.getPath());
+            Tree aceTree = root.getTree(row.getPath());
             if (isACE(aceTree)) {
                 String aclPath = Text.getRelativeParent(aceTree.getPath(), 1);
                 String path;
