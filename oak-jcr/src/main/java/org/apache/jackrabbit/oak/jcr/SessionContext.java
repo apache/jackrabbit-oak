@@ -85,7 +85,7 @@ public abstract class SessionContext implements NamePathMapper {
         LocalNameMapper nameMapper = new LocalNameMapper() {
             @Override
             protected Map<String, String> getNamespaceMap() {
-                return Namespaces.getNamespaceMap(delegate.getRoot().getTreeOrNull("/"));
+                return Namespaces.getNamespaceMap(delegate.getRoot().getTree("/"));
             }
 
             @Override
