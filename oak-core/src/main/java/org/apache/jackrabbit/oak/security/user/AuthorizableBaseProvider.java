@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
@@ -26,8 +28,6 @@ import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtility;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Base class for {@link UserProvider} and {@link MembershipProvider}.
@@ -56,7 +56,7 @@ abstract class AuthorizableBaseProvider implements UserConstants {
 
     @CheckForNull
     Tree getByPath(@Nonnull String authorizableOakPath) {
-        Tree tree = root.getTreeOrNull(authorizableOakPath);
+        Tree tree = root.getTree(authorizableOakPath);
         if (UserUtility.isType(tree, AuthorizableType.AUTHORIZABLE)) {
             return tree;
         } else {

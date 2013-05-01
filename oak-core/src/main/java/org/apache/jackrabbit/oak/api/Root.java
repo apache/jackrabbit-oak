@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.api;
 
-import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 /**
@@ -92,19 +91,6 @@ public interface Root {
     Tree getTree(@Nonnull String path);
 
     /**
-     * Retrieve the {@code Tree} at the given absolute {@code path}. The path
-     * must resolve to a tree in this root.
-     *
-     * @param path absolute path to the tree
-     * @return tree at the given path or {@code null} if no such tree exists or
-     *         if the tree at {@code path} is not accessible.
-     * @deprecated Use {@link #getTree(String)} and {@link Tree#exists()} instead.
-     */
-    @CheckForNull
-    @Deprecated
-    Tree getTreeOrNull(String path);
-
-    /**
      * Get a tree location for a given absolute {@code path}
      *
      * @param path absolute path to the location
@@ -116,13 +102,13 @@ public interface Root {
 
     /**
      * Rebase this root instance to the latest revision. After a call to this method,
-     * trees obtained through {@link #getTreeOrNull(String)} may become disconnected.
+     * trees obtained through {@link #getTree(String)} may become disconnected.
      */
     void rebase();
 
     /**
      * Reverts all changes made to this root and refreshed to the latest trunk.
-     * After a call to this method, trees obtained through {@link #getTreeOrNull(String)}
+     * After a call to this method, trees obtained through {@link #getTree(String)}
      * may become disconnected.
      */
     void refresh();
@@ -130,7 +116,7 @@ public interface Root {
     /**
      * Atomically apply all changes made to the tree beneath this root to the
      * underlying store and refreshes this root. After a call to this method,
-     * all trees obtained through {@link #getTreeOrNull(String)} become invalid and fresh
+     * all trees obtained through {@link #getTree(String)} become invalid and fresh
      * instances must be obtained.
      *
      * @throws CommitFailedException

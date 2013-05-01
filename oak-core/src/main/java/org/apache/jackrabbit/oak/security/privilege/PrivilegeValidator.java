@@ -16,9 +16,12 @@
  */
 package org.apache.jackrabbit.oak.security.privilege;
 
+import static org.apache.jackrabbit.oak.api.CommitFailedException.CONSTRAINT;
+
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -34,8 +37,6 @@ import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeDefinition;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.util.Text;
-
-import static org.apache.jackrabbit.oak.api.CommitFailedException.CONSTRAINT;
 
 /**
  * Validator implementation that is responsible for validating any modifications
@@ -130,8 +131,8 @@ class PrivilegeValidator extends DefaultValidator implements PrivilegeConstants 
 
     @Nonnull
     private Tree getPrivilegesTree(Root root) throws CommitFailedException {
-        Tree privilegesTree = root.getTreeOrNull(PRIVILEGES_PATH);
-        if (privilegesTree == null) {
+        Tree privilegesTree = root.getTree(PRIVILEGES_PATH);
+        if (!privilegesTree.exists()) {
             throw new CommitFailedException(CONSTRAINT, 44, "Privilege store not initialized.");
         }
         return privilegesTree;

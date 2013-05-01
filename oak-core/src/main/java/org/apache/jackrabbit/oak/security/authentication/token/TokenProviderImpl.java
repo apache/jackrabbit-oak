@@ -164,7 +164,7 @@ public class TokenProviderImpl implements TokenProvider {
         try {
             Authorizable user = userManager.getAuthorizable(userId);
             if (user != null && !user.isGroup()) {
-                NodeUtil userNode = new NodeUtil(root.getTreeOrNull(user.getPath()));
+                NodeUtil userNode = new NodeUtil(root.getTree(user.getPath()));
                 NodeUtil tokenParent = userNode.getChild(TOKENS_NODE_NAME);
                 if (tokenParent == null) {
                     tokenParent = userNode.addChild(TOKENS_NODE_NAME, TOKENS_NT_NAME);
@@ -229,7 +229,7 @@ public class TokenProviderImpl implements TokenProvider {
     @Override
     public boolean removeToken(TokenInfo tokenInfo) {
         Tree tokenTree = getTokenTree(tokenInfo);
-        if (tokenTree != null) {
+        if (tokenTree != null && tokenTree.exists()) {
             try {
                 if (tokenTree.remove()) {
                     root.commit();
@@ -245,7 +245,7 @@ public class TokenProviderImpl implements TokenProvider {
     @Override
     public boolean resetTokenExpiration(TokenInfo tokenInfo, long loginTime) {
         Tree tokenTree = getTokenTree(tokenInfo);
-        if (tokenTree != null) {
+        if (tokenTree != null && tokenTree.exists()) {
             NodeUtil tokenNode = new NodeUtil(tokenTree);
             long expTime = getExpirationTime(tokenNode, 0);
             if (tokenInfo.isExpired(loginTime)) {
@@ -309,7 +309,7 @@ public class TokenProviderImpl implements TokenProvider {
     @CheckForNull
     private Tree getTokenTree(TokenInfo tokenInfo) {
         if (tokenInfo instanceof TokenInfoImpl) {
-            return root.getTreeOrNull(((TokenInfoImpl) tokenInfo).tokenPath);
+            return root.getTree(((TokenInfoImpl) tokenInfo).tokenPath);
         } else {
             return null;
         }

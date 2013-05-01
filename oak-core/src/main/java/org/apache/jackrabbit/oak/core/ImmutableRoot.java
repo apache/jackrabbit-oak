@@ -67,13 +67,6 @@ public final class ImmutableRoot implements Root {
         return child;
     }
 
-    @Override
-    @Deprecated
-    public ImmutableTree getTreeOrNull(String path) {
-        ImmutableTree tree = getTree(path);
-        return tree.exists() ? tree : null;
-    }
-
     @Nonnull
     @Override
     @Deprecated
