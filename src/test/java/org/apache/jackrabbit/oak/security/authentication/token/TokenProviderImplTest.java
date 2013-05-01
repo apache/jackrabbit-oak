@@ -217,7 +217,7 @@ public class TokenProviderImplTest extends AbstractTokenTest {
         String tokenNodePath = tokens.getChildren().iterator().next().getPath();
 
         tokenProvider.removeToken(info);
-        assertTrue(root.getTree(tokenNodePath).exists());
+        assertFalse(root.getTree(tokenNodePath).exists());
     }
 
     @Test
