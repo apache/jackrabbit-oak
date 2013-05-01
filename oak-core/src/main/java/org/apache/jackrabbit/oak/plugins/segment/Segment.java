@@ -104,32 +104,12 @@ class Segment {
     private final OffsetCache<Template> templates;
 
     Segment(SegmentStore store,
-            UUID uuid, ByteBuffer data, Collection<UUID> uuids) {
+            UUID uuid, ByteBuffer data, Collection<UUID> uuids,
+            Map<String, RecordId> strings, Map<Template, RecordId> templates) {
         this.store = checkNotNull(store);
         this.uuid = checkNotNull(uuid);
         this.data = checkNotNull(data);
         this.uuids = checkNotNull(uuids).toArray(NO_UUIDS);
-        this.strings = new OffsetCache<String>() {
-            @Override
-            protected String load(int offset) {
-                return loadString(offset);
-            }
-        };
-        this.templates = new OffsetCache<Template>() {
-            @Override
-            protected Template load(int offset) {
-                return loadTemplate(offset);
-            }
-        };
-    }
-
-    Segment(SegmentStore store,
-            UUID uuid, byte[] data, Collection<UUID> uuids,
-            Map<String, RecordId> strings, Map<Template, RecordId> templates) {
-        this.store = store;
-        this.uuid = uuid;
-        this.data = ByteBuffer.wrap(data);
-        this.uuids = uuids.toArray(new UUID[uuids.size()]);
         this.strings = new OffsetCache<String>(strings) {
             @Override
             protected String load(int offset) {

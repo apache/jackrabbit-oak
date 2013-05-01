@@ -57,7 +57,8 @@ public class BenchmarkRunner {
                 OakRepositoryFixture.getMongo(
                         host.value(options), port.value(options), cacheSize * MB),
                 OakRepositoryFixture.getSegment(
-                        host.value(options), port.value(options), cacheSize * MB)
+                        host.value(options), port.value(options), cacheSize * MB),
+                OakRepositoryFixture.getTar("data.tar")
         };
         Benchmark[] allBenchmarks = new Benchmark[] {
             new LoginTest(),

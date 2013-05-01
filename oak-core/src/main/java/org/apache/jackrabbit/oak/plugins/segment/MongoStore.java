@@ -23,6 +23,8 @@ import static com.mongodb.ReadPreference.primary;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 
 import java.nio.ByteBuffer;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -88,22 +90,19 @@ public class MongoStore implements SegmentStore {
     }
 
     @Override
-    public void createSegment(Segment segment) {
-        cache.addSegment(segment);
-        byte[] bytes = new byte[segment.size()];
-        segment.getData().duplicate().get(bytes);
-        insertSegment(segment.getSegmentId(), bytes, segment.getUUIDs());
-    }
-
-    @Override
     public void createSegment(
-            UUID segmentId, byte[] data, int offset, int length) {
-        byte[] d = data;
-        if (offset != 0 || length != data.length) {
-            d = new byte[length];
-            System.arraycopy(data, offset, d, 0, length);
-        }
-        insertSegment(segmentId, d, new UUID[0]);
+            UUID segmentId, byte[] data, int offset, int length,
+            Collection<UUID> referencedSegmentIds,
+            Map<String, RecordId> strings, Map<Template, RecordId> templates) {
+        byte[] d = new byte[length];
+        System.arraycopy(data, offset, d, 0, length);
+
+        cache.addSegment(new Segment(
+                this, segmentId, ByteBuffer.wrap(data), referencedSegmentIds,
+                Collections.<String, RecordId>emptyMap(),
+                Collections.<Template, RecordId>emptyMap()));
+
+        insertSegment(segmentId, d, referencedSegmentIds);
     }
 
     private Segment findSegment(UUID segmentId) {
@@ -125,11 +124,15 @@ public class MongoStore implements SegmentStore {
         for (Object object : list) {
             uuids.add(UUID.fromString(object.toString()));
         }
-        return new Segment(this, segmentId, ByteBuffer.wrap(data), uuids);
+        return new Segment(
+                this, segmentId, ByteBuffer.wrap(data), uuids,
+                Collections.<String, RecordId>emptyMap(),
+                Collections.<Template, RecordId>emptyMap());
     }
 
-    private void insertSegment(UUID segmentId, byte[] data, UUID[] uuids) {
-        List<String> list = Lists.newArrayListWithCapacity(uuids.length);
+    private void insertSegment(
+            UUID segmentId, byte[] data, Collection<UUID> uuids) {
+        List<String> list = Lists.newArrayListWithCapacity(uuids.size());
         for (UUID uuid : uuids) {
             list.add(uuid.toString());
         }

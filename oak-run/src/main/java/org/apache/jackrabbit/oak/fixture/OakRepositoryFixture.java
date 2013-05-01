@@ -28,6 +28,7 @@ import org.apache.jackrabbit.mongomk.util.MongoConnection;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
+import org.apache.jackrabbit.oak.plugins.segment.FileStore;
 import org.apache.jackrabbit.oak.plugins.segment.MongoStore;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
@@ -131,6 +132,21 @@ public abstract class OakRepositoryFixture implements RepositoryFixture {
             public void tearDownCluster() {
                 mongo.getDB(unique).dropDatabase();
                 mongo.close();
+            }
+        };
+    }
+
+    public static RepositoryFixture getTar(final String file) {
+        return new OakRepositoryFixture("Oak-Tar") {
+            @Override
+            public Repository[] setUpCluster(int n) throws Exception {
+                Repository[] cluster = new Repository[n];
+                for (int i = 0; i < cluster.length; i++) {
+                    SegmentStore store = new FileStore(file);
+                    Oak oak = new Oak(new SegmentNodeStore(store));
+                    cluster[i] = new Jcr(oak).createRepository();
+                }
+                return cluster;
             }
         };
     }

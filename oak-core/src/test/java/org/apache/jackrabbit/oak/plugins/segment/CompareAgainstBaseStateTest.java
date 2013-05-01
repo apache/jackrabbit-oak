@@ -17,7 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.segment;
 
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.easymock.EasyMock.createMock;
+import static org.easymock.EasyMock.createControl;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
@@ -25,7 +25,6 @@ import static org.easymock.EasyMock.verify;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
-import org.easymock.EasyMock;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -38,7 +37,8 @@ public class CompareAgainstBaseStateTest {
 
     private final SegmentWriter writer = new SegmentWriter(store);
 
-    private final NodeStateDiff diff = EasyMock.createMock(NodeStateDiff.class);
+    private final NodeStateDiff diff =
+            createControl().createMock("diff", NodeStateDiff.class);
 
     private final NodeBuilder builder = EMPTY_NODE.builder();
 

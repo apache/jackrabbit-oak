@@ -17,7 +17,9 @@
 package org.apache.jackrabbit.oak.plugins.segment;
 
 import java.net.UnknownHostException;
+import java.util.Collection;
 import java.util.Dictionary;
+import java.util.Map;
 import java.util.UUID;
 
 import org.apache.felix.scr.annotations.Activate;
@@ -82,13 +84,14 @@ public class SegmentNodeStoreService extends SegmentNodeStore {
                 return store[0].readSegment(segmentId);
             }            
             @Override
-            public void createSegment(Segment segment) {
-                store[0].createSegment(segment);
-            }
-            @Override
             public void createSegment(
-                    UUID segmentId, byte[] bytes, int offset, int len) {
-                store[0].createSegment(segmentId, bytes, offset, len);
+                    UUID segmentId, byte[] bytes, int offset, int length,
+                    Collection<UUID> referencedSegmentIds,
+                    Map<String, RecordId> strings,
+                    Map<Template, RecordId> templates) {
+                store[0].createSegment(
+                        segmentId, bytes, offset, length,
+                        referencedSegmentIds, strings, templates);
             }
             @Override
             public void deleteSegment(UUID segmentId) {
