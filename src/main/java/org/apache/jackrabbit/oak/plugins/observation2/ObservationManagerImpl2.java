@@ -45,6 +45,7 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MarkerFactory;
 
 /**
  * TODO document
@@ -147,10 +148,14 @@ public class ObservationManagerImpl2 implements ObservationManager {
         EventCollector collector = collectors.get(listener);
         try {
             if (collector == null) {
+                log.error(MarkerFactory.getMarker("observation"),
+                        "Registering event listener {} with filter {}", listener, filter);
                 collector = new EventCollector(this, listener, filter);
                 collectors.put(listener, collector);
                 collector.start(executor);
             } else {
+                log.debug(MarkerFactory.getMarker("observation"),
+                        "Changing event listener {} to filter {}", listener, filter);
                 collector.updateFilter(filter);
             }
         } catch (CommitFailedException e) {
