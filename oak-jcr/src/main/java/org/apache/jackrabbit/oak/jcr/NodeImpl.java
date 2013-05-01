@@ -16,11 +16,22 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Collections.singleton;
+import static javax.jcr.Property.JCR_LOCK_IS_DEEP;
+import static javax.jcr.Property.JCR_LOCK_OWNER;
+import static javax.jcr.PropertyType.UNDEFINED;
+import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.oak.api.Type.NAME;
+import static org.apache.jackrabbit.oak.api.Type.NAMES;
+
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.util.Calendar;
 import java.util.Iterator;
 import java.util.Set;
+
 import javax.annotation.Nonnull;
 import javax.jcr.AccessDeniedException;
 import javax.jcr.Binary;
@@ -79,16 +90,6 @@ import org.apache.jackrabbit.oak.util.TODO;
 import org.apache.jackrabbit.value.ValueHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-import static java.util.Collections.singleton;
-import static javax.jcr.Property.JCR_LOCK_IS_DEEP;
-import static javax.jcr.Property.JCR_LOCK_OWNER;
-import static javax.jcr.PropertyType.UNDEFINED;
-import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
-import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
-import static org.apache.jackrabbit.oak.api.Type.NAME;
-import static org.apache.jackrabbit.oak.api.Type.NAMES;
 
 /**
  * TODO document
@@ -520,11 +521,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                         new Predicate<NodeDelegate>() {
                             @Override
                             public boolean apply(NodeDelegate state) {
-                                try {
-                                    return ItemNameMatcher.matches(toJcrPath(state.getName()), namePattern);
-                                } catch (InvalidItemStateException e) {
-                                    return false;
-                                }
+                                return ItemNameMatcher.matches(toJcrPath(state.getName()), namePattern);
                             }
                         });
 
@@ -543,11 +540,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                         new Predicate<NodeDelegate>() {
                             @Override
                             public boolean apply(NodeDelegate state) {
-                                try {
-                                    return ItemNameMatcher.matches(toJcrPath(state.getName()), nameGlobs);
-                                } catch (InvalidItemStateException e) {
-                                    return false;
-                                }
+                                return ItemNameMatcher.matches(toJcrPath(state.getName()), nameGlobs);
                             }
                         });
 
@@ -596,11 +589,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                         new Predicate<PropertyDelegate>() {
                             @Override
                             public boolean apply(PropertyDelegate entry) {
-                                try {
-                                    return ItemNameMatcher.matches(toJcrPath(entry.getName()), namePattern);
-                                } catch (InvalidItemStateException e) {
-                                    return false;
-                                }
+                                return ItemNameMatcher.matches(toJcrPath(entry.getName()), namePattern);
                             }
                         });
 
@@ -619,11 +608,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                         new Predicate<PropertyDelegate>() {
                             @Override
                             public boolean apply(PropertyDelegate entry) {
-                                try {
-                                    return ItemNameMatcher.matches(toJcrPath(entry.getName()), nameGlobs);
-                                } catch (InvalidItemStateException e) {
-                                    return false;
-                                }
+                                return ItemNameMatcher.matches(toJcrPath(entry.getName()), nameGlobs);
                             }
                         });
 
@@ -1020,6 +1005,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
             getNode(relPath).restore(version, removeExisting);
         } else {
             // TODO
+            TODO.unimplemented();
         }
     }
 
@@ -1123,8 +1109,8 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         String lockIsDeep = getOakPathOrThrow(JCR_LOCK_IS_DEEP);
         try {
             Root root = session.getLatestRoot();
-            Tree tree = root.getTreeOrNull(dlg.getPath());
-            if (tree == null) {
+            Tree tree = root.getTree(dlg.getPath());
+            if (!tree.exists()) {
                 throw new ItemNotFoundException();
             }
             tree.setProperty(lockOwner, userID);
@@ -1196,8 +1182,8 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         String lockIsDeep = getOakPathOrThrow(JCR_LOCK_IS_DEEP);
         try {
             Root root = sessionDelegate.getContentSession().getLatestRoot();
-            Tree tree = root.getTreeOrNull(dlg.getPath());
-            if (tree == null) {
+            Tree tree = root.getTree(dlg.getPath());
+            if (!tree.exists()) {
                 throw new ItemNotFoundException();
             }
             tree.removeProperty(lockOwner);

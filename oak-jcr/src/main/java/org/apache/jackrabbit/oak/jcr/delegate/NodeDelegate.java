@@ -16,8 +16,11 @@
  */
 package org.apache.jackrabbit.oak.jcr.delegate;
 
+import static com.google.common.base.Objects.toStringHelper;
 import static com.google.common.collect.Iterables.addAll;
 import static com.google.common.collect.Iterables.contains;
+import static com.google.common.collect.Iterators.filter;
+import static com.google.common.collect.Iterators.transform;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Sets.newHashSet;
 import static java.util.Collections.emptyList;
@@ -72,11 +75,9 @@ import javax.jcr.nodetype.NoSuchNodeTypeException;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
-import com.google.common.collect.Iterators;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.api.TreeLocation;
+import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.IdentifierManager;
@@ -91,26 +92,56 @@ import org.apache.jackrabbit.oak.util.TreeUtil;
  */
 public class NodeDelegate extends ItemDelegate {
 
+    /** The underlying {@link org.apache.jackrabbit.oak.api.Tree} of this node. */
+    private final Tree tree;
+
     /**
-     * Create a new {@code NodeDelegate} instance for a valid {@code TreeLocation}. That
-     * is for one where {@code getTree() != null}.
+     * Create a new {@code NodeDelegate} instance for an existing {@code Tree}. That
+     * is for one where {@code exists() == true}.
      *
      * @param sessionDelegate
-     * @param location
-     * @return
+     * @param tree
+     * @return  A new {@code NodeDelegate} instance or {@code null} if {@code tree}
+     *          doesn't exist.
      */
-    static NodeDelegate create(SessionDelegate sessionDelegate, TreeLocation location) {
-        return location.getTree() == null
-                ? null
-                : new NodeDelegate(sessionDelegate, location);
+    static NodeDelegate create(SessionDelegate sessionDelegate, Tree tree) {
+        return tree.exists() ? new NodeDelegate(sessionDelegate, tree) : null;
     }
 
     protected NodeDelegate(SessionDelegate sessionDelegate, Tree tree) {
-        super(sessionDelegate, tree.getLocation());
+        super(sessionDelegate);
+        this.tree = tree;
     }
 
-    private NodeDelegate(SessionDelegate sessionDelegate, TreeLocation location) {
-        super(sessionDelegate, location);
+    @Override
+    @Nonnull
+    public String getName() {
+        return tree.getName();
+    }
+
+    @Override
+    @Nonnull
+    public String getPath() {
+        return tree.getPath();
+    }
+
+    @Override
+    @CheckForNull
+    public NodeDelegate getParent() {
+        return tree.isRoot()
+            ? null
+            : create(sessionDelegate, tree.getParent());
+    }
+
+    @Override
+    public boolean isStale() {
+        return !tree.exists();
+    }
+
+    @Override
+    @CheckForNull
+    public Status getStatus() {
+        return tree.getStatus();
     }
 
     @Nonnull
@@ -121,43 +152,41 @@ public class NodeDelegate extends ItemDelegate {
     @Override
     public boolean isProtected() throws InvalidItemStateException {
         Tree tree = getTree();
+        if (tree.isRoot()) {
+            return false;
+        }
 
-        Tree parent = tree.getParentOrNull();
-        if (parent != null) {
-            String name = tree.getName();
-            Tree typeRoot = sessionDelegate.getRoot().getTreeOrNull(NODE_TYPES_PATH);
-            List<Tree> types = getEffectiveType(parent, typeRoot);
+        Tree parent = tree.getParent();
+        String name = tree.getName();
+        Tree typeRoot = sessionDelegate.getRoot().getTree(NODE_TYPES_PATH);
+        List<Tree> types = getEffectiveType(parent, typeRoot);
 
-            boolean protectedResidual = false;
-            for (Tree type : types) {
-                if (contains(getNames(type, OAK_PROTECTED_CHILD_NODES), name)) {
-                    return true;
-                } else if (!protectedResidual) {
-                    protectedResidual = getBoolean(
-                            type, OAK_HAS_PROTECTED_RESIDUAL_CHILD_NODES);
-                }
+        boolean protectedResidual = false;
+        for (Tree type : types) {
+            if (contains(getNames(type, OAK_PROTECTED_CHILD_NODES), name)) {
+                return true;
+            } else if (!protectedResidual) {
+                protectedResidual = getBoolean(
+                        type, OAK_HAS_PROTECTED_RESIDUAL_CHILD_NODES);
+            }
+        }
+
+        // Special case: There are one or more protected *residual*
+        // child node definitions. Iterate through them to check whether
+        // there's a matching, protected one.
+        if (protectedResidual) {
+            Set<String> typeNames = newHashSet();
+            for (Tree type : getEffectiveType(tree, typeRoot)) {
+                typeNames.add(getName(type, JCR_NODETYPENAME));
+                addAll(typeNames, getNames(type, OAK_SUPERTYPES));
             }
 
-            // Special case: There are one or more protected *residual*
-            // child node definitions. Iterate through them to check whether
-            // there's a matching, protected one.
-            if (protectedResidual) {
-                Set<String> typeNames = newHashSet();
-                for (Tree type : getEffectiveType(tree, typeRoot)) {
-                    typeNames.add(getName(type, JCR_NODETYPENAME));
-                    addAll(typeNames, getNames(type, OAK_SUPERTYPES));
-                }
-
-                for (Tree type : types) {
-                    Tree definitions = type.getChildOrNull(OAK_RESIDUAL_CHILD_NODE_DEFINITIONS);
-                    if (definitions != null) {
-                        for (String typeName : typeNames) {
-                            Tree definition = definitions.getChildOrNull(typeName);
-                            if (definition != null
-                                    && getBoolean(definition, JCR_PROTECTED)) {
-                                return true;
-                            }
-                        }
+            for (Tree type : types) {
+                Tree definitions = type.getChild(OAK_RESIDUAL_CHILD_NODE_DEFINITIONS);
+                for (String typeName : typeNames) {
+                    Tree definition = definitions.getChild(typeName);
+                    if (getBoolean(definition, JCR_PROTECTED)) {
+                        return true;
                     }
                 }
             }
@@ -168,7 +197,7 @@ public class NodeDelegate extends ItemDelegate {
 
     boolean isProtected(String property) throws InvalidItemStateException {
         Tree tree = getTree();
-        Tree typeRoot = sessionDelegate.getRoot().getTreeOrNull(NODE_TYPES_PATH);
+        Tree typeRoot = sessionDelegate.getRoot().getTree(NODE_TYPES_PATH);
         List<Tree> types = getEffectiveType(tree, typeRoot);
 
         boolean protectedResidual = false;
@@ -186,13 +215,11 @@ public class NodeDelegate extends ItemDelegate {
         // there's a matching, protected one.
         if (protectedResidual) {
             for (Tree type : types) {
-                Tree definitions = type.getChildOrNull(OAK_RESIDUAL_PROPERTY_DEFINITIONS);
-                if (definitions != null) {
-                    for (Tree definition : definitions.getChildren()) {
-                        // TODO: check for matching property type?
-                        if (getBoolean(definition, JCR_PROTECTED)) {
-                            return true;
-                        }
+                Tree definitions = type.getChild(OAK_RESIDUAL_PROPERTY_DEFINITIONS);
+                for (Tree definition : definitions.getChildren()) {
+                    // TODO: check for matching property type?
+                    if (getBoolean(definition, JCR_PROTECTED)) {
+                        return true;
                     }
                 }
             }
@@ -229,10 +256,9 @@ public class NodeDelegate extends ItemDelegate {
      */
     @CheckForNull
     public PropertyDelegate getPropertyOrNull(String relPath) throws RepositoryException {
-        TreeLocation propertyLocation = getChildLocation(relPath);
-        return propertyLocation.getProperty() == null
-                ? null
-                : new PropertyDelegate(sessionDelegate, propertyLocation);
+        Tree parent = getTree(PathUtils.getParentPath(relPath));
+        String name = PathUtils.getName(relPath);
+        return PropertyDelegate.create(sessionDelegate, parent, name);
     }
 
     /**
@@ -246,7 +272,9 @@ public class NodeDelegate extends ItemDelegate {
      */
     @Nonnull
     public PropertyDelegate getProperty(String relPath) throws RepositoryException {
-        return new PropertyDelegate(sessionDelegate, getChildLocation(relPath));
+        Tree parent = getTree(PathUtils.getParentPath(relPath));
+        String name = PathUtils.getName(relPath);
+        return new PropertyDelegate(sessionDelegate, parent, name);
     }
 
     /**
@@ -256,7 +284,18 @@ public class NodeDelegate extends ItemDelegate {
      */
     @Nonnull
     public Iterator<PropertyDelegate> getProperties() throws InvalidItemStateException {
-        return propertyDelegateIterator(getTree().getProperties().iterator());
+        return transform(filter(getTree().getProperties().iterator(), new Predicate<PropertyState>() {
+                @Override
+                public boolean apply(PropertyState property) {
+                    return !property.getName().startsWith(":");
+                }
+                }),
+                new Function<PropertyState, PropertyDelegate>() {
+                    @Override
+                    public PropertyDelegate apply(PropertyState propertyState) {
+                        return new PropertyDelegate(sessionDelegate, tree, propertyState.getName());
+                    }
+                });
     }
 
     /**
@@ -278,7 +317,8 @@ public class NodeDelegate extends ItemDelegate {
      */
     @CheckForNull
     public NodeDelegate getChild(String relPath) throws RepositoryException {
-        return create(sessionDelegate, getChildLocation(relPath));
+        Tree tree = getTree(relPath);
+        return tree == null ? null : create(sessionDelegate, tree);
     }
 
     /**
@@ -312,19 +352,18 @@ public class NodeDelegate extends ItemDelegate {
     public void orderBefore(String source, String target)
             throws ItemNotFoundException, InvalidItemStateException {
         Tree tree = getTree();
-        if (tree.getChildOrNull(source) == null) {
+        if (!tree.getChild(source).exists()) {
             throw new ItemNotFoundException("Not a child: " + source);
-        } else if (target != null && tree.getChildOrNull(target) == null) {
+        } else if (target != null && !tree.getChild(target).exists()) {
             throw new ItemNotFoundException("Not a child: " + target);
         } else {
-            tree.getChildOrNull(source).orderBefore(target);
+            tree.getChild(source).orderBefore(target);
         }
     }
 
     public boolean canAddMixin(String typeName) throws RepositoryException {
-        Tree typeRoot = sessionDelegate.getRoot().getTreeOrNull(NODE_TYPES_PATH);
-        Tree type = typeRoot.getChildOrNull(typeName);
-        if (type != null) {
+        Tree type = sessionDelegate.getRoot().getTree(NODE_TYPES_PATH).getChild(typeName);
+        if (type.exists()) {
             return !getBoolean(type, JCR_IS_ABSTRACT)
                     && getBoolean(type, JCR_ISMIXIN);
         } else {
@@ -334,10 +373,8 @@ public class NodeDelegate extends ItemDelegate {
     }
 
     public void addMixin(String typeName) throws RepositoryException {
-        Tree typeRoot = sessionDelegate.getRoot().getTreeOrNull(NODE_TYPES_PATH);
-
-        Tree type = typeRoot.getChildOrNull(typeName);
-        if (type == null) {
+        Tree type = sessionDelegate.getRoot().getTree(NODE_TYPES_PATH).getChild(typeName);
+        if (!type.exists()) {
             throw new NoSuchNodeTypeException(
                     "Node type " + typeName + " does not exist");
         } else if (getBoolean(type, JCR_IS_ABSTRACT)) {
@@ -357,9 +394,9 @@ public class NodeDelegate extends ItemDelegate {
             return;
         }
 
-        Set<String> submixins = newHashSet(getNames(type, OAK_MIXIN_SUBTYPES));
+        Set<String> subMixins = newHashSet(getNames(type, OAK_MIXIN_SUBTYPES));
         for (String mixin : getNames(tree, JCR_MIXINTYPES)) {
-            if (typeName.equals(mixin) || submixins.contains(mixin)) {
+            if (typeName.equals(mixin) || subMixins.contains(mixin)) {
                 return;
             }
             mixins.add(mixin);
@@ -367,7 +404,7 @@ public class NodeDelegate extends ItemDelegate {
 
         mixins.add(typeName);
         tree.setProperty(JCR_MIXINTYPES, mixins, NAMES);
-        autoCreateItems(tree, type, typeRoot);
+        autoCreateItems(tree, type, sessionDelegate.getRoot().getTree(NODE_TYPES_PATH));
     }
 
     /**
@@ -379,8 +416,8 @@ public class NodeDelegate extends ItemDelegate {
     @Nonnull
     public PropertyDelegate setProperty(PropertyState propertyState) throws RepositoryException {
         Tree tree = getTree();
-        String name = propertyState.getName();
-        PropertyState old = tree.getProperty(name);
+        String propName = propertyState.getName();
+        PropertyState old = tree.getProperty(propName);
         if (old != null && old.isArray() && !propertyState.isArray()) {
             throw new ValueFormatException("Attempt to assign a single value to multi-valued property.");
         }
@@ -388,7 +425,7 @@ public class NodeDelegate extends ItemDelegate {
             throw new ValueFormatException("Attempt to assign multiple values to single valued property.");
         }
         tree.setProperty(propertyState);
-        return new PropertyDelegate(sessionDelegate, tree.getLocation().getChild(name));
+        return new PropertyDelegate(sessionDelegate, tree, propName);
     }
 
     /**
@@ -407,7 +444,7 @@ public class NodeDelegate extends ItemDelegate {
             return null;
         }
 
-        Tree typeRoot = sessionDelegate.getRoot().getTreeOrNull(NODE_TYPES_PATH);
+        Tree typeRoot = sessionDelegate.getRoot().getTree(NODE_TYPES_PATH);
         if (typeName == null) {
             typeName = getDefaultChildType(typeRoot, tree, name);
             if (typeName == null) {
@@ -418,7 +455,6 @@ public class NodeDelegate extends ItemDelegate {
         }
 
         Tree child = internalAddChild(tree, name, typeName, typeRoot);
-
         return new NodeDelegate(sessionDelegate, child);
     }
 
@@ -439,13 +475,18 @@ public class NodeDelegate extends ItemDelegate {
         getTree().setOrderableChildren(enable);
     }
 
+    @Override
+    public String toString() {
+        return toStringHelper(this).add("tree", tree).toString();
+    }
+
     //------------------------------------------------------------< internal >---
 
     private Tree internalAddChild(
             Tree parent, String name, String typeName, Tree typeRoot)
             throws RepositoryException {
-        Tree type = typeRoot.getChildOrNull(typeName);
-        if (type == null) {
+        Tree type = typeRoot.getChild(typeName);
+        if (!type.exists()) {
             throw new NoSuchNodeTypeException(
                     "Node type " + typeName + " does not exist");
         } else if (getBoolean(type, JCR_IS_ABSTRACT)) {
@@ -468,49 +509,45 @@ public class NodeDelegate extends ItemDelegate {
     private void autoCreateItems(Tree tree, Tree type, Tree typeRoot)
             throws RepositoryException {
         // TODO: use a separate oak:autoCreatePropertyDefinitions
-        Tree properties = type.getChildOrNull(OAK_NAMED_PROPERTY_DEFINITIONS);
-        if (properties != null) {
-            for (Tree definitions : properties.getChildren()) {
-                String name = definitions.getName();
-                if (name.equals("oak:primaryType")
-                        || name.equals("oak:mixinTypes")) {
-                    continue;
-                } else if (name.equals("oak:uuid")) {
-                    name = JCR_UUID;
-                }
-                for (Tree definition : definitions.getChildren()) {
-                    if (getBoolean(definition, JCR_AUTOCREATED)) {
-                        if (!tree.hasProperty(name)) {
-                            PropertyState property =
-                                    autoCreateProperty(name, definition);
-                            if (property != null) {
-                                tree.setProperty(property);
-                            } else {
-                                throw new RepositoryException(
-                                        "Unable to auto-create value for "
-                                        + PathUtils.concat(tree.getPath(), name));
-                            }
+        Tree properties = type.getChild(OAK_NAMED_PROPERTY_DEFINITIONS);
+        for (Tree definitions : properties.getChildren()) {
+            String name = definitions.getName();
+            if (name.equals("oak:primaryType")
+                    || name.equals("oak:mixinTypes")) {
+                continue;
+            } else if (name.equals("oak:uuid")) {
+                name = JCR_UUID;
+            }
+            for (Tree definition : definitions.getChildren()) {
+                if (getBoolean(definition, JCR_AUTOCREATED)) {
+                    if (!tree.hasProperty(name)) {
+                        PropertyState property =
+                                autoCreateProperty(name, definition);
+                        if (property != null) {
+                            tree.setProperty(property);
+                        } else {
+                            throw new RepositoryException(
+                                    "Unable to auto-create value for "
+                                    + PathUtils.concat(tree.getPath(), name));
                         }
-                        break;
                     }
+                    break;
                 }
             }
         }
 
         // TODO: use a separate oak:autoCreateChildNodeDefinitions
-        Tree childNodes = type.getChildOrNull(OAK_NAMED_CHILD_NODE_DEFINITIONS);
-        if (childNodes != null) {
-            for (Tree definitions : childNodes.getChildren()) {
-                String name = definitions.getName();
-                for (Tree definition : definitions.getChildren()) {
-                    if (getBoolean(definition, JCR_AUTOCREATED)) {
-                        if (!tree.hasChild(name)) {
-                            String typeName =
-                                    getName(definition, JCR_DEFAULTPRIMARYTYPE);
-                            internalAddChild(tree, name, typeName, typeRoot);
-                        }
-                        break;
+        Tree childNodes = type.getChild(OAK_NAMED_CHILD_NODE_DEFINITIONS);
+        for (Tree definitions : childNodes.getChildren()) {
+            String name = definitions.getName();
+            for (Tree definition : definitions.getChildren()) {
+                if (getBoolean(definition, JCR_AUTOCREATED)) {
+                    if (!tree.hasChild(name)) {
+                        String typeName =
+                                getName(definition, JCR_DEFAULTPRIMARYTYPE);
+                        internalAddChild(tree, name, typeName, typeRoot);
                     }
+                    break;
                 }
             }
         }
@@ -563,34 +600,26 @@ public class NodeDelegate extends ItemDelegate {
      * @param childName name of the new child node
      * @return name of the default type, or {@code null} if not available
      */
-    private String getDefaultChildType(
+    private static String getDefaultChildType(
             Tree typeRoot, Tree parent, String childName) {
         List<Tree> types = getEffectiveType(parent, typeRoot);
 
         // first look for named node definitions
         for (Tree type : types) {
-            Tree named = type.getChildOrNull(OAK_NAMED_CHILD_NODE_DEFINITIONS);
-            if (named != null) {
-                Tree definitions = named.getChildOrNull(childName);
-                if (definitions != null) {
-                    String defaultName =
-                            findDefaultPrimaryType(typeRoot, definitions);
-                    if (defaultName != null) {
-                        return defaultName;
-                    }
-                }
+            Tree named = type.getChild(OAK_NAMED_CHILD_NODE_DEFINITIONS);
+            Tree definitions = named.getChild(childName);
+            String defaultName = findDefaultPrimaryType(typeRoot, definitions);
+            if (defaultName != null) {
+                return defaultName;
             }
         }
 
         // then check residual definitions
         for (Tree type : types) {
-            Tree definitions = type.getChildOrNull(OAK_RESIDUAL_CHILD_NODE_DEFINITIONS);
-            if (definitions != null) {
-                String defaultName =
-                        findDefaultPrimaryType(typeRoot, definitions);
-                if (defaultName != null) {
-                    return defaultName;
-                }
+            Tree definitions = type.getChild(OAK_RESIDUAL_CHILD_NODE_DEFINITIONS);
+            String defaultName = findDefaultPrimaryType(typeRoot, definitions);
+            if (defaultName != null) {
+                return defaultName;
             }
         }
 
@@ -606,15 +635,15 @@ public class NodeDelegate extends ItemDelegate {
 
         String primary = getName(tree, JCR_PRIMARYTYPE);
         if (primary != null) {
-            Tree type = typeRoot.getChildOrNull(primary);
-            if (type != null) {
+            Tree type = typeRoot.getChild(primary);
+            if (type.exists()) {
                 types.add(type);
             }
         }
 
         for (String mixin : getNames(tree, JCR_MIXINTYPES)) {
-            Tree type = typeRoot.getChildOrNull(mixin);
-            if (type != null) {
+            Tree type = typeRoot.getChild(mixin);
+            if (type.exists()) {
                 types.add(type);
             }
         }
@@ -622,7 +651,7 @@ public class NodeDelegate extends ItemDelegate {
         return types;
     }
 
-    private String findDefaultPrimaryType(Tree typeRoot, Tree definitions) {
+    private static String findDefaultPrimaryType(Tree typeRoot, Tree definitions) {
         for (Tree definition : definitions.getChildren()) {
             String defaultName = getName(definition, JCR_DEFAULTPRIMARYTYPE);
             if (defaultName != null) {
@@ -634,27 +663,26 @@ public class NodeDelegate extends ItemDelegate {
 
     @Nonnull // FIXME this should be package private. OAK-672
     public Tree getTree() throws InvalidItemStateException {
-        Tree tree = getLocation().getTree();
-        if (tree == null) {
-            throw new InvalidItemStateException();
+        if (!tree.exists()) {
+            throw new InvalidItemStateException("Item is stale");
         }
         return tree;
     }
 
     // -----------------------------------------------------------< private >---
 
-    private TreeLocation getChildLocation(String relPath) throws RepositoryException {
+    private Tree getTree(String relPath) throws RepositoryException {
         if (PathUtils.isAbsolute(relPath)) {
             throw new RepositoryException("Not a relative path: " + relPath);
         }
 
-        return TreeUtil.getTreeLocation(getLocation(), relPath);
+        return TreeUtil.getTree(tree, relPath);
     }
 
     private Iterator<NodeDelegate> nodeDelegateIterator(
             Iterator<Tree> children) {
-        return Iterators.transform(
-                Iterators.filter(children, new Predicate<Tree>() {
+        return transform(
+                filter(children, new Predicate<Tree>() {
                     @Override
                     public boolean apply(Tree tree) {
                         return !tree.getName().startsWith(":");
@@ -664,24 +692,6 @@ public class NodeDelegate extends ItemDelegate {
                     @Override
                     public NodeDelegate apply(Tree tree) {
                         return new NodeDelegate(sessionDelegate, tree);
-                    }
-                });
-    }
-
-    private Iterator<PropertyDelegate> propertyDelegateIterator(
-            Iterator<? extends PropertyState> properties) throws InvalidItemStateException {
-        final TreeLocation location = getLocation();
-        return Iterators.transform(
-                Iterators.filter(properties, new Predicate<PropertyState>() {
-                    @Override
-                    public boolean apply(PropertyState property) {
-                        return !property.getName().startsWith(":");
-                    }
-                }),
-                new Function<PropertyState, PropertyDelegate>() {
-                    @Override
-                    public PropertyDelegate apply(PropertyState propertyState) {
-                        return new PropertyDelegate(sessionDelegate, location.getChild(propertyState.getName()));
                     }
                 });
     }
@@ -714,5 +724,4 @@ public class NodeDelegate extends ItemDelegate {
             return emptyList();
         }
     }
-
 }

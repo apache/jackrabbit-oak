@@ -55,8 +55,8 @@ public class VersionHistoryDelegate extends NodeDelegate {
 
     @Nonnull
     public VersionDelegate getRootVersion() throws RepositoryException {
-        Tree rootVersion = getTree().getChildOrNull(VersionConstants.JCR_ROOTVERSION);
-        if (rootVersion == null) {
+        Tree rootVersion = getTree().getChild(VersionConstants.JCR_ROOTVERSION);
+        if (!rootVersion.exists()) {
             throw new RepositoryException("Inconsistent version storage. " +
                     "VersionHistory does not have a root version");
         }
@@ -67,8 +67,8 @@ public class VersionHistoryDelegate extends NodeDelegate {
     public VersionDelegate getVersion(@Nonnull String versionName)
             throws VersionException, RepositoryException {
         checkNotNull(versionName);
-        Tree version = getTree().getChildOrNull(versionName);
-        if (version == null) {
+        Tree version = getTree().getChild(versionName);
+        if (!version.exists()) {
             throw new VersionException("No such Version: " + versionName);
         }
         return VersionDelegate.create(sessionDelegate, version);
@@ -86,7 +86,7 @@ public class VersionHistoryDelegate extends NodeDelegate {
         String id = p.getValue(Type.REFERENCE);
         Tree version = sessionDelegate.getIdManager().getTree(id);
         if (version == null) {
-            throw new VersionException("Invalid label: " + label + "(" + id + ")");
+            throw new VersionException("Invalid label: " + label + '(' + id + ')');
         }
         return VersionDelegate.create(sessionDelegate, version);
     }
@@ -137,7 +137,7 @@ public class VersionHistoryDelegate extends NodeDelegate {
         return Iterators.transform(versions.values().iterator(), new Function<String, VersionDelegate>() {
             @Override
             public VersionDelegate apply(String name) {
-                return VersionDelegate.create(sessionDelegate, thisTree.getChildOrNull(name));
+                return VersionDelegate.create(sessionDelegate, thisTree.getChild(name));
             }
         });
     }
@@ -152,8 +152,8 @@ public class VersionHistoryDelegate extends NodeDelegate {
      */
     @Nonnull
     private Tree getVersionLabelsTree() throws RepositoryException {
-        Tree versionLabels = getTree().getChildOrNull(VersionConstants.JCR_VERSIONLABELS);
-        if (versionLabels == null) {
+        Tree versionLabels = getTree().getChild(VersionConstants.JCR_VERSIONLABELS);
+        if (!versionLabels.exists()) {
             throw new RepositoryException("Inconsistent version storage. " +
                     "VersionHistory does not have jcr:versionLabels child node");
         }

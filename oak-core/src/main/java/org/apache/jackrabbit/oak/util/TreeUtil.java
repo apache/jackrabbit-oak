@@ -63,7 +63,7 @@ public final class TreeUtil {
     @CheckForNull
     private static String getStringInternal(Tree tree,
                                             String propertyName,
-                                            Type<? extends String> type) {
+                                            Type<String> type) {
         PropertyState property = tree.getProperty(propertyName);
         if (property != null && !property.isArray()) {
             return property.getValue(type);
@@ -101,6 +101,7 @@ public final class TreeUtil {
      * @return  tree location located at {@code path} from {@code start}
      */
     @Nonnull
+    @Deprecated
     public static TreeLocation getTreeLocation(TreeLocation start, String path) {
         TreeLocation loc = start;
         for (String element : Text.explode(path, '/', false)) {
@@ -123,6 +124,7 @@ public final class TreeUtil {
      * @return  tree location located at {@code path} from {@code start}
      */
     @Nonnull
+    @Deprecated
     public static TreeLocation getTreeLocation(Tree start, String path) {
         return getTreeLocation(start.getLocation(), path);
     }
@@ -137,21 +139,34 @@ public final class TreeUtil {
      * @return  tree located at {@code path} from {@code start} or {@code null}
      */
     @CheckForNull
+    @Deprecated
     public static Tree getTree(TreeLocation start, String path) {
         return getTreeLocation(start, path).getTree();
     }
 
     /**
-     * Return the tree located at the passed {@code path} from the location of
-     * the {@code start} tree or {@code null} if no such tree exists or is accessible.
-     * Equivalent to {@code getTreeLocation(start.getLocation(), path).getTree()}.
+     * Return the possibly non existing tree located at the passed {@code path} from
+     * the location of the start {@code tree} or {@code null} if {@code path} results
+     * in a parent of the root.
      *
-     * @param start  start tree
+     * @param tree  start tree
      * @param path  path from the start tree
      * @return  tree located at {@code path} from {@code start} or {@code null}
      */
     @CheckForNull
-    public static Tree getTree(Tree start, String path) {
-        return getTreeLocation(start.getLocation(), path).getTree();
+    public static Tree getTree(Tree tree, String path) {
+        for (String element : Text.explode(path, '/', false)) {
+            if (PathUtils.denotesParent(element)) {
+                if (tree.isRoot()) {
+                    return null;
+                } else {
+                    tree = tree.getParent();
+                }
+            } else if (!PathUtils.denotesCurrent(element)) {
+                tree = tree.getChild(element);
+            }  // else . -> skip to next element
+        }
+        return tree;
     }
+
 }

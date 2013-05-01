@@ -16,13 +16,18 @@
  */
 package org.apache.jackrabbit.oak.jcr.delegate;
 
+import static com.google.common.base.Objects.toStringHelper;
+
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.ValueFormatException;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.TreeLocation;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Tree.Status;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 
 /**
  * {@code PropertyDelegate} serve as internal representations of {@code Property}s.
@@ -32,18 +37,69 @@ import org.apache.jackrabbit.oak.api.Type;
  */
 public class PropertyDelegate extends ItemDelegate {
 
-    PropertyDelegate(SessionDelegate sessionDelegate, TreeLocation location) {
-        super(sessionDelegate, location);
+    /** The underlying {@link org.apache.jackrabbit.oak.api.Tree} of this property's parent */
+    private final Tree parent;
+
+    private final String name;
+
+    /**
+     * Create a new property delegate for an existing parent.
+     * @param sessionDelegate
+     * @param parent  parent tree
+     * @param name  property name
+     * @return  {@code PropertyDelegate} instance or {@code null} if either {@code parent}
+     *          does not exist or does not have a property {@code name}.
+     */
+    @CheckForNull
+    static PropertyDelegate create(SessionDelegate sessionDelegate, Tree parent, String name) {
+        return parent.exists() && parent.hasProperty(name) ?
+            new PropertyDelegate(sessionDelegate, parent, name)
+            : null;
+    }
+
+    PropertyDelegate(SessionDelegate sessionDelegate, Tree parent, String name) {
+        super(sessionDelegate);
+        this.parent = parent;
+        this.name = name;
+    }
+
+    @Override
+    @Nonnull
+    public String getName() {
+        return name;
+    }
+
+    @Override
+    @Nonnull
+    public String getPath() {
+        return PathUtils.concat(parent.getPath(), name);
+    }
+
+    @Override
+    @CheckForNull
+    public NodeDelegate getParent() {
+        return NodeDelegate.create(sessionDelegate, parent);
+    }
+
+    @Override
+    public boolean isStale() {
+        return !parent.exists() || !parent.hasProperty(name);
+    }
+
+    @Override
+    @CheckForNull
+    public Status getStatus() {
+        return parent.getPropertyStatus(name);
     }
 
     @Override
     public boolean isProtected() throws InvalidItemStateException {
-        return getParent().isProtected(getName());
+        return getParent().isProtected(name);
     }
 
     @Nonnull
     public PropertyState getPropertyState() throws InvalidItemStateException {
-        PropertyState p = getLocation().getProperty();
+        PropertyState p = parent.getProperty(name);
         if (p == null) {
             throw new InvalidItemStateException();
         }
@@ -84,17 +140,23 @@ public class PropertyDelegate extends ItemDelegate {
         return p;
     }
 
-    public void setState(PropertyState propertyState) throws InvalidItemStateException {
-        if (!getLocation().set(propertyState)) {
-            throw new InvalidItemStateException();
-        }
+    public void setState(PropertyState propertyState) {
+        parent.setProperty(propertyState);
     }
 
     /**
      * Remove the property
      */
-    public void remove() throws InvalidItemStateException {
-        getLocation().remove();
+    public void remove() {
+        parent.removeProperty(name);
+    }
+
+    @Override
+    public String toString() {
+        return toStringHelper(this)
+                .add("parent", parent)
+                .add("property", parent.getProperty(name))
+                .toString();
     }
 
 }

@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.jcr.delegate;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import javax.annotation.Nonnull;
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.RepositoryException;
@@ -23,10 +25,7 @@ import javax.jcr.UnsupportedRepositoryOperationException;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.jcr.version.ReadWriteVersionManager;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * {@code VersionManagerDelegate}...
@@ -37,25 +36,25 @@ public class VersionManagerDelegate {
      * TODO: this assumes the version store is in the same workspace.
      */
     private static final String VERSION_STORAGE_PATH
-            = "/" + JcrConstants.JCR_SYSTEM + "/" + JcrConstants.JCR_VERSIONSTORAGE;
+            = '/' + JcrConstants.JCR_SYSTEM + '/' + JcrConstants.JCR_VERSIONSTORAGE;
 
     private final SessionDelegate sessionDelegate;
 
     private final ReadWriteVersionManager versionManager;
 
     public static VersionManagerDelegate create(SessionDelegate sessionDelegate) {
-        TreeLocation location = sessionDelegate.getRoot().getLocation(VERSION_STORAGE_PATH);
-        return new VersionManagerDelegate(sessionDelegate, location);
+        Tree versionStorage = sessionDelegate.getRoot().getTree(VERSION_STORAGE_PATH);
+        return new VersionManagerDelegate(sessionDelegate, versionStorage);
     }
 
     private VersionManagerDelegate(SessionDelegate sessionDelegate,
-                                   TreeLocation versionStorageLocation) {
+                                   Tree versionStorage) {
         this.sessionDelegate = sessionDelegate;
         this.versionManager = new ReadWriteVersionManager(
-                versionStorageLocation,
+                versionStorage,
                 sessionDelegate.getRoot()) {
             @Override
-            protected void refresh() throws RepositoryException {
+            protected void refresh() {
                 VersionManagerDelegate.this.sessionDelegate.refresh(true);
             }
         };
@@ -123,11 +122,6 @@ public class VersionManagerDelegate {
     @Nonnull
     private static Tree getTree(@Nonnull NodeDelegate nodeDelegate)
             throws InvalidItemStateException {
-        Tree t = checkNotNull(nodeDelegate).getLocation().getTree();
-        if (t == null) {
-            throw new InvalidItemStateException("Node does not exist: " +
-                    nodeDelegate.getPath());
-        }
-        return t;
+        return checkNotNull(nodeDelegate).getTree();
     }
 }

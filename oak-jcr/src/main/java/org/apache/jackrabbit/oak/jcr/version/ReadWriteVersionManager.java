@@ -26,7 +26,6 @@ import javax.jcr.UnsupportedRepositoryOperationException;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
@@ -38,12 +37,12 @@ import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
  */
 public class ReadWriteVersionManager extends ReadOnlyVersionManager {
 
-    private final TreeLocation versionStorageLocation;
+    private final Tree versionStorage;
     private final Root workspaceRoot;
 
-    public ReadWriteVersionManager(@Nonnull TreeLocation versionStorageLocation,
-                                   @Nonnull Root workspaceRoot) {
-        this.versionStorageLocation = checkNotNull(versionStorageLocation);
+    public ReadWriteVersionManager(@Nonnull Tree versionStorage,
+            @Nonnull Root workspaceRoot) {
+        this.versionStorage = checkNotNull(versionStorage);
         this.workspaceRoot = checkNotNull(workspaceRoot);
     }
 
@@ -61,8 +60,8 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
 
     @Override
     @Nonnull
-    protected TreeLocation getVersionStorageLocation() {
-        return versionStorageLocation;
+    protected Tree getVersionStorage() {
+        return versionStorage;
     }
 
     @Override
@@ -115,7 +114,7 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
                 throw new RepositoryException(e);
             }
         }
-        return getBaseVersion(getWorkspaceRoot().getTreeOrNull(versionable.getPath()));
+        return getBaseVersion(getWorkspaceRoot().getTree(versionable.getPath()));
     }
 
     /**
