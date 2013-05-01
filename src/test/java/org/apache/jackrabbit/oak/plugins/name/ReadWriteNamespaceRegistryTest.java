@@ -16,6 +16,8 @@
 */
 package org.apache.jackrabbit.oak.plugins.name;
 
+import static org.junit.Assert.assertEquals;
+
 import javax.jcr.NamespaceRegistry;
 
 import org.apache.jackrabbit.oak.OakBaseTest;
@@ -23,8 +25,6 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
 
 public class ReadWriteNamespaceRegistryTest extends OakBaseTest {
 
@@ -34,7 +34,7 @@ public class ReadWriteNamespaceRegistryTest extends OakBaseTest {
         NamespaceRegistry r = new ReadWriteNamespaceRegistry() {
             @Override
             protected Tree getReadTree() {
-                return session.getLatestRoot().getTreeOrNull("/");
+                return session.getLatestRoot().getTree("/");
             }
             @Override
             protected Root getWriteRoot() {

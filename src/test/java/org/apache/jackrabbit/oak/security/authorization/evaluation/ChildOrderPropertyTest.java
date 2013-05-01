@@ -16,6 +16,11 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.evaluation;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+
 import java.util.Set;
 
 import com.google.common.collect.Sets;
@@ -25,11 +30,6 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.core.TreeImpl;
 import org.junit.Before;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 
 /**
  * Test for the hidden {@link TreeImpl#OAK_CHILD_ORDER} property
@@ -43,20 +43,20 @@ public class ChildOrderPropertyTest extends AbstractOakCoreTest {
     public void before() throws Exception {
         super.before();
 
-        Tree a = root.getTreeOrNull("/a");
+        Tree a = root.getTree("/a");
         a.setOrderableChildren(true);
         root.commit();
     }
 
     @Test
     public void testHasProperty() {
-        Tree a = root.getTreeOrNull("/a");
+        Tree a = root.getTree("/a");
         assertFalse(a.hasProperty(TreeImpl.OAK_CHILD_ORDER));
     }
 
     @Test
     public void testGetProperty() {
-        Tree a = root.getTreeOrNull("/a");
+        Tree a = root.getTree("/a");
         assertNull(a.getProperty(TreeImpl.OAK_CHILD_ORDER));
     }
 
@@ -64,7 +64,7 @@ public class ChildOrderPropertyTest extends AbstractOakCoreTest {
     public void testGetProperties() {
         Set<String> propertyNames = Sets.newHashSet(JcrConstants.JCR_PRIMARYTYPE, "aProp");
 
-        Tree a = root.getTreeOrNull("/a");
+        Tree a = root.getTree("/a");
         for (PropertyState prop : a.getProperties()) {
             assertTrue(propertyNames.remove(prop.getName()));
         }
@@ -73,13 +73,13 @@ public class ChildOrderPropertyTest extends AbstractOakCoreTest {
 
     @Test
     public void testGetPropertyCount() {
-        Tree a = root.getTreeOrNull("/a");
+        Tree a = root.getTree("/a");
         assertEquals(2, a.getPropertyCount());
     }
 
     @Test
     public void testGetPropertyStatus() {
-        Tree a = root.getTreeOrNull("/a");
+        Tree a = root.getTree("/a");
         assertNull(a.getPropertyStatus(TreeImpl.OAK_CHILD_ORDER));
     }
 

@@ -16,9 +16,12 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
+import static org.junit.Assert.fail;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.JcrConstants;
@@ -34,8 +37,6 @@ import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.util.Text;
 import org.junit.Before;
 import org.junit.Test;
-
-import static org.junit.Assert.fail;
 
 /**
  * @since OAK 1.0
@@ -53,7 +54,7 @@ public class UserValidatorTest extends AbstractSecurityTest {
     @Test
     public void removePassword() throws Exception {
         try {
-            Tree userTree = root.getTreeOrNull(userPath);
+            Tree userTree = root.getTree(userPath);
             userTree.removeProperty(UserConstants.REP_PASSWORD);
             root.commit();
             fail("removing password should fail");
@@ -67,7 +68,7 @@ public class UserValidatorTest extends AbstractSecurityTest {
     @Test
     public void removePrincipalName() throws Exception {
         try {
-            Tree userTree = root.getTreeOrNull(userPath);
+            Tree userTree = root.getTree(userPath);
             userTree.removeProperty(UserConstants.REP_PRINCIPAL_NAME);
             root.commit();
             fail("removing principal name should fail");
@@ -81,7 +82,7 @@ public class UserValidatorTest extends AbstractSecurityTest {
     @Test
     public void removeAuthorizableId() throws Exception {
         try {
-            Tree userTree = root.getTreeOrNull(userPath);
+            Tree userTree = root.getTree(userPath);
             userTree.removeProperty(UserConstants.REP_AUTHORIZABLE_ID);
             root.commit();
             fail("removing authorizable id should fail");
@@ -96,7 +97,7 @@ public class UserValidatorTest extends AbstractSecurityTest {
     public void createWithoutPrincipalName() throws Exception {
         try {
             User user = getUserManager().createUser("withoutPrincipalName", "pw");
-            Tree tree = root.getTreeOrNull(userPath);
+            Tree tree = root.getTree(userPath);
             tree.removeProperty(UserConstants.REP_PRINCIPAL_NAME);
             root.commit();
 
@@ -112,7 +113,7 @@ public class UserValidatorTest extends AbstractSecurityTest {
     public void createWithInvalidUUID() throws Exception {
         try {
             User user = getUserManager().createUser("withInvalidUUID", "pw");
-            Tree tree = root.getTreeOrNull(userPath);
+            Tree tree = root.getTree(userPath);
             tree.setProperty(JcrConstants.JCR_UUID, UUID.randomUUID().toString());
             root.commit();
 
@@ -127,7 +128,7 @@ public class UserValidatorTest extends AbstractSecurityTest {
     @Test
     public void changeUUID() throws Exception {
         try {
-            Tree userTree = root.getTreeOrNull(userPath);
+            Tree userTree = root.getTree(userPath);
             userTree.setProperty(JcrConstants.JCR_UUID, UUID.randomUUID().toString());
             root.commit();
             fail("changing jcr:uuid should fail if it the uuid valid is invalid");
@@ -141,7 +142,7 @@ public class UserValidatorTest extends AbstractSecurityTest {
     @Test
     public void changePrincipalName() throws Exception {
         try {
-            Tree userTree = root.getTreeOrNull(userPath);
+            Tree userTree = root.getTree(userPath);
             userTree.setProperty(UserConstants.REP_PRINCIPAL_NAME, "another");
             root.commit();
             fail("changing the principal name should fail");
@@ -155,7 +156,7 @@ public class UserValidatorTest extends AbstractSecurityTest {
     @Test
     public void changeAuthorizableId() throws Exception {
         try {
-            Tree userTree = root.getTreeOrNull(userPath);
+            Tree userTree = root.getTree(userPath);
             userTree.setProperty(UserConstants.REP_AUTHORIZABLE_ID, "modified");
             root.commit();
             fail("changing the authorizable id should fail");
@@ -169,7 +170,7 @@ public class UserValidatorTest extends AbstractSecurityTest {
     @Test
     public void changePasswordToPlainText() throws Exception {
         try {
-            Tree userTree = root.getTreeOrNull(userPath);
+            Tree userTree = root.getTree(userPath);
             userTree.setProperty(UserConstants.REP_PASSWORD, "plaintext");
             root.commit();
             fail("storing a plaintext password should fail");
@@ -191,7 +192,7 @@ public class UserValidatorTest extends AbstractSecurityTest {
                 root.commit();
             }
 
-            root.getTreeOrNull(admin.getPath()).remove();
+            root.getTree(admin.getPath()).remove();
             root.commit();
             fail("Admin user cannot be removed");
         } catch (CommitFailedException e) {
@@ -212,7 +213,7 @@ public class UserValidatorTest extends AbstractSecurityTest {
                 root.commit();
             }
 
-            root.getTreeOrNull(admin.getPath()).setProperty(UserConstants.REP_DISABLED, "disabled");
+            root.getTree(admin.getPath()).setProperty(UserConstants.REP_DISABLED, "disabled");
             root.commit();
             fail("Admin user cannot be disabled");
         } catch (CommitFailedException e) {
@@ -236,13 +237,13 @@ public class UserValidatorTest extends AbstractSecurityTest {
 
         for (String path : invalid) {
             try {
-                Tree parent = root.getTreeOrNull(path);
-                if (parent == null) {
+                Tree parent = root.getTree(path);
+                if (!parent.exists()) {
                     String[] segments = Text.explode(path, '/', false);
-                    parent = root.getTreeOrNull("/");
+                    parent = root.getTree("/");
                     for (String segment : segments) {
-                        Tree next = parent.getChildOrNull(segment);
-                        if (next == null) {
+                        Tree next = parent.getChild(segment);
+                        if (!next.exists()) {
                             next = parent.addChild(segment);
                             next.setProperty(JcrConstants.JCR_PRIMARYTYPE, UserConstants.NT_REP_AUTHORIZABLE_FOLDER, Type.NAME);
                             parent = next;

@@ -16,8 +16,14 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.restriction;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.util.ArrayList;
 import java.util.List;
+
 import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.TestNameMapper;
@@ -27,11 +33,6 @@ import org.apache.jackrabbit.oak.plugins.name.Namespaces;
 import org.apache.jackrabbit.oak.spi.security.authorization.AbstractAccessControlTest;
 import org.junit.Before;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 /**
  * Tests for {@link RestrictionDefinitionImpl}.
@@ -46,7 +47,7 @@ public class RestrictionDefinitionImplTest extends AbstractAccessControlTest {
         super.before();
 
         registerNamespace(TestNameMapper.TEST_PREFIX, TestNameMapper.TEST_URI);
-        NamePathMapper npMapper = new NamePathMapperImpl(new TestNameMapper(Namespaces.getNamespaceMap(root.getTreeOrNull("/")), TestNameMapper.LOCAL_MAPPING));
+        NamePathMapper npMapper = new NamePathMapperImpl(new TestNameMapper(Namespaces.getNamespaceMap(root.getTree("/")), TestNameMapper.LOCAL_MAPPING));
 
         name = TestNameMapper.TEST_PREFIX + ":defName";
         definition = new RestrictionDefinitionImpl(name, PropertyType.NAME, true, npMapper);
