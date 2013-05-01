@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
+import java.io.File;
 import java.net.UnknownHostException;
 import java.util.Collection;
 import java.util.Dictionary;
@@ -39,6 +40,9 @@ public class SegmentNodeStoreService extends SegmentNodeStore {
 
     @Property(description="The unique name of this instance")
     public static final String NAME = "name";
+
+    @Property(description="TarMK directory (if unset, use MongoDB)")
+    public static final String DIRECTORY = "directory";
 
     @Property(description="MongoDB host", value="localhost")
     public static final String HOST = "host";
@@ -115,18 +119,28 @@ public class SegmentNodeStoreService extends SegmentNodeStore {
         Dictionary<?, ?> properties = context.getProperties();
         name = "" + properties.get(NAME);
 
-        String host = String.valueOf(properties.get(HOST));
-        int port = Integer.parseInt(String.valueOf(properties.get(PORT)));
-        String db = String.valueOf(properties.get(DB));
-        int cache = Integer.parseInt(String.valueOf(properties.get(CACHE)));
+        if (properties.get(DIRECTORY) != null) {
+            File directory = new File(properties.get(DIRECTORY).toString());
+            directory.mkdirs();
 
-        mongo = new Mongo(host, port);
-        store[0] = new MongoStore(mongo.getDB(db), cache * MB);
+            mongo = null;
+            store[0] = new FileStore(new File(directory, "data.tar").getPath());
+        } else {
+            String host = String.valueOf(properties.get(HOST));
+            int port = Integer.parseInt(String.valueOf(properties.get(PORT)));
+            String db = String.valueOf(properties.get(DB));
+            int cache = Integer.parseInt(String.valueOf(properties.get(CACHE)));
+
+            mongo = new Mongo(host, port);
+            store[0] = new MongoStore(mongo.getDB(db), cache * MB);
+        }
     }
 
     @Deactivate
     public void deactivate() {
-        mongo.close();
+        if (mongo != null) {
+            mongo.close();
+        }
     }
 
 }
