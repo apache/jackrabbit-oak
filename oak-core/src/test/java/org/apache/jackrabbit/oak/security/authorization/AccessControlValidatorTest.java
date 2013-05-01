@@ -16,22 +16,22 @@
  */
 package org.apache.jackrabbit.oak.security.authorization;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.security.Principal;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.AbstractAccessControlTest;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 public class AccessControlValidatorTest extends AbstractAccessControlTest implements AccessControlConstants {
 
@@ -45,7 +45,7 @@ public class AccessControlValidatorTest extends AbstractAccessControlTest implem
     public void before() throws Exception {
         super.before();
 
-        NodeUtil rootNode = new NodeUtil(root.getTreeOrNull("/"), getNamePathMapper());
+        NodeUtil rootNode = new NodeUtil(root.getTree("/"), getNamePathMapper());
         rootNode.addChild(testName, JcrConstants.NT_UNSTRUCTURED);
 
         root.commit();
@@ -56,8 +56,8 @@ public class AccessControlValidatorTest extends AbstractAccessControlTest implem
     @After
     public void after() throws Exception {
         try {
-            Tree testRoot = root.getTreeOrNull(testPath);
-            if (testRoot != null) {
+            Tree testRoot = root.getTree(testPath);
+            if (testRoot.exists()) {
                 testRoot.remove();
                 root.commit();
             }
@@ -67,7 +67,7 @@ public class AccessControlValidatorTest extends AbstractAccessControlTest implem
     }
 
     private NodeUtil getTestRoot() {
-        return new NodeUtil(root.getTreeOrNull(testPath));
+        return new NodeUtil(root.getTree(testPath));
     }
 
     private NodeUtil createAcl() {

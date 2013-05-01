@@ -38,7 +38,7 @@ public abstract class AbstractAccessControlTest extends AbstractSecurityTest {
 
             @Override
             protected Tree getReadTree() {
-                return root.getTreeOrNull("/");
+                return root.getTree("/");
             }
         };
         nsRegistry.registerNamespace(prefix, uri);

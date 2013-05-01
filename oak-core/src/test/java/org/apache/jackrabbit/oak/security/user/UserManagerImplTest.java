@@ -16,10 +16,18 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
+import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertFalse;
+import static junit.framework.Assert.assertNotNull;
+import static junit.framework.Assert.assertTrue;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.fail;
+
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+
 import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
 
@@ -37,13 +45,6 @@ import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertFalse;
-import static junit.framework.Assert.assertNotNull;
-import static junit.framework.Assert.assertTrue;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.fail;
 
 /**
  * @since OAK 1.0
@@ -83,7 +84,7 @@ public class UserManagerImplTest extends AbstractSecurityTest {
         pwds.add("");
         pwds.add("{sha1}pw");
 
-        Tree userTree = root.getTreeOrNull(user.getPath());
+        Tree userTree = root.getTree(user.getPath());
         for (String pw : pwds) {
             userMgr.setPassword(userTree, pw, true);
             String pwHash = userTree.getProperty(UserConstants.REP_PASSWORD).getValue(Type.STRING);
@@ -109,7 +110,7 @@ public class UserManagerImplTest extends AbstractSecurityTest {
         User user = userMgr.createUser(testUserId, null);
         root.commit();
 
-        Tree userTree = root.getTreeOrNull(user.getPath());
+        Tree userTree = root.getTree(user.getPath());
         try {
             userMgr.setPassword(userTree, null, true);
             fail("setting null password should fail");
@@ -130,7 +131,7 @@ public class UserManagerImplTest extends AbstractSecurityTest {
         User user = userMgr.createUser(testUserId, null);
         root.commit();
 
-        Tree userTree = root.getTreeOrNull(user.getPath());
+        Tree userTree = root.getTree(user.getPath());
         assertNull(userTree.getProperty(UserConstants.REP_PASSWORD));
     }
 
@@ -154,7 +155,7 @@ public class UserManagerImplTest extends AbstractSecurityTest {
         User user = userMgr.createUser(testUserId, null);
         root.commit();
 
-        NodeUtil userNode = new NodeUtil(root.getTreeOrNull(user.getPath()));
+        NodeUtil userNode = new NodeUtil(root.getTree(user.getPath()));
 
         NodeUtil folder = userNode.addChild("folder", UserConstants.NT_REP_AUTHORIZABLE_FOLDER);
         String path = folder.getTree().getPath();
@@ -217,8 +218,8 @@ public class UserManagerImplTest extends AbstractSecurityTest {
             }
         } finally {
             root.refresh();
-            Tree t = root.getTreeOrNull(path);
-            if (t != null) {
+            Tree t = root.getTree(path);
+            if (t.exists()) {
                 t.remove();
                 root.commit();
             }

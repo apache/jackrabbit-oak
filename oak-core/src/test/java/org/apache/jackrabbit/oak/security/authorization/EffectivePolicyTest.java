@@ -16,9 +16,16 @@
  */
 package org.apache.jackrabbit.oak.security.authorization;
 
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.security.Principal;
 import java.util.Collections;
 import java.util.Set;
+
 import javax.annotation.Nonnull;
 import javax.jcr.AccessDeniedException;
 import javax.jcr.Value;
@@ -37,12 +44,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
-
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 /**
  * EffectivePolicyTest... TODO
@@ -63,7 +64,7 @@ public class EffectivePolicyTest extends AbstractAccessControlTest {
         super.before();
 
         // create some nodes below the test root in order to apply ac-stuff
-        NodeUtil rootNode = new NodeUtil(root.getTreeOrNull("/"));
+        NodeUtil rootNode = new NodeUtil(root.getTree("/"));
         NodeUtil testRootNode = rootNode.getOrAddChild("testRoot", JcrConstants.NT_UNSTRUCTURED);
         NodeUtil testNode = testRootNode.addChild("testNode", JcrConstants.NT_UNSTRUCTURED);
         NodeUtil cn1 = testNode.addChild("child1", JcrConstants.NT_UNSTRUCTURED);
@@ -93,7 +94,7 @@ public class EffectivePolicyTest extends AbstractAccessControlTest {
                 testSession.close();
             }
 
-            root.getTreeOrNull(path).remove();
+            root.getTree(path).remove();
             root.commit();
         } finally {
             super.after();

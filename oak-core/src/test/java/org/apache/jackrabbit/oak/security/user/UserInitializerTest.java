@@ -16,9 +16,18 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.security.PrivilegedExceptionAction;
 import java.util.HashMap;
 import java.util.Map;
+
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.Subject;
 import javax.security.auth.login.LoginException;
@@ -50,14 +59,6 @@ import org.apache.jackrabbit.oak.spi.security.user.util.UserUtility;
 import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.junit.Before;
 import org.junit.Test;
-
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 /**
  * @since OAK 1.0
@@ -109,26 +110,26 @@ public class UserInitializerTest extends AbstractSecurityTest {
     @Test
     public void testUserContent() throws Exception {
         Authorizable a = userMgr.getAuthorizable(UserUtility.getAdminId(config));
-        assertNotNull(root.getTreeOrNull(a.getPath()));
+        assertTrue(root.getTree(a.getPath()).exists());
 
         a = userMgr.getAuthorizable(UserUtility.getAnonymousId(config));
-        assertNotNull(root.getTreeOrNull(a.getPath()));
+        assertTrue(root.getTree(a.getPath()).exists());
     }
 
     @Test
     public void testUserIndexDefinitions() throws Exception {
-        Tree oakIndex = root.getTreeOrNull('/' + IndexConstants.INDEX_DEFINITIONS_NAME);
-        assertNotNull(oakIndex);
+        Tree oakIndex = root.getTree('/' + IndexConstants.INDEX_DEFINITIONS_NAME);
+        assertTrue(oakIndex.exists());
 
-        Tree id = oakIndex.getChildOrNull("authorizableId");
+        Tree id = oakIndex.getChild("authorizableId");
         assertIndexDefinition(id, UserConstants.REP_AUTHORIZABLE_ID, true);
 
-        Tree princName = oakIndex.getChildOrNull("principalName");
+        Tree princName = oakIndex.getChild("principalName");
         assertIndexDefinition(princName, UserConstants.REP_PRINCIPAL_NAME, true);
         String[] declaringNtNames = TreeUtil.getStrings(princName, IndexConstants.DECLARING_NODE_TYPES);
         assertArrayEquals(new String[]{UserConstants.NT_REP_AUTHORIZABLE}, declaringNtNames);
 
-        Tree members = oakIndex.getChildOrNull("members");
+        Tree members = oakIndex.getChild("members");
         assertIndexDefinition(members, UserConstants.REP_MEMBERS, false);
     }
 
@@ -163,8 +164,8 @@ public class UserInitializerTest extends AbstractSecurityTest {
             Authorizable adminUser = umgr.getAuthorizable("admin");
             assertNotNull(adminUser);
 
-            Tree adminTree = root.getTreeOrNull(adminUser.getPath());
-            assertNotNull(adminTree);
+            Tree adminTree = root.getTree(adminUser.getPath());
+            assertTrue(adminTree.exists());
             assertNull(adminTree.getProperty(UserConstants.REP_PASSWORD));
         } finally {
             cs.close();
@@ -185,7 +186,7 @@ public class UserInitializerTest extends AbstractSecurityTest {
     }
 
     private static void assertIndexDefinition(Tree tree, String propName, boolean isUnique) {
-        assertNotNull(tree);
+        assertTrue(tree.exists());
 
         assertEquals(isUnique, TreeUtil.getBoolean(tree, IndexConstants.UNIQUE_PROPERTY_NAME));
         assertArrayEquals(propName, new String[]{propName}, TreeUtil.getStrings(tree, IndexConstants.PROPERTY_NAMES));

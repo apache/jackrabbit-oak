@@ -16,16 +16,16 @@
  */
 package org.apache.jackrabbit.oak.util;
 
+import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertFalse;
+import static junit.framework.Assert.assertTrue;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
+
 import org.apache.jackrabbit.oak.OakBaseTest;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.query.JsopUtil;
 import org.junit.Test;
-
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertFalse;
-import static junit.framework.Assert.assertTrue;
-import static org.apache.jackrabbit.oak.api.Type.STRING;
 
 public class JsopUtilTest extends OakBaseTest {
 
@@ -33,24 +33,24 @@ public class JsopUtilTest extends OakBaseTest {
     public void test() throws Exception {
         Root root = createContentSession().getLatestRoot();
 
-        Tree t = root.getTreeOrNull("/");
+        Tree t = root.getTree("/");
         assertFalse(t.hasChild("test"));
 
         String add = "/ + \"test\": { \"a\": { \"id\": \"123\" }, \"b\": {} }";
         JsopUtil.apply(root, add);
         root.commit();
 
-        t = root.getTreeOrNull("/");
+        t = root.getTree("/");
         assertTrue(t.hasChild("test"));
 
-        t = t.getChildOrNull("test");
+        t = t.getChild("test");
         assertEquals(2, t.getChildrenCount());
         assertTrue(t.hasChild("a"));
         assertTrue(t.hasChild("b"));
 
-        assertEquals(0, t.getChildOrNull("b").getChildrenCount());
+        assertEquals(0, t.getChild("b").getChildrenCount());
 
-        t = t.getChildOrNull("a");
+        t = t.getChild("a");
         assertEquals(0, t.getChildrenCount());
         assertTrue(t.hasProperty("id"));
         assertEquals("123", t.getProperty("id").getValue(STRING));
@@ -59,7 +59,7 @@ public class JsopUtilTest extends OakBaseTest {
         JsopUtil.apply(root, rm);
         root.commit();
 
-        t = root.getTreeOrNull("/");
+        t = root.getTree("/");
         assertFalse(t.hasChild("test"));
     }
 

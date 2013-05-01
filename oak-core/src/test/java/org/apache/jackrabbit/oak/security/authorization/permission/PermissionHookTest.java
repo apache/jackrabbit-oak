@@ -16,12 +16,17 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.fail;
+
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+
 import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlEntry;
 import javax.jcr.security.AccessControlManager;
@@ -36,17 +41,13 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.security.authorization.AccessControlConstants;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeBits;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeBitsProvider;
-import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.AbstractAccessControlTest;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.fail;
 
 /**
  * Testing the {@code PermissionHook}
@@ -64,7 +65,7 @@ public class PermissionHookTest extends AbstractAccessControlTest implements Acc
         super.before();
 
         Principal testPrincipal = getTestPrincipal();
-        NodeUtil rootNode = new NodeUtil(root.getTreeOrNull("/"), namePathMapper);
+        NodeUtil rootNode = new NodeUtil(root.getTree("/"), namePathMapper);
         rootNode.addChild("testPath", JcrConstants.NT_UNSTRUCTURED);
 
         AccessControlManager acMgr = getAccessControlManager(root);
@@ -82,8 +83,8 @@ public class PermissionHookTest extends AbstractAccessControlTest implements Acc
     public void after() throws Exception {
         try {
             root.refresh();
-            Tree test = root.getTreeOrNull(testPath);
-            if (test != null) {
+            Tree test = root.getTree(testPath);
+            if (test.exists()) {
                 test.remove();
             }
 
@@ -97,7 +98,7 @@ public class PermissionHookTest extends AbstractAccessControlTest implements Acc
     }
 
     private Tree getPrincipalRoot(String principalName) {
-        return root.getTreeOrNull(PERMISSIONS_STORE_PATH).getChildOrNull(adminSession.getWorkspaceName()).getChildOrNull(principalName);
+        return root.getTree(PERMISSIONS_STORE_PATH).getChild(adminSession.getWorkspaceName()).getChild(principalName);
     }
 
     private Tree getEntry(String principalName, String accessControlledPath) throws Exception {
@@ -123,7 +124,7 @@ public class PermissionHookTest extends AbstractAccessControlTest implements Acc
     @Test
     public void testDuplicateAce() throws Exception {
         // add duplicate policy on OAK-API
-        NodeUtil policy = new NodeUtil(root.getTreeOrNull(testPath + "/rep:policy"));
+        NodeUtil policy = new NodeUtil(root.getTree(testPath + "/rep:policy"));
         NodeUtil ace = policy.addChild("duplicateAce", NT_REP_GRANT_ACE);
         ace.setString(REP_PRINCIPAL_NAME, testPrincipalName);
         ace.setStrings(REP_PRIVILEGES, PrivilegeConstants.JCR_ADD_CHILD_NODES);
@@ -141,7 +142,7 @@ public class PermissionHookTest extends AbstractAccessControlTest implements Acc
         assertEquals(ImmutableSet.of(0, 2), index);
 
         // remove duplicate policy entry again
-        root.getTreeOrNull(testPath + "/rep:policy/duplicateAce").remove();
+        root.getTree(testPath + "/rep:policy/duplicateAce").remove();
         root.commit();
 
         assertEquals(1, getPrincipalRoot(testPrincipalName).getChildrenCount());
@@ -149,7 +150,7 @@ public class PermissionHookTest extends AbstractAccessControlTest implements Acc
 
     @Test
     public void testModifyRestrictions() throws Exception {
-        Tree testAce = root.getTreeOrNull(testPath + "/rep:policy").getChildren().iterator().next();
+        Tree testAce = root.getTree(testPath + "/rep:policy").getChildren().iterator().next();
         assertEquals(testPrincipalName, testAce.getProperty(REP_PRINCIPAL_NAME).getValue(Type.STRING));
 
         // add a new restriction node through the OAK API instead of access control manager
@@ -164,7 +165,7 @@ public class PermissionHookTest extends AbstractAccessControlTest implements Acc
         assertEquals("*", principalRoot.getChildren().iterator().next().getProperty(REP_GLOB).getValue(Type.STRING));
 
         // modify the restrictions node
-        Tree restrictionsNode = root.getTreeOrNull(restritionsPath);
+        Tree restrictionsNode = root.getTree(restritionsPath);
         restrictionsNode.setProperty(REP_GLOB, "/*/jcr:content/*");
         root.commit();
 
@@ -173,7 +174,7 @@ public class PermissionHookTest extends AbstractAccessControlTest implements Acc
         assertEquals("/*/jcr:content/*", principalRoot.getChildren().iterator().next().getProperty(REP_GLOB).getValue(Type.STRING));
 
         // remove the restriction again
-        root.getTreeOrNull(restritionsPath).remove();
+        root.getTree(restritionsPath).remove();
         root.commit();
 
         principalRoot = getPrincipalRoot(testPrincipalName);
@@ -187,7 +188,7 @@ public class PermissionHookTest extends AbstractAccessControlTest implements Acc
         Tree entry = getEntry(testPrincipalName, testPath);
         assertEquals(0, entry.getProperty(REP_INDEX).getValue(Type.LONG).longValue());
 
-        Tree aclTree = root.getTreeOrNull(testPath + "/rep:policy");
+        Tree aclTree = root.getTree(testPath + "/rep:policy");
         aclTree.getChildren().iterator().next().orderBefore(null);
 
         root.commit();
@@ -201,7 +202,7 @@ public class PermissionHookTest extends AbstractAccessControlTest implements Acc
         Tree entry = getEntry(testPrincipalName, testPath);
         assertEquals(0, entry.getProperty(REP_INDEX).getValue(Type.LONG).longValue());
 
-        Tree aclTree = root.getTreeOrNull(testPath + "/rep:policy");
+        Tree aclTree = root.getTree(testPath + "/rep:policy");
         // reorder
         aclTree.getChildren().iterator().next().orderBefore(null);
 
@@ -220,7 +221,7 @@ public class PermissionHookTest extends AbstractAccessControlTest implements Acc
         Tree entry = getEntry(testPrincipalName, testPath);
         assertEquals(0, entry.getProperty(REP_INDEX).getValue(Type.LONG).longValue());
 
-        Tree aclTree = root.getTreeOrNull(testPath + "/rep:policy");
+        Tree aclTree = root.getTree(testPath + "/rep:policy");
 
         // reorder testPrincipal entry to the end
         aclTree.getChildren().iterator().next().orderBefore(null);

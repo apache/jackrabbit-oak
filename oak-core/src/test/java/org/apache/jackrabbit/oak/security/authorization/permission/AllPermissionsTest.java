@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -26,10 +29,6 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissio
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.ReadStatus;
 import org.junit.Before;
 import org.junit.Test;
-
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
 
 /**
  * Test {@code AllPermissions}.
@@ -52,8 +51,8 @@ public class AllPermissionsTest extends AbstractSecurityTest {
     @Test
     public void testGetReadStatus() {
         for (String path : paths) {
-            Tree tree = root.getTreeOrNull(path);
-            assertNotNull(tree);
+            Tree tree = root.getTree(path);
+            assertTrue(tree.exists());
 
             assertSame(ReadStatus.ALLOW_ALL, all.getReadStatus(tree, null));
             for (Tree child : tree.getChildren()) {
@@ -70,8 +69,8 @@ public class AllPermissionsTest extends AbstractSecurityTest {
         assertTrue(all.isGranted(Permissions.ALL));
 
         for (String path : paths) {
-            Tree tree = root.getTreeOrNull(path);
-            assertNotNull(tree);
+            Tree tree = root.getTree(path);
+            assertTrue(tree.exists());
 
             assertTrue(all.isGranted(tree, null, Permissions.ALL));
             for (PropertyState prop : tree.getProperties()) {

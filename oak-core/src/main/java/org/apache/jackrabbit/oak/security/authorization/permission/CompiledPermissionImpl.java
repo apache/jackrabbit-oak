@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.security.Principal;
 import java.security.acl.Group;
 import java.util.Collections;
@@ -24,6 +27,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -49,9 +53,6 @@ import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restrict
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.apache.jackrabbit.util.Text;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * TODO: WIP
@@ -165,8 +166,8 @@ class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants
         return permissionsTree.getChildOrNull(Text.escapeIllegalJcrChars(principal.getName()));
     }
 
-    private void buildEntries(@Nullable ImmutableTree permissionsTree) {
-        if (permissionsTree == null) {
+    private void buildEntries(@Nonnull ImmutableTree permissionsTree) {
+        if (!permissionsTree.exists()) {
             repoEntries = Collections.emptyMap();
             userEntries = Collections.emptyMap();
             groupEntries = Collections.emptyMap();

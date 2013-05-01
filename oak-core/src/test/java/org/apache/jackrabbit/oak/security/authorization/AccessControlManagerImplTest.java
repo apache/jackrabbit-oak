@@ -16,6 +16,14 @@
  */
 package org.apache.jackrabbit.oak.security.authorization;
 
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -26,6 +34,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.AccessDeniedException;
@@ -59,26 +68,18 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
 import org.apache.jackrabbit.oak.plugins.name.Namespaces;
 import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
-import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.security.privilege.PrivilegeBitsProvider;
-import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.AbstractAccessControlTest;
 import org.apache.jackrabbit.oak.spi.security.authorization.TestACL;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 /**
  * Tests for the default {@code AccessControlManager} implementation.
@@ -104,13 +105,13 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         super.before();
 
         registerNamespace(TestNameMapper.TEST_PREFIX, TestNameMapper.TEST_URI);
-        nameMapper = new TestNameMapper(Namespaces.getNamespaceMap(root.getTreeOrNull("/")));
+        nameMapper = new TestNameMapper(Namespaces.getNamespaceMap(root.getTree("/")));
         npMapper = new NamePathMapperImpl(nameMapper);
 
         acMgr = getAccessControlManager(npMapper);
         valueFactory = new ValueFactoryImpl(root.getBlobFactory(), npMapper);
 
-        NodeUtil rootNode = new NodeUtil(root.getTreeOrNull("/"), npMapper);
+        NodeUtil rootNode = new NodeUtil(root.getTree("/"), npMapper);
         rootNode.addChild(testName, JcrConstants.NT_UNSTRUCTURED);
         root.commit();
 
@@ -122,7 +123,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
     public void after() throws Exception {
         try {
             root.refresh();
-            root.getTreeOrNull(testPath).remove();
+            root.getTree(testPath).remove();
             root.commit();
 
             if (testRoot != null) {
@@ -227,8 +228,8 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         acMgr.setPolicy(testPath, policy);
 
         String aclPath = testPath + '/' + REP_POLICY;
-        Tree acl = root.getTreeOrNull(aclPath);
-        assertNotNull(acl);
+        Tree acl = root.getTree(aclPath);
+        assertTrue(acl.exists());
         Iterator<Tree> aces = acl.getChildren().iterator();
         assertTrue(aces.hasNext());
         Tree ace = aces.next();
@@ -238,8 +239,8 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         acContentPath.add(aclPath);
         acContentPath.add(ace.getPath());
 
-        Tree rest = ace.getChildOrNull(REP_RESTRICTIONS);
-        if (rest != null) {
+        Tree rest = ace.getChild(REP_RESTRICTIONS);
+        if (rest.exists()) {
             acContentPath.add(rest.getPath());
         }
         return acContentPath;
@@ -716,7 +717,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
 
     @Test
     public void testGetApplicablePoliciesOnAccessControllable() throws Exception {
-        NodeUtil node = new NodeUtil(root.getTreeOrNull(testPath));
+        NodeUtil node = new NodeUtil(root.getTree(testPath));
         node.setNames(JcrConstants.JCR_MIXINTYPES, MIX_REP_ACCESS_CONTROLLABLE);
 
         AccessControlPolicyIterator itr = acMgr.getApplicablePolicies(testPath);
@@ -745,7 +746,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
 
     @Test
     public void testGetApplicablePoliciesWithCollidingNode() throws Exception {
-        NodeUtil testTree = new NodeUtil(root.getTreeOrNull(testPath));
+        NodeUtil testTree = new NodeUtil(root.getTree(testPath));
         testTree.addChild(REP_POLICY, JcrConstants.NT_UNSTRUCTURED);
 
         AccessControlPolicyIterator itr = acMgr.getApplicablePolicies(testPath);
@@ -867,7 +868,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         policy.addEntry(testPrincipal, testPrivileges, true, getGlobRestriction("*"));
         acMgr.setPolicy(testPath, policy);
 
-        NodeUtil aclNode = new NodeUtil(root.getTreeOrNull(testPath + '/' + REP_POLICY));
+        NodeUtil aclNode = new NodeUtil(root.getTree(testPath + '/' + REP_POLICY));
         NodeUtil aceNode = aclNode.addChild("testACE", NT_REP_DENY_ACE);
         aceNode.setString(REP_PRINCIPAL_NAME, "invalidPrincipal");
         aceNode.setNames(REP_PRIVILEGES, PrivilegeConstants.JCR_READ);
@@ -1052,9 +1053,9 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         root.commit();
 
         Root root2 = adminSession.getLatestRoot();
-        Tree tree = root2.getTreeOrNull(testPath);
+        Tree tree = root2.getTree(testPath);
         assertTrue(tree.hasChild(REP_POLICY));
-        Tree policyTree = tree.getChildOrNull(REP_POLICY);
+        Tree policyTree = tree.getChild(REP_POLICY);
         assertEquals(NT_REP_ACL, TreeUtil.getPrimaryTypeName(policyTree));
         assertEquals(2, policyTree.getChildrenCount());
 
