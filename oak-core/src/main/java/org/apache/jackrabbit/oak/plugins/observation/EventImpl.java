@@ -23,10 +23,16 @@ import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.observation.Event;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.MarkerFactory;
+
 /**
  * TODO document
  */
 public class EventImpl implements Event {
+    private static final Logger log = LoggerFactory.getLogger(EventImpl.class);
+
     private final int type;
     private final String path;
     private final String userID;
@@ -55,6 +61,7 @@ public class EventImpl implements Event {
 
     @Override
     public String getUserID() {
+        log.warn(MarkerFactory.getMarker("deprecation"), "Call to deprecated method getUserId");
         return userID;
     }
 
@@ -70,6 +77,7 @@ public class EventImpl implements Event {
 
     @Override
     public String getUserData() throws RepositoryException {
+        log.warn(MarkerFactory.getMarker("deprecation"), "Call to deprecated method getUserData");
         throw new UnsupportedRepositoryOperationException("User data not supported");
     }
 

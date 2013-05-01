@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.observation2;
 
+import static com.google.common.base.Objects.toStringHelper;
 import static org.apache.jackrabbit.oak.plugins.observation2.ObservationConstants.DEEP;
 import static org.apache.jackrabbit.oak.plugins.observation2.ObservationConstants.NODE_TYPES;
 import static org.apache.jackrabbit.oak.plugins.observation2.ObservationConstants.NO_LOCAL;
@@ -64,6 +65,18 @@ class EventFilter {
         return includeEventType(eventType)
                 && includePath(path)
                 && includeNodeType(associatedType, ntMgr);
+    }
+
+    @Override
+    public String toString() {
+        return toStringHelper(this)
+                .add("types", eventTypes)
+                .add("path", path)
+                .add("deep", deep)
+                .add("uuids", uuid)
+                .add("node types", nodeTypeNames)
+                .add("noLocal", noLocal)
+            .toString();
     }
 
     //-----------------------------< internal >---------------------------------

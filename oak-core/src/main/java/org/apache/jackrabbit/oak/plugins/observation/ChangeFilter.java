@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.observation;
 
+import static com.google.common.base.Objects.toStringHelper;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
@@ -34,7 +36,6 @@ import org.slf4j.LoggerFactory;
  * TODO document
  */
 class ChangeFilter {
-
     private static final Logger log = LoggerFactory.getLogger(ChangeFilter.class);
 
     private final ReadOnlyNodeTypeManager ntMgr;
@@ -72,6 +73,18 @@ class ChangeFilter {
         return PathUtils.isAncestor(path, this.path) ||
                 path.equals(this.path) ||
                 deep && PathUtils.isAncestor(this.path, path);
+    }
+
+    @Override
+    public String toString() {
+        return toStringHelper(this)
+                .add("types", eventTypes)
+                .add("path", path)
+                .add("deep", deep)
+                .add("uuids", uuid)
+                .add("node types", nodeTypeOakName)
+                .add("noLocal", noLocal)
+            .toString();
     }
 
     //-----------------------------< internal >---------------------------------

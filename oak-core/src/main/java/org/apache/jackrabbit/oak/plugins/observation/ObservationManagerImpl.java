@@ -35,11 +35,16 @@ import org.apache.jackrabbit.oak.core.RootImpl;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.spi.observation.ChangeExtractor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.MarkerFactory;
 
 /**
  * TODO document
  */
 public class ObservationManagerImpl implements ObservationManager {
+    private static final Logger log = LoggerFactory.getLogger(ObservationManagerImpl.class);
+
     private final RootImpl root;
     private final NamePathMapper namePathMapper;
     private final ScheduledExecutorService executor;
@@ -78,10 +83,14 @@ public class ObservationManagerImpl implements ObservationManager {
                 absPath, isDeep, uuid, nodeTypeName, noLocal);
         ChangeProcessor processor = processors.get(listener);
         if (processor == null) {
+            log.error(MarkerFactory.getMarker("observation"),
+                    "Registering event listener {} with filter {}", listener, filter);
             processor = new ChangeProcessor(this, listener, filter);
             processors.put(listener, processor);
             processor.start(executor);
         } else {
+            log.debug(MarkerFactory.getMarker("observation"),
+                    "Changing event listener {} to filter {}", listener, filter);
             processor.setFilter(filter);
         }
     }
