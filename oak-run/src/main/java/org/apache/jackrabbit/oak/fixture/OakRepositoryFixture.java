@@ -28,10 +28,10 @@ import org.apache.jackrabbit.mongomk.util.MongoConnection;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
-import org.apache.jackrabbit.oak.plugins.segment.FileStore;
-import org.apache.jackrabbit.oak.plugins.segment.MongoStore;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentNodeStore;
 import org.apache.jackrabbit.oak.plugins.segment.SegmentStore;
+import org.apache.jackrabbit.oak.plugins.segment.file.FileStore;
+import org.apache.jackrabbit.oak.plugins.segment.mongo.MongoStore;
 
 import com.mongodb.Mongo;
 

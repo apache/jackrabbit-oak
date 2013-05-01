@@ -21,7 +21,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 
-class MergeDiff implements NodeStateDiff {
+public class MergeDiff implements NodeStateDiff {
 
     private final NodeBuilder builder;
 

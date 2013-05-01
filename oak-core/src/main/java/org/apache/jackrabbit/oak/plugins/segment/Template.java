@@ -43,7 +43,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 import com.google.common.base.Objects;
 import com.google.common.collect.Lists;
 
-class Template {
+public class Template {
 
     static final String ZERO_CHILD_NODES = null;
 
