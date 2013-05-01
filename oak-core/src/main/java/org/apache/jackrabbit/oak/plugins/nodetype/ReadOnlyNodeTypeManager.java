@@ -124,7 +124,7 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
         return new ReadOnlyNodeTypeManager() {
             @Override
             protected Tree getTypes() {
-                return root.getTreeOrNull(NODE_TYPES_PATH);
+                return root.getTree(NODE_TYPES_PATH);
             }
 
             @Nonnull
@@ -308,8 +308,8 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
             return true;
         }
 
-        Tree type = types.getChildOrNull(typeName);
-        if (type == null) {
+        Tree type = types.getChild(typeName);
+        if (!types.exists()) {
             return false;
         }
 
@@ -411,8 +411,8 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
     NodeTypeImpl internalGetNodeType(String oakName) throws NoSuchNodeTypeException {
         Tree types = getTypes();
         if (types != null) {
-            Tree type = types.getChildOrNull(oakName);
-            if (type != null) {
+            Tree type = types.getChild(oakName);
+            if (type.exists()) {
                 return new NodeTypeImpl(type, getNamePathMapper());
             }
         }
