@@ -171,14 +171,14 @@ public class OakServlet extends HttpServlet {
                 if (tree.hasProperty(name)) {
                     tree.removeProperty(name);
                 }
-                Tree child = tree.getChildOrNull(name);
-                if (child == null) {
+                Tree child = tree.getChild(name);
+                if (!child.exists()) {
                     child = tree.addChild(name);
                 }
                 post(value, child);
             } else {
-                Tree child = tree.getChildOrNull(name);
-                if (child != null) {
+                Tree child = tree.getChild(name);
+                if (child.exists()) {
                     child.remove();
                 }
                 if (value.isNull()) {
@@ -205,10 +205,10 @@ public class OakServlet extends HttpServlet {
         try {
             Root root = (Root) request.getAttribute("root");
             Tree tree = (Tree) request.getAttribute("tree");
-            Tree parent = tree.getParentOrNull();
-            if (parent != null) {
-                Tree child = parent.getChildOrNull(tree.getName());
-                if (child != null) {
+            if (!tree.isRoot()) {
+                Tree parent = tree.getParent();
+                Tree child = parent.getChild(tree.getName());
+                if (child.exists()) {
                     child.remove();
                 }
                 root.commit();
