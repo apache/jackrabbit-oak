@@ -72,7 +72,7 @@ public class PrivilegeMigrator {
 
                 @Override
                 protected Tree getReadTree() {
-                    return root.getTreeOrNull("/");
+                    return root.getTree("/");
                 }
             };
             for (PrivilegeDefinition def : readCustomDefinitions(privilegeStream, nsRegistry)) {

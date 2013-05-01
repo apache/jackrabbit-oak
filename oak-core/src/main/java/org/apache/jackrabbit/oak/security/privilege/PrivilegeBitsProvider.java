@@ -16,20 +16,20 @@
  */
 package org.apache.jackrabbit.oak.security.privilege;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import javax.annotation.CheckForNull;
+
 import javax.annotation.Nonnull;
 
 import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Reads and writes privilege definitions from and to the repository content
@@ -45,7 +45,7 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
     public PrivilegeBitsProvider(Root root) {
         this.root = root;
         Tree privilegesTree = getPrivilegesTree();
-        if (privilegesTree != null && privilegesTree.hasProperty(REP_NEXT)) {
+        if (privilegesTree.exists() && privilegesTree.hasProperty(REP_NEXT)) {
             next = PrivilegeBits.getInstance(privilegesTree);
         } else {
             next = PrivilegeBits.BUILT_IN.get(REP_USER_MANAGEMENT).nextBits();
@@ -58,9 +58,9 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
      *
      * @return The privileges root.
      */
-    @CheckForNull
+    @Nonnull
     Tree getPrivilegesTree() {
-        return root.getTreeOrNull(PRIVILEGES_PATH);
+        return root.getTree(PRIVILEGES_PATH);
     }
 
     @Nonnull
@@ -86,7 +86,7 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
         }
 
         Tree privilegesTree = getPrivilegesTree();
-        if (privilegesTree == null) {
+        if (!privilegesTree.exists()) {
             return PrivilegeBits.EMPTY;
         }
         PrivilegeBits bits = PrivilegeBits.getInstance();
@@ -116,7 +116,7 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
             return bitsToNames.get(privilegeBits);
         } else {
             Tree privilegesTree = getPrivilegesTree();
-            if (privilegesTree == null) {
+            if (!privilegesTree.exists()) {
                 return Collections.emptySet();
             }
 

@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 
@@ -43,8 +45,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Creates initial set of users to be present in a given workspace. This
@@ -105,7 +105,7 @@ class UserInitializer implements WorkspaceInitializer, UserConstants {
 
         String errorMsg = "Failed to initialize user content.";
         try {
-            NodeUtil rootTree = checkNotNull(new NodeUtil(root.getTreeOrNull("/")));
+            NodeUtil rootTree = checkNotNull(new NodeUtil(root.getTree("/")));
             NodeUtil index = rootTree.getOrAddChild(IndexConstants.INDEX_DEFINITIONS_NAME, JcrConstants.NT_UNSTRUCTURED);
 
             if (!index.hasChild("authorizableId")) {

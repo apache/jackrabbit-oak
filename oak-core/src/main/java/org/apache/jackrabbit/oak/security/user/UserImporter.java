@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -25,6 +28,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.ImportUUIDBehavior;
@@ -45,10 +49,10 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.core.IdentifierManager;
-import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.xml.NodeInfo;
 import org.apache.jackrabbit.oak.spi.xml.PropInfo;
@@ -59,9 +63,6 @@ import org.apache.jackrabbit.oak.spi.xml.TextValue;
 import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 
 /**
  * {@code UserImporter} implements both {@code ode>ProtectedPropertyImporter}
@@ -528,7 +529,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
             // handling non-existing members in case of best-effort
             if (!nonExisting.isEmpty()) {
                 log.info("ImportBehavior.BESTEFFORT: Found " + nonExisting.size() + " entries of rep:members pointing to non-existing authorizables. Adding to rep:members.");
-                Tree groupTree = root.getTreeOrNull(gr.getPath());
+                Tree groupTree = root.getTree(gr.getPath());
 
                 MembershipProvider membershipProvider = userManager.getMembershipProvider();
                 for (Membership.Member member : nonExisting) {
@@ -611,7 +612,7 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
             }
 
             if (!nonExisting.isEmpty()) {
-                Tree userTree = checkNotNull(root.getTreeOrNull(a.getPath()));
+                Tree userTree = checkNotNull(root.getTree(a.getPath()));
                 // copy over all existing impersonators to the nonExisting list
                 PropertyState impersonators = userTree.getProperty(REP_IMPERSONATORS);
                 if (impersonators != null) {

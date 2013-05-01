@@ -212,13 +212,6 @@ public class RootImpl implements Root {
 
     @Override
     @Deprecated
-    public TreeImpl getTreeOrNull(String path) {
-        checkLive();
-        return rootTree.getTreeOrNull(path);
-    }
-
-    @Override
-    @Deprecated
     public TreeLocation getLocation(String path) {
         checkArgument(PathUtils.isAbsolute(path));
         checkLive();
