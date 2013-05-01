@@ -153,17 +153,6 @@ public class TreeImpl implements Tree {
     }
 
     @Override
-    @Deprecated
-    public Tree getParentOrNull() {
-        enter();
-        if (parent != null && parent.nodeBuilder.exists()) {
-            return parent;
-        } else {
-            return null;
-        }
-    }
-
-    @Override
     public PropertyState getProperty(String name) {
         enter();
         return getVisibleProperty(name);

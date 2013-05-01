@@ -241,7 +241,7 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
         String propName = (property == null) ? "" : property.getName();
         String versionablePath = null;
         Tree t = versionStoreTree;
-        while (t != null && !JcrConstants.JCR_VERSIONSTORAGE.equals(t.getName())) {
+        while (t.exists() && !t.isRoot() && !JcrConstants.JCR_VERSIONSTORAGE.equals(t.getName())) {
             String name = t.getName();
             String ntName = checkNotNull(TreeUtil.getPrimaryTypeName(t));
             if (VersionConstants.JCR_FROZENNODE.equals(name) && t != versionStoreTree) {
@@ -253,7 +253,7 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
                 }
                 break;
             }
-            t = t.getParentOrNull();
+            t = t.getParent();
         }
 
         if (versionablePath == null || versionablePath.length() == 0) {

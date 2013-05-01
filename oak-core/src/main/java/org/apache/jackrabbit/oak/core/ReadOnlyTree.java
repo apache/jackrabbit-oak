@@ -102,12 +102,6 @@ public class ReadOnlyTree implements Tree {
     }
 
     @Override
-    @Deprecated
-    public Tree getParentOrNull() {
-        return parent;
-    }
-
-    @Override
     public PropertyState getProperty(String name) {
         return state.getProperty(name);
     }

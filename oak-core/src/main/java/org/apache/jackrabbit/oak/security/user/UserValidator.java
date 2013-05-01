@@ -195,13 +195,15 @@ class UserValidator extends DefaultValidator implements UserConstants {
             String msg = "Attempt to create user/group outside of configured scope " + pathConstraint;
             throw constraintViolation(28, msg);
         }
-        Tree parent = tree.getParentOrNull();
-        while (parent != null && !parent.isRoot()) {
-            if (!NT_REP_AUTHORIZABLE_FOLDER.equals(TreeUtil.getPrimaryTypeName(parent))) {
-                String msg = "Cannot create user/group: Intermediate folders must be of type rep:AuthorizableFolder.";
-                throw constraintViolation(29, msg);
+        if (!tree.isRoot()) {
+            Tree parent = tree.getParent();
+            while (parent.exists() && !parent.isRoot()) {
+                if (!NT_REP_AUTHORIZABLE_FOLDER.equals(TreeUtil.getPrimaryTypeName(parent))) {
+                    String msg = "Cannot create user/group: Intermediate folders must be of type rep:AuthorizableFolder.";
+                    throw constraintViolation(29, msg);
+                }
+                parent = parent.getParent();
             }
-            parent = parent.getParentOrNull();
         }
     }
 
