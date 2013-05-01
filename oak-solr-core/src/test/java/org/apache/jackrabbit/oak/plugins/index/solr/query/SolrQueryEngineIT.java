@@ -57,7 +57,7 @@ public class SolrQueryEngineIT extends SolrBaseTest {
         IndexDefinition testID = new IndexDefinitionImpl("solr-test",
                 "solr", "/");
         Root root = createRootImpl();
-        Tree tree = root.getTreeOrNull("/");
+        Tree tree = root.getTree("/");
 
         tree.addChild("somenode").setProperty("foo", "bar");
         root.commit();
