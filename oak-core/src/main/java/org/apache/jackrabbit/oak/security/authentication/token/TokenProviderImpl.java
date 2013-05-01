@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.security.authentication.token;
 
+import static org.apache.jackrabbit.oak.api.Type.STRING;
+
 import java.io.UnsupportedEncodingException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
@@ -29,6 +31,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.Credentials;
@@ -44,8 +47,8 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.core.IdentifierManager;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceConstants;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCredentials;
@@ -58,8 +61,6 @@ import org.apache.jackrabbit.util.ISO8601;
 import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.apache.jackrabbit.oak.api.Type.STRING;
 
 /**
  * Default implementation of the {@code TokenProvider} interface with the
@@ -218,7 +219,7 @@ public class TokenProviderImpl implements TokenProvider {
         String nodeId = (pos == -1) ? token : token.substring(0, pos);
         Tree tokenTree = identifierManager.getTree(nodeId);
         String userId = getUserId(tokenTree);
-        if (tokenTree == null || userId == null) {
+        if (tokenTree == null || !tokenTree.exists() || userId == null) {
             return null;
         } else {
             return new TokenInfoImpl(new NodeUtil(tokenTree), token, userId);
@@ -316,7 +317,7 @@ public class TokenProviderImpl implements TokenProvider {
 
     @CheckForNull
     private String getUserId(Tree tokenTree) {
-        if (tokenTree != null) {
+        if (tokenTree != null && tokenTree.exists()) {
             try {
                 String userPath = Text.getRelativeParent(tokenTree.getPath(), 2);
                 Authorizable authorizable = userManager.getAuthorizableByPath(userPath);

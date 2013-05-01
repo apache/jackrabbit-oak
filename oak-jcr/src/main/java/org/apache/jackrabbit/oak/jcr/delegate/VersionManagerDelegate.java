@@ -103,7 +103,7 @@ public class VersionManagerDelegate {
     public VersionDelegate getVersionByIdentifier(@Nonnull String identifier)
             throws RepositoryException {
         Tree t = sessionDelegate.getIdManager().getTree(identifier);
-        if (t == null) {
+        if (t == null || !t.exists()) {
             throw new RepositoryException("No such Version with identifier: " +
                     identifier);
         }

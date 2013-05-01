@@ -31,13 +31,13 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.TreeLocation;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.util.NodeUtil;
-import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.apache.jackrabbit.util.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -164,7 +164,7 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
         checkRelativePath(relPath);
 
         Tree node = getTree();
-        TreeLocation propertyLocation = TreeUtil.getTreeLocation(node, relPath);
+        TreeLocation propertyLocation = getLocation(node, relPath);
         if (propertyLocation.getProperty() != null) {
             if (isAuthorizableProperty(node, propertyLocation, true)) {
                 return propertyLocation.remove();
@@ -291,8 +291,17 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
     }
 
     @Nonnull
+    @Deprecated
     private static TreeLocation getLocation(Tree tree, String relativePath) {
-        return TreeUtil.getTreeLocation(tree, relativePath);
+        TreeLocation loc = tree.getLocation();
+        for (String element : Text.explode(relativePath, '/', false)) {
+            if (PathUtils.denotesParent(element)) {
+                loc = loc.getParent();
+            } else if (!PathUtils.denotesCurrent(element)) {
+                loc = loc.getChild(element);
+            }  // else . -> skip to next element
+        }
+        return loc;
     }
 
     private static void checkRelativePath(String relativePath) throws RepositoryException {
