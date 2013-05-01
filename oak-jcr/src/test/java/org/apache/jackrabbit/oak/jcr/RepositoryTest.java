@@ -1352,13 +1352,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
 
             session1.save();
 
-            // Make sure these items are still not accessible through another session until refresh
-            assertFalse(session2.itemExists("/node1"));
-            assertFalse(session2.itemExists("/node1/node2"));
-            assertFalse(session2.itemExists("/node1/node3"));
-            assertFalse(session2.itemExists("/node1/node3/property1"));
-
-            session2.refresh(false);
+            // Make sure these items are still accessible through another session
             assertTrue(session2.itemExists("/node1"));
             assertTrue(session2.itemExists("/node1/node2"));
             assertTrue(session2.itemExists("/node1/node3"));
@@ -1461,7 +1455,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
             session1.save();
             session2.save();
             assertTrue(session1.getRootNode().hasNode("node1"));
-            assertFalse(session1.getRootNode().hasNode("node2"));
+            assertTrue(session1.getRootNode().hasNode("node2"));
             assertTrue(session2.getRootNode().hasNode("node1"));
             assertTrue(session2.getRootNode().hasNode("node2"));
         } finally {
@@ -1515,8 +1509,7 @@ public class RepositoryTest extends AbstractRepositoryTest {
 
             session1.save();
             assertFalse(session1.getRootNode().hasNode("node"));
-            assertTrue(session2.getRootNode().hasNode("node"));
-            assertTrue(session2.getRootNode().getNode("node").hasNode("2"));
+            assertFalse(session2.getRootNode().hasNode("node"));
 
             try {
                 session2.save();
@@ -1613,13 +1606,6 @@ public class RepositoryTest extends AbstractRepositoryTest {
 
         session.getWorkspace().move(TEST_PATH + "/source/node", TEST_PATH + "/target/moved");
 
-        // Move must not be visible in session
-        assertTrue(node.hasNode("source/node"));
-        assertFalse(node.hasNode("target/moved"));
-
-        session.refresh(false);
-
-        // Move must be visible in session after refresh
         assertFalse(node.hasNode("source/node"));
         assertTrue(node.hasNode("source"));
         assertTrue(node.hasNode("target/moved"));
@@ -1636,13 +1622,6 @@ public class RepositoryTest extends AbstractRepositoryTest {
 
         session.getWorkspace().copy(TEST_PATH + "/source/node", TEST_PATH + "/target/copied");
 
-        // Copy must not be visible in session
-        assertTrue(node.hasNode("source/node"));
-        assertFalse(node.hasNode("target/copied"));
-
-        session.refresh(false);
-
-        // Copy must be visible in session after refresh
         assertTrue(node.hasNode("source/node"));
         assertTrue(node.hasNode("target/copied"));
     }
