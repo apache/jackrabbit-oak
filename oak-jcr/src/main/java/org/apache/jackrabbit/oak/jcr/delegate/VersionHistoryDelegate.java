@@ -85,7 +85,7 @@ public class VersionHistoryDelegate extends NodeDelegate {
         }
         String id = p.getValue(Type.REFERENCE);
         Tree version = sessionDelegate.getIdManager().getTree(id);
-        if (version == null) {
+        if (version == null || !version.exists()) {
             throw new VersionException("Invalid label: " + label + '(' + id + ')');
         }
         return VersionDelegate.create(sessionDelegate, version);

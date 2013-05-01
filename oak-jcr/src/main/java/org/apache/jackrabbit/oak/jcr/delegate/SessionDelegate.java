@@ -167,7 +167,7 @@ public class SessionDelegate {
     @CheckForNull
     public NodeDelegate getNodeByIdentifier(String id) {
         Tree tree = idManager.getTree(id);
-        return (tree == null) ? null : new NodeDelegate(this, tree);
+        return (tree == null || !tree.exists()) ? null : new NodeDelegate(this, tree);
     }
 
     /**

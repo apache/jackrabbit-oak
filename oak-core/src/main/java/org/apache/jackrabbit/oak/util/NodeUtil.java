@@ -39,7 +39,6 @@ import com.google.common.collect.Lists;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -137,8 +136,8 @@ public class NodeUtil {
         if (relativePath.indexOf('/') == -1) {
             return getOrAddChild(relativePath, primaryTypeName);
         } else {
-            TreeLocation location = TreeUtil.getTreeLocation(tree, relativePath);
-            if (location.getTree() == null) {
+            Tree t = TreeUtil.getTree(tree, relativePath);
+            if (t == null || !t.exists()) {
                 NodeUtil target = this;
                 for (String segment : Text.explode(relativePath, '/')) {
                     if (PathUtils.denotesParent(segment)) {
@@ -151,7 +150,7 @@ public class NodeUtil {
                 }
                 return target;
             } else {
-                return new NodeUtil(location.getTree());
+                return new NodeUtil(t);
             }
         }
     }
