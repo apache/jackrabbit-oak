@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.jcr.version;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import javax.annotation.Nonnull;
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.RepositoryException;
@@ -30,8 +32,6 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.plugins.version.ReadOnlyVersionManager;
 import org.apache.jackrabbit.oak.plugins.version.VersionConstants;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * {@code ReadWriteVersionManager}...
@@ -104,8 +104,7 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
             throw new UnsupportedRepositoryOperationException(
                     versionable.getPath() + " is not versionable");
         }
-        TreeLocation location = versionable.getLocation();
-        if (isCheckedOut(location)) {
+        if (isCheckedOut(versionable)) {
             versionable.setProperty(VersionConstants.JCR_ISCHECKEDOUT,
                     Boolean.FALSE, Type.BOOLEAN);
             try {
@@ -116,7 +115,7 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
                 throw new RepositoryException(e);
             }
         }
-        return getBaseVersion(getWorkspaceRoot().getTreeOrNull(location.getPath()));
+        return getBaseVersion(getWorkspaceRoot().getTreeOrNull(versionable.getPath()));
     }
 
     /**
@@ -142,8 +141,7 @@ public class ReadWriteVersionManager extends ReadOnlyVersionManager {
             throw new UnsupportedRepositoryOperationException(
                     versionable.getPath() + " is not versionable");
         }
-        TreeLocation location = versionable.getLocation();
-        if (!isCheckedOut(location)) {
+        if (!isCheckedOut(versionable)) {
             versionable.setProperty(VersionConstants.JCR_ISCHECKEDOUT,
                     Boolean.TRUE, Type.BOOLEAN);
             try {

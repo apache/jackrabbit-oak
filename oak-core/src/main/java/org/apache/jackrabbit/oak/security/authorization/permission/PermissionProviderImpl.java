@@ -16,8 +16,11 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.security.Principal;
 import java.util.Set;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -48,8 +51,6 @@ import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 /**
  * PermissionProviderImpl... TODO
  * <p/>
@@ -78,7 +79,7 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
             compiledPermissions = AllPermissions.getInstance();
         } else {
             ImmutableTree permissionsTree = getPermissionsRoot();
-            if (permissionsTree == null || principals.isEmpty()) {
+            if (!permissionsTree.exists() || principals.isEmpty()) {
                 compiledPermissions = NoPermissions.getInstance();
             } else {
                 compiledPermissions = new CompiledPermissionImpl(principals,
@@ -192,11 +193,9 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
         }
     }
 
-    @CheckForNull
+    @Nonnull
     private ImmutableTree getPermissionsRoot() {
-        String path = PERMISSIONS_STORE_PATH + '/' + workspaceName;
-        Tree tree = getImmutableRoot().getLocation(path).getTree();
-        return (tree == null) ? null : (ImmutableTree) tree;
+        return getImmutableRoot().getTree(PERMISSIONS_STORE_PATH + '/' + workspaceName);
     }
 
     @Nonnull
