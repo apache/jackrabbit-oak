@@ -100,18 +100,11 @@ public class SegmentWriter {
 
     public synchronized void flush() {
         if (length > 0) {
-            byte[] data = buffer;
-            if (length < buffer.length) {
-                data = new byte[length];
-                System.arraycopy(
-                        buffer, buffer.length - length, data, 0, data.length);
-            }
-
-            store.createSegment(new Segment(
-                    store, uuid, data, uuids.keySet(), strings, templates));
+            store.createSegment(
+                    uuid, buffer, buffer.length - length, length,
+                    uuids.keySet(), strings, templates);
 
             uuid = UUID.randomUUID();
-            buffer = EMPTY_BUFFER;
             length = 0;
             uuids.clear();
             strings.clear();
@@ -504,7 +497,11 @@ public class SegmentWriter {
                 UUID segmentId = UUID.randomUUID();
                 int align = Segment.RECORD_ALIGN_BYTES - 1;
                 int bulkAlignLength = (bulkLength + align) & ~align;
-                store.createSegment(segmentId, bulk, 0, bulkAlignLength);
+                store.createSegment(
+                        segmentId, bulk, 0, bulkAlignLength,
+                        Collections.<UUID>emptyList(),
+                        Collections.<String, RecordId>emptyMap(),
+                        Collections.<Template, RecordId>emptyMap());
                 for (int pos = Segment.MAX_SEGMENT_SIZE - bulkAlignLength;
                         pos < Segment.MAX_SEGMENT_SIZE;
                         pos += BLOCK_SIZE) {
