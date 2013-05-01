@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.core;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.fail;
+
 import org.apache.jackrabbit.oak.OakBaseTest;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -23,9 +26,6 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.junit.Before;
 import org.junit.Test;
-
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.fail;
 
 public class ImmutableRootTest extends OakBaseTest {
 
@@ -37,7 +37,7 @@ public class ImmutableRootTest extends OakBaseTest {
 
         // Add test content
         Root root = session.getLatestRoot();
-        Tree tree = root.getTreeOrNull("/");
+        Tree tree = root.getTree("/");
         Tree x = tree.addChild("x");
         Tree y = x.addChild("y");
         Tree z = y.addChild("z");

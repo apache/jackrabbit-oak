@@ -16,10 +16,14 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.property;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import java.util.List;
 
 import javax.jcr.query.Query;
 
+import com.google.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -31,11 +35,6 @@ import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
-
-import com.google.common.collect.ImmutableList;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 /**
  * <code>RelativePathTest</code>...
@@ -63,7 +62,7 @@ public class RelativePathTest extends AbstractQueryTest {
 
     @Test
     public void query() throws Exception {
-        Tree t = root.getTreeOrNull("/");
+        Tree t = root.getTree("/");
         t.addChild("a").addChild("n").setProperty("myProp", "foo");
         t.addChild("b").addChild("n").setProperty("myProp", "bar");
         t.addChild("c").addChild("x").setProperty("myProp", "foo");

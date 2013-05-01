@@ -16,6 +16,12 @@
  */
 package org.apache.jackrabbit.oak.security.authentication.token;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -23,6 +29,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+
 import javax.annotation.Nonnull;
 import javax.jcr.Credentials;
 import javax.jcr.GuestCredentials;
@@ -36,12 +43,6 @@ import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCreden
 import org.apache.jackrabbit.oak.spi.security.authentication.token.TokenInfo;
 import org.junit.Before;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 
 /**
  * TokenProviderImplTest...
@@ -140,9 +141,9 @@ public class TokenProviderImplTest extends AbstractTokenTest {
 
         TokenInfo info = tokenProvider.createToken(userId, attributes);
 
-        Tree userTree = root.getTreeOrNull(getUserManager().getAuthorizable(userId).getPath());
-        Tree tokens = userTree.getChildOrNull(".tokens");
-        assertNotNull(tokens);
+        Tree userTree = root.getTree(getUserManager().getAuthorizable(userId).getPath());
+        Tree tokens = userTree.getChild(".tokens");
+        assertTrue(tokens.exists());
         assertEquals(1, tokens.getChildrenCount());
 
         Tree tokenNode = tokens.getChildren().iterator().next();
@@ -211,12 +212,12 @@ public class TokenProviderImplTest extends AbstractTokenTest {
     public void testRemoveTokenRemovesNode() throws Exception {
         TokenInfo info = tokenProvider.createToken(userId, Collections.<String, Object>emptyMap());
 
-        Tree userTree = root.getTreeOrNull(getUserManager().getAuthorizable(userId).getPath());
-        Tree tokens = userTree.getChildOrNull(".tokens");
+        Tree userTree = root.getTree(getUserManager().getAuthorizable(userId).getPath());
+        Tree tokens = userTree.getChild(".tokens");
         String tokenNodePath = tokens.getChildren().iterator().next().getPath();
 
         tokenProvider.removeToken(info);
-        assertNull(root.getTreeOrNull(tokenNodePath));
+        assertTrue(root.getTree(tokenNodePath).exists());
     }
 
     @Test

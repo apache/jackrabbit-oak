@@ -16,6 +16,11 @@
  */
 package org.apache.jackrabbit.oak.security.authentication.user;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
+
 import javax.jcr.GuestCredentials;
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.login.Configuration;
@@ -33,11 +38,6 @@ import org.apache.jackrabbit.oak.spi.security.authentication.ImpersonationCreden
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtility;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
 
 /**
  * LoginTest...
@@ -85,7 +85,7 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
         // verify initial user-content looks like expected
         Authorizable anonymous = userMgr.getAuthorizable(anonymousID);
         assertNotNull(anonymous);
-        assertFalse(root.getTreeOrNull(anonymous.getPath()).hasProperty(UserConstants.REP_PASSWORD));
+        assertFalse(root.getTree(anonymous.getPath()).hasProperty(UserConstants.REP_PASSWORD));
 
         ContentSession cs = null;
         try {

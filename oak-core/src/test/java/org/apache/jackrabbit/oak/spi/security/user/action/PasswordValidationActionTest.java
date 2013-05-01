@@ -16,9 +16,15 @@
  */
 package org.apache.jackrabbit.oak.spi.security.user.action;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+
 import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
@@ -38,11 +44,6 @@ import org.apache.jackrabbit.oak.spi.security.user.util.PasswordUtility;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 public class PasswordValidationActionTest extends AbstractSecurityTest {
 
@@ -130,7 +131,7 @@ public class PasswordValidationActionTest extends AbstractSecurityTest {
         testUser = getUserManager().createUser("testuser", hashed);
         root.commit();
 
-        String pwValue = root.getTreeOrNull(testUser.getPath()).getProperty(UserConstants.REP_PASSWORD).getValue(Type.STRING);
+        String pwValue = root.getTree(testUser.getPath()).getProperty(UserConstants.REP_PASSWORD).getValue(Type.STRING);
         assertFalse(PasswordUtility.isPlainTextPassword(pwValue));
         assertTrue(PasswordUtility.isSame(pwValue, hashed));
     }
