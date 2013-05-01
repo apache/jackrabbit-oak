@@ -16,10 +16,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype.write;
 
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.Map;
+
 import javax.annotation.Nonnull;
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.RepositoryException;
@@ -37,8 +40,6 @@ import org.apache.jackrabbit.oak.plugins.name.Namespaces;
 import org.apache.jackrabbit.oak.plugins.name.ReadWriteNamespaceRegistry;
 import org.apache.jackrabbit.oak.plugins.value.ValueFactoryImpl;
 
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
-
 /**
  * {@code BuiltInNodeTypes} is a utility class that registers the built-in
  * node types required for a JCR repository running on Oak.
@@ -55,7 +56,7 @@ class BuiltInNodeTypes {
         this.ntMgr =  new ReadWriteNodeTypeManager() {
             @Override
             protected Tree getTypes() {
-                return root.getTreeOrNull(NODE_TYPES_PATH);
+                return root.getTree(NODE_TYPES_PATH);
             }
 
             @Nonnull
@@ -68,7 +69,7 @@ class BuiltInNodeTypes {
         this.nsReg = new ReadWriteNamespaceRegistry() {
             @Override
             protected Tree getReadTree() {
-                return root.getTreeOrNull("/");
+                return root.getTree("/");
             }
             @Override
             protected Root getWriteRoot() {
@@ -80,7 +81,7 @@ class BuiltInNodeTypes {
                 new GlobalNameMapper() {
                     @Override
                     protected Map<String, String> getNamespaceMap() {
-                        return Namespaces.getNamespaceMap(root.getTreeOrNull("/"));
+                        return Namespaces.getNamespaceMap(root.getTree("/"));
                     }
                 }));
     }

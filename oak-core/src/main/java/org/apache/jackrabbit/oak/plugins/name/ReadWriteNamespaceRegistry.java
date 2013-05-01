@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.name;
 
+import static org.apache.jackrabbit.oak.api.Type.NAME;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
+
 import java.util.Map;
 
 import javax.jcr.AccessDeniedException;
@@ -27,9 +30,6 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-
-import static org.apache.jackrabbit.oak.api.Type.NAME;
-import static org.apache.jackrabbit.oak.api.Type.STRING;
 
 /**
  * Writable namespace registry. Mainly for use to implement the full JCR API.
@@ -59,11 +59,11 @@ public abstract class ReadWriteNamespaceRegistry
     }
 
     private static Tree getOrCreate(Root root, String... path) {
-        Tree tree = root.getTreeOrNull("/");
-        assert tree != null;
+        Tree tree = root.getTree("/");
+        assert tree.exists();
         for (String name : path) {
-            Tree child = tree.getChildOrNull(name);
-            if (child == null) {
+            Tree child = tree.getChild(name);
+            if (!child.exists()) {
                 child = tree.addChild(name);
             }
             tree = child;
@@ -115,8 +115,8 @@ public abstract class ReadWriteNamespaceRegistry
     @Override
     public void unregisterNamespace(String prefix) throws RepositoryException {
         Root root = getWriteRoot();
-        Tree namespaces = root.getTreeOrNull(NAMESPACES_PATH);
-        if (namespaces == null || !namespaces.hasProperty(prefix)) {
+        Tree namespaces = root.getTree(NAMESPACES_PATH);
+        if (!namespaces.exists() || !namespaces.hasProperty(prefix)) {
             throw new NamespaceException(
                     "Namespace mapping from " + prefix + " to "
                     + getURI(prefix) + " can not be unregistered");

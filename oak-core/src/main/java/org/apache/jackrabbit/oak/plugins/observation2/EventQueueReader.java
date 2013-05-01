@@ -73,22 +73,20 @@ public class EventQueueReader {
 
     private Iterator<Tree> getEvents(long next, final String id) {
         if (bundles == null) {
-            bundles = root.getTreeOrNull(EVENTS_PATH);
+            bundles = root.getTree(EVENTS_PATH);
         }
 
-        if (bundles != null) {
-            Tree bundle = bundles.getChildOrNull(String.valueOf(next));
-            if (bundle != null) {
-                nextBundleId++;
-                if (bundle.getChildrenCount() > 0) {
-                    return Iterators.filter(bundle.getChildren().iterator(),
-                            new Predicate<Tree>() {
-                        @Override
-                        public boolean apply(Tree tree) {
-                            return tree.hasChild(id);
-                        }
-                    });
-                }
+        Tree bundle = bundles.getChildOrNull(String.valueOf(next));
+        if (bundle != null) {
+            nextBundleId++;
+            if (bundle.getChildrenCount() > 0) {
+                return Iterators.filter(bundle.getChildren().iterator(),
+                        new Predicate<Tree>() {
+                    @Override
+                    public boolean apply(Tree tree) {
+                        return tree.hasChild(id);
+                    }
+                });
             }
         }
         return null;
