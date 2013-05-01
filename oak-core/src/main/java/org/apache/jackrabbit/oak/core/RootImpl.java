@@ -177,8 +177,8 @@ public class RootImpl implements Root {
     @Override
     public boolean move(String sourcePath, String destPath) {
         checkLive();
-        TreeImpl destParent = rootTree.getTreeOrNull(getParentPath(destPath));
-        if (destParent == null) {
+        TreeImpl destParent = rootTree.getTree(getParentPath(destPath));
+        if (!destParent.exists()) {
             return false;
         }
         purgePendingChanges();
