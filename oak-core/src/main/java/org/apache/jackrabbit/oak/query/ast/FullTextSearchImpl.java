@@ -18,6 +18,9 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
+import static org.apache.jackrabbit.oak.api.Type.STRING;
+import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+
 import java.text.ParseException;
 import java.util.ArrayList;
 
@@ -29,9 +32,6 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.query.ast.ComparisonImpl.LikePattern;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
-
-import static org.apache.jackrabbit.oak.api.Type.STRING;
-import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 
 /**
  * A fulltext "contains(...)" condition.
@@ -114,7 +114,7 @@ public class FullTextSearchImpl extends ConstraintImpl {
             }
 
             Tree tree = getTree(path);
-            if (tree == null) {
+            if (tree == null || !tree.exists()) {
                 return false;
             }
 

@@ -17,7 +17,6 @@
 
 package org.apache.jackrabbit.oak.jcr.delegate;
 
-import static com.google.common.base.Objects.toStringHelper;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import javax.annotation.CheckForNull;
@@ -25,8 +24,6 @@ import javax.annotation.Nonnull;
 import javax.jcr.InvalidItemStateException;
 
 import org.apache.jackrabbit.oak.api.Tree.Status;
-import org.apache.jackrabbit.oak.api.TreeLocation;
-import org.apache.jackrabbit.oak.commons.PathUtils;
 
 /**
  * Abstract base class for {@link NodeDelegate} and {@link PropertyDelegate}
@@ -35,33 +32,23 @@ public abstract class ItemDelegate {
 
     protected final SessionDelegate sessionDelegate;
 
-    /** The underlying {@link org.apache.jackrabbit.oak.api.TreeLocation} of this item. */
-    private final TreeLocation location;
-
-    ItemDelegate(SessionDelegate sessionDelegate, TreeLocation location) {
+    ItemDelegate(SessionDelegate sessionDelegate) {
         this.sessionDelegate = checkNotNull(sessionDelegate);
-        this.location = checkNotNull(location);
     }
-
-    public abstract boolean isProtected() throws InvalidItemStateException;
 
     /**
      * Get the name of this item
      * @return oak name of this item
      */
     @Nonnull
-    public String getName() throws InvalidItemStateException {
-        return PathUtils.getName(getPath());
-    }
+    public abstract String getName();
 
     /**
      * Get the path of this item
      * @return oak path of this item
      */
     @Nonnull
-    public String getPath() throws InvalidItemStateException {
-        return getLocation().getPath();  // never null
-    }
+    public abstract String getPath();
 
     /**
      * Get the parent of this item or {@code null}.
@@ -69,51 +56,27 @@ public abstract class ItemDelegate {
      * is not accessible.
      */
     @CheckForNull
-    public NodeDelegate getParent() throws InvalidItemStateException {
-        return NodeDelegate.create(sessionDelegate, getLocation().getParent());
-    }
-
-    public void checkNotStale() throws InvalidItemStateException {
-        if (isStale()) {
-            throw new InvalidItemStateException("stale");
-        }
-    }
-
-    /**
-     * Determine whether this item is stale
-     * @return  {@code true} iff stale
-     */
-    public boolean isStale() {
-        return !location.exists();
-    }
+    public abstract NodeDelegate getParent();
 
     /**
      * Get the status of this item.
      * @return  {@link Status} of this item or {@code null} if not available.
      */
     @CheckForNull
-    public Status getStatus() {
-        return location.getStatus();
-    }
+    public abstract Status getStatus();
 
-    @Override
-    public String toString() {
-        return toStringHelper(this).add("location", location).toString();
-    }
-
-    //------------------------------------------------------------< internal >---
+    public abstract boolean isProtected() throws InvalidItemStateException;
 
     /**
-     * The underlying {@link org.apache.jackrabbit.oak.api.TreeLocation} of this item.
-     * @return  tree location of the underlying item
-     * @throws InvalidItemStateException if the location points to a stale item
+     * Determine whether this item is stale
+     * @return  {@code true} iff stale
      */
-    @Nonnull
-    TreeLocation getLocation() throws InvalidItemStateException {
-        if (!location.exists()) {
-            throw new InvalidItemStateException("Item is stale");
+    public abstract boolean isStale();
+
+    public void checkNotStale() throws InvalidItemStateException {
+        if (isStale()) {
+            throw new InvalidItemStateException("stale");
         }
-        return location;
     }
 
 }

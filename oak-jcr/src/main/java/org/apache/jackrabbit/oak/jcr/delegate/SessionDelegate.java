@@ -39,7 +39,6 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.IdentifierManager;
 import org.slf4j.Logger;
@@ -162,7 +161,7 @@ public class SessionDelegate {
      */
     @CheckForNull
     public NodeDelegate getNode(String path) {
-        return NodeDelegate.create(this, getLocation(path));
+        return NodeDelegate.create(this, root.getTree(path));
     }
 
     @CheckForNull
@@ -179,10 +178,9 @@ public class SessionDelegate {
      */
     @CheckForNull
     public PropertyDelegate getProperty(String path) {
-        TreeLocation location = root.getLocation(path);
-        return location.getProperty() == null
-            ? null
-            : new PropertyDelegate(this, location);
+        Tree parent = root.getTree(PathUtils.getParentPath(path));
+        String name = PathUtils.getName(path);
+        return PropertyDelegate.create(this, parent, name);
     }
 
     public boolean hasPendingChanges() {
@@ -220,21 +218,21 @@ public class SessionDelegate {
      */
     public void copy(String srcPath, String destPath) throws RepositoryException {
         // check destination
-        Tree dest = getTree(destPath);
-        if (dest != null) {
+        Tree dest = root.getTree(destPath);
+        if (dest.exists()) {
             throw new ItemExistsException(destPath);
         }
 
         // check parent of destination
         String destParentPath = PathUtils.getParentPath(destPath);
-        Tree destParent = getTree(destParentPath);
-        if (destParent == null) {
+        Tree destParent = root.getTree(destParentPath);
+        if (!destParent.exists()) {
             throw new PathNotFoundException(PathUtils.getParentPath(destPath));
         }
 
         // check source exists
-        Tree src = getTree(srcPath);
-        if (src == null) {
+        Tree src = root.getTree(srcPath);
+        if (!src.exists()) {
             throw new PathNotFoundException(srcPath);
         }
 
@@ -260,21 +258,21 @@ public class SessionDelegate {
         Root moveRoot = transientOp ? root : contentSession.getLatestRoot();
 
         // check destination
-        Tree dest = moveRoot.getTreeOrNull(destPath);
-        if (dest != null) {
+        Tree dest = moveRoot.getTree(destPath);
+        if (dest.exists()) {
             throw new ItemExistsException(destPath);
         }
 
         // check parent of destination
         String destParentPath = PathUtils.getParentPath(destPath);
-        Tree destParent = moveRoot.getTreeOrNull(destParentPath);
-        if (destParent == null) {
+        Tree destParent = moveRoot.getTree(destParentPath);
+        if (!destParent.exists()) {
             throw new PathNotFoundException(PathUtils.getParentPath(destPath));
         }
 
         // check source exists
-        Tree src = moveRoot.getTreeOrNull(srcPath);
-        if (src == null) {
+        Tree src = moveRoot.getTree(srcPath);
+        if (!src.exists()) {
             throw new PathNotFoundException(srcPath);
         }
 
@@ -298,22 +296,6 @@ public class SessionDelegate {
     @Nonnull  // FIXME this should be package private. OAK-672
     public Root getRoot() {
         return root;
-    }
-
-    @Nonnull
-    TreeLocation getLocation(String path) {
-        return root.getLocation(path);
-    }
-
-    /**
-     * Get the {@code Tree} with the given path
-     * @param path  oak path
-     * @return  tree at the given path or {@code null} if no such tree exists or
-     * if the tree at {@code path} is not accessible.
-     */
-    @CheckForNull
-    private Tree getTree(String path) {
-        return root.getTreeOrNull(path);
     }
 
     /**

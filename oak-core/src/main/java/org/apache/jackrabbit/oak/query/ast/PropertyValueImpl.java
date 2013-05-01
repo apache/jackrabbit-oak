@@ -98,7 +98,7 @@ public class PropertyValueImpl extends DynamicOperandImpl {
             return matchesPropertyType(p) ? p : null;
         }
         Tree tree = getTree(selector.currentPath());
-        if (tree == null) {
+        if (tree == null || !tree.exists()) {
             return null;
         }
         if (!asterisk) {
