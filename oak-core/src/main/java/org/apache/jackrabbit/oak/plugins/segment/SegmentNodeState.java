@@ -32,7 +32,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateDiff;
 
-class SegmentNodeState extends AbstractNodeState {
+public class SegmentNodeState extends AbstractNodeState {
 
     private final SegmentStore store;
 
@@ -42,12 +42,12 @@ class SegmentNodeState extends AbstractNodeState {
 
     private Template template = null;
 
-    SegmentNodeState(SegmentStore store, RecordId id) {
+    public SegmentNodeState(SegmentStore store, RecordId id) {
         this.store = checkNotNull(store);
         this.recordId = checkNotNull(id);
     }
 
-    RecordId getRecordId() {
+    public RecordId getRecordId() {
         return recordId;
     }
 
