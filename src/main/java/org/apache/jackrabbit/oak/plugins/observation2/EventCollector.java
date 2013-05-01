@@ -146,8 +146,8 @@ class EventCollector implements Runnable {
     }
 
     private static Tree getOrCreate(Tree parent, String name) {
-        Tree child = parent.getChildOrNull(name);
-        if (child == null) {
+        Tree child = parent.getChild(name);
+        if (!child.exists()) {
             child = parent.addChild(name);
         }
         return child;

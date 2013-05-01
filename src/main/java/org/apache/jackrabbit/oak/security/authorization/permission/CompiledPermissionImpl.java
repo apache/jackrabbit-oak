@@ -28,7 +28,6 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
-import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
@@ -92,7 +91,7 @@ class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants
         // test if a permission has been added for those principals that didn't have one before
         if (trees.size() != principals.size()) {
             for (Principal principal : principals) {
-                if (!trees.containsKey(principal.getName()) && getPrincipalRoot(permissionsTree, principal) != null) {
+                if (!trees.containsKey(principal.getName()) && getPrincipalRoot(permissionsTree, principal).exists()) {
                     refresh = true;
                     break;
                 }
@@ -102,8 +101,8 @@ class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants
         if (!refresh) {
             for (Map.Entry<String, ImmutableTree> entry : trees.entrySet()) {
                 ImmutableTree t = entry.getValue();
-                ImmutableTree t2 = permissionsTree.getChildOrNull(t.getName());
-                if (t2 != null && !t.equals(t2)) {
+                ImmutableTree t2 = permissionsTree.getChild(t.getName());
+                if (t2.exists() && !t.equals(t2)) {
                     refresh = true;
                     break;
                 }
@@ -161,9 +160,9 @@ class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants
     }
 
     //------------------------------------------------------------< private >---
-    @CheckForNull
+    @Nonnull
     private static ImmutableTree getPrincipalRoot(ImmutableTree permissionsTree, Principal principal) {
-        return permissionsTree.getChildOrNull(Text.escapeIllegalJcrChars(principal.getName()));
+        return permissionsTree.getChild(Text.escapeIllegalJcrChars(principal.getName()));
     }
 
     private void buildEntries(@Nonnull ImmutableTree permissionsTree) {
@@ -175,7 +174,7 @@ class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants
             EntriesBuilder builder = new EntriesBuilder();
             for (Principal principal : principals) {
                 ImmutableTree t = getPrincipalRoot(permissionsTree, principal);
-                if (t != null) {
+                if (t.exists()) {
                     trees.put(principal.getName(), t);
                     builder.addEntries(principal, t, restrictionProvider);
                 }

@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.permission;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.api.CommitFailedException.ACCESS;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -34,9 +37,6 @@ import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissio
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.util.TreeUtil;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.api.CommitFailedException.ACCESS;
 
 /**
  * Validator implementation that checks for sufficient permission for all
@@ -87,7 +87,7 @@ class PermissionValidator extends DefaultValidator {
         if (TreeImpl.OAK_CHILD_ORDER.equals(after.getName())) {
             String childName = new ChildOrderDiff(before, after).firstReordered();
             if (childName != null) {
-                Tree child = parentAfter.getChildOrNull(childName);
+                Tree child = parentAfter.getChild(childName);
                 checkPermissions(child, false, Permissions.MODIFY_CHILD_NODE_COLLECTION);
             } // else: no re-order but only internal update
         } else {
@@ -102,7 +102,7 @@ class PermissionValidator extends DefaultValidator {
 
     @Override
     public Validator childNodeAdded(String name, NodeState after) throws CommitFailedException {
-        Tree child = checkNotNull(parentAfter.getChildOrNull(name));
+        Tree child = checkNotNull(parentAfter.getChild(name));
         if (isVersionstorageTree(child)) {
             child = getVersionHistoryTree(child);
             if (child == null) {
@@ -117,8 +117,8 @@ class PermissionValidator extends DefaultValidator {
 
     @Override
     public Validator childNodeChanged(String name, NodeState before, NodeState after) throws CommitFailedException {
-        Tree childBefore = parentBefore.getChildOrNull(name);
-        Tree childAfter = parentAfter.getChildOrNull(name);
+        Tree childBefore = parentBefore.getChild(name);
+        Tree childAfter = parentAfter.getChild(name);
 
         // TODO
 
@@ -127,7 +127,7 @@ class PermissionValidator extends DefaultValidator {
 
     @Override
     public Validator childNodeDeleted(String name, NodeState before) throws CommitFailedException {
-        Tree child = checkNotNull(parentBefore.getChildOrNull(name));
+        Tree child = checkNotNull(parentBefore.getChild(name));
         if (isVersionstorageTree(child)) {
             // TODO: check again
             throw new CommitFailedException(

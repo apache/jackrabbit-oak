@@ -91,8 +91,8 @@ public final class PrivilegeBitsProvider implements PrivilegeConstants {
         }
         PrivilegeBits bits = PrivilegeBits.getInstance();
         for (String privilegeName : privilegeNames) {
-            Tree defTree = privilegesTree.getChildOrNull(checkNotNull(privilegeName));
-            if (defTree != null) {
+            Tree defTree = privilegesTree.getChild(checkNotNull(privilegeName));
+            if (defTree.exists()) {
                 bits.add(PrivilegeBits.getInstance(defTree));
             }
         }
