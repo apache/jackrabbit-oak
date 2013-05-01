@@ -413,20 +413,6 @@ public class TreeImpl implements Tree {
     }
 
     /**
-     * Get a tree for the tree identified by {@code path}.
-     *
-     * @param path the path to the child
-     * @return a {@link Tree} instance for the child at {@code path} or
-     *         {@code null} if no such tree exits or if the tree is not accessible.
-     */
-    @CheckForNull
-    @Deprecated
-    TreeImpl getTreeOrNull(String path) {
-        TreeImpl child = getTree(path);
-        return child.nodeBuilder.exists() ? child : null;
-    }
-
-    /**
      * Update the child order with children that have been removed or added.
      * Added children are appended to the end of the {@link #OAK_CHILD_ORDER}
      * property.
