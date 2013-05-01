@@ -70,7 +70,23 @@ public abstract class ReadOnlyVersionManager {
      * @return whether the tree is checked out or not.
      */
     public boolean isCheckedOut(@Nonnull Tree tree) {
-        return isCheckedOut(checkNotNull(tree).getLocation());
+        if (checkNotNull(tree).exists()) {
+            PropertyState p = tree.getProperty(VersionConstants.JCR_ISCHECKEDOUT);
+            if (p != null) {
+                return p.getValue(Type.BOOLEAN);
+            } else if (tree.isRoot()) {
+                return true;
+            }
+        } else {
+            // FIXME: this actually means access to the tree is restricted
+            // and may result in wrong isCheckedOut value. This should never
+            // be the case in a commit hook because it operates on non-access-
+            // controlled NodeStates. This means consistency is not at risk
+            // but it may mean oak-jcr sees a node as checked out even though
+            // it is in fact read-only because of a checked-in ancestor.
+        }
+        // otherwise return checkedOut status of parent
+        return isCheckedOut(tree.getParent());
     }
 
     /**
@@ -78,10 +94,10 @@ public abstract class ReadOnlyVersionManager {
      * checked out; otherwise {@code false}.
      *
      * @param absOakPath an absolute path.
-     * @return whether the tree at the given location is checked out or not.
+     * @return whether the tree at the given path is checked out or not.
      */
     public boolean isCheckedOut(@Nonnull String absOakPath) {
-        return isCheckedOut(getWorkspaceRoot().getLocation(checkNotNull(absOakPath)));
+        return isCheckedOut(getWorkspaceRoot().getTree(checkNotNull(absOakPath)));
     }
 
     /**
@@ -168,27 +184,6 @@ public abstract class ReadOnlyVersionManager {
         // FIXME: may need to revise this, because getVersionStorageTree()
         // is not the same Root as getWorkspaceRoot()
         return new IdentifierManager(getWorkspaceRoot());
-    }
-
-    protected static boolean isCheckedOut(@Nonnull TreeLocation location) {
-        Tree t = checkNotNull(location).getTree();
-        if (t != null) {
-            PropertyState p = t.getProperty(VersionConstants.JCR_ISCHECKEDOUT);
-            if (p != null) {
-                return p.getValue(Type.BOOLEAN);
-            } else if (t.isRoot()) {
-                return true;
-            }
-        } else {
-            // FIXME: this actually means access to the tree is restricted
-            // and may result in wrong isCheckedOut value. This should never
-            // be the case in a commit hook because it operates on non-access-
-            // controlled NodeStates. This means consistency is not at risk
-            // but it may mean oak-jcr sees a node as checked out even though
-            // it is in fact read-only because of a checked-in ancestor.
-        }
-        // otherwise return checkedOut status of parent
-        return isCheckedOut(location.getParent());
     }
 
     /**
