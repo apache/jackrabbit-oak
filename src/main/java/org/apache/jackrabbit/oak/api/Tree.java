@@ -60,7 +60,7 @@ import javax.annotation.Nullable;
  * {@link Tree} instances may become disconnected after a call to {@link Root#refresh()},
  * {@link Root#rebase()} or {@link Root#commit()}. Any access to disconnected tree instances
  * - except for {@link Tree#getName()}, {@link Tree#isRoot()}, {@link Tree#getPath()},
- * {@link Tree#getParentOrNull()} and {@link Tree#exists()} - will cause an
+ * {@link Tree#getParent()} and {@link Tree#exists()} - will cause an
  * {@code InvalidStateException}.
  * TODO document iterability / existence (OAK-798)
  */
@@ -133,16 +133,6 @@ public interface Tree {
      */
     @Nonnull
     Tree getParent();
-
-    /**
-     * @return the parent of this {@code Tree} instance. This method returns
-     *         {@code null} if the parent is not accessible or if no parent exists (root
-     *         node).
-     * @deprecated use {@link #getParent()} and {@link #exists()} instead.
-     */
-    @CheckForNull
-    @Deprecated
-    Tree getParentOrNull();
 
     /**
      * Get a property state

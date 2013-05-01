@@ -16,11 +16,14 @@
  */
 package org.apache.jackrabbit.oak.security.authorization;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 import javax.annotation.CheckForNull;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
@@ -37,9 +40,9 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
-import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AccessControlConfiguration;
+import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.xml.NodeInfo;
 import org.apache.jackrabbit.oak.spi.xml.PropInfo;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedNodeImporter;
@@ -47,8 +50,6 @@ import org.apache.jackrabbit.oak.spi.xml.ReferenceChangeTracker;
 import org.apache.jackrabbit.oak.spi.xml.TextValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * AccessControlImporter... TODO
@@ -189,9 +190,9 @@ class AccessControlImporter implements ProtectedNodeImporter, AccessControlConst
     @CheckForNull
     private JackrabbitAccessControlList getACL(Tree tree) throws RepositoryException {
         String nodeName = tree.getName();
-        Tree parent = tree.getParentOrNull();
 
-        if (parent != null) {
+        if (!tree.isRoot()) {
+            Tree parent = tree.getParent();
             if (AccessControlConstants.REP_POLICY.equals(nodeName)
                     && ntMgr.isNodeType(tree, AccessControlConstants.NT_REP_ACL)) {
                 return getACL(parent.getPath());
