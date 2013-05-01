@@ -42,7 +42,6 @@ import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -105,15 +104,33 @@ public class IdentifierManager {
     }
 
     /**
-     * The tree identified by the specified {@code identifier} or {@code null}.
+     * The possibly non existing tree identified by the specified {@code identifier} or {@code null}.
      *
      * @param identifier The identifier of the tree such as exposed by {@link #getIdentifier(Tree)}
      * @return The tree with the given {@code identifier} or {@code null} if no
-     *         such tree exists or if the tree is not accessible.
+     *         such tree exists.
      */
     @CheckForNull
     public Tree getTree(String identifier) {
-        return getLocation(identifier).getTree();
+        if (identifier.startsWith("/")) {
+            return root.getTree(identifier);
+        } else {
+            int k = identifier.indexOf('/');
+            String uuid = k == -1
+                    ? identifier
+                    : identifier.substring(0, k);
+
+            checkArgument(isValidUUID(uuid), "Not a valid identifier '" + identifier + '\'');
+
+            String basePath = resolveUUID(uuid);
+            if (basePath == null) {
+                return null;
+            } else if (k == -1) {
+                return root.getTree(basePath);
+            } else {
+                return root.getTree(PathUtils.concat(basePath, identifier.substring(k + 1)));
+            }
+        }
     }
 
     /**
@@ -125,39 +142,10 @@ public class IdentifierManager {
      */
     @CheckForNull
     public String getPath(String identifier) {
-        TreeLocation location = getLocation(identifier);
-        return location.exists()
-            ? location.getPath()
+        Tree tree = getTree(identifier);
+        return tree != null && tree.exists()
+            ? tree.getPath()
             : null;
-    }
-
-    /**
-     * The tree location of the tree identified by the specified {@code identifier}.
-     *
-     * @param identifier The identifier of the tree such as exposed by {@link #getIdentifier(Tree)}
-     * @return The tree location of the tree with the given {@code identifier}.
-     */
-    @Nonnull
-    public TreeLocation getLocation(String identifier) {
-        if (identifier.startsWith("/")) {
-            return root.getLocation(identifier);
-        } else {
-            int k = identifier.indexOf('/');
-            String uuid = k == -1
-                ? identifier
-                : identifier.substring(0, k);
-
-            checkArgument(isValidUUID(uuid), "Not a valid identifier '" + identifier + '\'');
-
-            String basePath = resolveUUID(uuid);
-            if (basePath == null) {
-                return root.getLocation("/").getParent(); // a null location
-            } else if (k == -1) {
-                return root.getLocation(basePath);
-            } else {
-                return root.getLocation(PathUtils.concat(basePath, identifier.substring(k + 1)));
-            }
-        }
     }
 
     /**
@@ -224,8 +212,8 @@ public class IdentifierManager {
                 paths = Iterables.filter(paths, new Predicate<String>() {
                     @Override
                     public boolean apply(String path) {
-                        Tree tree = root.getTreeOrNull(PathUtils.getParentPath(path));
-                        if (tree != null) {
+                        Tree tree = root.getTree(PathUtils.getParentPath(path));
+                        if (tree.exists()) {
                             for (String ntName : nodeTypeNames) {
                                 if (nodeTypeManager.isNodeType(tree, ntName)) {
                                     return true;
