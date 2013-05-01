@@ -16,6 +16,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.query;
 
+import static junit.framework.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import java.util.Iterator;
 
 import org.apache.jackrabbit.oak.Oak;
@@ -31,10 +35,6 @@ import org.apache.solr.client.solrj.SolrServer;
 import org.junit.After;
 import org.junit.Ignore;
 import org.junit.Test;
-
-import static junit.framework.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 /**
  * General query extensive testcase for {@link SolrQueryIndex} and {@link
@@ -52,7 +52,7 @@ public class SolrIndexQueryTest extends AbstractQueryTest {
 
     @Override
     protected void createTestIndexNode() throws Exception {
-        Tree index = root.getTreeOrNull("/");
+        Tree index = root.getTree("/");
         createTestIndexNode(index, SolrQueryIndex.TYPE);
         root.commit();
     }
