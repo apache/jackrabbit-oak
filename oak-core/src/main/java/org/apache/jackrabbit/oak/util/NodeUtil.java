@@ -84,7 +84,7 @@ public class NodeUtil {
 
     @CheckForNull
     public NodeUtil getParent() {
-        return new NodeUtil(tree.getParentOrNull(), mapper);
+        return new NodeUtil(tree.getParent(), mapper);
     }
 
     public boolean isRoot() {
@@ -92,13 +92,13 @@ public class NodeUtil {
     }
 
     public boolean hasChild(String name) {
-        return tree.getChildOrNull(name) != null;
+        return tree.hasChild(name);
     }
 
     @CheckForNull
     public NodeUtil getChild(String name) {
-        Tree child = tree.getChildOrNull(name);
-        return (child == null) ? null : new NodeUtil(child, mapper);
+        Tree child = tree.getChild(name);
+        return child.exists() ? new NodeUtil(child, mapper) : null;
     }
 
     @Nonnull

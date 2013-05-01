@@ -36,11 +36,11 @@ public final class TreeTypeProviderImpl implements TreeTypeProvider {
 
     @Override
     public int getType(ImmutableTree tree) {
-        ImmutableTree parent = tree.getParentOrNull();
-        if (parent == null) {
+        if (tree.isRoot()) {
             return TYPE_DEFAULT;
         }
 
+        ImmutableTree parent = tree.getParent();
         int type;
         switch (parent.getType()) {
             case TYPE_HIDDEN:

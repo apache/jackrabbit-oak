@@ -62,10 +62,10 @@ class NodeDefinitionImpl extends ItemDefinitionImpl implements NodeDefinition {
         }
 
         NodeType[] types = new NodeType[oakNames.length];
-        Tree root = definition.getParentOrNull().getParentOrNull();
+        Tree root = definition.getParent().getParent();
         for (int i = 0; i < oakNames.length; i++) {
-            Tree type = root.getChildOrNull(oakNames[i]);
-            checkState(type != null);
+            Tree type = root.getChild(oakNames[i]);
+            checkState(type.exists());
             types[i] = new NodeTypeImpl(type, mapper);
         }
         return types;
@@ -85,9 +85,8 @@ class NodeDefinitionImpl extends ItemDefinitionImpl implements NodeDefinition {
     public NodeType getDefaultPrimaryType() {
         String oakName = getName(JcrConstants.JCR_DEFAULTPRIMARYTYPE);
         if (oakName != null) {
-            Tree root = definition.getParentOrNull().getParentOrNull();
-            Tree type = root.getChildOrNull(oakName);
-            checkState(type != null);
+            Tree type = definition.getParent().getParent().getChild(oakName);
+            checkState(type.exists());
             return new NodeTypeImpl(type, mapper);
         } else {
             return null;
