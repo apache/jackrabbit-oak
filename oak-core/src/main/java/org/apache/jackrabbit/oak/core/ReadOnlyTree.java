@@ -160,6 +160,7 @@ public class ReadOnlyTree implements Tree {
     }
 
     @Override
+    @Deprecated
     public TreeLocation getLocation() {
         return new NodeLocation(this);
     }
