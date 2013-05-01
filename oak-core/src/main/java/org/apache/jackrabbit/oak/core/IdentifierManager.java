@@ -16,6 +16,9 @@
  */
 package org.apache.jackrabbit.oak.core;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
+
 import java.text.ParseException;
 import java.util.Collections;
 import java.util.Map;
@@ -48,9 +51,6 @@ import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.oak.api.Type.STRING;
 
 /**
  * TODO document
@@ -245,9 +245,7 @@ public class IdentifierManager {
     }
 
     private String findProperty(String path, final String uuid) {
-        TreeLocation loc = root.getLocation(path);
-        Tree tree = loc.getTree();
-        assert tree != null;
+        Tree tree = root.getTree(path);
         final PropertyState refProp = Iterables.find(tree.getProperties(), new Predicate<PropertyState>() {
             @Override
             public boolean apply(PropertyState pState) {
