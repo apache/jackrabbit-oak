@@ -185,8 +185,8 @@ public class RootImpl implements Root {
         boolean success = branch.move(sourcePath, destPath);
         reset();
         if (success) {
-            getTreeOrNull(getParentPath(sourcePath)).updateChildOrder();
-            getTreeOrNull(getParentPath(destPath)).updateChildOrder();
+            getTree(getParentPath(sourcePath)).updateChildOrder();
+            getTree(getParentPath(destPath)).updateChildOrder();
             lastMove = lastMove.setMove(sourcePath, destParent, getName(destPath));
         }
         return success;
@@ -199,7 +199,7 @@ public class RootImpl implements Root {
         boolean success = branch.copy(sourcePath, destPath);
         reset();
         if (success) {
-            getTreeOrNull(getParentPath(destPath)).updateChildOrder();
+            getTree(getParentPath(destPath)).updateChildOrder();
         }
         return success;
     }

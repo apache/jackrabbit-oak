@@ -16,8 +16,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype.write;
 
+import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
+
 import java.util.ArrayList;
 import java.util.List;
+
 import javax.annotation.Nonnull;
 import javax.jcr.AccessDeniedException;
 import javax.jcr.RepositoryException;
@@ -35,10 +40,6 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
-
-import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.NODE_TYPES_PATH;
 
 /**
  * {@code ReadWriteNodeTypeManager} extends the {@link ReadOnlyNodeTypeManager}
@@ -164,11 +165,11 @@ public abstract class ReadWriteNodeTypeManager extends ReadOnlyNodeTypeManager {
     }
 
     private static Tree getOrCreateNodeTypes(Root root) {
-        Tree types = root.getTreeOrNull(NODE_TYPES_PATH);
-        if (types == null) {
-            Tree system = root.getTreeOrNull('/' + JCR_SYSTEM);
-            if (system == null) {
-                system = root.getTreeOrNull("/").addChild(JCR_SYSTEM);
+        Tree types = root.getTree(NODE_TYPES_PATH);
+        if (!types.exists()) {
+            Tree system = root.getTree('/' + JCR_SYSTEM);
+            if (!system.exists()) {
+                system = root.getTree("/").addChild(JCR_SYSTEM);
             }
             types = system.addChild(JCR_NODE_TYPES);
         }
@@ -177,13 +178,9 @@ public abstract class ReadWriteNodeTypeManager extends ReadOnlyNodeTypeManager {
 
     @Override
     public void unregisterNodeType(String name) throws RepositoryException {
-        Tree type = null;
         Root root = getWriteRoot();
-        Tree types = root.getTreeOrNull(NODE_TYPES_PATH);
-        if (types != null) {
-            type = types.getChildOrNull(getOakName(name));
-        }
-        if (type == null) {
+        Tree type = root.getTree(NODE_TYPES_PATH).getChild(getOakName(name));
+        if (!type.exists()) {
             throw new NoSuchNodeTypeException("Node type " + name + " can not be unregistered.");
         }
 
@@ -204,15 +201,15 @@ public abstract class ReadWriteNodeTypeManager extends ReadOnlyNodeTypeManager {
     @Override
     public void unregisterNodeTypes(String[] names) throws RepositoryException {
         Root root = getWriteRoot();
-        Tree types = root.getTreeOrNull(NODE_TYPES_PATH);
-        if (types == null) {
+        Tree types = root.getTree(NODE_TYPES_PATH);
+        if (!types.exists()) {
             throw new NoSuchNodeTypeException("Node types can not be unregistered.");
         }
 
         try {
             for (String name : names) {
-                Tree type = types.getChildOrNull(getOakName(name));
-                if (type == null) {
+                Tree type = types.getChild(getOakName(name));
+                if (!type.exists()) {
                     throw new NoSuchNodeTypeException("Node type " + name + " can not be unregistered.");
                 }
                 type.remove();

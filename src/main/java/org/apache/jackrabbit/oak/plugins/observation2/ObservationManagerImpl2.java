@@ -74,8 +74,8 @@ public class ObservationManagerImpl2 implements ObservationManager {
         if (EventQueueWriterProvider.BUNDLE_ID.get() == 0) {
             try {
                 Root root = contentSession.getLatestRoot();
-                Tree events = root.getTreeOrNull(ObservationConstants.EVENTS_PATH);
-                if (events != null) {
+                Tree events = root.getTree(ObservationConstants.EVENTS_PATH);
+                if (events.exists()) {
                     events.remove();
                     root.commit();
                 }
