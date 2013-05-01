@@ -222,13 +222,6 @@ public class TreeImpl implements Tree {
     }
 
     @Override
-    @Deprecated
-    public TreeImpl getChildOrNull(@Nonnull String name) {
-        TreeImpl child = getChild(name);
-        return child.nodeBuilder.exists() ? child : null;
-    }
-
-    @Override
     public boolean hasChild(@Nonnull String name) {
         checkNotNull(name);
         enter();

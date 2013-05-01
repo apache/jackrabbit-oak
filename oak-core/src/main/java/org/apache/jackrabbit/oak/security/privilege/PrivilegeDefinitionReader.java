@@ -70,7 +70,7 @@ class PrivilegeDefinitionReader implements PrivilegeConstants {
         if (privilegesTree == null) {
             return null;
         } else {
-            Tree definitionTree = privilegesTree.getChildOrNull(privilegeName);
+            Tree definitionTree = privilegesTree.getChild(privilegeName);
             return (isPrivilegeDefinition(definitionTree)) ? readDefinition(definitionTree) : null;
         }
     }

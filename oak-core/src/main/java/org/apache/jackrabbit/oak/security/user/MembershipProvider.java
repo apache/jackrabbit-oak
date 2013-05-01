@@ -16,10 +16,14 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
+import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+import static org.apache.jackrabbit.oak.api.Type.WEAKREFERENCE;
+
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
+
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
@@ -40,9 +44,6 @@ import org.apache.jackrabbit.oak.util.NodeUtil;
 import org.apache.jackrabbit.oak.util.PropertyUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.apache.jackrabbit.oak.api.Type.STRINGS;
-import static org.apache.jackrabbit.oak.api.Type.WEAKREFERENCE;
 
 /**
  * {@code MembershipProvider} implementation storing group membership information
@@ -121,8 +122,8 @@ class MembershipProvider extends AuthorizableBaseProvider {
     Iterator<String> getMembers(Tree groupTree, AuthorizableType authorizableType, boolean includeInherited) {
         Iterable memberPaths = Collections.emptySet();
         if (useMemberNode(groupTree)) {
-            Tree membersTree = groupTree.getChildOrNull(REP_MEMBERS);
-            if (membersTree != null) {
+            Tree membersTree = groupTree.getChild(REP_MEMBERS);
+            if (membersTree.exists()) {
                 throw new UnsupportedOperationException("not implemented: retrieve members from member-node hierarchy");
             }
         } else {
@@ -157,8 +158,8 @@ class MembershipProvider extends AuthorizableBaseProvider {
             }
         } else {
             if (useMemberNode(groupTree)) {
-                Tree membersTree = groupTree.getChildOrNull(REP_MEMBERS);
-                if (membersTree != null) {
+                Tree membersTree = groupTree.getChild(REP_MEMBERS);
+                if (membersTree.exists()) {
                     // FIXME: fix.. testing for property name in jr2 wasn't correct.
                     // TODO OAK-482: add implementation
                     throw new UnsupportedOperationException("not implemented: isMembers determined from member-node hierarchy");
@@ -204,8 +205,8 @@ class MembershipProvider extends AuthorizableBaseProvider {
 
     boolean removeMember(Tree groupTree, Tree memberTree) {
         if (useMemberNode(groupTree)) {
-            Tree membersTree = groupTree.getChildOrNull(REP_MEMBERS);
-            if (membersTree != null) {
+            Tree membersTree = groupTree.getChild(REP_MEMBERS);
+            if (membersTree.exists()) {
                 // TODO OAK-482: add implementation
                 throw new UnsupportedOperationException("not implemented: remove member from member-node hierarchy");
             }

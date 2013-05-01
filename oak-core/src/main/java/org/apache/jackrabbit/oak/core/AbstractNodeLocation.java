@@ -19,6 +19,8 @@ package org.apache.jackrabbit.oak.core;
 import static com.google.common.base.Objects.toStringHelper;
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import javax.annotation.Nonnull;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.TreeLocation;
@@ -40,6 +42,7 @@ abstract class AbstractNodeLocation<T extends Tree> extends AbstractTreeLocation
 
     protected abstract T getParentTree();
 
+    @Nonnull
     protected abstract T getChildTree(String name);
 
     protected abstract PropertyState getPropertyState(String name);
@@ -64,10 +67,7 @@ abstract class AbstractNodeLocation<T extends Tree> extends AbstractTreeLocation
         }
 
         T child = getChildTree(name);
-        if (child != null) {
-            return createNodeLocation(child);
-        }
-        return new NullLocation(this, name);
+        return createNodeLocation(child);
     }
 
     @Override

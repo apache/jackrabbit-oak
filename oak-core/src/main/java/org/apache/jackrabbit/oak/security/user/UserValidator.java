@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
@@ -34,8 +36,6 @@ import org.apache.jackrabbit.oak.spi.security.user.util.UserUtility;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.apache.jackrabbit.util.Text;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Validator that enforces user management specific constraints. Please note that
@@ -127,7 +127,7 @@ class UserValidator extends DefaultValidator implements UserConstants {
 
     @Override
     public Validator childNodeAdded(String name, NodeState after) throws CommitFailedException {
-        Tree tree = checkNotNull(parentAfter.getChildOrNull(name));
+        Tree tree = checkNotNull(parentAfter.getChild(name));
 
         AuthorizableType type = UserUtility.getType(tree);
         String authRoot = UserUtility.getAuthorizableRootPath(provider.getConfig(), type);
@@ -145,12 +145,12 @@ class UserValidator extends DefaultValidator implements UserConstants {
     @Override
     public Validator childNodeChanged(String name, NodeState before, NodeState after) throws CommitFailedException {
         // TODO: anything to do here?
-        return new UserValidator(parentBefore.getChildOrNull(name), parentAfter.getChildOrNull(name), provider);
+        return new UserValidator(parentBefore.getChild(name), parentAfter.getChild(name), provider);
     }
 
     @Override
     public Validator childNodeDeleted(String name, NodeState before) throws CommitFailedException {
-        Tree node = parentBefore.getChildOrNull(name);
+        Tree node = parentBefore.getChild(name);
         if (isAdminUser(node)) {
             String msg = "The admin user cannot be removed.";
             throw constraintViolation(27, msg);
@@ -160,8 +160,8 @@ class UserValidator extends DefaultValidator implements UserConstants {
 
     //------------------------------------------------------------< private >---
 
-    private boolean isAdminUser(@Nullable Tree userTree) {
-        if (userTree != null && isUser(userTree)) {
+    private boolean isAdminUser(@Nonnull Tree userTree) {
+        if (userTree.exists() && isUser(userTree)) {
             String id = UserProvider.getAuthorizableId(userTree);
             return UserUtility.getAdminId(provider.getConfig()).equals(id);
         } else {

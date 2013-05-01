@@ -201,18 +201,6 @@ public interface Tree {
     Tree getChild(@Nonnull String name);
 
     /**
-     * Get a child of this {@code Tree} instance.
-     *
-     * @param name The name of the child to retrieve.
-     * @return The child with the given {@code name} or {@code null} if no such
-     *         child exists or the child is not accessible.
-     * @deprecated use {@link #getChild(String)} and {@link #exists()} instead.
-     */
-    @CheckForNull
-    @Deprecated
-    Tree getChildOrNull(@Nonnull String name);
-
-    /**
      * Determine if a child of this {@code Tree} instance exists. If no child
      * exists or an existing child isn't accessible this method returns {@code false}.
      *

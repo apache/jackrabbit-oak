@@ -143,13 +143,6 @@ public class ReadOnlyTree implements Tree {
     }
 
     @Override
-    @Deprecated
-    public ReadOnlyTree getChildOrNull(@Nonnull String name) {
-        ReadOnlyTree child = getChild(name);
-        return child.exists() ? child : null;
-    }
-
-    @Override
     public Status getStatus() {
         return Status.EXISTING;
     }
@@ -298,7 +291,7 @@ public class ReadOnlyTree implements Tree {
 
         @Override
         protected ReadOnlyTree getChildTree(String name) {
-            return tree.getChildOrNull(name);
+            return tree.getChild(name);
         }
 
         @Override

@@ -16,8 +16,23 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype.write;
 
+import static org.apache.jackrabbit.JcrConstants.JCR_CHILDNODEDEFINITION;
+import static org.apache.jackrabbit.JcrConstants.JCR_HASORDERABLECHILDNODES;
+import static org.apache.jackrabbit.JcrConstants.JCR_ISMIXIN;
+import static org.apache.jackrabbit.JcrConstants.JCR_NODETYPENAME;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYITEMNAME;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.JcrConstants.JCR_PROPERTYDEFINITION;
+import static org.apache.jackrabbit.JcrConstants.JCR_SUPERTYPES;
+import static org.apache.jackrabbit.JcrConstants.NT_CHILDNODEDEFINITION;
+import static org.apache.jackrabbit.JcrConstants.NT_NODETYPE;
+import static org.apache.jackrabbit.JcrConstants.NT_PROPERTYDEFINITION;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_IS_ABSTRACT;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_IS_QUERYABLE;
+
 import java.util.Arrays;
 import java.util.List;
+
 import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
@@ -33,20 +48,6 @@ import com.google.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.namepath.NameMapper;
-
-import static org.apache.jackrabbit.JcrConstants.JCR_CHILDNODEDEFINITION;
-import static org.apache.jackrabbit.JcrConstants.JCR_HASORDERABLECHILDNODES;
-import static org.apache.jackrabbit.JcrConstants.JCR_ISMIXIN;
-import static org.apache.jackrabbit.JcrConstants.JCR_NODETYPENAME;
-import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYITEMNAME;
-import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
-import static org.apache.jackrabbit.JcrConstants.JCR_PROPERTYDEFINITION;
-import static org.apache.jackrabbit.JcrConstants.JCR_SUPERTYPES;
-import static org.apache.jackrabbit.JcrConstants.NT_CHILDNODEDEFINITION;
-import static org.apache.jackrabbit.JcrConstants.NT_NODETYPE;
-import static org.apache.jackrabbit.JcrConstants.NT_PROPERTYDEFINITION;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_IS_ABSTRACT;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_IS_QUERYABLE;
 
 class NodeTypeTemplateImpl extends NamedTemplate
         implements NodeTypeTemplate {
@@ -127,8 +128,8 @@ class NodeTypeTemplateImpl extends NamedTemplate
     Tree writeTo(Tree parent, boolean allowUpdate) throws RepositoryException {
         String oakName = getOakName();
 
-        Tree type = parent.getChildOrNull(oakName);
-        if (type != null) {
+        Tree type = parent.getChild(oakName);
+        if (type.exists()) {
             if (allowUpdate) {
                 type.remove();
             } else {
