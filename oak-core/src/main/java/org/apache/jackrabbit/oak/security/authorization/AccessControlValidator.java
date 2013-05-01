@@ -16,10 +16,14 @@
  */
 package org.apache.jackrabbit.oak.security.authorization;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.oak.api.CommitFailedException.ACCESS;
+
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
+
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
 
@@ -35,9 +39,6 @@ import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restrict
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.apache.jackrabbit.util.Text;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.api.CommitFailedException.ACCESS;
 
 /**
  * Validation for access control information changed by regular JCR (and Jackrabbit)
@@ -90,7 +91,7 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
 
     @Override
     public Validator childNodeAdded(String name, NodeState after) throws CommitFailedException {
-        Tree treeAfter = checkNotNull(parentAfter.getChildOrNull(name));
+        Tree treeAfter = checkNotNull(parentAfter.getChild(name));
 
         checkValidTree(parentAfter, treeAfter);
         return new AccessControlValidator(null, treeAfter, privileges, restrictionProvider, ntMgr);
@@ -98,8 +99,8 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
 
     @Override
     public Validator childNodeChanged(String name, NodeState before, NodeState after) throws CommitFailedException {
-        Tree treeBefore = checkNotNull(parentBefore.getChildOrNull(name));
-        Tree treeAfter = checkNotNull(parentAfter.getChildOrNull(name));
+        Tree treeBefore = checkNotNull(parentBefore.getChild(name));
+        Tree treeAfter = checkNotNull(parentAfter.getChild(name));
 
         checkValidTree(parentAfter, treeAfter);
         return new AccessControlValidator(treeBefore, treeAfter, privileges, restrictionProvider, ntMgr);
@@ -173,8 +174,8 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
     }
 
     private void checkValidAccessControlEntry(Tree aceNode) throws CommitFailedException {
-        Tree parent = aceNode.getParentOrNull();
-        if (parent == null || !NT_REP_ACL.equals(TreeUtil.getPrimaryTypeName(parent))) {
+        Tree parent = aceNode.getParent();
+        if (!parent.exists() || !NT_REP_ACL.equals(TreeUtil.getPrimaryTypeName(parent))) {
             throw accessViolation(7, "Isolated access control entry at " + aceNode.getPath());
         }
         checkValidPrincipal(TreeUtil.getString(aceNode, REP_PRINCIPAL_NAME));
@@ -208,7 +209,7 @@ class AccessControlValidator extends DefaultValidator implements AccessControlCo
 
     private void checkValidRestrictions(Tree aceTree) throws CommitFailedException {
         String path;
-        Tree aclTree = checkNotNull(aceTree.getParentOrNull());
+        Tree aclTree = checkNotNull(aceTree.getParent());
         String aclPath = aclTree.getPath();
         if (REP_REPO_POLICY.equals(Text.getName(aclPath))) {
             path = null;

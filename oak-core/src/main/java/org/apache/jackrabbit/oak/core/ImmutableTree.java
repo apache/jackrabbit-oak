@@ -182,13 +182,6 @@ public final class ImmutableTree extends ReadOnlyTree {
         return new ImmutableTree(this, name, child);
     }
 
-    @Override
-    @Deprecated
-    public ImmutableTree getChildOrNull(@Nonnull String name) {
-        ImmutableTree child = getChild(name);
-        return child.exists() ? child : null;
-    }
-
     /**
      * This implementation does not respect ordered child nodes, but always
      * returns them in some implementation specific order.

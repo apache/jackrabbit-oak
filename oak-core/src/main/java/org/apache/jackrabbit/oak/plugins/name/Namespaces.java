@@ -16,6 +16,8 @@
 */
 package org.apache.jackrabbit.oak.plugins.name;
 
+import static org.apache.jackrabbit.oak.api.Type.STRING;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -24,8 +26,6 @@ import javax.jcr.NamespaceRegistry;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
-
-import static org.apache.jackrabbit.oak.api.Type.STRING;
 
 /**
  * Internal static utility class for managing the persisted namespace registry.
@@ -52,18 +52,13 @@ public class Namespaces implements NamespaceConstants {
     public static Map<String, String> getNamespaceMap(Tree root) {
         Map<String, String> map = new HashMap<String, String>(DEFAULTS);
 
-        Tree system = root.getChildOrNull(JcrConstants.JCR_SYSTEM);
-        if (system != null) {
-            Tree namespaces = system.getChildOrNull(REP_NAMESPACES);
-            if (namespaces != null) {
-                for (PropertyState property : namespaces.getProperties()) {
-                    String prefix = property.getName();
-                    if (!property.isArray() && isValidPrefix(prefix)) {
-                        String value = property.getValue(STRING);
-                        if (STRING.equals(property.getType())) {
-                            map.put(prefix, value);
-                        }
-                    }
+        Tree namespaces = root.getChild(JcrConstants.JCR_SYSTEM).getChild(REP_NAMESPACES);
+        for (PropertyState property : namespaces.getProperties()) {
+            String prefix = property.getName();
+            if (!property.isArray() && isValidPrefix(prefix)) {
+                String value = property.getValue(STRING);
+                if (STRING.equals(property.getType())) {
+                    map.put(prefix, value);
                 }
             }
         }

@@ -76,8 +76,8 @@ public class EventQueueReader {
             bundles = root.getTree(EVENTS_PATH);
         }
 
-        Tree bundle = bundles.getChildOrNull(String.valueOf(next));
-        if (bundle != null) {
+        Tree bundle = bundles.getChild(String.valueOf(next));
+        if (bundle.exists()) {
             nextBundleId++;
             if (bundle.getChildrenCount() > 0) {
                 return Iterators.filter(bundle.getChildren().iterator(),
@@ -95,9 +95,9 @@ public class EventQueueReader {
     private Event createEvent(Tree event, String id) {
         int type = (int) getLong(event, TYPE, 0);
         String path = getJcrPath(event);
-        String userId = getString(event.getChildOrNull(id), USER_ID);
+        String userId = getString(event.getChild(id), USER_ID);
         long date = getLong(event, DATE, 0);
-        String userData = getString(event.getChildOrNull(id), USER_DATA);
+        String userData = getString(event.getChild(id), USER_DATA);
         return new EventImpl(type, path, userId, id, Collections.emptyMap(), date, userData);
     }
 

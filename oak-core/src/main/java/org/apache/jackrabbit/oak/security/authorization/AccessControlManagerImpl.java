@@ -532,8 +532,8 @@ public class AccessControlManagerImpl implements JackrabbitAccessControlManager,
         String mixinName = getMixinName(oakPath);
 
         if (accessControlledTree.exists() && isAccessControlled(accessControlledTree, mixinName)) {
-            Tree aclTree = accessControlledTree.getChildOrNull(aclName);
-            if (aclTree != null) {
+            Tree aclTree = accessControlledTree.getChild(aclName);
+            if (aclTree.exists()) {
                 List<JackrabbitAccessControlEntry> entries = new ArrayList<JackrabbitAccessControlEntry>();
                 for (Tree child : aclTree.getChildren()) {
                     if (isACE(child)) {
