@@ -16,6 +16,21 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype;
 
+import static com.google.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.JcrConstants.JCR_CHILDNODEDEFINITION;
+import static org.apache.jackrabbit.JcrConstants.JCR_HASORDERABLECHILDNODES;
+import static org.apache.jackrabbit.JcrConstants.JCR_ISMIXIN;
+import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
+import static org.apache.jackrabbit.JcrConstants.JCR_NODETYPENAME;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYITEMNAME;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.JcrConstants.JCR_PROPERTYDEFINITION;
+import static org.apache.jackrabbit.JcrConstants.JCR_SUPERTYPES;
+import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_IS_ABSTRACT;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_IS_QUERYABLE;
+import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.RESIDUAL_NAME;
+
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -37,38 +52,22 @@ import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.NodeTypeIterator;
 import javax.jcr.nodetype.PropertyDefinition;
 
-import org.apache.jackrabbit.commons.iterator.NodeTypeIteratorAdapter;
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.namepath.JcrNameParser;
-import org.apache.jackrabbit.oak.namepath.JcrPathParser;
-import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.core.IdentifierManager;
-import org.apache.jackrabbit.oak.plugins.nodetype.constraint.Constraints;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-
-import static com.google.common.base.Preconditions.checkState;
-import static org.apache.jackrabbit.JcrConstants.JCR_CHILDNODEDEFINITION;
-import static org.apache.jackrabbit.JcrConstants.JCR_HASORDERABLECHILDNODES;
-import static org.apache.jackrabbit.JcrConstants.JCR_ISMIXIN;
-import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
-import static org.apache.jackrabbit.JcrConstants.JCR_NODETYPENAME;
-import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYITEMNAME;
-import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
-import static org.apache.jackrabbit.JcrConstants.JCR_PROPERTYDEFINITION;
-import static org.apache.jackrabbit.JcrConstants.JCR_SUPERTYPES;
-import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_IS_ABSTRACT;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_IS_QUERYABLE;
-import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.RESIDUAL_NAME;
+import org.apache.jackrabbit.commons.iterator.NodeTypeIteratorAdapter;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.core.IdentifierManager;
+import org.apache.jackrabbit.oak.namepath.JcrNameParser;
+import org.apache.jackrabbit.oak.namepath.JcrPathParser;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.nodetype.constraint.Constraints;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * <pre>
@@ -197,11 +196,11 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
     private void addSupertypes(Tree type, Map<String, NodeType> supertypes) {
         PropertyState property = type.getProperty(JCR_SUPERTYPES);
         if (property != null) {
-            Tree root = definition.getParentOrNull();
+            Tree root = definition.getParent();
             for (String oakName : property.getValue(Type.NAMES)) {
                 if (!supertypes.containsKey(oakName)) {
-                    Tree supertype = root.getChildOrNull(oakName);
-                    checkState(supertype != null);
+                    Tree supertype = root.getChild(oakName);
+                    checkState(supertype.exists());
                     supertypes.put(
                             oakName, new NodeTypeImpl(supertype, mapper));
                     addSupertypes(supertype, supertypes);
@@ -216,10 +215,10 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
         String[] oakNames = getNames(JCR_SUPERTYPES);
         if (oakNames != null && oakNames.length > 0) {
             supertypes = new NodeType[oakNames.length];
-            Tree root = definition.getParentOrNull();
+            Tree root = definition.getParent();
             for (int i = 0; i < oakNames.length; i++) {
-                Tree type = root.getChildOrNull(oakNames[i]);
-                checkState(type != null);
+                Tree type = root.getChild(oakNames[i]);
+                checkState(type.exists());
                 supertypes[i] = new NodeTypeImpl(type, mapper);
             }
         }
@@ -230,7 +229,7 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
     public NodeTypeIterator getSubtypes() {
         Map<String, Set<String>> inheritance = Maps.newHashMap();
         
-        Tree root = definition.getParentOrNull();
+        Tree root = definition.getParent();
         for (Tree child : root.getChildren()) {
             String oakName = getOakName(child);
             PropertyState supertypes = child.getProperty(JCR_SUPERTYPES);
@@ -258,7 +257,7 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
         if (subnames != null) {
             for (String subname : subnames) {
                 if (!subtypes.containsKey(subname)) {
-                    Tree tree = root.getChildOrNull(subname);
+                    Tree tree = root.getChild(subname);
                     subtypes.put(subname, new NodeTypeImpl(tree, mapper));
                 }
             }
@@ -270,7 +269,7 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
         List<NodeType> subtypes = Lists.newArrayList();
 
         String oakName = getOakName();
-        Tree root = definition.getParentOrNull();
+        Tree root = definition.getParent();
         for (Tree child : root.getChildren()) {
             PropertyState supertypes = child.getProperty(JCR_SUPERTYPES);
             if (supertypes != null) {
@@ -429,7 +428,7 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
     }
 
     private ReadOnlyNodeTypeManager getManager() {
-        final Tree types = definition.getParentOrNull();
+        final Tree types = definition.getParent();
         return new ReadOnlyNodeTypeManager() {
             @Override @CheckForNull
             protected Tree getTypes() {
@@ -471,8 +470,8 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
     }
 
     Iterable<PropertyDefinition> getDeclaredNamedPropertyDefinitions(String oakName) {
-        Tree named = definition.getChildOrNull("oak:namedPropertyDefinitions");
-        if (named != null) {
+        Tree named = definition.getChild("oak:namedPropertyDefinitions");
+        if (named.exists()) {
             String escapedName;
             if (JCR_PRIMARYTYPE.equals(oakName)) {
                 escapedName = "oak:primaryType";
@@ -483,25 +482,7 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
             } else {
                 escapedName = oakName;
             }
-            Tree definitions = named.getChildOrNull(escapedName);
-            if (definitions != null) {
-                return Iterables.transform(
-                        definitions.getChildren(),
-                        new Function<Tree, PropertyDefinition>() {
-                            @Override
-                            public PropertyDefinition apply(Tree input) {
-                                return new PropertyDefinitionImpl(
-                                        input, NodeTypeImpl.this, mapper);
-                            }
-                        });
-            }
-        }
-        return Collections.emptyList();
-    }
-
-    Iterable<PropertyDefinition> getDeclaredResidualPropertyDefinitions() {
-        Tree definitions = definition.getChildOrNull("oak:residualPropertyDefinitions");
-        if (definitions != null) {
+            Tree definitions = named.getChild(escapedName);
             return Iterables.transform(
                     definitions.getChildren(),
                     new Function<Tree, PropertyDefinition>() {
@@ -515,39 +496,43 @@ class NodeTypeImpl extends AbstractTypeDefinition implements NodeType {
         return Collections.emptyList();
     }
 
+    Iterable<PropertyDefinition> getDeclaredResidualPropertyDefinitions() {
+        Tree definitions = definition.getChild("oak:residualPropertyDefinitions");
+        return Iterables.transform(
+                definitions.getChildren(),
+                new Function<Tree, PropertyDefinition>() {
+                    @Override
+                    public PropertyDefinition apply(Tree input) {
+                        return new PropertyDefinitionImpl(
+                                input, NodeTypeImpl.this, mapper);
+                    }
+                });
+    }
+
     Iterable<NodeDefinition> getDeclaredNamedNodeDefinitions(String oakName) {
-        Tree named = definition.getChildOrNull("oak:namedChildNodeDefinitions");
-        if (named != null) {
-            Tree definitions = named.getChildOrNull(oakName);
-            if (definitions != null) {
-                return Iterables.transform(
-                        definitions.getChildren(),
-                        new Function<Tree, NodeDefinition>() {
-                            @Override
-                            public NodeDefinition apply(Tree input) {
-                                return new NodeDefinitionImpl(
-                                        input, NodeTypeImpl.this, mapper);
-                            }
-                        });
-            }
-        }
-        return Collections.emptyList();
+        Tree definitions = definition.getChild("oak:namedChildNodeDefinitions").getChild(oakName);
+        return Iterables.transform(
+                definitions.getChildren(),
+                new Function<Tree, NodeDefinition>() {
+                    @Override
+                    public NodeDefinition apply(Tree input) {
+                        return new NodeDefinitionImpl(
+                                input, NodeTypeImpl.this, mapper);
+                    }
+                });
     }
 
     Iterable<NodeDefinition> getDeclaredResidualNodeDefinitions() {
-        Tree definitions = definition.getChildOrNull("oak:residualChildNodeDefinitions");
-        if (definitions != null) {
-            return Iterables.transform(
-                    definitions.getChildren(),
-                    new Function<Tree, NodeDefinition>() {
-                        @Override
-                        public NodeDefinition apply(Tree input) {
-                            return new NodeDefinitionImpl(
-                                    input, NodeTypeImpl.this, mapper);
-                        }
-                    });
-        }
-        return Collections.emptyList();
+        Tree definitions = definition.getChild("oak:residualChildNodeDefinitions");
+        return Iterables.transform(
+                definitions.getChildren(),
+                new Function<Tree, NodeDefinition>() {
+                    @Override
+                    public NodeDefinition apply(Tree input) {
+                        return new NodeDefinitionImpl(
+                                input, NodeTypeImpl.this, mapper);
+                    }
+                });
     }
 
     //--------------------------------------------------------------------------

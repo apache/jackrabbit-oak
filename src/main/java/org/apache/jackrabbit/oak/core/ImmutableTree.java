@@ -65,7 +65,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  *     <li>{@link ParentProvider#ROOTPROVIDER}: the default parent provider for
  *     the root tree. All children will get {@link DefaultParentProvider}</li>
  *     <li>{@link ParentProvider#UNSUPPORTED}: throws {@code UnsupportedOperationException}
- *     upon hierarchy related methods like {@link #getParentOrNull()}, {@link #getPath()} and
+ *     upon hierarchy related methods like {@link #getParent()}, {@link #getPath()} and
  *     {@link #getIdentifier()}</li>
  * </ul>
  *
@@ -129,7 +129,7 @@ public final class ImmutableTree extends ReadOnlyTree {
         if (root instanceof RootImpl) {
             return new ImmutableTree(((RootImpl) root).getBaseState(), typeProvider);
         } else if (root instanceof ImmutableRoot) {
-            return ((ImmutableRoot) root).getTreeOrNull("/");
+            return ((ImmutableRoot) root).getTree("/");
         } else {
             throw new IllegalArgumentException("Unsupported Root implementation.");
         }
@@ -149,7 +149,7 @@ public final class ImmutableTree extends ReadOnlyTree {
                 path = "/";
             } else {
                 StringBuilder sb = new StringBuilder();
-                ImmutableTree parent = getParentOrNull();
+                ImmutableTree parent = getParent();
                 sb.append(parent.getPath());
                 if (!parent.isRoot()) {
                     sb.append('/');
@@ -159,6 +159,14 @@ public final class ImmutableTree extends ReadOnlyTree {
             }
         }
         return path;
+    }
+
+    // FIXME this in contrast to @NonNull of the Tree contract this method might return null.
+    // revisit Tree contract and implementation
+    @CheckForNull
+    @Override
+    public ImmutableTree getParent() {
+        return parentProvider.getParent();
     }
 
     @Override
@@ -266,10 +274,10 @@ public final class ImmutableTree extends ReadOnlyTree {
         PropertyState property = state.getProperty(JcrConstants.JCR_UUID);
         if (property != null) {
             return property.getValue(STRING);
-        } else if (getParentOrNull().isRoot()) {
+        } else if (isRoot()) {
             return "/";
         } else {
-            return PathUtils.concat(getParentOrNull().getIdentifier(), getName());
+            return PathUtils.concat(getParent().getIdentifier(), getName());
         }
     }
 

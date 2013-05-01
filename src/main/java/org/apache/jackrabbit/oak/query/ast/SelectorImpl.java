@@ -281,11 +281,11 @@ public class SelectorImpl extends SourceImpl {
                     return null;
                 }
                 if (p.equals("..")) {
-                    t = t.getParentOrNull();
+                    t = t.isRoot() ? null : t.getParent();
                 } else if (p.equals(".")) {
                     // same node
                 } else {
-                    t = t.getChildOrNull(p);
+                    t = t.getChild(p);
                 }
             }
             propertyName = PathUtils.getName(propertyName);

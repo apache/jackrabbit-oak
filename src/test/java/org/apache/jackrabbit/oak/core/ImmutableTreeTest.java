@@ -18,6 +18,11 @@
  */
 package org.apache.jackrabbit.oak.core;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+
 import org.apache.jackrabbit.oak.OakBaseTest;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -26,11 +31,6 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 
 public class ImmutableTreeTest extends OakBaseTest {
 
@@ -42,7 +42,7 @@ public class ImmutableTreeTest extends OakBaseTest {
 
         // Add test content
         root = session.getLatestRoot();
-        Tree tree = root.getTreeOrNull("/");
+        Tree tree = root.getTree("/");
         Tree x = tree.addChild("x");
         Tree y = x.addChild("y");
         Tree z = y.addChild("z");
@@ -59,18 +59,18 @@ public class ImmutableTreeTest extends OakBaseTest {
 
     @Test
     public void testGetPath() {
-        TreeImpl tree = (TreeImpl) root.getTreeOrNull("/");
+        TreeImpl tree = (TreeImpl) root.getTree("/");
 
         ImmutableTree immutable = new ImmutableTree(tree.getNodeState());
         assertEquals("/", immutable.getPath());
 
-        immutable = immutable.getChildOrNull("x");
+        immutable = immutable.getChild("x");
         assertEquals("/x", immutable.getPath());
 
-        immutable = immutable.getChildOrNull("y");
+        immutable = immutable.getChild("y");
         assertEquals("/x/y", immutable.getPath());
 
-        immutable = immutable.getChildOrNull("z");
+        immutable = immutable.getChild("z");
         assertEquals("/x/y/z", immutable.getPath());
     }
 
@@ -89,7 +89,7 @@ public class ImmutableTreeTest extends OakBaseTest {
     public void testRoot() {
         ImmutableTree tree = ImmutableTree.createFromRoot(root, TreeTypeProvider.EMPTY);
         assertTrue(tree.isRoot());
-        assertNull(tree.getParentOrNull());
+        assertNull(tree.getParent());
         assertEquals("", tree.getName());
         assertEquals(TreeTypeProvider.TYPE_DEFAULT, tree.getType());
     }
@@ -97,15 +97,15 @@ public class ImmutableTreeTest extends OakBaseTest {
     @Test
     public void testGetParent() {
         ImmutableTree tree = ImmutableTree.createFromRoot(root, TreeTypeProvider.EMPTY);
-        assertNull(tree.getParentOrNull());
+        assertNull(tree.getParent());
 
-        ImmutableTree child = tree.getChildOrNull("x");
-        assertNotNull(child.getParentOrNull());
-        assertEquals("/", child.getParentOrNull().getPath());
+        ImmutableTree child = tree.getChild("x");
+        assertNotNull(child.getParent());
+        assertEquals("/", child.getParent().getPath());
 
         ImmutableTree disconnected = new ImmutableTree(ImmutableTree.ParentProvider.UNSUPPORTED, child.getName(), child.getNodeState(), TreeTypeProvider.EMPTY);
         try {
-            disconnected.getParentOrNull();
+            disconnected.getParent();
         } catch (UnsupportedOperationException e) {
             // success
         }
