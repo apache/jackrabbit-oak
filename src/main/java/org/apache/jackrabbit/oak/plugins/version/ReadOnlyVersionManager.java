@@ -29,7 +29,6 @@ import javax.jcr.UnsupportedRepositoryOperationException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.IdentifierManager;
@@ -48,8 +47,9 @@ public abstract class ReadOnlyVersionManager {
      *         {@code Root} returned by {@link #getWorkspaceRoot()}.
      */
     @Nonnull
-    protected abstract TreeLocation getVersionStorageLocation();
+    protected abstract Tree getVersionStorage();
 
+    /**
     /**
      * @return the {@code Root} of the workspace.
      */
@@ -118,13 +118,13 @@ public abstract class ReadOnlyVersionManager {
             RepositoryException {
         checkVersionable(versionable);
         String uuid = versionable.getProperty(VersionConstants.JCR_UUID).getValue(Type.STRING);
-        return TreeUtil.getTree(getVersionStorageLocation(), getVersionHistoryPath(uuid));
+        return TreeUtil.getTree(getVersionStorage(), getVersionHistoryPath(uuid));
     }
 
     /**
      * Returns the path of the version history for the given {@code uuid}.
      * The returned path is relative to the version storage tree as returned
-     * by {@link #getVersionStorageLocation()}.
+     * by {@link #getVersionStorage()}.
      *
      * @param uuid the uuid of the versionable node
      * @return the relative path of the version history for the given uuid.

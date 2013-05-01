@@ -18,23 +18,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.version;
 
-import java.util.Collections;
-import java.util.Iterator;
-import javax.annotation.Nonnull;
-
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.api.TreeLocation;
-import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.core.IdentifierManager;
-import org.apache.jackrabbit.oak.core.ImmutableRoot;
-import org.apache.jackrabbit.oak.core.ImmutableTree;
-import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.util.TODO;
-
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.JcrConstants.JCR_BASEVERSION;
 import static org.apache.jackrabbit.JcrConstants.JCR_CREATED;
@@ -58,6 +41,24 @@ import static org.apache.jackrabbit.JcrConstants.NT_VERSIONHISTORY;
 import static org.apache.jackrabbit.JcrConstants.NT_VERSIONLABELS;
 import static org.apache.jackrabbit.oak.plugins.version.VersionConstants.REP_VERSIONSTORAGE;
 
+import java.util.Collections;
+import java.util.Iterator;
+
+import javax.annotation.Nonnull;
+
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.core.IdentifierManager;
+import org.apache.jackrabbit.oak.core.ImmutableRoot;
+import org.apache.jackrabbit.oak.core.ImmutableTree;
+import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.util.TODO;
+
 /**
  * TODO document
  */
@@ -74,8 +75,8 @@ class ReadWriteVersionManager extends ReadOnlyVersionManager {
 
     @Nonnull
     @Override
-    protected TreeLocation getVersionStorageLocation() {
-        return new ImmutableTree(versionStorageNode.getNodeState()).getLocation();
+    protected Tree getVersionStorage() {
+        return new ImmutableTree(versionStorageNode.getNodeState());
     }
 
     @Nonnull

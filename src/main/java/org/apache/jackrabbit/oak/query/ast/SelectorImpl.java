@@ -210,7 +210,7 @@ public class SelectorImpl extends SourceImpl {
             scanCount++;
             currentRow = cursor.next();
             Tree tree = getTree(currentRow.getPath());
-            if (tree == null) {
+            if (tree == null || !tree.exists()) {
                 continue;
             }
             if (!matchesAllTypes && !evaluateTypeMatch(tree)) {
@@ -290,7 +290,7 @@ public class SelectorImpl extends SourceImpl {
             }
             propertyName = PathUtils.getName(propertyName);
         }
-        if (t == null) {
+        if (t == null || !t.exists()) {
             return null;
         }
         if (propertyName.equals(Query.JCR_PATH)) {
