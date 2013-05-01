@@ -220,7 +220,7 @@ class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants
         if (respectParent) {
             parentAllowBits = PrivilegeBits.getInstance();
             parentDenyBits = PrivilegeBits.getInstance();
-            parent = (tree != null) ? tree.getParentOrNull() : null;
+            parent = (tree != null) ? getParentOrNull(tree) : null;
             parentPath = (path != null) ? Strings.emptyToNull(Text.getRelativeParent(path, 1)) : null;
         } else {
             parentAllowBits = PrivilegeBits.EMPTY;
@@ -260,6 +260,11 @@ class CompiledPermissionImpl implements CompiledPermissions, PermissionConstants
         }
 
         return (allows | ~permissions) == -1;
+    }
+
+    private static Tree getParentOrNull(Tree tree) {
+        Tree parent = tree.getParent();
+        return parent.exists() ? parent : null;
     }
 
     private PrivilegeBits getPrivilegeBits(@Nullable Tree tree) {

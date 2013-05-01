@@ -345,8 +345,8 @@ class UserImporter implements ProtectedPropertyImporter, ProtectedNodeImporter, 
     public boolean start(Tree protectedParent) throws RepositoryException {
         if (isMemberNode(protectedParent)) {
             Tree groupTree = protectedParent;
-            while (isMemberNode(groupTree)) {
-                groupTree = groupTree.getParentOrNull();
+            while (isMemberNode(groupTree) && !groupTree.isRoot()) {
+                groupTree = groupTree.getParent();
             }
             Authorizable auth = (groupTree == null) ? null : userManager.getAuthorizable(groupTree);
             if (auth == null) {

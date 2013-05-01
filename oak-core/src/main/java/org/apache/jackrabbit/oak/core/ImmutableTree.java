@@ -161,17 +161,8 @@ public final class ImmutableTree extends ReadOnlyTree {
         return path;
     }
 
-    // FIXME this in contrast to @NonNull of the Tree contract this method might return null.
-    // revisit Tree contract and implementation
-    @CheckForNull
     @Override
     public ImmutableTree getParent() {
-        return parentProvider.getParent();
-    }
-
-    @Override
-    @Deprecated
-    public ImmutableTree getParentOrNull() {
         return parentProvider.getParent();
     }
 
@@ -287,7 +278,7 @@ public final class ImmutableTree extends ReadOnlyTree {
         ParentProvider ROOTPROVIDER = new ParentProvider() {
             @Override
             public ImmutableTree getParent() {
-                return null;
+                throw new IllegalStateException("root tree does not have a parent");
             }
         };
 

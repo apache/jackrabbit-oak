@@ -20,8 +20,8 @@ package org.apache.jackrabbit.oak.core;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import org.apache.jackrabbit.oak.OakBaseTest;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -89,7 +89,11 @@ public class ImmutableTreeTest extends OakBaseTest {
     public void testRoot() {
         ImmutableTree tree = ImmutableTree.createFromRoot(root, TreeTypeProvider.EMPTY);
         assertTrue(tree.isRoot());
-        assertNull(tree.getParent());
+        try {
+            tree.getParent();
+            fail();
+        }
+        catch (IllegalStateException expected) { }
         assertEquals("", tree.getName());
         assertEquals(TreeTypeProvider.TYPE_DEFAULT, tree.getType());
     }
@@ -97,7 +101,11 @@ public class ImmutableTreeTest extends OakBaseTest {
     @Test
     public void testGetParent() {
         ImmutableTree tree = ImmutableTree.createFromRoot(root, TreeTypeProvider.EMPTY);
-        assertNull(tree.getParent());
+        try {
+            tree.getParent();
+            fail();
+        }
+        catch (IllegalStateException expected) { }
 
         ImmutableTree child = tree.getChild("x");
         assertNotNull(child.getParent());
