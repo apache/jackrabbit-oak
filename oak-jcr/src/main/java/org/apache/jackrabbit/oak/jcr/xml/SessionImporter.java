@@ -118,7 +118,7 @@ public class SessionImporter implements Importer {
         // add node
         node = parent.addNode(nodeName, nodeTypeName == null ? namespaceHelper.getJcrName(NamespaceRegistry.NAMESPACE_NT, "unstructured") : nodeTypeName);
         if (uuid != null) {
-            root.getTreeOrNull(node.getPath()).setProperty(NamespaceRegistry.PREFIX_JCR + ":uuid", uuid);
+            root.getTree(node.getPath()).setProperty(NamespaceRegistry.PREFIX_JCR + ":uuid", uuid);
         }
         // add mixins
         if (mixinNames != null) {
@@ -288,7 +288,7 @@ public class SessionImporter implements Importer {
                 // start of a item tree that is protected by this parent. If it
                 // potentially is able to deal with it, notify it about the child node.
                 for (ProtectedItemImporter pni : pItemImporters) {
-                    if (pni instanceof ProtectedNodeImporter && ((ProtectedNodeImporter) pni).start(root.getTreeOrNull(parent.getPath()))) {
+                    if (pni instanceof ProtectedNodeImporter && ((ProtectedNodeImporter) pni).start(root.getTree(parent.getPath()))) {
                         log.debug("Protected node -> delegated to ProtectedNodeImporter");
                         pnImporter = (ProtectedNodeImporter) pni;
                         pnImporter.startChildInfo(nodeInfo, propInfos);
@@ -408,7 +408,7 @@ public class SessionImporter implements Importer {
 
                     // notify the ProtectedPropertyImporter.
                     for (ProtectedItemImporter ppi : pItemImporters) {
-                        if (ppi instanceof ProtectedPropertyImporter && ((ProtectedPropertyImporter) ppi).handlePropInfo(root.getTreeOrNull(node.getPath()), pi, def)) {
+                        if (ppi instanceof ProtectedPropertyImporter && ((ProtectedPropertyImporter) ppi).handlePropInfo(root.getTree(node.getPath()), pi, def)) {
                             log.debug("Protected property -> delegated to ProtectedPropertyImporter");
                             break;
                         } /* else: p-i-Importer isn't able to deal with this property.
@@ -437,7 +437,7 @@ public class SessionImporter implements Importer {
             }
         } else if (parent.getDefinition().isProtected()) {
             if (pnImporter != null) {
-                pnImporter.end(root.getTreeOrNull(parent.getPath()));
+                pnImporter.end(root.getTree(parent.getPath()));
                 // and reset the pnImporter field waiting for the next protected
                 // parent -> selecting again from available importers
                 pnImporter = null;
