@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.concurrent.ScheduledExecutorService;
 
 import javax.annotation.Nonnull;
@@ -34,8 +36,6 @@ import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * TODO document
@@ -122,7 +122,7 @@ public class RepositoryImpl implements Repository {
      */
     @Override
     public Session login(@Nullable Credentials credentials, @Nullable String workspaceName) throws RepositoryException {
-        final boolean autoRefresh = false; // TODO implement auto refresh configuration
+        final boolean autoRefresh = true; // TODO implement auto refresh configuration
         try {
             ContentSession contentSession = contentRepository.login(credentials, workspaceName);
 

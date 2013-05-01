@@ -76,9 +76,6 @@ public class MoveRemoveTest extends AbstractRepositoryTest {
         n.remove();
         session.save();
 
-        assertEquals("/new", n2.getPath());
-
-        session2.refresh(true);
         try {
             n2.getPath();
             fail();
@@ -86,12 +83,6 @@ public class MoveRemoveTest extends AbstractRepositoryTest {
 
         session.getRootNode().addNode("new");
         session.save();
-        try {
-            n2.getPath();
-            fail();
-        } catch (InvalidItemStateException e) {}
-
-        session2.refresh(true);
         assertEquals("/new", n2.getPath());
 
         session2.logout();
@@ -145,9 +136,6 @@ public class MoveRemoveTest extends AbstractRepositoryTest {
         n.getParent().remove();
         session.save();
 
-        assertEquals("/parent/new", n2.getPath());
-
-        session2.refresh(true);
         try {
             n2.getPath();
             fail();
@@ -155,12 +143,6 @@ public class MoveRemoveTest extends AbstractRepositoryTest {
 
         session.getRootNode().addNode("parent").addNode("new");
         session.save();
-        try {
-            n2.getPath();
-            fail();
-        } catch (InvalidItemStateException e) {}
-
-        session2.refresh(true);
         assertEquals("/parent/new", n2.getPath());
 
         session2.logout();
@@ -202,9 +184,6 @@ public class MoveRemoveTest extends AbstractRepositoryTest {
         session.move("/new", "/moved");
         session.save();
 
-        assertEquals("/new", n2.getPath());
-
-        session2.refresh(true);
         try {
             n2.getPath();
             fail();
@@ -212,12 +191,6 @@ public class MoveRemoveTest extends AbstractRepositoryTest {
 
         session.getRootNode().addNode("new");
         session.save();
-        try {
-            n2.getPath();
-            fail();
-        } catch (InvalidItemStateException e) {}
-
-        session2.refresh(true);
         assertEquals("/new", n2.getPath());
 
         session2.logout();
@@ -261,9 +234,6 @@ public class MoveRemoveTest extends AbstractRepositoryTest {
         session.move("/parent", "/moved");
         session.save();
 
-        assertEquals("/parent/new", n2.getPath());
-
-        session2.refresh(true);
         try {
             n2.getPath();
             fail();
@@ -271,12 +241,6 @@ public class MoveRemoveTest extends AbstractRepositoryTest {
 
         session.getRootNode().addNode("parent").addNode("new");
         session.save();
-        try {
-            n2.getPath();
-            fail();
-        } catch (InvalidItemStateException e) {}
-
-        session2.refresh(true);
         assertEquals("/parent/new", n2.getPath());
 
         session2.logout();
