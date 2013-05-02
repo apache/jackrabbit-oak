@@ -25,9 +25,7 @@ import java.io.PrintWriter;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -41,16 +39,12 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.junit.Before;
-import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 /**
@@ -59,6 +53,7 @@ import static org.junit.Assert.fail;
 public abstract class AbstractQueryTest {
 
     protected static final String TEST_INDEX_NAME = "test-index";
+    protected static final String SQL2 = QueryEngineImpl.SQL2;
 
     protected QueryEngine qe;
     protected ContentSession session;
@@ -99,48 +94,6 @@ public abstract class AbstractQueryTest {
     protected Result executeQuery(String statement, String language,
             Map<String, PropertyValue> sv) throws ParseException {
         return qe.executeQuery(statement, language, Long.MAX_VALUE, 0, sv, null);
-    }
-
-    @Test
-    public void sql1() throws Exception {
-        test("sql1.txt");
-    }
-
-    @Test
-    public void sql2() throws Exception {
-        test("sql2.txt");
-    }
-
-    @Test
-    public void xpath() throws Exception {
-        test("xpath.txt");
-    }
-
-    @Test
-    public void sql2Measure() throws Exception {
-        test("sql2_measure.txt");
-    }
-
-    @Test
-    public void bindVariableTest() throws Exception {
-        JsopUtil.apply(
-                root,
-                "/ + \"test\": { \"hello\": {\"id\": \"1\"}, \"world\": {\"id\": \"2\"}}");
-        root.commit();
-
-        Map<String, PropertyValue> sv = new HashMap<String, PropertyValue>();
-        sv.put("id", PropertyValues.newString("1"));
-        Iterator<? extends ResultRow> result;
-        result = executeQuery("select * from [nt:base] where id = $id",
-                QueryEngineImpl.SQL2, sv).getRows().iterator();
-        assertTrue(result.hasNext());
-        assertEquals("/test/hello", result.next().getPath());
-
-        sv.put("id", PropertyValues.newString("2"));
-        result = executeQuery("select * from [nt:base] where id = $id",
-                QueryEngineImpl.SQL2, sv).getRows().iterator();
-        assertTrue(result.hasNext());
-        assertEquals("/test/world", result.next().getPath());
     }
 
     protected void test(String file) throws Exception {

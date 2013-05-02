@@ -144,6 +144,8 @@ public class SQL2Parser {
             read("BY");
             orderings = parseOrder();
         }
+        parseComment();
+
         if (!currentToken.isEmpty()) {
             throw getSyntaxError("<end>");
         }
@@ -804,6 +806,16 @@ public class SQL2Parser {
         }
     }
 
+    private void parseComment() throws ParseException {
+        if (readIf("/") && readIf("*")) {
+            while (!(readIf("*") && readIf("/"))) {
+                if (!isToken("*")) {
+                    read();
+                }
+            }
+        }
+    }
+
     private boolean readIf(String token) throws ParseException {
         if (isToken(token)) {
             read();
@@ -944,6 +956,9 @@ public class SQL2Parser {
     }
 
     private void read() throws ParseException {
+        if (parseIndex >= characterTypes.length) {
+            throw getSyntaxError();
+        }
         currentTokenQuoted = false;
         if (expected != null) {
             expected.clear();

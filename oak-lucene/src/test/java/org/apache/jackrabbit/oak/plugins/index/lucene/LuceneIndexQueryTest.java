@@ -29,7 +29,6 @@ import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.query.JsopUtil;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -48,10 +47,15 @@ public class LuceneIndexQueryTest extends AbstractQueryTest {
     @Override
     protected ContentRepository createRepository() {
         return new Oak().with(new InitialContent())
-            .with(new OpenSecurityProvider())
-            .with(new LowCostLuceneIndexProvider())
-            .with(new LuceneIndexEditorProvider())
-            .createContentRepository();
+                .with(new OpenSecurityProvider())
+                .with(new LowCostLuceneIndexProvider())
+                .with(new LuceneIndexEditorProvider())
+                .createContentRepository();
+    }
+
+    @Test
+    public void sql1() throws Exception {
+        test("sql1.txt");
     }
 
     @Test
@@ -60,9 +64,8 @@ public class LuceneIndexQueryTest extends AbstractQueryTest {
     }
 
     @Test
-    @Ignore("OAK-420")
-    public void sql2Measure() throws Exception {
-        test("sql2_measure.txt");
+    public void xpath() throws Exception {
+        test("xpath.txt");
     }
 
     @Test

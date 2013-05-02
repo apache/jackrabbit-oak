@@ -16,14 +16,24 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.property;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
+import org.apache.jackrabbit.oak.api.PropertyValue;
+import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
+import org.apache.jackrabbit.oak.query.JsopUtil;
+import org.apache.jackrabbit.oak.spi.query.PropertyValues;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -42,14 +52,50 @@ public class PropertyIndexQueryTest extends AbstractQueryTest {
     }
 
     @Test
+    public void xpath() throws Exception {
+        test("xpath.txt");
+    }
+
+    @Test
+    public void bindVariableTest() throws Exception {
+        JsopUtil.apply(
+                root,
+                "/ + \"test\": { \"hello\": {\"id\": \"1\"}, \"world\": {\"id\": \"2\"}}");
+        root.commit();
+
+        Map<String, PropertyValue> sv = new HashMap<String, PropertyValue>();
+        sv.put("id", PropertyValues.newString("1"));
+        Iterator<? extends ResultRow> result;
+        result = executeQuery("select * from [nt:base] where id = $id",
+                SQL2, sv).getRows().iterator();
+        assertTrue(result.hasNext());
+        assertEquals("/test/hello", result.next().getPath());
+
+        sv.put("id", PropertyValues.newString("2"));
+        result = executeQuery("select * from [nt:base] where id = $id",
+                SQL2, sv).getRows().iterator();
+        assertTrue(result.hasNext());
+        assertEquals("/test/world", result.next().getPath());
+    }
+
+    @Test
     public void sql2Index() throws Exception {
         test("sql2_index.txt");
     }
 
     @Test
-    @Ignore("OAK-590")
-    public void sql2Explain() throws Exception {
-        test("sql2_explain.txt");
+    public void sql2Measure() throws Exception {
+        test("sql2_measure.txt");
+    }
+
+    @Test
+    public void sql1() throws Exception {
+        test("sql1.txt");
+    }
+
+    @Test
+    public void sql2() throws Exception {
+        test("sql2.txt");
     }
 
 }

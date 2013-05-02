@@ -348,7 +348,7 @@ public class XPathToSQL2Converter {
         if (condition.length() > 0) {
             buff.append(" where ").append(condition.toString());
         }
-        
+
         // order by ...
         if (!orderList.isEmpty()) {
             buff.append(" order by ");
@@ -359,9 +359,14 @@ public class XPathToSQL2Converter {
                 buff.append(orderList.get(i));
             }
         }
+
+        // leave original xpath string as a comment
+        buff.append(" /* xpath: ");
+        buff.append(query);
+        buff.append(" */");
         return buff.toString();
     }
-    
+
     private void nextSelector(boolean force) throws ParseException {
         boolean isFirstSelector = selectors.size() == 0;
         String path = currentSelector.path;
