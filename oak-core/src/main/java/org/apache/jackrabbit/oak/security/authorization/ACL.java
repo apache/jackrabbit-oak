@@ -104,10 +104,7 @@ abstract class ACL extends AbstractAccessControlList {
             getPrivilegeManager().getPrivilege(p.getName());
         }
 
-        if (principal == null || !getPrincipalManager().hasPrincipal(principal.getName())) {
-            String msg = "Unknown principal " + ((principal == null) ? "null" : principal.getName());
-            throw new AccessControlException(msg);
-        }
+        AccessControlUtils.checkValidPrincipal(principal, getPrincipalManager());
 
         for (RestrictionDefinition def : getRestrictionProvider().getSupportedRestrictions(getOakPath())) {
             if (def.isMandatory() && (restrictions == null || !restrictions.containsKey(def.getJcrName()))) {
