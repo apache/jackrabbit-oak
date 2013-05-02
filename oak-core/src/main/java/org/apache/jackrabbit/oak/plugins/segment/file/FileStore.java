@@ -176,7 +176,7 @@ public class FileStore implements SegmentStore {
 
         if (0x200 + ((size + 0x1ff) & ~0x1ff) + 2 * 0x200 > rw.remaining()) {
             rw.force();
-            String name = String.format(FILE_NAME_FORMAT, index);
+            String name = String.format(FILE_NAME_FORMAT, ++index);
             File file = new File(directory, name);
             try {
                 RandomAccessFile f = new RandomAccessFile(file, "rw");
