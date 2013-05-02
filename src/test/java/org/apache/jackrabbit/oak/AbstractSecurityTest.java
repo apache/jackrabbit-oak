@@ -90,7 +90,9 @@ public abstract class AbstractSecurityTest {
                 root.commit();
             }
         } finally {
-            adminSession.close();
+            if (adminSession != null) {
+                adminSession.close();
+            }
             Configuration.setConfiguration(null);
         }
     }
