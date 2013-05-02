@@ -26,6 +26,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -159,13 +161,12 @@ public class MongoMK implements MicroKernel {
     private AtomicInteger simpleRevisionCounter;
 
     /**
-     * Maps branch commit revision to revision it is based on
+     * Unmerged branches of this MongoMK instance.
      */
-    // TODO at some point, open (unmerged) branches 
+    // TODO at some point, open (unmerged) branches
     // need to be garbage collected (in-memory and on disk)
-    private final Map<Revision, Revision> branchCommits
-            = new ConcurrentHashMap<Revision, Revision>();
-    
+    private final UnmergedBranches branches = new UnmergedBranches();
+
     /**
      * The comparator for revisions.
      */
@@ -215,21 +216,7 @@ public class MongoMK implements MicroKernel {
             commit.applyToDocumentStore();
         } else {
             // initialize branchCommits
-            Map<String, Object> nodeMap = store.find(
-                    DocumentStore.Collection.NODES, Utils.getIdFromPath("/"));
-            @SuppressWarnings("unchecked")
-            Map<String, String> valueMap = (Map<String, String>) nodeMap.get(UpdateOp.REVISIONS);
-            if (valueMap != null) {
-                for (Map.Entry<String, String> commit : valueMap.entrySet()) {
-                    if (!commit.getValue().equals("true")) {
-                        Revision r = Revision.fromString(commit.getKey());
-                        if (r.getClusterId() == clusterId) {
-                            Revision b = Revision.fromString(commit.getValue());
-                            branchCommits.put(r, b);
-                        }
-                    }
-                }
-            }
+            branches.init(store, clusterId);
         }
     }
     
@@ -400,28 +387,27 @@ public class MongoMK implements MicroKernel {
     }
     
     private boolean includeRevision(Revision x, Revision requestRevision) {
-        if (branchCommits.containsKey(x)) {
+        Branch b = branches.getBranch(x);
+        if (b != null) {
             // only include if requested revision is also a branch revision
             // with a history including x
-            Revision rev = requestRevision;
-            for (;;) {
-                if (rev != null) {
-                    if (rev.equals(x)) {
-                        return true;
-                    }
-                } else {
-                    // not part of branch identified by requestedRevision
-                    return false;
-                }
-                rev = branchCommits.get(rev);
+            if (b.containsCommit(requestRevision)) {
+                // in same branch, include if the same revision or
+                // requestRevision is newer
+                return x.equals(requestRevision) || isRevisionNewer(requestRevision, x);
+            } else {
+                // not part of branch identified by requestedRevision
+                return false;
             }
+
         }
         // assert: x is not a branch commit
-        while (branchCommits.containsKey(requestRevision)) {
+        b = branches.getBranch(requestRevision);
+        if (b != null) {
             // reset requestRevision to branch base revision to make
             // sure we don't include revisions committed after branch
             // was created
-            requestRevision = branchCommits.get(requestRevision);
+            requestRevision = b.getBase();
         }
         if (x.getClusterId() == this.clusterId && 
                 requestRevision.getClusterId() == this.clusterId) {
@@ -452,7 +438,7 @@ public class MongoMK implements MicroKernel {
      * perform this check.
      * This method also takes pending branches into consideration.
      * The <code>readRevision</code> identifies the read revision used by the
-     * client, which may be a branch revision logged in {@link #branchCommits}.
+     * client, which may be a branch revision logged in {@link #branches}.
      * The revision <code>rev</code> is valid if it is part of the branch
      * history of <code>readRevision</code>.
      *
@@ -540,7 +526,7 @@ public class MongoMK implements MicroKernel {
             return false;
         }
         if (value.equals("true")) {
-            if (!branchCommits.containsKey(readRevision)) {
+            if (branches.getBranch(readRevision) == null) {
                 return true;
             }
         } else {
@@ -634,6 +620,10 @@ public class MongoMK implements MicroKernel {
             @SuppressWarnings("unchecked")
             Map<String, String> valueMap = (Map<String, String>) v;
             if (valueMap != null) {
+                if (valueMap instanceof TreeMap) {
+                    // use descending keys (newest first) if map is sorted
+                    valueMap = ((TreeMap<String, String>) valueMap).descendingMap();
+                }
                 String value = getLatestValue(valueMap, min, rev);
                 String propertyName = Utils.unescapePropertyName(key);
                 n.setProperty(propertyName, value);
@@ -652,21 +642,22 @@ public class MongoMK implements MicroKernel {
      * @param max the maximum revision
      * @return the value, or null if not found
      */
-    private String getLatestValue(Map<String, String> valueMap, Revision min, Revision max) {
+    private String getLatestValue(@Nonnull Map<String, String> valueMap,
+                                  @Nullable Revision min,
+                                  @Nonnull Revision max) {
         String value = null;
         Revision latestRev = null;
         for (String r : valueMap.keySet()) {
             Revision propRev = Revision.fromString(r);
-            if (min != null) {
-                if (isRevisionNewer(min, propRev)) {
-                    continue;
-                }
+            if (min != null && isRevisionNewer(min, propRev)) {
+                continue;
+            }
+            if (latestRev != null && !isRevisionNewer(propRev, latestRev)) {
+                continue;
             }
             if (includeRevision(propRev, max)) {
-                if (latestRev == null || isRevisionNewer(propRev, latestRev)) {
-                    latestRev = propRev;
-                    value = valueMap.get(r);
-                }
+                latestRev = propRev;
+                value = valueMap.get(r);
             }
         }
         return value;
@@ -913,7 +904,12 @@ public class MongoMK implements MicroKernel {
         }
         if (baseRevId.startsWith("b")) {
             // remember branch commit
-            branchCommits.put(rev, baseRev);
+            Branch b = branches.getBranch(baseRev);
+            if (b == null) {
+                b = branches.create(baseRev, rev);
+            } else {
+                b.addCommit(rev);
+            }
             boolean success = false;
             try {
                 // prepare commit
@@ -921,17 +917,14 @@ public class MongoMK implements MicroKernel {
                 success = true;
             } finally {
                 if (!success) {
-                    branchCommits.remove(rev);
+                    b.removeCommit(rev);
+                    if (b.getCommits().isEmpty()) {
+                        branches.remove(b);
+                    }
                 }
             }
 
             return "b" + rev.toString();
-
-            // String jsonBranch = branchCommits.remove(revisionId);
-            // jsonBranch += commit.getDiff().toString();
-            // String branchRev = revisionId + "+";
-            // branchCommits.put(branchRev, jsonBranch);
-            // return branchRev;
         }
         commit.apply();
         headRevision = commit.getRevision();
@@ -1043,6 +1036,10 @@ public class MongoMK implements MicroKernel {
         if (valueMap == null) {
             return null;
         }
+        if (valueMap instanceof TreeMap) {
+            // use descending keys (newest first) if map is sorted
+            valueMap = ((TreeMap<String, String>) valueMap).descendingMap();
+        }
         for (String r : valueMap.keySet()) {
             Revision propRev = Revision.fromString(r);
             if (isRevisionNewer(propRev, maxRev)
@@ -1077,7 +1074,7 @@ public class MongoMK implements MicroKernel {
         if (nodeMap == null) {
             return null;
         }
-        Set<String> revisions = Utils.newSet();
+        SortedSet<String> revisions = new TreeSet<String>(Collections.reverseOrder());
         if (nodeMap.containsKey(UpdateOp.REVISIONS)) {
             revisions.addAll(((Map<String, String>) nodeMap.get(UpdateOp.REVISIONS)).keySet());
         }
@@ -1161,24 +1158,25 @@ public class MongoMK implements MicroKernel {
 
         String revisionId = stripBranchRevMarker(branchRevisionId);
         // make branch commits visible
-        List<Revision> branchRevisions = new ArrayList<Revision>();
         UpdateOp op = new UpdateOp("/", Utils.getIdFromPath("/"), false);
-        Revision baseRevId = Revision.fromString(revisionId);
-        while (baseRevId != null) {
-            branchRevisions.add(baseRevId);
-            op.setMapEntry(UpdateOp.REVISIONS, baseRevId.toString(), "true");
-            op.containsMapEntry(UpdateOp.COLLISIONS, baseRevId.toString(), false);
-            baseRevId = branchCommits.get(baseRevId);
-        }
-        if (store.findAndUpdate(DocumentStore.Collection.NODES, op) != null) {
-            // remove from branchCommits map after successful update
-            for (Revision r : branchRevisions) {
-                branchCommits.remove(r);
+        Revision revision = Revision.fromString(revisionId);
+        Branch b = branches.getBranch(revision);
+        if (b != null) {
+            for (Revision rev : b.getCommits()) {
+                op.setMapEntry(UpdateOp.REVISIONS, rev.toString(), "true");
+                op.containsMapEntry(UpdateOp.COLLISIONS, rev.toString(), false);
             }
-            headRevision = newRevision();
-            return headRevision.toString();
+            if (store.findAndUpdate(DocumentStore.Collection.NODES, op) != null) {
+                // remove from branchCommits map after successful update
+                branches.remove(b);
+            } else {
+                throw new MicroKernelException("Conflicting concurrent change");
+            }
+        } else {
+            // no commits in this branch -> do nothing
         }
-        throw new MicroKernelException("Conflicting concurrent change");
+        headRevision = newRevision();
+        return headRevision.toString();
     }
 
     @Override
@@ -1420,5 +1418,4 @@ public class MongoMK implements MicroKernel {
     public boolean isCached(String path) {
         return store.isCached(Collection.NODES, Utils.getIdFromPath(path));
     }
-
 }
