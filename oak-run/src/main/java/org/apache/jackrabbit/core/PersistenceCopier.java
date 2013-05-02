@@ -152,7 +152,6 @@ class PersistenceCopier {
                 if (!exclude.contains(childId)) {
                     exclude.add(childId);
                     String name = getOakName(entry.getName());
-                    System.out.println(name);
                     copy(childId, builder.child(name));
                     exclude.remove(childId);
                 }
@@ -192,7 +191,6 @@ class PersistenceCopier {
             InternalValue[] values = sourceState.getValues();
             int type = sourceState.getType();
             String oakName = getOakName(name);
-            System.out.println("- " + oakName);
             if (sourceState.isMultiValued() || values.length != 1) {
                 builder.setProperty(getProperty(oakName, values, type));
             } else {
