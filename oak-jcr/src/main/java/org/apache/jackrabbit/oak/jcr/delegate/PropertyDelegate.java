@@ -52,8 +52,8 @@ public class PropertyDelegate extends ItemDelegate {
      */
     @CheckForNull
     static PropertyDelegate create(SessionDelegate sessionDelegate, Tree parent, String name) {
-        return parent.exists() && parent.hasProperty(name) ?
-            new PropertyDelegate(sessionDelegate, parent, name)
+        return parent.exists() && parent.hasProperty(name)
+            ? new PropertyDelegate(sessionDelegate, parent, name)
             : null;
     }
 
