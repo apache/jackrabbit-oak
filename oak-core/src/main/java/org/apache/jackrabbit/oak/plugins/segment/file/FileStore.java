@@ -84,6 +84,12 @@ public class FileStore implements SegmentStore {
 
     public void close() {
         rw.force();
+
+        segments.clear();
+        rw = null;
+        ro = null;
+
+        System.gc();
     }
 
     private boolean loadSegments() throws IOException {

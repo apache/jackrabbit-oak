@@ -38,6 +38,9 @@ public class BenchmarkRunner {
 
     public static void main(String[] args) throws Exception {
         OptionParser parser = new OptionParser();
+        OptionSpec<File> base = parser.accepts("base", "Base directory")
+                .withRequiredArg().ofType(File.class)
+                .defaultsTo(new File("target"));
         OptionSpec<String> host = parser.accepts("host", "MongoDB host")
                 .withRequiredArg().defaultsTo("localhost");
         OptionSpec<Integer> port = parser.accepts("port", "MongoDB port")
@@ -51,14 +54,16 @@ public class BenchmarkRunner {
         OptionSet options = parser.parse(args);
         int cacheSize = cache.value(options);
         RepositoryFixture[] allFixtures = new RepositoryFixture[] {
-                new JackrabbitRepositoryFixture(cacheSize),
+                new JackrabbitRepositoryFixture(
+                        base.value(options), cacheSize),
                 OakRepositoryFixture.getMemory(cacheSize * MB),
-                OakRepositoryFixture.getDefault(cacheSize * MB),
+                OakRepositoryFixture.getDefault(
+                        base.value(options), cacheSize * MB),
                 OakRepositoryFixture.getMongo(
                         host.value(options), port.value(options), cacheSize * MB),
                 OakRepositoryFixture.getSegment(
                         host.value(options), port.value(options), cacheSize * MB),
-                OakRepositoryFixture.getTar("data.tar")
+                OakRepositoryFixture.getTar(base.value(options))
         };
         Benchmark[] allBenchmarks = new Benchmark[] {
             new LoginTest(),

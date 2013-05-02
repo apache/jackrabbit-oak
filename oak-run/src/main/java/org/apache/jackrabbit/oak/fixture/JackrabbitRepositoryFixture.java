@@ -23,21 +23,22 @@ import java.io.InputStream;
 import java.util.Properties;
 
 import javax.jcr.Repository;
-import javax.xml.transform.stream.StreamSource;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.core.RepositoryImpl;
 import org.apache.jackrabbit.core.config.RepositoryConfig;
-import org.apache.jackrabbit.core.config.RepositoryConfigurationParser;
 import org.xml.sax.InputSource;
 
 public class JackrabbitRepositoryFixture implements RepositoryFixture {
+
+    private final File base;
 
     private final int bundleCacheSize;
 
     private RepositoryImpl[] cluster;
 
-    public JackrabbitRepositoryFixture(int bundleCacheSize) {
+    public JackrabbitRepositoryFixture(File base, int bundleCacheSize) {
+        this.base = base;
         this.bundleCacheSize = bundleCacheSize;
     }
 
@@ -50,7 +51,7 @@ public class JackrabbitRepositoryFixture implements RepositoryFixture {
     public Repository[] setUpCluster(int n) throws Exception {
         if (n == 1) {
             String name = "Jackrabbit-" + System.currentTimeMillis();
-            File directory = new File(name);
+            File directory = new File(base, name);
 
             Properties variables = new Properties(System.getProperties());
             variables.setProperty(
