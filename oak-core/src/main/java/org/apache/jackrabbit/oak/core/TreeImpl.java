@@ -137,7 +137,7 @@ public class TreeImpl implements Tree {
     @Deprecated
     public TreeLocation getLocation() {
         enter();
-        return new NodeLocation(this);
+        return TreeLocations.create(this);
     }
 
     @Override
@@ -569,60 +569,6 @@ public class TreeImpl implements Tree {
             nodeBuilder.setProperty(
                     MultiStringPropertyState.stringProperty(OAK_CHILD_ORDER, nodeBuilder.getChildNodeNames()));
         }
-    }
-
-    //-------------------------------------------------------< TreeLocation >---
-
-    @Deprecated
-    private final class NodeLocation extends AbstractNodeLocation<TreeImpl> {
-
-        private NodeLocation(TreeImpl tree) {
-            super(tree);
-        }
-
-        @Override
-        protected NodeLocation createNodeLocation(TreeImpl tree) {
-            return new NodeLocation(tree);
-        }
-
-        @Override
-        protected TreeLocation createPropertyLocation(AbstractNodeLocation<TreeImpl> parentLocation, String name) {
-            return new PropertyLocation(parentLocation, name);
-        }
-
-        @Override
-        protected TreeImpl getParentTree() {
-            return tree.parent;
-        }
-
-        @Override
-        protected TreeImpl getChildTree(String name) {
-            return new TreeImpl(tree.root, tree, name, tree.pendingMoves);
-        }
-
-        @Override
-        protected PropertyState getPropertyState(String name) {
-            return tree.getVisibleProperty(name);
-        }
-
-        @Override
-        protected boolean canRead(TreeImpl tree) {
-            return tree.nodeBuilder.exists();
-        }
-    }
-
-    @Deprecated
-    private static final class PropertyLocation extends AbstractPropertyLocation<TreeImpl> {
-
-        private PropertyLocation(AbstractNodeLocation<TreeImpl> parentLocation, String name) {
-            super(parentLocation, name);
-        }
-
-        @Override
-        protected boolean canRead(PropertyState property) {
-            return !isHidden(property.getName());
-        }
-
     }
 
 }

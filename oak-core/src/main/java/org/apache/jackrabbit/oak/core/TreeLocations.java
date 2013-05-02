@@ -1,0 +1,230 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.jackrabbit.oak.core;
+
+import static com.google.common.base.Objects.toStringHelper;
+import static com.google.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
+import static org.apache.jackrabbit.oak.commons.PathUtils.isAbsolute;
+
+import javax.annotation.Nonnull;
+
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.TreeLocation;
+import org.apache.jackrabbit.oak.commons.PathUtils;
+
+@Deprecated
+public abstract class TreeLocations implements TreeLocation {
+
+    /**
+     * Create a new {@code TreeLocation} instance for a {@code tree}
+     */
+    public static TreeLocation create(Tree tree) {
+        return new NodeLocation(tree);
+    }
+
+    /**
+     * Create a new {@code TreeLocation} instance for the item
+     * at the given {@code path} in {@code root}.
+     */
+    public static TreeLocation create(Root root, String path) {
+        checkArgument(isAbsolute(path));
+        TreeLocation location = create(root.getTree("/"));
+        for (String name : elements(path)) {
+            location = location.getChild(name);
+        }
+        return location;
+    }
+
+    /**
+     * Equivalent to {@code create(root, "/")}
+     */
+    public static TreeLocation create(Root root) {
+        return create(root, "/");
+    }
+
+    @Override
+    public TreeLocation getChild(String name) {
+        return new NullLocation(this, name);
+    }
+
+    /**
+     * @return {@code null}
+     */
+    @Override
+    public Tree getTree() {
+        return null;
+    }
+
+    /**
+     * @return {@code null}
+     */
+    @Override
+    public PropertyState getProperty() {
+        return null;
+    }
+
+    @Override
+    public String toString() {
+        return toStringHelper(this).add("path", getPath()).toString();
+    }
+
+    /**
+     * This {@code TreeLocation} refers to child tree in a
+     * {@code Tree}.
+     */
+    private static class NodeLocation extends TreeLocations {
+        private final Tree tree;
+
+        public NodeLocation(Tree tree) {
+            this.tree = tree;
+        }
+
+        @Nonnull
+        @Override
+        public TreeLocation getParent() {
+            return tree.isRoot()
+                ? NullLocation.NULL
+                : new NodeLocation(tree.getParent());
+        }
+
+        @Nonnull
+        @Override
+        public TreeLocation getChild(String name) {
+            if (tree.hasProperty(name)) {
+                return new PropertyLocation(tree, name);
+            } else {
+                return new NodeLocation(tree.getChild(name));
+            }
+        }
+
+        @Override
+        public boolean exists() {
+            return tree.exists();
+        }
+
+        @Override
+        public Tree getTree() {
+            return exists() ? tree : null;
+        }
+
+        @Nonnull
+        @Override
+        public String getPath() {
+            return tree.getPath();
+        }
+
+        @Override
+        public boolean remove() {
+            return exists() && tree.remove();
+        }
+    }
+
+    /**
+     * This {@code TreeLocation} refers to property in a
+     * {@code Tree}.
+     */
+    private static class PropertyLocation extends TreeLocations {
+        private final Tree parent;
+        private final String name;
+
+        public PropertyLocation(Tree parent, String name) {
+            this.parent = parent;
+            this.name = name;
+        }
+
+        @Nonnull
+        @Override
+        public TreeLocation getParent() {
+            return new NodeLocation(parent);
+        }
+
+        @Override
+        public boolean exists() {
+            return parent.hasProperty(name);
+        }
+
+        @Override
+        public PropertyState getProperty() {
+            return parent.getProperty(name);
+        }
+
+        @Nonnull
+        @Override
+        public String getPath() {
+            return PathUtils.concat(parent.getPath(), name);
+        }
+
+        @Override
+        public boolean remove() {
+            parent.removeProperty(name);
+            return true;
+        }
+    }
+
+    /**
+     * This {@code TreeLocation} refers to an invalid location in a tree. That is
+     * to a location where no item resides.
+     */
+    private static final class NullLocation extends TreeLocations {
+        public static final NullLocation NULL = new NullLocation();
+
+        private final TreeLocation parent;
+        private final String name;
+
+        public NullLocation(TreeLocation parent, String name) {
+            this.parent = parent;
+            this.name = name;
+        }
+
+        private NullLocation() {
+            this.parent = this;
+            this.name = "";
+        }
+
+        @Override
+        public TreeLocation getParent() {
+            return parent;
+        }
+
+        /**
+         * @return {@code false}
+         */
+        @Override
+        public boolean exists() {
+            return false;
+        }
+
+        @Override
+        public String getPath() {
+            return parent == this ? "" : PathUtils.concat(parent.getPath(), name);
+        }
+
+        /**
+         * @return Always {@code false}.
+         */
+        @Override
+        public boolean remove() {
+            return false;
+        }
+
+    }
+}
