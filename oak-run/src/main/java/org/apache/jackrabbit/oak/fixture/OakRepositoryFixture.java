@@ -52,7 +52,8 @@ public abstract class OakRepositoryFixture implements RepositoryFixture {
         };
     }
 
-    public static RepositoryFixture getDefault(final long cacheSize) {
+    public static RepositoryFixture getDefault(
+            final File base, final long cacheSize) {
         return new OakRepositoryFixture("Oak-Default") {
             private MicroKernelImpl[] kernels;
             @Override
@@ -60,7 +61,8 @@ public abstract class OakRepositoryFixture implements RepositoryFixture {
                 Repository[] cluster = new Repository[n];
                 kernels = new MicroKernelImpl[cluster.length];
                 for (int i = 0; i < cluster.length; i++) {
-                    kernels[i] = new MicroKernelImpl(unique);
+                    kernels[i] = new MicroKernelImpl(
+                            new File(base, unique).getPath());
                     Oak oak = new Oak(new KernelNodeStore(kernels[i], cacheSize));
                     cluster[i] = new Jcr(oak).createRepository();
                 }
@@ -71,7 +73,7 @@ public abstract class OakRepositoryFixture implements RepositoryFixture {
                 for (MicroKernelImpl kernel : kernels) {
                     kernel.dispose();
                 }
-                FileUtils.deleteQuietly(new File(unique));
+                FileUtils.deleteQuietly(new File(base, unique));
             }
         };
     }
@@ -115,38 +117,51 @@ public abstract class OakRepositoryFixture implements RepositoryFixture {
     public static RepositoryFixture getSegment(
             final String host, final int port, final long cacheSize) {
         return new OakRepositoryFixture("Oak-Segment") {
+            private SegmentStore[] stores;
             private Mongo mongo;
             @Override
             public Repository[] setUpCluster(int n) throws Exception {
                 Repository[] cluster = new Repository[n];
+                stores = new FileStore[cluster.length];
                 mongo = new Mongo(host, port);
                 for (int i = 0; i < cluster.length; i++) {
-                    SegmentStore store =
-                            new MongoStore(mongo.getDB(unique), cacheSize);
-                    Oak oak = new Oak(new SegmentNodeStore(store));
+                    stores[i] = new MongoStore(mongo.getDB(unique), cacheSize);
+                    Oak oak = new Oak(new SegmentNodeStore(stores[i]));
                     cluster[i] = new Jcr(oak).createRepository();
                 }
                 return cluster;
             }
             @Override
             public void tearDownCluster() {
+                for (SegmentStore store : stores) {
+                    store.close();
+                }
                 mongo.getDB(unique).dropDatabase();
                 mongo.close();
             }
         };
     }
 
-    public static RepositoryFixture getTar(final String file) {
+    public static RepositoryFixture getTar(final File base) {
         return new OakRepositoryFixture("Oak-Tar") {
+            private SegmentStore[] stores;
             @Override
             public Repository[] setUpCluster(int n) throws Exception {
                 Repository[] cluster = new Repository[n];
+                stores = new FileStore[cluster.length];
                 for (int i = 0; i < cluster.length; i++) {
-                    SegmentStore store = new FileStore(file);
-                    Oak oak = new Oak(new SegmentNodeStore(store));
+                    stores[i] = new FileStore(new File(base, unique));
+                    Oak oak = new Oak(new SegmentNodeStore(stores[i]));
                     cluster[i] = new Jcr(oak).createRepository();
                 }
                 return cluster;
+            }
+            @Override
+            public void tearDownCluster() {
+                for (SegmentStore store : stores) {
+                    store.close();
+                }
+                FileUtils.deleteQuietly(new File(base, unique));
             }
         };
     }
