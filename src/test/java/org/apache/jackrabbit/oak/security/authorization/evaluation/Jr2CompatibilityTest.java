@@ -73,6 +73,7 @@ public class Jr2CompatibilityTest extends AbstractOakCoreTest {
             super.after();
         }
     }
+
     @Override
     protected ConfigurationParameters getSecurityConfigParameters() {
         Map<String, Boolean> map = Collections.singletonMap(AccessControlConstants.PARAM_PERMISSIONS_JR2, Boolean.TRUE);
