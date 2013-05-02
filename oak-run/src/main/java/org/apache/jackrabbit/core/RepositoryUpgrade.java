@@ -16,10 +16,11 @@
  */
 package org.apache.jackrabbit.core;
 
-import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Lists.newArrayListWithCapacity;
 import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.JcrConstants.JCR_AUTOCREATED;
+import static org.apache.jackrabbit.JcrConstants.JCR_CHILDNODEDEFINITION;
+import static org.apache.jackrabbit.JcrConstants.JCR_DEFAULTPRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_HASORDERABLECHILDNODES;
 import static org.apache.jackrabbit.JcrConstants.JCR_ISMIXIN;
 import static org.apache.jackrabbit.JcrConstants.JCR_MANDATORY;
@@ -31,11 +32,14 @@ import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYITEMNAME;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_PROPERTYDEFINITION;
 import static org.apache.jackrabbit.JcrConstants.JCR_PROTECTED;
+import static org.apache.jackrabbit.JcrConstants.JCR_REQUIREDPRIMARYTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_REQUIREDTYPE;
+import static org.apache.jackrabbit.JcrConstants.JCR_SAMENAMESIBLINGS;
 import static org.apache.jackrabbit.JcrConstants.JCR_SUPERTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.JcrConstants.JCR_VALUECONSTRAINTS;
 import static org.apache.jackrabbit.JcrConstants.JCR_VERSIONSTORAGE;
+import static org.apache.jackrabbit.JcrConstants.NT_CHILDNODEDEFINITION;
 import static org.apache.jackrabbit.JcrConstants.NT_NODETYPE;
 import static org.apache.jackrabbit.JcrConstants.NT_PROPERTYDEFINITION;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
@@ -47,10 +51,12 @@ import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_I
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_IS_QUERYABLE;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_IS_QUERY_ORDERABLE;
 import static org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
+import static org.apache.jackrabbit.spi.commons.name.NameConstants.ANY_NAME;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import java.util.Set;
 
 import javax.jcr.NamespaceException;
 import javax.jcr.NamespaceRegistry;
@@ -63,17 +69,23 @@ import org.apache.jackrabbit.core.RepositoryImpl.WorkspaceInfo;
 import org.apache.jackrabbit.core.config.RepositoryConfig;
 import org.apache.jackrabbit.core.nodetype.NodeTypeRegistry;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
+import org.apache.jackrabbit.oak.plugins.name.NamespaceConstants;
+import org.apache.jackrabbit.oak.plugins.nodetype.RegistrationEditorProvider;
+import org.apache.jackrabbit.oak.spi.commit.EditorHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStoreBranch;
 import org.apache.jackrabbit.spi.Name;
+import org.apache.jackrabbit.spi.QItemDefinition;
+import org.apache.jackrabbit.spi.QNodeDefinition;
 import org.apache.jackrabbit.spi.QNodeTypeDefinition;
 import org.apache.jackrabbit.spi.QPropertyDefinition;
 import org.apache.jackrabbit.spi.QValue;
 import org.apache.jackrabbit.spi.QValueConstraint;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.ImmutableSet;
 
 public class RepositoryUpgrade {
 
@@ -182,7 +194,7 @@ public class RepositoryUpgrade {
             copyWorkspaces(builder);
 
             branch.setRoot(builder.getNodeState());
-            branch.merge(EmptyHook.INSTANCE); // TODO: default hooks?
+            branch.merge(new EditorHook(new RegistrationEditorProvider())); // TODO: default hooks?
         } catch (Exception e) {
             throw new RepositoryException("Failed to copy content", e);
         }
@@ -203,9 +215,19 @@ public class RepositoryUpgrade {
         NodeBuilder system = root.child(JCR_SYSTEM);
         NodeBuilder namespaces = system.child("rep:namespaces");
 
+        Set<String> defaults = ImmutableSet.of(
+                NamespaceRegistry.NAMESPACE_EMPTY,
+                NamespaceRegistry.NAMESPACE_JCR,
+                NamespaceRegistry.NAMESPACE_MIX,
+                NamespaceRegistry.NAMESPACE_NT,
+                NamespaceRegistry.NAMESPACE_XML,
+                NamespaceConstants.NAMESPACE_SV,
+                NamespaceConstants.NAMESPACE_REP);
         logger.info("Copying registered namespaces");
         for (String uri : sourceRegistry.getURIs()) {
-            namespaces.setProperty(sourceRegistry.getPrefix(uri), uri);
+            if (!defaults.contains(uri)) {
+                namespaces.setProperty(sourceRegistry.getPrefix(uri), uri);
+            }
         }
     }
 
@@ -231,7 +253,7 @@ public class RepositoryUpgrade {
         // - jcr:supertypes (NAME) protected multiple
         Name[] supertypes = def.getSupertypes();
         if (supertypes != null && supertypes.length > 0) {
-            List<String> names = newArrayList();
+            List<String> names = newArrayListWithCapacity(supertypes.length);
             for (Name supertype : supertypes) {
                 names.add(getOakName(supertype));
             }
@@ -261,6 +283,11 @@ public class RepositoryUpgrade {
         }
 
         // + jcr:childNodeDefinition (nt:childNodeDefinition) = nt:childNodeDefinition protected sns
+        QNodeDefinition[] childNodes = def.getChildNodeDefs();
+        for (int i = 0; i < childNodes.length; i++) {
+            String name = JCR_CHILDNODEDEFINITION + '[' + i + ']';
+            copyChildNodeDefinition(childNodes[i], builder.child(name));
+        }
     }
 
     private void copyPropertyDefinition(
@@ -268,19 +295,8 @@ public class RepositoryUpgrade {
             throws NamespaceException {
         builder.setProperty(JCR_PRIMARYTYPE, NT_PROPERTYDEFINITION, NAME);
 
-        // - jcr:name (NAME) protected
-        builder.setProperty(JCR_NAME, getOakName(def.getName()), NAME);
-        // - jcr:autoCreated (BOOLEAN) protected mandatory
-        builder.setProperty(JCR_AUTOCREATED, def.isAutoCreated());
-        // - jcr:mandatory (BOOLEAN) protected mandatory
-        builder.setProperty(JCR_MANDATORY, def.isMandatory());
-        // - jcr:onParentVersion (STRING) protected mandatory
-        //   < 'COPY', 'VERSION', 'INITIALIZE', 'COMPUTE', 'IGNORE', 'ABORT'
-        builder.setProperty(
-                JCR_ONPARENTVERSION,
-                OnParentVersionAction.nameFromValue(def.getOnParentVersion()));
-        // - jcr:protected (BOOLEAN) protected mandatory
-        builder.setProperty(JCR_PROTECTED, def.isProtected());
+        copyItemDefinition(def, builder);
+
         // - jcr:requiredType (STRING) protected mandatory
         //   < 'STRING', 'URI', 'BINARY', 'LONG', 'DOUBLE',
         //     'DECIMAL', 'BOOLEAN', 'DATE', 'NAME', 'PATH',
@@ -314,6 +330,49 @@ public class RepositoryUpgrade {
         builder.setProperty(JCR_IS_QUERY_ORDERABLE, def.isQueryOrderable());
     }
 
+    private void copyChildNodeDefinition(
+            QNodeDefinition def, NodeBuilder builder)
+            throws NamespaceException {
+        builder.setProperty(JCR_PRIMARYTYPE, NT_CHILDNODEDEFINITION, NAME);
+
+        copyItemDefinition(def, builder);
+
+        // - jcr:requiredPrimaryTypes (NAME) = 'nt:base' protected mandatory multiple
+        Name[] types = def.getRequiredPrimaryTypes();
+        List<String> names = newArrayListWithCapacity(types.length);
+        for (Name type : types) {
+            names.add(getOakName(type));
+        }
+        builder.setProperty(JCR_REQUIREDPRIMARYTYPES, names, NAMES);
+        // - jcr:defaultPrimaryType (NAME) protected
+        Name type = def.getDefaultPrimaryType();
+        if (type != null) {
+            builder.setProperty(JCR_DEFAULTPRIMARYTYPE, getOakName(type), NAME);
+        }
+        // - jcr:sameNameSiblings (BOOLEAN) protected mandatory
+        builder.setProperty(JCR_SAMENAMESIBLINGS, def.allowsSameNameSiblings());
+    }
+
+    private void copyItemDefinition(QItemDefinition def, NodeBuilder builder)
+            throws NamespaceException {
+        // - jcr:name (NAME) protected
+        Name name = def.getName();
+        if (name != null && !name.equals(ANY_NAME)) {
+            builder.setProperty(JCR_NAME, getOakName(name), NAME);
+        }
+        // - jcr:autoCreated (BOOLEAN) protected mandatory
+        builder.setProperty(JCR_AUTOCREATED, def.isAutoCreated());
+        // - jcr:mandatory (BOOLEAN) protected mandatory
+        builder.setProperty(JCR_MANDATORY, def.isMandatory());
+        // - jcr:onParentVersion (STRING) protected mandatory
+        //   < 'COPY', 'VERSION', 'INITIALIZE', 'COMPUTE', 'IGNORE', 'ABORT'
+        builder.setProperty(
+                JCR_ONPARENTVERSION,
+                OnParentVersionAction.nameFromValue(def.getOnParentVersion()));
+        // - jcr:protected (BOOLEAN) protected mandatory
+        builder.setProperty(JCR_PROTECTED, def.isProtected());
+    }
+
     private void copyVersionStore(NodeBuilder root)
             throws RepositoryException, IOException {
         logger.info("Copying version histories");
@@ -333,7 +392,7 @@ public class RepositoryUpgrade {
         logger.info("Copying default workspace");
 
         // Copy all the default workspace content
-
+        
         RepositoryImpl repository = source.getRepository();
         RepositoryConfig config = repository.getConfig();
         String name = config.getDefaultWorkspaceName();
