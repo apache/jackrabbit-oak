@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.core;
 
-import static org.apache.jackrabbit.oak.core.NullLocation.NULL;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -37,6 +36,7 @@ import org.junit.Test;
 public class TreeLocationTest extends OakBaseTest {
 
     private Root root;
+    private TreeLocation nullLocation;
 
     @Before
     public void setUp() throws CommitFailedException {
@@ -52,6 +52,8 @@ public class TreeLocationTest extends OakBaseTest {
         tree.addChild("y");
         tree.addChild("z").addChild("1").addChild("2").setProperty("p", "v");
         root.commit();
+
+        nullLocation = root.getLocation("/").getParent();
     }
 
     @After
@@ -61,17 +63,17 @@ public class TreeLocationTest extends OakBaseTest {
 
     @Test
     public void testNullLocation() {
-        TreeLocation xyz = NULL.getChild("x").getChild("y").getChild("z");
+        TreeLocation xyz = nullLocation.getChild("x").getChild("y").getChild("z");
         Assert.assertEquals("x/y/z", xyz.getPath());
         assertEquals("x/y", xyz.getParent().getPath());
         assertEquals("x", xyz.getParent().getParent().getPath());
-        assertEquals(NULL, xyz.getParent().getParent().getParent());
+        assertEquals(nullLocation, xyz.getParent().getParent().getParent());
     }
 
     @Test
     public void testParentOfRoot() {
         TreeLocation rootLocation = root.getLocation("/");
-        assertEquals(NULL, rootLocation.getParent());
+        assertEquals(nullLocation, rootLocation.getParent());
     }
 
     @Test

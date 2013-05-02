@@ -149,7 +149,7 @@ public class ReadOnlyTree implements Tree {
     @Override
     @Deprecated
     public TreeLocation getLocation() {
-        return new NodeLocation(this);
+        return TreeLocations.create(this);
     }
 
     @Override
@@ -256,74 +256,6 @@ public class ReadOnlyTree implements Tree {
             return "/";
         } else {
             return PathUtils.concat(parent.getIdentifier(), name);
-        }
-    }
-
-    //-------------------------------------------------------< TreeLocation >---
-
-    @Deprecated
-    private final class NodeLocation extends AbstractNodeLocation<ReadOnlyTree> {
-
-        private NodeLocation(ReadOnlyTree tree) {
-            super(tree);
-        }
-
-        @Override
-        protected TreeLocation createNodeLocation(ReadOnlyTree tree) {
-            return new NodeLocation(tree);
-        }
-
-        @Override
-        protected TreeLocation createPropertyLocation(AbstractNodeLocation<ReadOnlyTree> parentLocation, String name) {
-            return new PropertyLocation(parentLocation, name);
-        }
-
-        @Override
-        protected ReadOnlyTree getParentTree() {
-            return tree.parent;
-        }
-
-        @Override
-        protected ReadOnlyTree getChildTree(String name) {
-            return tree.getChild(name);
-        }
-
-        @Override
-        protected PropertyState getPropertyState(String name) {
-            return tree.getProperty(name);
-        }
-
-        @Override
-        public Tree getTree() {
-            return tree;
-        }
-
-        @Override
-        public boolean remove() {
-            return false;
-        }
-    }
-
-    @Deprecated
-    private final class PropertyLocation extends AbstractPropertyLocation<ReadOnlyTree> {
-
-        private PropertyLocation(AbstractNodeLocation<ReadOnlyTree> parentLocation, String name) {
-            super(parentLocation, name);
-        }
-
-        @Override
-        public PropertyState getProperty() {
-            return parentLocation.tree.getProperty(name);
-        }
-
-        @Override
-        public boolean remove() {
-            return false;
-        }
-
-        @Override
-        public boolean set(PropertyState property) {
-            return false;
         }
     }
 }

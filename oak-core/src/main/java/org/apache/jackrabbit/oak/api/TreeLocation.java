@@ -21,8 +21,6 @@ package org.apache.jackrabbit.oak.api;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
-import org.apache.jackrabbit.oak.api.Tree.Status;
-
 /**
  * A {@code TreeLocation} denotes a location inside a tree.
  * It can either refer to a inner node (that is a {@link org.apache.jackrabbit.oak.api.Tree}),
@@ -78,14 +76,6 @@ public interface TreeLocation {
     PropertyState getProperty();
 
     /**
-     * Get the {@link org.apache.jackrabbit.oak.api.Tree.Status} of the underlying item for this
-     * {@code TreeLocation}.
-     * @return  underlying status or {@code null} if not available.
-     */
-    @CheckForNull
-    Status getStatus();
-
-    /**
      * The path of this location
      * @return  path
      */
@@ -98,13 +88,4 @@ public interface TreeLocation {
      * @return {@code true} if the item was removed, {@code false} otherwise.
      */
     boolean remove();
-
-    /**
-     * Set the underlying property of this {@code TreeLocation}. If the underlying item is
-     * not a property, this method return {@code false}.
-     * @param property The property to set
-     * @return {@code true} if the property state was set, {@code false} otherwise.
-     */
-    boolean set(PropertyState property);
-
 }
