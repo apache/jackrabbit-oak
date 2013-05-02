@@ -29,7 +29,7 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.api.TreeLocation;
+import org.apache.jackrabbit.oak.core.TreeLocation;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.ImmutableRoot;
@@ -156,7 +156,7 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
 
     @Override
     public boolean isGranted(@Nonnull String oakPath, @Nonnull String jcrActions) {
-        TreeLocation location = getImmutableRoot().getLocation(oakPath);
+        TreeLocation location = TreeLocation.create(getImmutableRoot(), oakPath);
         boolean isAcContent = acConfig.getContext().definesLocation(location);
         long permissions = Permissions.getPermissions(jcrActions, location, isAcContent);
 
@@ -260,7 +260,7 @@ public class PermissionProviderImpl implements PermissionProvider, AccessControl
             log.debug("Unable to determine versionable path of the version store node.");
             return null;
         } else {
-            return getImmutableRoot().getLocation(versionablePath);
+            return TreeLocation.create(getImmutableRoot(), versionablePath);
         }
     }
 }

@@ -27,7 +27,6 @@ import org.apache.jackrabbit.oak.api.BlobFactory;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
@@ -61,18 +60,6 @@ public final class ImmutableRoot implements Root {
     public ImmutableTree getTree(@Nonnull String path) {
         checkArgument(PathUtils.isAbsolute(path));
         ImmutableTree child = rootTree;
-        for (String name : elements(path)) {
-            child = child.getChild(name);
-        }
-        return child;
-    }
-
-    @Nonnull
-    @Override
-    @Deprecated
-    public TreeLocation getLocation(String path) {
-        checkArgument(PathUtils.isAbsolute(path));
-        TreeLocation child = rootTree.getLocation();
         for (String name : elements(path)) {
             child = child.getChild(name);
         }

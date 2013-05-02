@@ -27,7 +27,6 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -53,7 +52,7 @@ public class TreeLocationTest extends OakBaseTest {
         tree.addChild("z").addChild("1").addChild("2").setProperty("p", "v");
         root.commit();
 
-        nullLocation = root.getLocation("/").getParent();
+        nullLocation = TreeLocation.create(root).getParent();
     }
 
     @After
@@ -72,13 +71,13 @@ public class TreeLocationTest extends OakBaseTest {
 
     @Test
     public void testParentOfRoot() {
-        TreeLocation rootLocation = root.getLocation("/");
+        TreeLocation rootLocation = TreeLocation.create(root);
         assertEquals(nullLocation, rootLocation.getParent());
     }
 
     @Test
     public void testNodeLocation() {
-        TreeLocation x = root.getLocation("/x");
+        TreeLocation x = TreeLocation.create(root, "/x");
         assertNotNull(x.getTree());
 
         TreeLocation xyz = x.getChild("y").getChild("z");
@@ -94,7 +93,7 @@ public class TreeLocationTest extends OakBaseTest {
 
     @Test
     public void testPropertyLocation() {
-        TreeLocation a = root.getLocation("/a");
+        TreeLocation a = TreeLocation.create(root, "/a");
         assertNotNull(a.getProperty());
 
         TreeLocation abc = a.getChild("b").getChild("c");
@@ -110,11 +109,11 @@ public class TreeLocationTest extends OakBaseTest {
 
     @Test
     public void getDeepLocation() {
-        TreeLocation p = root.getLocation("/z/1/2/p");
+        TreeLocation p = TreeLocation.create(root, "/z/1/2/p");
         assertNotNull(p.getProperty());
         assertEquals("/z/1/2/p", p.getPath());
 
-        TreeLocation n = root.getLocation("/z/1/2/3/4");
+        TreeLocation n = TreeLocation.create(root, "/z/1/2/3/4");
         assertNull(n.getTree());
         assertNull(n.getProperty());
         assertEquals("/z/1/2/3/4", n.getPath());

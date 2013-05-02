@@ -89,16 +89,6 @@ public interface Root {
     Tree getTree(@Nonnull String path);
 
     /**
-     * Get a tree location for a given absolute {@code path}
-     * @param path absolute path to the location
-     * @return the tree location for {@code path}
-     * @deprecated use {@link #getTree(String)}
-     */
-    @Nonnull
-    @Deprecated
-    TreeLocation getLocation(String path);
-
-    /**
      * Rebase this root instance to the latest revision. After a call to this method,
      * trees obtained through {@link #getTree(String)} may become non existing.
      */

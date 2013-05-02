@@ -46,10 +46,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
  * {@link #ImmutableTree(ImmutableTree, String, org.apache.jackrabbit.oak.spi.state.NodeState)}
  * for every subsequent child state. Note, that this implementation will not
  * perform any kind of validation of the passed state and methods like {@link #isRoot()},
- * {@link #getName()}, {@link #getPath()} or {@link #getLocation()} will just
- * make use of the hierarchy that has been create by that sequence.
- * In order to create a disconnected individual tree in cases where the hierarchy
- * information is not (yet) need or known it is suggested to use
+ * {@link #getName()} or {@link #getPath()} will just make use of the hierarchy that has been
+ * create by that sequence. In order to create a disconnected individual tree in cases where
+ * the hierarchy information is not (yet) need or known it is suggested to use
  * {@link #ImmutableTree(org.apache.jackrabbit.oak.core.ImmutableTree.ParentProvider, String, org.apache.jackrabbit.oak.spi.state.NodeState)}
  * an specify an appropriate {@code ParentProvider} implementation.
  *

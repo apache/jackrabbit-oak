@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
@@ -30,7 +31,7 @@ import javax.jcr.nodetype.PropertyDefinition;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.api.TreeLocation;
+import org.apache.jackrabbit.oak.core.TreeLocation;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
@@ -291,9 +292,8 @@ class AuthorizablePropertiesImpl implements AuthorizableProperties {
     }
 
     @Nonnull
-    @Deprecated
     private static TreeLocation getLocation(Tree tree, String relativePath) {
-        TreeLocation loc = tree.getLocation();
+        TreeLocation loc = TreeLocation.create(tree);
         for (String element : Text.explode(relativePath, '/', false)) {
             if (PathUtils.denotesParent(element)) {
                 loc = loc.getParent();
