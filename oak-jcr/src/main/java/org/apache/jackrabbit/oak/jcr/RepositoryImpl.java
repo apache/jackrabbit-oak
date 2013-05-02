@@ -122,7 +122,8 @@ public class RepositoryImpl implements Repository {
      */
     @Override
     public Session login(@Nullable Credentials credentials, @Nullable String workspaceName) throws RepositoryException {
-        final boolean autoRefresh = true; // TODO implement auto refresh configuration
+        // TODO implement auto refresh configuration. See OAK-803, OAK-88
+        final boolean autoRefresh = true;
         try {
             ContentSession contentSession = contentRepository.login(credentials, workspaceName);
 
