@@ -23,46 +23,65 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 /**
- * A tree instance represents a snapshot of the {@code ContentRepository}
- * tree at the time the instance was acquired. Tree instances may
- * become invalid over time due to garbage collection of old content, at
- * which point an outdated snapshot will start throwing
+ * A tree instance represents a snapshot of the {@link ContentRepository}
+ * tree at the time the instance was acquired from a {@link ContentSession}.
+ * Tree instances may become invalid over time due to garbage collection of
+ * old content, at which point an outdated snapshot will start throwing
  * {@code IllegalStateException}s to indicate that the snapshot is no
  * longer available.
- * <p/>
+ *
+ * <h2>Order and orderability</h2>
  * The children of a {@code Tree} are generally unordered. That is, the
  * sequence of the children returned by {@link #getChildren()} may change over
- * time as this Tree is modified either directly or through some other session.
- * Calling {@link #orderBefore(String)} will persist the current order and
- * maintain the order as new children are added or removed. In this case a new
- * child will be inserted after the last child as seen by {@link #getChildren()}.
- * <p/>
+ * time as this {@code Tree} is modified either directly or through some other
+ * session. Calling {@link #orderBefore(String)} will persist the current order
+ * and maintain the order as new children are added or removed. In this case a
+ * new child will be inserted after the last child as seen by {@link #getChildren()}.
+ *
+ * <h2>State and state transitions</h2>
  * A tree instance belongs to the client and its state is only modified
  * in response to method calls made by the client. The various accessors
  * on this interface mirror these of the underlying {@code NodeState}
  * interface. However, since instances of this class are mutable return
  * values may change between invocations.
- * <p/>
+ * <p>
+ * All tree instances created in the context of a content session become invalid
+ * after the content session is closed. Any method called on an invalid tree instance
+ * will throw an {@code InvalidStateException}.
+ * <p>
+ * {@link Tree} instances may become non existing after a call to
+ * {@link Root#refresh()}, {@link Root#rebase()} or {@link Root#commit()}. Any write
+ * access to non existing {@code Tree} instances will cause an
+ * {@code InvalidStateException}.
+ *
+ * <h2>Thread safety</h2>
  * Tree instances are not thread-safe for write access, so writing clients
  * need to ensure that they are not accessed concurrently from multiple
  * threads. Instances are however thread-safe for read access, so
  * implementations need to ensure that all reading clients see a
  * coherent state.
- * <p/>
- * The data returned by this class and intermediary objects such as
- * {@link PropertyState} is filtered for the access rights that are set in the
- * {@link ContentSession} that created the {@link Root} of this object.
- * <p/>
- * All tree instances created in the context of a content session become invalid
- * after the content session is closed. Any method called on an invalid tree instance
- * will throw an {@code InvalidStateException}.
- * <p/>
- * {@link Tree} instances may become disconnected after a call to {@link Root#refresh()},
- * {@link Root#rebase()} or {@link Root#commit()}. Any access to disconnected tree instances
- * - except for {@link Tree#getName()}, {@link Tree#isRoot()}, {@link Tree#getPath()},
- * {@link Tree#getParent()} and {@link Tree#exists()} - will cause an
- * {@code InvalidStateException}.
- * TODO document iterability / existence (OAK-798)
+ *
+ * <h2>Visibility and access control</h2>
+ * The data returned by this class and intermediary objects such as are access
+ * controlled governed by the {@code ContentSession} instance from which
+ * the containing {@code Root} was obtained.
+ *
+ * <h2>Existence and iterability of trees</h2>
+ * <p>
+ * The {@link #getChild(String)} method is special in that it <em>never</em>
+ * returns a {@code null} value, even if the named tree does not exist.
+ * Instead a client should use the {@link #exists()} method on the returned
+ * tree to check whether that tree exists.
+ * <p>
+ * The <em>iterability</em> of a tree is a related to existence. A node
+ * state is <em>iterable</em> if it is included in the return values of the
+ * {@link #getChildrenCount()} and {@link #getChildren()} methods. An iterable
+ * node is guaranteed to exist, though not all existing nodes are necessarily
+ * iterable.
+ * <p>
+ * Furthermore, a non-existing node is guaranteed to contain no properties
+ * or iterable child nodes. It can, however contain non-iterable children.
+ * Such scenarios are typically the result of access control restrictions.
  */
 public interface Tree {
 
