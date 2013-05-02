@@ -140,13 +140,6 @@ public interface Tree {
     boolean exists();
 
     /**
-     * @return the current location
-     */
-    @Nonnull
-    @Deprecated
-    TreeLocation getLocation();
-
-    /**
      * @return the possibly non existent parent of this {@code Tree}.
      * @throws IllegalStateException if called on the root tree.
      */

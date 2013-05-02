@@ -18,9 +18,7 @@
  */
 package org.apache.jackrabbit.oak.core;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 
@@ -42,7 +40,6 @@ import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.diffindex.UUIDDiffIndexProviderWrapper;
 import org.apache.jackrabbit.oak.query.QueryEngineImpl;
@@ -208,18 +205,6 @@ public class RootImpl implements Root {
     public TreeImpl getTree(@Nonnull String path) {
         checkLive();
         return rootTree.getTree(path);
-    }
-
-    @Override
-    @Deprecated
-    public TreeLocation getLocation(String path) {
-        checkArgument(PathUtils.isAbsolute(path));
-        checkLive();
-        TreeLocation child = rootTree.getLocation();
-        for (String name : elements(path)) {
-            child = child.getChild(name);
-        }
-        return child;
     }
 
     @Override

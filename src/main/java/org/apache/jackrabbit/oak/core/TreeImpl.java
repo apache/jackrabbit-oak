@@ -47,7 +47,6 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.core.RootImpl.Move;
@@ -131,13 +130,6 @@ public class TreeImpl implements Tree {
         } else {
             return EXISTING;
         }
-    }
-
-    @Override
-    @Deprecated
-    public TreeLocation getLocation() {
-        enter();
-        return TreeLocations.create(this);
     }
 
     @Override
