@@ -16,14 +16,6 @@
  */
 package org.apache.jackrabbit.oak.security.authorization;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -34,7 +26,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.AccessDeniedException;
@@ -80,6 +71,14 @@ import org.apache.jackrabbit.oak.util.TreeUtil;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * Tests for the default {@code AccessControlManager} implementation.
@@ -1340,13 +1339,25 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         while (unknown != null) {
             unknown = getPrincipalManager().getPrincipal("unknown"+i);
         }
-        unknown = new PrincipalImpl("unknown" + i);
+        unknown = new InvalidPrincipal("unknown" + i);
         try {
             acMgr.getApplicablePolicies(unknown);
             fail("Unknown principal should be detected.");
         } catch (AccessControlException e) {
             // success
         }
+    }
+
+    @Test
+    public void testGetApplicablePoliciesInternalPrincipal() throws Exception {
+        Principal unknown = getPrincipalManager().getPrincipal("unknown");
+        int i = 0;
+        while (unknown != null) {
+            unknown = getPrincipalManager().getPrincipal("unknown"+i);
+        }
+        unknown = new PrincipalImpl("unknown" + i);
+
+        assertEquals(1, acMgr.getApplicablePolicies(unknown).length);
     }
 
     @Test
@@ -1390,22 +1401,12 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
 
         List<Principal> principals = ImmutableList.of(testPrincipal, EveryonePrincipal.getInstance());
         for (Principal principal : principals) {
-            if (testPrincipalMgr.hasPrincipal(principal.getName())) {
-                // testRoot can't read access control content -> doesn't see
-                // the existing policies and creates a new applicable policy.
-                AccessControlPolicy[] applicable = testAcMgr.getApplicablePolicies(principal);
-                assertNotNull(applicable);
-                assertEquals(1, applicable.length);
-                assertTrue(applicable[0] instanceof ACL);
-            } else {
-                // testRoot can't read principal -> exception expected
-                try {
-                    testAcMgr.getApplicablePolicies(principal);
-                    fail();
-                } catch (AccessControlException e) {
-                    // success
-                }
-            }
+            // testRoot can't read access control content -> doesn't see
+            // the existing policies and creates a new applicable policy.
+            AccessControlPolicy[] applicable = testAcMgr.getApplicablePolicies(principal);
+            assertNotNull(applicable);
+            assertEquals(1, applicable.length);
+            assertTrue(applicable[0] instanceof ACL);
         }
     }
 
@@ -1427,13 +1428,24 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         while (unknown != null) {
             unknown = getPrincipalManager().getPrincipal("unknown"+i);
         }
-        unknown = new PrincipalImpl("unknown" + i);
+        unknown = new InvalidPrincipal("unknown" + i);
         try {
             acMgr.getPolicies(unknown);
             fail("Unknown principal should be detected.");
         } catch (AccessControlException e) {
             // success
         }
+    }
+
+    @Test
+    public void testGetPoliciesInternalPrincipal() throws Exception {
+        Principal unknown = getPrincipalManager().getPrincipal("unknown");
+        int i = 0;
+        while (unknown != null) {
+            unknown = getPrincipalManager().getPrincipal("unknown"+i);
+        }
+        unknown = new PrincipalImpl("unknown" + i);
+        assertEquals(0, acMgr.getPolicies(unknown).length);
     }
 
     @Test
@@ -1482,13 +1494,8 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
                 assertNotNull(policies);
                 assertEquals(0, policies.length);
             } else {
-                // testRoot can't read principal -> exception expected
-                try {
-                    testAcMgr.getApplicablePolicies(principal);
-                    fail();
-                } catch (AccessControlException e) {
-                    // success
-                }
+                // testRoot can't read principal -> no policies for that principal
+                assertEquals(0, testAcMgr.getPolicies(principal).length);
             }
         }
     }
@@ -1518,7 +1525,7 @@ public class AccessControlManagerImplTest extends AbstractAccessControlTest impl
         while (unknown != null) {
             unknown = getPrincipalManager().getPrincipal("unknown"+i);
         }
-        unknown = new PrincipalImpl("unknown" + i);
+        unknown = new InvalidPrincipal("unknown" + i);
         try {
             acMgr.getEffectivePolicies(Collections.singleton(unknown));
             fail("Unknown principal should be detected.");

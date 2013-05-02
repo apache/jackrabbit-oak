@@ -132,13 +132,19 @@ public class ACLTest extends AbstractAccessControlListTest implements PrivilegeC
 
     @Test
     public void testAddInvalidEntry() throws Exception {
-        Principal unknownPrincipal = new PrincipalImpl("unknown");
+        Principal unknownPrincipal = new InvalidPrincipal("unknown");
         try {
             acl.addAccessControlEntry(unknownPrincipal, privilegesFromNames(JCR_READ));
             fail("Adding an ACE with an unknown principal should fail");
         } catch (AccessControlException e) {
             // success
         }
+    }
+
+    @Test
+    public void testAddEntryWithOakPrincipal() throws Exception {
+        Principal oakPrincipal = new PrincipalImpl("name");
+        acl.addAccessControlEntry(oakPrincipal, privilegesFromNames(JCR_READ));
     }
 
     @Test
