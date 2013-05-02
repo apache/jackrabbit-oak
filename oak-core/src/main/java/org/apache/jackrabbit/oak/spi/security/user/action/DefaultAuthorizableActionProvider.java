@@ -39,6 +39,8 @@ public class DefaultAuthorizableActionProvider implements AuthorizableActionProv
     @Override
     public List<AuthorizableAction> getAuthorizableActions() {
         // TODO OAK-521: create and initialize actions from configuration
-        return Collections.emptyList();
+        AccessControlAction action = new AccessControlAction();
+        action.init(securityProvider, config);
+        return Collections.<AuthorizableAction>singletonList(action);
     }
 }

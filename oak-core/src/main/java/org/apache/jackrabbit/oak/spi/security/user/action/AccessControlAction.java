@@ -159,9 +159,14 @@ public class AccessControlAction extends AbstractAuthorizableAction {
             throw new IllegalStateException("Not initialized");
         }
         if (isSystemUser(authorizable)) {
-            log.debug("System user: " + authorizable.getID() + "; omit ac setup");
+            log.debug("System user: " + authorizable.getID() + "; omit ac setup.");
             return;
         }
+        if (groupPrivilegeNames.length == 0 && userPrivilegeNames.length == 0) {
+            log.debug("No privileges configured for groups and users; omit ac setup.");
+            return;
+        }
+
         String path = authorizable.getPath();
         AccessControlManager acMgr = securityProvider.getAccessControlConfiguration().getAccessControlManager(root, namePathMapper);
         JackrabbitAccessControlList acl = null;
