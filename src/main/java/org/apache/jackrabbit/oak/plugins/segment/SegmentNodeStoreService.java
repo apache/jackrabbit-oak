@@ -16,8 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.segment;
 
-import java.io.File;
-import java.net.UnknownHostException;
+import java.io.IOException;
 import java.util.Collection;
 import java.util.Dictionary;
 import java.util.Map;
@@ -69,6 +68,10 @@ public class SegmentNodeStoreService extends SegmentNodeStore {
     public SegmentNodeStoreService(final SegmentStore[] store) {
         super(new SegmentStore() {
             @Override
+            public void close() {
+                store[0].close();
+            }
+            @Override
             public Journal getJournal(final String name) {
                 return new Journal() {
                     @Override
@@ -117,16 +120,15 @@ public class SegmentNodeStoreService extends SegmentNodeStore {
     }
 
     @Activate
-    public void activate(ComponentContext context) throws UnknownHostException {
+    public void activate(ComponentContext context) throws IOException {
         Dictionary<?, ?> properties = context.getProperties();
         name = "" + properties.get(NAME);
 
         if (properties.get(DIRECTORY) != null) {
-            File directory = new File(properties.get(DIRECTORY).toString());
-            directory.mkdirs();
+            String directory = properties.get(DIRECTORY).toString();
 
             mongo = null;
-            store[0] = new FileStore(new File(directory, "data.tar").getPath());
+            store[0] = new FileStore(directory);
         } else {
             String host = String.valueOf(properties.get(HOST));
             int port = Integer.parseInt(String.valueOf(properties.get(PORT)));
@@ -140,6 +142,7 @@ public class SegmentNodeStoreService extends SegmentNodeStore {
 
     @Deactivate
     public void deactivate() {
+        store[0].close();
         if (mongo != null) {
             mongo.close();
         }
