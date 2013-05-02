@@ -118,13 +118,6 @@ class LuceneIndexUpdate implements Closeable, LuceneIndexConstants {
         remove.add(path.substring(this.path.length()));
     }
 
-    boolean getAndResetReindexFlag() {
-        PropertyState property = index.getProperty(REINDEX_PROPERTY_NAME);
-        boolean reindex = property != null && property.getValue(Type.BOOLEAN);
-        index.setProperty(REINDEX_PROPERTY_NAME, false);
-        return reindex;
-    }
-
     public void apply() throws CommitFailedException {
         if(remove.isEmpty() && insert.isEmpty()){
             return;

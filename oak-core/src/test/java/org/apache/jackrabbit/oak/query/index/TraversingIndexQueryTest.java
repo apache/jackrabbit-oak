@@ -18,6 +18,7 @@ import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.InitialContent;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
+import org.junit.Test;
 
 /**
  * Tests the query engine using the default index implementation: the
@@ -31,6 +32,16 @@ public class TraversingIndexQueryTest extends AbstractQueryTest {
             .with(new OpenSecurityProvider())
             .with(new InitialContent())
             .createContentRepository();
+    }
+
+    @Test
+    public void sql1() throws Exception {
+        test("sql1.txt");
+    }
+
+    @Test
+    public void sql2() throws Exception {
+        test("sql2.txt");
     }
 
 }
