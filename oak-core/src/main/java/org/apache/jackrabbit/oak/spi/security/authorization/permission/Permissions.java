@@ -25,7 +25,7 @@ import javax.annotation.Nullable;
 import javax.jcr.Session;
 
 import com.google.common.collect.ImmutableSet;
-import org.apache.jackrabbit.oak.api.TreeLocation;
+import org.apache.jackrabbit.oak.core.TreeLocation;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceConstants;
 import org.apache.jackrabbit.oak.plugins.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.plugins.version.VersionConstants;

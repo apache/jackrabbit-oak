@@ -31,7 +31,6 @@ import javax.annotation.Nullable;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
@@ -144,12 +143,6 @@ public class ReadOnlyTree implements Tree {
     @Override
     public boolean exists() {
         return state.exists();
-    }
-
-    @Override
-    @Deprecated
-    public TreeLocation getLocation() {
-        return TreeLocations.create(this);
     }
 
     @Override

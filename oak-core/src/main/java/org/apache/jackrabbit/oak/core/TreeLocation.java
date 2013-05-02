@@ -23,16 +23,26 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.commons.PathUtils.isAbsolute;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.api.TreeLocation;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 
-@Deprecated
-public abstract class TreeLocations implements TreeLocation {
+/**
+ * A {@code TreeLocation} denotes a location inside a tree.
+ * <p>
+ * It can either refer to a inner node (that is a {@link Tree}), to a leaf (that is a
+ * {@link PropertyState}) or to an invalid location which refers to neither of the former.
+ * {@code TreeLocation} instances provide methods for navigating trees such that navigation
+ * always results in new {@code TreeLocation} instances. Navigation never fails. Errors are
+ * deferred until the underlying item itself is accessed. That is, if a {@code TreeLocation}
+ * points to an item which does not exist or is unavailable otherwise (i.e. due to access
+ * control restrictions) accessing the tree will return {@code null} at this point.
+ */
+public abstract class TreeLocation {
 
     /**
      * Create a new {@code TreeLocation} instance for a {@code tree}
@@ -61,23 +71,60 @@ public abstract class TreeLocations implements TreeLocation {
         return create(root, "/");
     }
 
-    @Override
+    /**
+     * Navigate to the parent or an invalid location for the root of the hierarchy.
+     * @return a {@code TreeLocation} for the parent of this location.
+     */
+    @Nonnull
+    public abstract TreeLocation getParent();
+
+    /**
+     * Determine whether the underlying {@link org.apache.jackrabbit.oak.api.Tree} or
+     * {@link org.apache.jackrabbit.oak.api.PropertyState} for this {@code TreeLocation}
+     * is available.
+     * @return  {@code true} if the underlying item is available and has not been disconnected.
+     * @see org.apache.jackrabbit.oak.api.Tree#exists()
+     */
+    public abstract boolean exists();
+
+    /**
+     * The path of this location
+     * @return  path
+     */
+    @Nonnull
+    public abstract String getPath();
+
+    /**
+     * Remove the underlying item.
+     *
+     * @return {@code true} if the item was removed, {@code false} otherwise.
+     */
+    public abstract boolean remove();
+
+    /**
+     * Navigate to a child of the given {@code name}.
+     * @param name  name of the child
+     * @return  this default implementation return a non existing location
+     */
+    @Nonnull
     public TreeLocation getChild(String name) {
         return new NullLocation(this, name);
     }
 
     /**
-     * @return {@code null}
+     * Get the underlying {@link org.apache.jackrabbit.oak.api.Tree} for this {@code TreeLocation}.
+     * @return  this default implementation return {@code null}.
      */
-    @Override
+    @CheckForNull
     public Tree getTree() {
         return null;
     }
 
     /**
-     * @return {@code null}
+     * Get the underlying {@link org.apache.jackrabbit.oak.api.PropertyState} for this {@code TreeLocation}.
+     * @return  this default implementation return {@code null}.
      */
-    @Override
+    @CheckForNull
     public PropertyState getProperty() {
         return null;
     }
@@ -91,7 +138,7 @@ public abstract class TreeLocations implements TreeLocation {
      * This {@code TreeLocation} refers to child tree in a
      * {@code Tree}.
      */
-    private static class NodeLocation extends TreeLocations {
+    private static class NodeLocation extends TreeLocation {
         private final Tree tree;
 
         public NodeLocation(Tree tree) {
@@ -142,7 +189,7 @@ public abstract class TreeLocations implements TreeLocation {
      * This {@code TreeLocation} refers to property in a
      * {@code Tree}.
      */
-    private static class PropertyLocation extends TreeLocations {
+    private static class PropertyLocation extends TreeLocation {
         private final Tree parent;
         private final String name;
 
@@ -184,7 +231,7 @@ public abstract class TreeLocations implements TreeLocation {
      * This {@code TreeLocation} refers to an invalid location in a tree. That is
      * to a location where no item resides.
      */
-    private static final class NullLocation extends TreeLocations {
+    private static final class NullLocation extends TreeLocation {
         public static final NullLocation NULL = new NullLocation();
 
         private final TreeLocation parent;
