@@ -76,6 +76,10 @@ public class MongoStore implements SegmentStore {
     }
 
     @Override
+    public void close() {
+    }
+
+    @Override
     public synchronized Journal getJournal(String name) {
         Journal journal = journals.get(name);
         if (journal == null) {

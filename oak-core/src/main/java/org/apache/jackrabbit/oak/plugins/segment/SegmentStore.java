@@ -33,4 +33,6 @@ public interface SegmentStore {
 
     void deleteSegment(UUID segmentId);
 
+    void close();
+
 }
