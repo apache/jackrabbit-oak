@@ -60,7 +60,7 @@ public class MemoryDocumentStore implements DocumentStore {
         }
         Map<String, Object> copy = Utils.newMap();
         synchronized (n) {
-            copy.putAll(n);
+            Utils.deepCopyMap(n, copy);
         }
         return copy;
     }
@@ -73,7 +73,7 @@ public class MemoryDocumentStore implements DocumentStore {
         for (Map<String, Object> n : sub.values()) {
             Map<String, Object> copy = Utils.newMap();
             synchronized (n) {
-                copy.putAll(n);
+                Utils.deepCopyMap(n, copy);
             }
             list.add(copy);
             if (list.size() > limit) {
