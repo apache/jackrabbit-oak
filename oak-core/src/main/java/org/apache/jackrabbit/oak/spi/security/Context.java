@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.spi.security;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.core.TreeLocation;
+import org.apache.jackrabbit.oak.util.TreeLocation;
 
 /**
  * Context... TODO
