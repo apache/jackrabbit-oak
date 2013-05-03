@@ -22,17 +22,16 @@ import java.util.Collections;
 import java.util.Map;
 
 import javax.jcr.RepositoryException;
-import javax.jcr.observation.Event;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.slf4j.MarkerFactory;
+import org.apache.jackrabbit.api.observation.JackrabbitEvent;
 
 /**
  * TODO document
  */
-public class EventImpl implements Event {
-    private static final Logger log = LoggerFactory.getLogger(EventImpl.class);
+public class EventImpl implements JackrabbitEvent {
+
+    private final EventCollector collector;
+    private boolean externalAccessed = false;
 
     private final int type;
     private final String path;
@@ -41,8 +40,13 @@ public class EventImpl implements Event {
     private final Map<?, ?> info;
     private final long date;
     private final String userData;
+    private final boolean external;
 
-    public EventImpl(int type, String path, String userID, String identifier, Map<?, ?> info, long date, String userData) {
+    public EventImpl(
+            EventCollector collector,
+            int type, String path, String userID, String identifier,
+            Map<?, ?> info, long date, String userData, boolean external) {
+        this.collector = collector;
         this.type = type;
         this.path = path;
         this.userID = userID;
@@ -50,6 +54,7 @@ public class EventImpl implements Event {
         this.info = info == null ? Collections.emptyMap() : info;
         this.date = date;
         this.userData = userData;
+        this.external = external;
     }
 
     @Override
@@ -63,8 +68,14 @@ public class EventImpl implements Event {
     }
 
     @Override
-    public String getUserID() {
-        log.warn(MarkerFactory.getMarker("deprecation"), "Call to deprecated method getUserId");
+    public synchronized String getUserID() {
+        if (!externalAccessed) {
+            collector.userInfoAccessedWithoutExternalCheck();
+        }
+        if (external) {
+            collector.userInfoAccessedFromExternalEvent();
+        }
+        collector.userIDAccessed();
         return userID;
     }
 
@@ -80,13 +91,26 @@ public class EventImpl implements Event {
 
     @Override
     public String getUserData() throws RepositoryException {
-        log.warn(MarkerFactory.getMarker("deprecation"), "Call to deprecated method getUserData");
+        if (!externalAccessed) {
+            collector.userInfoAccessedWithoutExternalCheck();
+        }
+        if (external) {
+            collector.userInfoAccessedFromExternalEvent();
+        }
+        collector.userDataAccessed();
         return userData;
     }
 
     @Override
     public long getDate() throws RepositoryException {
         return date;
+    }
+
+    @Override
+    public synchronized boolean isExternal() {
+        externalAccessed = true;
+        collector.externalAccessed();
+        return external;
     }
 
     @Override
@@ -104,7 +128,8 @@ public class EventImpl implements Event {
                 (info == null ? that.info == null : info.equals(that.info)) &&
                 (path == null ? that.path == null : path.equals(that.path)) &&
                 (userID == null ? that.userID == null : userID.equals(that.userID)) &&
-                (userData == null ? that.userData == null : userData.equals(that.userData));
+                (userData == null ? that.userData == null : userData.equals(that.userData)) &&
+                external == that.external;
 
     }
 
@@ -130,6 +155,8 @@ public class EventImpl implements Event {
                 ", info=" + info +
                 ", date=" + date +
                 ", userData=" + userData +
+                ", external=" + external +
                 '}';
     }
+
 }
