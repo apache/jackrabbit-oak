@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.run;
+package org.apache.jackrabbit.oak.upgrade;
 
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertFalse;
@@ -44,13 +44,13 @@ import javax.jcr.nodetype.NodeTypeTemplate;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.core.RepositoryImpl;
-import org.apache.jackrabbit.core.RepositoryUpgrade;
 import org.apache.jackrabbit.core.config.RepositoryConfig;
 import org.apache.jackrabbit.mk.core.MicroKernelImpl;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.kernel.KernelNodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.upgrade.RepositoryUpgrade;
 import org.junit.Test;
 
 public class RepositoryUpgradeTest {
@@ -73,17 +73,18 @@ public class RepositoryUpgradeTest {
         File directory = new File("target", "upgrade");
         FileUtils.deleteQuietly(directory);
 
-        RepositoryConfig config = RepositoryConfig.install(directory);
-        RepositoryImpl source = RepositoryImpl.create(config);
+        File source = new File(directory, "source");
+        RepositoryConfig config = RepositoryConfig.install(source);
+        RepositoryImpl repository = RepositoryImpl.create(config);
         try {
-            createSourceContent(source);
+            createSourceContent(repository);
         } finally {
-            source.shutdown();
+            repository.shutdown();
         }
 
-        NodeStore store = new KernelNodeStore(new MicroKernelImpl());
-        RepositoryUpgrade.copy(directory, store);
-        Jcr jcr = new Jcr(new Oak(store));
+        NodeStore target = new KernelNodeStore(new MicroKernelImpl());
+        RepositoryUpgrade.copy(source, target);
+        Jcr jcr = new Jcr(new Oak(target));
         verifyTargetContent(jcr.createRepository());
     }
 
