@@ -37,6 +37,7 @@ public interface NodeTypeConstants extends JcrConstants {
      */
     String NT_REP_ROOT = "rep:root";
     String NT_REP_SYSTEM = "rep:system";
+    String NT_REP_NODE_TYPES = "rep:nodeTypes";
 
     /**
      * Additional name constants not present in JcrConstants
