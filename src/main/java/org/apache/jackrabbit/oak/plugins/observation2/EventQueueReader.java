@@ -55,7 +55,8 @@ public class EventQueueReader {
         this.namePathMapper = namePathMapper;
     }
 
-    public Iterator<Event> getEventBundle(final String id) {
+    public Iterator<Event> getEventBundle(
+            final EventCollector collector, final String id) {
         root.refresh();
 
         Iterator<Tree> events = getEvents(nextBundleId, id);
@@ -66,7 +67,7 @@ public class EventQueueReader {
         return Iterators.transform(events, new Function<Tree, Event>() {
             @Override
             public Event apply(Tree event) {
-                return createEvent(event, id);
+                return createEvent(collector, event, id);
             }
         });
     }
@@ -92,13 +93,15 @@ public class EventQueueReader {
         return null;
     }
 
-    private Event createEvent(Tree event, String id) {
+    private Event createEvent(EventCollector collector, Tree event, String id) {
         int type = (int) getLong(event, TYPE, 0);
         String path = getJcrPath(event);
         String userId = getString(event.getChild(id), USER_ID);
         long date = getLong(event, DATE, 0);
         String userData = getString(event.getChild(id), USER_DATA);
-        return new EventImpl(type, path, userId, id, Collections.emptyMap(), date, userData);
+        return new EventImpl(
+                collector, type, path, userId, id, Collections.emptyMap(),
+                date, userData, false);
     }
 
     private String getJcrPath(Tree event) {
