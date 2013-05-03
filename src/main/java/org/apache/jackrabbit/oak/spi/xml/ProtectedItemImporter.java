@@ -29,6 +29,11 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 public interface ProtectedItemImporter {
 
     /**
+     * Parameter name for the import behavior configuration option.
+     */
+    String PARAM_IMPORT_BEHAVIOR = "importBehavior";
+
+    /**
      * Initializes the importer.
      *
      * @param session The session that is running the import.
