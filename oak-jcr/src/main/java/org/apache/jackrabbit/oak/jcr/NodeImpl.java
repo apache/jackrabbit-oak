@@ -16,22 +16,11 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static java.util.Collections.singleton;
-import static javax.jcr.Property.JCR_LOCK_IS_DEEP;
-import static javax.jcr.Property.JCR_LOCK_OWNER;
-import static javax.jcr.PropertyType.UNDEFINED;
-import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
-import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
-import static org.apache.jackrabbit.oak.api.Type.NAME;
-import static org.apache.jackrabbit.oak.api.Type.NAMES;
-
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.util.Calendar;
 import java.util.Iterator;
 import java.util.Set;
-
 import javax.annotation.Nonnull;
 import javax.jcr.AccessDeniedException;
 import javax.jcr.Binary;
@@ -90,6 +79,16 @@ import org.apache.jackrabbit.oak.util.TODO;
 import org.apache.jackrabbit.value.ValueHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Collections.singleton;
+import static javax.jcr.Property.JCR_LOCK_IS_DEEP;
+import static javax.jcr.Property.JCR_LOCK_OWNER;
+import static javax.jcr.PropertyType.UNDEFINED;
+import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.oak.api.Type.NAME;
+import static org.apache.jackrabbit.oak.api.Type.NAMES;
 
 /**
  * TODO document
@@ -248,9 +247,9 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
                 // check for NODE_TYPE_MANAGEMENT permission here as we cannot
                 // distinguish between user-supplied and system-generated
                 // modification of that property in the PermissionValidator
-                if (oakTypeName != null &&
-                        !hasNtMgtPermission(JCR_PRIMARYTYPE, oakTypeName)) {
-                    throw new AccessDeniedException("Access denied.");
+                if (oakTypeName != null) {
+                    PropertyState prop = PropertyStates.createProperty(JCR_PRIMARYTYPE, oakTypeName, NAME);
+                    sessionContext.getAccessManager().checkPermissions(dlg.getTree(), prop, Permissions.NODE_TYPE_MANAGEMENT);
                 }
 
                 NodeDelegate added = parent.addChild(oakName, oakTypeName);
@@ -881,8 +880,8 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
         return perform(new ItemReadOperation<Boolean>() {
             @Override
             public Boolean perform() throws RepositoryException {
-                return hasNtMgtPermission(JCR_MIXINTYPES, oakTypeName)
-                        && dlg.canAddMixin(oakTypeName);
+                PropertyState prop = PropertyStates.createProperty(JCR_MIXINTYPES, singleton(oakTypeName), NAMES);
+                return sessionContext.getAccessManager().hasPermissions(dlg.getTree(), prop, Permissions.NODE_TYPE_MANAGEMENT) && dlg.canAddMixin(oakTypeName);
             }
         });
     }
@@ -1365,21 +1364,4 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Nod
             }
         });
     }
-
-    // TODO: Move to NodeDelegate?
-    private boolean hasNtMgtPermission(
-            String oakPropertyName, String oakTypeName)
-            throws RepositoryException {
-        PropertyState property;
-        if (JCR_MIXINTYPES.equals(oakPropertyName)) {
-            property = PropertyStates.createProperty(
-                    oakPropertyName, singleton(oakTypeName), NAMES);
-        } else {
-            property = PropertyStates.createProperty(
-                    oakPropertyName, oakTypeName, NAME);
-        }
-        return sessionContext.getPermissionProvider().isGranted(
-                dlg.getTree(), property, Permissions.NODE_TYPE_MANAGEMENT);
-    }
-
 }

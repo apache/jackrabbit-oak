@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.jcr;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.AccessDeniedException;
@@ -339,7 +338,7 @@ public class SessionImpl implements JackrabbitSession {
             public Void perform() throws RepositoryException {
                 sd.move(
                         getOakPathOrThrowNotFound(srcAbsPath),
-                        getOakPathOrThrowNotFound(destAbsPath), true);
+                        getOakPathOrThrowNotFound(destAbsPath), true, sessionContext.getAccessManager());
                 return null;
             }
         });
@@ -542,7 +541,7 @@ public class SessionImpl implements JackrabbitSession {
             @Override
             protected Boolean perform() throws RepositoryException {
                 String oakPath = getOakPathOrThrow(absPath);
-                return sessionContext.getPermissionProvider().isGranted(oakPath, actions);
+                return sessionContext.getAccessManager().hasPermissions(oakPath, actions);
             }
         });
     }
@@ -550,7 +549,7 @@ public class SessionImpl implements JackrabbitSession {
     @Override
     public void checkPermission(String absPath, String actions) throws RepositoryException {
         if (!hasPermission(absPath, actions)) {
-            throw new AccessControlException("Access control violation: path = " + absPath + ", actions = " + actions);
+            throw new AccessControlException("Access denied.");
         }
     }
 

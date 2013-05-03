@@ -16,12 +16,9 @@
  */
 package org.apache.jackrabbit.oak.jcr;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.jcr.PathNotFoundException;
@@ -40,6 +37,7 @@ import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
+import org.apache.jackrabbit.oak.jcr.security.AccessManager;
 import org.apache.jackrabbit.oak.namepath.LocalNameMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.namepath.NamePathMapperImpl;
@@ -53,6 +51,8 @@ import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.xml.ProtectedItemImporter;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Instances of this class are passed to all JCR implementation classes
@@ -178,15 +178,6 @@ public abstract class SessionContext implements NamePathMapper {
             accessControlManager = securityProvider.getAccessControlConfiguration().getAccessControlManager(delegate.getRoot(), namePathMapper);
         }
         return accessControlManager;
-    }
-
-    @Nonnull
-    public PermissionProvider getPermissionProvider() throws RepositoryException {
-        if (permissionProvider == null) {
-            SecurityProvider securityProvider = repository.getSecurityProvider();
-            permissionProvider = securityProvider.getAccessControlConfiguration().getPermissionProvider(delegate.getRoot(), delegate.getAuthInfo().getPrincipals());
-        }
-        return permissionProvider;
     }
 
     @Nonnull
@@ -327,7 +318,11 @@ public abstract class SessionContext implements NamePathMapper {
         }
     }
 
-    //------------------------------------------------------------< internal >---
+    //-----------------------------------------------------------< internal >---
+    @Nonnull
+    AccessManager getAccessManager() throws RepositoryException {
+        return new AccessManager(getPermissionProvider());
+    }
 
     void dispose() {
         if (observationManager != null) {
@@ -344,5 +339,15 @@ public abstract class SessionContext implements NamePathMapper {
         if (permissionProvider != null) {
             permissionProvider.refresh();
         }
+    }
+
+    //------------------------------------------------------------< private >---
+    @Nonnull
+    private PermissionProvider getPermissionProvider() {
+        if (permissionProvider == null) {
+            SecurityProvider securityProvider = repository.getSecurityProvider();
+            permissionProvider = securityProvider.getAccessControlConfiguration().getPermissionProvider(delegate.getRoot(), delegate.getAuthInfo().getPrincipals());
+        }
+        return permissionProvider;
     }
 }
