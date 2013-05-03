@@ -252,7 +252,7 @@ public class Oak {
         initHooks.add(new EditorHook(CompositeEditorProvider
                 .compose(editorProviders)));
 
-        // FIXME: move to proper workspace initialization
+        // FIXME: OAK-810 move to proper workspace initialization
         // initialize default workspace
         Iterable<WorkspaceInitializer> workspaceInitializers =
                 Iterables.transform(securityProvider.getSecurityConfigurations(),
